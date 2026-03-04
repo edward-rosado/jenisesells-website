@@ -571,6 +571,7 @@ allFields.forEach(field => {
 
 // ========== FORM SUBMISSION ==========
 document.getElementById('cmaForm').addEventListener('submit', function(e) {
+  e.preventDefault();
   let allValid = true;
 
   // Mark all fields as touched and validate
@@ -580,7 +581,6 @@ document.getElementById('cmaForm').addEventListener('submit', function(e) {
   });
 
   if (!allValid) {
-    e.preventDefault();
     // Scroll to first error
     const firstError = document.querySelector('.invalid');
     if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -602,6 +602,27 @@ document.getElementById('cmaForm').addEventListener('submit', function(e) {
   const btn = document.getElementById('submitBtn');
   btn.textContent = 'Sending...';
   btn.disabled = true;
+
+  // Submit via fetch and redirect to thank-you page
+  const form = document.getElementById('cmaForm');
+  const formData = new FormData(form);
+  fetch(form.action, {
+    method: 'POST',
+    body: formData,
+    headers: { 'Accept': 'application/json' }
+  }).then(function(response) {
+    if (response.ok) {
+      window.location.href = 'thank-you.html';
+    } else {
+      btn.textContent = 'Send Me My Free CMA \u2192';
+      btn.disabled = false;
+      alert('Something went wrong. Please try again or call (347) 393-5993.');
+    }
+  }).catch(function() {
+    btn.textContent = 'Send Me My Free CMA \u2192';
+    btn.disabled = false;
+    alert('Something went wrong. Please try again or call (347) 393-5993.');
+  });
 });
 </script>
 
