@@ -616,19 +616,14 @@ document.getElementById('cmaForm').addEventListener('submit', function(e) {
     headers: { 'Accept': 'application/json' }
   }).then(function(response) {
     if (response.ok) {
-      // Fire Google Ads conversion event
-      if (typeof gtag === 'function') {
-        gtag('event', 'conversion', {
-          'send_to': 'AW-17993027433/CMA_form_submit',
-          'event_callback': function() {
-            window.location.href = 'thank-you.html';
-          }
-        });
-        // Fallback redirect if gtag callback doesn't fire within 2 seconds
-        setTimeout(function() { window.location.href = 'thank-you.html'; }, 2000);
-      } else {
-        window.location.href = 'thank-you.html';
-      }
+      // Fire Google Ads conversion event (non-blocking)
+      try {
+        if (typeof gtag === 'function') {
+          gtag('event', 'conversion', { 'send_to': 'AW-17993027433/CMA_form_submit' });
+        }
+      } catch(e) {}
+      // Redirect to thank-you page immediately
+      window.location.href = 'thank-you.html';
     } else {
       btn.textContent = 'Get My Free Home Value Report \u2192';
       btn.disabled = false;
