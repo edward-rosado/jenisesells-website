@@ -46,8 +46,24 @@ export default async function AgentPage({ searchParams }: PageProps) {
     const cssVars = buildCssVariableStyle(agent.branding);
     const Template = getTemplate(content.template);
 
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "RealEstateAgent",
+      name: agent.identity.name,
+      telephone: agent.identity.phone,
+      email: agent.identity.email,
+      ...(agent.identity.website && { url: agent.identity.website }),
+      ...(agent.location.office_address && { address: agent.location.office_address }),
+      ...(agent.location.service_areas && { areaServed: agent.location.service_areas }),
+      ...(agent.identity.headshot_url && { image: agent.identity.headshot_url }),
+    };
+
     return (
       <div style={cssVars as React.CSSProperties}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <Analytics tracking={agent.integrations?.tracking} />
         <Template agent={agent} content={content} />
       </div>

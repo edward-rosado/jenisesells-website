@@ -1,11 +1,11 @@
 import type { AgentBranding } from "./types";
 
-const DEFAULTS: Required<AgentBranding> = {
+const DEFAULTS = {
   primary_color: "#1B5E20",
   secondary_color: "#2E7D32",
   accent_color: "#C8A951",
   font_family: "Segoe UI",
-};
+} as const;
 
 const VALID_HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
 const SAFE_FONT_FAMILY = /^[a-zA-Z0-9 ,\-]+$/;

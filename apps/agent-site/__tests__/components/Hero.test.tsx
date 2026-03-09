@@ -76,4 +76,22 @@ describe("Hero", () => {
     const { container } = render(<Hero data={BASE_DATA} />);
     expect(container.querySelector("section")).toBeInTheDocument();
   });
+
+  it("does not render agent photo when agentPhotoUrl is not provided", () => {
+    render(<Hero data={BASE_DATA} />);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("renders agent photo with next/image when agentPhotoUrl is provided", () => {
+    render(<Hero data={BASE_DATA} agentPhotoUrl="/photos/agent.jpg" agentName="Jane Smith" />);
+    const img = screen.getByRole("img");
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("alt", "Photo of Jane Smith");
+  });
+
+  it("uses fallback alt text when agentName is not provided", () => {
+    render(<Hero data={BASE_DATA} agentPhotoUrl="/photos/agent.jpg" />);
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("alt", "Agent photo");
+  });
 });
