@@ -66,17 +66,17 @@ The profile conforms to `config/agent.schema.json` and provides all tenant-speci
 
 ## AUTOMATED WORKFLOW
 
-When the agent pastes a lead form submission (or provides a property address and seller info), the FULL automation kicks in:
+The .NET API drives the full CMA pipeline. A single `POST /agents/{id}/cma` request triggers the entire automation:
 
 1. Load the agent config
 2. Parse the lead info
-3. Research comparable sales via web search
-4. Generate the CMA PDF
-5. Draft a personalized response email
-6. AUTO-SEND the email via the agent's configured email provider
-7. Present the CMA PDF for the agent to review
+3. Research comparable sales
+4. Generate the CMA PDF (QuestPDF)
+5. Create a Lead Brief in Google Drive
+6. Draft and send a personalized email with the CMA attached
+7. Report progress via real-time WebSocket updates
 
-**This is fully automated.** Once the agent pastes the lead info, do NOT ask clarifying questions — just run the entire pipeline.
+**This is fully automated.** The API handles the entire pipeline end-to-end. WebSocket clients receive step-by-step progress events throughout execution.
 
 ## What You Need
 
@@ -120,7 +120,7 @@ For each comp, find:
 
 ### 4. Generate the CMA PDF
 
-Use Python with reportlab to create a polished, branded PDF.
+The .NET API uses QuestPDF to create a polished, branded PDF.
 
 **Page 1 — Cover Page**
 - Title: "Comparative Market Analysis"
@@ -198,15 +198,18 @@ If `{agent.identity.tagline}` is set, append it as the final line of the signatu
 
 ### 7. Send via Email Provider
 
-Use the agent's configured email provider (`{agent.integrations.email_provider}`) to create and send the email:
+The API uses `gws gmail` (Google Workspace Gmail API) to send the email with the CMA PDF attached:
 
 | Provider | Method |
 |----------|--------|
-| `gmail` | Use `gmail_create_draft` to create the draft, then inform the agent to attach the PDF and send |
-| `outlook` | Use the Outlook MCP integration (when available) |
-| `smtp` | Use Python `smtplib` with configured SMTP credentials |
+| `gmail` | `gws gmail` — sends directly via the Google Workspace API with the PDF attachment |
+| `outlook` | Outlook integration (when available) |
 
 If the provider is unsupported or not configured, fall back to creating the draft text and instructing the agent to send manually.
+
+### 8. Lead Brief
+
+The pipeline also creates a Lead Brief document in Google Drive containing the lead's info, CMA summary, and next steps. This gives the agent a quick-reference doc for follow-up.
 
 ## State-Specific Notes
 
