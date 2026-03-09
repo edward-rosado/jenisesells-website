@@ -24,7 +24,7 @@ public class CmaJobTests
     [Fact]
     public void NewJob_HasParsingStatus()
     {
-        var job = CmaJob.Create(Guid.NewGuid(), CreateTestLead());
+        var job = CmaJob.Create("test-agent", CreateTestLead());
 
         job.Status.Should().Be(CmaJobStatus.Parsing);
         job.Step.Should().Be(0);
@@ -37,7 +37,7 @@ public class CmaJobTests
     [Fact]
     public void AdvanceStep_UpdatesStatusAndStep()
     {
-        var job = CmaJob.Create(Guid.NewGuid(), CreateTestLead());
+        var job = CmaJob.Create("test-agent", CreateTestLead());
 
         job.AdvanceTo(CmaJobStatus.SearchingComps);
 
@@ -116,7 +116,7 @@ public class CmaJobTests
     [Fact]
     public void CmaJob_TotalSteps_IsNine()
     {
-        var job = CmaJob.Create(Guid.NewGuid(), CreateTestLead());
+        var job = CmaJob.Create("test-agent", CreateTestLead());
         job.TotalSteps.Should().Be(9);
     }
 
@@ -136,5 +136,54 @@ public class CmaJobTests
     public void ReportType_IsStandard_For3To6Months()
     {
         CmaJob.GetReportType("3-6 months").Should().Be(ReportType.Standard);
+    }
+
+    [Fact]
+    public void AdvanceTo_ThrowsOnBackwardTransition()
+    {
+        var job = CmaJob.Create("test-agent", CreateTestLead());
+        job.AdvanceTo(CmaJobStatus.Analyzing);
+
+        var act = () => job.AdvanceTo(CmaJobStatus.SearchingComps);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Cannot transition backward from Analyzing to SearchingComps");
+    }
+
+    [Fact]
+    public void AdvanceTo_ThrowsOnSameStatus()
+    {
+        var job = CmaJob.Create("test-agent", CreateTestLead());
+        job.AdvanceTo(CmaJobStatus.SearchingComps);
+
+        var act = () => job.AdvanceTo(CmaJobStatus.SearchingComps);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Cannot transition backward from SearchingComps to SearchingComps");
+    }
+
+    [Fact]
+    public void AdvanceTo_ThrowsOnFailedJob()
+    {
+        var job = CmaJob.Create("test-agent", CreateTestLead());
+        job.Fail("Something went wrong");
+
+        var act = () => job.AdvanceTo(CmaJobStatus.Complete);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Cannot advance a failed job");
+    }
+
+    [Fact]
+    public void AdvanceTo_AllowsForwardTransition()
+    {
+        var job = CmaJob.Create("test-agent", CreateTestLead());
+
+        job.AdvanceTo(CmaJobStatus.SearchingComps);
+        job.AdvanceTo(CmaJobStatus.Analyzing);
+        job.AdvanceTo(CmaJobStatus.Complete);
+
+        job.Status.Should().Be(CmaJobStatus.Complete);
+        job.CompletedAt.Should().NotBeNull();
     }
 }

@@ -33,7 +33,7 @@ public class InMemoryCmaJobStoreTests
     };
 
     private static CmaJob MakeJob() =>
-        CmaJob.Create(Guid.NewGuid(), MakeLead());
+        CmaJob.Create(Guid.NewGuid().ToString(), MakeLead());
 
     [Fact]
     public void Set_And_Get_RoundTrips()

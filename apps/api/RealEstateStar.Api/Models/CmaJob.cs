@@ -24,7 +24,7 @@ public enum ReportType
 public class CmaJob
 {
     public Guid Id { get; init; }
-    public Guid AgentId { get; init; }
+    public required string AgentId { get; init; }
     public required Lead Lead { get; init; }
     public CmaJobStatus Status { get; private set; }
     public int Step { get; private set; }
@@ -39,7 +39,7 @@ public class CmaJob
     public DateTime CreatedAt { get; init; }
     public DateTime? CompletedAt { get; set; }
 
-    public static CmaJob Create(Guid agentId, Lead lead) => new()
+    public static CmaJob Create(string agentId, Lead lead) => new()
     {
         Id = Guid.NewGuid(),
         AgentId = agentId,
@@ -52,6 +52,11 @@ public class CmaJob
 
     public void AdvanceTo(CmaJobStatus status)
     {
+        if (Status == CmaJobStatus.Failed)
+            throw new InvalidOperationException("Cannot advance a failed job");
+        if (status <= Status)
+            throw new InvalidOperationException($"Cannot transition backward from {Status} to {status}");
+
         Status = status;
         Step = (int)status;
 

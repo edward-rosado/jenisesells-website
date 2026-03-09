@@ -18,7 +18,7 @@ public class ClaudeApiHealthCheck(IHttpClientFactory httpClientFactory) : IHealt
         }
         catch (Exception ex)
         {
-            return Task.FromResult(HealthCheckResult.Unhealthy("Claude API unreachable", ex)).Result;
+            return HealthCheckResult.Unhealthy("Claude API unreachable", ex);
         }
     }
 }

@@ -109,7 +109,7 @@ public class CmaPipeline(
             stepSw.Restart();
             var tempDir = Path.Combine(Path.GetTempPath(), "cma", job.Id.ToString());
             Directory.CreateDirectory(tempDir);
-            pdfPath = Path.Combine(tempDir, $"CMA-{lead.LastName}-{lead.Address.Replace(" ", "-")}.pdf");
+            pdfPath = Path.Combine(tempDir, $"CMA-{SanitizeFileName(lead.LastName)}-{SanitizeFileName(lead.Address)}.pdf");
             pdf.Generate(pdfPath, agent, lead, comps, cmaAnalysis, leadResearch, job.ReportType, ct);
             stepSw.Stop();
             RecordStepDuration("GeneratingPdf", stepSw.ElapsedMilliseconds);
@@ -279,6 +279,10 @@ public class CmaPipeline(
         job.AdvanceTo(status);
         await onStatusChange(status);
     }
+
+    private static string SanitizeFileName(string input) =>
+        Path.GetInvalidFileNameChars()
+            .Aggregate(input.Replace(" ", "-"), (current, c) => current.Replace(c, '_'));
 
     private static string BuildEmailBody(AgentConfig agent, Lead lead, CmaAnalysis analysis)
     {
