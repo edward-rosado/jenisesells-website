@@ -16,3 +16,13 @@ export function buildCssVariables(branding: AgentBranding): string {
     `--font-family: '${merged.font_family}'`,
   ].join("; ");
 }
+
+export function buildCssVariableStyle(branding: AgentBranding): Record<string, string> {
+  const merged = { ...DEFAULTS, ...branding };
+  return {
+    "--color-primary": merged.primary_color!,
+    "--color-secondary": merged.secondary_color!,
+    "--color-accent": merged.accent_color!,
+    "--font-family": `'${merged.font_family}'`,
+  };
+}
