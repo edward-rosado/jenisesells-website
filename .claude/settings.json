@@ -1,0 +1,7 @@
+{
+  "plugins": [
+    "superpowers",
+    "everything-claude-code",
+    "figma"
+  ]
+}
