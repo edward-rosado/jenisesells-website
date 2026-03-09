@@ -14,36 +14,78 @@ CMA market analysis email — proving the platform's value in seconds.
 
 ## User Journey
 
+### Data-First Onboarding
+
+The AI proactively scrapes public real estate profiles BEFORE asking questions.
+When an agent provides a Zillow, Realtor.com, or similar profile URL, the AI
+extracts everything available:
+
+**Extractable from Zillow/Realtor.com profiles:**
+- Name, title, brokerage, license number
+- Phone, email, website
+- Headshot photo
+- Service areas and office address
+- Years of experience
+- Homes sold count and active/sold listings (address, price, photos)
+- Reviews/testimonials (text, rating, reviewer name)
+- Specialties, designations, languages
+- Bio text
+
+This can fill 80-90% of both Pass 1 and Pass 2 from a single URL.
+The AI only asks for what it couldn't find.
+
 ```
 1.  Agent receives invite link
 2.  Opens branded chat UI in portal (apps/portal)
-3.  PASS 1 — GO LIVE + WOW MOMENT (~10 minutes):
-    a. AI collects identity (name, license, brokerage, phone, email)
-    b. AI collects branding (agent uploads logo, business card, or existing site URL)
-    c. AI extracts colors/fonts from uploaded materials, confirms with agent
-    d. AI collects location (state, office address, service areas)
-    e. AI sets up email integration (Gmail/Outlook connection)
-    f. AI generates agent config + minimal site content
-    g. PR created → AI code review → preview URL generated
-    h. Agent sees preview in chat, approves
-    i. PR merges → production deploy → subdomain live
-    j. AI embeds agent's live site in chat with CMA form pre-filled
+3.  PASS 1 — GO LIVE + WOW MOMENT (~5 minutes):
+    a. AI asks for profile URLs: Zillow, Realtor.com, MLS site, or any combo
+    b. AI scrapes all provided profiles — extracts identity, location, stats,
+       reviews, sold homes, listings, bio, headshot, and everything available
+       (merges data across sources, MLS provides richest listing data)
+    c. AI presents: "Here's what I found" — agent confirms or corrects
+    d. AI asks for logo upload (for brand color extraction)
+       - If agent has existing website, AI scrapes colors from there too
+    e. AI extracts colors/fonts, confirms palette with agent
+    f. AI sets up email integration (Gmail/Outlook connection)
+    g. AI generates agent config + content (mostly from scraped data)
+    h. PR created → AI code review → preview URL generated
+    i. Agent sees preview in chat, approves
+    j. PR merges → production deploy → subdomain live
+    k. AI embeds agent's live site in chat with CMA form pre-filled
        (sample property from agent's service area)
-    k. AI instructs agent: "Click submit to see the magic"
-    l. Agent clicks submit
-    m. CMA generates → PDF email arrives in agent's inbox instantly
-    n. WOW MOMENT — agent is hooked
+    l. AI instructs agent: "Click submit to see the magic"
+    m. Agent clicks submit
+    n. CMA generates → PDF email arrives in agent's inbox instantly
+    o. WOW MOMENT — agent is hooked
 
-4.  PASS 2 — ENRICH (at agent's pace, days/weeks later):
-    a. AI follows up for full bio / about text
-    b. Testimonials (paste from Zillow/Google or manual entry)
-    c. Sold homes (MLS numbers or manual)
-    d. Custom services list
-    e. Stats (years experience, homes sold, rating)
-    f. Lead capture preferences (CMA form, contact form, both)
-    g. City-specific landing pages for SEO
-    h. Each update → PR → AI review → preview → approve → merge
+    Minimum agent input: profile URL + logo upload + email connect + one click
+
+4.  PASS 2 — ENRICH (only what the scraper couldn't find):
+    a. AI identifies gaps from Pass 1 scrape
+    b. Only asks for missing data — e.g.:
+       - Additional testimonials not on Zillow
+       - Sold homes not in public records
+       - Custom services beyond defaults
+       - City-specific landing page content for SEO
+       - Lead capture preferences (CMA form, contact form, both)
+    c. For many agents, Pass 2 may be minimal or unnecessary
+    d. Each update → PR → AI review → preview → approve → merge
 ```
+
+### Supported Profile Sources
+
+| Source | What We Can Extract |
+|--------|-------------------|
+| Zillow Agent Profile | Name, brokerage, phone, email, headshot, reviews, sold homes, bio, stats, service areas |
+| Realtor.com Profile | Name, brokerage, phone, email, headshot, reviews, sold/active listings, bio, specialties |
+| MLS Site (NJMLS, GSMLS, etc.) | Active/sold listings, property details, photos, pricing history, MLS numbers |
+| Agent's Existing Website | Colors, fonts, logo, bio text, contact info, testimonials, listings |
+| Google Business Profile | Reviews, phone, address, hours, photos |
+| Business Card (upload) | Name, phone, email, brokerage, logo, brand colors |
+
+The AI tries each available source and merges data, preferring the most
+complete/recent version of each field. Conflicts are presented to the agent
+for resolution.
 
 ## Architecture
 
