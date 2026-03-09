@@ -10,7 +10,8 @@ public enum CmaJobStatus
     OrganizingDrive = 5,
     SendingEmail = 6,
     Logging = 7,
-    Complete = 8
+    Complete = 8,
+    Failed = 9
 }
 
 public enum ReportType
@@ -34,6 +35,7 @@ public class CmaJob
     public CmaAnalysis? Analysis { get; set; }
     public string? PdfPath { get; set; }
     public string? DriveLink { get; set; }
+    public string? ErrorMessage { get; private set; }
     public DateTime CreatedAt { get; init; }
     public DateTime? CompletedAt { get; set; }
 
@@ -55,6 +57,12 @@ public class CmaJob
 
         if (status == CmaJobStatus.Complete)
             CompletedAt = DateTime.UtcNow;
+    }
+
+    public void Fail(string errorMessage)
+    {
+        Status = CmaJobStatus.Failed;
+        ErrorMessage = errorMessage;
     }
 
     public static ReportType GetReportType(string timeline) => timeline switch

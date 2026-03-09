@@ -18,18 +18,16 @@ public class CmaPipeline(
     IGwsService gws,
     ILogger<CmaPipeline>? logger = null)
 {
-    public async Task<CmaJob?> ExecuteAsync(string agentId, Lead lead, Action<CmaJobStatus> onStatusChange)
+    public async Task ExecuteAsync(CmaJob job, string agentId, Lead lead, Action<CmaJobStatus> onStatusChange)
     {
         // Step 1: Load agent config
         var agent = await agentConfig.GetAgentAsync(agentId);
         if (agent is null)
         {
             logger?.LogWarning("Agent {AgentId} not found — aborting pipeline", agentId);
-            return null;
+            return;
         }
 
-        var agentGuid = Guid.TryParse(agent.Id, out var parsed) ? parsed : ToGuid(agent.Id);
-        var job = CmaJob.Create(agentGuid, lead);
         Advance(job, CmaJobStatus.SearchingComps, onStatusChange);
 
         // Steps 2+3 in parallel: fetch comps + research lead
@@ -164,8 +162,6 @@ public class CmaPipeline(
 
         // Mark complete
         Advance(job, CmaJobStatus.Complete, onStatusChange);
-
-        return job;
     }
 
     private static void Advance(CmaJob job, CmaJobStatus status, Action<CmaJobStatus> onStatusChange)
@@ -173,9 +169,6 @@ public class CmaPipeline(
         job.AdvanceTo(status);
         onStatusChange(status);
     }
-
-    private static Guid ToGuid(string value) =>
-        new(System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(value)));
 
     private static string BuildEmailBody(AgentConfig agent, Lead lead, CmaAnalysis analysis)
     {

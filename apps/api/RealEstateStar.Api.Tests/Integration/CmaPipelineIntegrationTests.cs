@@ -156,17 +156,16 @@ public class CmaPipelineIntegrationTests
         };
 
         var statusLog = new List<CmaJobStatus>();
-        CmaJob? job = null;
+        var job = CmaJob.Create(Guid.NewGuid(), lead);
 
         try
         {
             // Act
-            job = await pipeline.ExecuteAsync("jenise-buckalew", lead,
+            await pipeline.ExecuteAsync(job, "jenise-buckalew", lead,
                 status => statusLog.Add(status));
 
             // Assert — job basics
-            job.Should().NotBeNull();
-            job!.Status.Should().Be(CmaJobStatus.Complete);
+            job.Status.Should().Be(CmaJobStatus.Complete);
             job.Comps.Should().HaveCount(2);
             job.Analysis.Should().NotBeNull();
             job.PdfPath.Should().NotBeNullOrWhiteSpace();
