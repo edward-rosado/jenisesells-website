@@ -4,9 +4,9 @@ using RealEstateStar.Api.Services;
 
 namespace RealEstateStar.Api.Endpoints;
 
-public static class GetLeadsEndpoint
+public class GetLeadsEndpoint : IEndpoint
 {
-    public static RouteHandlerBuilder Map(IEndpointRouteBuilder app) =>
+    public void Map(IEndpointRouteBuilder app) =>
         app.MapGet("/agents/{agentId}/leads", Handle);
 
     private static IResult Handle(string agentId, int? skip, int? take, ICmaJobStore store, HttpContext httpContext)

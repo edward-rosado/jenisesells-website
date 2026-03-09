@@ -4,9 +4,9 @@ using RealEstateStar.Api.Services;
 
 namespace RealEstateStar.Api.Endpoints;
 
-public static class GetCmaStatusEndpoint
+public class GetCmaStatusEndpoint : IEndpoint
 {
-    public static RouteHandlerBuilder Map(IEndpointRouteBuilder app) =>
+    public void Map(IEndpointRouteBuilder app) =>
         app.MapGet("/agents/{agentId}/cma/{jobId}/status", Handle);
 
     private static IResult Handle(string agentId, string jobId, ICmaJobStore store, HttpContext httpContext)

@@ -177,9 +177,7 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 app.MapHub<CmaProgressHub>("/hubs/cma-progress");
 
 // --- CMA Endpoints ---
-CreateCmaEndpoint.Map(app);
-GetCmaStatusEndpoint.Map(app);
-GetLeadsEndpoint.Map(app);
+app.MapEndpoints();
 
 app.Run();
 

@@ -8,9 +8,9 @@ using RealEstateStar.Api.Services;
 
 namespace RealEstateStar.Api.Endpoints;
 
-public static class CreateCmaEndpoint
+public class CreateCmaEndpoint : IEndpoint
 {
-    public static RouteHandlerBuilder Map(IEndpointRouteBuilder app) =>
+    public void Map(IEndpointRouteBuilder app) =>
         app.MapPost("/agents/{agentId}/cma", Handle)
             .RequireRateLimiting("cma-create");
 
