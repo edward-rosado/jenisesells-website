@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.SignalR;
+using RealEstateStar.Api.Hubs;
 using RealEstateStar.Api.Models;
 using RealEstateStar.Api.Services;
 using RealEstateStar.Api.Services.Analysis;
@@ -42,6 +44,9 @@ builder.Services.AddSingleton<IAnalysisService>(sp =>
         builder.Configuration["Anthropic:ApiKey"] ?? "",
         sp.GetService<ILogger<ClaudeAnalysisService>>()));
 
+// Pipeline orchestrator
+builder.Services.AddSingleton<CmaPipeline>();
+
 // Job store
 builder.Services.AddSingleton<ICmaJobStore, InMemoryCmaJobStore>();
 
@@ -52,15 +57,49 @@ var app = builder.Build();
 
 app.UseHttpsRedirection();
 
+// SignalR hub
+app.MapHub<CmaProgressHub>("/hubs/cma-progress");
+
 // --- CMA Endpoints ---
 
-app.MapPost("/agents/{agentId}/cma", (string agentId, Lead lead, ICmaJobStore store) =>
+app.MapPost("/agents/{agentId}/cma", (
+    string agentId,
+    Lead lead,
+    ICmaJobStore store,
+    CmaPipeline pipeline,
+    IHubContext<CmaProgressHub> hubContext,
+    ILogger<Program> logger) =>
 {
     var job = CmaJob.Create(Guid.Empty, lead);
     store.Set(agentId, job);
 
-    // TODO: Fire CmaPipeline in background once Task 12 is complete
-    // Task.Run(() => pipeline.RunAsync(agentId, job));
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            var result = await pipeline.ExecuteAsync(agentId, lead, status =>
+            {
+                job.AdvanceTo(status);
+                store.Set(agentId, job);
+
+                hubContext.Clients.Group(job.Id.ToString())
+                    .SendAsync("StatusUpdate", new
+                    {
+                        status = status.ToString().ToLowerInvariant(),
+                        step = (int)status + 1,
+                        totalSteps = 9,
+                        message = GetStatusMessage(status)
+                    });
+            });
+
+            if (result != null)
+                store.Set(agentId, result);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "CMA pipeline failed for agent {AgentId}, job {JobId}", agentId, job.Id);
+        }
+    });
 
     return Results.Accepted(value: new { jobId = job.Id.ToString(), status = "processing" });
 });
