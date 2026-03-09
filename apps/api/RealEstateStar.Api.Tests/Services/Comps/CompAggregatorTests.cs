@@ -32,13 +32,13 @@ public class CompAggregatorTests
         var source1 = new Mock<ICompSource>();
         source1.Setup(s => s.Name).Returns("Zillow");
         source1.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>()))
+                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([comp]);
 
         var source2 = new Mock<ICompSource>();
         source2.Setup(s => s.Name).Returns("Redfin");
         source2.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>()))
+                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([duplicate]);
 
         var aggregator = new CompAggregator([source1.Object, source2.Object]);
@@ -57,13 +57,13 @@ public class CompAggregatorTests
         var mlsSource = new Mock<ICompSource>();
         mlsSource.Setup(s => s.Name).Returns("MLS");
         mlsSource.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>()))
+                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([mlsComp]);
 
         var zillowSource = new Mock<ICompSource>();
         zillowSource.Setup(s => s.Name).Returns("Zillow");
         zillowSource.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>()))
+                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([zillowComp]);
 
         var aggregator = new CompAggregator([mlsSource.Object, zillowSource.Object]);
@@ -83,13 +83,13 @@ public class CompAggregatorTests
         var failingSource = new Mock<ICompSource>();
         failingSource.Setup(s => s.Name).Returns("Zillow");
         failingSource.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>()))
+                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Connection refused"));
 
         var workingSource = new Mock<ICompSource>();
         workingSource.Setup(s => s.Name).Returns("Redfin");
         workingSource.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>()))
+                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([comp]);
 
         var aggregator = new CompAggregator([failingSource.Object, workingSource.Object]);

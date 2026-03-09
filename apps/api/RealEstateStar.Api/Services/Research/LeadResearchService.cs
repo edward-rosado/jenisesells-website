@@ -5,11 +5,11 @@ namespace RealEstateStar.Api.Services.Research;
 
 public class LeadResearchService(HttpClient httpClient, ILogger<LeadResearchService>? logger = null) : ILeadResearchService
 {
-    public async Task<LeadResearch> ResearchAsync(Lead lead)
+    public async Task<LeadResearch> ResearchAsync(Lead lead, CancellationToken ct = default)
     {
-        var publicRecordsTask = FetchPublicRecordsAsync(lead);
-        var linkedInTask = FetchLinkedInAsync(lead);
-        var neighborhoodTask = FetchNeighborhoodAsync(lead);
+        var publicRecordsTask = FetchPublicRecordsAsync(lead, ct);
+        var linkedInTask = FetchLinkedInAsync(lead, ct);
+        var neighborhoodTask = FetchNeighborhoodAsync(lead, ct);
 
         await Task.WhenAll(publicRecordsTask, linkedInTask, neighborhoodTask);
 
@@ -58,13 +58,13 @@ public class LeadResearchService(HttpClient httpClient, ILogger<LeadResearchServ
         return research;
     }
 
-    private async Task<LeadResearch?> FetchPublicRecordsAsync(Lead lead)
+    private async Task<LeadResearch?> FetchPublicRecordsAsync(Lead lead, CancellationToken ct = default)
     {
         try
         {
             logger?.LogInformation("Fetching public records for {Address}", lead.FullAddress);
             var url = $"https://api.publicrecords.example.com/property?address={Uri.EscapeDataString(lead.FullAddress)}";
-            var response = await httpClient.GetStringAsync(url);
+            var response = await httpClient.GetStringAsync(url, ct);
             logger?.LogInformation("Public records fetched for {Address}", lead.FullAddress);
             // TODO: Parse actual response when API is integrated
             return null;
@@ -76,13 +76,13 @@ public class LeadResearchService(HttpClient httpClient, ILogger<LeadResearchServ
         }
     }
 
-    private async Task<LeadResearch?> FetchLinkedInAsync(Lead lead)
+    private async Task<LeadResearch?> FetchLinkedInAsync(Lead lead, CancellationToken ct = default)
     {
         try
         {
             logger?.LogInformation("Fetching LinkedIn data for {Name}", lead.FullName);
             var url = $"https://api.linkedin.example.com/profile?name={Uri.EscapeDataString(lead.FullName)}";
-            var response = await httpClient.GetStringAsync(url);
+            var response = await httpClient.GetStringAsync(url, ct);
             logger?.LogInformation("LinkedIn data fetched for {Name}", lead.FullName);
             // TODO: Parse actual response when API is integrated
             return null;
@@ -94,13 +94,13 @@ public class LeadResearchService(HttpClient httpClient, ILogger<LeadResearchServ
         }
     }
 
-    private async Task<LeadResearch?> FetchNeighborhoodAsync(Lead lead)
+    private async Task<LeadResearch?> FetchNeighborhoodAsync(Lead lead, CancellationToken ct = default)
     {
         try
         {
             logger?.LogInformation("Fetching neighborhood data for {City}, {State}", lead.City, lead.State);
             var url = $"https://api.neighborhood.example.com/context?city={Uri.EscapeDataString(lead.City)}&state={Uri.EscapeDataString(lead.State)}&zip={Uri.EscapeDataString(lead.Zip)}";
-            var response = await httpClient.GetStringAsync(url);
+            var response = await httpClient.GetStringAsync(url, ct);
             logger?.LogInformation("Neighborhood data fetched for {City}, {State}", lead.City, lead.State);
             // TODO: Parse actual response when API is integrated
             return null;

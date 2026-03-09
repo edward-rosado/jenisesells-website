@@ -87,11 +87,11 @@ app.MapPost("/agents/{agentId}/cma", (
     {
         try
         {
-            await pipeline.ExecuteAsync(job, agentId, lead, status =>
+            await pipeline.ExecuteAsync(job, agentId, lead, async status =>
             {
                 store.Set(agentId, job);
 
-                hubContext.Clients.Group(job.Id.ToString())
+                await hubContext.Clients.Group(job.Id.ToString())
                     .SendAsync("StatusUpdate", new
                     {
                         status = status.ToString().ToLowerInvariant(),

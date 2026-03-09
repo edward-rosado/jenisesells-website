@@ -11,7 +11,7 @@ public class ClaudeAnalysisService(HttpClient httpClient, string apiKey, ILogger
     private const string Model = "claude-sonnet-4-6";
     private const int MaxTokens = 4096;
 
-    public async Task<CmaAnalysis> AnalyzeAsync(Lead lead, List<Comp> comps, LeadResearch? research, ReportType reportType)
+    public async Task<CmaAnalysis> AnalyzeAsync(Lead lead, List<Comp> comps, LeadResearch? research, ReportType reportType, CancellationToken ct = default)
     {
         var prompt = BuildPrompt(lead, comps, research, reportType);
 
@@ -35,10 +35,10 @@ public class ClaudeAnalysisService(HttpClient httpClient, string apiKey, ILogger
         request.Headers.Add("x-api-key", apiKey);
         request.Headers.Add("anthropic-version", "2023-06-01");
 
-        var response = await httpClient.SendAsync(request);
+        var response = await httpClient.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
 
-        var responseJson = await response.Content.ReadAsStringAsync();
+        var responseJson = await response.Content.ReadAsStringAsync(ct);
 
         logger?.LogInformation("Received Claude analysis response for {Address}", lead.FullAddress);
 

@@ -9,14 +9,15 @@ public class RealtorComCompSource(HttpClient httpClient, ILogger<RealtorComCompS
 
     public async Task<List<Comp>> FetchAsync(
         string address, string city, string state, string zip,
-        int? beds, int? baths, int? sqft)
+        int? beds, int? baths, int? sqft,
+        CancellationToken ct = default)
     {
         var slug = $"{address.Replace(' ', '-')}_{city}_{state}_{zip}".ToLowerInvariant();
         var url = $"https://www.realtor.com/realestateandhomes-detail/{slug}";
 
         logger?.LogInformation("Fetching Realtor.com comps from {Url}", url);
 
-        var html = await httpClient.GetStringAsync(url);
+        var html = await httpClient.GetStringAsync(url, ct);
 
         return ParseComps(html);
     }

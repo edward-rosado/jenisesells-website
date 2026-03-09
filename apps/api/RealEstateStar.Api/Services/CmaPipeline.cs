@@ -18,23 +18,23 @@ public class CmaPipeline(
     IGwsService gws,
     ILogger<CmaPipeline>? logger = null)
 {
-    public async Task ExecuteAsync(CmaJob job, string agentId, Lead lead, Action<CmaJobStatus> onStatusChange)
+    public async Task ExecuteAsync(CmaJob job, string agentId, Lead lead, Func<CmaJobStatus, Task> onStatusChange, CancellationToken ct = default)
     {
         // Step 1: Load agent config
-        var agent = await agentConfig.GetAgentAsync(agentId);
+        var agent = await agentConfig.GetAgentAsync(agentId, ct);
         if (agent is null)
         {
             logger?.LogWarning("Agent {AgentId} not found — aborting pipeline", agentId);
             return;
         }
 
-        Advance(job, CmaJobStatus.SearchingComps, onStatusChange);
+        await AdvanceAsync(job, CmaJobStatus.SearchingComps, onStatusChange);
 
         // Steps 2+3 in parallel: fetch comps + research lead
         var compsTask = compAggregator.FetchCompsAsync(
             lead.Address, lead.City, lead.State, lead.Zip,
-            lead.Beds, lead.Baths, lead.Sqft);
-        var researchTask = research.ResearchAsync(lead);
+            lead.Beds, lead.Baths, lead.Sqft, ct);
+        var researchTask = research.ResearchAsync(lead, ct);
 
         await Task.WhenAll(compsTask, researchTask);
 
@@ -46,27 +46,27 @@ public class CmaPipeline(
         job.LeadResearch = leadResearch;
 
         // Step 4: Claude analysis
-        Advance(job, CmaJobStatus.Analyzing, onStatusChange);
-        var cmaAnalysis = await analysis.AnalyzeAsync(lead, comps, leadResearch, job.ReportType);
+        await AdvanceAsync(job, CmaJobStatus.Analyzing, onStatusChange);
+        var cmaAnalysis = await analysis.AnalyzeAsync(lead, comps, leadResearch, job.ReportType, ct);
         job.Analysis = cmaAnalysis;
 
         // Step 5: Generate PDF
-        Advance(job, CmaJobStatus.GeneratingPdf, onStatusChange);
+        await AdvanceAsync(job, CmaJobStatus.GeneratingPdf, onStatusChange);
         var tempDir = Path.Combine(Path.GetTempPath(), "cma", job.Id.ToString());
         Directory.CreateDirectory(tempDir);
         var pdfPath = Path.Combine(tempDir, $"CMA-{lead.LastName}-{lead.Address.Replace(" ", "-")}.pdf");
-        pdf.Generate(pdfPath, agent, lead, comps, cmaAnalysis, leadResearch, job.ReportType);
+        pdf.Generate(pdfPath, agent, lead, comps, cmaAnalysis, leadResearch, job.ReportType, ct);
         job.PdfPath = pdfPath;
 
         // Step 6+7: Drive folder + upload PDF + Lead Brief Doc (non-blocking)
-        Advance(job, CmaJobStatus.OrganizingDrive, onStatusChange);
+        await AdvanceAsync(job, CmaJobStatus.OrganizingDrive, onStatusChange);
         var agentEmail = agent.Identity?.Email ?? "";
         var folderPath = GwsService.BuildLeadFolderPath(lead.FullName, lead.FullAddress);
 
         try
         {
-            await gws.CreateDriveFolderAsync(agentEmail, folderPath);
-            var driveLink = await gws.UploadFileAsync(agentEmail, folderPath, pdfPath);
+            await gws.CreateDriveFolderAsync(agentEmail, folderPath, ct);
+            var driveLink = await gws.UploadFileAsync(agentEmail, folderPath, pdfPath, ct);
             job.DriveLink = driveLink;
 
             // Step 7: Create Lead Brief Google Doc
@@ -111,7 +111,7 @@ public class CmaPipeline(
                 leadPhone: lead.Phone,
                 pdfLink: driveLink);
 
-            await gws.CreateDocAsync(agentEmail, folderPath, $"Lead Brief - {lead.FullName}", briefContent);
+            await gws.CreateDocAsync(agentEmail, folderPath, $"Lead Brief - {lead.FullName}", briefContent, ct);
         }
         catch (Exception ex)
         {
@@ -119,12 +119,12 @@ public class CmaPipeline(
         }
 
         // Step 8: Send email with PDF attachment
-        Advance(job, CmaJobStatus.SendingEmail, onStatusChange);
+        await AdvanceAsync(job, CmaJobStatus.SendingEmail, onStatusChange);
         try
         {
             var emailBody = BuildEmailBody(agent, lead, cmaAnalysis);
             var subject = $"Your Complimentary Home Value Report — {lead.FullAddress}";
-            await gws.SendEmailAsync(agentEmail, lead.Email, subject, emailBody, pdfPath);
+            await gws.SendEmailAsync(agentEmail, lead.Email, subject, emailBody, pdfPath, ct);
         }
         catch (Exception ex)
         {
@@ -132,7 +132,7 @@ public class CmaPipeline(
         }
 
         // Step 9: Log to tracking sheet
-        Advance(job, CmaJobStatus.Logging, onStatusChange);
+        await AdvanceAsync(job, CmaJobStatus.Logging, onStatusChange);
         try
         {
             var spreadsheetId = agent.Integrations?.FormHandlerId ?? "";
@@ -152,7 +152,7 @@ public class CmaPipeline(
                     job.DriveLink ?? "",
                     "Complete"
                 };
-                await gws.AppendSheetRowAsync(agentEmail, spreadsheetId, row);
+                await gws.AppendSheetRowAsync(agentEmail, spreadsheetId, row, ct);
             }
         }
         catch (Exception ex)
@@ -161,13 +161,13 @@ public class CmaPipeline(
         }
 
         // Mark complete
-        Advance(job, CmaJobStatus.Complete, onStatusChange);
+        await AdvanceAsync(job, CmaJobStatus.Complete, onStatusChange);
     }
 
-    private static void Advance(CmaJob job, CmaJobStatus status, Action<CmaJobStatus> onStatusChange)
+    private static async Task AdvanceAsync(CmaJob job, CmaJobStatus status, Func<CmaJobStatus, Task> onStatusChange)
     {
         job.AdvanceTo(status);
-        onStatusChange(status);
+        await onStatusChange(status);
     }
 
     private static string BuildEmailBody(AgentConfig agent, Lead lead, CmaAnalysis analysis)

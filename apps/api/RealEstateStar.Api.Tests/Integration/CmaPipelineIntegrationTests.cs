@@ -35,7 +35,7 @@ public class CmaPipelineIntegrationTests
         mockCompSource
             .Setup(s => s.FetchAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>()))
+                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
                 new Comp
@@ -70,7 +70,7 @@ public class CmaPipelineIntegrationTests
         // Arrange — mocked ILeadResearchService
         var mockResearch = new Mock<ILeadResearchService>();
         mockResearch
-            .Setup(r => r.ResearchAsync(It.IsAny<Lead>()))
+            .Setup(r => r.ResearchAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new LeadResearch
             {
                 Occupation = "Software Engineer",
@@ -93,7 +93,7 @@ public class CmaPipelineIntegrationTests
         mockAnalysis
             .Setup(a => a.AnalyzeAsync(
                 It.IsAny<Lead>(), It.IsAny<List<Comp>>(),
-                It.IsAny<LeadResearch?>(), It.IsAny<ReportType>()))
+                It.IsAny<LeadResearch?>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new CmaAnalysis
             {
                 ValueLow = 410_000m,
@@ -113,21 +113,21 @@ public class CmaPipelineIntegrationTests
         // Arrange — mocked IGwsService
         var mockGws = new Mock<IGwsService>();
         mockGws
-            .Setup(g => g.CreateDriveFolderAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(g => g.CreateDriveFolderAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("folder-id-123");
         mockGws
-            .Setup(g => g.UploadFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(g => g.UploadFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("https://drive.google.com/file/d/abc123");
         mockGws
-            .Setup(g => g.CreateDocAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(g => g.CreateDocAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("doc-id-456");
         mockGws
             .Setup(g => g.SendEmailAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<string>(), It.IsAny<string?>()))
+                It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         mockGws
-            .Setup(g => g.AppendSheetRowAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<string>>()))
+            .Setup(g => g.AppendSheetRowAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         // Arrange — pipeline
@@ -162,7 +162,7 @@ public class CmaPipelineIntegrationTests
         {
             // Act
             await pipeline.ExecuteAsync(job, "jenise-buckalew", lead,
-                status => statusLog.Add(status));
+                status => { statusLog.Add(status); return Task.CompletedTask; });
 
             // Assert — job basics
             job.Status.Should().Be(CmaJobStatus.Complete);
@@ -184,12 +184,12 @@ public class CmaPipelineIntegrationTests
 
             // Assert — GWS interactions
             mockGws.Verify(
-                g => g.CreateDriveFolderAsync("jenisesellsnj@gmail.com", It.IsAny<string>()),
+                g => g.CreateDriveFolderAsync("jenisesellsnj@gmail.com", It.IsAny<string>(), It.IsAny<CancellationToken>()),
                 Times.Once);
 
             mockGws.Verify(
                 g => g.SendEmailAsync("jenisesellsnj@gmail.com", "john@test.com",
-                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()),
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
                 Times.Once);
         }
         finally

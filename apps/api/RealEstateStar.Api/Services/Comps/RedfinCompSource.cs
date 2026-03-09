@@ -9,14 +9,15 @@ public class RedfinCompSource(HttpClient httpClient, ILogger<RedfinCompSource>? 
 
     public async Task<List<Comp>> FetchAsync(
         string address, string city, string state, string zip,
-        int? beds, int? baths, int? sqft)
+        int? beds, int? baths, int? sqft,
+        CancellationToken ct = default)
     {
         var slug = $"{state}/{city}/{address.Replace(' ', '-')}-{zip}".ToLowerInvariant();
         var url = $"https://www.redfin.com/{slug}";
 
         logger?.LogInformation("Fetching Redfin comps from {Url}", url);
 
-        var html = await httpClient.GetStringAsync(url);
+        var html = await httpClient.GetStringAsync(url, ct);
 
         return ParseComps(html);
     }

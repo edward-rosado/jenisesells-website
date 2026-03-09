@@ -10,7 +10,8 @@ public class AttomDataCompSource(HttpClient httpClient, string apiKey, ILogger<A
 
     public async Task<List<Comp>> FetchAsync(
         string address, string city, string state, string zip,
-        int? beds, int? baths, int? sqft)
+        int? beds, int? baths, int? sqft,
+        CancellationToken ct = default)
     {
         var encodedAddress = Uri.EscapeDataString(address);
         var url = $"https://api.gateway.attomdata.com/propertyapi/v1.0.0/sale/snapshot?" +
@@ -22,10 +23,10 @@ public class AttomDataCompSource(HttpClient httpClient, string apiKey, ILogger<A
         request.Headers.Add("apikey", apiKey);
         request.Headers.Add("Accept", "application/json");
 
-        var response = await httpClient.SendAsync(request);
+        var response = await httpClient.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
 
-        return ParseResponse(await response.Content.ReadAsStringAsync());
+        return ParseResponse(await response.Content.ReadAsStringAsync(ct));
     }
 
     internal static List<Comp> ParseResponse(string json) => [];

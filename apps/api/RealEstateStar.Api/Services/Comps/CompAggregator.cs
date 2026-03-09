@@ -7,9 +7,10 @@ public class CompAggregator(IEnumerable<ICompSource> sources, ILogger<CompAggreg
 {
     public virtual async Task<List<Comp>> FetchCompsAsync(
         string address, string city, string state, string zip,
-        int? beds, int? baths, int? sqft)
+        int? beds, int? baths, int? sqft,
+        CancellationToken ct = default)
     {
-        var tasks = sources.Select(source => FetchFromSourceAsync(source, address, city, state, zip, beds, baths, sqft));
+        var tasks = sources.Select(source => FetchFromSourceAsync(source, address, city, state, zip, beds, baths, sqft, ct));
         var results = await Task.WhenAll(tasks);
 
         var allComps = results.SelectMany(r => r).ToList();
@@ -19,11 +20,12 @@ public class CompAggregator(IEnumerable<ICompSource> sources, ILogger<CompAggreg
 
     private async Task<List<Comp>> FetchFromSourceAsync(
         ICompSource source, string address, string city, string state, string zip,
-        int? beds, int? baths, int? sqft)
+        int? beds, int? baths, int? sqft,
+        CancellationToken ct = default)
     {
         try
         {
-            return await source.FetchAsync(address, city, state, zip, beds, baths, sqft);
+            return await source.FetchAsync(address, city, state, zip, beds, baths, sqft, ct);
         }
         catch (Exception ex)
         {

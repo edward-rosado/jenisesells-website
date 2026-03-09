@@ -97,35 +97,35 @@ public class CmaPipelineTests
         var research = MakeResearch();
 
         var agentConfigService = new Mock<IAgentConfigService>();
-        agentConfigService.Setup(s => s.GetAgentAsync("test-agent"))
+        agentConfigService.Setup(s => s.GetAgentAsync("test-agent", It.IsAny<CancellationToken>()))
             .ReturnsAsync(agentConfig);
 
         var compAggregator = new Mock<CompAggregator>(
             Enumerable.Empty<ICompSource>(), (Microsoft.Extensions.Logging.ILogger<CompAggregator>?)null);
         compAggregator.Setup(s => s.FetchCompsAsync(
                 lead.Address, lead.City, lead.State, lead.Zip,
-                lead.Beds, lead.Baths, lead.Sqft))
+                lead.Beds, lead.Baths, lead.Sqft, It.IsAny<CancellationToken>()))
             .ReturnsAsync(comps);
 
         var researchService = new Mock<ILeadResearchService>();
-        researchService.Setup(s => s.ResearchAsync(lead))
+        researchService.Setup(s => s.ResearchAsync(lead, It.IsAny<CancellationToken>()))
             .ReturnsAsync(research);
 
         var analysisService = new Mock<IAnalysisService>();
-        analysisService.Setup(s => s.AnalyzeAsync(lead, comps, research, ReportType.Standard))
+        analysisService.Setup(s => s.AnalyzeAsync(lead, comps, research, ReportType.Standard, It.IsAny<CancellationToken>()))
             .ReturnsAsync(analysis);
 
         var pdfGenerator = new Mock<ICmaPdfGenerator>();
 
         var gwsService = new Mock<IGwsService>();
         gwsService.Setup(s => s.CreateDriveFolderAsync(
-                It.IsAny<string>(), It.IsAny<string>()))
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("folder-id");
         gwsService.Setup(s => s.UploadFileAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("https://drive.google.com/file/abc123");
         gwsService.Setup(s => s.CreateDocAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("doc-id");
 
         var statuses = new List<CmaJobStatus>();
@@ -140,7 +140,7 @@ public class CmaPipelineTests
 
         // Act
         var job = CmaJob.Create(Guid.NewGuid(), lead);
-        await pipeline.ExecuteAsync(job, "test-agent", lead, s => statuses.Add(s));
+        await pipeline.ExecuteAsync(job, "test-agent", lead, s => { statuses.Add(s); return Task.CompletedTask; });
 
         // Assert
         job.Status.Should().Be(CmaJobStatus.Complete);
@@ -157,11 +157,11 @@ public class CmaPipelineTests
         // Verify key service calls
         compAggregator.Verify(s => s.FetchCompsAsync(
             lead.Address, lead.City, lead.State, lead.Zip,
-            lead.Beds, lead.Baths, lead.Sqft), Times.Once);
-        researchService.Verify(s => s.ResearchAsync(lead), Times.Once);
-        analysisService.Verify(s => s.AnalyzeAsync(lead, comps, research, ReportType.Standard), Times.Once);
+            lead.Beds, lead.Baths, lead.Sqft, It.IsAny<CancellationToken>()), Times.Once);
+        researchService.Verify(s => s.ResearchAsync(lead, It.IsAny<CancellationToken>()), Times.Once);
+        analysisService.Verify(s => s.AnalyzeAsync(lead, comps, research, ReportType.Standard, It.IsAny<CancellationToken>()), Times.Once);
         pdfGenerator.Verify(s => s.Generate(
-            It.IsAny<string>(), agentConfig, lead, comps, analysis, research, ReportType.Standard), Times.Once);
+            It.IsAny<string>(), agentConfig, lead, comps, analysis, research, ReportType.Standard, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public class CmaPipelineTests
     {
         // Arrange
         var agentConfigService = new Mock<IAgentConfigService>();
-        agentConfigService.Setup(s => s.GetAgentAsync("unknown-agent"))
+        agentConfigService.Setup(s => s.GetAgentAsync("unknown-agent", It.IsAny<CancellationToken>()))
             .ReturnsAsync((AgentConfig?)null);
 
         var pipeline = new CmaPipeline(
@@ -182,7 +182,7 @@ public class CmaPipelineTests
 
         // Act
         var job = CmaJob.Create(Guid.NewGuid(), MakeLead());
-        await pipeline.ExecuteAsync(job, "unknown-agent", MakeLead(), _ => { });
+        await pipeline.ExecuteAsync(job, "unknown-agent", MakeLead(), _ => Task.CompletedTask);
 
         // Assert — job should still be in Parsing status (pipeline returned early)
         job.Status.Should().Be(CmaJobStatus.Parsing);
