@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # pre-push-readme.sh
 # Claude Code PreToolUse hook — intercepts git push commands and ensures
-# README.md is up to date before allowing the push.
+# README.md and setup scripts are up to date before allowing the push.
 #
 # Exit codes:
-#   0 = allow (not a git push, or README is current)
-#   2 = block (README needs updating — stderr message goes back to Claude)
+#   0 = allow (not a git push, or everything is current)
+#   2 = block (README or setup scripts need updating — stderr message goes back to Claude)
 
 set -euo pipefail
 
@@ -55,5 +55,47 @@ if [ -n "$STRUCTURAL_CHANGES" ]; then
   exit 2
 fi
 
-# README exists, is committed, and no structural changes detected
+# --- Setup script checks ---
+# Verify setup scripts reference the same skills and directories that actually exist
+
+ISSUES=""
+
+# Check that setup.sh validates every skill directory that exists
+for skill_dir in "$PROJECT_DIR"/skills/*/; do
+  skill_name=$(basename "$skill_dir")
+  if [ -f "$PROJECT_DIR/setup.sh" ] && ! grep -q "$skill_name" "$PROJECT_DIR/setup.sh" 2>/dev/null; then
+    ISSUES="${ISSUES}  - setup.sh doesn't reference skill '$skill_name'\n"
+  fi
+  if [ -f "$PROJECT_DIR/setup.ps1" ] && ! grep -q "$skill_name" "$PROJECT_DIR/setup.ps1" 2>/dev/null; then
+    ISSUES="${ISSUES}  - setup.ps1 doesn't reference skill '$skill_name'\n"
+  fi
+done
+
+# Check that setup scripts don't reference app directories that no longer exist
+for app in portal agent-site api; do
+  if [ -f "$PROJECT_DIR/setup.sh" ] && grep -q "apps/$app" "$PROJECT_DIR/setup.sh" 2>/dev/null; then
+    if [ ! -d "$PROJECT_DIR/apps/$app" ]; then
+      ISSUES="${ISSUES}  - setup.sh references apps/$app but directory doesn't exist\n"
+    fi
+  fi
+done
+
+# Check that setup scripts reference every package directory that has a package.json
+for pkg_dir in "$PROJECT_DIR"/packages/*/; do
+  pkg_name=$(basename "$pkg_dir")
+  if [ -f "$pkg_dir/package.json" ] && [ -f "$PROJECT_DIR/setup.sh" ]; then
+    if ! grep -q "packages/$pkg_name" "$PROJECT_DIR/setup.sh" 2>/dev/null; then
+      ISSUES="${ISSUES}  - setup.sh doesn't install dependencies for packages/$pkg_name\n"
+    fi
+  fi
+done
+
+if [ -n "$ISSUES" ]; then
+  echo "Setup scripts may be out of sync with the repo structure:" >&2
+  echo -e "$ISSUES" >&2
+  echo "Please review setup.sh and setup.ps1, then commit before pushing." >&2
+  exit 2
+fi
+
+# All checks passed
 exit 0
