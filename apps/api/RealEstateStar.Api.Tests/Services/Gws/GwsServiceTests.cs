@@ -62,4 +62,117 @@ public class GwsServiceTests
         content.Should().Contain("12 comparable sales");
         content.Should().Contain("Market trending: seller's market");
     }
+
+    [Fact]
+    public void BuildLeadBriefContent_Uses1To3MonthsTimeline()
+    {
+        var content = GwsService.BuildLeadBriefContent(
+            leadName: "Bob Smith",
+            address: "456 Oak Ave, Edison NJ 08817",
+            timeline: "1-3 months",
+            submittedAt: new DateTime(2026, 3, 9, 14, 30, 0),
+            occupation: null,
+            employer: null,
+            purchaseDate: null,
+            purchasePrice: null,
+            ownershipDuration: null,
+            equityRange: null,
+            lifeEvent: null,
+            beds: null,
+            baths: null,
+            sqft: null,
+            yearBuilt: null,
+            lotSize: null,
+            taxAssessment: null,
+            annualTax: null,
+            compCount: 5,
+            searchRadius: "1 mile",
+            valueRange: "$300,000-$350,000",
+            medianDom: 30,
+            marketTrend: "buyer's",
+            conversationStarters: [],
+            leadEmail: "bob@example.com",
+            leadPhone: "(555) 999-0000",
+            pdfLink: "https://storage.example.com/cma/bob.pdf");
+
+        content.Should().Contain("Call within 2 hours");
+        content.Should().Contain("serious seller");
+    }
+
+    [Fact]
+    public void BuildLeadBriefContent_UsesDefaultTimeline()
+    {
+        var content = GwsService.BuildLeadBriefContent(
+            leadName: "Alice Jones",
+            address: "789 Elm St, Edison NJ 08817",
+            timeline: "Just curious",
+            submittedAt: new DateTime(2026, 3, 9, 14, 30, 0),
+            occupation: null,
+            employer: null,
+            purchaseDate: null,
+            purchasePrice: null,
+            ownershipDuration: null,
+            equityRange: null,
+            lifeEvent: null,
+            beds: null,
+            baths: null,
+            sqft: null,
+            yearBuilt: null,
+            lotSize: null,
+            taxAssessment: null,
+            annualTax: null,
+            compCount: 3,
+            searchRadius: "2 miles",
+            valueRange: "$250,000-$280,000",
+            medianDom: 45,
+            marketTrend: "neutral",
+            conversationStarters: [],
+            leadEmail: "alice@example.com",
+            leadPhone: "(555) 111-2222",
+            pdfLink: "https://storage.example.com/cma/alice.pdf");
+
+        content.Should().Contain("Call within 24 hours");
+        content.Should().Contain("build the relationship");
+    }
+
+    [Fact]
+    public void BuildLeadBriefContent_OmitsNullOptionalSections()
+    {
+        var content = GwsService.BuildLeadBriefContent(
+            leadName: "Test User",
+            address: "100 Test St",
+            timeline: "ASAP",
+            submittedAt: new DateTime(2026, 1, 1),
+            occupation: null,
+            employer: null,
+            purchaseDate: null,
+            purchasePrice: null,
+            ownershipDuration: null,
+            equityRange: null,
+            lifeEvent: null,
+            beds: null,
+            baths: null,
+            sqft: null,
+            yearBuilt: null,
+            lotSize: null,
+            taxAssessment: null,
+            annualTax: null,
+            compCount: 0,
+            searchRadius: "1 mile",
+            valueRange: "$0",
+            medianDom: 0,
+            marketTrend: "neutral",
+            conversationStarters: [],
+            leadEmail: "test@test.com",
+            leadPhone: "555-0000",
+            pdfLink: "link");
+
+        // Should not contain optional fields that are null
+        content.Should().NotContain("Purchased");
+        content.Should().NotContain("Owned for");
+        content.Should().NotContain("Estimated equity");
+        content.Should().NotContain("Lot:");
+        content.Should().NotContain("Current tax assessment");
+        content.Should().NotContain("Annual property taxes");
+    }
 }
