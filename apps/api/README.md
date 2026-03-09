@@ -203,6 +203,55 @@ Readiness response includes per-check status and duration:
 }
 ```
 
+## Usage Examples
+
+### cURL
+
+```bash
+# Create a CMA job
+curl -X POST http://localhost:5000/agents/jenise-buckalew/cma \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "John",
+    "lastName": "Smith",
+    "email": "john@example.com",
+    "phone": "555-123-4567",
+    "address": "123 Main St",
+    "city": "Wayne",
+    "state": "NJ",
+    "zip": "07470",
+    "timeline": "3-6 months",
+    "notes": "Interested in selling"
+  }'
+
+# Response: { "jobId": "abc-123", "status": "processing" }
+
+# Poll job status
+curl http://localhost:5000/agents/jenise-buckalew/cma/abc-123/status
+
+# List leads with pagination
+curl "http://localhost:5000/agents/jenise-buckalew/leads?skip=0&take=10"
+
+# Health checks
+curl http://localhost:5000/health/live    # Liveness
+curl http://localhost:5000/health/ready   # Readiness with dependency checks
+```
+
+### SignalR (JavaScript)
+
+```javascript
+const connection = new signalR.HubConnectionBuilder()
+    .withUrl("http://localhost:5000/hubs/cma-progress")
+    .build();
+
+connection.on("StatusUpdate", (update) => {
+    console.log(`Step ${update.step}/${update.totalSteps}: ${update.message}`);
+});
+
+await connection.start();
+await connection.invoke("JoinJob", "abc-123");
+```
+
 ## CMA Pipeline
 
 When a lead is submitted, the pipeline executes 9 steps. Steps 2 and 3 run in parallel.
@@ -375,6 +424,43 @@ The test suite contains 17 test files covering:
 | Models | CmaJob state machine, report type selection |
 | Services | AgentConfigService, ClaudeAnalysisService, CompAggregator, GwsService, InMemoryCmaJobStore, CmaPdfGenerator, LeadResearchService, CmaPipeline |
 
+## Adding New Endpoints
+
+This API uses the **REPR (Request-Endpoint-Response) pattern** with auto-registration. Each endpoint is a self-contained class that implements `IEndpoint`.
+
+### 1. Create a Response type
+
+```csharp
+// Models/Responses/MyResponse.cs
+namespace RealEstateStar.Api.Models.Responses;
+
+public record MyResponse
+{
+    public required string Value { get; init; }
+}
+```
+
+### 2. Create the Endpoint
+
+```csharp
+// Endpoints/MyEndpoint.cs
+namespace RealEstateStar.Api.Endpoints;
+
+public class MyEndpoint : IEndpoint
+{
+    public void Map(IEndpointRouteBuilder app) =>
+        app.MapGet("/my-route", Handle);
+
+    private static IResult Handle(string param, IMyService service, CancellationToken ct)
+    {
+        // handler logic
+        return Results.Ok(new MyResponse { Value = "hello" });
+    }
+}
+```
+
+No registration code needed -- `app.MapEndpoints()` auto-discovers all `IEndpoint` implementations via reflection.
+
 ## Project Structure
 
 ```
@@ -382,23 +468,40 @@ apps/api/
   Dockerfile
   docker-compose.observability.yml
   RealEstateStar.Api/
-    Program.cs                          # Endpoints, middleware, DI setup
+    Program.cs                          # Middleware, DI setup, MapEndpoints()
     appsettings.json
     appsettings.Development.json
     Diagnostics/
       CmaDiagnostics.cs                 # ActivitySource + Meters
+      OpenTelemetryExtensions.cs        # OTel registration helpers
+    Endpoints/
+      IEndpoint.cs                       # REPR endpoint interface
+      EndpointExtensions.cs              # MapEndpoints() auto-registration
+      CreateCmaEndpoint.cs               # POST /agents/{agentId}/cma
+      GetCmaStatusEndpoint.cs            # GET  /agents/{agentId}/cma/{jobId}/status
+      GetLeadsEndpoint.cs                # GET  /agents/{agentId}/leads
     Health/
       ClaudeApiHealthCheck.cs
       GwsCliHealthCheck.cs
     Hubs/
       CmaProgressHub.cs                 # SignalR hub
     Logging/
-      AgentIdEnricher.cs                # Serilog enricher
+      LoggingExtensions.cs              # Serilog configuration
     Middleware/
       CorrelationIdMiddleware.cs
+      AgentIdEnricher.cs                # Serilog enricher for agent context
     Models/
-      CmaJob.cs                         # Job entity + status enum + report type
-      Lead.cs                           # Input model with DataAnnotations
+      AgentConfig.cs                     # Agent profile model
+      CmaAnalysis.cs                     # Analysis result model
+      CmaJob.cs                          # Job entity + status enum + report type
+      Comp.cs                            # Comparable sale model
+      Lead.cs                            # Input model with DataAnnotations
+      LeadResearch.cs                    # Property research model
+      StatusMessages.cs                  # Pipeline status message constants
+      Responses/
+        CreateCmaResponse.cs             # POST /cma response record
+        CmaStatusResponse.cs             # GET /status response record
+        LeadSummaryResponse.cs           # GET /leads response record
     Services/
       AgentConfigService.cs             # Multi-tenant config loader
       CmaPipeline.cs                    # 9-step orchestrator
