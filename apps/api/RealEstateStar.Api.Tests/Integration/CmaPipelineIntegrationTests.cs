@@ -156,7 +156,7 @@ public class CmaPipelineIntegrationTests
         };
 
         var statusLog = new List<CmaJobStatus>();
-        var job = CmaJob.Create(Guid.NewGuid(), lead);
+        var job = CmaJob.Create("jenise-buckalew", lead);
 
         try
         {

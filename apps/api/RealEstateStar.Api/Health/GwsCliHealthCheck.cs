@@ -4,7 +4,7 @@ namespace RealEstateStar.Api.Health;
 
 public class GwsCliHealthCheck : IHealthCheck
 {
-    public Task<HealthCheckResult> CheckHealthAsync(
+    public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken ct)
     {
@@ -21,16 +21,23 @@ public class GwsCliHealthCheck : IHealthCheck
 
             using var process = System.Diagnostics.Process.Start(psi);
             if (process == null)
-                return Task.FromResult(HealthCheckResult.Unhealthy("gws CLI not found"));
+                return HealthCheckResult.Unhealthy("gws CLI not found");
 
-            process.WaitForExit(5000);
-            return Task.FromResult(process.ExitCode == 0
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(5));
+
+            await process.WaitForExitAsync(timeoutCts.Token);
+            return process.ExitCode == 0
                 ? HealthCheckResult.Healthy("gws CLI available")
-                : HealthCheckResult.Degraded("gws CLI returned non-zero exit code"));
+                : HealthCheckResult.Degraded("gws CLI returned non-zero exit code");
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return HealthCheckResult.Unhealthy("gws CLI health check timed out");
         }
         catch (Exception ex)
         {
-            return Task.FromResult(HealthCheckResult.Unhealthy("gws CLI check failed", ex));
+            return HealthCheckResult.Unhealthy("gws CLI check failed", ex);
         }
     }
 }

@@ -140,7 +140,7 @@ public class CmaPipelineTests
             gwsService.Object);
 
         // Act
-        var job = CmaJob.Create(Guid.NewGuid(), lead);
+        var job = CmaJob.Create("test-agent", lead);
         await pipeline.ExecuteAsync(job, "test-agent", lead, s => { statuses.Add(s); return Task.CompletedTask; }, CancellationToken.None);
 
         // Assert
@@ -182,7 +182,7 @@ public class CmaPipelineTests
             new Mock<IGwsService>().Object);
 
         // Act
-        var job = CmaJob.Create(Guid.NewGuid(), MakeLead());
+        var job = CmaJob.Create("unknown-agent", MakeLead());
         await pipeline.ExecuteAsync(job, "unknown-agent", MakeLead(), _ => Task.CompletedTask, CancellationToken.None);
 
         // Assert — job should still be in Parsing status (pipeline returned early)

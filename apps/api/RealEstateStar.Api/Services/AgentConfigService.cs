@@ -9,6 +9,7 @@ public partial class AgentConfigService(string configDirectory, ILogger<AgentCon
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         PropertyNameCaseInsensitive = false
     };
 

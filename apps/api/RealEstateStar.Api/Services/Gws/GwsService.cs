@@ -83,8 +83,8 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
 
         process.Start();
 
-        var stdout = await process.StandardOutput.ReadToEndAsync();
-        var stderr = await process.StandardError.ReadToEndAsync();
+        var stdout = await process.StandardOutput.ReadToEndAsync(ct);
+        var stderr = await process.StandardError.ReadToEndAsync(ct);
 
         await process.WaitForExitAsync(ct);
 
