@@ -99,11 +99,15 @@ fi
 echo ""
 echo "Restoring .NET packages..."
 
-if [ -f "apps/api/api.csproj" ] || [ -f "apps/api/Api.csproj" ]; then
-  (cd apps/api && dotnet restore)
-  info ".NET packages restored"
+if [ -f "apps/api/src/RealEstateStar.Api/RealEstateStar.Api.csproj" ]; then
+  (cd apps/api && dotnet restore src/RealEstateStar.Api/RealEstateStar.Api.csproj)
+  info ".NET API packages restored"
+  if [ -f "apps/api/tests/RealEstateStar.Api.Tests/RealEstateStar.Api.Tests.csproj" ]; then
+    (cd apps/api && dotnet restore tests/RealEstateStar.Api.Tests/RealEstateStar.Api.Tests.csproj)
+    info ".NET test packages restored"
+  fi
 else
-  warn "apps/api/*.csproj not found (API not scaffolded yet)"
+  warn "apps/api/src/RealEstateStar.Api/*.csproj not found (API not scaffolded yet)"
 fi
 
 # 4. Validate config
