@@ -3,10 +3,27 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+// Mock crypto.randomUUID for deterministic nonce
+vi.stubGlobal("crypto", {
+  randomUUID: () => "test-uuid-1234",
+});
+
 // Mock NextResponse before importing middleware
+const mockHeaders = new Map<string, string>();
 const mockRewrite = vi.fn();
 const mockNext = vi.fn();
 const mockClone = vi.fn();
+
+function createMockResponse() {
+  const headers = new Map<string, string>();
+  return {
+    headers: {
+      set: (key: string, value: string) => headers.set(key, value),
+      get: (key: string) => headers.get(key),
+    },
+    _headers: headers,
+  };
+}
 
 vi.mock("next/server", () => {
   return {
@@ -17,12 +34,10 @@ vi.mock("next/server", () => {
   };
 });
 
-// We need to re-import after mocking
 let middleware: typeof import("@/middleware").middleware;
 
 // Helper to build a minimal NextRequest-like object
 function makeRequest(host: string, pathname = "/") {
-  const url = new URL(`http://${host}${pathname}`);
   const clonedUrl = new URL(`http://${host}${pathname}`);
   clonedUrl.searchParams.set = vi.fn((key, value) => {
     (clonedUrl as URL).searchParams.append(key, value);
@@ -43,8 +58,8 @@ describe("middleware", () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.resetAllMocks();
-    mockRewrite.mockReturnValue({ type: "rewrite" });
-    mockNext.mockReturnValue({ type: "next" });
+    mockRewrite.mockReturnValue(createMockResponse());
+    mockNext.mockReturnValue(createMockResponse());
     const mod = await import("@/middleware");
     middleware = mod.middleware;
   });
@@ -74,7 +89,6 @@ describe("middleware", () => {
     const req = makeRequest("jenise-buckalew.realestatestar.com");
     const clonedUrl = req.nextUrl.clone();
     middleware(req as never);
-    // The cloned URL's searchParams.set should have been called with agentId
     expect(clonedUrl.searchParams.set).toHaveBeenCalledWith("agentId", "jenise-buckalew");
   });
 
@@ -131,10 +145,9 @@ describe("middleware", () => {
     };
     const clonedUrl = { searchParams: { set: vi.fn() } };
     mockClone.mockReturnValue(clonedUrl);
-    mockNext.mockReturnValue({ type: "next" });
+    mockNext.mockReturnValue(createMockResponse());
 
     middleware(fakeReq as never);
-    // localhost has no agent subdomain so should call next
     expect(mockNext).toHaveBeenCalled();
   });
 
@@ -142,6 +155,19 @@ describe("middleware", () => {
     const req = makeRequest("my-agent.realestatestar.com:443");
     middleware(req as never);
     expect(mockRewrite).toHaveBeenCalled();
+  });
+
+  it("sets Content-Security-Policy header on the response", () => {
+    const req = makeRequest("realestatestar.com");
+    const response = middleware(req as never);
+    expect(response.headers.get("Content-Security-Policy")).toContain("default-src 'self'");
+    expect(response.headers.get("Content-Security-Policy")).toContain("nonce-");
+  });
+
+  it("sets x-nonce header on the response", () => {
+    const req = makeRequest("realestatestar.com");
+    const response = middleware(req as never);
+    expect(response.headers.get("x-nonce")).toBeTruthy();
   });
 });
 

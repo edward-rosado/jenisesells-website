@@ -21,6 +21,26 @@ describe("loadAgentConfig", () => {
     await expect(loadAgentConfig("foo/bar")).rejects.toThrow("Invalid agent ID");
     await expect(loadAgentConfig("")).rejects.toThrow("Invalid agent ID");
   });
+
+  it("should throw when config is missing id", async () => {
+    await expect(loadAgentConfig("bad-no-id")).rejects.toThrow("AgentConfig: missing id");
+  });
+
+  it("should throw when config is missing identity.name", async () => {
+    await expect(loadAgentConfig("bad-no-name")).rejects.toThrow("AgentConfig: missing identity.name");
+  });
+
+  it("should throw when config is missing identity.phone", async () => {
+    await expect(loadAgentConfig("bad-no-phone")).rejects.toThrow("AgentConfig: missing identity.phone");
+  });
+
+  it("should throw when config is missing identity.email", async () => {
+    await expect(loadAgentConfig("bad-no-email")).rejects.toThrow("AgentConfig: missing identity.email");
+  });
+
+  it("should throw when config is missing location.state", async () => {
+    await expect(loadAgentConfig("bad-no-state")).rejects.toThrow("AgentConfig: missing location.state");
+  });
 });
 
 describe("loadAgentContent", () => {
