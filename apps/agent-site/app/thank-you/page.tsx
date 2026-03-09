@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { loadAgentConfig } from "@/lib/config";
 import { buildCssVariableStyle } from "@/lib/branding";
 import { Nav } from "@/components/Nav";
@@ -43,7 +44,8 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
         <Footer agent={agent} />
       </div>
     );
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { agentId: id } });
     return (
       <main className="min-h-screen flex items-center justify-center">
         <div className="text-center">

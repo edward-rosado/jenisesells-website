@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { loadAgentConfig, loadAgentContent } from "@/lib/config";
 import { buildCssVariableStyle } from "@/lib/branding";
 import { getTemplate } from "@/templates";
@@ -26,7 +27,8 @@ export default async function AgentPage({ searchParams }: PageProps) {
         <Template agent={agent} content={content} />
       </div>
     );
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { agentId: id } });
     return (
       <main className="min-h-screen flex items-center justify-center">
         <div className="text-center">

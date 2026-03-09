@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { useState } from "react";
 import type { AgentConfig, CmaFormData } from "@/lib/types";
 
@@ -31,7 +32,11 @@ export function CmaForm({ agent, data }: CmaFormProps) {
         throw new Error(`Submission failed (${response.status})`);
       }
       window.location.href = `/thank-you?agentId=${encodeURIComponent(agent.id)}`;
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, {
+        tags: { agentId: agent.id, feature: "cma-form" },
+        extra: { endpoint },
+      });
       setError("Something went wrong. Please try again.");
       setSubmitting(false);
     }
