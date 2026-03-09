@@ -26,11 +26,20 @@ export interface AgentBranding {
   font_family?: string;
 }
 
+export interface AgentTracking {
+  google_analytics_id?: string;    // GA4 Measurement ID (G-XXXXXXXX)
+  google_ads_id?: string;          // Google Ads conversion ID (AW-XXXXXXXX)
+  google_ads_conversion_label?: string; // Conversion label for CMA form
+  meta_pixel_id?: string;          // Meta/Facebook Pixel ID
+  gtm_container_id?: string;       // Google Tag Manager container (GTM-XXXXXXXX)
+}
+
 export interface AgentIntegrations {
   email_provider?: "gmail" | "outlook" | "smtp";
   hosting?: string;
   form_handler?: "formspree" | "custom";
   form_handler_id?: string;
+  tracking?: AgentTracking;
 }
 
 export interface AgentCompliance {

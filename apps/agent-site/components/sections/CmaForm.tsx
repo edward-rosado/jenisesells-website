@@ -3,6 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { useState } from "react";
 import type { AgentConfig, CmaFormData } from "@/lib/types";
+import { trackCmaConversion } from "@/components/Analytics";
 
 interface CmaFormProps {
   agent: AgentConfig;
@@ -31,6 +32,7 @@ export function CmaForm({ agent, data }: CmaFormProps) {
       if (!response.ok) {
         throw new Error(`Submission failed (${response.status})`);
       }
+      trackCmaConversion(agent.integrations?.tracking);
       window.location.href = `/thank-you?agentId=${encodeURIComponent(agent.id)}`;
     } catch (err) {
       Sentry.captureException(err, {

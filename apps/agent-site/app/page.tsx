@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/nextjs";
 import { loadAgentConfig, loadAgentContent } from "@/lib/config";
 import { buildCssVariableStyle } from "@/lib/branding";
 import { getTemplate } from "@/templates";
+import { Analytics } from "@/components/Analytics";
 
 interface PageProps {
   searchParams: Promise<{ agentId?: string }>;
@@ -24,6 +25,7 @@ export default async function AgentPage({ searchParams }: PageProps) {
 
     return (
       <div style={cssVars as React.CSSProperties}>
+        <Analytics tracking={agent.integrations?.tracking} />
         <Template agent={agent} content={content} />
       </div>
     );
