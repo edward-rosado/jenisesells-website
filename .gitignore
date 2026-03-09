@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.pnp.*
+
+# Build output
+.next/
+out/
+bin/
+obj/
+dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# .NET
+*.user
+*.suo
+
+# Worktrees
+.worktrees/
+
+# Claude Code (local only)
+.claude/settings.local.json
+.claude/memory/
+
+# Agent credentials (never commit)
+config/agents/*.credentials.json

@@ -1,0 +1,9 @@
+export { Hero } from "./Hero";
+export { StatsBar } from "./StatsBar";
+export { Services } from "./Services";
+export { HowItWorks } from "./HowItWorks";
+export { SoldHomes } from "./SoldHomes";
+export { Testimonials } from "./Testimonials";
+export { CmaForm } from "./CmaForm";
+export { About } from "./About";
+export { Footer } from "./Footer";
