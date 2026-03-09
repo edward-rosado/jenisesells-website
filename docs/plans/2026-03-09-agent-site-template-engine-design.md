@@ -74,18 +74,93 @@ The AI only asks for what it couldn't find.
 
 ### Supported Profile Sources
 
+The AI agent speaks real estate fluently. It knows the industry ecosystem —
+brokerages, MLS systems, portals, review sites — and can extract data from
+any of them. It should never ask "what's your Zillow URL?" generically. It
+should ask smart questions based on what it already knows:
+
+- "Which brokerage are you with?" → scrapes the brokerage team page
+- "Which MLS do you belong to?" → knows NJMLS, GSMLS, Bright MLS, etc.
+- "Do you have a Zillow or Realtor.com profile?" → scrapes both
+
+**The AI accepts ANY URL an agent provides and extracts what it can.**
+It is not limited to a predefined list. If an agent pastes a link, the AI
+scrapes it and pulls whatever structured data is available.
+
+#### Portal & Listing Sites
 | Source | What We Can Extract |
 |--------|-------------------|
 | Zillow Agent Profile | Name, brokerage, phone, email, headshot, reviews, sold homes, bio, stats, service areas |
 | Realtor.com Profile | Name, brokerage, phone, email, headshot, reviews, sold/active listings, bio, specialties |
-| MLS Site (NJMLS, GSMLS, etc.) | Active/sold listings, property details, photos, pricing history, MLS numbers |
-| Agent's Existing Website | Colors, fonts, logo, bio text, contact info, testimonials, listings |
-| Google Business Profile | Reviews, phone, address, hours, photos |
-| Business Card (upload) | Name, phone, email, brokerage, logo, brand colors |
+| Homes.com Profile | Name, brokerage, listings, reviews, contact info |
+| Redfin Agent Page | Name, brokerage, reviews, sold history, stats |
+| Trulia Agent Profile | Name, reviews, listings (powered by Zillow data) |
+| FastExpert Profile | Name, reviews, stats, specialties |
+| RateMyAgent Profile | Reviews, ratings, sold history |
 
-The AI tries each available source and merges data, preferring the most
-complete/recent version of each field. Conflicts are presented to the agent
-for resolution.
+#### MLS Systems (by region)
+| Source | Coverage |
+|--------|----------|
+| NJMLS | Northern NJ |
+| GSMLS (Garden State MLS) | Central NJ |
+| Bright MLS | NJ, PA, DE, MD, DC, VA, WV |
+| CRMLS (California) | Southern CA |
+| NWMLS (Northwest) | WA, OR |
+| Stellar MLS | FL |
+| HAR (Houston) | TX (Houston metro) |
+| MRED (Midwest) | IL, IN, WI |
+| Any other MLS | AI attempts to scrape agent/listing data from any MLS URL provided |
+
+The AI should know which MLS systems serve the agent's state/region and
+ask specifically: "Are you on GSMLS or NJMLS?" not "what's your MLS?"
+
+#### Brokerage Sites
+| Source | What We Can Extract |
+|--------|-------------------|
+| Keller Williams agent page | Name, headshot, bio, contact, listings, team info |
+| RE/MAX agent page | Name, headshot, bio, designations, listings |
+| Coldwell Banker agent page | Name, headshot, bio, sold history, contact |
+| Century 21 agent page | Name, headshot, bio, listings, reviews |
+| eXp Realty agent page | Name, headshot, bio, contact, listings |
+| Compass agent page | Name, headshot, bio, listings, sold data |
+| Sotheby's agent page | Name, headshot, bio, luxury listings |
+| Independent brokerage site | AI scrapes whatever structured data is available |
+
+When an agent says "I'm with Green Light Realty" or "I'm at Keller Williams
+in Edison," the AI should know to look for their profile on that brokerage's
+site and scrape it proactively.
+
+#### Review & Social
+| Source | What We Can Extract |
+|--------|-------------------|
+| Google Business Profile | Reviews, rating, phone, address, hours, photos |
+| Yelp Business Page | Reviews, rating, contact |
+| Facebook Business Page | Reviews, contact, photos, about |
+| LinkedIn Profile | Bio, experience, credentials, headshot |
+| Instagram Business | Photos, follower count, branding style |
+
+#### Uploads
+| Source | What We Can Extract |
+|--------|-------------------|
+| Business card (image) | Name, phone, email, brokerage, logo, brand colors |
+| Logo (image) | Brand colors, visual identity |
+| Agent's existing website | Colors, fonts, logo, bio, contact, testimonials, listings |
+
+### Data Merge Strategy
+
+The AI collects from all available sources and merges intelligently:
+
+1. **Identity fields** (name, phone, email): prefer the agent's own input,
+   then brokerage site, then portal sites
+2. **Reviews/testimonials**: aggregate from all sources, deduplicate,
+   prefer most recent
+3. **Listings/sold homes**: MLS is authoritative, supplement with portal data
+4. **Bio text**: prefer agent's own website or brokerage page (most curated),
+   fall back to portal profiles
+5. **Photos/headshot**: prefer highest resolution source
+6. **Stats**: cross-reference across sources, use highest verified numbers
+7. **Conflicts**: present to agent for resolution ("Zillow says 100 homes
+   sold, Realtor.com says 85 — which is accurate?")
 
 ## Architecture
 
