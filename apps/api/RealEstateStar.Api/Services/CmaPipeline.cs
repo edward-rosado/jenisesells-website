@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Api.Models;
@@ -20,8 +21,16 @@ public class CmaPipeline(
 {
     public async Task ExecuteAsync(CmaJob job, string agentId, Lead lead, Func<CmaJobStatus, Task> onStatusChange, CancellationToken ct)
     {
+        var pipelineSw = Stopwatch.StartNew();
+        var stepSw = new Stopwatch();
+
         // Step 1: Load agent config
+        stepSw.Restart();
         var agent = await agentConfig.GetAgentAsync(agentId, ct);
+        stepSw.Stop();
+        logger?.LogInformation("Pipeline step {Step} completed in {ElapsedMs}ms for job {JobId}",
+            "LoadAgentConfig", stepSw.ElapsedMilliseconds, job.Id);
+
         if (agent is null)
         {
             logger?.LogWarning("Agent {AgentId} not found — aborting pipeline", agentId);
@@ -31,6 +40,7 @@ public class CmaPipeline(
         await AdvanceAsync(job, CmaJobStatus.SearchingComps, onStatusChange);
 
         // Steps 2+3 in parallel: fetch comps + research lead
+        stepSw.Restart();
         var compsTask = compAggregator.FetchCompsAsync(
             lead.Address, lead.City, lead.State, lead.Zip,
             lead.Beds, lead.Baths, lead.Sqft, ct);
@@ -40,6 +50,9 @@ public class CmaPipeline(
 
         var comps = await compsTask;
         var leadResearch = await researchTask;
+        stepSw.Stop();
+        logger?.LogInformation("Pipeline step {Step} completed in {ElapsedMs}ms for job {JobId}",
+            "SearchingComps+Research", stepSw.ElapsedMilliseconds, job.Id);
 
         foreach (var comp in comps)
             job.Comps.Add(comp);
@@ -47,15 +60,23 @@ public class CmaPipeline(
 
         // Step 4: Claude analysis
         await AdvanceAsync(job, CmaJobStatus.Analyzing, onStatusChange);
+        stepSw.Restart();
         var cmaAnalysis = await analysis.AnalyzeAsync(lead, comps, leadResearch, job.ReportType, ct);
+        stepSw.Stop();
+        logger?.LogInformation("Pipeline step {Step} completed in {ElapsedMs}ms for job {JobId}",
+            "Analyzing", stepSw.ElapsedMilliseconds, job.Id);
         job.Analysis = cmaAnalysis;
 
         // Step 5: Generate PDF
         await AdvanceAsync(job, CmaJobStatus.GeneratingPdf, onStatusChange);
+        stepSw.Restart();
         var tempDir = Path.Combine(Path.GetTempPath(), "cma", job.Id.ToString());
         Directory.CreateDirectory(tempDir);
         var pdfPath = Path.Combine(tempDir, $"CMA-{lead.LastName}-{lead.Address.Replace(" ", "-")}.pdf");
         pdf.Generate(pdfPath, agent, lead, comps, cmaAnalysis, leadResearch, job.ReportType, ct);
+        stepSw.Stop();
+        logger?.LogInformation("Pipeline step {Step} completed in {ElapsedMs}ms for job {JobId}",
+            "GeneratingPdf", stepSw.ElapsedMilliseconds, job.Id);
         job.PdfPath = pdfPath;
 
         // Step 6+7: Drive folder + upload PDF + Lead Brief Doc (non-blocking)
@@ -63,6 +84,7 @@ public class CmaPipeline(
         var agentEmail = agent.Identity?.Email ?? "";
         var folderPath = GwsService.BuildLeadFolderPath(lead.FullName, lead.FullAddress);
 
+        stepSw.Restart();
         try
         {
             await gws.CreateDriveFolderAsync(agentEmail, folderPath, ct);
@@ -115,11 +137,16 @@ public class CmaPipeline(
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "Drive/Doc operations failed for {LeadName} — continuing pipeline", lead.FullName);
+            logger?.LogWarning(ex, "Drive/Doc operations failed for agent {AgentId}, job {JobId}, lead {LeadName} — continuing pipeline",
+                agentId, job.Id, lead.FullName);
         }
+        stepSw.Stop();
+        logger?.LogInformation("Pipeline step {Step} completed in {ElapsedMs}ms for job {JobId}",
+            "OrganizingDrive", stepSw.ElapsedMilliseconds, job.Id);
 
         // Step 8: Send email with PDF attachment
         await AdvanceAsync(job, CmaJobStatus.SendingEmail, onStatusChange);
+        stepSw.Restart();
         try
         {
             var emailBody = BuildEmailBody(agent, lead, cmaAnalysis);
@@ -128,11 +155,16 @@ public class CmaPipeline(
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "Email send failed for {LeadEmail} — continuing pipeline", lead.Email);
+            logger?.LogWarning(ex, "Email send failed for agent {AgentId}, job {JobId}, lead {LeadEmail} — continuing pipeline",
+                agentId, job.Id, lead.Email);
         }
+        stepSw.Stop();
+        logger?.LogInformation("Pipeline step {Step} completed in {ElapsedMs}ms for job {JobId}",
+            "SendingEmail", stepSw.ElapsedMilliseconds, job.Id);
 
         // Step 9: Log to tracking sheet
         await AdvanceAsync(job, CmaJobStatus.Logging, onStatusChange);
+        stepSw.Restart();
         try
         {
             var spreadsheetId = agent.Integrations?.FormHandlerId ?? "";
@@ -157,11 +189,19 @@ public class CmaPipeline(
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "Sheet logging failed — continuing pipeline");
+            logger?.LogWarning(ex, "Sheet logging failed for agent {AgentId}, job {JobId} — continuing pipeline",
+                agentId, job.Id);
         }
+        stepSw.Stop();
+        logger?.LogInformation("Pipeline step {Step} completed in {ElapsedMs}ms for job {JobId}",
+            "Logging", stepSw.ElapsedMilliseconds, job.Id);
 
         // Mark complete
         await AdvanceAsync(job, CmaJobStatus.Complete, onStatusChange);
+
+        pipelineSw.Stop();
+        logger?.LogInformation("Pipeline completed in {TotalElapsedMs}ms for agent {AgentId}, job {JobId}",
+            pipelineSw.ElapsedMilliseconds, agentId, job.Id);
     }
 
     private static async Task AdvanceAsync(CmaJob job, CmaJobStatus status, Func<CmaJobStatus, Task> onStatusChange)

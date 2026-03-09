@@ -139,7 +139,17 @@ app.UseExceptionHandler(exceptionApp =>
 });
 
 app.UseMiddleware<CorrelationIdMiddleware>();
-app.UseSerilogRequestLogging();
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Api-Version"] = "1.0";
+    await next();
+});
+
+app.UseSerilogRequestLogging(options =>
+{
+    options.EnrichDiagnosticContext = AgentIdEnricher.EnrichFromRequest;
+});
 
 app.UseHttpsRedirection();
 app.UseCors();
@@ -193,7 +203,8 @@ app.MapPost("/agents/{agentId}/cma", (
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "CMA pipeline failed for agent {AgentId}, job {JobId}", agentId, job.Id);
+            logger.LogError(ex, "CMA pipeline failed at step {Step} for agent {AgentId}, job {JobId}",
+                job.Status.ToString(), agentId, job.Id);
             job.Fail(ex.Message);
             store.Set(agentId, job);
         }
@@ -202,12 +213,17 @@ app.MapPost("/agents/{agentId}/cma", (
     return Results.Accepted(value: new { jobId = job.Id.ToString(), status = "processing" });
 }).RequireRateLimiting("cma-create");
 
-app.MapGet("/agents/{agentId}/cma/{jobId}/status", (string agentId, string jobId, ICmaJobStore store) =>
+app.MapGet("/agents/{agentId}/cma/{jobId}/status", (string agentId, string jobId, ICmaJobStore store, HttpContext httpContext) =>
 {
+    httpContext.Response.Headers.CacheControl = "no-cache";
+
     var job = store.Get(jobId);
 
     if (job is null)
-        return Results.NotFound();
+        return Results.Problem(
+            title: "Job not found",
+            detail: $"No CMA job with ID '{jobId}' exists for agent '{agentId}'.",
+            statusCode: StatusCodes.Status404NotFound);
 
     return Results.Ok(new
     {
@@ -219,11 +235,14 @@ app.MapGet("/agents/{agentId}/cma/{jobId}/status", (string agentId, string jobId
     });
 });
 
-app.MapGet("/agents/{agentId}/leads", (string agentId, ICmaJobStore store) =>
+app.MapGet("/agents/{agentId}/leads", (string agentId, int? skip, int? take, ICmaJobStore store, HttpContext httpContext) =>
 {
-    var jobs = store.GetByAgent(agentId);
+    httpContext.Response.Headers.CacheControl = "no-cache";
 
-    return Results.Ok(jobs.Select(j => new
+    var jobs = store.GetByAgent(agentId);
+    var paged = jobs.Skip(skip ?? 0).Take(Math.Min(take ?? 50, 100));
+
+    return Results.Ok(paged.Select(j => new
     {
         id = j.Id.ToString(),
         name = j.Lead.FullName,
