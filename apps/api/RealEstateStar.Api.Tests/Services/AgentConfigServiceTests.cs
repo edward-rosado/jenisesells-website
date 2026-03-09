@@ -59,4 +59,52 @@ public class AgentConfigServiceTests
 
         config.Should().BeNull();
     }
+
+    [Theory]
+    [InlineData("../etc/passwd")]
+    [InlineData("..\\windows\\system32")]
+    [InlineData("../../secrets")]
+    [InlineData("..%2Fetc%2Fpasswd")]
+    [InlineData("valid-id/../../../etc/passwd")]
+    public async Task GetAgentAsync_RejectsPathTraversal(string maliciousId)
+    {
+        var service = CreateService();
+
+        var act = () => service.GetAgentAsync(maliciousId);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithParameterName("agentId");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("Agent_Name")]
+    [InlineData("UPPERCASE")]
+    [InlineData("has spaces")]
+    [InlineData("special!chars")]
+    [InlineData("dots.not.allowed")]
+    public async Task GetAgentAsync_RejectsInvalidAgentIds(string invalidId)
+    {
+        var service = CreateService();
+
+        var act = () => service.GetAgentAsync(invalidId);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithParameterName("agentId");
+    }
+
+    [Theory]
+    [InlineData("jenise-buckalew")]
+    [InlineData("valid-agent-123")]
+    [InlineData("abc")]
+    public async Task GetAgentAsync_AcceptsValidAgentIds(string validId)
+    {
+        var service = CreateService();
+
+        // Should not throw - may return null if file doesn't exist
+        var act = () => service.GetAgentAsync(validId);
+
+        await act.Should().NotThrowAsync<ArgumentException>();
+    }
 }
