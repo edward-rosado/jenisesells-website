@@ -13,7 +13,7 @@ export function EmeraldClassic({ agent, content }: TemplateProps) {
     <>
       <Nav agent={agent} />
       <div className="pt-[74px]">
-      {s.hero.enabled && <Hero agent={agent} data={s.hero.data} />}
+      {s.hero.enabled && <Hero data={s.hero.data} />}
       {s.stats.enabled && s.stats.data.items.length > 0 && <StatsBar items={s.stats.data.items} />}
       {s.services.enabled && <Services items={s.services.data.items} />}
       {s.how_it_works.enabled && <HowItWorks steps={s.how_it_works.data.steps} />}

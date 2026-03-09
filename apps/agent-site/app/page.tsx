@@ -15,10 +15,8 @@ export default async function AgentPage({ searchParams }: PageProps) {
   const id = agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 
   try {
-    const [agent, content] = await Promise.all([
-      loadAgentConfig(id),
-      loadAgentContent(id),
-    ]);
+    const agent = await loadAgentConfig(id);
+    const content = await loadAgentContent(id, agent);
 
     const cssVars = buildCssVariableStyle(agent.branding);
     const Template = getTemplate(content.template);

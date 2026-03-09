@@ -8,6 +8,7 @@ export function Nav({ agent }: NavProps) {
   const { identity } = agent;
   return (
     <nav
+      aria-label="Main navigation"
       className="fixed top-0 w-full z-50 px-10 py-3 flex items-center justify-between"
       style={{ backgroundColor: "var(--color-primary)" }}
     >

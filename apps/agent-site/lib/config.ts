@@ -20,19 +20,22 @@ export async function loadAgentConfig(agentId: string): Promise<AgentConfig> {
   return JSON.parse(raw) as AgentConfig;
 }
 
-export async function loadAgentContent(agentId: string): Promise<AgentContent> {
+export async function loadAgentContent(
+  agentId: string,
+  config?: AgentConfig,
+): Promise<AgentContent> {
   validateAgentId(agentId);
   const filePath = path.join(CONFIG_DIR, `${agentId}.content.json`);
   try {
     const raw = await readFile(filePath, "utf-8");
     return JSON.parse(raw) as AgentContent;
   } catch {
-    return buildDefaultContent(agentId);
+    const resolved = config ?? await loadAgentConfig(agentId);
+    return buildDefaultContent(resolved);
   }
 }
 
-async function buildDefaultContent(agentId: string): Promise<AgentContent> {
-  const config = await loadAgentConfig(agentId);
+function buildDefaultContent(config: AgentConfig): AgentContent {
   const name = config.identity.name;
   const tagline = config.identity.tagline || "Your Trusted Real Estate Professional";
 

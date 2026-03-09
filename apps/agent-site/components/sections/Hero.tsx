@@ -1,7 +1,6 @@
-import type { AgentConfig, HeroData } from "@/lib/types";
+import type { HeroData } from "@/lib/types";
 
 interface HeroProps {
-  agent: AgentConfig;
   data: HeroData;
 }
 
@@ -14,7 +13,7 @@ function safeHref(href: string): string {
   return "#";
 }
 
-export function Hero({ agent, data }: HeroProps) {
+export function Hero({ data }: HeroProps) {
   return (
     <section
       className="min-h-[500px] flex items-center justify-center gap-16 flex-wrap px-10 py-20"
