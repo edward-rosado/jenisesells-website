@@ -1,7 +1,10 @@
+import Image from "next/image";
 import type { HeroData } from "@/lib/types";
 
 interface HeroProps {
   data: HeroData;
+  agentPhotoUrl?: string;
+  agentName?: string;
 }
 
 function safeHref(href: string): string {
@@ -13,7 +16,7 @@ function safeHref(href: string): string {
   return "#";
 }
 
-export function Hero({ data }: HeroProps) {
+export function Hero({ data, agentPhotoUrl, agentName }: HeroProps) {
   return (
     <section
       className="min-h-[500px] flex items-center justify-center gap-16 flex-wrap px-10 py-20"
@@ -32,6 +35,18 @@ export function Hero({ data }: HeroProps) {
           {data.cta_text} &rarr;
         </a>
       </div>
+      {agentPhotoUrl && (
+        <div className="relative w-72 h-96 rounded-2xl overflow-hidden shadow-2xl">
+          <Image
+            src={agentPhotoUrl}
+            alt={agentName ? `Photo of ${agentName}` : "Agent photo"}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 288px"
+            priority
+          />
+        </div>
+      )}
     </section>
   );
 }

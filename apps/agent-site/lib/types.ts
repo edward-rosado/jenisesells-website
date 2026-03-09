@@ -9,6 +9,7 @@ export interface AgentIdentity {
   phone: string;
   email: string;
   website?: string;
+  headshot_url?: string;
   languages?: string[];
   tagline?: string;
 }
@@ -24,6 +25,7 @@ export interface AgentBranding {
   secondary_color?: string;
   accent_color?: string;
   font_family?: string;
+  logo_url?: string;
 }
 
 export interface AgentTracking {
