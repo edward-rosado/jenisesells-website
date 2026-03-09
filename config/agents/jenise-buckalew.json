@@ -1,0 +1,43 @@
+{
+  "id": "jenise-buckalew",
+  "identity": {
+    "name": "Jenise Buckalew",
+    "title": "REALTOR\u00ae",
+    "license_id": "0676823",
+    "brokerage": "Green Light Realty LLC",
+    "brokerage_id": "1751390",
+    "phone": "(347) 393-5993",
+    "email": "jenisesellsnj@gmail.com",
+    "website": "jenisesellsnj.com",
+    "languages": ["English", "Spanish"],
+    "tagline": "Forward. Moving."
+  },
+  "location": {
+    "state": "NJ",
+    "office_address": "1109 Englishtown Rd, Old Bridge, NJ 08857",
+    "service_areas": [
+      "Middlesex County",
+      "Monmouth County",
+      "Ocean County"
+    ]
+  },
+  "branding": {
+    "primary_color": "#1B5E20",
+    "secondary_color": "#2E7D32",
+    "accent_color": "#C8A951",
+    "font_family": "Segoe UI"
+  },
+  "integrations": {
+    "email_provider": "gmail",
+    "form_handler": "formspree",
+    "form_handler_id": "xkovdywn"
+  },
+  "compliance": {
+    "state_form": "NJ-REALTORS-118",
+    "licensing_body": "NJ Real Estate Commission",
+    "disclosure_requirements": [
+      "Lead-based paint disclosure (pre-1978)",
+      "Seller property condition disclosure"
+    ]
+  }
+}

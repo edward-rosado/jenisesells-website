@@ -1,0 +1,12 @@
+{
+  "id": "test-agent",
+  "identity": {
+    "name": "Test Agent",
+    "phone": "555-000-0000",
+    "email": "test@example.com"
+  },
+  "location": {
+    "state": "NY"
+  },
+  "branding": {}
+}
