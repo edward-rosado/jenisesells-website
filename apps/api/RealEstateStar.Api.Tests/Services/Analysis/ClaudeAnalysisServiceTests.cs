@@ -98,4 +98,93 @@ public class ClaudeAnalysisServiceTests
         result.MarketTrend.Should().Be("Seller's");
         result.MedianDaysOnMarket.Should().Be(18);
     }
+
+    [Fact]
+    public void ParseResponse_HandlesNoConversationStarters()
+    {
+        var json = """
+        {
+            "valueLow": 420000,
+            "valueMid": 445000,
+            "valueHigh": 470000,
+            "marketNarrative": "Strong market.",
+            "marketTrend": "Seller's",
+            "medianDaysOnMarket": 18
+        }
+        """;
+
+        var result = ClaudeAnalysisService.ParseResponse(json);
+
+        result.ConversationStarters.Should().BeEmpty();
+        result.PricingRecommendation.Should().BeNull();
+        result.LeadInsights.Should().BeNull();
+    }
+
+    [Fact]
+    public void BuildPrompt_OmitsOptionalFields_WhenNull()
+    {
+        var lead = new Lead
+        {
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@example.com",
+            Phone = "555-1234",
+            Address = "123 Main St",
+            City = "Old Bridge",
+            State = "NJ",
+            Zip = "08857",
+            Timeline = "3-6 months",
+            Beds = null,
+            Baths = null,
+            Sqft = null
+        };
+        var comps = new List<Comp>
+        {
+            new()
+            {
+                Address = "456 Oak Ave",
+                SalePrice = 425_000m,
+                SaleDate = new DateOnly(2026, 1, 15),
+                Beds = 3,
+                Baths = 2,
+                Sqft = 1600,
+                DistanceMiles = 0.8,
+                Source = CompSource.Zillow,
+                DaysOnMarket = 14
+            }
+        };
+
+        var prompt = ClaudeAnalysisService.BuildPrompt(lead, comps, null, ReportType.Standard);
+
+        prompt.Should().NotContain("Beds:");
+        prompt.Should().NotContain("Baths:");
+        prompt.Should().NotContain("Sqft:");
+        prompt.Should().Contain("14 DOM");
+    }
+
+    [Fact]
+    public void BuildPrompt_IncludesAllResearchFields_WhenAvailable()
+    {
+        var lead = MakeLead();
+        var comps = new List<Comp> { MakeComp() };
+        var research = new LeadResearch
+        {
+            Occupation = "Engineer",
+            Employer = "Corp",
+            PurchaseDate = new DateOnly(2019, 5, 1),
+            PurchasePrice = 300_000m,
+            TaxAssessment = 350_000m,
+            EstimatedEquityLow = 50_000m,
+            EstimatedEquityHigh = 100_000m,
+            LifeEventInsight = "Relocating",
+            NeighborhoodContext = "Great schools"
+        };
+
+        var prompt = ClaudeAnalysisService.BuildPrompt(lead, comps, research, ReportType.Standard);
+
+        prompt.Should().Contain("Tax Assessment: $350,000");
+        prompt.Should().Contain("Estimated Equity: $50,000 - $100,000");
+        prompt.Should().Contain("Relocating");
+        prompt.Should().Contain("Great schools");
+    }
 }
