@@ -93,6 +93,12 @@ dotnet run --project src/RealEstateStar.Api
 dotnet test
 ```
 
+### Backend Architecture
+
+This project follows the REPR (Request → Endpoint → Response) architecture.
+
+See: docs/architecture/repr-architecture.md
+
 ## Tech Stack
 
 | Component | Technology | Status |
