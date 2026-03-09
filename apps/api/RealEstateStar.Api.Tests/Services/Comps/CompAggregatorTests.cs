@@ -43,7 +43,7 @@ public class CompAggregatorTests
 
         var aggregator = new CompAggregator([source1.Object, source2.Object]);
 
-        var results = await aggregator.FetchCompsAsync("123 Main St", "Anytown", "NJ", "08901", 3, 2, 1500);
+        var results = await aggregator.FetchCompsAsync("123 Main St", "Anytown", "NJ", "08901", 3, 2, 1500, CancellationToken.None);
 
         results.Should().HaveCount(1);
     }
@@ -68,7 +68,7 @@ public class CompAggregatorTests
 
         var aggregator = new CompAggregator([mlsSource.Object, zillowSource.Object]);
 
-        var results = await aggregator.FetchCompsAsync("123 Main St", "Anytown", "NJ", "08901", 3, 2, 1500);
+        var results = await aggregator.FetchCompsAsync("123 Main St", "Anytown", "NJ", "08901", 3, 2, 1500, CancellationToken.None);
 
         results.Should().HaveCount(1);
         results[0].SalePrice.Should().Be(360_000m);
@@ -94,7 +94,7 @@ public class CompAggregatorTests
 
         var aggregator = new CompAggregator([failingSource.Object, workingSource.Object]);
 
-        var results = await aggregator.FetchCompsAsync("123 Main St", "Anytown", "NJ", "08901", 3, 2, 1500);
+        var results = await aggregator.FetchCompsAsync("123 Main St", "Anytown", "NJ", "08901", 3, 2, 1500, CancellationToken.None);
 
         results.Should().HaveCount(1);
         results[0].Source.Should().Be(CompSource.Redfin);

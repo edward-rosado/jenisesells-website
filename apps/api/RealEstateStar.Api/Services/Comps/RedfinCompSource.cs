@@ -10,7 +10,7 @@ public class RedfinCompSource(HttpClient httpClient, ILogger<RedfinCompSource>? 
     public async Task<List<Comp>> FetchAsync(
         string address, string city, string state, string zip,
         int? beds, int? baths, int? sqft,
-        CancellationToken ct = default)
+        CancellationToken ct)
     {
         var slug = $"{state}/{city}/{address.Replace(' ', '-')}-{zip}".ToLowerInvariant();
         var url = $"https://www.redfin.com/{slug}";

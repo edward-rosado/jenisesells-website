@@ -18,7 +18,7 @@ public class CmaPipeline(
     IGwsService gws,
     ILogger<CmaPipeline>? logger = null)
 {
-    public async Task ExecuteAsync(CmaJob job, string agentId, Lead lead, Func<CmaJobStatus, Task> onStatusChange, CancellationToken ct = default)
+    public async Task ExecuteAsync(CmaJob job, string agentId, Lead lead, Func<CmaJobStatus, Task> onStatusChange, CancellationToken ct)
     {
         // Step 1: Load agent config
         var agent = await agentConfig.GetAgentAsync(agentId, ct);

@@ -10,7 +10,7 @@ public class ZillowCompSource(HttpClient httpClient, ILogger<ZillowCompSource>? 
     public async Task<List<Comp>> FetchAsync(
         string address, string city, string state, string zip,
         int? beds, int? baths, int? sqft,
-        CancellationToken ct = default)
+        CancellationToken ct)
     {
         var slug = $"{address.Replace(' ', '-')}-{city}-{state}-{zip}".ToLowerInvariant();
         var url = $"https://www.zillow.com/homedetails/{slug}";

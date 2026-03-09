@@ -140,7 +140,7 @@ public class CmaPipelineTests
 
         // Act
         var job = CmaJob.Create(Guid.NewGuid(), lead);
-        await pipeline.ExecuteAsync(job, "test-agent", lead, s => { statuses.Add(s); return Task.CompletedTask; });
+        await pipeline.ExecuteAsync(job, "test-agent", lead, s => { statuses.Add(s); return Task.CompletedTask; }, CancellationToken.None);
 
         // Assert
         job.Status.Should().Be(CmaJobStatus.Complete);
@@ -182,7 +182,7 @@ public class CmaPipelineTests
 
         // Act
         var job = CmaJob.Create(Guid.NewGuid(), MakeLead());
-        await pipeline.ExecuteAsync(job, "unknown-agent", MakeLead(), _ => Task.CompletedTask);
+        await pipeline.ExecuteAsync(job, "unknown-agent", MakeLead(), _ => Task.CompletedTask, CancellationToken.None);
 
         // Assert — job should still be in Parsing status (pipeline returned early)
         job.Status.Should().Be(CmaJobStatus.Parsing);

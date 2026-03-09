@@ -11,7 +11,7 @@ public class AttomDataCompSource(HttpClient httpClient, string apiKey, ILogger<A
     public async Task<List<Comp>> FetchAsync(
         string address, string city, string state, string zip,
         int? beds, int? baths, int? sqft,
-        CancellationToken ct = default)
+        CancellationToken ct)
     {
         var encodedAddress = Uri.EscapeDataString(address);
         var url = $"https://api.gateway.attomdata.com/propertyapi/v1.0.0/sale/snapshot?" +

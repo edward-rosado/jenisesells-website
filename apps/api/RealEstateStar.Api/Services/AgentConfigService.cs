@@ -15,7 +15,7 @@ public partial class AgentConfigService(string configDirectory, ILogger<AgentCon
     [GeneratedRegex(@"^[a-z0-9-]+$")]
     private static partial Regex AgentIdPattern();
 
-    public async Task<AgentConfig?> GetAgentAsync(string agentId, CancellationToken ct = default)
+    public async Task<AgentConfig?> GetAgentAsync(string agentId, CancellationToken ct)
     {
         ValidateAgentId(agentId);
 

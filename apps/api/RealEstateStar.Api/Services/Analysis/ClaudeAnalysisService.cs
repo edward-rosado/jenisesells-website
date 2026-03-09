@@ -11,7 +11,7 @@ public class ClaudeAnalysisService(HttpClient httpClient, string apiKey, ILogger
     private const string Model = "claude-sonnet-4-6";
     private const int MaxTokens = 4096;
 
-    public async Task<CmaAnalysis> AnalyzeAsync(Lead lead, List<Comp> comps, LeadResearch? research, ReportType reportType, CancellationToken ct = default)
+    public async Task<CmaAnalysis> AnalyzeAsync(Lead lead, List<Comp> comps, LeadResearch? research, ReportType reportType, CancellationToken ct)
     {
         var prompt = BuildPrompt(lead, comps, research, reportType);
 

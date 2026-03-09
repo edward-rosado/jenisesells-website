@@ -7,19 +7,19 @@ namespace RealEstateStar.Api.Services.Gws;
 
 public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
 {
-    public async Task<string> CreateDriveFolderAsync(string agentEmail, string folderPath, CancellationToken ct = default)
+    public async Task<string> CreateDriveFolderAsync(string agentEmail, string folderPath, CancellationToken ct)
     {
         logger?.LogInformation("Creating Drive folder {FolderPath} for {Email}", folderPath, agentEmail);
         return await RunGwsAsync(ct, "drive", "mkdir", "--user", agentEmail, folderPath);
     }
 
-    public async Task<string> UploadFileAsync(string agentEmail, string folderPath, string filePath, CancellationToken ct = default)
+    public async Task<string> UploadFileAsync(string agentEmail, string folderPath, string filePath, CancellationToken ct)
     {
         logger?.LogInformation("Uploading {FilePath} to {FolderPath} for {Email}", filePath, folderPath, agentEmail);
         return await RunGwsAsync(ct, "drive", "upload", "--user", agentEmail, "--parent", folderPath, filePath);
     }
 
-    public async Task<string> CreateDocAsync(string agentEmail, string folderPath, string title, string content, CancellationToken ct = default)
+    public async Task<string> CreateDocAsync(string agentEmail, string folderPath, string title, string content, CancellationToken ct)
     {
         var tempFile = Path.GetTempFileName();
         try
@@ -42,7 +42,7 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
         }
     }
 
-    public async Task SendEmailAsync(string agentEmail, string to, string subject, string body, string? attachmentPath = null, CancellationToken ct = default)
+    public async Task SendEmailAsync(string agentEmail, string to, string subject, string body, string? attachmentPath, CancellationToken ct)
     {
         logger?.LogInformation("Sending email from {Email} to {To} subject '{Subject}'", agentEmail, to, subject);
 
@@ -57,7 +57,7 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
         await RunGwsAsync(ct, [.. args]);
     }
 
-    public async Task AppendSheetRowAsync(string agentEmail, string spreadsheetId, List<string> values, CancellationToken ct = default)
+    public async Task AppendSheetRowAsync(string agentEmail, string spreadsheetId, List<string> values, CancellationToken ct)
     {
         var csv = string.Join(",", values.Select(v => $"\"{v.Replace("\"", "\"\"")}\""));
         logger?.LogInformation("Appending row to sheet {SpreadsheetId} for {Email}", spreadsheetId, agentEmail);

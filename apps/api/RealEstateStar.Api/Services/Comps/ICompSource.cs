@@ -9,5 +9,5 @@ public interface ICompSource
     Task<List<Comp>> FetchAsync(
         string address, string city, string state, string zip,
         int? beds, int? baths, int? sqft,
-        CancellationToken ct = default);
+        CancellationToken ct);
 }

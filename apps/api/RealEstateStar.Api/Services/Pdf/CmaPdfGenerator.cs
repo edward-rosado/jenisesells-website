@@ -14,7 +14,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
 
     public void Generate(string outputPath, AgentConfig agent, Lead lead,
         List<Comp> comps, CmaAnalysis analysis, LeadResearch? research,
-        ReportType reportType, CancellationToken ct = default)
+        ReportType reportType, CancellationToken ct)
     {
         var document = Document.Create(container =>
         {

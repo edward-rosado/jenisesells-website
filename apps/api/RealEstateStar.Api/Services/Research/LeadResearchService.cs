@@ -5,7 +5,7 @@ namespace RealEstateStar.Api.Services.Research;
 
 public class LeadResearchService(HttpClient httpClient, ILogger<LeadResearchService>? logger = null) : ILeadResearchService
 {
-    public async Task<LeadResearch> ResearchAsync(Lead lead, CancellationToken ct = default)
+    public async Task<LeadResearch> ResearchAsync(Lead lead, CancellationToken ct)
     {
         var publicRecordsTask = FetchPublicRecordsAsync(lead, ct);
         var linkedInTask = FetchLinkedInAsync(lead, ct);
@@ -58,7 +58,7 @@ public class LeadResearchService(HttpClient httpClient, ILogger<LeadResearchServ
         return research;
     }
 
-    private async Task<LeadResearch?> FetchPublicRecordsAsync(Lead lead, CancellationToken ct = default)
+    private async Task<LeadResearch?> FetchPublicRecordsAsync(Lead lead, CancellationToken ct)
     {
         try
         {
@@ -76,7 +76,7 @@ public class LeadResearchService(HttpClient httpClient, ILogger<LeadResearchServ
         }
     }
 
-    private async Task<LeadResearch?> FetchLinkedInAsync(Lead lead, CancellationToken ct = default)
+    private async Task<LeadResearch?> FetchLinkedInAsync(Lead lead, CancellationToken ct)
     {
         try
         {
@@ -94,7 +94,7 @@ public class LeadResearchService(HttpClient httpClient, ILogger<LeadResearchServ
         }
     }
 
-    private async Task<LeadResearch?> FetchNeighborhoodAsync(Lead lead, CancellationToken ct = default)
+    private async Task<LeadResearch?> FetchNeighborhoodAsync(Lead lead, CancellationToken ct)
     {
         try
         {
