@@ -4,12 +4,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { CmaForm } from "@/components/sections/CmaForm";
-import { AGENT, AGENT_MINIMAL } from "./fixtures";
 import type { CmaFormData } from "@/lib/types";
 
 const FORM_DATA: CmaFormData = {
   title: "What's Your Home Worth?",
   subtitle: "Get a free CMA today",
+};
+
+// Props matching the AGENT fixture (formspree handler)
+const FORMSPREE_PROPS = {
+  agentId: "test-agent",
+  agentName: "Jane Smith",
+  defaultState: "NJ",
+  formHandler: "formspree" as const,
+  formHandlerId: "abc123",
+  data: FORM_DATA,
+};
+
+// Props matching the AGENT_MINIMAL fixture (no form handler)
+const MINIMAL_PROPS = {
+  agentId: "minimal-agent",
+  agentName: "Bob Jones",
+  defaultState: "TX",
+  data: FORM_DATA,
 };
 
 // Helper: fill out all required form fields
@@ -27,17 +44,17 @@ function fillForm() {
 
 describe("CmaForm rendering", () => {
   it("renders the form title", () => {
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     expect(screen.getByRole("heading", { level: 2, name: "What's Your Home Worth?" })).toBeInTheDocument();
   });
 
   it("renders the subtitle", () => {
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     expect(screen.getByText("Get a free CMA today")).toBeInTheDocument();
   });
 
   it("renders all required input fields", () => {
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     expect(screen.getByPlaceholderText("First Name")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Last Name")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Email Address")).toBeInTheDocument();
@@ -49,7 +66,7 @@ describe("CmaForm rendering", () => {
   });
 
   it("renders the timeline select dropdown", () => {
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     const select = screen.getByRole("combobox");
     expect(select).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "As soon as possible" })).toBeInTheDocument();
@@ -60,38 +77,38 @@ describe("CmaForm rendering", () => {
   });
 
   it("renders the textarea for additional notes", () => {
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     expect(screen.getByPlaceholderText("Anything else I should know?")).toBeInTheDocument();
   });
 
   it("renders the submit button with default text", () => {
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     expect(screen.getByRole("button", { name: /Get My Free Home Value Report/ })).toBeInTheDocument();
   });
 
-  it("pre-fills the state field from agent location", () => {
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+  it("pre-fills the state field from defaultState prop", () => {
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     const stateInput = screen.getByPlaceholderText("State") as HTMLInputElement;
     expect(stateInput.value).toBe("NJ");
   });
 
   it("does not show error message initially", () => {
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     expect(screen.queryByText("Something went wrong. Please try again.")).not.toBeInTheDocument();
   });
 
   it("submit button is not disabled initially", () => {
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     expect(screen.getByRole("button")).not.toBeDisabled();
   });
 
   it("renders section with id cma-form", () => {
-    const { container } = render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    const { container } = render(<CmaForm {...FORMSPREE_PROPS} />);
     expect(container.querySelector("#cma-form")).toBeInTheDocument();
   });
 
   it("all inputs have accessible labels via sr-only", () => {
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     expect(screen.getByLabelText("First Name")).toBeInTheDocument();
     expect(screen.getByLabelText("Last Name")).toBeInTheDocument();
     expect(screen.getByLabelText("Email Address")).toBeInTheDocument();
@@ -118,11 +135,10 @@ describe("CmaForm form submission — formspree handler", () => {
     const mockFetch = vi.mocked(fetch);
     mockFetch.mockResolvedValueOnce({ ok: true } as Response);
 
-    // We need to mock window.location.href assignment
     const locationMock = { href: "" };
     Object.defineProperty(window, "location", { value: locationMock, writable: true });
 
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     fillForm();
 
     await act(async () => {
@@ -139,13 +155,12 @@ describe("CmaForm form submission — formspree handler", () => {
 
   it("shows loading state during submission", async () => {
     const mockFetch = vi.mocked(fetch);
-    // Delay resolution so we can observe the loading state
     let resolvePromise!: (value: Response) => void;
     mockFetch.mockReturnValueOnce(
       new Promise<Response>((resolve) => { resolvePromise = resolve; })
     );
 
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     fillForm();
 
     act(() => {
@@ -157,7 +172,6 @@ describe("CmaForm form submission — formspree handler", () => {
       expect(screen.getByRole("button")).toHaveTextContent("Submitting...");
     });
 
-    // Clean up
     act(() => {
       resolvePromise({ ok: true } as Response);
     });
@@ -170,7 +184,7 @@ describe("CmaForm form submission — formspree handler", () => {
     const locationMock = { href: "" };
     Object.defineProperty(window, "location", { value: locationMock, writable: true });
 
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     fillForm();
 
     await act(async () => {
@@ -187,7 +201,7 @@ describe("CmaForm form submission — formspree handler", () => {
     const mockFetch = vi.mocked(fetch);
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500 } as Response);
 
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     fillForm();
 
     await act(async () => {
@@ -203,7 +217,7 @@ describe("CmaForm form submission — formspree handler", () => {
     const mockFetch = vi.mocked(fetch);
     mockFetch.mockRejectedValueOnce(new Error("Network error"));
 
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     fillForm();
 
     await act(async () => {
@@ -219,7 +233,7 @@ describe("CmaForm form submission — formspree handler", () => {
     const mockFetch = vi.mocked(fetch);
     mockFetch.mockRejectedValueOnce(new Error("Network error"));
 
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     fillForm();
 
     await act(async () => {
@@ -233,7 +247,6 @@ describe("CmaForm form submission — formspree handler", () => {
 
   it("clears previous error on new submission attempt", async () => {
     const mockFetch = vi.mocked(fetch);
-    // First call fails, second call succeeds
     mockFetch
       .mockRejectedValueOnce(new Error("Network error"))
       .mockResolvedValueOnce({ ok: true } as Response);
@@ -241,10 +254,9 @@ describe("CmaForm form submission — formspree handler", () => {
     const locationMock = { href: "" };
     Object.defineProperty(window, "location", { value: locationMock, writable: true });
 
-    render(<CmaForm agent={AGENT} data={FORM_DATA} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     fillForm();
 
-    // First submission — should produce error
     await act(async () => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);
     });
@@ -253,7 +265,6 @@ describe("CmaForm form submission — formspree handler", () => {
       expect(screen.getByText("Something went wrong. Please try again.")).toBeInTheDocument();
     });
 
-    // Second submission — error should disappear while in-flight
     act(() => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);
     });
@@ -280,7 +291,7 @@ describe("CmaForm form submission — custom API handler", () => {
     const locationMock = { href: "" };
     Object.defineProperty(window, "location", { value: locationMock, writable: true });
 
-    render(<CmaForm agent={AGENT_MINIMAL} data={FORM_DATA} />);
+    render(<CmaForm {...MINIMAL_PROPS} />);
     fillForm();
 
     await act(async () => {
@@ -302,7 +313,7 @@ describe("CmaForm form submission — custom API handler", () => {
     const locationMock = { href: "" };
     Object.defineProperty(window, "location", { value: locationMock, writable: true });
 
-    render(<CmaForm agent={AGENT_MINIMAL} data={FORM_DATA} />);
+    render(<CmaForm {...MINIMAL_PROPS} />);
     fillForm();
 
     await act(async () => {

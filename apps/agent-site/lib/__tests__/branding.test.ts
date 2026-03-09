@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { buildCssVariables } from "../branding";
+import { buildCssVariableStyle } from "../branding";
 import type { AgentBranding } from "../types";
 
-describe("buildCssVariables", () => {
+describe("buildCssVariableStyle", () => {
   it("should generate CSS variables from branding config", () => {
     const branding: AgentBranding = {
       primary_color: "#1B5E20",
@@ -10,17 +10,17 @@ describe("buildCssVariables", () => {
       accent_color: "#C8A951",
       font_family: "Segoe UI",
     };
-    const css = buildCssVariables(branding);
-    expect(css).toContain("--color-primary: #1B5E20");
-    expect(css).toContain("--color-secondary: #2E7D32");
-    expect(css).toContain("--color-accent: #C8A951");
-    expect(css).toContain("--font-family: 'Segoe UI'");
+    const style = buildCssVariableStyle(branding);
+    expect(style["--color-primary"]).toBe("#1B5E20");
+    expect(style["--color-secondary"]).toBe("#2E7D32");
+    expect(style["--color-accent"]).toBe("#C8A951");
+    expect(style["--font-family"]).toBe("'Segoe UI'");
   });
 
   it("should use defaults for missing values", () => {
-    const css = buildCssVariables({});
-    expect(css).toContain("--color-primary: #1B5E20");
-    expect(css).toContain("--font-family: 'Segoe UI'");
+    const style = buildCssVariableStyle({});
+    expect(style["--color-primary"]).toBe("#1B5E20");
+    expect(style["--font-family"]).toBe("'Segoe UI'");
   });
 
   it("should sanitize malicious color values", () => {
@@ -28,19 +28,16 @@ describe("buildCssVariables", () => {
       primary_color: "red; background: url(evil)",
       accent_color: "#C8A951",
     };
-    const css = buildCssVariables(branding);
-    // Malicious primary should fall back to default
-    expect(css).toContain("--color-primary: #1B5E20");
-    // Valid accent should pass through
-    expect(css).toContain("--color-accent: #C8A951");
+    const style = buildCssVariableStyle(branding);
+    expect(style["--color-primary"]).toBe("#1B5E20");
+    expect(style["--color-accent"]).toBe("#C8A951");
   });
 
   it("should sanitize malicious font_family values", () => {
     const branding: AgentBranding = {
       font_family: "Segoe UI'; behavior:url(evil.htc); x: '",
     };
-    const css = buildCssVariables(branding);
-    // Malicious font should fall back to default
-    expect(css).toContain("--font-family: 'Segoe UI'");
+    const style = buildCssVariableStyle(branding);
+    expect(style["--font-family"]).toBe("'Segoe UI'");
   });
 });

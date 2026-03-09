@@ -1,0 +1,9 @@
+{
+  "id": "bad-no-name",
+  "identity": {
+    "phone": "555-000-0000",
+    "email": "test@example.com"
+  },
+  "location": { "state": "NY" },
+  "branding": {}
+}

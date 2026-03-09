@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildCssVariables, buildCssVariableStyle } from "../branding";
+import { buildCssVariableStyle } from "../branding";
 import type { AgentBranding } from "../types";
 
 describe("buildCssVariableStyle", () => {
@@ -68,20 +68,5 @@ describe("buildCssVariableStyle", () => {
   it("returns a plain object with exactly four keys", () => {
     const style = buildCssVariableStyle({});
     expect(Object.keys(style)).toHaveLength(4);
-  });
-});
-
-describe("buildCssVariables (string format)", () => {
-  it("joins variables with semicolons", () => {
-    const result = buildCssVariables({ primary_color: "#FF0000" });
-    const parts = result.split("; ");
-    expect(parts).toHaveLength(4);
-  });
-
-  it("each part contains a colon separator", () => {
-    const result = buildCssVariables({});
-    result.split("; ").forEach((part) => {
-      expect(part).toContain(":");
-    });
   });
 });
