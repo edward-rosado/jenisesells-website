@@ -210,9 +210,16 @@ PRD (via prd-development skill) → docs/plans/YYYY-MM-DD-<feature>-prd.md
         → executing-plans → PRs linked to issues → auto-close on merge
 ```
 
+## Decisions Made (Post-Design)
+
+- **Hosting provider:** Cloudflare Pages (zero egress, unlimited bandwidth, best edge performance)
+- **PDF generation:** QuestPDF (MIT, .NET native, fluent C# API)
+- **Chat UI:** assistant-ui (React, AI-native, file upload support)
+- **Google integration:** Google Workspace CLI (`gws`) for Gmail, Drive, Docs, Sheets, Calendar
+- **Credential storage:** Encrypted local files (MVP) → Google Secret Manager (production)
+
 ## Decisions Deferred
 
-- **Hosting provider:** Requires cost/capability analysis (Netlify vs Vercel vs AWS vs self-hosted)
 - **Database selection:** Postgres likely, but deferred until API work begins
 - **Auth provider:** TBD when portal authentication is built
 - **MLS integration approach:** Requires research into MLS data access

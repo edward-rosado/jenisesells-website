@@ -446,12 +446,47 @@ Lead submits CMA form on agent site
 - GET /agents/{id}/preview — get preview URL status
 - POST /agents/{id}/auth/google — handle Google OAuth callback, store credentials
 
+## Decisions Made
+
+### Hosting: Cloudflare Pages
+- Zero egress fees — critical for multi-tenant bandwidth
+- Unlimited bandwidth on free tier
+- Best edge performance (300+ data centers)
+- Next.js support via OpenNext adapter (mature in 2026)
+- Free → $5/mo pro tier
+
+### PDF Generation: QuestPDF (.NET)
+- MIT license, free for companies under $1M revenue
+- Fluent C# API — fits .NET 10 backend
+- Purpose-built for reports, invoices, data-driven documents
+- No HTML rendering dependency — clean programmatic layout
+- NuGet: `QuestPDF`
+
+### Chat UI: assistant-ui (React)
+- TypeScript/React library built specifically for AI chat
+- YC-backed, actively maintained
+- Supports streaming responses, tool call visualization, file uploads
+- File uploads needed for logo/business card during onboarding
+- npm: `@assistant-ui/react`
+
+### Google Cloud OAuth Setup
+- Google Cloud project: "Real Estate Star"
+- OAuth consent screen: external, production
+- OAuth 2.0 client ID: web application type
+- Scopes requested in single consent flow:
+  - `https://www.googleapis.com/auth/gmail.send`
+  - `https://www.googleapis.com/auth/drive.file`
+  - `https://www.googleapis.com/auth/documents`
+  - `https://www.googleapis.com/auth/spreadsheets`
+  - `https://www.googleapis.com/auth/calendar.events`
+
+### Credential Storage: Encrypted Local Files → Secret Manager
+- MVP: Encrypted local files (matches `gws` CLI native storage)
+- Production: Google Secret Manager (already in GCP for OAuth)
+- Agent credentials stored per-agent, never in git
+- `.gitignore` already excludes `config/agents/*.credentials.json`
+
 ## Decisions Deferred
 
-- Hosting provider for agent sites (analysis pending)
-- PDF generation library selection (.NET or external service)
-- Chat UI framework (custom vs. library)
-- Template builder for creating new templates
-- Pricing for custom domain upgrade
-- Google Cloud project setup for OAuth (client ID, consent screen config)
-- Credential storage strategy (encrypted local vs. vault vs. cloud KMS)
+- Template builder for creating new templates (YAGNI — one template for now)
+- Pricing for custom domain upgrade (needs market research with real agents)
