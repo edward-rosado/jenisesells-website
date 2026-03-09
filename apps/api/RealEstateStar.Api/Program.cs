@@ -1,6 +1,12 @@
 using System.ComponentModel.DataAnnotations;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 using RealEstateStar.Api.Hubs;
+using RealEstateStar.Api.Logging;
+using RealEstateStar.Api.Middleware;
 using RealEstateStar.Api.Models;
 using RealEstateStar.Api.Services;
 using RealEstateStar.Api.Services.Analysis;
@@ -8,8 +14,10 @@ using RealEstateStar.Api.Services.Comps;
 using RealEstateStar.Api.Services.Gws;
 using RealEstateStar.Api.Services.Pdf;
 using RealEstateStar.Api.Services.Research;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.AddStructuredLogging();
 
 // Agent config
 var configPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "agents");
@@ -58,9 +66,87 @@ builder.Services.AddSingleton<ICmaJobStore, InMemoryCmaJobStore>();
 // SignalR
 builder.Services.AddSignalR();
 
+// Health checks
+builder.Services.AddHealthChecks();
+
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins(
+                builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? ["http://localhost:3000"])
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials(); // Required for SignalR
+    });
+});
+
+// Rate limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Global: 100 requests per minute per IP
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+
+    // Stricter policy for CMA creation: 10 per hour per agent
+    options.AddPolicy("cma-create", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Request.RouteValues["agentId"]?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromHours(1)
+            }));
+});
+
 var app = builder.Build();
 
+// Global exception handler — returns RFC 7807 ProblemDetails
+app.UseExceptionHandler(exceptionApp =>
+{
+    exceptionApp.Run(async context =>
+    {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
+
+        if (exceptionFeature is not null)
+        {
+            logger.LogError(exceptionFeature.Error, "Unhandled exception for {Method} {Path}",
+                context.Request.Method, context.Request.Path);
+        }
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/problem+json";
+
+        var problem = new ProblemDetails
+        {
+            Status = StatusCodes.Status500InternalServerError,
+            Title = "An unexpected error occurred.",
+            Type = "https://tools.ietf.org/html/rfc7807"
+        };
+
+        await context.Response.WriteAsJsonAsync(problem);
+    });
+});
+
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseSerilogRequestLogging();
+
 app.UseHttpsRedirection();
+app.UseCors();
+app.UseRateLimiter();
+
+// Health check
+app.MapHealthChecks("/health");
 
 // SignalR hub
 app.MapHub<CmaProgressHub>("/hubs/cma-progress");
@@ -114,7 +200,7 @@ app.MapPost("/agents/{agentId}/cma", (
     });
 
     return Results.Accepted(value: new { jobId = job.Id.ToString(), status = "processing" });
-});
+}).RequireRateLimiting("cma-create");
 
 app.MapGet("/agents/{agentId}/cma/{jobId}/status", (string agentId, string jobId, ICmaJobStore store) =>
 {
