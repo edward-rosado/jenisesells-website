@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.SignalR;
 using RealEstateStar.Api.Hubs;
 using RealEstateStar.Api.Models;
@@ -47,6 +48,9 @@ builder.Services.AddSingleton<IAnalysisService>(sp =>
 // Pipeline orchestrator
 builder.Services.AddSingleton<CmaPipeline>();
 
+// Problem details for validation errors
+builder.Services.AddProblemDetails();
+
 // Job store
 builder.Services.AddSingleton<ICmaJobStore, InMemoryCmaJobStore>();
 
@@ -70,6 +74,12 @@ app.MapPost("/agents/{agentId}/cma", (
     IHubContext<CmaProgressHub> hubContext,
     ILogger<Program> logger) =>
 {
+    var validationResults = new List<ValidationResult>();
+    if (!Validator.TryValidateObject(lead, new ValidationContext(lead), validationResults, true))
+        return Results.ValidationProblem(
+            validationResults.GroupBy(v => v.MemberNames.FirstOrDefault() ?? "")
+                .ToDictionary(g => g.Key, g => g.Select(v => v.ErrorMessage!).ToArray()));
+
     var job = CmaJob.Create(Guid.Empty, lead);
     store.Set(agentId, job);
 

@@ -44,6 +44,104 @@ public class CmaEndpointTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
+    public async Task PostCma_Returns400_WhenFirstNameMissing()
+    {
+        var lead = new
+        {
+            firstName = "",
+            lastName = "Doe",
+            email = "john@example.com",
+            phone = "555-1234",
+            address = "123 Main St",
+            city = "Springfield",
+            state = "NJ",
+            zip = "07081",
+            timeline = "3-6 months"
+        };
+
+        var response = await _client.PostAsJsonAsync("/agents/jenise-buckalew/cma", lead);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(body.TryGetProperty("errors", out _));
+    }
+
+    [Fact]
+    public async Task PostCma_Returns400_WhenEmailInvalid()
+    {
+        var lead = new
+        {
+            firstName = "John",
+            lastName = "Doe",
+            email = "not-an-email",
+            phone = "555-1234",
+            address = "123 Main St",
+            city = "Springfield",
+            state = "NJ",
+            zip = "07081",
+            timeline = "3-6 months"
+        };
+
+        var response = await _client.PostAsJsonAsync("/agents/jenise-buckalew/cma", lead);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(body.TryGetProperty("errors", out var errors));
+        Assert.True(errors.TryGetProperty("Email", out _));
+    }
+
+    [Fact]
+    public async Task PostCma_Returns400_WhenAddressMissing()
+    {
+        var lead = new
+        {
+            firstName = "John",
+            lastName = "Doe",
+            email = "john@example.com",
+            phone = "555-1234",
+            address = "",
+            city = "",
+            state = "NJ",
+            zip = "07081",
+            timeline = "3-6 months"
+        };
+
+        var response = await _client.PostAsJsonAsync("/agents/jenise-buckalew/cma", lead);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(body.TryGetProperty("errors", out _));
+    }
+
+    [Fact]
+    public async Task PostCma_Returns400_WhenZipInvalid()
+    {
+        var lead = new
+        {
+            firstName = "John",
+            lastName = "Doe",
+            email = "john@example.com",
+            phone = "555-1234",
+            address = "123 Main St",
+            city = "Springfield",
+            state = "NJ",
+            zip = "ABCDE",
+            timeline = "3-6 months"
+        };
+
+        var response = await _client.PostAsJsonAsync("/agents/jenise-buckalew/cma", lead);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(body.TryGetProperty("errors", out var errors));
+        Assert.True(errors.TryGetProperty("Zip", out _));
+    }
+
+    [Fact]
     public async Task GetCmaStatus_Returns404_ForUnknownJob()
     {
         var response = await _client.GetAsync("/agents/jenise-buckalew/cma/nonexistent-job/status");
