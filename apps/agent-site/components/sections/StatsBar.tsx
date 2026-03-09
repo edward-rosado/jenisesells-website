@@ -10,8 +10,8 @@ export function StatsBar({ items }: StatsBarProps) {
       className="py-8 px-10 flex justify-center gap-12 flex-wrap"
       style={{ backgroundColor: "var(--color-primary)" }}
     >
-      {items.map((item, i) => (
-        <div key={i} className="text-center text-white">
+      {items.map((item) => (
+        <div key={item.label} className="text-center text-white">
           <div className="text-3xl font-extrabold" style={{ color: "var(--color-accent)" }}>
             {item.value}
           </div>

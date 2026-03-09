@@ -2,15 +2,28 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { useState } from "react";
-import type { AgentConfig, CmaFormData } from "@/lib/types";
+import type { CmaFormData, AgentTracking } from "@/lib/types";
 import { trackCmaConversion } from "@/components/Analytics";
 
 interface CmaFormProps {
-  agent: AgentConfig;
+  agentId: string;
+  agentName: string;
+  defaultState: string;
+  formHandler?: "formspree" | "custom";
+  formHandlerId?: string;
+  tracking?: AgentTracking;
   data: CmaFormData;
 }
 
-export function CmaForm({ agent, data }: CmaFormProps) {
+export function CmaForm({
+  agentId,
+  agentName,
+  defaultState,
+  formHandler,
+  formHandlerId,
+  tracking,
+  data,
+}: CmaFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,9 +32,9 @@ export function CmaForm({ agent, data }: CmaFormProps) {
     setSubmitting(true);
     setError(null);
     const formData = new FormData(e.currentTarget);
-    const endpoint = agent.integrations?.form_handler === "formspree"
-      ? `https://formspree.io/f/${agent.integrations.form_handler_id}`
-      : `/api/agents/${agent.id}/cma`;
+    const endpoint = formHandler === "formspree"
+      ? `https://formspree.io/f/${formHandlerId}`
+      : `/api/agents/${agentId}/cma`;
 
     try {
       const response = await fetch(endpoint, {
@@ -32,11 +45,11 @@ export function CmaForm({ agent, data }: CmaFormProps) {
       if (!response.ok) {
         throw new Error(`Submission failed (${response.status})`);
       }
-      trackCmaConversion(agent.integrations?.tracking);
-      window.location.href = `/thank-you?agentId=${encodeURIComponent(agent.id)}`;
+      trackCmaConversion(tracking);
+      window.location.href = `/thank-you?agentId=${encodeURIComponent(agentId)}`;
     } catch (err) {
       Sentry.captureException(err, {
-        tags: { agentId: agent.id, feature: "cma-form" },
+        tags: { agentId, feature: "cma-form" },
         extra: { endpoint },
       });
       setError("Something went wrong. Please try again.");
@@ -77,7 +90,7 @@ export function CmaForm({ agent, data }: CmaFormProps) {
           </div>
           <div>
             <label htmlFor="state" className="sr-only">State</label>
-            <input id="state" name="state" placeholder="State" defaultValue={agent.location.state} required className="border rounded-lg px-4 py-3 w-full" />
+            <input id="state" name="state" placeholder="State" defaultValue={defaultState} required className="border rounded-lg px-4 py-3 w-full" />
           </div>
           <div>
             <label htmlFor="zip" className="sr-only">Zip Code</label>
@@ -95,7 +108,7 @@ export function CmaForm({ agent, data }: CmaFormProps) {
         </select>
         <label htmlFor="notes" className="sr-only">Additional notes</label>
         <textarea id="notes" name="notes" placeholder="Anything else I should know?" rows={3} className="border rounded-lg px-4 py-3 w-full" />
-        <input type="hidden" name="_subject" value={`New CMA Request — ${agent.identity.name}`} />
+        <input type="hidden" name="_subject" value={`New CMA Request — ${agentName}`} />
         <button
           type="submit"
           disabled={submitting}

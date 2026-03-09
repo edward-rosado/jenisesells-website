@@ -11,9 +11,9 @@ export function Services({ items }: ServicesProps) {
         What I Do for You
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {items.map((item, i) => (
+        {items.map((item) => (
           <div
-            key={i}
+            key={item.title}
             className="bg-gray-50 rounded-xl p-7 border-l-4 transition-transform hover:-translate-y-1 hover:shadow-lg"
             style={{ borderLeftColor: "var(--color-secondary)" }}
           >

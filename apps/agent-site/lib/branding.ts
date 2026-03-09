@@ -18,19 +18,6 @@ function safeFontFamily(value: string | undefined, fallback: string): string {
   return value && SAFE_FONT_FAMILY.test(value) ? value : fallback;
 }
 
-export function buildCssVariables(branding: AgentBranding): string {
-  const primary = safeColor(branding.primary_color, DEFAULTS.primary_color);
-  const secondary = safeColor(branding.secondary_color, DEFAULTS.secondary_color);
-  const accent = safeColor(branding.accent_color, DEFAULTS.accent_color);
-  const font = safeFontFamily(branding.font_family, DEFAULTS.font_family);
-  return [
-    `--color-primary: ${primary}`,
-    `--color-secondary: ${secondary}`,
-    `--color-accent: ${accent}`,
-    `--font-family: '${font}'`,
-  ].join("; ");
-}
-
 export function buildCssVariableStyle(branding: AgentBranding): Record<string, string> {
   const primary = safeColor(branding.primary_color, DEFAULTS.primary_color);
   const secondary = safeColor(branding.secondary_color, DEFAULTS.secondary_color);

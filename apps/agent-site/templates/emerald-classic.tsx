@@ -19,7 +19,17 @@ export function EmeraldClassic({ agent, content }: TemplateProps) {
       {s.how_it_works.enabled && <HowItWorks steps={s.how_it_works.data.steps} />}
       {s.sold_homes.enabled && s.sold_homes.data.items.length > 0 && <SoldHomes items={s.sold_homes.data.items} />}
       {s.testimonials.enabled && s.testimonials.data.items.length > 0 && <Testimonials items={s.testimonials.data.items} />}
-      {s.cma_form.enabled && <CmaForm agent={agent} data={s.cma_form.data} />}
+      {s.cma_form.enabled && (
+        <CmaForm
+          agentId={agent.id}
+          agentName={agent.identity.name}
+          defaultState={agent.location.state}
+          formHandler={agent.integrations?.form_handler}
+          formHandlerId={agent.integrations?.form_handler_id}
+          tracking={agent.integrations?.tracking}
+          data={s.cma_form.data}
+        />
+      )}
       {s.about.enabled && <About agent={agent} data={s.about.data} />}
       <Footer agent={agent} />
       </div>

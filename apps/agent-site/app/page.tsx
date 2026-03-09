@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import * as Sentry from "@sentry/nextjs";
+import { notFound } from "next/navigation";
 import { loadAgentConfig, loadAgentContent } from "@/lib/config";
 import { buildCssVariableStyle } from "@/lib/branding";
 import { getTemplate } from "@/templates";
@@ -10,11 +12,32 @@ interface PageProps {
 
 export const revalidate = 60; // ISR: revalidate every 60 seconds
 
+function resolveAgentId(agentId?: string): string {
+  return agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+}
+
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const { agentId } = await searchParams;
+  const id = resolveAgentId(agentId);
+  try {
+    const agent = await loadAgentConfig(id);
+    return {
+      title: `${agent.identity.name} | ${agent.identity.title ?? "Real Estate Agent"}`,
+      description: agent.identity.tagline ?? `${agent.identity.name} — serving ${agent.location.service_areas?.join(", ") ?? agent.location.state}`,
+      openGraph: {
+        title: agent.identity.name,
+        description: agent.identity.tagline ?? "",
+        type: "website",
+      },
+    };
+  } catch {
+    return { title: "Real Estate Agent" };
+  }
+}
+
 export default async function AgentPage({ searchParams }: PageProps) {
   const { agentId } = await searchParams;
-
-  // Default to jenise-buckalew for development
-  const id = agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+  const id = resolveAgentId(agentId);
 
   try {
     const agent = await loadAgentConfig(id);
@@ -31,13 +54,6 @@ export default async function AgentPage({ searchParams }: PageProps) {
     );
   } catch (err) {
     Sentry.captureException(err, { tags: { agentId: id } });
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">Agent Not Found</h1>
-          <p className="text-gray-500">No agent site configured for this domain.</p>
-        </div>
-      </main>
-    );
+    notFound();
   }
 }

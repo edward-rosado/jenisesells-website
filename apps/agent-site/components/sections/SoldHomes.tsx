@@ -11,8 +11,8 @@ export function SoldHomes({ items }: SoldHomesProps) {
         Recently Sold
       </h2>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
-        {items.map((item, i) => (
-          <div key={i} className="bg-gray-50 rounded-lg p-5 text-center border border-gray-200">
+        {items.map((item) => (
+          <div key={`${item.address}-${item.city}`} className="bg-gray-50 rounded-lg p-5 text-center border border-gray-200">
             <span
               className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-3"
               style={{ backgroundColor: "var(--color-accent)", color: "var(--color-primary)" }}

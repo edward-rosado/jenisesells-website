@@ -11,8 +11,8 @@ export function Testimonials({ items }: TestimonialsProps) {
         What My Clients Say
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {items.map((item, i) => (
-          <div key={i} className="bg-gray-50 rounded-xl p-7">
+        {items.map((item) => (
+          <div key={item.reviewer} className="bg-gray-50 rounded-xl p-7">
             <div className="text-lg mb-3" style={{ color: "var(--color-accent)" }}>
               {"★".repeat(item.rating)}{"☆".repeat(5 - item.rating)}
             </div>

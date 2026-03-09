@@ -15,9 +15,9 @@ export function About({ agent, data }: AboutProps) {
         <p>{data.bio}</p>
         {data.credentials && data.credentials.length > 0 && (
           <div className="flex justify-center gap-4 mt-6 flex-wrap">
-            {data.credentials.map((cred, i) => (
+            {data.credentials.map((cred) => (
               <span
-                key={i}
+                key={cred}
                 className="px-4 py-2 rounded-full text-sm font-semibold"
                 style={{ backgroundColor: "var(--color-primary)", color: "white" }}
               >

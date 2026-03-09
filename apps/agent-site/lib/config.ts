@@ -13,11 +13,24 @@ function validateAgentId(agentId: string): void {
   }
 }
 
+function assertAgentConfig(value: unknown): asserts value is AgentConfig {
+  const v = value as Record<string, unknown>;
+  if (typeof v?.id !== "string") throw new Error("AgentConfig: missing id");
+  const identity = v.identity as Record<string, unknown> | undefined;
+  if (typeof identity?.name !== "string") throw new Error("AgentConfig: missing identity.name");
+  if (typeof identity?.phone !== "string") throw new Error("AgentConfig: missing identity.phone");
+  if (typeof identity?.email !== "string") throw new Error("AgentConfig: missing identity.email");
+  const location = v.location as Record<string, unknown> | undefined;
+  if (typeof location?.state !== "string") throw new Error("AgentConfig: missing location.state");
+}
+
 export async function loadAgentConfig(agentId: string): Promise<AgentConfig> {
   validateAgentId(agentId);
   const filePath = path.join(CONFIG_DIR, `${agentId}.json`);
   const raw = await readFile(filePath, "utf-8");
-  return JSON.parse(raw) as AgentConfig;
+  const parsed: unknown = JSON.parse(raw);
+  assertAgentConfig(parsed);
+  return parsed;
 }
 
 export async function loadAgentContent(
