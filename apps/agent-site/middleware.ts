@@ -9,9 +9,7 @@ export function middleware(request: NextRequest) {
     // Rewrite the URL to include agent ID for the page to access
     const url = request.nextUrl.clone();
     url.searchParams.set("agentId", agentId);
-    const response = NextResponse.rewrite(url);
-    response.headers.set("x-agent-id", agentId);
-    return response;
+    return NextResponse.rewrite(url);
   }
 
   // No agent subdomain — show landing/404

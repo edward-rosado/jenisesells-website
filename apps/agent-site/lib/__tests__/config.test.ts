@@ -14,6 +14,13 @@ describe("loadAgentConfig", () => {
   it("should throw for non-existent agent", async () => {
     await expect(loadAgentConfig("nobody")).rejects.toThrow();
   });
+
+  it("should reject path traversal attempts", async () => {
+    await expect(loadAgentConfig("../../etc/passwd")).rejects.toThrow("Invalid agent ID");
+    await expect(loadAgentConfig("../secret")).rejects.toThrow("Invalid agent ID");
+    await expect(loadAgentConfig("foo/bar")).rejects.toThrow("Invalid agent ID");
+    await expect(loadAgentConfig("")).rejects.toThrow("Invalid agent ID");
+  });
 });
 
 describe("loadAgentContent", () => {

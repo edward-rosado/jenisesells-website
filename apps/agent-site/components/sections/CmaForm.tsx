@@ -10,19 +10,29 @@ interface CmaFormProps {
 
 export function CmaForm({ agent, data }: CmaFormProps) {
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);
+    setError(null);
     const formData = new FormData(e.currentTarget);
     const endpoint = agent.integrations?.form_handler === "formspree"
       ? `https://formspree.io/f/${agent.integrations.form_handler_id}`
-      : `/api/leads`;
+      : `/api/agents/${agent.id}/cma`;
 
     try {
-      await fetch(endpoint, { method: "POST", body: formData });
+      const response = await fetch(endpoint, {
+        method: "POST",
+        body: formData,
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) {
+        throw new Error(`Submission failed (${response.status})`);
+      }
       window.location.href = "/thank-you";
     } catch {
+      setError("Something went wrong. Please try again.");
       setSubmitting(false);
     }
   }
@@ -33,6 +43,9 @@ export function CmaForm({ agent, data }: CmaFormProps) {
         {data.title}
       </h2>
       <p className="text-center text-gray-500 mb-10">{data.subtitle}</p>
+      {error && (
+        <p className="text-red-600 text-center mb-4 font-medium">{error}</p>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <input name="firstName" placeholder="First Name" required className="border rounded-lg px-4 py-3 w-full" />

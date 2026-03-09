@@ -5,6 +5,15 @@ interface HeroProps {
   data: HeroData;
 }
 
+function safeHref(href: string): string {
+  if (href.startsWith("#") || href.startsWith("/")) return href;
+  try {
+    const url = new URL(href);
+    if (url.protocol === "https:" || url.protocol === "http:") return href;
+  } catch { /* invalid URL */ }
+  return "#";
+}
+
 export function Hero({ agent, data }: HeroProps) {
   return (
     <section
@@ -17,7 +26,7 @@ export function Hero({ agent, data }: HeroProps) {
         </h1>
         <p className="text-xl italic opacity-80 mb-6">{data.tagline}</p>
         <a
-          href={data.cta_link}
+          href={safeHref(data.cta_link)}
           className="inline-block px-9 py-4 rounded-full text-lg font-bold transition-transform hover:-translate-y-0.5"
           style={{ backgroundColor: "var(--color-accent)", color: "var(--color-primary)" }}
         >

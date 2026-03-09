@@ -4,13 +4,24 @@ import type { AgentConfig, AgentContent } from "./types";
 
 const CONFIG_DIR = path.resolve(process.cwd(), "../../config/agents");
 
+/** Matches the `id` pattern in agent.schema.json — prevents path traversal */
+const VALID_AGENT_ID = /^[a-z0-9-]+$/;
+
+function validateAgentId(agentId: string): void {
+  if (!VALID_AGENT_ID.test(agentId)) {
+    throw new Error(`Invalid agent ID: ${agentId}`);
+  }
+}
+
 export async function loadAgentConfig(agentId: string): Promise<AgentConfig> {
+  validateAgentId(agentId);
   const filePath = path.join(CONFIG_DIR, `${agentId}.json`);
   const raw = await readFile(filePath, "utf-8");
   return JSON.parse(raw) as AgentConfig;
 }
 
 export async function loadAgentContent(agentId: string): Promise<AgentContent> {
+  validateAgentId(agentId);
   const filePath = path.join(CONFIG_DIR, `${agentId}.content.json`);
   try {
     const raw = await readFile(filePath, "utf-8");

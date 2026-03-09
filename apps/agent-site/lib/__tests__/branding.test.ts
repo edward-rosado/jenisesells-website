@@ -22,4 +22,25 @@ describe("buildCssVariables", () => {
     expect(css).toContain("--color-primary: #1B5E20");
     expect(css).toContain("--font-family: 'Segoe UI'");
   });
+
+  it("should sanitize malicious color values", () => {
+    const branding: AgentBranding = {
+      primary_color: "red; background: url(evil)",
+      accent_color: "#C8A951",
+    };
+    const css = buildCssVariables(branding);
+    // Malicious primary should fall back to default
+    expect(css).toContain("--color-primary: #1B5E20");
+    // Valid accent should pass through
+    expect(css).toContain("--color-accent: #C8A951");
+  });
+
+  it("should sanitize malicious font_family values", () => {
+    const branding: AgentBranding = {
+      font_family: "Segoe UI'; behavior:url(evil.htc); x: '",
+    };
+    const css = buildCssVariables(branding);
+    // Malicious font should fall back to default
+    expect(css).toContain("--font-family: 'Segoe UI'");
+  });
 });
