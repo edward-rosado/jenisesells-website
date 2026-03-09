@@ -26,7 +26,7 @@ public class AgentConfigServiceTests
     {
         var service = CreateService();
 
-        var config = await service.GetAgentAsync("jenise-buckalew");
+        var config = await service.GetAgentAsync("jenise-buckalew", CancellationToken.None);
 
         config.Should().NotBeNull();
         config!.Id.Should().Be("jenise-buckalew");
@@ -55,7 +55,7 @@ public class AgentConfigServiceTests
     {
         var service = CreateService();
 
-        var config = await service.GetAgentAsync("nonexistent-agent");
+        var config = await service.GetAgentAsync("nonexistent-agent", CancellationToken.None);
 
         config.Should().BeNull();
     }
@@ -70,7 +70,7 @@ public class AgentConfigServiceTests
     {
         var service = CreateService();
 
-        var act = () => service.GetAgentAsync(maliciousId);
+        var act = () => service.GetAgentAsync(maliciousId, CancellationToken.None);
 
         await act.Should().ThrowAsync<ArgumentException>()
             .WithParameterName("agentId");
@@ -88,7 +88,7 @@ public class AgentConfigServiceTests
     {
         var service = CreateService();
 
-        var act = () => service.GetAgentAsync(invalidId);
+        var act = () => service.GetAgentAsync(invalidId, CancellationToken.None);
 
         await act.Should().ThrowAsync<ArgumentException>()
             .WithParameterName("agentId");
@@ -103,7 +103,7 @@ public class AgentConfigServiceTests
         var service = CreateService();
 
         // Should not throw - may return null if file doesn't exist
-        var act = () => service.GetAgentAsync(validId);
+        var act = () => service.GetAgentAsync(validId, CancellationToken.None);
 
         await act.Should().NotThrowAsync<ArgumentException>();
     }

@@ -39,7 +39,7 @@ public class LeadResearchServiceTests
         var httpClient = new HttpClient(handler.Object);
         var service = new LeadResearchService(httpClient);
 
-        var result = await service.ResearchAsync(MakeLead());
+        var result = await service.ResearchAsync(MakeLead(), CancellationToken.None);
 
         result.Should().NotBeNull();
     }

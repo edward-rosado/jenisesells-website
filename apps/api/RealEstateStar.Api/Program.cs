@@ -52,6 +52,7 @@ builder.Services.AddSingleton<CmaPipeline>();
 builder.Services.AddProblemDetails();
 
 // Job store
+builder.Services.AddMemoryCache(options => options.SizeLimit = 10_000);
 builder.Services.AddSingleton<ICmaJobStore, InMemoryCmaJobStore>();
 
 // SignalR
@@ -72,7 +73,8 @@ app.MapPost("/agents/{agentId}/cma", (
     ICmaJobStore store,
     CmaPipeline pipeline,
     IHubContext<CmaProgressHub> hubContext,
-    ILogger<Program> logger) =>
+    ILogger<Program> logger,
+    CancellationToken ct) =>
 {
     var validationResults = new List<ValidationResult>();
     if (!Validator.TryValidateObject(lead, new ValidationContext(lead), validationResults, true))
@@ -99,7 +101,7 @@ app.MapPost("/agents/{agentId}/cma", (
                         totalSteps = 9,
                         message = GetStatusMessage(status)
                     });
-            });
+            }, CancellationToken.None);
 
             store.Set(agentId, job);
         }
