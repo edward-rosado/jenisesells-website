@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Api.Models;
 using RealEstateStar.Api.Services;
@@ -101,7 +102,7 @@ public class CmaPipelineTests
             .ReturnsAsync(agentConfig);
 
         var compAggregator = new Mock<CompAggregator>(
-            Enumerable.Empty<ICompSource>(), (Microsoft.Extensions.Logging.ILogger<CompAggregator>?)null);
+            Enumerable.Empty<ICompSource>(), (ILogger<CompAggregator>?)null!);
         compAggregator.Setup(s => s.FetchCompsAsync(
                 lead.Address, lead.City, lead.State, lead.Zip,
                 lead.Beds, lead.Baths, lead.Sqft, It.IsAny<CancellationToken>()))
@@ -174,7 +175,7 @@ public class CmaPipelineTests
 
         var pipeline = new CmaPipeline(
             agentConfigService.Object,
-            new Mock<CompAggregator>(Enumerable.Empty<ICompSource>(), null).Object,
+            new Mock<CompAggregator>(Enumerable.Empty<ICompSource>(), (ILogger<CompAggregator>?)null!).Object,
             new Mock<ILeadResearchService>().Object,
             new Mock<IAnalysisService>().Object,
             new Mock<ICmaPdfGenerator>().Object,
