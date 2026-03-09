@@ -77,9 +77,8 @@ app.MapPost("/agents/{agentId}/cma", (
     {
         try
         {
-            var result = await pipeline.ExecuteAsync(agentId, lead, status =>
+            await pipeline.ExecuteAsync(job, agentId, lead, status =>
             {
-                job.AdvanceTo(status);
                 store.Set(agentId, job);
 
                 hubContext.Clients.Group(job.Id.ToString())
@@ -92,12 +91,13 @@ app.MapPost("/agents/{agentId}/cma", (
                     });
             });
 
-            if (result != null)
-                store.Set(agentId, result);
+            store.Set(agentId, job);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "CMA pipeline failed for agent {AgentId}, job {JobId}", agentId, job.Id);
+            job.Fail(ex.Message);
+            store.Set(agentId, job);
         }
     });
 
@@ -116,7 +116,8 @@ app.MapGet("/agents/{agentId}/cma/{jobId}/status", (string agentId, string jobId
         status = job.Status.ToString().ToLowerInvariant(),
         step = job.Step,
         totalSteps = job.TotalSteps,
-        message = GetStatusMessage(job.Status)
+        message = GetStatusMessage(job.Status),
+        errorMessage = job.Status == CmaJobStatus.Failed ? job.ErrorMessage : null
     });
 });
 
@@ -149,6 +150,7 @@ static string GetStatusMessage(CmaJobStatus status) => status switch
     CmaJobStatus.SendingEmail => "Sending report to your email...",
     CmaJobStatus.Logging => "Finalizing...",
     CmaJobStatus.Complete => "Your report has been sent to your email!",
+    CmaJobStatus.Failed => "An error occurred while processing your report.",
     _ => "Processing..."
 };
 
