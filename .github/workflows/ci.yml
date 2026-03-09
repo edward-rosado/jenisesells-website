@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  agent-site:
+    name: Agent Site — lint, test, coverage
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/agent-site
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/agent-site/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Test with coverage
+        run: npx vitest run --coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-site-coverage
+          path: apps/agent-site/coverage/
+          retention-days: 14
+
+  api:
+    name: API — build and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore src/RealEstateStar.Api/RealEstateStar.Api.csproj
+
+      - name: Build
+        run: dotnet build src/RealEstateStar.Api/RealEstateStar.Api.csproj --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test tests/RealEstateStar.Api.Tests/RealEstateStar.Api.Tests.csproj --configuration Release --verbosity normal
