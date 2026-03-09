@@ -162,7 +162,7 @@ public class CmaPipelineIntegrationTests
         {
             // Act
             await pipeline.ExecuteAsync(job, "jenise-buckalew", lead,
-                status => { statusLog.Add(status); return Task.CompletedTask; });
+                status => { statusLog.Add(status); return Task.CompletedTask; }, CancellationToken.None);
 
             // Assert — job basics
             job.Status.Should().Be(CmaJobStatus.Complete);
