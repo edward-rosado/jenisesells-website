@@ -5,7 +5,7 @@ namespace RealEstateStar.Api.Services.Comps;
 
 public class CompAggregator(IEnumerable<ICompSource> sources, ILogger<CompAggregator>? logger = null)
 {
-    public async Task<List<Comp>> FetchCompsAsync(
+    public virtual async Task<List<Comp>> FetchCompsAsync(
         string address, string city, string state, string zip,
         int? beds, int? baths, int? sqft)
     {
