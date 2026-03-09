@@ -1,14 +1,12 @@
-using System.ComponentModel.DataAnnotations;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.AspNetCore.SignalR;
 using RealEstateStar.Api.Diagnostics;
+using RealEstateStar.Api.Endpoints;
 using RealEstateStar.Api.Hubs;
 using RealEstateStar.Api.Logging;
 using RealEstateStar.Api.Middleware;
-using RealEstateStar.Api.Models;
 using RealEstateStar.Api.Services;
 using RealEstateStar.Api.Services.Analysis;
 using RealEstateStar.Api.Services.Comps;
@@ -179,97 +177,9 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 app.MapHub<CmaProgressHub>("/hubs/cma-progress");
 
 // --- CMA Endpoints ---
-
-app.MapPost("/agents/{agentId}/cma", (
-    string agentId,
-    Lead lead,
-    ICmaJobStore store,
-    CmaPipeline pipeline,
-    IHubContext<CmaProgressHub> hubContext,
-    ILogger<Program> logger,
-    CancellationToken ct) =>
-{
-    var validationResults = new List<ValidationResult>();
-    if (!Validator.TryValidateObject(lead, new ValidationContext(lead), validationResults, true))
-        return Results.ValidationProblem(
-            validationResults.GroupBy(v => v.MemberNames.FirstOrDefault() ?? "")
-                .ToDictionary(g => g.Key, g => g.Select(v => v.ErrorMessage!).ToArray()));
-
-    var job = CmaJob.Create(Guid.Empty, lead);
-    store.Set(agentId, job);
-
-    _ = Task.Run(async () =>
-    {
-        try
-        {
-            await pipeline.ExecuteAsync(job, agentId, lead, async status =>
-            {
-                store.Set(agentId, job);
-
-                await hubContext.Clients.Group(job.Id.ToString())
-                    .SendAsync("StatusUpdate", new
-                    {
-                        status = status.ToString().ToLowerInvariant(),
-                        step = (int)status + 1,
-                        totalSteps = 9,
-                        message = GetStatusMessage(status)
-                    });
-            }, CancellationToken.None);
-
-            store.Set(agentId, job);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "CMA pipeline failed at step {Step} for agent {AgentId}, job {JobId}",
-                job.Status.ToString(), agentId, job.Id);
-            job.Fail(ex.Message);
-            store.Set(agentId, job);
-        }
-    });
-
-    return Results.Accepted(value: new { jobId = job.Id.ToString(), status = "processing" });
-}).RequireRateLimiting("cma-create");
-
-app.MapGet("/agents/{agentId}/cma/{jobId}/status", (string agentId, string jobId, ICmaJobStore store, HttpContext httpContext) =>
-{
-    httpContext.Response.Headers.CacheControl = "no-cache";
-
-    var job = store.Get(jobId);
-
-    if (job is null)
-        return Results.Problem(
-            title: "Job not found",
-            detail: $"No CMA job with ID '{jobId}' exists for agent '{agentId}'.",
-            statusCode: StatusCodes.Status404NotFound);
-
-    return Results.Ok(new
-    {
-        status = job.Status.ToString().ToLowerInvariant(),
-        step = job.Step,
-        totalSteps = job.TotalSteps,
-        message = GetStatusMessage(job.Status),
-        errorMessage = job.Status == CmaJobStatus.Failed ? job.ErrorMessage : null
-    });
-});
-
-app.MapGet("/agents/{agentId}/leads", (string agentId, int? skip, int? take, ICmaJobStore store, HttpContext httpContext) =>
-{
-    httpContext.Response.Headers.CacheControl = "no-cache";
-
-    var jobs = store.GetByAgent(agentId);
-    var paged = jobs.Skip(skip ?? 0).Take(Math.Min(take ?? 50, 100));
-
-    return Results.Ok(paged.Select(j => new
-    {
-        id = j.Id.ToString(),
-        name = j.Lead.FullName,
-        address = j.Lead.FullAddress,
-        timeline = j.Lead.Timeline,
-        cmaStatus = j.Status.ToString().ToLowerInvariant(),
-        submittedAt = j.CreatedAt,
-        driveLink = j.DriveLink
-    }));
-});
+CreateCmaEndpoint.Map(app);
+GetCmaStatusEndpoint.Map(app);
+GetLeadsEndpoint.Map(app);
 
 app.Run();
 
@@ -289,21 +199,6 @@ static async Task WriteHealthResponse(HttpContext context, HealthReport report)
     };
     await context.Response.WriteAsJsonAsync(result);
 }
-
-static string GetStatusMessage(CmaJobStatus status) => status switch
-{
-    CmaJobStatus.Parsing => "Received your property details",
-    CmaJobStatus.SearchingComps => "Searching MLS databases...",
-    CmaJobStatus.ResearchingLead => "Researching property records...",
-    CmaJobStatus.Analyzing => "Analyzing market trends...",
-    CmaJobStatus.GeneratingPdf => "Generating your personalized report...",
-    CmaJobStatus.OrganizingDrive => "Organizing documents...",
-    CmaJobStatus.SendingEmail => "Sending report to your email...",
-    CmaJobStatus.Logging => "Finalizing...",
-    CmaJobStatus.Complete => "Your report has been sent to your email!",
-    CmaJobStatus.Failed => "An error occurred while processing your report.",
-    _ => "Processing..."
-};
 
 // Make Program accessible for integration tests
 public partial class Program;

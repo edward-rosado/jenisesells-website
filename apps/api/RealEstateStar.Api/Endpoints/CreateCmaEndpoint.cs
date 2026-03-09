@@ -1,0 +1,69 @@
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.SignalR;
+using RealEstateStar.Api.Diagnostics;
+using RealEstateStar.Api.Hubs;
+using RealEstateStar.Api.Models;
+using RealEstateStar.Api.Models.Responses;
+using RealEstateStar.Api.Services;
+
+namespace RealEstateStar.Api.Endpoints;
+
+public static class CreateCmaEndpoint
+{
+    public static RouteHandlerBuilder Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/agents/{agentId}/cma", Handle)
+            .RequireRateLimiting("cma-create");
+
+    private static IResult Handle(
+        string agentId,
+        Lead lead,
+        ICmaJobStore store,
+        CmaPipeline pipeline,
+        IHubContext<CmaProgressHub> hubContext,
+        ILogger<Program> logger,
+        CancellationToken ct)
+    {
+        var validationResults = new List<ValidationResult>();
+        if (!Validator.TryValidateObject(lead, new ValidationContext(lead), validationResults, true))
+            return Results.ValidationProblem(
+                validationResults.GroupBy(v => v.MemberNames.FirstOrDefault() ?? "")
+                    .ToDictionary(g => g.Key, g => g.Select(v => v.ErrorMessage!).ToArray()));
+
+        var job = CmaJob.Create(agentId, lead);
+        store.Set(agentId, job);
+        CmaDiagnostics.CmaCreated.Add(1, new KeyValuePair<string, object?>("agent.id", agentId));
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await pipeline.ExecuteAsync(job, agentId, lead, async status =>
+                {
+                    job.AdvanceTo(status);
+                    store.Set(agentId, job);
+                    await hubContext.Clients.Group(job.Id.ToString())
+                        .SendAsync("StatusUpdate", new CmaStatusResponse
+                        {
+                            Status = status.ToString().ToLowerInvariant(),
+                            Step = (int)status + 1,
+                            TotalSteps = 9,
+                            Message = StatusMessages.Get(status)
+                        }, CancellationToken.None);
+                }, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "CMA pipeline failed at step {Step} for agent {AgentId}, job {JobId}",
+                    job.Status.ToString(), agentId, job.Id);
+                job.Fail(ex.Message);
+                store.Set(agentId, job);
+            }
+        });
+
+        return Results.Accepted(value: new CreateCmaResponse
+        {
+            JobId = job.Id.ToString(),
+            Status = "processing"
+        });
+    }
+}
