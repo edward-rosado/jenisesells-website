@@ -10,13 +10,13 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
     public async Task<string> CreateDriveFolderAsync(string agentEmail, string folderPath)
     {
         logger?.LogInformation("Creating Drive folder {FolderPath} for {Email}", folderPath, agentEmail);
-        return await RunGwsAsync($"""drive mkdir --user {agentEmail} "{folderPath}" """);
+        return await RunGwsAsync("drive", "mkdir", "--user", agentEmail, folderPath);
     }
 
     public async Task<string> UploadFileAsync(string agentEmail, string folderPath, string filePath)
     {
         logger?.LogInformation("Uploading {FilePath} to {FolderPath} for {Email}", filePath, folderPath, agentEmail);
-        return await RunGwsAsync($"""drive upload --user {agentEmail} --parent "{folderPath}" "{filePath}" """);
+        return await RunGwsAsync("drive", "upload", "--user", agentEmail, "--parent", folderPath, filePath);
     }
 
     public async Task<string> CreateDocAsync(string agentEmail, string folderPath, string title, string content)
@@ -26,7 +26,7 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
         {
             await File.WriteAllTextAsync(tempFile, content);
             logger?.LogInformation("Creating Doc '{Title}' in {FolderPath} for {Email}", title, folderPath, agentEmail);
-            return await RunGwsAsync($"""docs create --user {agentEmail} --parent "{folderPath}" --title "{title}" --body-file "{tempFile}" """);
+            return await RunGwsAsync("docs", "create", "--user", agentEmail, "--parent", folderPath, "--title", title, "--body-file", tempFile);
         }
         finally
         {
@@ -39,37 +39,40 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
     {
         logger?.LogInformation("Sending email from {Email} to {To} subject '{Subject}'", agentEmail, to, subject);
 
-        var args = $"""gmail send --user {agentEmail} --to "{to}" --subject "{subject}" --body "{body}" """;
+        var args = new List<string> { "gmail", "send", "--user", agentEmail, "--to", to, "--subject", subject, "--body", body };
 
         if (!string.IsNullOrWhiteSpace(attachmentPath))
-            args += $"""--attachment "{attachmentPath}" """;
+        {
+            args.Add("--attachment");
+            args.Add(attachmentPath);
+        }
 
-        await RunGwsAsync(args);
+        await RunGwsAsync([.. args]);
     }
 
     public async Task AppendSheetRowAsync(string agentEmail, string spreadsheetId, List<string> values)
     {
         var csv = string.Join(",", values.Select(v => $"\"{v.Replace("\"", "\"\"")}\""));
         logger?.LogInformation("Appending row to sheet {SpreadsheetId} for {Email}", spreadsheetId, agentEmail);
-        await RunGwsAsync($"""sheets append --user {agentEmail} --spreadsheet "{spreadsheetId}" --values "{csv}" """);
+        await RunGwsAsync("sheets", "append", "--user", agentEmail, "--spreadsheet", spreadsheetId, "--values", csv);
     }
 
-    private async Task<string> RunGwsAsync(string args)
+    private async Task<string> RunGwsAsync(params string[] args)
     {
-        logger?.LogDebug("Running: gws {Args}", args);
+        logger?.LogDebug("Running: gws {Args}", string.Join(" ", args));
 
-        using var process = new Process
+        var psi = new ProcessStartInfo("gws")
         {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = "gws",
-                Arguments = args,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
         };
+
+        foreach (var arg in args)
+            psi.ArgumentList.Add(arg);
+
+        using var process = new Process { StartInfo = psi };
 
         process.Start();
 
