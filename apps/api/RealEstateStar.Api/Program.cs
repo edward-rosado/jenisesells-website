@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
+using RealEstateStar.Api.Diagnostics;
 using RealEstateStar.Api.Hubs;
 using RealEstateStar.Api.Logging;
 using RealEstateStar.Api.Middleware;
@@ -14,10 +15,14 @@ using RealEstateStar.Api.Services.Comps;
 using RealEstateStar.Api.Services.Gws;
 using RealEstateStar.Api.Services.Pdf;
 using RealEstateStar.Api.Services.Research;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using RealEstateStar.Api.Health;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddStructuredLogging();
+builder.AddObservability();
 
 // Agent config
 var configPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "agents");
@@ -67,7 +72,9 @@ builder.Services.AddSingleton<ICmaJobStore, InMemoryCmaJobStore>();
 builder.Services.AddSignalR();
 
 // Health checks
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddCheck<GwsCliHealthCheck>("gws_cli", tags: ["ready"])
+    .AddCheck<ClaudeApiHealthCheck>("claude_api", tags: ["ready"]);
 
 // CORS
 builder.Services.AddCors(options =>
@@ -155,8 +162,18 @@ app.UseHttpsRedirection();
 app.UseCors();
 app.UseRateLimiter();
 
-// Health check
-app.MapHealthChecks("/health");
+// Liveness probe — no dependency checks, just "am I running?"
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
+// Readiness probe — checks external dependencies
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = WriteHealthResponse
+});
 
 // SignalR hub
 app.MapHub<CmaProgressHub>("/hubs/cma-progress");
@@ -255,6 +272,23 @@ app.MapGet("/agents/{agentId}/leads", (string agentId, int? skip, int? take, ICm
 });
 
 app.Run();
+
+static async Task WriteHealthResponse(HttpContext context, HealthReport report)
+{
+    context.Response.ContentType = "application/json";
+    var result = new
+    {
+        status = report.Status.ToString(),
+        checks = report.Entries.Select(e => new
+        {
+            name = e.Key,
+            status = e.Value.Status.ToString(),
+            description = e.Value.Description,
+            duration = e.Value.Duration.TotalMilliseconds
+        })
+    };
+    await context.Response.WriteAsJsonAsync(result);
+}
 
 static string GetStatusMessage(CmaJobStatus status) => status switch
 {

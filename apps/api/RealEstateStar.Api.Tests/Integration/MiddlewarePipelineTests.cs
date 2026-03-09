@@ -18,7 +18,7 @@ public class MiddlewarePipelineTests : IClassFixture<WebApplicationFactory<Progr
     {
         var client = _factory.CreateClient();
 
-        var response = await client.GetAsync("/health");
+        var response = await client.GetAsync("/health/live");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
@@ -28,7 +28,7 @@ public class MiddlewarePipelineTests : IClassFixture<WebApplicationFactory<Progr
     {
         var client = _factory.CreateClient();
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/health");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/health/live");
         request.Headers.Add("Origin", "http://localhost:3000");
 
         var response = await client.SendAsync(request);
@@ -43,7 +43,7 @@ public class MiddlewarePipelineTests : IClassFixture<WebApplicationFactory<Progr
     {
         var client = _factory.CreateClient();
 
-        var request = new HttpRequestMessage(HttpMethod.Options, "/health");
+        var request = new HttpRequestMessage(HttpMethod.Options, "/health/live");
         request.Headers.Add("Origin", "http://localhost:3000");
         request.Headers.Add("Access-Control-Request-Method", "POST");
         request.Headers.Add("Access-Control-Request-Headers", "Content-Type");
@@ -60,9 +60,9 @@ public class MiddlewarePipelineTests : IClassFixture<WebApplicationFactory<Progr
         var client = _factory.CreateClient();
 
         // The global limiter allows 100 requests per minute per IP.
-        // Send 101 requests to /health to exceed the limit.
+        // Send 101 requests to /health/live to exceed the limit.
         var tasks = Enumerable.Range(0, 101)
-            .Select(_ => client.GetAsync("/health"))
+            .Select(_ => client.GetAsync("/health/live"))
             .ToList();
 
         var responses = await Task.WhenAll(tasks);

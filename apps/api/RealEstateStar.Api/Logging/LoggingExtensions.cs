@@ -14,6 +14,10 @@ public static class LoggingExtensions
                 .Enrich.WithProperty("Application", "RealEstateStar.Api")
                 .WriteTo.Console(outputTemplate:
                     "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+
+            var otlpEndpoint = context.Configuration["Otel:Endpoint"];
+            if (!string.IsNullOrEmpty(otlpEndpoint))
+                config.WriteTo.OpenTelemetry(opts => opts.Endpoint = otlpEndpoint);
         });
         return builder;
     }
