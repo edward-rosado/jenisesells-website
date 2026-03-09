@@ -7,35 +7,42 @@ namespace RealEstateStar.Api.Services.Gws;
 
 public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
 {
-    public async Task<string> CreateDriveFolderAsync(string agentEmail, string folderPath)
+    public async Task<string> CreateDriveFolderAsync(string agentEmail, string folderPath, CancellationToken ct = default)
     {
         logger?.LogInformation("Creating Drive folder {FolderPath} for {Email}", folderPath, agentEmail);
-        return await RunGwsAsync("drive", "mkdir", "--user", agentEmail, folderPath);
+        return await RunGwsAsync(ct, "drive", "mkdir", "--user", agentEmail, folderPath);
     }
 
-    public async Task<string> UploadFileAsync(string agentEmail, string folderPath, string filePath)
+    public async Task<string> UploadFileAsync(string agentEmail, string folderPath, string filePath, CancellationToken ct = default)
     {
         logger?.LogInformation("Uploading {FilePath} to {FolderPath} for {Email}", filePath, folderPath, agentEmail);
-        return await RunGwsAsync("drive", "upload", "--user", agentEmail, "--parent", folderPath, filePath);
+        return await RunGwsAsync(ct, "drive", "upload", "--user", agentEmail, "--parent", folderPath, filePath);
     }
 
-    public async Task<string> CreateDocAsync(string agentEmail, string folderPath, string title, string content)
+    public async Task<string> CreateDocAsync(string agentEmail, string folderPath, string title, string content, CancellationToken ct = default)
     {
         var tempFile = Path.GetTempFileName();
         try
         {
-            await File.WriteAllTextAsync(tempFile, content);
+            await File.WriteAllTextAsync(tempFile, content, ct);
             logger?.LogInformation("Creating Doc '{Title}' in {FolderPath} for {Email}", title, folderPath, agentEmail);
-            return await RunGwsAsync("docs", "create", "--user", agentEmail, "--parent", folderPath, "--title", title, "--body-file", tempFile);
+            return await RunGwsAsync(ct, "docs", "create", "--user", agentEmail, "--parent", folderPath, "--title", title, "--body-file", tempFile);
         }
         finally
         {
-            if (File.Exists(tempFile))
-                File.Delete(tempFile);
+            try
+            {
+                if (File.Exists(tempFile))
+                    File.Delete(tempFile);
+            }
+            catch (IOException ex)
+            {
+                logger?.LogWarning(ex, "Failed to delete temp file {TempFile}", tempFile);
+            }
         }
     }
 
-    public async Task SendEmailAsync(string agentEmail, string to, string subject, string body, string? attachmentPath = null)
+    public async Task SendEmailAsync(string agentEmail, string to, string subject, string body, string? attachmentPath = null, CancellationToken ct = default)
     {
         logger?.LogInformation("Sending email from {Email} to {To} subject '{Subject}'", agentEmail, to, subject);
 
@@ -47,17 +54,17 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
             args.Add(attachmentPath);
         }
 
-        await RunGwsAsync([.. args]);
+        await RunGwsAsync(ct, [.. args]);
     }
 
-    public async Task AppendSheetRowAsync(string agentEmail, string spreadsheetId, List<string> values)
+    public async Task AppendSheetRowAsync(string agentEmail, string spreadsheetId, List<string> values, CancellationToken ct = default)
     {
         var csv = string.Join(",", values.Select(v => $"\"{v.Replace("\"", "\"\"")}\""));
         logger?.LogInformation("Appending row to sheet {SpreadsheetId} for {Email}", spreadsheetId, agentEmail);
-        await RunGwsAsync("sheets", "append", "--user", agentEmail, "--spreadsheet", spreadsheetId, "--values", csv);
+        await RunGwsAsync(ct, "sheets", "append", "--user", agentEmail, "--spreadsheet", spreadsheetId, "--values", csv);
     }
 
-    private async Task<string> RunGwsAsync(params string[] args)
+    private async Task<string> RunGwsAsync(CancellationToken ct, params string[] args)
     {
         logger?.LogDebug("Running: gws {Args}", string.Join(" ", args));
 
@@ -79,7 +86,7 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
         var stdout = await process.StandardOutput.ReadToEndAsync();
         var stderr = await process.StandardError.ReadToEndAsync();
 
-        await process.WaitForExitAsync();
+        await process.WaitForExitAsync(ct);
 
         if (process.ExitCode != 0)
         {
