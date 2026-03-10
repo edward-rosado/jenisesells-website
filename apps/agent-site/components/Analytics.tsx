@@ -64,21 +64,20 @@ export function Analytics({ tracking }: AnalyticsProps) {
 export function trackCmaConversion(tracking?: AgentTracking) {
   if (!tracking || typeof window === "undefined") return;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const w = window as unknown as Record<string, unknown>;
 
   // Google Ads conversion
   const adsId = safeId(tracking.google_ads_id);
   const adsLabel = safeId(tracking.google_ads_conversion_label);
   if (adsId && adsLabel && typeof w.gtag === "function") {
-    (w.gtag as Function)("event", "conversion", {
+    (w.gtag as (...args: unknown[]) => void)("event", "conversion", {
       send_to: `${adsId}/${adsLabel}`,
     });
   }
 
   // GA4 custom event
   if ((tracking.google_analytics_id || tracking.gtm_container_id) && typeof w.gtag === "function") {
-    (w.gtag as Function)("event", "cma_form_submit", {
+    (w.gtag as (...args: unknown[]) => void)("event", "cma_form_submit", {
       event_category: "lead_generation",
       event_label: "cma_request",
     });
@@ -86,6 +85,6 @@ export function trackCmaConversion(tracking?: AgentTracking) {
 
   // Meta Pixel Lead event
   if (tracking.meta_pixel_id && typeof w.fbq === "function") {
-    (w.fbq as Function)("track", "Lead");
+    (w.fbq as (...args: unknown[]) => void)("track", "Lead");
   }
 }
