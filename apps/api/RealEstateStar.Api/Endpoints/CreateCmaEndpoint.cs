@@ -10,7 +10,7 @@ namespace RealEstateStar.Api.Endpoints;
 
 public class CreateCmaEndpoint : IEndpoint
 {
-    public void Map(IEndpointRouteBuilder app) =>
+    public void MapEndpoint(WebApplication app) =>
         app.MapPost("/agents/{agentId}/cma", Handle)
             .RequireRateLimiting("cma-create");
 

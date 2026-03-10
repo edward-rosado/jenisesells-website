@@ -6,7 +6,7 @@ namespace RealEstateStar.Api.Endpoints;
 
 public class GetLeadsEndpoint : IEndpoint
 {
-    public void Map(IEndpointRouteBuilder app) =>
+    public void MapEndpoint(WebApplication app) =>
         app.MapGet("/agents/{agentId}/leads", Handle);
 
     internal static IResult Handle(string agentId, int? skip, int? take, ICmaJobStore store, HttpContext httpContext)

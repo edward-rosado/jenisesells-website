@@ -4,17 +4,26 @@ namespace RealEstateStar.Api.Endpoints;
 
 public static class EndpointExtensions
 {
-    public static IEndpointRouteBuilder MapEndpoints(this IEndpointRouteBuilder app)
+    public static IServiceCollection AddEndpoints(
+        this IServiceCollection services,
+        Assembly assembly)
     {
-        var endpointTypes = Assembly.GetExecutingAssembly()
-            .GetTypes()
-            .Where(t => t is { IsAbstract: false, IsInterface: false } && t.IsAssignableTo(typeof(IEndpoint)));
+        var endpointTypes = assembly.GetExportedTypes()
+            .Where(t => typeof(IEndpoint).IsAssignableFrom(t)
+                     && t is { IsAbstract: false, IsInterface: false });
 
         foreach (var type in endpointTypes)
-        {
-            var endpoint = (IEndpoint)Activator.CreateInstance(type)!;
-            endpoint.Map(app);
-        }
+            services.AddTransient(typeof(IEndpoint), type);
+
+        return services;
+    }
+
+    public static WebApplication MapEndpoints(this WebApplication app)
+    {
+        var endpoints = app.Services.GetRequiredService<IEnumerable<IEndpoint>>();
+
+        foreach (var endpoint in endpoints)
+            endpoint.MapEndpoint(app);
 
         return app;
     }

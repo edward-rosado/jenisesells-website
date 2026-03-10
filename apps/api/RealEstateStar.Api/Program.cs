@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -122,6 +123,9 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromHours(1)
             }));
 });
+
+// Endpoint auto-registration
+builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 
 var app = builder.Build();
 

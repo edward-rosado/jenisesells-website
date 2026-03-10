@@ -6,7 +6,7 @@ namespace RealEstateStar.Api.Endpoints;
 
 public class GetCmaStatusEndpoint : IEndpoint
 {
-    public void Map(IEndpointRouteBuilder app) =>
+    public void MapEndpoint(WebApplication app) =>
         app.MapGet("/agents/{agentId}/cma/{jobId}/status", Handle);
 
     internal static IResult Handle(string agentId, string jobId, ICmaJobStore store, HttpContext httpContext)
