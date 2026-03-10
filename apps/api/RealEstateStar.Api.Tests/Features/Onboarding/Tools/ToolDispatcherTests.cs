@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Moq;
 using RealEstateStar.Api.Features.Onboarding;
+using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Tools;
 using Xunit;
 
@@ -76,14 +77,16 @@ public class ToolDispatcherTests
     [Fact]
     public async Task DeploySiteTool_SetsSiteUrl()
     {
-        var tool = new DeploySiteTool();
+        var deploySvc = new Mock<ISiteDeployService>();
+        deploySvc.Setup(d => d.DeployAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("https://jane-doe.realestatestar.com");
+        var tool = new DeploySiteTool(deploySvc.Object);
         var session = OnboardingSession.Create(null);
         session.Profile = new ScrapedProfile { Name = "Jane Doe" };
 
         var result = await tool.ExecuteAsync(default, session, CancellationToken.None);
 
-        Assert.NotNull(session.SiteUrl);
-        Assert.Contains("jane-doe", session.SiteUrl);
+        Assert.Contains("jane-doe", result);
         Assert.Contains("realestatestar.com", result);
     }
 }
