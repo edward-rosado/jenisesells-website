@@ -1,4 +1,4 @@
-namespace RealEstateStar.Api.Models;
+namespace RealEstateStar.Api.Features.Cma;
 
 public record LeadBriefData
 {

@@ -1,8 +1,8 @@
+using RealEstateStar.Api.Endpoints;
 using RealEstateStar.Api.Features.Cma;
-using RealEstateStar.Api.Features.Cma.ListLeads;
 using RealEstateStar.Api.Services;
 
-namespace RealEstateStar.Api.Endpoints;
+namespace RealEstateStar.Api.Features.Cma.ListLeads;
 
 public class GetLeadsEndpoint : IEndpoint
 {

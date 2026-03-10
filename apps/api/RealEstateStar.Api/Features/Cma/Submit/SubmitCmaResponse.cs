@@ -1,6 +1,6 @@
-namespace RealEstateStar.Api.Models.Responses;
+namespace RealEstateStar.Api.Features.Cma.Submit;
 
-public record CreateCmaResponse
+public record SubmitCmaResponse
 {
     public required string JobId { get; init; }
     public required string Status { get; init; }

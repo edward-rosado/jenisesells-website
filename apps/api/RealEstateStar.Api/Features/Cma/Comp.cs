@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace RealEstateStar.Api.Models;
+namespace RealEstateStar.Api.Features.Cma;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CompSource

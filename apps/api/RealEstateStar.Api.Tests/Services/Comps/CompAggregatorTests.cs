@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Moq;
-using RealEstateStar.Api.Models;
+using RealEstateStar.Api.Features.Cma;
 using RealEstateStar.Api.Services.Comps;
 
 namespace RealEstateStar.Api.Tests.Services.Comps;

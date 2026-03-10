@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace RealEstateStar.Api.Models;
+namespace RealEstateStar.Api.Common;
 
 public class AgentConfig
 {

@@ -1,4 +1,7 @@
-namespace RealEstateStar.Api.Models;
+using RealEstateStar.Api.Common;
+using RealEstateStar.Api.Features.Cma.Submit;
+
+namespace RealEstateStar.Api.Features.Cma;
 
 public record PdfGenerationRequest
 {

@@ -5,10 +5,9 @@ using Moq;
 using RealEstateStar.Api.Features.Cma;
 using RealEstateStar.Api.Features.Cma.ListLeads;
 using RealEstateStar.Api.Services;
-using RealEstateStar.Api.Endpoints;
 using RealEstateStar.Api.Tests.TestHelpers;
 
-namespace RealEstateStar.Api.Tests.Endpoints;
+namespace RealEstateStar.Api.Tests.Features.Cma.ListLeads;
 
 public class GetLeadsEndpointTests
 {
@@ -30,7 +29,7 @@ public class GetLeadsEndpointTests
         var httpContext = new DefaultHttpContext();
         var result = GetLeadsEndpoint.Handle("agent1", null, null, store.Object, httpContext);
 
-        var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<LeadSummaryResponse>>>().Subject;
+        var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<ListLeadsResponse>>>().Subject;
         okResult.Value!.Count().Should().Be(3);
     }
 
@@ -43,7 +42,7 @@ public class GetLeadsEndpointTests
         var httpContext = new DefaultHttpContext();
         var result = GetLeadsEndpoint.Handle("unknown", null, null, store.Object, httpContext);
 
-        var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<LeadSummaryResponse>>>().Subject;
+        var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<ListLeadsResponse>>>().Subject;
         okResult.Value!.Should().BeEmpty();
     }
 
@@ -57,7 +56,7 @@ public class GetLeadsEndpointTests
         var httpContext = new DefaultHttpContext();
         var result = GetLeadsEndpoint.Handle("agent1", 3, null, store.Object, httpContext);
 
-        var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<LeadSummaryResponse>>>().Subject;
+        var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<ListLeadsResponse>>>().Subject;
         okResult.Value!.Count().Should().Be(2);
     }
 
@@ -71,7 +70,7 @@ public class GetLeadsEndpointTests
         var httpContext = new DefaultHttpContext();
         var result = GetLeadsEndpoint.Handle("agent1", null, 2, store.Object, httpContext);
 
-        var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<LeadSummaryResponse>>>().Subject;
+        var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<ListLeadsResponse>>>().Subject;
         okResult.Value!.Count().Should().Be(2);
     }
 
@@ -85,7 +84,7 @@ public class GetLeadsEndpointTests
         var httpContext = new DefaultHttpContext();
         var result = GetLeadsEndpoint.Handle("agent1", null, 200, store.Object, httpContext);
 
-        var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<LeadSummaryResponse>>>().Subject;
+        var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<ListLeadsResponse>>>().Subject;
         okResult.Value!.Count().Should().Be(100);
     }
 
@@ -99,7 +98,7 @@ public class GetLeadsEndpointTests
         var httpContext = new DefaultHttpContext();
         var result = GetLeadsEndpoint.Handle("agent1", null, null, store.Object, httpContext);
 
-        var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<LeadSummaryResponse>>>().Subject;
+        var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<ListLeadsResponse>>>().Subject;
         okResult.Value!.Count().Should().Be(50);
     }
 

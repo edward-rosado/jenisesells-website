@@ -2,7 +2,7 @@ using FluentAssertions;
 using Moq;
 using Moq.Protected;
 using System.Net;
-using RealEstateStar.Api.Models;
+using RealEstateStar.Api.Features.Cma.Submit;
 using RealEstateStar.Api.Services.Research;
 
 namespace RealEstateStar.Api.Tests.Services.Research;

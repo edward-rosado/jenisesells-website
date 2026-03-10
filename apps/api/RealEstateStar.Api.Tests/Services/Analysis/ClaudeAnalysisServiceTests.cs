@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FluentAssertions;
-using RealEstateStar.Api.Models;
+using RealEstateStar.Api.Features.Cma;
+using RealEstateStar.Api.Features.Cma.Submit;
 using RealEstateStar.Api.Services.Analysis;
 
 namespace RealEstateStar.Api.Tests.Services.Analysis;
