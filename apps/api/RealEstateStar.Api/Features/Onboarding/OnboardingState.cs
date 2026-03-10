@@ -8,6 +8,7 @@ public enum OnboardingState
     ScrapeProfile,
     ConfirmIdentity,
     CollectBranding,
+    ConnectGoogle,
     GenerateSite,
     PreviewSite,
     DemoCma,

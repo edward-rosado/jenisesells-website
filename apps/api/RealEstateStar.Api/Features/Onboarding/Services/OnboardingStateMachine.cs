@@ -6,7 +6,8 @@ public class OnboardingStateMachine
     {
         [OnboardingState.ScrapeProfile] = [OnboardingState.ConfirmIdentity],
         [OnboardingState.ConfirmIdentity] = [OnboardingState.CollectBranding],
-        [OnboardingState.CollectBranding] = [OnboardingState.GenerateSite],
+        [OnboardingState.CollectBranding] = [OnboardingState.ConnectGoogle],
+        [OnboardingState.ConnectGoogle] = [OnboardingState.GenerateSite],
         [OnboardingState.GenerateSite] = [OnboardingState.PreviewSite],
         [OnboardingState.PreviewSite] = [OnboardingState.DemoCma],
         [OnboardingState.DemoCma] = [OnboardingState.ShowResults],
@@ -20,6 +21,7 @@ public class OnboardingStateMachine
         [OnboardingState.ScrapeProfile] = ["scrape_url", "update_profile"],
         [OnboardingState.ConfirmIdentity] = ["update_profile"],
         [OnboardingState.CollectBranding] = ["extract_colors", "set_branding"],
+        [OnboardingState.ConnectGoogle] = ["google_auth_card"],
         [OnboardingState.GenerateSite] = ["deploy_site"],
         [OnboardingState.PreviewSite] = ["get_preview_url"],
         [OnboardingState.DemoCma] = ["submit_cma_form"],

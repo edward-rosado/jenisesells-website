@@ -123,6 +123,12 @@ public class OnboardingChatService(
             }
         }
 
+        // Persist both messages after streaming completes
+        session.Messages.Add(new ChatMessage
+        {
+            Role = "user",
+            Content = userMessage,
+        });
         session.Messages.Add(new ChatMessage
         {
             Role = "assistant",
@@ -159,6 +165,8 @@ public class OnboardingChatService(
                 "Show the agent their extracted profile and ask them to confirm or correct it. Use update_profile for corrections.",
             OnboardingState.CollectBranding =>
                 "Ask the agent about their brand colors, logo, and visual preferences. Use set_branding to save their choices.",
+            OnboardingState.ConnectGoogle =>
+                "Ask the agent to connect their Google account. Explain this enables sending CMA emails from their Gmail, organizing files in their Drive, and creating lead tracking sheets. Use the google_auth_card tool to present the connection button. After they connect, their Google profile will be cross-validated against their scraped profile.",
             OnboardingState.GenerateSite =>
                 "Generate and deploy the agent's white-label website. Use deploy_site to create it.",
             OnboardingState.PreviewSite =>
@@ -184,6 +192,12 @@ public class OnboardingChatService(
             if (session.Profile.Phone is not null) sb.AppendLine($"Phone: {session.Profile.Phone}");
             if (session.Profile.Email is not null) sb.AppendLine($"Email: {session.Profile.Email}");
             sb.AppendLine("</agent_profile>");
+        }
+
+        if (session.GoogleTokens is not null)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Google connected: {session.GoogleTokens.GoogleName} ({session.GoogleTokens.GoogleEmail})");
         }
 
         if (session.SiteUrl is not null)
@@ -241,6 +255,12 @@ public class OnboardingChatService(
                         logoUrl = new { type = "string" },
                     }
                 }
+            },
+            ["google_auth_card"] = new
+            {
+                name = "google_auth_card",
+                description = "Show a Google account connection card with OAuth button",
+                input_schema = new { type = "object", properties = new { } }
             },
             ["deploy_site"] = new
             {

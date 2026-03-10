@@ -40,6 +40,30 @@ var anthropicKey = builder.Configuration["Anthropic:ApiKey"]
     ?? throw new InvalidOperationException("Anthropic:ApiKey configuration is required");
 var attomKey = builder.Configuration["Attom:ApiKey"]
     ?? throw new InvalidOperationException("Attom:ApiKey configuration is required");
+var googleClientId = builder.Configuration["Google:ClientId"]
+    ?? throw new InvalidOperationException("Google:ClientId configuration is required");
+var googleClientSecret = builder.Configuration["Google:ClientSecret"]
+    ?? throw new InvalidOperationException("Google:ClientSecret configuration is required");
+var googleRedirectUri = builder.Configuration["Google:RedirectUri"]
+    ?? "http://localhost:5000/oauth/google/callback";
+
+// Stripe config validation (StripeService constructor validates details)
+_ = builder.Configuration["Stripe:SecretKey"]
+    ?? throw new InvalidOperationException("Stripe:SecretKey configuration is required");
+_ = builder.Configuration["Stripe:WebhookSecret"]
+    ?? throw new InvalidOperationException("Stripe:WebhookSecret configuration is required");
+_ = builder.Configuration["Stripe:PriceId"]
+    ?? throw new InvalidOperationException("Stripe:PriceId configuration is required");
+_ = builder.Configuration["Platform:BaseUrl"]
+    ?? throw new InvalidOperationException("Platform:BaseUrl configuration is required");
+
+// Cloudflare config for site deployment
+var cloudflareOptions = new CloudflareOptions
+{
+    ApiToken = builder.Configuration["Cloudflare:ApiToken"] ?? "",
+    AccountId = builder.Configuration["Cloudflare:AccountId"] ?? "",
+};
+// Cloudflare config is optional — site deployment will fail gracefully if not configured
 
 // Onboarding services (need anthropicKey)
 builder.Services.AddHttpClient<ProfileScraperService>();
@@ -48,6 +72,24 @@ builder.Services.AddSingleton<IProfileScraper>(sp =>
         sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(ProfileScraperService)),
         anthropicKey,
         sp.GetRequiredService<ILogger<ProfileScraperService>>()));
+builder.Services.AddHttpClient<GoogleOAuthService>();
+builder.Services.AddSingleton(sp =>
+    new GoogleOAuthService(
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(GoogleOAuthService)),
+        googleClientId,
+        googleClientSecret,
+        googleRedirectUri,
+        sp.GetRequiredService<ILogger<GoogleOAuthService>>()));
+builder.Services.AddSingleton<IOnboardingTool, GoogleAuthCardTool>();
+builder.Services.AddSingleton<IProcessRunner, ProcessRunner>();
+builder.Services.AddSingleton(cloudflareOptions);
+builder.Services.AddSingleton<ISiteDeployService>(sp =>
+    new SiteDeployService(
+        sp.GetRequiredService<ILogger<SiteDeployService>>(),
+        sp.GetRequiredService<IProcessRunner>(),
+        sp.GetRequiredService<CloudflareOptions>(),
+        configPath));
+builder.Services.AddSingleton<IDriveFolderInitializer, DriveFolderInitializer>();
 builder.Services.AddSingleton<IOnboardingTool, ScrapeUrlTool>();
 builder.Services.AddSingleton<IOnboardingTool, UpdateProfileTool>();
 builder.Services.AddSingleton<IOnboardingTool, SetBrandingTool>();
@@ -55,8 +97,7 @@ builder.Services.AddSingleton<IOnboardingTool, DeploySiteTool>();
 builder.Services.AddSingleton<IOnboardingTool, SubmitCmaFormTool>();
 builder.Services.AddSingleton<IOnboardingTool, CreateStripeSessionTool>();
 builder.Services.AddSingleton<ToolDispatcher>();
-builder.Services.AddSingleton<SiteDeployService>();
-builder.Services.AddSingleton<StripeService>();
+builder.Services.AddSingleton<IStripeService, StripeService>();
 builder.Services.AddSingleton<DomainService>();
 builder.Services.AddHttpClient<OnboardingChatService>();
 builder.Services.AddSingleton(sp =>
@@ -102,7 +143,7 @@ builder.Services.AddSingleton<IAnalysisService>(sp =>
         sp.GetService<ILogger<ClaudeAnalysisService>>()));
 
 // Pipeline orchestrator
-builder.Services.AddSingleton<CmaPipeline>();
+builder.Services.AddSingleton<ICmaPipeline, CmaPipeline>();
 
 // Problem details for validation errors
 builder.Services.AddProblemDetails();

@@ -54,4 +54,19 @@ describe("MessageRenderer", () => {
     );
     expect(screen.getByText("$900")).toBeInTheDocument();
   });
+
+  it("renders google_auth type as GoogleAuthCard", () => {
+    render(
+      <MessageRenderer
+        message={{
+          role: "assistant",
+          content: "",
+          type: "google_auth",
+          metadata: { oauthUrl: "https://accounts.google.com/o/oauth2/v2/auth?test=true" },
+        }}
+      />
+    );
+    expect(screen.getByText("Connect Google Account")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /connect with google/i })).toBeInTheDocument();
+  });
 });

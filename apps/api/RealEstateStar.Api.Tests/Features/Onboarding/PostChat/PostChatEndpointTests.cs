@@ -18,7 +18,7 @@ public class PostChatEndpointTests
             new HttpClient(),
             "test-key",
             new OnboardingStateMachine(),
-            new ToolDispatcher([]),
+            new ToolDispatcher([], NullLogger<ToolDispatcher>.Instance),
             NullLogger<OnboardingChatService>.Instance);
 
     [Fact]
@@ -47,11 +47,8 @@ public class PostChatEndpointTests
         var result = await PostChatEndpoint.Handle(
             session.Id, request, _mockStore.Object, CreateStubChatService(), CancellationToken.None);
 
-        // The endpoint adds the user message before streaming
-        Assert.Equal(1, session.Messages.Count);
-        Assert.Equal("user", session.Messages[0].Role);
-        Assert.Equal("hello", session.Messages[0].Content);
-        // Result is a streaming response — can't easily assert content in unit test
+        // User message is added inside StreamResponseAsync (not the endpoint)
+        // so we can only verify the endpoint returns a streaming result
         Assert.NotNull(result);
     }
 }

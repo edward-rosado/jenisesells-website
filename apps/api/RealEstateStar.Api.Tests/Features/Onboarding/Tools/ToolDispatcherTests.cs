@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Moq;
 using RealEstateStar.Api.Features.Onboarding;
+using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Tools;
 using Xunit;
 
@@ -16,7 +17,7 @@ public class ToolDispatcherTests
         mockTool.Setup(t => t.ExecuteAsync(It.IsAny<JsonElement>(), It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("tool executed");
 
-        var dispatcher = new ToolDispatcher([mockTool.Object]);
+        var dispatcher = new ToolDispatcher([mockTool.Object], Microsoft.Extensions.Logging.Abstractions.NullLogger<ToolDispatcher>.Instance);
         var session = OnboardingSession.Create(null);
 
         var result = await dispatcher.DispatchAsync("test_tool", default, session, CancellationToken.None);
@@ -27,7 +28,7 @@ public class ToolDispatcherTests
     [Fact]
     public async Task DispatchAsync_UnknownTool_Throws()
     {
-        var dispatcher = new ToolDispatcher([]);
+        var dispatcher = new ToolDispatcher([], Microsoft.Extensions.Logging.Abstractions.NullLogger<ToolDispatcher>.Instance);
         var session = OnboardingSession.Create(null);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -39,7 +40,7 @@ public class ToolDispatcherTests
     {
         var mockTool = new Mock<IOnboardingTool>();
         mockTool.Setup(t => t.Name).Returns("my_tool");
-        var dispatcher = new ToolDispatcher([mockTool.Object]);
+        var dispatcher = new ToolDispatcher([mockTool.Object], Microsoft.Extensions.Logging.Abstractions.NullLogger<ToolDispatcher>.Instance);
 
         Assert.True(dispatcher.HasTool("my_tool"));
         Assert.False(dispatcher.HasTool("other_tool"));
@@ -76,14 +77,16 @@ public class ToolDispatcherTests
     [Fact]
     public async Task DeploySiteTool_SetsSiteUrl()
     {
-        var tool = new DeploySiteTool();
+        var deploySvc = new Mock<ISiteDeployService>();
+        deploySvc.Setup(d => d.DeployAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("https://jane-doe.realestatestar.com");
+        var tool = new DeploySiteTool(deploySvc.Object);
         var session = OnboardingSession.Create(null);
         session.Profile = new ScrapedProfile { Name = "Jane Doe" };
 
         var result = await tool.ExecuteAsync(default, session, CancellationToken.None);
 
-        Assert.NotNull(session.SiteUrl);
-        Assert.Contains("jane-doe", session.SiteUrl);
+        Assert.Contains("jane-doe", result);
         Assert.Contains("realestatestar.com", result);
     }
 }

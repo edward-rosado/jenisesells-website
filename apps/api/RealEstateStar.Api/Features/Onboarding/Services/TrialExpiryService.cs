@@ -5,7 +5,7 @@ namespace RealEstateStar.Api.Features.Onboarding.Services;
 
 public class TrialExpiryService(
     ISessionStore sessionStore,
-    StripeService stripeService,
+    IStripeService stripeService,
     ILogger<TrialExpiryService> logger) : BackgroundService
 {
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(1);

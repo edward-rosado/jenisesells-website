@@ -41,4 +41,29 @@ public class OnboardingSessionTests
         var session = OnboardingSession.Create(null);
         Assert.Empty(session.Messages);
     }
+
+    [Fact]
+    public void GoogleTokens_DefaultsToNull()
+    {
+        var session = OnboardingSession.Create(null);
+        Assert.Null(session.GoogleTokens);
+    }
+
+    [Fact]
+    public void GoogleTokens_CanBeSet()
+    {
+        var session = OnboardingSession.Create(null);
+        session.GoogleTokens = new GoogleTokens
+        {
+            AccessToken = "access",
+            RefreshToken = "refresh",
+            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            Scopes = ["gmail.send"],
+            GoogleEmail = "test@gmail.com",
+            GoogleName = "Test User",
+        };
+
+        Assert.NotNull(session.GoogleTokens);
+        Assert.Equal("test@gmail.com", session.GoogleTokens.GoogleEmail);
+    }
 }

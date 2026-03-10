@@ -20,7 +20,7 @@ public class CmaPipeline(
     IAnalysisService analysis,
     ICmaPdfGenerator pdf,
     IGwsService gws,
-    ILogger<CmaPipeline>? logger = null)
+    ILogger<CmaPipeline>? logger = null) : ICmaPipeline
 {
     public async Task ExecuteAsync(CmaJob job, string agentId, Lead lead, Func<CmaJobStatus, Task> onStatusChange, CancellationToken ct)
     {

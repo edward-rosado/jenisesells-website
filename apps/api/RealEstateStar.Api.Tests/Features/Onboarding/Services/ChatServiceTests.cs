@@ -12,7 +12,7 @@ public class ChatServiceTests
         new HttpClient(),
         "test-key",
         new OnboardingStateMachine(),
-        new ToolDispatcher([]),
+        new ToolDispatcher([], Microsoft.Extensions.Logging.Abstractions.NullLogger<ToolDispatcher>.Instance),
         NullLogger<OnboardingChatService>.Instance);
 
     [Fact]
@@ -26,5 +26,14 @@ public class ChatServiceTests
         // We can't easily mock the streaming HTTP call without a handler mock.
         // Verify construction and method existence.
         Assert.NotNull(_service);
+    }
+
+    [Fact]
+    public void ToolDefinitions_IncludeGoogleAuthCard()
+    {
+        // BuildToolDefinitions is private static, so we test via allowed tools from the state machine
+        var sm = new OnboardingStateMachine();
+        var tools = sm.GetAllowedTools(OnboardingState.ConnectGoogle);
+        Assert.Contains("google_auth_card", tools);
     }
 }

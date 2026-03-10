@@ -20,8 +20,7 @@ export function ChatWindow({ sessionId, initialMessages }: ChatWindowProps) {
     scrollRef.current?.scrollTo?.(0, scrollRef.current.scrollHeight);
   }, [messages]);
 
-  async function handleSend() {
-    const text = input.trim();
+  async function sendMessage(text: string) {
     if (!text || sending) return;
 
     const userMsg: ChatMessageData = { role: "user", content: text };
@@ -93,11 +92,13 @@ export function ChatWindow({ sessionId, initialMessages }: ChatWindowProps) {
     }
   }
 
+  function handleSend() {
+    sendMessage(input.trim());
+  }
+
   function handleAction(action: string, data?: unknown) {
-    // Send the action as a chat message so Claude can process it
     const text = data ? `[Action: ${action}] ${JSON.stringify(data)}` : `[Action: ${action}]`;
-    setInput(text);
-    handleSend();
+    sendMessage(text);
   }
 
   return (
