@@ -31,6 +31,7 @@ public class StripeService : IStripeService
         _logger = logger;
         _sessionService = sessionService;
 
+        // LOW-3: Stripe key validation also happens in Program.cs startup — this is intentional defense-in-depth
         var secretKey = configuration["Stripe:SecretKey"];
         if (string.IsNullOrWhiteSpace(secretKey))
             throw new InvalidOperationException("Stripe:SecretKey configuration is required");
@@ -84,7 +85,9 @@ public class StripeService : IStripeService
             "Creating Stripe Checkout session for onboarding {SessionId}",
             sessionId);
 
-        var checkoutSession = await _sessionService.CreateAsync(options, cancellationToken: ct);
+        // LOW-2: Idempotency key prevents duplicate Stripe sessions on retries
+        var requestOptions = new RequestOptions { IdempotencyKey = sessionId };
+        var checkoutSession = await _sessionService.CreateAsync(options, requestOptions, ct);
 
         return checkoutSession.Url
             ?? throw new InvalidOperationException("Stripe returned a session without a checkout URL");

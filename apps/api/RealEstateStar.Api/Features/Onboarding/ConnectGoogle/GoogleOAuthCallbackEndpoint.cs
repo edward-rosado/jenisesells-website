@@ -57,6 +57,7 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
         {
             var tokens = await oAuthService.ExchangeCodeAsync(code, ct);
             session.GoogleTokens = tokens;
+            // TODO: MED-2 — Consider cross-validating Google email matches session profile email
             stateMachine.Advance(session, OnboardingState.GenerateSite);
             await sessionStore.SaveAsync(session, ct);
 

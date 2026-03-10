@@ -44,8 +44,8 @@ public class SessionStoreTests : IDisposable
     public async Task Save_PreservesMessages()
     {
         var session = OnboardingSession.Create(null);
-        session.Messages.Add(new ChatMessage { Role = "user", Content = "hello" });
-        session.Messages.Add(new ChatMessage { Role = "assistant", Content = "hi" });
+        session.Messages.Add(new ChatMessage { Role = ChatRole.User, Content = "hello" });
+        session.Messages.Add(new ChatMessage { Role = ChatRole.Assistant, Content = "hi" });
         await _store.SaveAsync(session, CancellationToken.None);
         var loaded = await _store.LoadAsync(session.Id, CancellationToken.None);
         Assert.Equal(2, loaded!.Messages.Count);
