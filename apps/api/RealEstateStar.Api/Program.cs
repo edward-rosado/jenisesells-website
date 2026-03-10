@@ -18,6 +18,7 @@ using RealEstateStar.Api.Features.Cma.Services.Research;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RealEstateStar.Api.Features.Onboarding.Services;
+using RealEstateStar.Api.Features.Onboarding.Tools;
 using RealEstateStar.Api.Health;
 using Serilog;
 
@@ -32,6 +33,21 @@ builder.Services.AddSingleton<IAgentConfigService>(sp =>
 
 // Onboarding
 builder.Services.AddSingleton<ISessionStore, JsonFileSessionStore>();
+builder.Services.AddSingleton<OnboardingStateMachine>();
+builder.Services.AddSingleton<OnboardingChatService>();
+builder.Services.AddSingleton<SiteDeployService>();
+builder.Services.AddSingleton<StripeService>();
+builder.Services.AddSingleton<DomainService>();
+builder.Services.AddHttpClient<ProfileScraperService>();
+builder.Services.AddSingleton<IProfileScraper>(sp => sp.GetRequiredService<ProfileScraperService>());
+builder.Services.AddSingleton<IOnboardingTool, ScrapeUrlTool>();
+builder.Services.AddSingleton<IOnboardingTool, UpdateProfileTool>();
+builder.Services.AddSingleton<IOnboardingTool, SetBrandingTool>();
+builder.Services.AddSingleton<IOnboardingTool, DeploySiteTool>();
+builder.Services.AddSingleton<IOnboardingTool, SubmitCmaFormTool>();
+builder.Services.AddSingleton<IOnboardingTool, CreateStripeSessionTool>();
+builder.Services.AddSingleton<ToolDispatcher>();
+builder.Services.AddHostedService<TrialExpiryService>();
 
 // Configuration keys
 var anthropicKey = builder.Configuration["Anthropic:ApiKey"]
