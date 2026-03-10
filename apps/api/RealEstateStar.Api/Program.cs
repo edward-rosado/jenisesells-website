@@ -17,6 +17,7 @@ using RealEstateStar.Api.Features.Cma.Services.Pdf;
 using RealEstateStar.Api.Features.Cma.Services.Research;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Health;
 using Serilog;
 
@@ -28,6 +29,9 @@ builder.AddObservability();
 var configPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "agents");
 builder.Services.AddSingleton<IAgentConfigService>(sp =>
     new AgentConfigService(configPath, sp.GetRequiredService<ILogger<AgentConfigService>>()));
+
+// Onboarding
+builder.Services.AddSingleton<ISessionStore, JsonFileSessionStore>();
 
 // Configuration keys
 var anthropicKey = builder.Configuration["Anthropic:ApiKey"]
