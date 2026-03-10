@@ -64,6 +64,7 @@ export function MessageRenderer({ message, onAction }: MessageRendererProps) {
       return (
         <PaymentCard
           checkoutUrl={meta.checkoutUrl as string | undefined}
+          price={meta.price as string | undefined}
         />
       );
     default:
