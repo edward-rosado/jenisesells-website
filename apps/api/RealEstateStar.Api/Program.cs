@@ -57,6 +57,14 @@ _ = builder.Configuration["Stripe:PriceId"]
 _ = builder.Configuration["Platform:BaseUrl"]
     ?? throw new InvalidOperationException("Platform:BaseUrl configuration is required");
 
+// Cloudflare config for site deployment
+var cloudflareOptions = new CloudflareOptions
+{
+    ApiToken = builder.Configuration["Cloudflare:ApiToken"] ?? "",
+    AccountId = builder.Configuration["Cloudflare:AccountId"] ?? "",
+};
+// Cloudflare config is optional — site deployment will fail gracefully if not configured
+
 // Onboarding services (need anthropicKey)
 builder.Services.AddHttpClient<ProfileScraperService>();
 builder.Services.AddSingleton<IProfileScraper>(sp =>
@@ -73,6 +81,15 @@ builder.Services.AddSingleton(sp =>
         googleRedirectUri,
         sp.GetRequiredService<ILogger<GoogleOAuthService>>()));
 builder.Services.AddSingleton<IOnboardingTool, GoogleAuthCardTool>();
+builder.Services.AddSingleton<IProcessRunner, ProcessRunner>();
+builder.Services.AddSingleton(cloudflareOptions);
+builder.Services.AddSingleton<ISiteDeployService>(sp =>
+    new SiteDeployService(
+        sp.GetRequiredService<ILogger<SiteDeployService>>(),
+        sp.GetRequiredService<IProcessRunner>(),
+        sp.GetRequiredService<CloudflareOptions>(),
+        configPath));
+builder.Services.AddSingleton<IDriveFolderInitializer, DriveFolderInitializer>();
 builder.Services.AddSingleton<IOnboardingTool, ScrapeUrlTool>();
 builder.Services.AddSingleton<IOnboardingTool, UpdateProfileTool>();
 builder.Services.AddSingleton<IOnboardingTool, SetBrandingTool>();
@@ -80,7 +97,6 @@ builder.Services.AddSingleton<IOnboardingTool, DeploySiteTool>();
 builder.Services.AddSingleton<IOnboardingTool, SubmitCmaFormTool>();
 builder.Services.AddSingleton<IOnboardingTool, CreateStripeSessionTool>();
 builder.Services.AddSingleton<ToolDispatcher>();
-builder.Services.AddSingleton<SiteDeployService>();
 builder.Services.AddSingleton<IStripeService, StripeService>();
 builder.Services.AddSingleton<DomainService>();
 builder.Services.AddHttpClient<OnboardingChatService>();
@@ -127,7 +143,7 @@ builder.Services.AddSingleton<IAnalysisService>(sp =>
         sp.GetService<ILogger<ClaudeAnalysisService>>()));
 
 // Pipeline orchestrator
-builder.Services.AddSingleton<CmaPipeline>();
+builder.Services.AddSingleton<ICmaPipeline, CmaPipeline>();
 
 // Problem details for validation errors
 builder.Services.AddProblemDetails();
