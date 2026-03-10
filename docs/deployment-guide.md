@@ -192,6 +192,34 @@ Alternatively, for initial setup:
 
 ---
 
+## Step 6b: Deploy Agent Sites to Cloudflare Pages (~2 min)
+
+The agent site is deployed as a separate Cloudflare Pages project (`real-estate-star-agents`). The onboarding flow uses branch deploys to create per-agent preview URLs.
+
+### Initial Setup
+1. Go to Cloudflare Dashboard → **Workers & Pages → Create**
+2. Create a **Direct Upload** project (not connected to Git — CI handles deploys)
+3. Project name: `real-estate-star-agents`
+4. No build settings needed (CI builds and uploads)
+
+### How It Works
+- **Production deploy** (`deploy-agent-site.yml`): Deploys to `real-estate-star-agents.pages.dev` on push to main
+- **PR preview deploy** (`agent-site.yml`): Deploys to `pr-{number}.real-estate-star-agents.pages.dev` on PRs
+- **Onboarding agent preview** (`SiteDeployService`): The API deploys per-agent sites to `{agent-slug}.real-estate-star-agents.pages.dev` via Wrangler CLI at runtime
+
+### Environment Variables for Agent Site
+- `NEXT_PUBLIC_API_URL`: Your Railway API URL
+- `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`: Same tokens as platform deploy
+
+### Railway Environment Variable (for API runtime deploys)
+Add to Railway:
+```
+Cloudflare__ApiToken=<your-cloudflare-api-token>
+Cloudflare__AccountId=<your-cloudflare-account-id>
+```
+
+---
+
 ## Step 7: Configure GitHub Secrets
 
 Go to your repo → **Settings → Secrets and variables → Actions** and add:
