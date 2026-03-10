@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using RealEstateStar.Api.Features.Cma;
 using RealEstateStar.Api.Services;
+using RealEstateStar.Api.Features.Cma.Services;
 
 namespace RealEstateStar.Api.Tests.Features.Cma.Submit;
 

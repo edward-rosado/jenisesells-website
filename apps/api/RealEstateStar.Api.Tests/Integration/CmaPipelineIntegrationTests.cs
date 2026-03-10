@@ -3,11 +3,12 @@ using Moq;
 using RealEstateStar.Api.Common;
 using RealEstateStar.Api.Features.Cma;
 using RealEstateStar.Api.Services;
-using RealEstateStar.Api.Services.Analysis;
-using RealEstateStar.Api.Services.Comps;
-using RealEstateStar.Api.Services.Gws;
-using RealEstateStar.Api.Services.Pdf;
-using RealEstateStar.Api.Services.Research;
+using RealEstateStar.Api.Features.Cma.Services;
+using RealEstateStar.Api.Features.Cma.Services.Analysis;
+using RealEstateStar.Api.Features.Cma.Services.Comps;
+using RealEstateStar.Api.Features.Cma.Services.Gws;
+using RealEstateStar.Api.Features.Cma.Services.Pdf;
+using RealEstateStar.Api.Features.Cma.Services.Research;
 
 namespace RealEstateStar.Api.Tests.Integration;
 
