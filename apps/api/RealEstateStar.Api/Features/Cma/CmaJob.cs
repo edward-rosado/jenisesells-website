@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
+using RealEstateStar.Api.Features.Cma.Submit;
 
-namespace RealEstateStar.Api.Models;
+namespace RealEstateStar.Api.Features.Cma;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CmaJobStatus

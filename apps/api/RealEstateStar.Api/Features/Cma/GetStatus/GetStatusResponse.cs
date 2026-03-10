@@ -1,8 +1,6 @@
-using RealEstateStar.Api.Models;
+namespace RealEstateStar.Api.Features.Cma.GetStatus;
 
-namespace RealEstateStar.Api.Models.Responses;
-
-public record CmaStatusResponse
+public record GetStatusResponse
 {
     public required CmaJobStatus Status { get; init; }
     public required int Step { get; init; }

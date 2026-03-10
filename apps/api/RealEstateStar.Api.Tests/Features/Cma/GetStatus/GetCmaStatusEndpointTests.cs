@@ -5,10 +5,9 @@ using Moq;
 using RealEstateStar.Api.Features.Cma;
 using RealEstateStar.Api.Features.Cma.GetStatus;
 using RealEstateStar.Api.Services;
-using RealEstateStar.Api.Endpoints;
 using RealEstateStar.Api.Tests.TestHelpers;
 
-namespace RealEstateStar.Api.Tests.Endpoints;
+namespace RealEstateStar.Api.Tests.Features.Cma.GetStatus;
 
 public class GetCmaStatusEndpointTests
 {
@@ -49,7 +48,7 @@ public class GetCmaStatusEndpointTests
         var httpContext = new DefaultHttpContext();
         var result = GetCmaStatusEndpoint.Handle("agent1", "job1", store.Object, httpContext);
 
-        var okResult = result.Should().BeAssignableTo<Ok<CmaStatusResponse>>().Subject;
+        var okResult = result.Should().BeAssignableTo<Ok<GetStatusResponse>>().Subject;
         okResult.Value!.ErrorMessage.Should().Be("Something went wrong");
         okResult.Value.Status.Should().Be(CmaJobStatus.Failed);
     }
@@ -65,7 +64,7 @@ public class GetCmaStatusEndpointTests
         var httpContext = new DefaultHttpContext();
         var result = GetCmaStatusEndpoint.Handle("agent1", "job1", store.Object, httpContext);
 
-        var okResult = result.Should().BeAssignableTo<Ok<CmaStatusResponse>>().Subject;
+        var okResult = result.Should().BeAssignableTo<Ok<GetStatusResponse>>().Subject;
         okResult.Value!.ErrorMessage.Should().BeNull();
         okResult.Value.Status.Should().Be(CmaJobStatus.Parsing);
         okResult.Value.Step.Should().Be(0);

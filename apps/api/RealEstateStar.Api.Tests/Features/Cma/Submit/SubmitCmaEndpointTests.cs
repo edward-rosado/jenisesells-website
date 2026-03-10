@@ -7,13 +7,13 @@ using RealEstateStar.Api.Features.Cma;
 using RealEstateStar.Api.Features.Cma.Submit;
 using RealEstateStar.Api.Services;
 
-namespace RealEstateStar.Api.Tests.Endpoints;
+namespace RealEstateStar.Api.Tests.Features.Cma.Submit;
 
-public class CmaEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+public class SubmitCmaEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
 
-    public CmaEndpointTests(WebApplicationFactory<Program> factory)
+    public SubmitCmaEndpointTests(WebApplicationFactory<Program> factory)
     {
         _client = factory.CreateClient();
     }

@@ -1,8 +1,6 @@
-using RealEstateStar.Api.Models;
+namespace RealEstateStar.Api.Features.Cma.ListLeads;
 
-namespace RealEstateStar.Api.Models.Responses;
-
-public record LeadSummaryResponse
+public record ListLeadsResponse
 {
     public required string Id { get; init; }
     public required string Name { get; init; }

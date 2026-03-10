@@ -1,8 +1,8 @@
+using RealEstateStar.Api.Endpoints;
 using RealEstateStar.Api.Features.Cma;
-using RealEstateStar.Api.Features.Cma.GetStatus;
 using RealEstateStar.Api.Services;
 
-namespace RealEstateStar.Api.Endpoints;
+namespace RealEstateStar.Api.Features.Cma.GetStatus;
 
 public class GetCmaStatusEndpoint : IEndpoint
 {

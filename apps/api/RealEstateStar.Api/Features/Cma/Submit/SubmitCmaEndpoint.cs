@@ -1,15 +1,15 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.SignalR;
 using RealEstateStar.Api.Diagnostics;
+using RealEstateStar.Api.Endpoints;
 using RealEstateStar.Api.Hubs;
 using RealEstateStar.Api.Features.Cma;
 using RealEstateStar.Api.Features.Cma.GetStatus;
-using RealEstateStar.Api.Features.Cma.Submit;
 using RealEstateStar.Api.Services;
 
-namespace RealEstateStar.Api.Endpoints;
+namespace RealEstateStar.Api.Features.Cma.Submit;
 
-public class CreateCmaEndpoint : IEndpoint
+public class SubmitCmaEndpoint : IEndpoint
 {
     public void MapEndpoint(WebApplication app) =>
         app.MapPost("/agents/{agentId}/cma", Handle)
