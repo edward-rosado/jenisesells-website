@@ -1,0 +1,59 @@
+name: Agent Site
+
+on:
+  push:
+    branches: [feat/cma-pipeline-impl, feat/agent-site, feature/agent-site-template-engine]
+    paths:
+      - 'apps/agent-site/**'
+      - '.github/workflows/agent-site.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/agent-site/**'
+      - '.github/workflows/agent-site.yml'
+
+jobs:
+  lint-test-coverage:
+    name: "Agent Site — lint, test, coverage"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check if agent-site exists
+        id: check
+        run: |
+          if [ -f "apps/agent-site/package.json" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "No apps/agent-site/package.json found — skipping."
+          fi
+
+      - name: Setup Node.js
+        if: steps.check.outputs.exists == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/agent-site/package-lock.json
+
+      - name: Install dependencies
+        if: steps.check.outputs.exists == 'true'
+        run: npm ci --prefix apps/agent-site
+
+      - name: Lint
+        if: steps.check.outputs.exists == 'true'
+        run: npm run lint --prefix apps/agent-site
+
+      - name: Test with coverage
+        if: steps.check.outputs.exists == 'true'
+        run: npm run test:coverage --prefix apps/agent-site
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: steps.check.outputs.exists == 'true'
+        with:
+          name: agent-site-coverage
+          path: apps/agent-site/coverage/
+          retention-days: 7

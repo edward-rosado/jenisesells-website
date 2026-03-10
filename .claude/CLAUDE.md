@@ -61,8 +61,11 @@ When working on a skill, load the agent profile first:
 - **Contracts**: State-specific templates live in `skills/contracts/templates/{STATE}/`
 - **No hardcoding**: Agent identity, branding, and compliance data always come from config
 
+
 ## Docs
 
 - Design: `docs/plans/2026-03-09-repo-restructure-design.md`
+- CMA Pipeline Design: `docs/plans/2026-03-09-cma-pipeline-design.md`
+- CMA Pipeline Plan: `docs/plans/2026-03-09-cma-pipeline-plan.md`
 - Onboarding: `docs/onboarding.md`
 - PM Skills: `docs/pm-skills-setup.md`

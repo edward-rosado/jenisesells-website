@@ -46,7 +46,13 @@ The AI only asks for what it couldn't find.
     d. AI asks for logo upload (for brand color extraction)
        - If agent has existing website, AI scrapes colors from there too
     e. AI extracts colors/fonts, confirms palette with agent
-    f. AI sets up email integration (Gmail/Outlook connection)
+    f. AI sets up Google Workspace integration (single OAuth flow):
+       - Gmail (send CMA emails, auto-replies)
+       - Google Drive (store CMA PDFs, documents)
+       - Google Docs (generate CMA reports as Docs)
+       - Google Sheets (lead tracking spreadsheet)
+       - Google Calendar (scheduling, future use)
+       Fallback: Outlook/SMTP for non-Google agents
     g. AI generates agent config + content (mostly from scraped data)
     h. PR created → AI code review → preview URL generated
     i. Agent sees preview in chat, approves
@@ -388,24 +394,99 @@ Start with one template derived from the prototype. Add more as we grow.
 ## Integration Requirements
 
 ### For Pass 1 to work end-to-end:
-- Email provider connection (Gmail OAuth or Outlook) during onboarding
+- Google Workspace OAuth during onboarding (single consent for Gmail, Drive, Docs, Sheets, Calendar)
+- Google Workspace CLI (`gws`) installed on backend — `npm install -g @googleworkspace/cli`
 - CMA form submission handler (receives form data, triggers CMA skill)
 - CMA skill running as a backend service (not just a Claude skill)
 - PDF generation capability
-- Email sending capability
+- Email sending via `gws gmail` (replaces direct Gmail API / Formspree)
+- Lead logging via `gws sheets` (auto-creates tracking spreadsheet)
+- Document storage via `gws drive` (organized per-agent folder)
+- Fallback: Outlook/SMTP for non-Google agents
+
+### Google Workspace CLI (`gws`) Integration
+
+The `gws` CLI (https://github.com/googleworkspace/cli) provides a unified
+interface to all Google Workspace APIs. Installed via npm, authenticated via
+OAuth. We use it for:
+
+| Service | Use Case |
+|---------|----------|
+| `gws gmail` | Send CMA emails with PDF attachments, auto-replies to leads |
+| `gws drive` | Store CMA PDFs in agent's Drive, organized by lead/date |
+| `gws docs` | Generate Google Doc version of CMA for easy sharing |
+| `gws sheets` | Log leads in tracking spreadsheet (auto-created per agent) |
+| `gws calendar` | Future: schedule walkthroughs, photographer appointments |
+
+Authentication: During onboarding, agent completes a single Google OAuth
+consent screen requesting scopes for Gmail, Drive, Docs, Sheets, and Calendar.
+Credentials stored securely per-agent (never in git — see config/agents/*.credentials.json
+in .gitignore). The `gws` CLI reads credentials via `GOOGLE_WORKSPACE_CLI_TOKEN`
+or local encrypted storage.
+
+### CMA Pipeline (with `gws`)
+
+```
+Lead submits CMA form on agent site
+  → API receives form data (POST /agents/{id}/cma)
+    → CMA skill generates branded PDF
+      → gws drive: upload PDF to agent's "CMA Reports" folder
+      → gws gmail: send email to lead with PDF attached
+      → gws sheets: log lead in agent's tracking spreadsheet
+      → gws docs: (optional) create Google Doc version for agent
+  → Lead receives email with CMA within seconds
+  → Agent sees new row in their tracking spreadsheet
+```
 
 ### API Endpoints Needed (apps/api):
 - POST /agents — create agent config
 - PUT /agents/{id}/content — update content
-- POST /agents/{id}/cma — trigger CMA generation
+- POST /agents/{id}/cma — trigger CMA generation + gws pipeline
 - POST /agents/{id}/deploy — trigger PR + deploy pipeline
 - GET /agents/{id}/preview — get preview URL status
+- POST /agents/{id}/auth/google — handle Google OAuth callback, store credentials
+
+## Decisions Made
+
+### Hosting: Cloudflare Pages
+- Zero egress fees — critical for multi-tenant bandwidth
+- Unlimited bandwidth on free tier
+- Best edge performance (300+ data centers)
+- Next.js support via OpenNext adapter (mature in 2026)
+- Free → $5/mo pro tier
+
+### PDF Generation: QuestPDF (.NET)
+- MIT license, free for companies under $1M revenue
+- Fluent C# API — fits .NET 10 backend
+- Purpose-built for reports, invoices, data-driven documents
+- No HTML rendering dependency — clean programmatic layout
+- NuGet: `QuestPDF`
+
+### Chat UI: assistant-ui (React)
+- TypeScript/React library built specifically for AI chat
+- YC-backed, actively maintained
+- Supports streaming responses, tool call visualization, file uploads
+- File uploads needed for logo/business card during onboarding
+- npm: `@assistant-ui/react`
+
+### Google Cloud OAuth Setup
+- Google Cloud project: "Real Estate Star"
+- OAuth consent screen: external, production
+- OAuth 2.0 client ID: web application type
+- Scopes requested in single consent flow:
+  - `https://www.googleapis.com/auth/gmail.send`
+  - `https://www.googleapis.com/auth/drive.file`
+  - `https://www.googleapis.com/auth/documents`
+  - `https://www.googleapis.com/auth/spreadsheets`
+  - `https://www.googleapis.com/auth/calendar.events`
+
+### Credential Storage: Encrypted Local Files → Secret Manager
+- MVP: Encrypted local files (matches `gws` CLI native storage)
+- Production: Google Secret Manager (already in GCP for OAuth)
+- Agent credentials stored per-agent, never in git
+- `.gitignore` already excludes `config/agents/*.credentials.json`
 
 ## Decisions Deferred
 
-- Hosting provider for agent sites (analysis pending)
-- OAuth flow details for Gmail/Outlook connection
-- PDF generation library selection (.NET or external service)
-- Chat UI framework (custom vs. library)
-- Template builder for creating new templates
-- Pricing for custom domain upgrade
+- Template builder for creating new templates (YAGNI — one template for now)
+- Pricing for custom domain upgrade (needs market research with real agents)
