@@ -16,9 +16,6 @@ public static class OnboardingMappers
         {
             SessionId = session.Id,
             CurrentState = session.CurrentState,
-            ProfileUrl = session.ProfileUrl,
-            Profile = session.Profile,
-            Messages = session.Messages,
             SiteUrl = session.SiteUrl,
             CreatedAt = session.CreatedAt,
         };

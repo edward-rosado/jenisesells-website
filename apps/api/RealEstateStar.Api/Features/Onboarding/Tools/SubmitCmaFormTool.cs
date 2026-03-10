@@ -18,16 +18,16 @@ public class SubmitCmaFormTool(
             return "Cannot submit CMA demo — agent profile is not set up yet.";
 
         var agentEmail = profile.Email ?? "";
-        var agentId = session.AgentConfigId ?? GenerateSlug(profile.Name);
+        var agentId = session.AgentConfigId ?? OnboardingHelpers.GenerateSlug(profile.Name);
 
         try
         {
             // Build lead from parameters — demo mode uses agent's own email as recipient
             var lead = BuildLeadFromParameters(parameters, agentEmail, profile);
 
-            // Ensure Drive folder structure exists (idempotent — only runs once per agent)
+            // Ensure Drive folder structure exists (idempotent — only runs once per session)
             if (!string.IsNullOrEmpty(agentEmail))
-                await driveFolderInitializer.EnsureFolderStructureAsync(agentEmail, ct);
+                await driveFolderInitializer.EnsureFolderStructureAsync(session, agentEmail, ct);
 
             // Create CMA job and run the pipeline
             var job = CmaJob.Create(agentId, lead);
@@ -94,6 +94,4 @@ public class SubmitCmaFormTool(
         return null;
     }
 
-    private static string GenerateSlug(string? name) =>
-        (name ?? "agent").ToLowerInvariant().Replace(" ", "-");
 }

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 
 public class GoogleOAuthService(
-    HttpClient httpClient,
+    IHttpClientFactory httpClientFactory,
     string clientId,
     string clientSecret,
     string redirectUri,
@@ -38,6 +38,7 @@ public class GoogleOAuthService(
 
     public virtual async Task<GoogleTokens> ExchangeCodeAsync(string code, CancellationToken ct)
     {
+        var httpClient = httpClientFactory.CreateClient(nameof(GoogleOAuthService));
         var tokenRequest = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["code"] = code,
@@ -90,6 +91,7 @@ public class GoogleOAuthService(
 
     public virtual async Task RefreshAccessTokenAsync(GoogleTokens tokens, CancellationToken ct)
     {
+        var httpClient = httpClientFactory.CreateClient(nameof(GoogleOAuthService));
         var refreshRequest = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["refresh_token"] = tokens.RefreshToken,

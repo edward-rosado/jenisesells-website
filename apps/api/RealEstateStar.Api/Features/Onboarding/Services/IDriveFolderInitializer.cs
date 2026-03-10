@@ -2,5 +2,5 @@ namespace RealEstateStar.Api.Features.Onboarding.Services;
 
 public interface IDriveFolderInitializer
 {
-    Task EnsureFolderStructureAsync(string agentEmail, CancellationToken ct);
+    Task EnsureFolderStructureAsync(OnboardingSession session, string agentEmail, CancellationToken ct);
 }
