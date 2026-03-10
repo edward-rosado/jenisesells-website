@@ -19,13 +19,19 @@ public class GoogleAuthCardToolTests
         mockOAuth.Setup(o => o.BuildAuthorizationUrl(It.IsAny<string>()))
             .Returns(("https://accounts.google.com/o/oauth2/v2/auth?test=true", "test-nonce"));
 
-        var tool = new GoogleAuthCardTool(mockOAuth.Object);
+        var mockStore = new Mock<ISessionStore>();
+        mockStore.Setup(s => s.SaveAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var tool = new GoogleAuthCardTool(mockOAuth.Object, mockStore.Object);
         var session = OnboardingSession.Create(null);
 
         var result = await tool.ExecuteAsync(default, session, CancellationToken.None);
 
         Assert.Contains("accounts.google.com", result);
         Assert.Equal("google_auth_card", tool.Name);
+        Assert.Equal("test-nonce", session.OAuthNonce);
+        mockStore.Verify(s => s.SaveAsync(session, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -38,7 +44,11 @@ public class GoogleAuthCardToolTests
         mockOAuth.Setup(o => o.BuildAuthorizationUrl(It.IsAny<string>()))
             .Returns((string sid) => ($"https://accounts.google.com/o/oauth2/v2/auth?state={sid}", "test-nonce"));
 
-        var tool = new GoogleAuthCardTool(mockOAuth.Object);
+        var mockStore = new Mock<ISessionStore>();
+        mockStore.Setup(s => s.SaveAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var tool = new GoogleAuthCardTool(mockOAuth.Object, mockStore.Object);
         var session = OnboardingSession.Create(null);
 
         var result = await tool.ExecuteAsync(default, session, CancellationToken.None);
