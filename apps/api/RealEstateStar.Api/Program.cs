@@ -40,6 +40,12 @@ var anthropicKey = builder.Configuration["Anthropic:ApiKey"]
     ?? throw new InvalidOperationException("Anthropic:ApiKey configuration is required");
 var attomKey = builder.Configuration["Attom:ApiKey"]
     ?? throw new InvalidOperationException("Attom:ApiKey configuration is required");
+var googleClientId = builder.Configuration["Google:ClientId"]
+    ?? throw new InvalidOperationException("Google:ClientId configuration is required");
+var googleClientSecret = builder.Configuration["Google:ClientSecret"]
+    ?? throw new InvalidOperationException("Google:ClientSecret configuration is required");
+var googleRedirectUri = builder.Configuration["Google:RedirectUri"]
+    ?? "http://localhost:5000/oauth/google/callback";
 
 // Onboarding services (need anthropicKey)
 builder.Services.AddHttpClient<ProfileScraperService>();
@@ -48,6 +54,15 @@ builder.Services.AddSingleton<IProfileScraper>(sp =>
         sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(ProfileScraperService)),
         anthropicKey,
         sp.GetRequiredService<ILogger<ProfileScraperService>>()));
+builder.Services.AddHttpClient<GoogleOAuthService>();
+builder.Services.AddSingleton(sp =>
+    new GoogleOAuthService(
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(GoogleOAuthService)),
+        googleClientId,
+        googleClientSecret,
+        googleRedirectUri,
+        sp.GetRequiredService<ILogger<GoogleOAuthService>>()));
+builder.Services.AddSingleton<IOnboardingTool, GoogleAuthCardTool>();
 builder.Services.AddSingleton<IOnboardingTool, ScrapeUrlTool>();
 builder.Services.AddSingleton<IOnboardingTool, UpdateProfileTool>();
 builder.Services.AddSingleton<IOnboardingTool, SetBrandingTool>();

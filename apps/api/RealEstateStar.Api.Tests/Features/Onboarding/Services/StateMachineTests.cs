@@ -54,10 +54,43 @@ public class StateMachineTests
         Assert.DoesNotContain("scrape_url", tools);
     }
 
+    [Fact]
+    public void CanAdvance_FromCollectBranding_ToConnectGoogle()
+    {
+        var session = OnboardingSession.Create(null);
+        session.CurrentState = OnboardingState.CollectBranding;
+        Assert.True(_sm.CanAdvance(session, OnboardingState.ConnectGoogle));
+    }
+
+    [Fact]
+    public void CanAdvance_FromConnectGoogle_ToGenerateSite()
+    {
+        var session = OnboardingSession.Create(null);
+        session.CurrentState = OnboardingState.ConnectGoogle;
+        Assert.True(_sm.CanAdvance(session, OnboardingState.GenerateSite));
+    }
+
+    [Fact]
+    public void CannotSkip_FromCollectBranding_ToGenerateSite()
+    {
+        var session = OnboardingSession.Create(null);
+        session.CurrentState = OnboardingState.CollectBranding;
+        Assert.False(_sm.CanAdvance(session, OnboardingState.GenerateSite));
+    }
+
+    [Fact]
+    public void GetAllowedTools_ConnectGoogle_ReturnsGoogleAuthTool()
+    {
+        var tools = _sm.GetAllowedTools(OnboardingState.ConnectGoogle);
+        Assert.Contains("google_auth_card", tools);
+        Assert.DoesNotContain("deploy_site", tools);
+    }
+
     [Theory]
     [InlineData(OnboardingState.ScrapeProfile, OnboardingState.ConfirmIdentity)]
     [InlineData(OnboardingState.ConfirmIdentity, OnboardingState.CollectBranding)]
-    [InlineData(OnboardingState.CollectBranding, OnboardingState.GenerateSite)]
+    [InlineData(OnboardingState.CollectBranding, OnboardingState.ConnectGoogle)]
+    [InlineData(OnboardingState.ConnectGoogle, OnboardingState.GenerateSite)]
     [InlineData(OnboardingState.GenerateSite, OnboardingState.PreviewSite)]
     [InlineData(OnboardingState.PreviewSite, OnboardingState.DemoCma)]
     [InlineData(OnboardingState.DemoCma, OnboardingState.ShowResults)]

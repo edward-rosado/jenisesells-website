@@ -27,4 +27,13 @@ public class ChatServiceTests
         // Verify construction and method existence.
         Assert.NotNull(_service);
     }
+
+    [Fact]
+    public void ToolDefinitions_IncludeGoogleAuthCard()
+    {
+        // BuildToolDefinitions is private static, so we test via allowed tools from the state machine
+        var sm = new OnboardingStateMachine();
+        var tools = sm.GetAllowedTools(OnboardingState.ConnectGoogle);
+        Assert.Contains("google_auth_card", tools);
+    }
 }
