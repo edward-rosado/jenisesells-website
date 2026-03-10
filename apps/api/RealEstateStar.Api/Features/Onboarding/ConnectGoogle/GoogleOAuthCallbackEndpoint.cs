@@ -47,21 +47,27 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
         }
     }
 
-    private static string BuildCallbackHtml(bool success, string message) => $"""
-        <!DOCTYPE html>
-        <html>
-        <head><title>Google OAuth</title></head>
-        <body>
-            <p>{(success ? "Connected!" : "Error")}: {message}</p>
-            <script>
-                window.opener?.postMessage({{
-                    type: 'google_oauth_callback',
-                    success: {success.ToString().ToLowerInvariant()},
-                    message: '{message.Replace("'", "\\'")}'
-                }}, '*');
-                window.close();
-            </script>
-        </body>
-        </html>
-        """;
+    private static string BuildCallbackHtml(bool success, string message)
+    {
+        var status = success ? "Connected!" : "Error";
+        var successJs = success.ToString().ToLowerInvariant();
+        var escapedMessage = message.Replace("'", "\\'").Replace("\"", "\\\"");
+        return $$"""
+            <!DOCTYPE html>
+            <html>
+            <head><title>Google OAuth</title></head>
+            <body>
+                <p>{{status}}: {{message}}</p>
+                <script>
+                    window.opener?.postMessage({
+                        type: 'google_oauth_callback',
+                        success: {{successJs}},
+                        message: '{{escapedMessage}}'
+                    }, '*');
+                    window.close();
+                </script>
+            </body>
+            </html>
+            """;
+    }
 }
