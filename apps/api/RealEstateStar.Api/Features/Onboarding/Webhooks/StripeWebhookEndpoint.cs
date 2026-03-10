@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Infrastructure;
 using Stripe;
@@ -10,7 +11,8 @@ public class StripeWebhookEndpoint : IEndpoint
     public void MapEndpoint(WebApplication app)
     {
         app.MapPost("/webhooks/stripe", Handle)
-            .DisableAntiforgery();
+            .DisableAntiforgery()
+            .DisableRateLimiting();
     }
 
     internal static async Task<IResult> Handle(
@@ -21,15 +23,19 @@ public class StripeWebhookEndpoint : IEndpoint
         ILogger<StripeWebhookEndpoint> logger,
         CancellationToken ct)
     {
+        var signatureHeader = httpContext.Request.Headers["Stripe-Signature"].ToString();
+        if (string.IsNullOrEmpty(signatureHeader))
+        {
+            logger.LogWarning("Stripe webhook request missing Stripe-Signature header");
+            return Results.BadRequest("Invalid signature");
+        }
+
         var json = await new StreamReader(httpContext.Request.Body).ReadToEndAsync(ct);
 
         Event stripeEvent;
         try
         {
-            stripeEvent = EventUtility.ConstructEvent(
-                json,
-                httpContext.Request.Headers["Stripe-Signature"],
-                stripeService.WebhookSecret);
+            stripeEvent = stripeService.ConstructWebhookEvent(json, signatureHeader);
         }
         catch (StripeException ex)
         {

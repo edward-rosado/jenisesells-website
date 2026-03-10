@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using RealEstateStar.Api.Diagnostics;
@@ -63,7 +64,10 @@ var cloudflareOptions = new CloudflareOptions
     ApiToken = builder.Configuration["Cloudflare:ApiToken"] ?? "",
     AccountId = builder.Configuration["Cloudflare:AccountId"] ?? "",
 };
-// Cloudflare config is optional — site deployment will fail gracefully if not configured
+if (!cloudflareOptions.IsValid())
+{
+    Log.Warning("Cloudflare:ApiToken and/or Cloudflare:AccountId not configured — site deployment will fail if attempted");
+}
 
 // Onboarding services (need anthropicKey)
 builder.Services.AddHttpClient<ProfileScraperService>();
@@ -174,6 +178,12 @@ builder.Services.AddCors(options =>
     });
 });
 
+// ForwardedHeaders — must be configured before rate limiter so RemoteIpAddress is correct behind proxy
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+});
+
 // Rate limiting
 builder.Services.AddRateLimiter(options =>
 {
@@ -197,6 +207,26 @@ builder.Services.AddRateLimiter(options =>
             {
                 PermitLimit = 10,
                 Window = TimeSpan.FromHours(1)
+            }));
+
+    // Session creation: 5 per hour per IP
+    options.AddPolicy("session-create", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromHours(1)
+            }));
+
+    // Chat messages: 20 per minute per session ID
+    options.AddPolicy("chat-message", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Request.RouteValues["sessionId"]?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1)
             }));
 });
 
@@ -253,6 +283,7 @@ app.UseSerilogRequestLogging(options =>
 
 app.UseHttpsRedirection();
 app.UseCors();
+app.UseForwardedHeaders();
 app.UseRateLimiter();
 
 // Liveness probe — no dependency checks, just "am I running?"

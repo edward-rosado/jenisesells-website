@@ -9,9 +9,8 @@ public class StripeService : IStripeService
     private readonly SessionService _sessionService;
     private readonly string _priceId;
     private readonly string _platformUrl;
+    private readonly string _webhookSecret;
     private readonly ILogger<StripeService> _logger;
-
-    public string WebhookSecret { get; }
 
     public StripeService(
         IConfiguration configuration,
@@ -40,15 +39,20 @@ public class StripeService : IStripeService
         if (string.IsNullOrEmpty(_priceId))
             throw new InvalidOperationException("Stripe:PriceId configuration is required");
 
-        WebhookSecret = configuration["Stripe:WebhookSecret"]
+        _webhookSecret = configuration["Stripe:WebhookSecret"]
             ?? throw new InvalidOperationException("Stripe:WebhookSecret configuration is required");
-        if (string.IsNullOrEmpty(WebhookSecret))
+        if (string.IsNullOrEmpty(_webhookSecret))
             throw new InvalidOperationException("Stripe:WebhookSecret configuration is required");
 
         var platformUrl = configuration["Platform:BaseUrl"];
         if (string.IsNullOrWhiteSpace(platformUrl))
             throw new InvalidOperationException("Platform:BaseUrl configuration is required");
         _platformUrl = platformUrl;
+    }
+
+    public Event ConstructWebhookEvent(string payload, string signatureHeader)
+    {
+        return EventUtility.ConstructEvent(payload, signatureHeader, _webhookSecret);
     }
 
     public async Task<string> CreateCheckoutSessionAsync(

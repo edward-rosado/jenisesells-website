@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
 using RealEstateStar.Api.Features.Onboarding;
@@ -21,6 +22,14 @@ public class PostChatEndpointTests
             new ToolDispatcher([], NullLogger<ToolDispatcher>.Instance),
             NullLogger<OnboardingChatService>.Instance);
 
+    private static DefaultHttpContext CreateHttpContext(string? bearerToken)
+    {
+        var context = new DefaultHttpContext();
+        if (bearerToken is not null)
+            context.Request.Headers.Authorization = $"Bearer {bearerToken}";
+        return context;
+    }
+
     [Fact]
     public async Task Handle_InvalidSession_Returns404()
     {
@@ -28,8 +37,9 @@ public class PostChatEndpointTests
             .ReturnsAsync((OnboardingSession?)null);
 
         var request = new PostChatRequest { Message = "hello" };
+        var httpContext = CreateHttpContext("any-token");
         var result = await PostChatEndpoint.Handle(
-            "nope", request, _mockStore.Object, CreateStubChatService(), CancellationToken.None);
+            "nope", request, httpContext, _mockStore.Object, CreateStubChatService(), CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
     }
@@ -44,11 +54,42 @@ public class PostChatEndpointTests
             .Returns(Task.CompletedTask);
 
         var request = new PostChatRequest { Message = "hello" };
+        var httpContext = CreateHttpContext(session.BearerToken);
         var result = await PostChatEndpoint.Handle(
-            session.Id, request, _mockStore.Object, CreateStubChatService(), CancellationToken.None);
+            session.Id, request, httpContext, _mockStore.Object, CreateStubChatService(), CancellationToken.None);
 
         // User message is added inside StreamResponseAsync (not the endpoint)
         // so we can only verify the endpoint returns a streaming result
         Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task Handle_MissingBearerToken_Returns401()
+    {
+        var session = OnboardingSession.Create(null);
+        _mockStore.Setup(s => s.LoadAsync(session.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(session);
+
+        var request = new PostChatRequest { Message = "hello" };
+        var httpContext = CreateHttpContext(null);
+        var result = await PostChatEndpoint.Handle(
+            session.Id, request, httpContext, _mockStore.Object, CreateStubChatService(), CancellationToken.None);
+
+        Assert.IsType<UnauthorizedHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task Handle_WrongBearerToken_Returns401()
+    {
+        var session = OnboardingSession.Create(null);
+        _mockStore.Setup(s => s.LoadAsync(session.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(session);
+
+        var request = new PostChatRequest { Message = "hello" };
+        var httpContext = CreateHttpContext("wrong-token");
+        var result = await PostChatEndpoint.Handle(
+            session.Id, request, httpContext, _mockStore.Object, CreateStubChatService(), CancellationToken.None);
+
+        Assert.IsType<UnauthorizedHttpResult>(result);
     }
 }
