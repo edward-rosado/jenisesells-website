@@ -1,0 +1,70 @@
+name: Deploy Platform
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/platform/**'
+      - '.github/workflows/deploy-platform.yml'
+
+jobs:
+  test:
+    name: "Platform — lint, test, build"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/platform/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefix apps/platform
+
+      - name: Lint
+        run: npm run lint --prefix apps/platform
+
+      - name: Test
+        run: npm run test:coverage --prefix apps/platform
+
+      - name: Build
+        run: npm run build --prefix apps/platform
+
+  deploy:
+    name: "Deploy to Cloudflare Pages"
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/platform/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefix apps/platform
+
+      - name: Build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
+          NEXT_PUBLIC_STRIPE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+        run: npm run build --prefix apps/platform
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/platform/.next --project-name=real-estate-star-platform
