@@ -9,7 +9,6 @@ vi.stubGlobal("crypto", {
 });
 
 // Mock NextResponse before importing middleware
-const mockHeaders = new Map<string, string>();
 const mockRewrite = vi.fn();
 const mockNext = vi.fn();
 const mockClone = vi.fn();
