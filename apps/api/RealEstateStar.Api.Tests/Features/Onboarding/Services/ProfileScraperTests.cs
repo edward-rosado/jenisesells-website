@@ -10,7 +10,7 @@ namespace RealEstateStar.Api.Tests.Features.Onboarding.Services;
 
 public class ProfileScraperTests
 {
-    private static HttpClient CreateMockHttpClient(HttpStatusCode status, string content)
+    private static IHttpClientFactory CreateMockFactory(HttpStatusCode status, string content)
     {
         var handler = new Mock<HttpMessageHandler>();
         handler.Protected()
@@ -23,11 +23,13 @@ public class ProfileScraperTests
                 StatusCode = status,
                 Content = new StringContent(content),
             });
-        return new HttpClient(handler.Object);
+        var client = new HttpClient(handler.Object);
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
+        return factory.Object;
     }
 
-    [Fact]
-    public async Task ScrapeAsync_FetchFailure_ReturnsNull()
+    private static IHttpClientFactory CreateThrowingFactory()
     {
         var handler = new Mock<HttpMessageHandler>();
         handler.Protected()
@@ -37,7 +39,16 @@ public class ProfileScraperTests
                 ItExpr.IsAny<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("Connection refused"));
         var client = new HttpClient(handler.Object);
-        var scraper = new ProfileScraperService(client, "test-key", NullLogger<ProfileScraperService>.Instance);
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
+        return factory.Object;
+    }
+
+    [Fact]
+    public async Task ScrapeAsync_FetchFailure_ReturnsNull()
+    {
+        var factory = CreateThrowingFactory();
+        var scraper = new ProfileScraperService(factory, "test-key", NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/nobody", CancellationToken.None);
 
@@ -47,8 +58,8 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_EmptyPage_ReturnsNull()
     {
-        var client = CreateMockHttpClient(HttpStatusCode.OK, "<html><body></body></html>");
-        var scraper = new ProfileScraperService(client, "test-key", NullLogger<ProfileScraperService>.Instance);
+        var factory = CreateMockFactory(HttpStatusCode.OK, "<html><body></body></html>");
+        var scraper = new ProfileScraperService(factory, "test-key", NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://example.com/empty", CancellationToken.None);
 
@@ -60,8 +71,8 @@ public class ProfileScraperTests
     {
         // When Claude API call fails (bad key), scraper returns partial profile as fallback
         var html = "<html><body><h1>Jane Doe</h1><p>RE/MAX agent serving New Jersey with 15 years experience and 200 homes sold in the tri-state area.</p></body></html>";
-        var client = CreateMockHttpClient(HttpStatusCode.OK, html);
-        var scraper = new ProfileScraperService(client, "invalid-key", NullLogger<ProfileScraperService>.Instance);
+        var factory = CreateMockFactory(HttpStatusCode.OK, html);
+        var scraper = new ProfileScraperService(factory, "invalid-key", NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/jane-doe", CancellationToken.None);
 

@@ -162,6 +162,7 @@ public class CmaToolTests
         await tool.ExecuteAsync(json, session, CancellationToken.None);
 
         driveFolderInit.Verify(d => d.EnsureFolderStructureAsync(
+            It.IsAny<OnboardingSession>(),
             "jane@remax.com",
             It.IsAny<CancellationToken>()), Times.Once);
     }

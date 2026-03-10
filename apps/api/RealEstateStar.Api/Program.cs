@@ -70,16 +70,16 @@ if (!cloudflareOptions.IsValid())
 }
 
 // Onboarding services (need anthropicKey)
-builder.Services.AddHttpClient<ProfileScraperService>();
+builder.Services.AddHttpClient(nameof(ProfileScraperService));
 builder.Services.AddSingleton<IProfileScraper>(sp =>
     new ProfileScraperService(
-        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(ProfileScraperService)),
+        sp.GetRequiredService<IHttpClientFactory>(),
         anthropicKey,
         sp.GetRequiredService<ILogger<ProfileScraperService>>()));
-builder.Services.AddHttpClient<GoogleOAuthService>();
+builder.Services.AddHttpClient(nameof(GoogleOAuthService));
 builder.Services.AddSingleton(sp =>
     new GoogleOAuthService(
-        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(GoogleOAuthService)),
+        sp.GetRequiredService<IHttpClientFactory>(),
         googleClientId,
         googleClientSecret,
         googleRedirectUri,
@@ -103,10 +103,10 @@ builder.Services.AddSingleton<IOnboardingTool, CreateStripeSessionTool>();
 builder.Services.AddSingleton<ToolDispatcher>();
 builder.Services.AddSingleton<IStripeService, StripeService>();
 builder.Services.AddSingleton<DomainService>();
-builder.Services.AddHttpClient<OnboardingChatService>();
+builder.Services.AddHttpClient(nameof(OnboardingChatService));
 builder.Services.AddSingleton(sp =>
     new OnboardingChatService(
-        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(OnboardingChatService)),
+        sp.GetRequiredService<IHttpClientFactory>(),
         anthropicKey,
         sp.GetRequiredService<OnboardingStateMachine>(),
         sp.GetRequiredService<ToolDispatcher>(),
