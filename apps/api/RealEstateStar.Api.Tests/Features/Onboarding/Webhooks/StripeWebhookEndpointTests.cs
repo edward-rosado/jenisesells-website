@@ -1,3 +1,6 @@
+using System.Net;
+using System.Text;
+using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -5,6 +8,7 @@ using Moq;
 using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Webhooks;
+using RealEstateStar.Api.Tests.Integration;
 using Stripe;
 using Stripe.Checkout;
 using Xunit;
@@ -185,5 +189,71 @@ public class StripeWebhookEndpointTests
         _sessionStore.Verify(
             s => s.LoadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+}
+
+/// <summary>
+/// SEC-9: Integration tests that exercise the full HTTP pipeline including
+/// Stripe signature verification via EventUtility.ConstructEvent.
+/// </summary>
+public class StripeWebhookSignatureTests : IClassFixture<TestWebApplicationFactory>
+{
+    private readonly HttpClient _client;
+
+    public StripeWebhookSignatureTests(TestWebApplicationFactory factory)
+    {
+        _client = factory.CreateClient();
+    }
+
+    [Fact]
+    public async Task Handle_MissingStripeSignatureHeader_Returns400()
+    {
+        var content = new StringContent("{}", Encoding.UTF8, "application/json");
+
+        var response = await _client.PostAsync("/webhooks/stripe", content);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Handle_InvalidStripeSignature_Returns400()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/webhooks/stripe")
+        {
+            Content = new StringContent("{\"type\":\"checkout.session.completed\"}", Encoding.UTF8, "application/json")
+        };
+        request.Headers.Add("Stripe-Signature", "t=1234567890,v1=invalid_signature_value");
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Handle_EmptyStripeSignature_Returns400()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/webhooks/stripe")
+        {
+            Content = new StringContent("{}", Encoding.UTF8, "application/json")
+        };
+        request.Headers.Add("Stripe-Signature", "");
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Handle_MalformedStripeSignature_Returns400()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/webhooks/stripe")
+        {
+            Content = new StringContent("{\"id\":\"evt_test\"}", Encoding.UTF8, "application/json")
+        };
+        request.Headers.Add("Stripe-Signature", "not-a-real-signature");
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 }
