@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Tools;
@@ -8,11 +9,18 @@ namespace RealEstateStar.Api.Tests.Features.Onboarding.Services;
 
 public class ChatServiceTests
 {
+    private static IHttpClientFactory CreateMockFactory()
+    {
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
+        return factory.Object;
+    }
+
     private readonly OnboardingChatService _service = new(
-        new HttpClient(),
+        CreateMockFactory(),
         "test-key",
         new OnboardingStateMachine(),
-        new ToolDispatcher([], Microsoft.Extensions.Logging.Abstractions.NullLogger<ToolDispatcher>.Instance),
+        new ToolDispatcher([], NullLogger<ToolDispatcher>.Instance),
         NullLogger<OnboardingChatService>.Instance);
 
     [Fact]

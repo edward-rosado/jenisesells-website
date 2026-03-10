@@ -15,12 +15,20 @@ public class GoogleOAuthServiceTests
     private const string ClientSecret = "test-client-secret";
     private const string RedirectUri = "http://localhost:5000/oauth/google/callback";
 
+    private static IHttpClientFactory CreateFactory(Mock<HttpMessageHandler> handler)
+    {
+        var client = new HttpClient(handler.Object);
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
+        return factory.Object;
+    }
+
     [Fact]
     public void BuildAuthorizationUrl_ReturnsGoogleUrl_WithAllScopes()
     {
         var handler = new Mock<HttpMessageHandler>();
-        var httpClient = new HttpClient(handler.Object);
-        var service = new GoogleOAuthService(httpClient, ClientId, ClientSecret, RedirectUri, NullLogger<GoogleOAuthService>.Instance);
+        var factory = CreateFactory(handler);
+        var service = new GoogleOAuthService(factory, ClientId, ClientSecret, RedirectUri, NullLogger<GoogleOAuthService>.Instance);
 
         var (url, _) = service.BuildAuthorizationUrl("session123");
 
@@ -74,8 +82,8 @@ public class GoogleOAuthServiceTests
                 };
             });
 
-        var httpClient = new HttpClient(handler.Object);
-        var service = new GoogleOAuthService(httpClient, ClientId, ClientSecret, RedirectUri, NullLogger<GoogleOAuthService>.Instance);
+        var factory = CreateFactory(handler);
+        var service = new GoogleOAuthService(factory, ClientId, ClientSecret, RedirectUri, NullLogger<GoogleOAuthService>.Instance);
 
         var tokens = await service.ExchangeCodeAsync("auth-code-123", CancellationToken.None);
 
@@ -99,8 +107,8 @@ public class GoogleOAuthServiceTests
                 Content = new StringContent("{\"error\":\"invalid_grant\"}")
             });
 
-        var httpClient = new HttpClient(handler.Object);
-        var service = new GoogleOAuthService(httpClient, ClientId, ClientSecret, RedirectUri, NullLogger<GoogleOAuthService>.Instance);
+        var factory = CreateFactory(handler);
+        var service = new GoogleOAuthService(factory, ClientId, ClientSecret, RedirectUri, NullLogger<GoogleOAuthService>.Instance);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.ExchangeCodeAsync("bad-code", CancellationToken.None));
@@ -130,8 +138,8 @@ public class GoogleOAuthServiceTests
                     "application/json")
             });
 
-        var httpClient = new HttpClient(handler.Object);
-        var service = new GoogleOAuthService(httpClient, ClientId, ClientSecret, RedirectUri, NullLogger<GoogleOAuthService>.Instance);
+        var factory = CreateFactory(handler);
+        var service = new GoogleOAuthService(factory, ClientId, ClientSecret, RedirectUri, NullLogger<GoogleOAuthService>.Instance);
 
         var tokens = new GoogleTokens
         {
@@ -162,8 +170,8 @@ public class GoogleOAuthServiceTests
                 Content = new StringContent("{\"error\":\"invalid_grant\"}")
             });
 
-        var httpClient = new HttpClient(handler.Object);
-        var service = new GoogleOAuthService(httpClient, ClientId, ClientSecret, RedirectUri, NullLogger<GoogleOAuthService>.Instance);
+        var factory = CreateFactory(handler);
+        var service = new GoogleOAuthService(factory, ClientId, ClientSecret, RedirectUri, NullLogger<GoogleOAuthService>.Instance);
 
         var tokens = new GoogleTokens
         {

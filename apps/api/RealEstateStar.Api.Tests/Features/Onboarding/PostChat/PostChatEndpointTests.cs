@@ -13,13 +13,17 @@ public class PostChatEndpointTests
 {
     private readonly Mock<ISessionStore> _mockStore = new();
 
-    private static OnboardingChatService CreateStubChatService() =>
-        new(
-            new HttpClient(),
+    private static OnboardingChatService CreateStubChatService()
+    {
+        var factory = new Moq.Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
+        return new OnboardingChatService(
+            factory.Object,
             "test-key",
             new OnboardingStateMachine(),
             new ToolDispatcher([], NullLogger<ToolDispatcher>.Instance),
             NullLogger<OnboardingChatService>.Instance);
+    }
 
     [Fact]
     public async Task Handle_InvalidSession_Returns404()

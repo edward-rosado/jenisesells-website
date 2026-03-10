@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 
 public partial class ProfileScraperService(
-    HttpClient httpClient,
+    IHttpClientFactory httpClientFactory,
     string apiKey,
     ILogger<ProfileScraperService> logger) : IProfileScraper
 {
@@ -37,6 +37,7 @@ public partial class ProfileScraperService(
 
     public async Task<ScrapedProfile?> ScrapeAsync(string url, CancellationToken ct)
     {
+        var httpClient = httpClientFactory.CreateClient(nameof(ProfileScraperService));
         string html;
         try
         {
@@ -72,6 +73,7 @@ public partial class ProfileScraperService(
 
     private async Task<ScrapedProfile?> ExtractWithClaudeAsync(string pageText, CancellationToken ct)
     {
+        var httpClient = httpClientFactory.CreateClient(nameof(ProfileScraperService));
         var requestBody = JsonSerializer.Serialize(new
         {
             model = Model,
