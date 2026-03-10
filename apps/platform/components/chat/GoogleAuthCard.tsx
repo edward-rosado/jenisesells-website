@@ -1,3 +1,4 @@
+// TODO: LOW-7 — Extract Google logo SVG to a shared component
 import { useEffect, useCallback } from "react";
 
 interface GoogleAuthCardProps {
