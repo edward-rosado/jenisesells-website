@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Api.Features.Cma.Services.Gws;
 
@@ -23,11 +22,9 @@ public class DriveFolderInitializer(
         "Real Estate Star/6 - Referral Network/Summary",
     ];
 
-    private readonly ConcurrentDictionary<string, bool> _initializedAgents = new();
-
-    public async Task EnsureFolderStructureAsync(string agentEmail, CancellationToken ct)
+    public async Task EnsureFolderStructureAsync(OnboardingSession session, string agentEmail, CancellationToken ct)
     {
-        if (!_initializedAgents.TryAdd(agentEmail, true))
+        if (session.DriveFolderInitialized)
         {
             logger.LogDebug("Drive folder structure already initialized for {AgentEmail}", agentEmail);
             return;
@@ -47,6 +44,8 @@ public class DriveFolderInitializer(
                     folder, agentEmail);
             }
         }
+
+        session.DriveFolderInitialized = true;
 
         logger.LogInformation("Drive folder structure initialized for {AgentEmail} ({Count} folders)",
             agentEmail, AllFolders.Length);

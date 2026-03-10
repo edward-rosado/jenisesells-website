@@ -7,7 +7,7 @@ using RealEstateStar.Api.Features.Onboarding.Tools;
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 
 public class OnboardingChatService(
-    HttpClient httpClient,
+    IHttpClientFactory httpClientFactory,
     string apiKey,
     OnboardingStateMachine stateMachine,
     ToolDispatcher toolDispatcher,
@@ -52,6 +52,7 @@ public class OnboardingChatService(
         request.Headers.Add("x-api-key", apiKey);
         request.Headers.Add("anthropic-version", "2023-06-01");
 
+        var httpClient = httpClientFactory.CreateClient(nameof(OnboardingChatService));
         var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
 

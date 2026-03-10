@@ -18,8 +18,10 @@ public class GoogleOAuthCallbackEndpointTests
 
     public GoogleOAuthCallbackEndpointTests()
     {
+        var factoryMock = new Mock<IHttpClientFactory>();
+        factoryMock.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
         _mockOAuth = new Mock<GoogleOAuthService>(
-            new HttpClient(), "client-id", "client-secret", "http://localhost:5000/oauth/google/callback",
+            factoryMock.Object, "client-id", "client-secret", "http://localhost:5000/oauth/google/callback",
             Microsoft.Extensions.Logging.Abstractions.NullLogger<GoogleOAuthService>.Instance);
     }
 
