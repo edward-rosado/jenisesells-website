@@ -1,0 +1,93 @@
+{
+  "template": "emerald-classic",
+  "sections": {
+    "hero": {
+      "enabled": true,
+      "data": {
+        "headline": "Sell Your Home with Confidence",
+        "tagline": "Forward. Moving.",
+        "cta_text": "Get Your Free Home Value",
+        "cta_link": "#cma-form"
+      }
+    },
+    "stats": {
+      "enabled": true,
+      "data": {
+        "items": [
+          { "value": "100+", "label": "Homes Sold" },
+          { "value": "5.0", "label": "Zillow Rating (24 Reviews)" },
+          { "value": "Gold", "label": "NJ REALTORS Circle of Excellence" },
+          { "value": "20+", "label": "Years of Experience" },
+          { "value": "$500K–$1.5M", "label": "Sale Price Range" }
+        ]
+      }
+    },
+    "services": {
+      "enabled": true,
+      "data": {
+        "items": [
+          { "title": "Expert Market Analysis", "description": "I study local trends, recent sales, and neighborhood data to determine the true value of your home — so you never leave money on the table." },
+          { "title": "Strategic Marketing Plan", "description": "From professional photography to targeted online campaigns, I create a custom marketing plan that puts your home in front of serious buyers." },
+          { "title": "Professional Photography", "description": "First impressions matter. I use high-quality photos and virtual tours to showcase your home beautifully online." },
+          { "title": "Strategic Pricing", "description": "Price it right from day one. I use deep market analysis to position your home competitively — attracting more offers, faster." },
+          { "title": "Home Prep Guidance", "description": "Small improvements can mean big returns. I walk through your home and recommend exactly what to fix, stage, or skip." },
+          { "title": "Maximum Exposure", "description": "Your listing goes on MLS, Zillow, Realtor.com, social media, and my personal network — reaching thousands of potential buyers." },
+          { "title": "Se Habla Español", "description": "I proudly serve both English- and Spanish-speaking homeowners with the same care and expertise." }
+        ]
+      }
+    },
+    "how_it_works": {
+      "enabled": true,
+      "data": {
+        "steps": [
+          { "number": 1, "title": "Submit Your Info", "description": "Fill out the quick form below with your property details." },
+          { "number": 2, "title": "Get Your Free Home Value Report", "description": "I'll prepare a professional Comparative Market Analysis showing what your home is worth today." },
+          { "number": 3, "title": "Schedule a Walkthrough", "description": "We'll meet at your home to discuss strategy, timing, and next steps — no pressure, just expert guidance." }
+        ]
+      }
+    },
+    "sold_homes": {
+      "enabled": true,
+      "data": {
+        "items": [
+          { "address": "123 Main St", "city": "East Brunswick", "state": "NJ", "price": "$585,000" },
+          { "address": "456 Oak Ave", "city": "Edison", "state": "NJ", "price": "$520,000" },
+          { "address": "789 Elm Dr", "city": "Sayreville", "state": "NJ", "price": "$475,000" },
+          { "address": "12 Pine Rd", "city": "Hazlet", "state": "NJ", "price": "$610,000" },
+          { "address": "34 Cedar Ln", "city": "Cliffwood", "state": "NJ", "price": "$390,000" }
+        ]
+      }
+    },
+    "testimonials": {
+      "enabled": true,
+      "data": {
+        "items": [
+          { "text": "Jenise was absolutely incredible throughout the entire selling process. She knew the local market inside and out and helped us price our home perfectly. We received multiple offers within the first week!", "reviewer": "The Martinez Family", "rating": 5, "source": "Zillow" },
+          { "text": "As first-time sellers, we were nervous about everything. Jenise walked us through each step with patience and professionalism. She handled every detail so we didn't have to stress.", "reviewer": "David & Sarah K.", "rating": 5, "source": "Zillow" },
+          { "text": "I interviewed three agents before choosing Jenise, and I'm so glad I did. Her marketing strategy was next-level — professional photos, social media ads, the works. My home sold above asking!", "reviewer": "Linda P.", "rating": 5, "source": "Zillow" },
+          { "text": "Jenise helped us sell our home in Middlesex County in under 30 days. She's responsive, knowledgeable, and genuinely cares about her clients. Highly recommend!", "reviewer": "Carlos & Maria G.", "rating": 5, "source": "Zillow" }
+        ]
+      }
+    },
+    "cma_form": {
+      "enabled": true,
+      "data": {
+        "title": "What's Your Home Worth?",
+        "subtitle": "Get a free, professional Comparative Market Analysis — delivered within minutes."
+      }
+    },
+    "about": {
+      "enabled": true,
+      "data": {
+        "bio": "With over 20 years of experience in New Jersey real estate, I've helped more than 100 families buy and sell homes across Middlesex, Monmouth, and Ocean Counties. I know these neighborhoods, school districts, and market trends — and I use that knowledge to get you the best possible result. Whether you're selling your first home or your fifth, I'm here to guide you every step of the way.",
+        "credentials": ["NJ Licensed REALTOR®", "Gold Circle of Excellence", "Bilingual: English & Spanish"]
+      }
+    },
+    "city_pages": {
+      "enabled": false,
+      "data": {
+        "cities": []
+      }
+    }
+  }
+}
