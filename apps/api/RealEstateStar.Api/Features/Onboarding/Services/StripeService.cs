@@ -1,25 +1,102 @@
 using Microsoft.Extensions.Logging;
+using Stripe;
+using Stripe.Checkout;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 
-public class StripeService(ILogger<StripeService> logger)
+public class StripeService : IStripeService
 {
-    public Task<string> CreateSetupIntentAsync(OnboardingSession session, CancellationToken ct)
+    private readonly SessionService _sessionService;
+    private readonly string _priceId;
+    private readonly string _platformUrl;
+    private readonly ILogger<StripeService> _logger;
+
+    public string WebhookSecret { get; }
+
+    public StripeService(
+        IConfiguration configuration,
+        ILogger<StripeService> logger)
+        : this(
+            configuration,
+            logger,
+            CreateSessionService(configuration))
     {
-        // TODO: Wire Stripe.net SDK to create a real SetupIntent.
-        var stubIntentId = $"seti_stub_{session.Id}";
-        session.StripeSetupIntentId = stubIntentId;
-
-        logger.LogInformation("Created Stripe SetupIntent {IntentId} for session {SessionId}",
-            stubIntentId, session.Id);
-
-        return Task.FromResult(stubIntentId);
     }
 
-    public Task<bool> ChargeAsync(string setupIntentId, decimal amount, CancellationToken ct)
+    internal StripeService(
+        IConfiguration configuration,
+        ILogger<StripeService> logger,
+        SessionService sessionService)
     {
-        // TODO: Wire Stripe.net SDK to create a PaymentIntent from the SetupIntent.
-        logger.LogInformation("Charging {Amount} via SetupIntent {IntentId}", amount, setupIntentId);
-        return Task.FromResult(true);
+        _logger = logger;
+        _sessionService = sessionService;
+
+        var secretKey = configuration["Stripe:SecretKey"];
+        if (string.IsNullOrWhiteSpace(secretKey))
+            throw new InvalidOperationException("Stripe:SecretKey configuration is required");
+
+        _priceId = configuration["Stripe:PriceId"]
+            ?? throw new InvalidOperationException("Stripe:PriceId configuration is required");
+        if (string.IsNullOrEmpty(_priceId))
+            throw new InvalidOperationException("Stripe:PriceId configuration is required");
+
+        WebhookSecret = configuration["Stripe:WebhookSecret"]
+            ?? throw new InvalidOperationException("Stripe:WebhookSecret configuration is required");
+        if (string.IsNullOrEmpty(WebhookSecret))
+            throw new InvalidOperationException("Stripe:WebhookSecret configuration is required");
+
+        var platformUrl = configuration["Platform:BaseUrl"];
+        if (string.IsNullOrWhiteSpace(platformUrl))
+            throw new InvalidOperationException("Platform:BaseUrl configuration is required");
+        _platformUrl = platformUrl;
+    }
+
+    public async Task<string> CreateCheckoutSessionAsync(
+        string sessionId,
+        string agentEmail,
+        CancellationToken ct)
+    {
+        var options = new SessionCreateOptions
+        {
+            Mode = "subscription",
+            CustomerEmail = agentEmail,
+            LineItems =
+            [
+                new SessionLineItemOptions
+                {
+                    Price = _priceId,
+                    Quantity = 1,
+                }
+            ],
+            SuccessUrl = $"{_platformUrl}/onboard?payment=success&session_id={{CHECKOUT_SESSION_ID}}",
+            CancelUrl = $"{_platformUrl}/onboard?payment=cancelled",
+            SubscriptionData = new SessionSubscriptionDataOptions
+            {
+                TrialPeriodDays = 7,
+            },
+            Metadata = new Dictionary<string, string>
+            {
+                ["onboarding_session_id"] = sessionId,
+            },
+        };
+
+        _logger.LogInformation(
+            "Creating Stripe Checkout session for onboarding {SessionId}",
+            sessionId);
+
+        var checkoutSession = await _sessionService.CreateAsync(options, cancellationToken: ct);
+
+        return checkoutSession.Url
+            ?? throw new InvalidOperationException("Stripe returned a session without a checkout URL");
+    }
+
+    private static SessionService CreateSessionService(IConfiguration configuration)
+    {
+        var secretKey = configuration["Stripe:SecretKey"];
+        if (string.IsNullOrWhiteSpace(secretKey))
+            throw new InvalidOperationException("Stripe:SecretKey configuration is required");
+
+        var client = new StripeClient(secretKey);
+        return new SessionService(client);
     }
 }

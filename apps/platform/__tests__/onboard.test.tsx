@@ -1,15 +1,20 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import OnboardPage from "../app/onboard/page";
 
-global.fetch = vi.fn().mockResolvedValue({
-  ok: true,
-  json: () => Promise.resolve({ sessionId: "abc123" }),
-});
+let mockSearchParams = new URLSearchParams("profileUrl=https://zillow.com/profile/test");
 
 vi.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams("profileUrl=https://zillow.com/profile/test"),
+  useSearchParams: () => mockSearchParams,
 }));
+
+beforeEach(() => {
+  mockSearchParams = new URLSearchParams("profileUrl=https://zillow.com/profile/test");
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve({ sessionId: "abc123" }),
+  });
+});
 
 describe("OnboardPage", () => {
   it("creates a session on mount", async () => {
@@ -25,5 +30,19 @@ describe("OnboardPage", () => {
   it("shows loading state initially", () => {
     render(<OnboardPage />);
     expect(screen.getByText(/Starting your onboarding/i)).toBeInTheDocument();
+  });
+
+  it("shows success state when payment=success query param present", () => {
+    mockSearchParams = new URLSearchParams("payment=success&session_id=cs_test_123");
+    render(<OnboardPage />);
+    expect(screen.getByText(/Trial Activated/i)).toBeInTheDocument();
+    expect(screen.getByText(/7-day free trial has started/i)).toBeInTheDocument();
+  });
+
+  it("shows cancelled state when payment=cancelled query param present", () => {
+    mockSearchParams = new URLSearchParams("payment=cancelled");
+    render(<OnboardPage />);
+    expect(screen.getByText(/Payment Cancelled/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /try again/i })).toHaveAttribute("href", "/onboard");
   });
 });

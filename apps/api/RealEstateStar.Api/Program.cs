@@ -47,6 +47,16 @@ var googleClientSecret = builder.Configuration["Google:ClientSecret"]
 var googleRedirectUri = builder.Configuration["Google:RedirectUri"]
     ?? "http://localhost:5000/oauth/google/callback";
 
+// Stripe config validation (StripeService constructor validates details)
+_ = builder.Configuration["Stripe:SecretKey"]
+    ?? throw new InvalidOperationException("Stripe:SecretKey configuration is required");
+_ = builder.Configuration["Stripe:WebhookSecret"]
+    ?? throw new InvalidOperationException("Stripe:WebhookSecret configuration is required");
+_ = builder.Configuration["Stripe:PriceId"]
+    ?? throw new InvalidOperationException("Stripe:PriceId configuration is required");
+_ = builder.Configuration["Platform:BaseUrl"]
+    ?? throw new InvalidOperationException("Platform:BaseUrl configuration is required");
+
 // Onboarding services (need anthropicKey)
 builder.Services.AddHttpClient<ProfileScraperService>();
 builder.Services.AddSingleton<IProfileScraper>(sp =>
@@ -71,7 +81,7 @@ builder.Services.AddSingleton<IOnboardingTool, SubmitCmaFormTool>();
 builder.Services.AddSingleton<IOnboardingTool, CreateStripeSessionTool>();
 builder.Services.AddSingleton<ToolDispatcher>();
 builder.Services.AddSingleton<SiteDeployService>();
-builder.Services.AddSingleton<StripeService>();
+builder.Services.AddSingleton<IStripeService, StripeService>();
 builder.Services.AddSingleton<DomainService>();
 builder.Services.AddHttpClient<OnboardingChatService>();
 builder.Services.AddSingleton(sp =>
