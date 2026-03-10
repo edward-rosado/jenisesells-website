@@ -8,7 +8,11 @@ public class CreateStripeSessionTool(Services.IStripeService stripeService) : IO
 
     public async Task<string> ExecuteAsync(JsonElement parameters, OnboardingSession session, CancellationToken ct)
     {
-        var email = session.Profile?.Email ?? "";
+        // MED-3: Validate email before passing to Stripe
+        var email = session.Profile?.Email;
+        if (string.IsNullOrWhiteSpace(email))
+            return JsonSerializer.Serialize(new { error = "Agent email is required before creating a payment session. Please complete your profile first." });
+
         var checkoutUrl = await stripeService.CreateCheckoutSessionAsync(session.Id, email, ct);
         return JsonSerializer.Serialize(new { checkoutUrl });
     }

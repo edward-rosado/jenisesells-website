@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 
+// TODO: LOW-5 — Consider returning a result object instead of mutating session directly
 public class DomainService(ILogger<DomainService> logger)
 {
     public Task<bool> ValidateDnsAsync(string domain, CancellationToken ct)

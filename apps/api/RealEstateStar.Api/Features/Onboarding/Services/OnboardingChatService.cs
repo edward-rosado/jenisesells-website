@@ -6,6 +6,8 @@ using RealEstateStar.Api.Features.Onboarding.Tools;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 
+// TODO: MED-8 — Add ActivitySource spans for chat processing, tool dispatch, and state transitions
+// TODO: LOW-6 — Extract shared Anthropic API client into a common AnthropicClient service
 public class OnboardingChatService(
     HttpClient httpClient,
     string apiKey,
@@ -126,12 +128,12 @@ public class OnboardingChatService(
         // Persist both messages after streaming completes
         session.Messages.Add(new ChatMessage
         {
-            Role = "user",
+            Role = ChatRole.User,
             Content = userMessage,
         });
         session.Messages.Add(new ChatMessage
         {
-            Role = "assistant",
+            Role = ChatRole.Assistant,
             Content = fullResponse.ToString(),
         });
     }
@@ -142,13 +144,14 @@ public class OnboardingChatService(
 
         foreach (var msg in session.Messages)
         {
-            messages.Add(new { role = msg.Role, content = msg.Content });
+            messages.Add(new { role = msg.Role.ToString().ToLowerInvariant(), content = msg.Content });
         }
 
         messages.Add(new { role = "user", content = userMessage });
         return messages;
     }
 
+    // TODO: MED-4 — Only include PII fields relevant to current state (e.g., don't send phone/email during branding collection)
     private static string BuildSystemPrompt(OnboardingSession session)
     {
         var sb = new StringBuilder();
