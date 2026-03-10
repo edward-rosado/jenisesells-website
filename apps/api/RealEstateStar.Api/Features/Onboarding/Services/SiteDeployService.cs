@@ -27,6 +27,11 @@ public partial class SiteDeployService(
 
     public async Task<string> DeployAsync(OnboardingSession session, CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(cloudflareOptions.ApiToken))
+            throw new InvalidOperationException("Cloudflare:ApiToken is not configured — cannot deploy site");
+        if (string.IsNullOrWhiteSpace(cloudflareOptions.AccountId))
+            throw new InvalidOperationException("Cloudflare:AccountId is not configured — cannot deploy site");
+
         var profile = session.Profile
             ?? throw new InvalidOperationException("Cannot deploy site without a scraped profile");
 
