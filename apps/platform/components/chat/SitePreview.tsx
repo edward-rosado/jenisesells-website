@@ -12,7 +12,7 @@ export function SitePreview({ siteUrl, onApprove }: SitePreviewProps) {
           src={siteUrl}
           title="Site preview"
           className="w-full h-80"
-          sandbox="allow-scripts allow-same-origin"
+          sandbox="allow-scripts"
         />
       </div>
       <button
