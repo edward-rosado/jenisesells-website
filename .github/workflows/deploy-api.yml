@@ -1,0 +1,52 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/deploy-api.yml'
+      - 'Dockerfile'
+
+jobs:
+  test:
+    name: "API — build and test"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Restore
+        run: dotnet restore apps/api/RealEstateStar.Api.sln
+
+      - name: Build
+        run: dotnet build apps/api/RealEstateStar.Api.sln --no-restore --configuration Release
+
+      - name: Test
+        run: >
+          dotnet test apps/api/RealEstateStar.Api.sln
+          --no-build
+          --configuration Release
+          --logger "console;verbosity=minimal"
+
+  deploy:
+    name: "Deploy to Railway"
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service ${{ secrets.RAILWAY_SERVICE_ID }}
