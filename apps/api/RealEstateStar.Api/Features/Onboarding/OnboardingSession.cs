@@ -20,6 +20,7 @@ public sealed class OnboardingSession
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    // LOW-1: 48-bit session ID is acceptable with bearer token auth (SEC-1). Consider upgrading to 128-bit if auth is ever removed.
     public static OnboardingSession Create(string? profileUrl) => new()
     {
         Id = Guid.NewGuid().ToString("N")[..12],

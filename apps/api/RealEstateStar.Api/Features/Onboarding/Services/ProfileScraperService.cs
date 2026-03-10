@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -13,6 +14,21 @@ public partial class ProfileScraperService(
     private const string ApiUrl = "https://api.anthropic.com/v1/messages";
     private const string Model = "claude-haiku-4-5-20251001";
     private const int MaxTokens = 1024;
+
+    // MED-1: Domain allowlist to prevent SSRF attacks
+    private static readonly HashSet<string> AllowedDomains = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "realtor.com", "www.realtor.com",
+        "zillow.com", "www.zillow.com",
+        "redfin.com", "www.redfin.com",
+        "coldwellbanker.com", "www.coldwellbanker.com",
+        "century21.com", "www.century21.com",
+        "kw.com", "www.kw.com",
+        "compass.com", "www.compass.com",
+        "bhhs.com", "www.bhhs.com",
+        "sothebysrealty.com", "www.sothebysrealty.com",
+        "weichert.com", "www.weichert.com",
+    };
 
     private const string ExtractionPrompt = """
         Extract real estate agent profile data from the following page text.
@@ -35,8 +51,18 @@ public partial class ProfileScraperService(
         If the page is not a real estate agent profile, return {"error": "not_agent_profile"}.
         """;
 
+    // TODO: LOW-6 — Extract shared Anthropic API client into a common AnthropicClient service
+
     public async Task<ScrapedProfile?> ScrapeAsync(string url, CancellationToken ct)
     {
+        // MED-1: Validate URL against domain allowlist and block private IPs
+        var validationError = ValidateUrl(url);
+        if (validationError is not null)
+        {
+            logger.LogWarning("Blocked profile scrape attempt: {Reason} for URL {Url}", validationError, url);
+            return null;
+        }
+
         string html;
         try
         {
@@ -128,6 +154,41 @@ public partial class ProfileScraperService(
 
     private static string? GetStringOrNull(JsonElement root, string prop)
         => root.TryGetProperty(prop, out var el) && el.ValueKind == JsonValueKind.String ? el.GetString() : null;
+
+    internal static string? ValidateUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return "Invalid URL format";
+
+        if (uri.Scheme != Uri.UriSchemeHttps)
+            return "Only HTTPS URLs are allowed";
+
+        if (!AllowedDomains.Contains(uri.Host))
+            return $"Domain '{uri.Host}' is not in the allowed list";
+
+        // Block private/loopback IPs in case of DNS rebinding or direct IP URLs
+        if (IPAddress.TryParse(uri.Host, out var ip))
+        {
+            if (IPAddress.IsLoopback(ip) || IsPrivateIp(ip))
+                return "Private/loopback IP addresses are not allowed";
+        }
+
+        return null;
+    }
+
+    private static bool IsPrivateIp(IPAddress ip)
+    {
+        var bytes = ip.GetAddressBytes();
+        return bytes.Length == 4 && bytes[0] switch
+        {
+            10 => true,
+            172 => bytes[1] >= 16 && bytes[1] <= 31,
+            192 => bytes[1] == 168,
+            127 => true,
+            169 => bytes[1] == 254,
+            _ => false,
+        };
+    }
 
     private static string StripHtml(string html)
     {
