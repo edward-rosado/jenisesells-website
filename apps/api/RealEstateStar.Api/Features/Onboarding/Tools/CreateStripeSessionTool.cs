@@ -2,13 +2,14 @@ using System.Text.Json;
 
 namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
-public class CreateStripeSessionTool(Services.StripeService stripeService) : IOnboardingTool
+public class CreateStripeSessionTool(Services.IStripeService stripeService) : IOnboardingTool
 {
     public string Name => "create_stripe_session";
 
     public async Task<string> ExecuteAsync(JsonElement parameters, OnboardingSession session, CancellationToken ct)
     {
-        var intentId = await stripeService.CreateSetupIntentAsync(session, ct);
-        return $"Stripe SetupIntent created: {intentId}. The payment card is ready for the agent.";
+        var email = session.Profile?.Email ?? "";
+        var checkoutUrl = await stripeService.CreateCheckoutSessionAsync(session.Id, email, ct);
+        return JsonSerializer.Serialize(new { checkoutUrl });
     }
 }

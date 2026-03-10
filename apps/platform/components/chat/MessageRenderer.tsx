@@ -61,7 +61,12 @@ export function MessageRenderer({ message, onAction }: MessageRendererProps) {
     case "feature_checklist":
       return <FeatureChecklist />;
     case "payment_card":
-      return <PaymentCard onPaymentComplete={() => act("payment_complete")} />;
+      return (
+        <PaymentCard
+          checkoutUrl={meta.checkoutUrl as string | undefined}
+          onPaymentComplete={() => act("payment_complete")}
+        />
+      );
     default:
       return <MessageBubble role={message.role} content={message.content} />;
   }
