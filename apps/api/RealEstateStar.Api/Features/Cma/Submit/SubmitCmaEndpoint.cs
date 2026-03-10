@@ -20,7 +20,7 @@ public class SubmitCmaEndpoint : IEndpoint
         string agentId,
         SubmitCmaRequest request,
         ICmaJobStore store,
-        CmaPipeline pipeline,
+        ICmaPipeline pipeline,
         IHubContext<CmaProgressHub> hubContext,
         ILogger<Program> logger,
         CancellationToken ct)
