@@ -1,17 +1,17 @@
 using System.Net;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RealEstateStar.Api.Health;
+using RealEstateStar.Api.Tests.Integration;
 
 namespace RealEstateStar.Api.Tests.Health;
 
-public class HealthCheckTests : IClassFixture<WebApplicationFactory<Program>>
+public class HealthCheckTests : IClassFixture<TestWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly TestWebApplicationFactory _factory;
 
-    public HealthCheckTests(WebApplicationFactory<Program> factory)
+    public HealthCheckTests(TestWebApplicationFactory factory)
     {
         _factory = factory;
     }

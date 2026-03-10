@@ -2,7 +2,7 @@ name: Platform
 
 on:
   push:
-    branches: [feat/platform-onboarding]
+    branches: [main]
     paths:
       - 'apps/platform/**'
       - '.github/workflows/platform.yml'
@@ -13,8 +13,8 @@ on:
       - '.github/workflows/platform.yml'
 
 jobs:
-  lint-test-coverage:
-    name: "Platform — lint, test, coverage"
+  lint-test-build:
+    name: "Platform — lint, test, build"
     runs-on: ubuntu-latest
 
     steps:
@@ -33,11 +33,11 @@ jobs:
       - name: Lint
         run: npm run lint --prefix apps/platform
 
-      - name: Build
-        run: npm run build --prefix apps/platform
-
       - name: Test with coverage
         run: npm run test:coverage --prefix apps/platform
+
+      - name: Build
+        run: npm run build --prefix apps/platform
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4

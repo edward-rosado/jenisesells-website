@@ -2,7 +2,7 @@ name: Agent Site
 
 on:
   push:
-    branches: [feat/cma-pipeline-impl, feat/agent-site, feature/agent-site-template-engine]
+    branches: [main]
     paths:
       - 'apps/agent-site/**'
       - '.github/workflows/agent-site.yml'
@@ -13,8 +13,8 @@ on:
       - '.github/workflows/agent-site.yml'
 
 jobs:
-  lint-test-coverage:
-    name: "Agent Site — lint, test, coverage"
+  lint-test-build:
+    name: "Agent Site — lint, test, build"
     runs-on: ubuntu-latest
 
     steps:

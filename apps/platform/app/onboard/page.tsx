@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 
-export default function OnboardPage() {
+function OnboardContent() {
   const searchParams = useSearchParams();
   const profileUrl = searchParams.get("profileUrl");
   const paymentStatus = searchParams.get("payment");
@@ -89,4 +89,21 @@ export default function OnboardPage() {
   }
 
   return <ChatWindow sessionId={sessionId} initialMessages={[]} />;
+}
+
+export default function OnboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+            <span className="text-gray-400">Loading...</span>
+          </div>
+        </main>
+      }
+    >
+      <OnboardContent />
+    </Suspense>
+  );
 }

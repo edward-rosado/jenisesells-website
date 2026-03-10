@@ -1,19 +1,15 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using RealEstateStar.Api.Features.Cma;
-using RealEstateStar.Api.Services;
-using RealEstateStar.Api.Features.Cma.Services;
+using RealEstateStar.Api.Tests.Integration;
 
 namespace RealEstateStar.Api.Tests.Features.Cma.Submit;
 
-public class SubmitCmaEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+public class SubmitCmaEndpointTests : IClassFixture<TestWebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public SubmitCmaEndpointTests(WebApplicationFactory<Program> factory)
+    public SubmitCmaEndpointTests(TestWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
     }
