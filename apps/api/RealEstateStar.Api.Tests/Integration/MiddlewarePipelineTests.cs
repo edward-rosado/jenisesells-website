@@ -1,14 +1,13 @@
 using System.Net;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace RealEstateStar.Api.Tests.Integration;
 
-public class MiddlewarePipelineTests : IClassFixture<WebApplicationFactory<Program>>
+public class MiddlewarePipelineTests : IClassFixture<TestWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly TestWebApplicationFactory _factory;
 
-    public MiddlewarePipelineTests(WebApplicationFactory<Program> factory)
+    public MiddlewarePipelineTests(TestWebApplicationFactory factory)
     {
         _factory = factory;
     }
