@@ -9,7 +9,7 @@ public class GetLeadsEndpoint : IEndpoint
     public void Map(IEndpointRouteBuilder app) =>
         app.MapGet("/agents/{agentId}/leads", Handle);
 
-    private static IResult Handle(string agentId, int? skip, int? take, ICmaJobStore store, HttpContext httpContext)
+    internal static IResult Handle(string agentId, int? skip, int? take, ICmaJobStore store, HttpContext httpContext)
     {
         httpContext.Response.Headers.CacheControl = "no-cache";
 
@@ -22,7 +22,7 @@ public class GetLeadsEndpoint : IEndpoint
             Name = j.Lead.FullName,
             Address = j.Lead.FullAddress,
             Timeline = j.Lead.Timeline,
-            CmaStatus = j.Status.ToString().ToLowerInvariant(),
+            CmaStatus = j.Status,
             SubmittedAt = j.CreatedAt,
             DriveLink = j.DriveLink
         }));

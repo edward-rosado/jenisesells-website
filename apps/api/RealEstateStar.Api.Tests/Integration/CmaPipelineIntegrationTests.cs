@@ -34,8 +34,7 @@ public class CmaPipelineIntegrationTests
         mockCompSource.Setup(s => s.Name).Returns("TestSource");
         mockCompSource
             .Setup(s => s.FetchAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+                It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
                 new Comp

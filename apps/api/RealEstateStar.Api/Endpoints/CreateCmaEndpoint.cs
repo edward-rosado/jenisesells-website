@@ -14,7 +14,7 @@ public class CreateCmaEndpoint : IEndpoint
         app.MapPost("/agents/{agentId}/cma", Handle)
             .RequireRateLimiting("cma-create");
 
-    private static IResult Handle(
+    internal static IResult Handle(
         string agentId,
         Lead lead,
         ICmaJobStore store,
@@ -44,7 +44,7 @@ public class CreateCmaEndpoint : IEndpoint
                     await hubContext.Clients.Group(job.Id.ToString())
                         .SendAsync("StatusUpdate", new CmaStatusResponse
                         {
-                            Status = status.ToString().ToLowerInvariant(),
+                            Status = status,
                             Step = (int)status + 1,
                             TotalSteps = 9,
                             Message = StatusMessages.Get(status)
@@ -55,7 +55,11 @@ public class CreateCmaEndpoint : IEndpoint
             {
                 logger.LogError(ex, "CMA pipeline failed at step {Step} for agent {AgentId}, job {JobId}",
                     job.Status.ToString(), agentId, job.Id);
-                job.Fail(ex.Message);
+
+                var userMessage = ex is ArgumentException or InvalidOperationException
+                    ? ex.Message
+                    : "Pipeline execution failed. Please try again or contact support.";
+                job.Fail(userMessage);
                 store.Set(agentId, job);
             }
         });

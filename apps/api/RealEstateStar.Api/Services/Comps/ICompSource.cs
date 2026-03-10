@@ -6,8 +6,5 @@ public interface ICompSource
 {
     string Name { get; }
 
-    Task<List<Comp>> FetchAsync(
-        string address, string city, string state, string zip,
-        int? beds, int? baths, int? sqft,
-        CancellationToken ct);
+    Task<List<Comp>> FetchAsync(CompSearchRequest request, CancellationToken ct);
 }

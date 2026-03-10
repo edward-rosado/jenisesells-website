@@ -1,11 +1,18 @@
 using System.Net;
 using FluentAssertions;
+using RealEstateStar.Api.Models;
 using RealEstateStar.Api.Services.Comps;
 
 namespace RealEstateStar.Api.Tests.Services.Comps;
 
 public class RedfinCompSourceTests
 {
+    private static readonly CompSearchRequest DefaultRequest = new()
+    {
+        Address = "123 Main St", City = "Springfield", State = "NJ", Zip = "07081",
+        Beds = 3, Baths = 2, SqFt = 1500
+    };
+
     [Fact]
     public void Name_ReturnsRedfin()
     {
@@ -29,7 +36,7 @@ public class RedfinCompSourceTests
         var client = new HttpClient(handler);
         var source = new RedfinCompSource(client);
 
-        var result = await source.FetchAsync("123 Main St", "Springfield", "NJ", "07081", 3, 2, 1500, CancellationToken.None);
+        var result = await source.FetchAsync(DefaultRequest, CancellationToken.None);
 
         result.Should().NotBeNull();
         handler.RequestMade.Should().BeTrue();
@@ -43,7 +50,7 @@ public class RedfinCompSourceTests
         var client = new HttpClient(handler);
         var source = new RedfinCompSource(client);
 
-        var act = () => source.FetchAsync("123 Main St", "Springfield", "NJ", "07081", 3, 2, 1500, CancellationToken.None);
+        var act = () => source.FetchAsync(DefaultRequest, CancellationToken.None);
 
         await act.Should().ThrowAsync<HttpRequestException>();
     }

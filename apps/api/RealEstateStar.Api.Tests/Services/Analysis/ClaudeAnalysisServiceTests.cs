@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using RealEstateStar.Api.Models;
 using RealEstateStar.Api.Services.Analysis;
@@ -186,5 +187,134 @@ public class ClaudeAnalysisServiceTests
         prompt.Should().Contain("Estimated Equity: $50,000 - $100,000");
         prompt.Should().Contain("Relocating");
         prompt.Should().Contain("Great schools");
+    }
+
+    [Fact]
+    public void BuildPrompt_DoesNotContainInstructions()
+    {
+        var lead = MakeLead();
+        var comps = new List<Comp> { MakeComp() };
+
+        var prompt = ClaudeAnalysisService.BuildPrompt(lead, comps, null, ReportType.Standard);
+
+        prompt.Should().NotContain("## Instructions");
+        prompt.Should().NotContain("Return ONLY valid JSON");
+    }
+
+    [Fact]
+    public void ParseResponse_RejectsInvalidMarketTrend()
+    {
+        var json = """
+        {
+            "valueLow": 420000,
+            "valueMid": 445000,
+            "valueHigh": 470000,
+            "marketNarrative": "Strong market.",
+            "marketTrend": "HACKED",
+            "medianDaysOnMarket": 18
+        }
+        """;
+
+        var act = () => ClaudeAnalysisService.ParseResponse(json);
+
+        act.Should().Throw<JsonException>().WithMessage("*Invalid marketTrend*");
+    }
+
+    [Fact]
+    public void ParseResponse_AcceptsAllValidMarketTrends()
+    {
+        foreach (var trend in ClaudeAnalysisService.AllowedMarketTrends)
+        {
+            var json = $$"""
+            {
+                "valueLow": 400000,
+                "valueMid": 425000,
+                "valueHigh": 450000,
+                "marketNarrative": "Market is active.",
+                "marketTrend": "{{trend}}",
+                "medianDaysOnMarket": 20
+            }
+            """;
+
+            var result = ClaudeAnalysisService.ParseResponse(json);
+            result.MarketTrend.Should().Be(trend);
+        }
+    }
+
+    [Fact]
+    public void ParseResponse_TruncatesLongNarrative()
+    {
+        var longNarrative = new string('x', 3000);
+        var json = $$"""
+        {
+            "valueLow": 400000,
+            "valueMid": 425000,
+            "valueHigh": 450000,
+            "marketNarrative": "{{longNarrative}}",
+            "marketTrend": "Balanced",
+            "medianDaysOnMarket": 20
+        }
+        """;
+
+        var result = ClaudeAnalysisService.ParseResponse(json);
+
+        result.MarketNarrative.Should().HaveLength(2000);
+    }
+
+    [Fact]
+    public void ParseResponse_RejectsNegativeMedianDom()
+    {
+        var json = """
+        {
+            "valueLow": 400000,
+            "valueMid": 425000,
+            "valueHigh": 450000,
+            "marketNarrative": "Market.",
+            "marketTrend": "Balanced",
+            "medianDaysOnMarket": -5
+        }
+        """;
+
+        var act = () => ClaudeAnalysisService.ParseResponse(json);
+
+        act.Should().Throw<JsonException>().WithMessage("*non-negative*");
+    }
+
+    [Fact]
+    public void ParseResponse_RejectsNegativePropertyValues()
+    {
+        var json = """
+        {
+            "valueLow": -100,
+            "valueMid": 425000,
+            "valueHigh": 450000,
+            "marketNarrative": "Market.",
+            "marketTrend": "Balanced",
+            "medianDaysOnMarket": 20
+        }
+        """;
+
+        var act = () => ClaudeAnalysisService.ParseResponse(json);
+
+        act.Should().Throw<JsonException>().WithMessage("*non-negative*");
+    }
+
+    [Fact]
+    public void ParseResponse_RejectsInvertedValueRange()
+    {
+        var json = """
+        {
+            "valueLow": 500000,
+            "valueMid": 425000,
+            "valueHigh": 450000,
+            "marketNarrative": "Market.",
+            "marketTrend": "Balanced",
+            "medianDaysOnMarket": 20
+        }
+        """;
+
+        var act = () => ClaudeAnalysisService.ParseResponse(json);
+
+        act.Should().Throw<JsonException>().WithMessage("*valueLow <= valueMid <= valueHigh*");
     }
 }

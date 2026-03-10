@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace RealEstateStar.Api.Models;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CmaJobStatus
 {
     Parsing = 0,
@@ -14,6 +17,7 @@ public enum CmaJobStatus
     Failed = 9
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ReportType
 {
     Lean,

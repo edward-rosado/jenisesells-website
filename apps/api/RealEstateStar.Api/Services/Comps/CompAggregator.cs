@@ -5,12 +5,9 @@ namespace RealEstateStar.Api.Services.Comps;
 
 public class CompAggregator(IEnumerable<ICompSource> sources, ILogger<CompAggregator>? logger = null)
 {
-    public virtual async Task<List<Comp>> FetchCompsAsync(
-        string address, string city, string state, string zip,
-        int? beds, int? baths, int? sqft,
-        CancellationToken ct)
+    public virtual async Task<List<Comp>> FetchCompsAsync(CompSearchRequest request, CancellationToken ct)
     {
-        var tasks = sources.Select(source => FetchFromSourceAsync(source, address, city, state, zip, beds, baths, sqft, ct));
+        var tasks = sources.Select(source => FetchFromSourceAsync(source, request, ct));
         var results = await Task.WhenAll(tasks);
 
         var allComps = results.SelectMany(r => r).ToList();
@@ -19,13 +16,11 @@ public class CompAggregator(IEnumerable<ICompSource> sources, ILogger<CompAggreg
     }
 
     private async Task<List<Comp>> FetchFromSourceAsync(
-        ICompSource source, string address, string city, string state, string zip,
-        int? beds, int? baths, int? sqft,
-        CancellationToken ct)
+        ICompSource source, CompSearchRequest request, CancellationToken ct)
     {
         try
         {
-            return await source.FetchAsync(address, city, state, zip, beds, baths, sqft, ct);
+            return await source.FetchAsync(request, ct);
         }
         catch (Exception ex)
         {

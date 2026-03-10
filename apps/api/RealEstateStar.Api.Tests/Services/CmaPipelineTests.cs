@@ -8,27 +8,12 @@ using RealEstateStar.Api.Services.Comps;
 using RealEstateStar.Api.Services.Gws;
 using RealEstateStar.Api.Services.Pdf;
 using RealEstateStar.Api.Services.Research;
+using RealEstateStar.Api.Tests.TestHelpers;
 
 namespace RealEstateStar.Api.Tests.Services;
 
 public class CmaPipelineTests
 {
-    private static Lead MakeLead() => new()
-    {
-        FirstName = "Jane",
-        LastName = "Doe",
-        Email = "jane@example.com",
-        Phone = "555-1234",
-        Address = "123 Main St",
-        City = "Old Bridge",
-        State = "NJ",
-        Zip = "08857",
-        Timeline = "3-6 months",
-        Beds = 3,
-        Baths = 2,
-        Sqft = 1800
-    };
-
     private static AgentConfig MakeAgentConfig() => new()
     {
         Id = "test-agent",
@@ -91,7 +76,11 @@ public class CmaPipelineTests
     public async Task Execute_CompletesAllSteps_ForValidInput()
     {
         // Arrange
-        var lead = MakeLead();
+        var lead = TestData.MakeLead(
+            firstName: "Jane", lastName: "Doe", email: "jane@example.com",
+            phone: "555-1234", address: "123 Main St", city: "Old Bridge",
+            state: "NJ", zip: "08857", timeline: "3-6 months",
+            beds: 3, baths: 2, sqft: 1800);
         var agentConfig = MakeAgentConfig();
         var comps = MakeComps();
         var analysis = MakeAnalysis();
@@ -104,8 +93,7 @@ public class CmaPipelineTests
         var compAggregator = new Mock<CompAggregator>(
             Enumerable.Empty<ICompSource>(), (ILogger<CompAggregator>?)null!);
         compAggregator.Setup(s => s.FetchCompsAsync(
-                lead.Address, lead.City, lead.State, lead.Zip,
-                lead.Beds, lead.Baths, lead.Sqft, It.IsAny<CancellationToken>()))
+                It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(comps);
 
         var researchService = new Mock<ILeadResearchService>();
@@ -157,16 +145,15 @@ public class CmaPipelineTests
 
         // Verify key service calls
         compAggregator.Verify(s => s.FetchCompsAsync(
-            lead.Address, lead.City, lead.State, lead.Zip,
-            lead.Beds, lead.Baths, lead.Sqft, It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()), Times.Once);
         researchService.Verify(s => s.ResearchAsync(lead, It.IsAny<CancellationToken>()), Times.Once);
         analysisService.Verify(s => s.AnalyzeAsync(lead, comps, research, ReportType.Standard, It.IsAny<CancellationToken>()), Times.Once);
         pdfGenerator.Verify(s => s.Generate(
-            It.IsAny<string>(), agentConfig, lead, comps, analysis, research, ReportType.Standard, It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<PdfGenerationRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task Execute_ReturnsNull_ForUnknownAgent()
+    public async Task Execute_ThrowsInvalidOperationException_ForUnknownAgent()
     {
         // Arrange
         var agentConfigService = new Mock<IAgentConfigService>();
@@ -182,10 +169,12 @@ public class CmaPipelineTests
             new Mock<IGwsService>().Object);
 
         // Act
-        var job = CmaJob.Create("unknown-agent", MakeLead());
-        await pipeline.ExecuteAsync(job, "unknown-agent", MakeLead(), _ => Task.CompletedTask, CancellationToken.None);
+        var lead = TestData.MakeLead(firstName: "Jane", city: "Old Bridge", zip: "08857", beds: 3, baths: 2, sqft: 1800);
+        var job = CmaJob.Create("unknown-agent", lead);
+        var act = () => pipeline.ExecuteAsync(job, "unknown-agent", lead, _ => Task.CompletedTask, CancellationToken.None);
 
-        // Assert — job should still be in Parsing status (pipeline returned early)
-        job.Status.Should().Be(CmaJobStatus.Parsing);
+        // Assert — pipeline should throw instead of silently returning
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Agent configuration not found for 'unknown-agent'");
     }
 }

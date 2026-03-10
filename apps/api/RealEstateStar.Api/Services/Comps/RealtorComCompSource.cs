@@ -7,12 +7,9 @@ public class RealtorComCompSource(HttpClient httpClient, ILogger<RealtorComCompS
 {
     public string Name => "Realtor.com";
 
-    public async Task<List<Comp>> FetchAsync(
-        string address, string city, string state, string zip,
-        int? beds, int? baths, int? sqft,
-        CancellationToken ct)
+    public async Task<List<Comp>> FetchAsync(CompSearchRequest request, CancellationToken ct)
     {
-        var slug = $"{address.Replace(' ', '-')}_{city}_{state}_{zip}".ToLowerInvariant();
+        var slug = $"{request.Address.Replace(' ', '-')}_{request.City}_{request.State}_{request.Zip}".ToLowerInvariant();
         var url = $"https://www.realtor.com/realestateandhomes-detail/{slug}";
 
         logger?.LogInformation("Fetching Realtor.com comps from {Url}", url);

@@ -25,10 +25,10 @@ public class CmaPipeline(
         using var pipelineActivity = CmaDiagnostics.Source.StartActivity("CmaPipeline.Execute");
         pipelineActivity?.SetTag("cma.job.id", job.Id.ToString());
         pipelineActivity?.SetTag("cma.agent.id", agentId);
-        pipelineActivity?.SetTag("cma.address", lead.FullAddress);
+        pipelineActivity?.SetTag("cma.address.city", lead.City);
+        pipelineActivity?.SetTag("cma.address.state", lead.State);
 
         var agentTag = new KeyValuePair<string, object?>("agent.id", agentId);
-        CmaDiagnostics.CmaCreated.Add(1, agentTag);
 
         var pipelineSw = Stopwatch.StartNew();
         var stepSw = new Stopwatch();
@@ -49,12 +49,7 @@ public class CmaPipeline(
         }
 
         if (agent is null)
-        {
-            logger?.LogWarning("Agent {AgentId} not found — aborting pipeline", agentId);
-            pipelineActivity?.SetStatus(ActivityStatusCode.Error, "Agent not found");
-            CmaDiagnostics.CmaFailed.Add(1, agentTag);
-            return;
-        }
+            throw new InvalidOperationException($"Agent configuration not found for '{agentId}'");
 
         await AdvanceAsync(job, CmaJobStatus.SearchingComps, onStatusChange);
 
@@ -65,9 +60,17 @@ public class CmaPipeline(
             using var stepActivity = CmaDiagnostics.Source.StartActivity("CmaPipeline.SearchingComps");
             stepActivity?.SetTag("cma.step", "SearchingComps+Research");
             stepSw.Restart();
-            var compsTask = compAggregator.FetchCompsAsync(
-                lead.Address, lead.City, lead.State, lead.Zip,
-                lead.Beds, lead.Baths, lead.Sqft, ct);
+            var compSearchRequest = new CompSearchRequest
+            {
+                Address = lead.Address,
+                City = lead.City,
+                State = lead.State,
+                Zip = lead.Zip,
+                Beds = lead.Beds,
+                Baths = lead.Baths,
+                SqFt = lead.Sqft
+            };
+            var compsTask = compAggregator.FetchCompsAsync(compSearchRequest, ct);
             var researchTask = research.ResearchAsync(lead, ct);
 
             await Task.WhenAll(compsTask, researchTask);
@@ -110,7 +113,16 @@ public class CmaPipeline(
             var tempDir = Path.Combine(Path.GetTempPath(), "cma", job.Id.ToString());
             Directory.CreateDirectory(tempDir);
             pdfPath = Path.Combine(tempDir, $"CMA-{SanitizeFileName(lead.LastName)}-{SanitizeFileName(lead.Address)}.pdf");
-            pdf.Generate(pdfPath, agent, lead, comps, cmaAnalysis, leadResearch, job.ReportType, ct);
+            pdf.Generate(new PdfGenerationRequest
+            {
+                OutputPath = pdfPath,
+                Agent = agent,
+                Lead = lead,
+                Comps = comps,
+                Analysis = cmaAnalysis,
+                Research = leadResearch,
+                ReportType = job.ReportType
+            }, ct);
             stepSw.Stop();
             RecordStepDuration("GeneratingPdf", stepSw.ElapsedMilliseconds);
             logger?.LogInformation("Pipeline step {Step} completed in {ElapsedMs}ms for job {JobId}",
@@ -146,34 +158,36 @@ public class CmaPipeline(
                     ? $"{leadResearch.LotSize} {leadResearch.LotSizeUnit}"
                     : null;
 
-                var briefContent = GwsService.BuildLeadBriefContent(
-                    leadName: lead.FullName,
-                    address: lead.FullAddress,
-                    timeline: lead.Timeline,
-                    submittedAt: job.CreatedAt,
-                    occupation: leadResearch?.Occupation,
-                    employer: leadResearch?.Employer,
-                    purchaseDate: leadResearch?.PurchaseDate,
-                    purchasePrice: leadResearch?.PurchasePrice,
-                    ownershipDuration: ownershipDuration,
-                    equityRange: equityRange,
-                    lifeEvent: leadResearch?.LifeEventInsight,
-                    beds: lead.Beds,
-                    baths: lead.Baths,
-                    sqft: lead.Sqft,
-                    yearBuilt: leadResearch?.YearBuilt,
-                    lotSize: lotSize,
-                    taxAssessment: leadResearch?.TaxAssessment,
-                    annualTax: leadResearch?.AnnualPropertyTax,
-                    compCount: comps.Count,
-                    searchRadius: "1 mile",
-                    valueRange: $"{cmaAnalysis.ValueLow.ToString("C0", CultureInfo.GetCultureInfo("en-US"))}–{cmaAnalysis.ValueHigh.ToString("C0", CultureInfo.GetCultureInfo("en-US"))}",
-                    medianDom: cmaAnalysis.MedianDaysOnMarket,
-                    marketTrend: cmaAnalysis.MarketTrend,
-                    conversationStarters: cmaAnalysis.ConversationStarters,
-                    leadEmail: lead.Email,
-                    leadPhone: lead.Phone,
-                    pdfLink: driveLink);
+                var briefContent = GwsService.BuildLeadBriefContent(new LeadBriefData
+                {
+                    LeadName = lead.FullName,
+                    Address = lead.FullAddress,
+                    Timeline = lead.Timeline,
+                    SubmittedAt = job.CreatedAt,
+                    Occupation = leadResearch?.Occupation,
+                    Employer = leadResearch?.Employer,
+                    PurchaseDate = leadResearch?.PurchaseDate,
+                    PurchasePrice = leadResearch?.PurchasePrice,
+                    OwnershipDuration = ownershipDuration,
+                    EquityRange = equityRange,
+                    LifeEvent = leadResearch?.LifeEventInsight,
+                    Beds = lead.Beds,
+                    Baths = lead.Baths,
+                    Sqft = lead.Sqft,
+                    YearBuilt = leadResearch?.YearBuilt,
+                    LotSize = lotSize,
+                    TaxAssessment = leadResearch?.TaxAssessment,
+                    AnnualTax = leadResearch?.AnnualPropertyTax,
+                    CompCount = comps.Count,
+                    SearchRadius = "1 mile",
+                    ValueRange = $"{cmaAnalysis.ValueLow.ToString("C0", CultureInfo.GetCultureInfo("en-US"))}–{cmaAnalysis.ValueHigh.ToString("C0", CultureInfo.GetCultureInfo("en-US"))}",
+                    MedianDom = cmaAnalysis.MedianDaysOnMarket,
+                    MarketTrend = cmaAnalysis.MarketTrend,
+                    ConversationStarters = cmaAnalysis.ConversationStarters,
+                    LeadEmail = lead.Email,
+                    LeadPhone = lead.Phone,
+                    PdfLink = driveLink
+                });
 
                 await gws.CreateDocAsync(agentEmail, folderPath, $"Lead Brief - {lead.FullName}", briefContent, ct);
             }

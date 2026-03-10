@@ -9,20 +9,17 @@ public class GetCmaStatusEndpoint : IEndpoint
     public void Map(IEndpointRouteBuilder app) =>
         app.MapGet("/agents/{agentId}/cma/{jobId}/status", Handle);
 
-    private static IResult Handle(string agentId, string jobId, ICmaJobStore store, HttpContext httpContext)
+    internal static IResult Handle(string agentId, string jobId, ICmaJobStore store, HttpContext httpContext)
     {
         httpContext.Response.Headers.CacheControl = "no-cache";
 
         var job = store.Get(jobId);
-        if (job is null)
-            return Results.Problem(
-                title: "Job not found",
-                detail: $"No CMA job with ID '{jobId}' exists for agent '{agentId}'.",
-                statusCode: StatusCodes.Status404NotFound);
+        if (job is null || job.AgentId != agentId)
+            return Results.Problem(statusCode: 404, title: "Job not found");
 
         return Results.Ok(new CmaStatusResponse
         {
-            Status = job.Status.ToString().ToLowerInvariant(),
+            Status = job.Status,
             Step = job.Step,
             TotalSteps = job.TotalSteps,
             Message = StatusMessages.Get(job.Status),

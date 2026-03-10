@@ -132,9 +132,16 @@ public class CmaPdfGeneratorTests
 
         try
         {
-            generator.Generate(path, CreateTestAgent(), CreateTestLead(),
-                CreateTestComps(), CreateTestAnalysis(), CreateTestResearch(),
-                ReportType.Lean, CancellationToken.None);
+            generator.Generate(new PdfGenerationRequest
+            {
+                OutputPath = path,
+                Agent = CreateTestAgent(),
+                Lead = CreateTestLead(),
+                Comps = CreateTestComps(),
+                Analysis = CreateTestAnalysis(),
+                Research = CreateTestResearch(),
+                ReportType = ReportType.Lean
+            }, CancellationToken.None);
 
             File.Exists(path).Should().BeTrue("PDF file should be created on disk");
             new FileInfo(path).Length.Should().BeGreaterThan(0, "PDF file should have content");
@@ -160,8 +167,18 @@ public class CmaPdfGeneratorTests
             var analysis = CreateTestAnalysis();
             var research = CreateTestResearch();
 
-            generator.Generate(leanPath, agent, lead, comps, analysis, research, ReportType.Lean, CancellationToken.None);
-            generator.Generate(compPath, agent, lead, comps, analysis, research, ReportType.Comprehensive, CancellationToken.None);
+            generator.Generate(new PdfGenerationRequest
+            {
+                OutputPath = leanPath, Agent = agent, Lead = lead,
+                Comps = comps, Analysis = analysis, Research = research,
+                ReportType = ReportType.Lean
+            }, CancellationToken.None);
+            generator.Generate(new PdfGenerationRequest
+            {
+                OutputPath = compPath, Agent = agent, Lead = lead,
+                Comps = comps, Analysis = analysis, Research = research,
+                ReportType = ReportType.Comprehensive
+            }, CancellationToken.None);
 
             var leanSize = new FileInfo(leanPath).Length;
             var compSize = new FileInfo(compPath).Length;

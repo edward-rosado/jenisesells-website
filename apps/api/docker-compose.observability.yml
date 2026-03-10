@@ -1,6 +1,6 @@
 services:
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
+    image: otel/opentelemetry-collector-contrib:0.120.0
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./infra/otel-collector-config.yaml:/etc/otel-collector-config.yaml
@@ -10,7 +10,7 @@ services:
       - "8889:8889"   # Prometheus exporter
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.3.0
     volumes:
       - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
@@ -19,10 +19,10 @@ services:
       - otel-collector
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.5.2
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-changeme}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning
       - ./infra/grafana/dashboards:/var/lib/grafana/dashboards
