@@ -1,5 +1,5 @@
-using RealEstateStar.Api.Models;
-using RealEstateStar.Api.Models.Responses;
+using RealEstateStar.Api.Features.Cma;
+using RealEstateStar.Api.Features.Cma.ListLeads;
 using RealEstateStar.Api.Services;
 
 namespace RealEstateStar.Api.Endpoints;
@@ -16,7 +16,7 @@ public class GetLeadsEndpoint : IEndpoint
         var jobs = store.GetByAgent(agentId);
         var paged = jobs.Skip(skip ?? 0).Take(Math.Min(take ?? 50, 100));
 
-        return Results.Ok(paged.Select(j => new LeadSummaryResponse
+        return Results.Ok(paged.Select(j => new ListLeadsResponse
         {
             Id = j.Id.ToString(),
             Name = j.Lead.FullName,

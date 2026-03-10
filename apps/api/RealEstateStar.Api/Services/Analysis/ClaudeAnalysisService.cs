@@ -1,7 +1,8 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Api.Models;
+using RealEstateStar.Api.Features.Cma;
+using RealEstateStar.Api.Features.Cma.Submit;
 
 namespace RealEstateStar.Api.Services.Analysis;
 

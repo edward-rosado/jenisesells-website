@@ -2,7 +2,8 @@ using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RealEstateStar.Api.Models;
+using RealEstateStar.Api.Features.Cma;
+using RealEstateStar.Api.Features.Cma.Submit;
 using RealEstateStar.Api.Services;
 
 namespace RealEstateStar.Api.Tests.Services;

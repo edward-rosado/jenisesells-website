@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Api.Models;
+using RealEstateStar.Api.Common;
 
 namespace RealEstateStar.Api.Services;
 

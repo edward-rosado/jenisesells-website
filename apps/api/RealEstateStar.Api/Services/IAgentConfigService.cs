@@ -1,4 +1,4 @@
-using RealEstateStar.Api.Models;
+using RealEstateStar.Api.Common;
 
 namespace RealEstateStar.Api.Services;
 

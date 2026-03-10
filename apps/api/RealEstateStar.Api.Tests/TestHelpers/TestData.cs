@@ -1,4 +1,4 @@
-using RealEstateStar.Api.Models;
+using RealEstateStar.Api.Features.Cma.Submit;
 
 namespace RealEstateStar.Api.Tests.TestHelpers;
 

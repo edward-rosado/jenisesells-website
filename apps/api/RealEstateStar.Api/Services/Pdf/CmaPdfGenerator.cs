@@ -1,7 +1,9 @@
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using RealEstateStar.Api.Models;
+using RealEstateStar.Api.Common;
+using RealEstateStar.Api.Features.Cma;
+using RealEstateStar.Api.Features.Cma.Submit;
 
 namespace RealEstateStar.Api.Services.Pdf;
 

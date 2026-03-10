@@ -61,12 +61,6 @@ When working on a skill, load the agent profile first:
 - **Contracts**: State-specific templates live in `skills/contracts/templates/{STATE}/`
 - **No hardcoding**: Agent identity, branding, and compliance data always come from config
 
-## Git Autonomy
-
-- Commit freely without asking for confirmation. Use conventional commits.
-- Push to feature branches without asking. Never force-push to main/master.
-- Create branches as needed without prompting.
-- Only ask before destructive operations on main/master (force push, reset --hard).
 
 ## Docs
 

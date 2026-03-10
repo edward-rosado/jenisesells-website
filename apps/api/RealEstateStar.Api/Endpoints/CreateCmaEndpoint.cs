@@ -2,8 +2,9 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.SignalR;
 using RealEstateStar.Api.Diagnostics;
 using RealEstateStar.Api.Hubs;
-using RealEstateStar.Api.Models;
-using RealEstateStar.Api.Models.Responses;
+using RealEstateStar.Api.Features.Cma;
+using RealEstateStar.Api.Features.Cma.GetStatus;
+using RealEstateStar.Api.Features.Cma.Submit;
 using RealEstateStar.Api.Services;
 
 namespace RealEstateStar.Api.Endpoints;
@@ -42,7 +43,7 @@ public class CreateCmaEndpoint : IEndpoint
                     job.AdvanceTo(status);
                     store.Set(agentId, job);
                     await hubContext.Clients.Group(job.Id.ToString())
-                        .SendAsync("StatusUpdate", new CmaStatusResponse
+                        .SendAsync("StatusUpdate", new GetStatusResponse
                         {
                             Status = status,
                             Step = (int)status + 1,
@@ -64,7 +65,7 @@ public class CreateCmaEndpoint : IEndpoint
             }
         });
 
-        return Results.Accepted(value: new CreateCmaResponse
+        return Results.Accepted(value: new SubmitCmaResponse
         {
             JobId = job.Id.ToString(),
             Status = "processing"

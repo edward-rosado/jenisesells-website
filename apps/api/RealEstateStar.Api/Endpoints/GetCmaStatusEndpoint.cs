@@ -1,5 +1,5 @@
-using RealEstateStar.Api.Models;
-using RealEstateStar.Api.Models.Responses;
+using RealEstateStar.Api.Features.Cma;
+using RealEstateStar.Api.Features.Cma.GetStatus;
 using RealEstateStar.Api.Services;
 
 namespace RealEstateStar.Api.Endpoints;
@@ -17,7 +17,7 @@ public class GetCmaStatusEndpoint : IEndpoint
         if (job is null || job.AgentId != agentId)
             return Results.Problem(statusCode: 404, title: "Job not found");
 
-        return Results.Ok(new CmaStatusResponse
+        return Results.Ok(new GetStatusResponse
         {
             Status = job.Status,
             Step = job.Step,

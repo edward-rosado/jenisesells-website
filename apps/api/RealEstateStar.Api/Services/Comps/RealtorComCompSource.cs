@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Api.Models;
+using RealEstateStar.Api.Features.Cma;
 
 namespace RealEstateStar.Api.Services.Comps;
 
