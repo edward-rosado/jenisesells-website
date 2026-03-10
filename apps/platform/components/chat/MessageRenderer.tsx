@@ -64,7 +64,6 @@ export function MessageRenderer({ message, onAction }: MessageRendererProps) {
       return (
         <PaymentCard
           checkoutUrl={meta.checkoutUrl as string | undefined}
-          onPaymentComplete={() => act("payment_complete")}
         />
       );
     default:

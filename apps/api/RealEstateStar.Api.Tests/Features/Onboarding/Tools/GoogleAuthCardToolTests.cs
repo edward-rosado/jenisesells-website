@@ -17,7 +17,7 @@ public class GoogleAuthCardToolTests
             Microsoft.Extensions.Logging.Abstractions.NullLogger<GoogleOAuthService>.Instance);
 
         mockOAuth.Setup(o => o.BuildAuthorizationUrl(It.IsAny<string>()))
-            .Returns("https://accounts.google.com/o/oauth2/v2/auth?test=true");
+            .Returns(("https://accounts.google.com/o/oauth2/v2/auth?test=true", "test-nonce"));
 
         var tool = new GoogleAuthCardTool(mockOAuth.Object);
         var session = OnboardingSession.Create(null);
@@ -36,7 +36,7 @@ public class GoogleAuthCardToolTests
             Microsoft.Extensions.Logging.Abstractions.NullLogger<GoogleOAuthService>.Instance);
 
         mockOAuth.Setup(o => o.BuildAuthorizationUrl(It.IsAny<string>()))
-            .Returns((string sid) => $"https://accounts.google.com/o/oauth2/v2/auth?state={sid}");
+            .Returns((string sid) => ($"https://accounts.google.com/o/oauth2/v2/auth?state={sid}", "test-nonce"));
 
         var tool = new GoogleAuthCardTool(mockOAuth.Object);
         var session = OnboardingSession.Create(null);

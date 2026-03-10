@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
@@ -26,10 +27,13 @@ public class GoogleOAuthService(
         "https://www.googleapis.com/auth/calendar.events",
     ];
 
-    public virtual string BuildAuthorizationUrl(string sessionId)
+    public virtual (string Url, string Nonce) BuildAuthorizationUrl(string sessionId)
     {
+        var nonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
+        var state = $"{sessionId}:{nonce}";
         var scopeStr = Uri.EscapeDataString(string.Join(" ", Scopes));
-        return $"{AuthEndpoint}?client_id={clientId}&redirect_uri={Uri.EscapeDataString(redirectUri)}&response_type=code&scope={scopeStr}&access_type=offline&prompt=consent&state={sessionId}";
+        var url = $"{AuthEndpoint}?client_id={clientId}&redirect_uri={Uri.EscapeDataString(redirectUri)}&response_type=code&scope={scopeStr}&access_type=offline&prompt=consent&state={Uri.EscapeDataString(state)}";
+        return (url, nonce);
     }
 
     public virtual async Task<GoogleTokens> ExchangeCodeAsync(string code, CancellationToken ct)

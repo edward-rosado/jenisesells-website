@@ -49,6 +49,7 @@ public class StripeWebhookEndpointTests
 
         var stripeEvent = new Event
         {
+            Id = "evt_test_123",
             Type = EventTypes.CheckoutSessionCompleted,
             Data = new EventData { Object = stripeSession }
         };
@@ -90,6 +91,7 @@ public class StripeWebhookEndpointTests
 
         var stripeEvent = new Event
         {
+            Id = "evt_test_456",
             Type = EventTypes.CheckoutSessionCompleted,
             Data = new EventData { Object = stripeSession }
         };

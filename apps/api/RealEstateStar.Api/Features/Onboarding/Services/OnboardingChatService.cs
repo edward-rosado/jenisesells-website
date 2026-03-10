@@ -123,6 +123,12 @@ public class OnboardingChatService(
             }
         }
 
+        // Persist both messages after streaming completes
+        session.Messages.Add(new ChatMessage
+        {
+            Role = "user",
+            Content = userMessage,
+        });
         session.Messages.Add(new ChatMessage
         {
             Role = "assistant",

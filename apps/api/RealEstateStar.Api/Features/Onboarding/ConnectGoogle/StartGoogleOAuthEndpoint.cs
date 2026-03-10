@@ -22,7 +22,10 @@ public class StartGoogleOAuthEndpoint : IEndpoint
         if (session.CurrentState != OnboardingState.ConnectGoogle)
             return Results.BadRequest("Session is not in ConnectGoogle state");
 
-        var authUrl = oAuthService.BuildAuthorizationUrl(sessionId);
+        var (authUrl, nonce) = oAuthService.BuildAuthorizationUrl(sessionId);
+        session.OAuthNonce = nonce;
+        await sessionStore.SaveAsync(session, ct);
+
         return Results.Redirect(authUrl);
     }
 }

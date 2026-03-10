@@ -17,7 +17,7 @@ public class ToolDispatcherTests
         mockTool.Setup(t => t.ExecuteAsync(It.IsAny<JsonElement>(), It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("tool executed");
 
-        var dispatcher = new ToolDispatcher([mockTool.Object]);
+        var dispatcher = new ToolDispatcher([mockTool.Object], Microsoft.Extensions.Logging.Abstractions.NullLogger<ToolDispatcher>.Instance);
         var session = OnboardingSession.Create(null);
 
         var result = await dispatcher.DispatchAsync("test_tool", default, session, CancellationToken.None);
@@ -28,7 +28,7 @@ public class ToolDispatcherTests
     [Fact]
     public async Task DispatchAsync_UnknownTool_Throws()
     {
-        var dispatcher = new ToolDispatcher([]);
+        var dispatcher = new ToolDispatcher([], Microsoft.Extensions.Logging.Abstractions.NullLogger<ToolDispatcher>.Instance);
         var session = OnboardingSession.Create(null);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -40,7 +40,7 @@ public class ToolDispatcherTests
     {
         var mockTool = new Mock<IOnboardingTool>();
         mockTool.Setup(t => t.Name).Returns("my_tool");
-        var dispatcher = new ToolDispatcher([mockTool.Object]);
+        var dispatcher = new ToolDispatcher([mockTool.Object], Microsoft.Extensions.Logging.Abstractions.NullLogger<ToolDispatcher>.Instance);
 
         Assert.True(dispatcher.HasTool("my_tool"));
         Assert.False(dispatcher.HasTool("other_tool"));

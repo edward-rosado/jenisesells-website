@@ -28,7 +28,9 @@ public class StartGoogleOAuthEndpointTests
             .ReturnsAsync(session);
 
         _mockOAuth.Setup(o => o.BuildAuthorizationUrl(session.Id))
-            .Returns("https://accounts.google.com/o/oauth2/v2/auth?test=true");
+            .Returns(("https://accounts.google.com/o/oauth2/v2/auth?test=true", "test-nonce"));
+        _mockStore.Setup(s => s.SaveAsync(session, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var result = await StartGoogleOAuthEndpoint.Handle(
             session.Id, _mockStore.Object, _mockOAuth.Object, CancellationToken.None);

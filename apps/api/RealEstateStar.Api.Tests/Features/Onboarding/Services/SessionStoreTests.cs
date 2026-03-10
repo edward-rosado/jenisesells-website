@@ -35,7 +35,8 @@ public class SessionStoreTests : IDisposable
     [Fact]
     public async Task Load_NonExistentId_ReturnsNull()
     {
-        var result = await _store.LoadAsync("does-not-exist", CancellationToken.None);
+        // Use a valid hex format that doesn't exist on disk
+        var result = await _store.LoadAsync("aabbccddeeff", CancellationToken.None);
         Assert.Null(result);
     }
 

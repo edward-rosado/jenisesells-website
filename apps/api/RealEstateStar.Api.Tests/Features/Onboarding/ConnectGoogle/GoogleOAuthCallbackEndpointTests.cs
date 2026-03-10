@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Moq;
 using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.ConnectGoogle;
@@ -11,6 +12,9 @@ public class GoogleOAuthCallbackEndpointTests
     private readonly Mock<ISessionStore> _mockStore = new();
     private readonly Mock<GoogleOAuthService> _mockOAuth;
     private readonly OnboardingStateMachine _sm = new();
+    private readonly IConfiguration _configuration = new ConfigurationBuilder()
+        .AddInMemoryCollection(new Dictionary<string, string?> { ["Platform:BaseUrl"] = "http://localhost:3000" })
+        .Build();
 
     public GoogleOAuthCallbackEndpointTests()
     {
@@ -24,6 +28,7 @@ public class GoogleOAuthCallbackEndpointTests
     {
         var session = OnboardingSession.Create(null);
         session.CurrentState = OnboardingState.ConnectGoogle;
+        session.OAuthNonce = "test-nonce";
         _mockStore.Setup(s => s.LoadAsync(session.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(session);
         _mockStore.Setup(s => s.SaveAsync(session, It.IsAny<CancellationToken>()))
@@ -42,8 +47,8 @@ public class GoogleOAuthCallbackEndpointTests
             .ReturnsAsync(tokens);
 
         var result = await GoogleOAuthCallbackEndpoint.Handle(
-            "auth-code", session.Id, null,
-            _mockStore.Object, _mockOAuth.Object, _sm, CancellationToken.None);
+            "auth-code", $"{session.Id}:test-nonce", null,
+            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, CancellationToken.None);
 
         Assert.NotNull(session.GoogleTokens);
         Assert.Equal("agent@gmail.com", session.GoogleTokens.GoogleEmail);
@@ -58,8 +63,8 @@ public class GoogleOAuthCallbackEndpointTests
             .ReturnsAsync((OnboardingSession?)null);
 
         var result = await GoogleOAuthCallbackEndpoint.Handle(
-            "code", "bad-id", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, CancellationToken.None);
+            "code", "bad-id:test-nonce", null,
+            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, CancellationToken.None);
 
         Assert.NotNull(result);
     }
@@ -69,7 +74,7 @@ public class GoogleOAuthCallbackEndpointTests
     {
         var result = await GoogleOAuthCallbackEndpoint.Handle(
             null, "session-id", "access_denied",
-            _mockStore.Object, _mockOAuth.Object, _sm, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, CancellationToken.None);
 
         Assert.NotNull(result);
     }
@@ -79,15 +84,18 @@ public class GoogleOAuthCallbackEndpointTests
     {
         var session = OnboardingSession.Create(null);
         session.CurrentState = OnboardingState.ConnectGoogle;
+        session.OAuthNonce = "test-nonce";
         _mockStore.Setup(s => s.LoadAsync(session.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(session);
+        _mockStore.Setup(s => s.SaveAsync(session, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _mockOAuth.Setup(o => o.ExchangeCodeAsync("bad-code", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Token exchange failed"));
 
         var result = await GoogleOAuthCallbackEndpoint.Handle(
-            "bad-code", session.Id, null,
-            _mockStore.Object, _mockOAuth.Object, _sm, CancellationToken.None);
+            "bad-code", $"{session.Id}:test-nonce", null,
+            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, CancellationToken.None);
 
         Assert.Null(session.GoogleTokens);
     }

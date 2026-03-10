@@ -73,8 +73,18 @@ public class StripeWebhookEndpoint : IEndpoint
             return Results.Ok();
         }
 
+        // SEC-7: Idempotency — skip if we already processed this event
+        if (session.LastStripeEventId == stripeEvent.Id)
+        {
+            logger.LogInformation(
+                "Duplicate Stripe event {EventId} for session {SessionId}, skipping",
+                stripeEvent.Id, onboardingSessionId);
+            return Results.Ok();
+        }
+
         if (stateMachine.CanAdvance(session, OnboardingState.TrialActivated))
         {
+            session.LastStripeEventId = stripeEvent.Id;
             stateMachine.Advance(session, OnboardingState.TrialActivated);
             await sessionStore.SaveAsync(session, ct);
             logger.LogInformation(

@@ -20,11 +20,8 @@ public class PostChatEndpoint : IEndpoint
         var session = await sessionStore.LoadAsync(sessionId, ct);
         if (session is null) return Results.NotFound();
 
-        session.Messages.Add(new ChatMessage
-        {
-            Role = "user",
-            Content = request.Message,
-        });
+        // User message is added by StreamResponseAsync via BuildMessages — not here,
+        // to avoid sending it to Claude twice. We persist after streaming completes.
 
         return Results.Stream(async stream =>
         {

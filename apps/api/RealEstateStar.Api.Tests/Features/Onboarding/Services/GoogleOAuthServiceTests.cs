@@ -22,7 +22,7 @@ public class GoogleOAuthServiceTests
         var httpClient = new HttpClient(handler.Object);
         var service = new GoogleOAuthService(httpClient, ClientId, ClientSecret, RedirectUri, NullLogger<GoogleOAuthService>.Instance);
 
-        var url = service.BuildAuthorizationUrl("session123");
+        var (url, _) = service.BuildAuthorizationUrl("session123");
 
         Assert.Contains("accounts.google.com/o/oauth2/v2/auth", url);
         Assert.Contains("client_id=test-client-id", url);

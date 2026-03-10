@@ -12,7 +12,7 @@ public class ChatServiceTests
         new HttpClient(),
         "test-key",
         new OnboardingStateMachine(),
-        new ToolDispatcher([]),
+        new ToolDispatcher([], Microsoft.Extensions.Logging.Abstractions.NullLogger<ToolDispatcher>.Instance),
         NullLogger<OnboardingChatService>.Instance);
 
     [Fact]
