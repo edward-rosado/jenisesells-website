@@ -17,6 +17,8 @@ using RealEstateStar.Api.Features.Cma.Services.Pdf;
 using RealEstateStar.Api.Features.Cma.Services.Research;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using RealEstateStar.Api.Features.Onboarding.Services;
+using RealEstateStar.Api.Features.Onboarding.Tools;
 using RealEstateStar.Api.Health;
 using Serilog;
 
@@ -29,11 +31,42 @@ var configPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "
 builder.Services.AddSingleton<IAgentConfigService>(sp =>
     new AgentConfigService(configPath, sp.GetRequiredService<ILogger<AgentConfigService>>()));
 
+// Onboarding (session store registered early, services after config keys below)
+builder.Services.AddSingleton<ISessionStore, JsonFileSessionStore>();
+builder.Services.AddSingleton<OnboardingStateMachine>();
+
 // Configuration keys
 var anthropicKey = builder.Configuration["Anthropic:ApiKey"]
     ?? throw new InvalidOperationException("Anthropic:ApiKey configuration is required");
 var attomKey = builder.Configuration["Attom:ApiKey"]
     ?? throw new InvalidOperationException("Attom:ApiKey configuration is required");
+
+// Onboarding services (need anthropicKey)
+builder.Services.AddHttpClient<ProfileScraperService>();
+builder.Services.AddSingleton<IProfileScraper>(sp =>
+    new ProfileScraperService(
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(ProfileScraperService)),
+        anthropicKey,
+        sp.GetRequiredService<ILogger<ProfileScraperService>>()));
+builder.Services.AddSingleton<IOnboardingTool, ScrapeUrlTool>();
+builder.Services.AddSingleton<IOnboardingTool, UpdateProfileTool>();
+builder.Services.AddSingleton<IOnboardingTool, SetBrandingTool>();
+builder.Services.AddSingleton<IOnboardingTool, DeploySiteTool>();
+builder.Services.AddSingleton<IOnboardingTool, SubmitCmaFormTool>();
+builder.Services.AddSingleton<IOnboardingTool, CreateStripeSessionTool>();
+builder.Services.AddSingleton<ToolDispatcher>();
+builder.Services.AddSingleton<SiteDeployService>();
+builder.Services.AddSingleton<StripeService>();
+builder.Services.AddSingleton<DomainService>();
+builder.Services.AddHttpClient<OnboardingChatService>();
+builder.Services.AddSingleton(sp =>
+    new OnboardingChatService(
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(OnboardingChatService)),
+        anthropicKey,
+        sp.GetRequiredService<OnboardingStateMachine>(),
+        sp.GetRequiredService<ToolDispatcher>(),
+        sp.GetRequiredService<ILogger<OnboardingChatService>>()));
+builder.Services.AddHostedService<TrialExpiryService>();
 
 // Comp sources — typed HttpClient registrations
 builder.Services.AddHttpClient<ZillowCompSource>();
@@ -92,7 +125,8 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy.WithOrigins(
-                builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? ["http://localhost:3000"])
+                builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                    ?? ["http://localhost:3000", "http://localhost:3001"])
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials(); // Required for SignalR

@@ -1,0 +1,51 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+export default function LandingPage() {
+  const [profileUrl, setProfileUrl] = useState("");
+  const router = useRouter();
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const params = profileUrl
+      ? `?profileUrl=${encodeURIComponent(profileUrl)}`
+      : "";
+    router.push(`/onboard${params}`);
+  }
+
+  return (
+    <main className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center px-4">
+      <div className="max-w-xl w-full text-center">
+        <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-2">
+          Stop paying monthly.
+        </h1>
+        <p className="text-4xl md:text-5xl font-bold text-emerald-400 mb-8">
+          $900. Everything.
+        </p>
+        <p className="text-lg text-gray-400 mb-12">
+          Website. CMA automation. Lead management. One payment. Done.
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="text"
+            value={profileUrl}
+            onChange={(e) => setProfileUrl(e.target.value)}
+            placeholder="Paste your Zillow or Realtor.com URL"
+            className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+          <button
+            type="submit"
+            className="w-full px-6 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-lg transition-colors"
+          >
+            Get Started Free
+          </button>
+        </form>
+        <p className="text-sm text-gray-500 mt-4">
+          7-day free trial. No credit card.
+        </p>
+      </div>
+    </main>
+  );
+}
