@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace RealEstateStar.Api.Models;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CompSource
 {
     Mls,

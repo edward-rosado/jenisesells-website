@@ -7,12 +7,9 @@ public class ZillowCompSource(HttpClient httpClient, ILogger<ZillowCompSource>? 
 {
     public string Name => "Zillow";
 
-    public async Task<List<Comp>> FetchAsync(
-        string address, string city, string state, string zip,
-        int? beds, int? baths, int? sqft,
-        CancellationToken ct)
+    public async Task<List<Comp>> FetchAsync(CompSearchRequest request, CancellationToken ct)
     {
-        var slug = $"{address.Replace(' ', '-')}-{city}-{state}-{zip}".ToLowerInvariant();
+        var slug = $"{request.Address.Replace(' ', '-')}-{request.City}-{request.State}-{request.Zip}".ToLowerInvariant();
         var url = $"https://www.zillow.com/homedetails/{slug}";
 
         logger?.LogInformation("Fetching Zillow comps from {Url}", url);

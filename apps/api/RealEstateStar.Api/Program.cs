@@ -27,33 +27,43 @@ var configPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "
 builder.Services.AddSingleton<IAgentConfigService>(sp =>
     new AgentConfigService(configPath, sp.GetRequiredService<ILogger<AgentConfigService>>()));
 
-// HTTP clients
-builder.Services.AddHttpClient();
+// Configuration keys
+var anthropicKey = builder.Configuration["Anthropic:ApiKey"]
+    ?? throw new InvalidOperationException("Anthropic:ApiKey configuration is required");
+var attomKey = builder.Configuration["Attom:ApiKey"]
+    ?? throw new InvalidOperationException("Attom:ApiKey configuration is required");
 
-// Comp sources
-builder.Services.AddSingleton<ICompSource>(sp =>
-    new ZillowCompSource(sp.GetRequiredService<IHttpClientFactory>().CreateClient(), sp.GetService<ILogger<ZillowCompSource>>()));
-builder.Services.AddSingleton<ICompSource>(sp =>
-    new RealtorComCompSource(sp.GetRequiredService<IHttpClientFactory>().CreateClient(), sp.GetService<ILogger<RealtorComCompSource>>()));
-builder.Services.AddSingleton<ICompSource>(sp =>
-    new RedfinCompSource(sp.GetRequiredService<IHttpClientFactory>().CreateClient(), sp.GetService<ILogger<RedfinCompSource>>()));
+// Comp sources — typed HttpClient registrations
+builder.Services.AddHttpClient<ZillowCompSource>();
+builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<ZillowCompSource>());
+
+builder.Services.AddHttpClient<RealtorComCompSource>();
+builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<RealtorComCompSource>());
+
+builder.Services.AddHttpClient<RedfinCompSource>();
+builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<RedfinCompSource>());
+
+builder.Services.AddHttpClient<AttomDataCompSource>();
 builder.Services.AddSingleton<ICompSource>(sp =>
     new AttomDataCompSource(
-        sp.GetRequiredService<IHttpClientFactory>().CreateClient(),
-        builder.Configuration["Attom:ApiKey"] ?? "",
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(AttomDataCompSource)),
+        attomKey,
         sp.GetService<ILogger<AttomDataCompSource>>()));
 
 // Core services
 builder.Services.AddSingleton<CompAggregator>();
-builder.Services.AddSingleton<ILeadResearchService>(sp =>
-    new LeadResearchService(sp.GetRequiredService<IHttpClientFactory>().CreateClient(), sp.GetService<ILogger<LeadResearchService>>()));
+
+builder.Services.AddHttpClient<LeadResearchService>();
+builder.Services.AddSingleton<ILeadResearchService>(sp => sp.GetRequiredService<LeadResearchService>());
+
 builder.Services.AddSingleton<ICmaPdfGenerator, CmaPdfGenerator>();
-builder.Services.AddSingleton<IGwsService>(sp =>
-    new GwsService(sp.GetService<ILogger<GwsService>>()));
+builder.Services.AddSingleton<IGwsService, GwsService>();
+
+builder.Services.AddHttpClient<ClaudeAnalysisService>();
 builder.Services.AddSingleton<IAnalysisService>(sp =>
     new ClaudeAnalysisService(
-        sp.GetRequiredService<IHttpClientFactory>().CreateClient(),
-        builder.Configuration["Anthropic:ApiKey"] ?? "",
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(ClaudeAnalysisService)),
+        anthropicKey,
         sp.GetService<ILogger<ClaudeAnalysisService>>()));
 
 // Pipeline orchestrator
@@ -147,7 +157,12 @@ app.UseMiddleware<CorrelationIdMiddleware>();
 
 app.Use(async (context, next) =>
 {
-    context.Response.Headers["X-Api-Version"] = "1.0";
+    var headers = context.Response.Headers;
+    headers["X-Api-Version"] = "1.0";
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["X-Frame-Options"] = "DENY";
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
     await next();
 });
 

@@ -60,4 +60,45 @@ public class CorrelationIdMiddlewareTests
 
         nextCalled.Should().BeTrue();
     }
+
+    [Theory]
+    [InlineData("valid-id_123", true)]
+    [InlineData("abc", true)]
+    [InlineData("a", true)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    [InlineData("has spaces", false)]
+    [InlineData("has<html>", false)]
+    [InlineData("has;semicolon", false)]
+    public void IsValidCorrelationId_ValidatesCorrectly(string? id, bool expected)
+    {
+        CorrelationIdMiddleware.IsValidCorrelationId(id).Should().Be(expected);
+    }
+
+    [Fact]
+    public void IsValidCorrelationId_RejectsTooLong()
+    {
+        var longId = new string('a', 65);
+        CorrelationIdMiddleware.IsValidCorrelationId(longId).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsValidCorrelationId_AcceptsMaxLength()
+    {
+        var maxId = new string('a', 64);
+        CorrelationIdMiddleware.IsValidCorrelationId(maxId).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task InvokeAsync_RejectsInvalidCorrelationId_GeneratesNew()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Headers[HeaderName] = "invalid<script>alert(1)</script>";
+        var middleware = new CorrelationIdMiddleware(_ => Task.CompletedTask);
+
+        await middleware.InvokeAsync(context);
+
+        var id = context.Response.Headers[HeaderName].ToString();
+        id.Should().HaveLength(32, "should generate a new GUID when input is invalid");
+    }
 }

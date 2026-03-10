@@ -12,34 +12,32 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
-    public void Generate(string outputPath, AgentConfig agent, Lead lead,
-        List<Comp> comps, CmaAnalysis analysis, LeadResearch? research,
-        ReportType reportType, CancellationToken ct)
+    public void Generate(PdfGenerationRequest request, CancellationToken ct)
     {
         var document = Document.Create(container =>
         {
-            ComposeCoverPage(container, agent, lead);
+            ComposeCoverPage(container, request.Agent, request.Lead);
 
-            if (reportType is ReportType.Standard or ReportType.Comprehensive)
-                ComposePropertyOverviewPage(container, lead, research);
+            if (request.ReportType is ReportType.Standard or ReportType.Comprehensive)
+                ComposePropertyOverviewPage(container, request.Lead, request.Research);
 
-            ComposeCompTablePage(container, comps);
+            ComposeCompTablePage(container, request.Comps);
 
-            if (reportType is ReportType.Comprehensive)
+            if (request.ReportType is ReportType.Comprehensive)
             {
-                ComposeMarketAnalysisPage(container, analysis);
-                ComposePricePerSqftPage(container, lead, comps);
+                ComposeMarketAnalysisPage(container, request.Analysis);
+                ComposePricePerSqftPage(container, request.Lead, request.Comps);
             }
 
-            ComposeValueEstimatePage(container, analysis, reportType);
+            ComposeValueEstimatePage(container, request.Analysis, request.ReportType);
 
-            if (reportType is ReportType.Comprehensive)
-                ComposeNeighborhoodPage(container, research);
+            if (request.ReportType is ReportType.Comprehensive)
+                ComposeNeighborhoodPage(container, request.Research);
 
-            ComposeAboutAgentPage(container, agent);
+            ComposeAboutAgentPage(container, request.Agent);
         });
 
-        document.GeneratePdf(outputPath);
+        document.GeneratePdf(request.OutputPath);
     }
 
     private static void ComposeCoverPage(IDocumentContainer container, AgentConfig agent, Lead lead)
