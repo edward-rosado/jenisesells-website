@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Infrastructure;
 
@@ -7,7 +8,8 @@ public class CreateSessionEndpoint : IEndpoint
 {
     public void MapEndpoint(WebApplication app)
     {
-        app.MapPost("/onboard", Handle);
+        app.MapPost("/onboard", Handle)
+            .RequireRateLimiting("session-create");
     }
 
     internal static async Task<IResult> Handle(

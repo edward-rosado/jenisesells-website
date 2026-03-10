@@ -31,6 +31,7 @@ public class SiteDeployTests : IDisposable
         new()
         {
             Id = "test123",
+            BearerToken = "test-token",
             Profile = new ScrapedProfile
             {
                 Name = name,

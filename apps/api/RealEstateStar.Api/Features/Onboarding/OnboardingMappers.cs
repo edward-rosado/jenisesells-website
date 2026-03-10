@@ -9,7 +9,7 @@ public static class OnboardingMappers
         => OnboardingSession.Create(request.ProfileUrl);
 
     public static CreateSessionResponse ToCreateResponse(this OnboardingSession session)
-        => new(session.Id);
+        => new(session.Id, session.BearerToken);
 
     public static GetSessionResponse ToGetResponse(this OnboardingSession session)
         => new()
