@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Api.Features.Cma.Services.Gws;
+using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using Xunit;
 
@@ -27,13 +28,16 @@ public class DriveFolderInitializerTests
         "Real Estate Star/6 - Referral Network/Summary",
     ];
 
+    private static OnboardingSession MakeSession() => OnboardingSession.Create(null);
+
     [Fact]
     public async Task EnsureFolderStructureAsync_CreatesAllTopLevelFolders()
     {
         var gws = new Mock<IGwsService>();
         var svc = new DriveFolderInitializer(gws.Object, NullLogger<DriveFolderInitializer>.Instance);
+        var session = MakeSession();
 
-        await svc.EnsureFolderStructureAsync("agent@test.com", CancellationToken.None);
+        await svc.EnsureFolderStructureAsync(session, "agent@test.com", CancellationToken.None);
 
         foreach (var folder in ExpectedTopLevelFolders)
         {
@@ -49,8 +53,9 @@ public class DriveFolderInitializerTests
     {
         var gws = new Mock<IGwsService>();
         var svc = new DriveFolderInitializer(gws.Object, NullLogger<DriveFolderInitializer>.Instance);
+        var session = MakeSession();
 
-        await svc.EnsureFolderStructureAsync("agent@test.com", CancellationToken.None);
+        await svc.EnsureFolderStructureAsync(session, "agent@test.com", CancellationToken.None);
 
         foreach (var folder in ExpectedSubfolders)
         {
@@ -66,8 +71,9 @@ public class DriveFolderInitializerTests
     {
         var gws = new Mock<IGwsService>();
         var svc = new DriveFolderInitializer(gws.Object, NullLogger<DriveFolderInitializer>.Instance);
+        var session = MakeSession();
 
-        await svc.EnsureFolderStructureAsync("agent@test.com", CancellationToken.None);
+        await svc.EnsureFolderStructureAsync(session, "agent@test.com", CancellationToken.None);
 
         gws.Verify(g => g.CreateDriveFolderAsync(
             "agent@test.com",
@@ -76,15 +82,16 @@ public class DriveFolderInitializerTests
     }
 
     [Fact]
-    public async Task EnsureFolderStructureAsync_OnlyRunsOnce_ForSameAgent()
+    public async Task EnsureFolderStructureAsync_OnlyRunsOnce_ForSameSession()
     {
         var gws = new Mock<IGwsService>();
         var svc = new DriveFolderInitializer(gws.Object, NullLogger<DriveFolderInitializer>.Instance);
+        var session = MakeSession();
 
-        await svc.EnsureFolderStructureAsync("agent@test.com", CancellationToken.None);
-        await svc.EnsureFolderStructureAsync("agent@test.com", CancellationToken.None);
+        await svc.EnsureFolderStructureAsync(session, "agent@test.com", CancellationToken.None);
+        await svc.EnsureFolderStructureAsync(session, "agent@test.com", CancellationToken.None);
 
-        // Should only create folders once per agent
+        // Should only create folders once — session flag prevents re-run
         gws.Verify(g => g.CreateDriveFolderAsync(
             "agent@test.com",
             It.IsAny<string>(),
@@ -92,19 +99,35 @@ public class DriveFolderInitializerTests
     }
 
     [Fact]
-    public async Task EnsureFolderStructureAsync_RunsForDifferentAgents()
+    public async Task EnsureFolderStructureAsync_RunsForDifferentSessions()
     {
         var gws = new Mock<IGwsService>();
         var svc = new DriveFolderInitializer(gws.Object, NullLogger<DriveFolderInitializer>.Instance);
+        var session1 = MakeSession();
+        var session2 = MakeSession();
 
-        await svc.EnsureFolderStructureAsync("agent1@test.com", CancellationToken.None);
-        await svc.EnsureFolderStructureAsync("agent2@test.com", CancellationToken.None);
+        await svc.EnsureFolderStructureAsync(session1, "agent1@test.com", CancellationToken.None);
+        await svc.EnsureFolderStructureAsync(session2, "agent2@test.com", CancellationToken.None);
 
-        // 11 folders for each agent = 22 total
+        // 11 folders for each session = 22 total
         gws.Verify(g => g.CreateDriveFolderAsync(
             It.IsAny<string>(),
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Exactly(22));
+    }
+
+    [Fact]
+    public async Task EnsureFolderStructureAsync_SetsDriveFolderInitializedFlag()
+    {
+        var gws = new Mock<IGwsService>();
+        var svc = new DriveFolderInitializer(gws.Object, NullLogger<DriveFolderInitializer>.Instance);
+        var session = MakeSession();
+
+        Assert.False(session.DriveFolderInitialized);
+
+        await svc.EnsureFolderStructureAsync(session, "agent@test.com", CancellationToken.None);
+
+        Assert.True(session.DriveFolderInitialized);
     }
 
     [Fact]
@@ -125,9 +148,10 @@ public class DriveFolderInitializerTests
             });
 
         var svc = new DriveFolderInitializer(gws.Object, NullLogger<DriveFolderInitializer>.Instance);
+        var session = MakeSession();
 
         // Should not throw — continues on partial failure
-        await svc.EnsureFolderStructureAsync("agent@test.com", CancellationToken.None);
+        await svc.EnsureFolderStructureAsync(session, "agent@test.com", CancellationToken.None);
 
         // Should have attempted all 11 folders despite one failing
         Assert.Equal(11, callCount);
@@ -138,9 +162,10 @@ public class DriveFolderInitializerTests
     {
         var gws = new Mock<IGwsService>();
         var svc = new DriveFolderInitializer(gws.Object, NullLogger<DriveFolderInitializer>.Instance);
+        var session = MakeSession();
         using var cts = new CancellationTokenSource();
 
-        await svc.EnsureFolderStructureAsync("agent@test.com", cts.Token);
+        await svc.EnsureFolderStructureAsync(session, "agent@test.com", cts.Token);
 
         gws.Verify(g => g.CreateDriveFolderAsync(
             It.IsAny<string>(),

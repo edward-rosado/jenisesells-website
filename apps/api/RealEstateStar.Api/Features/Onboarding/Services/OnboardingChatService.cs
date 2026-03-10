@@ -9,7 +9,7 @@ namespace RealEstateStar.Api.Features.Onboarding.Services;
 // TODO: MED-8 — Add ActivitySource spans for chat processing, tool dispatch, and state transitions
 // TODO: LOW-6 — Extract shared Anthropic API client into a common AnthropicClient service
 public class OnboardingChatService(
-    HttpClient httpClient,
+    IHttpClientFactory httpClientFactory,
     string apiKey,
     OnboardingStateMachine stateMachine,
     ToolDispatcher toolDispatcher,
@@ -54,6 +54,7 @@ public class OnboardingChatService(
         request.Headers.Add("x-api-key", apiKey);
         request.Headers.Add("anthropic-version", "2023-06-01");
 
+        var httpClient = httpClientFactory.CreateClient(nameof(OnboardingChatService));
         var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
 

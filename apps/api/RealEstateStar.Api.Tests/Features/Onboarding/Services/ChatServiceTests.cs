@@ -11,8 +11,15 @@ namespace RealEstateStar.Api.Tests.Features.Onboarding.Services;
 
 public class ChatServiceTests
 {
+    private static IHttpClientFactory CreateMockFactory()
+    {
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
+        return factory.Object;
+    }
+
     private readonly OnboardingChatService _service = new(
-        new HttpClient(),
+        CreateMockFactory(),
         "test-key",
         new OnboardingStateMachine(),
         new ToolDispatcher([], NullLogger<ToolDispatcher>.Instance),
@@ -48,8 +55,8 @@ public class ChatServiceTests
         // the request body sent to the API. Since we can't intercept the private method,
         // we test indirectly: a session with prior messages should include them all.
         var session = OnboardingSession.Create(null);
-        session.Messages.Add(new ChatMessage { Role = "user", Content = "Hello" });
-        session.Messages.Add(new ChatMessage { Role = "assistant", Content = "Hi there!" });
+        session.Messages.Add(new ChatMessage { Role = ChatRole.User, Content = "Hello" });
+        session.Messages.Add(new ChatMessage { Role = ChatRole.Assistant, Content = "Hi there!" });
 
         // The BuildMessages method appends existing messages then the new user message.
         // We verify this contract by using a mock HttpMessageHandler.
@@ -73,9 +80,10 @@ public class ChatServiceTests
             }
         });
 
-        var httpClient = new HttpClient(handler);
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(handler));
         var service = new OnboardingChatService(
-            httpClient,
+            factory.Object,
             "test-key",
             new OnboardingStateMachine(),
             new ToolDispatcher([], NullLogger<ToolDispatcher>.Instance),
@@ -109,12 +117,13 @@ public class ChatServiceTests
             capturedSystem = doc.RootElement.GetProperty("system").GetString();
         });
 
-        var httpClient = new HttpClient(handler);
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(handler));
         var session = OnboardingSession.Create(null);
         session.CurrentState = OnboardingState.CollectBranding;
 
         var service = new OnboardingChatService(
-            httpClient,
+            factory.Object,
             "test-key",
             new OnboardingStateMachine(),
             new ToolDispatcher([], NullLogger<ToolDispatcher>.Instance),
@@ -143,7 +152,8 @@ public class ChatServiceTests
             capturedSystem = doc.RootElement.GetProperty("system").GetString();
         });
 
-        var httpClient = new HttpClient(handler);
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(handler));
         var session = OnboardingSession.Create(null);
         session.Profile = new ScrapedProfile
         {
@@ -153,7 +163,7 @@ public class ChatServiceTests
         };
 
         var service = new OnboardingChatService(
-            httpClient,
+            factory.Object,
             "test-key",
             new OnboardingStateMachine(),
             new ToolDispatcher([], NullLogger<ToolDispatcher>.Instance),
@@ -187,7 +197,8 @@ public class ChatServiceTests
             """;
 
         var handler = new SseResponseHandler(sseData);
-        var httpClient = new HttpClient(handler);
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(handler));
 
         var mockTool = new Mock<IOnboardingTool>();
         mockTool.Setup(t => t.Name).Returns("scrape_url");
@@ -197,7 +208,7 @@ public class ChatServiceTests
         var dispatcher = new ToolDispatcher([mockTool.Object], NullLogger<ToolDispatcher>.Instance);
 
         var service = new OnboardingChatService(
-            httpClient,
+            factory.Object,
             "test-key",
             new OnboardingStateMachine(),
             dispatcher,
@@ -233,10 +244,11 @@ public class ChatServiceTests
             """;
 
         var handler = new SseResponseHandler(sseData);
-        var httpClient = new HttpClient(handler);
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(handler));
 
         var service = new OnboardingChatService(
-            httpClient,
+            factory.Object,
             "test-key",
             new OnboardingStateMachine(),
             new ToolDispatcher([], NullLogger<ToolDispatcher>.Instance),
@@ -251,9 +263,9 @@ public class ChatServiceTests
         }
 
         session.Messages.Should().HaveCount(2);
-        session.Messages[0].Role.Should().Be("user");
+        session.Messages[0].Role.Should().Be(ChatRole.User);
         session.Messages[0].Content.Should().Be("Hi");
-        session.Messages[1].Role.Should().Be("assistant");
+        session.Messages[1].Role.Should().Be(ChatRole.Assistant);
         session.Messages[1].Content.Should().Be("Hello there!");
     }
 
@@ -276,12 +288,13 @@ public class ChatServiceTests
             }
         });
 
-        var httpClient = new HttpClient(handler);
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(handler));
         var session = OnboardingSession.Create(null);
         session.CurrentState = OnboardingState.ScrapeProfile;
 
         var service = new OnboardingChatService(
-            httpClient,
+            factory.Object,
             "test-key",
             new OnboardingStateMachine(),
             new ToolDispatcher([], NullLogger<ToolDispatcher>.Instance),
