@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using RealEstateStar.Api.Features.Cma.Submit;
 
 namespace RealEstateStar.Api.Features.Cma;
 

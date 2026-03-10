@@ -1,7 +1,6 @@
 using FluentAssertions;
 using RealEstateStar.Api.Common;
 using RealEstateStar.Api.Features.Cma;
-using RealEstateStar.Api.Features.Cma.Submit;
 using RealEstateStar.Api.Services.Pdf;
 
 namespace RealEstateStar.Api.Tests.Services.Pdf;

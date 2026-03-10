@@ -1,7 +1,7 @@
 using RealEstateStar.Api.Common;
-using RealEstateStar.Api.Features.Cma.Submit;
+using RealEstateStar.Api.Features.Cma;
 
-namespace RealEstateStar.Api.Features.Cma;
+namespace RealEstateStar.Api.Services.Pdf;
 
 public record PdfGenerationRequest
 {

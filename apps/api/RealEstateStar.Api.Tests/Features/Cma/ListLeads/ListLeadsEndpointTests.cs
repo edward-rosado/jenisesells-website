@@ -9,7 +9,7 @@ using RealEstateStar.Api.Tests.TestHelpers;
 
 namespace RealEstateStar.Api.Tests.Features.Cma.ListLeads;
 
-public class GetLeadsEndpointTests
+public class ListLeadsEndpointTests
 {
     private static List<CmaJob> MakeJobs(string agentId, int count)
     {
@@ -27,7 +27,7 @@ public class GetLeadsEndpointTests
         store.Setup(s => s.GetByAgent("agent1")).Returns(jobs);
 
         var httpContext = new DefaultHttpContext();
-        var result = GetLeadsEndpoint.Handle("agent1", null, null, store.Object, httpContext);
+        var result = ListLeadsEndpoint.Handle("agent1", null, null, store.Object, httpContext);
 
         var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<ListLeadsResponse>>>().Subject;
         okResult.Value!.Count().Should().Be(3);
@@ -40,7 +40,7 @@ public class GetLeadsEndpointTests
         store.Setup(s => s.GetByAgent("unknown")).Returns(new List<CmaJob>());
 
         var httpContext = new DefaultHttpContext();
-        var result = GetLeadsEndpoint.Handle("unknown", null, null, store.Object, httpContext);
+        var result = ListLeadsEndpoint.Handle("unknown", null, null, store.Object, httpContext);
 
         var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<ListLeadsResponse>>>().Subject;
         okResult.Value!.Should().BeEmpty();
@@ -54,7 +54,7 @@ public class GetLeadsEndpointTests
         store.Setup(s => s.GetByAgent("agent1")).Returns(jobs);
 
         var httpContext = new DefaultHttpContext();
-        var result = GetLeadsEndpoint.Handle("agent1", 3, null, store.Object, httpContext);
+        var result = ListLeadsEndpoint.Handle("agent1", 3, null, store.Object, httpContext);
 
         var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<ListLeadsResponse>>>().Subject;
         okResult.Value!.Count().Should().Be(2);
@@ -68,7 +68,7 @@ public class GetLeadsEndpointTests
         store.Setup(s => s.GetByAgent("agent1")).Returns(jobs);
 
         var httpContext = new DefaultHttpContext();
-        var result = GetLeadsEndpoint.Handle("agent1", null, 2, store.Object, httpContext);
+        var result = ListLeadsEndpoint.Handle("agent1", null, 2, store.Object, httpContext);
 
         var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<ListLeadsResponse>>>().Subject;
         okResult.Value!.Count().Should().Be(2);
@@ -82,7 +82,7 @@ public class GetLeadsEndpointTests
         store.Setup(s => s.GetByAgent("agent1")).Returns(jobs);
 
         var httpContext = new DefaultHttpContext();
-        var result = GetLeadsEndpoint.Handle("agent1", null, 200, store.Object, httpContext);
+        var result = ListLeadsEndpoint.Handle("agent1", null, 200, store.Object, httpContext);
 
         var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<ListLeadsResponse>>>().Subject;
         okResult.Value!.Count().Should().Be(100);
@@ -96,7 +96,7 @@ public class GetLeadsEndpointTests
         store.Setup(s => s.GetByAgent("agent1")).Returns(jobs);
 
         var httpContext = new DefaultHttpContext();
-        var result = GetLeadsEndpoint.Handle("agent1", null, null, store.Object, httpContext);
+        var result = ListLeadsEndpoint.Handle("agent1", null, null, store.Object, httpContext);
 
         var okResult = result.Should().BeAssignableTo<Ok<IEnumerable<ListLeadsResponse>>>().Subject;
         okResult.Value!.Count().Should().Be(50);
@@ -109,7 +109,7 @@ public class GetLeadsEndpointTests
         store.Setup(s => s.GetByAgent("agent1")).Returns(new List<CmaJob>());
 
         var httpContext = new DefaultHttpContext();
-        GetLeadsEndpoint.Handle("agent1", null, null, store.Object, httpContext);
+        ListLeadsEndpoint.Handle("agent1", null, null, store.Object, httpContext);
 
         httpContext.Response.Headers.CacheControl.ToString().Should().Be("no-cache");
     }

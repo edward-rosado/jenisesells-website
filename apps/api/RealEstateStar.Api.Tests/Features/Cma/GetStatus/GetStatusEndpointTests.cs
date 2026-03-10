@@ -9,7 +9,7 @@ using RealEstateStar.Api.Tests.TestHelpers;
 
 namespace RealEstateStar.Api.Tests.Features.Cma.GetStatus;
 
-public class GetCmaStatusEndpointTests
+public class GetStatusEndpointTests
 {
     [Fact]
     public void Handle_Returns404ProblemDetails_WhenJobNotFound()
@@ -18,7 +18,7 @@ public class GetCmaStatusEndpointTests
         store.Setup(s => s.Get("nonexistent")).Returns((CmaJob?)null);
 
         var httpContext = new DefaultHttpContext();
-        var result = GetCmaStatusEndpoint.Handle("agent1", "nonexistent", store.Object, httpContext);
+        var result = GetStatusEndpoint.Handle("agent1", "nonexistent", store.Object, httpContext);
 
         var problemResult = result.Should().BeAssignableTo<ProblemHttpResult>().Subject;
         problemResult.StatusCode.Should().Be(StatusCodes.Status404NotFound);
@@ -31,7 +31,7 @@ public class GetCmaStatusEndpointTests
         store.Setup(s => s.Get("nonexistent")).Returns((CmaJob?)null);
 
         var httpContext = new DefaultHttpContext();
-        GetCmaStatusEndpoint.Handle("agent1", "nonexistent", store.Object, httpContext);
+        GetStatusEndpoint.Handle("agent1", "nonexistent", store.Object, httpContext);
 
         httpContext.Response.Headers.CacheControl.ToString().Should().Be("no-cache");
     }
@@ -46,7 +46,7 @@ public class GetCmaStatusEndpointTests
         store.Setup(s => s.Get("job1")).Returns(job);
 
         var httpContext = new DefaultHttpContext();
-        var result = GetCmaStatusEndpoint.Handle("agent1", "job1", store.Object, httpContext);
+        var result = GetStatusEndpoint.Handle("agent1", "job1", store.Object, httpContext);
 
         var okResult = result.Should().BeAssignableTo<Ok<GetStatusResponse>>().Subject;
         okResult.Value!.ErrorMessage.Should().Be("Something went wrong");
@@ -62,7 +62,7 @@ public class GetCmaStatusEndpointTests
         store.Setup(s => s.Get("job1")).Returns(job);
 
         var httpContext = new DefaultHttpContext();
-        var result = GetCmaStatusEndpoint.Handle("agent1", "job1", store.Object, httpContext);
+        var result = GetStatusEndpoint.Handle("agent1", "job1", store.Object, httpContext);
 
         var okResult = result.Should().BeAssignableTo<Ok<GetStatusResponse>>().Subject;
         okResult.Value!.ErrorMessage.Should().BeNull();
@@ -80,7 +80,7 @@ public class GetCmaStatusEndpointTests
         store.Setup(s => s.Get("job1")).Returns(job);
 
         var httpContext = new DefaultHttpContext();
-        var result = GetCmaStatusEndpoint.Handle("different-agent", "job1", store.Object, httpContext);
+        var result = GetStatusEndpoint.Handle("different-agent", "job1", store.Object, httpContext);
 
         var problemResult = result.Should().BeAssignableTo<ProblemHttpResult>().Subject;
         problemResult.StatusCode.Should().Be(StatusCodes.Status404NotFound);

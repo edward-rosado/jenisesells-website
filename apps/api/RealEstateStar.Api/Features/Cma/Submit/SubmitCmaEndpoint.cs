@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.SignalR;
 using RealEstateStar.Api.Diagnostics;
-using RealEstateStar.Api.Endpoints;
+using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Api.Hubs;
 using RealEstateStar.Api.Features.Cma;
 using RealEstateStar.Api.Features.Cma.GetStatus;
@@ -17,13 +17,15 @@ public class SubmitCmaEndpoint : IEndpoint
 
     internal static IResult Handle(
         string agentId,
-        Lead lead,
+        SubmitCmaRequest request,
         ICmaJobStore store,
         CmaPipeline pipeline,
         IHubContext<CmaProgressHub> hubContext,
         ILogger<Program> logger,
         CancellationToken ct)
     {
+        var lead = request.ToLead();
+
         var validationResults = new List<ValidationResult>();
         if (!Validator.TryValidateObject(lead, new ValidationContext(lead), validationResults, true))
             return Results.ValidationProblem(

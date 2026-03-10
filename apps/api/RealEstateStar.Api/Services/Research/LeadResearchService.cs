@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Api.Features.Cma;
-using RealEstateStar.Api.Features.Cma.Submit;
 
 namespace RealEstateStar.Api.Services.Research;
 
