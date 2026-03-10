@@ -2,7 +2,7 @@ name: API
 
 on:
   push:
-    branches: [feat/cma-pipeline-impl]
+    branches: [main]
     paths:
       - 'apps/api/**'
       - '.github/workflows/api.yml'
