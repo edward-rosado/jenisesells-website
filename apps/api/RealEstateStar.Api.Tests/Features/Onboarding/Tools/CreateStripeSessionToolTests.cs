@@ -47,16 +47,9 @@ public class CreateStripeSessionToolTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_UsesEmptyEmailWhenProfileMissing()
+    public async Task ExecuteAsync_ReturnsErrorWhenProfileMissing()
     {
         var mockStripe = new Mock<IStripeService>();
-        mockStripe
-            .Setup(s => s.CreateCheckoutSessionAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync("https://checkout.stripe.com/c/pay_abc");
-
         var tool = new CreateStripeSessionTool(mockStripe.Object);
         var session = OnboardingSession.Create(null);
         // No profile set
@@ -65,11 +58,34 @@ public class CreateStripeSessionToolTests
 
         var result = await tool.ExecuteAsync(parameters, session, CancellationToken.None);
 
+        var json = JsonDocument.Parse(result);
+        Assert.True(json.RootElement.TryGetProperty("error", out _));
         mockStripe.Verify(s => s.CreateCheckoutSessionAsync(
-            session.Id,
-            "",
-            CancellationToken.None),
-            Times.Once);
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ReturnsErrorWhenEmailEmpty()
+    {
+        var mockStripe = new Mock<IStripeService>();
+        var tool = new CreateStripeSessionTool(mockStripe.Object);
+        var session = OnboardingSession.Create(null);
+        session.Profile = new ScrapedProfile { Email = "" };
+
+        var parameters = JsonDocument.Parse("{}").RootElement;
+
+        var result = await tool.ExecuteAsync(parameters, session, CancellationToken.None);
+
+        var json = JsonDocument.Parse(result);
+        Assert.True(json.RootElement.TryGetProperty("error", out _));
+        mockStripe.Verify(s => s.CreateCheckoutSessionAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -86,6 +102,7 @@ public class CreateStripeSessionToolTests
 
         var tool = new CreateStripeSessionTool(mockStripe.Object);
         var session = OnboardingSession.Create(null);
+        session.Profile = new ScrapedProfile { Email = "agent@example.com" };
 
         var parameters = JsonDocument.Parse("{}").RootElement;
         var result = await tool.ExecuteAsync(parameters, session, CancellationToken.None);

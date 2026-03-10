@@ -1,3 +1,4 @@
+// TODO: LOW-7 — Extract Google logo SVG to a shared component
 import { useEffect, useCallback } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
