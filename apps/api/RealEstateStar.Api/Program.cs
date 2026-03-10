@@ -31,15 +31,23 @@ var configPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "
 builder.Services.AddSingleton<IAgentConfigService>(sp =>
     new AgentConfigService(configPath, sp.GetRequiredService<ILogger<AgentConfigService>>()));
 
-// Onboarding
+// Onboarding (session store registered early, services after config keys below)
 builder.Services.AddSingleton<ISessionStore, JsonFileSessionStore>();
 builder.Services.AddSingleton<OnboardingStateMachine>();
-builder.Services.AddSingleton<OnboardingChatService>();
-builder.Services.AddSingleton<SiteDeployService>();
-builder.Services.AddSingleton<StripeService>();
-builder.Services.AddSingleton<DomainService>();
+
+// Configuration keys
+var anthropicKey = builder.Configuration["Anthropic:ApiKey"]
+    ?? throw new InvalidOperationException("Anthropic:ApiKey configuration is required");
+var attomKey = builder.Configuration["Attom:ApiKey"]
+    ?? throw new InvalidOperationException("Attom:ApiKey configuration is required");
+
+// Onboarding services (need anthropicKey)
 builder.Services.AddHttpClient<ProfileScraperService>();
-builder.Services.AddSingleton<IProfileScraper>(sp => sp.GetRequiredService<ProfileScraperService>());
+builder.Services.AddSingleton<IProfileScraper>(sp =>
+    new ProfileScraperService(
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(ProfileScraperService)),
+        anthropicKey,
+        sp.GetRequiredService<ILogger<ProfileScraperService>>()));
 builder.Services.AddSingleton<IOnboardingTool, ScrapeUrlTool>();
 builder.Services.AddSingleton<IOnboardingTool, UpdateProfileTool>();
 builder.Services.AddSingleton<IOnboardingTool, SetBrandingTool>();
@@ -47,13 +55,18 @@ builder.Services.AddSingleton<IOnboardingTool, DeploySiteTool>();
 builder.Services.AddSingleton<IOnboardingTool, SubmitCmaFormTool>();
 builder.Services.AddSingleton<IOnboardingTool, CreateStripeSessionTool>();
 builder.Services.AddSingleton<ToolDispatcher>();
+builder.Services.AddSingleton<SiteDeployService>();
+builder.Services.AddSingleton<StripeService>();
+builder.Services.AddSingleton<DomainService>();
+builder.Services.AddHttpClient<OnboardingChatService>();
+builder.Services.AddSingleton(sp =>
+    new OnboardingChatService(
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(OnboardingChatService)),
+        anthropicKey,
+        sp.GetRequiredService<OnboardingStateMachine>(),
+        sp.GetRequiredService<ToolDispatcher>(),
+        sp.GetRequiredService<ILogger<OnboardingChatService>>()));
 builder.Services.AddHostedService<TrialExpiryService>();
-
-// Configuration keys
-var anthropicKey = builder.Configuration["Anthropic:ApiKey"]
-    ?? throw new InvalidOperationException("Anthropic:ApiKey configuration is required");
-var attomKey = builder.Configuration["Attom:ApiKey"]
-    ?? throw new InvalidOperationException("Attom:ApiKey configuration is required");
 
 // Comp sources — typed HttpClient registrations
 builder.Services.AddHttpClient<ZillowCompSource>();
@@ -112,7 +125,8 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy.WithOrigins(
-                builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? ["http://localhost:3000"])
+                builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                    ?? ["http://localhost:3000", "http://localhost:3001"])
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials(); // Required for SignalR

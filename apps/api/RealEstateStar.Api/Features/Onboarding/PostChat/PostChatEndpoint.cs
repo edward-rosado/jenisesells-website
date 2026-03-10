@@ -3,8 +3,6 @@ using RealEstateStar.Api.Infrastructure;
 
 namespace RealEstateStar.Api.Features.Onboarding.PostChat;
 
-// No response DTO — this endpoint streams SSE. The stub returns JSON for now;
-// Task 18 (Claude chat service) replaces this with real SSE streaming.
 public class PostChatEndpoint : IEndpoint
 {
     public void MapEndpoint(WebApplication app)
@@ -16,6 +14,7 @@ public class PostChatEndpoint : IEndpoint
         string sessionId,
         PostChatRequest request,
         ISessionStore sessionStore,
+        OnboardingChatService chatService,
         CancellationToken ct)
     {
         var session = await sessionStore.LoadAsync(sessionId, ct);
@@ -27,16 +26,17 @@ public class PostChatEndpoint : IEndpoint
             Content = request.Message,
         });
 
-        // TODO: Wire OnboardingChatService here (Task 18).
-        // For now, echo back a stub assistant message.
-        session.Messages.Add(new ChatMessage
+        return Results.Stream(async stream =>
         {
-            Role = "assistant",
-            Content = $"[Stub] Received: {request.Message}",
-        });
+            var writer = new StreamWriter(stream) { AutoFlush = true };
 
-        await sessionStore.SaveAsync(session, ct);
+            await foreach (var chunk in chatService.StreamResponseAsync(session, request.Message, ct))
+            {
+                await writer.WriteAsync($"data: {chunk}\n\n");
+            }
 
-        return Results.Ok(new { response = session.Messages[^1].Content });
+            await writer.WriteAsync("data: [DONE]\n\n");
+            await sessionStore.SaveAsync(session, ct);
+        }, "text/event-stream");
     }
 }

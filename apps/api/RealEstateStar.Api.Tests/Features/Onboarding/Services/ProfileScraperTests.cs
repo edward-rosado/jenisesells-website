@@ -27,19 +27,6 @@ public class ProfileScraperTests
     }
 
     [Fact]
-    public async Task ScrapeAsync_ValidPage_ReturnsProfile()
-    {
-        var html = "<html><body><h1>Jane Doe</h1><p>RE/MAX agent serving New Jersey with 15 years experience and 200 homes sold.</p></body></html>";
-        var client = CreateMockHttpClient(HttpStatusCode.OK, html);
-        var scraper = new ProfileScraperService(client, NullLogger<ProfileScraperService>.Instance);
-
-        var result = await scraper.ScrapeAsync("https://zillow.com/profile/jane-doe", CancellationToken.None);
-
-        Assert.NotNull(result);
-        Assert.Contains("zillow.com", result!.Bio);
-    }
-
-    [Fact]
     public async Task ScrapeAsync_FetchFailure_ReturnsNull()
     {
         var handler = new Mock<HttpMessageHandler>();
@@ -50,7 +37,7 @@ public class ProfileScraperTests
                 ItExpr.IsAny<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("Connection refused"));
         var client = new HttpClient(handler.Object);
-        var scraper = new ProfileScraperService(client, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(client, "test-key", NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/nobody", CancellationToken.None);
 
@@ -61,10 +48,24 @@ public class ProfileScraperTests
     public async Task ScrapeAsync_EmptyPage_ReturnsNull()
     {
         var client = CreateMockHttpClient(HttpStatusCode.OK, "<html><body></body></html>");
-        var scraper = new ProfileScraperService(client, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(client, "test-key", NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://example.com/empty", CancellationToken.None);
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ScrapeAsync_ValidPage_FallsBackOnClaudeFailure()
+    {
+        // When Claude API call fails (bad key), scraper returns partial profile as fallback
+        var html = "<html><body><h1>Jane Doe</h1><p>RE/MAX agent serving New Jersey with 15 years experience and 200 homes sold in the tri-state area.</p></body></html>";
+        var client = CreateMockHttpClient(HttpStatusCode.OK, html);
+        var scraper = new ProfileScraperService(client, "invalid-key", NullLogger<ProfileScraperService>.Instance);
+
+        var result = await scraper.ScrapeAsync("https://zillow.com/profile/jane-doe", CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Contains("zillow.com", result!.Bio);
     }
 }
