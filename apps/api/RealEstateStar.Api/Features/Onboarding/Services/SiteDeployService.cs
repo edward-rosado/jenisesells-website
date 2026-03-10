@@ -35,7 +35,7 @@ public partial class SiteDeployService(
         var profile = session.Profile
             ?? throw new InvalidOperationException("Cannot deploy site without a scraped profile");
 
-        var agentSlug = GenerateSlug(profile.Name);
+        var agentSlug = OnboardingHelpers.GenerateSlug(profile.Name);
 
         // Step 1: Write agent config JSON
         await WriteAgentConfigAsync(agentSlug, profile, ct);
@@ -48,14 +48,6 @@ public partial class SiteDeployService(
         logger.LogInformation("Deployed site for {AgentSlug} at {SiteUrl}", agentSlug, siteUrl);
 
         return siteUrl;
-    }
-
-    internal static string GenerateSlug(string? name)
-    {
-        var slug = (name ?? "agent").ToLowerInvariant().Replace(" ", "-");
-        // Sanitize: only allow lowercase letters, digits, hyphens
-        slug = string.Concat(slug.Where(c => char.IsLetterOrDigit(c) || c == '-'));
-        return string.IsNullOrEmpty(slug) ? "agent" : slug;
     }
 
     private async Task WriteAgentConfigAsync(string agentSlug, ScrapedProfile profile, CancellationToken ct)

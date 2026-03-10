@@ -17,6 +17,7 @@ public sealed class OnboardingSession
     public string? CustomDomain { get; set; }
     public string? OAuthNonce { get; set; }
     public string? LastStripeEventId { get; set; }
+    public bool DriveFolderInitialized { get; set; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
