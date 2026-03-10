@@ -11,6 +11,12 @@ describe("SitePreview", () => {
     expect(iframe).toHaveAttribute("src", "https://example.realestatestar.com");
   });
 
+  it("sandboxes iframe with allow-scripts but not allow-same-origin", () => {
+    render(<SitePreview siteUrl="https://example.com" onApprove={() => {}} />);
+    const iframe = screen.getByTitle("Site preview");
+    expect(iframe).toHaveAttribute("sandbox", "allow-scripts");
+  });
+
   it("calls onApprove when button clicked", async () => {
     const onApprove = vi.fn();
     render(<SitePreview siteUrl="https://example.com" onApprove={onApprove} />);

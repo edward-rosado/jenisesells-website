@@ -1,14 +1,20 @@
 import { useEffect, useCallback } from "react";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+
 interface GoogleAuthCardProps {
   oauthUrl: string;
   onConnected: (email: string) => void;
   onError?: (error: string) => void;
+  apiOrigin?: string;
 }
 
-export function GoogleAuthCard({ oauthUrl, onConnected, onError }: GoogleAuthCardProps) {
+export function GoogleAuthCard({ oauthUrl, onConnected, onError, apiOrigin }: GoogleAuthCardProps) {
+  const trustedOrigin = apiOrigin ?? new URL(API_BASE).origin;
+
   const handleMessage = useCallback(
     (event: MessageEvent) => {
+      if (event.origin !== trustedOrigin) return;
       if (event.data?.type !== "google_oauth_callback") return;
       if (event.data.success) {
         onConnected(event.data.message);
@@ -16,7 +22,7 @@ export function GoogleAuthCard({ oauthUrl, onConnected, onError }: GoogleAuthCar
         onError?.(event.data.message);
       }
     },
-    [onConnected, onError]
+    [onConnected, onError, trustedOrigin]
   );
 
   useEffect(() => {
