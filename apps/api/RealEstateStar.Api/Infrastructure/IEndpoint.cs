@@ -1,4 +1,4 @@
-namespace RealEstateStar.Api.Endpoints;
+namespace RealEstateStar.Api.Infrastructure;
 
 public interface IEndpoint
 {

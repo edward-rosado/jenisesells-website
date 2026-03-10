@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace RealEstateStar.Api.Endpoints;
+namespace RealEstateStar.Api.Infrastructure;
 
 public static class EndpointExtensions
 {

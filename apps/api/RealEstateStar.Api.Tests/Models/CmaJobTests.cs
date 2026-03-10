@@ -1,6 +1,5 @@
 using FluentAssertions;
 using RealEstateStar.Api.Features.Cma;
-using RealEstateStar.Api.Features.Cma.Submit;
 
 namespace RealEstateStar.Api.Tests.Models;
 

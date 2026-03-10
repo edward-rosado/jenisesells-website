@@ -1,10 +1,10 @@
-using RealEstateStar.Api.Endpoints;
+using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Api.Features.Cma;
 using RealEstateStar.Api.Services;
 
 namespace RealEstateStar.Api.Features.Cma.GetStatus;
 
-public class GetCmaStatusEndpoint : IEndpoint
+public class GetStatusEndpoint : IEndpoint
 {
     public void MapEndpoint(WebApplication app) =>
         app.MapGet("/agents/{agentId}/cma/{jobId}/status", Handle);

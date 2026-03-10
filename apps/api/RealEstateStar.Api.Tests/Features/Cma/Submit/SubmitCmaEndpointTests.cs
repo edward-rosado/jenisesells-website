@@ -4,7 +4,6 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using RealEstateStar.Api.Features.Cma;
-using RealEstateStar.Api.Features.Cma.Submit;
 using RealEstateStar.Api.Services;
 
 namespace RealEstateStar.Api.Tests.Features.Cma.Submit;

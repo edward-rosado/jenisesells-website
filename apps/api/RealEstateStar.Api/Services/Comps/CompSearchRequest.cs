@@ -1,4 +1,4 @@
-namespace RealEstateStar.Api.Features.Cma;
+namespace RealEstateStar.Api.Services.Comps;
 
 public record CompSearchRequest
 {

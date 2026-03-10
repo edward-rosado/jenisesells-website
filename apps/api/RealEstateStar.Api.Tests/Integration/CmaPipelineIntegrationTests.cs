@@ -2,7 +2,6 @@ using FluentAssertions;
 using Moq;
 using RealEstateStar.Api.Common;
 using RealEstateStar.Api.Features.Cma;
-using RealEstateStar.Api.Features.Cma.Submit;
 using RealEstateStar.Api.Services;
 using RealEstateStar.Api.Services.Analysis;
 using RealEstateStar.Api.Services.Comps;

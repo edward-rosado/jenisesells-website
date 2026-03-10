@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace RealEstateStar.Api.Features.Cma.Submit;
+namespace RealEstateStar.Api.Features.Cma;
 
 public class Lead
 {

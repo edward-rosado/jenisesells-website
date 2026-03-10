@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Api.Diagnostics;
 using RealEstateStar.Api.Common;
 using RealEstateStar.Api.Features.Cma;
-using RealEstateStar.Api.Features.Cma.Submit;
 using RealEstateStar.Api.Services.Analysis;
 using RealEstateStar.Api.Services.Comps;
 using RealEstateStar.Api.Services.Gws;

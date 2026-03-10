@@ -1,4 +1,4 @@
-namespace RealEstateStar.Api.Features.Cma;
+namespace RealEstateStar.Api.Services.Gws;
 
 public record LeadBriefData
 {

@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using RealEstateStar.Api.Diagnostics;
-using RealEstateStar.Api.Endpoints;
+using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Api.Hubs;
 using RealEstateStar.Api.Logging;
 using RealEstateStar.Api.Middleware;
