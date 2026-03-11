@@ -120,7 +120,7 @@ public class ChatServiceTests
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(handler));
         var session = OnboardingSession.Create(null);
-        session.CurrentState = OnboardingState.CollectBranding;
+        session.CurrentState = OnboardingState.GenerateSite;
 
         var service = new OnboardingChatService(
             factory.Object,
@@ -137,7 +137,7 @@ public class ChatServiceTests
 
         capturedSystem.Should().NotBeNull();
         capturedSystem.Should().Contain("onboarding assistant", "system prompt should describe the assistant role");
-        capturedSystem.Should().Contain("CollectBranding", "system prompt should include current state");
+        capturedSystem.Should().Contain("GenerateSite", "system prompt should include current state");
     }
 
     [Fact]
@@ -906,7 +906,6 @@ public class ChatServiceBranchCoverageTests
     // ── Branch: system prompt switch — each uncovered OnboardingState case ──
 
     [Theory]
-    [InlineData(OnboardingState.PreviewSite, "preview")]
     [InlineData(OnboardingState.DemoCma, "CMA")]
     [InlineData(OnboardingState.ShowResults, "results")]
     [InlineData(OnboardingState.CollectPayment, "900")]

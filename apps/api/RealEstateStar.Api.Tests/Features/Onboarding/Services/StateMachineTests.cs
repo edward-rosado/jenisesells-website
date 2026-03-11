@@ -8,91 +8,12 @@ public class StateMachineTests
 {
     private readonly OnboardingStateMachine _sm = new();
 
-    [Fact]
-    public void CanAdvance_FromScrapeProfile_ToConfirmIdentity()
-    {
-        var session = OnboardingSession.Create("https://zillow.com/profile/test");
-        Assert.True(_sm.CanAdvance(session, OnboardingState.ConfirmIdentity));
-    }
-
-    [Fact]
-    public void CannotSkip_FromScrapeProfile_ToGenerateSite()
-    {
-        var session = OnboardingSession.Create(null);
-        Assert.False(_sm.CanAdvance(session, OnboardingState.GenerateSite));
-    }
-
-    [Fact]
-    public void Advance_UpdatesCurrentState()
-    {
-        var session = OnboardingSession.Create(null);
-        _sm.Advance(session, OnboardingState.ConfirmIdentity);
-        Assert.Equal(OnboardingState.ConfirmIdentity, session.CurrentState);
-    }
-
-    [Fact]
-    public void Advance_ToInvalidState_Throws()
-    {
-        var session = OnboardingSession.Create(null);
-        Assert.Throws<InvalidOperationException>(
-            () => _sm.Advance(session, OnboardingState.CollectPayment));
-    }
-
-    [Fact]
-    public void GetAllowedTools_ScrapeProfile_ReturnsScrapeTools()
-    {
-        var tools = _sm.GetAllowedTools(OnboardingState.ScrapeProfile);
-        Assert.Contains("scrape_url", tools);
-        Assert.DoesNotContain("deploy_site", tools);
-    }
-
-    [Fact]
-    public void GetAllowedTools_CollectPayment_ReturnsStripeTools()
-    {
-        var tools = _sm.GetAllowedTools(OnboardingState.CollectPayment);
-        Assert.Contains("create_stripe_session", tools);
-        Assert.DoesNotContain("scrape_url", tools);
-    }
-
-    [Fact]
-    public void CanAdvance_FromCollectBranding_ToConnectGoogle()
-    {
-        var session = OnboardingSession.Create(null);
-        session.CurrentState = OnboardingState.CollectBranding;
-        Assert.True(_sm.CanAdvance(session, OnboardingState.ConnectGoogle));
-    }
-
-    [Fact]
-    public void CanAdvance_FromConnectGoogle_ToGenerateSite()
-    {
-        var session = OnboardingSession.Create(null);
-        session.CurrentState = OnboardingState.ConnectGoogle;
-        Assert.True(_sm.CanAdvance(session, OnboardingState.GenerateSite));
-    }
-
-    [Fact]
-    public void CannotSkip_FromCollectBranding_ToGenerateSite()
-    {
-        var session = OnboardingSession.Create(null);
-        session.CurrentState = OnboardingState.CollectBranding;
-        Assert.False(_sm.CanAdvance(session, OnboardingState.GenerateSite));
-    }
-
-    [Fact]
-    public void GetAllowedTools_ConnectGoogle_ReturnsGoogleAuthTool()
-    {
-        var tools = _sm.GetAllowedTools(OnboardingState.ConnectGoogle);
-        Assert.Contains("google_auth_card", tools);
-        Assert.DoesNotContain("deploy_site", tools);
-    }
+    // --- Valid transitions ---
 
     [Theory]
-    [InlineData(OnboardingState.ScrapeProfile, OnboardingState.ConfirmIdentity)]
-    [InlineData(OnboardingState.ConfirmIdentity, OnboardingState.CollectBranding)]
-    [InlineData(OnboardingState.CollectBranding, OnboardingState.ConnectGoogle)]
-    [InlineData(OnboardingState.ConnectGoogle, OnboardingState.GenerateSite)]
-    [InlineData(OnboardingState.GenerateSite, OnboardingState.PreviewSite)]
-    [InlineData(OnboardingState.PreviewSite, OnboardingState.DemoCma)]
+    [InlineData(OnboardingState.ScrapeProfile, OnboardingState.GenerateSite)]
+    [InlineData(OnboardingState.GenerateSite, OnboardingState.ConnectGoogle)]
+    [InlineData(OnboardingState.ConnectGoogle, OnboardingState.DemoCma)]
     [InlineData(OnboardingState.DemoCma, OnboardingState.ShowResults)]
     [InlineData(OnboardingState.ShowResults, OnboardingState.CollectPayment)]
     [InlineData(OnboardingState.CollectPayment, OnboardingState.TrialActivated)]
@@ -103,25 +24,116 @@ public class StateMachineTests
         Assert.True(_sm.CanAdvance(session, to));
     }
 
-    // --- Missing branch coverage ---
-
-    [Fact]
-    public void CanAdvance_WithUnknownState_ReturnsFalse()
+    [Theory]
+    [InlineData(OnboardingState.ScrapeProfile, OnboardingState.GenerateSite)]
+    [InlineData(OnboardingState.GenerateSite, OnboardingState.ConnectGoogle)]
+    [InlineData(OnboardingState.ConnectGoogle, OnboardingState.DemoCma)]
+    [InlineData(OnboardingState.DemoCma, OnboardingState.ShowResults)]
+    [InlineData(OnboardingState.ShowResults, OnboardingState.CollectPayment)]
+    [InlineData(OnboardingState.CollectPayment, OnboardingState.TrialActivated)]
+    public void Advance_UpdatesCurrentState(OnboardingState from, OnboardingState to)
     {
         var session = OnboardingSession.Create(null);
-        session.CurrentState = (OnboardingState)999;
-        Assert.False(_sm.CanAdvance(session, OnboardingState.ConfirmIdentity));
+        session.CurrentState = from;
+        _sm.Advance(session, to);
+        Assert.Equal(to, session.CurrentState);
     }
+
+    // --- Invalid transitions ---
+
+    [Fact]
+    public void CannotSkip_FromScrapeProfile_ToDemoCma()
+    {
+        var session = OnboardingSession.Create(null);
+        Assert.False(_sm.CanAdvance(session, OnboardingState.DemoCma));
+    }
+
+    [Fact]
+    public void CannotSkip_FromGenerateSite_ToDemoCma()
+    {
+        var session = OnboardingSession.Create(null);
+        session.CurrentState = OnboardingState.GenerateSite;
+        Assert.False(_sm.CanAdvance(session, OnboardingState.DemoCma));
+    }
+
+    [Fact]
+    public void Advance_ToInvalidState_Throws()
+    {
+        var session = OnboardingSession.Create(null);
+        Assert.Throws<InvalidOperationException>(
+            () => _sm.Advance(session, OnboardingState.CollectPayment));
+    }
+
+    // --- Terminal state ---
 
     [Fact]
     public void CanAdvance_FromTrialActivated_ReturnsFalseForAllTargets()
     {
         var session = OnboardingSession.Create(null);
         session.CurrentState = OnboardingState.TrialActivated;
-        // TrialActivated has an empty allowed array — TryGetValue succeeds but Contains returns false
         Assert.False(_sm.CanAdvance(session, OnboardingState.ScrapeProfile));
-        Assert.False(_sm.CanAdvance(session, OnboardingState.ConfirmIdentity));
+        Assert.False(_sm.CanAdvance(session, OnboardingState.GenerateSite));
         Assert.False(_sm.CanAdvance(session, OnboardingState.CollectPayment));
+    }
+
+    // --- Tools by state ---
+
+    [Fact]
+    public void GetAllowedTools_ScrapeProfile_ReturnsScrapeTools()
+    {
+        var tools = _sm.GetAllowedTools(OnboardingState.ScrapeProfile);
+        Assert.Contains("scrape_url", tools);
+        Assert.Contains("update_profile", tools);
+        Assert.DoesNotContain("deploy_site", tools);
+    }
+
+    [Fact]
+    public void GetAllowedTools_GenerateSite_ReturnsDeployTool()
+    {
+        var tools = _sm.GetAllowedTools(OnboardingState.GenerateSite);
+        Assert.Contains("deploy_site", tools);
+    }
+
+    [Fact]
+    public void GetAllowedTools_ConnectGoogle_ReturnsGoogleAuthTool()
+    {
+        var tools = _sm.GetAllowedTools(OnboardingState.ConnectGoogle);
+        Assert.Contains("google_auth_card", tools);
+        Assert.DoesNotContain("deploy_site", tools);
+    }
+
+    [Fact]
+    public void GetAllowedTools_DemoCma_ReturnsCmaTool()
+    {
+        var tools = _sm.GetAllowedTools(OnboardingState.DemoCma);
+        Assert.Contains("submit_cma_form", tools);
+    }
+
+    [Fact]
+    public void GetAllowedTools_CollectPayment_ReturnsStripeTools()
+    {
+        var tools = _sm.GetAllowedTools(OnboardingState.CollectPayment);
+        Assert.Contains("create_stripe_session", tools);
+        Assert.DoesNotContain("scrape_url", tools);
+    }
+
+    [Theory]
+    [InlineData(OnboardingState.ShowResults)]
+    [InlineData(OnboardingState.TrialActivated)]
+    public void GetAllowedTools_EmptyStates_ReturnsEmpty(OnboardingState state)
+    {
+        var tools = _sm.GetAllowedTools(state);
+        Assert.Empty(tools);
+    }
+
+    // --- Edge cases ---
+
+    [Fact]
+    public void CanAdvance_WithUnknownState_ReturnsFalse()
+    {
+        var session = OnboardingSession.Create(null);
+        session.CurrentState = (OnboardingState)999;
+        Assert.False(_sm.CanAdvance(session, OnboardingState.GenerateSite));
     }
 
     [Fact]
@@ -136,28 +148,7 @@ public class StateMachineTests
     {
         var session = OnboardingSession.Create(null);
         var before = DateTime.UtcNow;
-        _sm.Advance(session, OnboardingState.ConfirmIdentity);
+        _sm.Advance(session, OnboardingState.GenerateSite);
         Assert.True(session.UpdatedAt >= before);
-    }
-
-    [Theory]
-    [InlineData(OnboardingState.ConfirmIdentity, "update_profile")]
-    [InlineData(OnboardingState.CollectBranding, "set_branding")]
-    [InlineData(OnboardingState.GenerateSite, "deploy_site")]
-    [InlineData(OnboardingState.PreviewSite, "get_preview_url")]
-    [InlineData(OnboardingState.DemoCma, "submit_cma_form")]
-    public void GetAllowedTools_ReturnsExpectedToolForState(OnboardingState state, string expectedTool)
-    {
-        var tools = _sm.GetAllowedTools(state);
-        Assert.Contains(expectedTool, tools);
-    }
-
-    [Theory]
-    [InlineData(OnboardingState.ShowResults)]
-    [InlineData(OnboardingState.TrialActivated)]
-    public void GetAllowedTools_EmptyStates_ReturnsEmpty(OnboardingState state)
-    {
-        var tools = _sm.GetAllowedTools(state);
-        Assert.Empty(tools);
     }
 }

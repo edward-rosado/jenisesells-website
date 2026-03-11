@@ -54,7 +54,7 @@ public class GoogleOAuthCallbackEndpointTests
 
         Assert.NotNull(session.GoogleTokens);
         Assert.Equal("agent@gmail.com", session.GoogleTokens.GoogleEmail);
-        Assert.Equal(OnboardingState.GenerateSite, session.CurrentState);
+        Assert.Equal(OnboardingState.DemoCma, session.CurrentState);
         _mockStore.Verify(s => s.SaveAsync(session, It.IsAny<CancellationToken>()), Times.Once);
     }
 

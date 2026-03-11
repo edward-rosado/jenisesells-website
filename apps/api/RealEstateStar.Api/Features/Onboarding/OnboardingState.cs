@@ -6,11 +6,8 @@ namespace RealEstateStar.Api.Features.Onboarding;
 public enum OnboardingState
 {
     ScrapeProfile,
-    ConfirmIdentity,
-    CollectBranding,
-    ConnectGoogle,
     GenerateSite,
-    PreviewSite,
+    ConnectGoogle,
     DemoCma,
     ShowResults,
     CollectPayment,

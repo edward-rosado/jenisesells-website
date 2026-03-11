@@ -4,12 +4,9 @@ public class OnboardingStateMachine
 {
     private static readonly Dictionary<OnboardingState, OnboardingState[]> Transitions = new()
     {
-        [OnboardingState.ScrapeProfile] = [OnboardingState.ConfirmIdentity],
-        [OnboardingState.ConfirmIdentity] = [OnboardingState.CollectBranding],
-        [OnboardingState.CollectBranding] = [OnboardingState.ConnectGoogle],
-        [OnboardingState.ConnectGoogle] = [OnboardingState.GenerateSite],
-        [OnboardingState.GenerateSite] = [OnboardingState.PreviewSite],
-        [OnboardingState.PreviewSite] = [OnboardingState.DemoCma],
+        [OnboardingState.ScrapeProfile] = [OnboardingState.GenerateSite],
+        [OnboardingState.GenerateSite] = [OnboardingState.ConnectGoogle],
+        [OnboardingState.ConnectGoogle] = [OnboardingState.DemoCma],
         [OnboardingState.DemoCma] = [OnboardingState.ShowResults],
         [OnboardingState.ShowResults] = [OnboardingState.CollectPayment],
         [OnboardingState.CollectPayment] = [OnboardingState.TrialActivated],
@@ -19,11 +16,8 @@ public class OnboardingStateMachine
     private static readonly Dictionary<OnboardingState, string[]> ToolsByState = new()
     {
         [OnboardingState.ScrapeProfile] = ["scrape_url", "update_profile"],
-        [OnboardingState.ConfirmIdentity] = ["update_profile"],
-        [OnboardingState.CollectBranding] = ["extract_colors", "set_branding"],
-        [OnboardingState.ConnectGoogle] = ["google_auth_card"],
         [OnboardingState.GenerateSite] = ["deploy_site"],
-        [OnboardingState.PreviewSite] = ["get_preview_url"],
+        [OnboardingState.ConnectGoogle] = ["google_auth_card"],
         [OnboardingState.DemoCma] = ["submit_cma_form"],
         [OnboardingState.ShowResults] = [],
         [OnboardingState.CollectPayment] = ["create_stripe_session"],

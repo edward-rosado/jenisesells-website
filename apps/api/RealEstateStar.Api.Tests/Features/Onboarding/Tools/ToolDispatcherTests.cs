@@ -63,7 +63,7 @@ public class ToolDispatcherTests
     [Fact]
     public async Task SetBrandingTool_SetsBrandingColors()
     {
-        var tool = new SetBrandingTool(new OnboardingStateMachine());
+        var tool = new SetBrandingTool();
         var session = OnboardingSession.Create(null);
         var json = JsonSerializer.Deserialize<JsonElement>("""{"primaryColor":"#ff0000","accentColor":"#00ff00"}""");
 

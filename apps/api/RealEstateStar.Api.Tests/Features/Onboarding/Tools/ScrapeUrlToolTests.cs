@@ -89,7 +89,7 @@ public class ScrapeUrlToolTests
         result.Should().Contain("RE/MAX Elite");
         result.Should().Contain("555-1234");
         session.Profile.Should().BeSameAs(profile);
-        session.CurrentState.Should().Be(OnboardingState.ConfirmIdentity, "scrape should auto-advance to ConfirmIdentity");
+        session.CurrentState.Should().Be(OnboardingState.GenerateSite, "scrape should auto-advance to GenerateSite");
     }
 
     [Fact]
