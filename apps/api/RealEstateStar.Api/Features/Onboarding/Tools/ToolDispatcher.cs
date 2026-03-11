@@ -15,15 +15,28 @@ public class ToolDispatcher(IEnumerable<IOnboardingTool> tools, ILogger<ToolDisp
         CancellationToken ct)
     {
         if (!_tools.TryGetValue(toolName, out var tool))
-            throw new InvalidOperationException($"Unknown tool: {toolName}");
+        {
+            logger.LogError("[TOOL-010] Unknown tool requested: {ToolName} for session {SessionId}. " +
+                "Available tools: {Available}",
+                toolName, session.Id, string.Join(", ", _tools.Keys));
+            throw new InvalidOperationException($"[TOOL-010] Unknown tool: {toolName}");
+        }
+
+        logger.LogInformation("[TOOL-011] Dispatching tool {ToolName} for session {SessionId} in state {State}",
+            toolName, session.Id, session.CurrentState);
 
         try
         {
-            return await tool.ExecuteAsync(parameters, session, ct);
+            var result = await tool.ExecuteAsync(parameters, session, ct);
+            logger.LogInformation("[TOOL-012] Tool {ToolName} completed for session {SessionId}, result length={Len}",
+                toolName, session.Id, result.Length);
+            return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Tool {ToolName} failed for session {SessionId}", toolName, session.Id);
+            logger.LogError(ex, "[TOOL-013] Tool {ToolName} failed for session {SessionId}. " +
+                "ExType={ExType}, Message={ExMessage}",
+                toolName, session.Id, ex.GetType().Name, ex.Message);
             throw;
         }
     }

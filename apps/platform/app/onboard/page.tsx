@@ -11,6 +11,7 @@ function OnboardContent() {
   const profileUrl = searchParams.get("profileUrl");
   const paymentStatus = searchParams.get("payment");
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -24,6 +25,7 @@ function OnboardContent() {
         if (!res.ok) throw new Error("Failed to create session");
         const data = await res.json();
         setSessionId(data.sessionId);
+        setSessionToken(data.token);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
       }
@@ -88,7 +90,7 @@ function OnboardContent() {
     );
   }
 
-  return <ChatWindow sessionId={sessionId} initialMessages={[]} />;
+  return <ChatWindow sessionId={sessionId} token={sessionToken!} initialMessages={[]} />;
 }
 
 export default function OnboardPage() {

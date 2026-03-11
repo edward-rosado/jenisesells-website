@@ -15,10 +15,16 @@ public class CreateSessionEndpoint : IEndpoint
     internal static async Task<IResult> Handle(
         CreateSessionRequest request,
         ISessionStore sessionStore,
+        ILogger<CreateSessionEndpoint> logger,
         CancellationToken ct)
     {
+        logger.LogInformation("[SESSION-CREATE-010] Creating session, profileUrl={HasUrl}",
+            request.ProfileUrl is not null);
+
         var session = request.ToSession();
         await sessionStore.SaveAsync(session, ct);
+
+        logger.LogInformation("[SESSION-CREATE-011] Session created: {SessionId}", session.Id);
         return Results.Ok(session.ToCreateResponse());
     }
 }

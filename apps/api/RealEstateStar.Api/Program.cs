@@ -70,11 +70,16 @@ if (!cloudflareOptions.IsValid())
 }
 
 // Onboarding services (need anthropicKey)
+var scraperApiKey = builder.Configuration["ScraperApi:ApiKey"];
+if (string.IsNullOrEmpty(scraperApiKey))
+    Log.Warning("ScraperApi:ApiKey not configured — profile scraping will use direct HTTP (may be blocked by Zillow/Realtor)");
+
 builder.Services.AddHttpClient(nameof(ProfileScraperService));
 builder.Services.AddSingleton<IProfileScraper>(sp =>
     new ProfileScraperService(
         sp.GetRequiredService<IHttpClientFactory>(),
         anthropicKey,
+        scraperApiKey,
         sp.GetRequiredService<ILogger<ProfileScraperService>>()));
 builder.Services.AddHttpClient(nameof(GoogleOAuthService));
 builder.Services.AddSingleton(sp =>
@@ -215,7 +220,7 @@ builder.Services.AddRateLimiter(options =>
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 5,
+                PermitLimit = 50,
                 Window = TimeSpan.FromHours(1)
             }));
 

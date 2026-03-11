@@ -14,7 +14,7 @@ export function MessageBubble({ role, content }: MessageBubbleProps) {
             : "bg-gray-800 text-gray-100"
         }`}
       >
-        {content}
+        <span className="whitespace-pre-wrap">{content}</span>
       </div>
     </div>
   );

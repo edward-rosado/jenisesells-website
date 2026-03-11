@@ -34,15 +34,14 @@ public class SubmitCmaFormTool(
             await cmaPipeline.ExecuteAsync(job, agentId, lead, _ => Task.CompletedTask, ct);
 
             var address = lead.FullAddress;
-            return $"CMA pipeline completed for {address}. " +
-                   $"The report has been emailed to {agentEmail} (your own email, so you can see the seller experience). " +
-                   "A Lead Brief has been created in your Google Drive under Real Estate Star/1 - Leads/, " +
-                   "and the lead has been logged in your tracking spreadsheet.";
+            return $"SUCCESS: CMA pipeline completed for {address}. " +
+                   $"Report emailed to {agentEmail}, Lead Brief saved to Google Drive, lead logged in tracking sheet.";
         }
         catch (Exception)
         {
-            return "The CMA demo encountered an issue. The team has been notified. " +
-                   "This won't affect your actual CMA pipeline once set up.";
+            return "FAILED: CMA demo could not run — the pipeline encountered an error. " +
+                   "Tell the agent honestly that the CMA demo is not working right now and the team will fix it. " +
+                   "Do NOT claim emails were sent or files were created.";
         }
     }
 
