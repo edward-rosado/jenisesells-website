@@ -5,11 +5,12 @@ import { GoogleAuthCard } from "./GoogleAuthCard";
 import { SitePreview } from "./SitePreview";
 import { FeatureChecklist } from "./FeatureChecklist";
 import { PaymentCard } from "./PaymentCard";
+import { CmaProgressCard } from "./CmaProgressCard";
 
 export interface ChatMessageData {
   role: "user" | "assistant";
   content: string;
-  type?: "text" | "profile_card" | "color_palette" | "google_auth" | "site_preview" | "feature_checklist" | "payment_card";
+  type?: "text" | "profile_card" | "color_palette" | "google_auth" | "site_preview" | "feature_checklist" | "payment_card" | "cma_progress";
   metadata?: Record<string, unknown>;
   msgId?: number;
 }
@@ -58,10 +59,20 @@ export function MessageRenderer({ message, onAction, isStreaming }: MessageRende
         <SitePreview
           siteUrl={(meta.siteUrl as string) ?? ""}
           onApprove={() => act("approve_site")}
+          showCmaHighlight={meta.showCmaHighlight as boolean | undefined}
         />
       );
     case "feature_checklist":
       return <FeatureChecklist />;
+    case "cma_progress":
+      return (
+        <CmaProgressCard
+          address={(meta.address as string) ?? ""}
+          recipientEmail={(meta.recipientEmail as string) ?? ""}
+          status={(meta.status as "running" | "complete" | "failed") ?? "complete"}
+          steps={(meta.steps as Array<{ label: string; status: "done" | "active" | "pending" }>) ?? []}
+        />
+      );
     case "payment_card":
       return (
         <PaymentCard

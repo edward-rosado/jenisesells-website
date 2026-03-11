@@ -23,4 +23,59 @@ describe("SitePreview", () => {
     await userEvent.click(screen.getByRole("button", { name: /approve/i }));
     expect(onApprove).toHaveBeenCalledOnce();
   });
+
+  it("appends #cma-form anchor when showCmaHighlight is true", () => {
+    render(
+      <SitePreview
+        siteUrl="https://example.com"
+        onApprove={() => {}}
+        showCmaHighlight
+      />
+    );
+    const iframe = screen.getByTitle("CMA form preview");
+    expect(iframe).toHaveAttribute("src", "https://example.com#cma-form");
+  });
+
+  it("shows 'Your CMA Form' title when showCmaHighlight is true", () => {
+    render(
+      <SitePreview
+        siteUrl="https://example.com"
+        onApprove={() => {}}
+        showCmaHighlight
+      />
+    );
+    expect(screen.getByText("Your CMA Form")).toBeInTheDocument();
+  });
+
+  it("shows CMA description text when showCmaHighlight is true", () => {
+    render(
+      <SitePreview
+        siteUrl="https://example.com"
+        onApprove={() => {}}
+        showCmaHighlight
+      />
+    );
+    expect(screen.getByText(/cma form on your website/i)).toBeInTheDocument();
+  });
+
+  it("hides Approve button when showCmaHighlight is true", () => {
+    render(
+      <SitePreview
+        siteUrl="https://example.com"
+        onApprove={() => {}}
+        showCmaHighlight
+      />
+    );
+    expect(screen.queryByRole("button", { name: /approve/i })).not.toBeInTheDocument();
+  });
+
+  it("shows Approve button when showCmaHighlight is not set", () => {
+    render(
+      <SitePreview
+        siteUrl="https://example.com"
+        onApprove={() => {}}
+      />
+    );
+    expect(screen.getByRole("button", { name: /approve/i })).toBeInTheDocument();
+  });
 });

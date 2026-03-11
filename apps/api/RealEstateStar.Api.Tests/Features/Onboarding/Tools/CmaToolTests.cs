@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Api.Features.Cma;
 using RealEstateStar.Api.Features.Cma.Services;
@@ -24,7 +25,7 @@ public class CmaToolTests
     public async Task ExecuteAsync_InvokesCmaPipeline()
     {
         var tool = CreateTool(out var pipeline, out _, out _);
-        var session = MakeSessionWithProfile();
+        var session = MakeSessionWithProfile(OnboardingState.DemoCma);
         var json = JsonSerializer.Deserialize<JsonElement>("""{"address":"456 Oak Ave","city":"Newark","state":"NJ","zip":"07102"}""");
 
         await tool.ExecuteAsync(json, session, CancellationToken.None);
@@ -41,7 +42,7 @@ public class CmaToolTests
     public async Task ExecuteAsync_UsesAgentEmailAsRecipient_InDemoMode()
     {
         var tool = CreateTool(out var pipeline, out _, out _);
-        var session = MakeSessionWithProfile();
+        var session = MakeSessionWithProfile(OnboardingState.DemoCma);
         var json = JsonSerializer.Deserialize<JsonElement>("""{"address":"456 Oak Ave","city":"Newark","state":"NJ","zip":"07102"}""");
 
         await tool.ExecuteAsync(json, session, CancellationToken.None);
@@ -59,7 +60,7 @@ public class CmaToolTests
     public async Task ExecuteAsync_CreatesLeadFromParameters()
     {
         var tool = CreateTool(out var pipeline, out _, out _);
-        var session = MakeSessionWithProfile();
+        var session = MakeSessionWithProfile(OnboardingState.DemoCma);
         var json = JsonSerializer.Deserialize<JsonElement>(
             """{"firstName":"Demo","lastName":"Lead","address":"456 Oak Ave","city":"Newark","state":"NJ","zip":"07102","timeline":"Just curious"}""");
 
@@ -83,7 +84,7 @@ public class CmaToolTests
     public async Task ExecuteAsync_UsesDefaultValues_WhenParametersMissing()
     {
         var tool = CreateTool(out var pipeline, out _, out _);
-        var session = MakeSessionWithProfile();
+        var session = MakeSessionWithProfile(OnboardingState.DemoCma);
         var json = JsonSerializer.Deserialize<JsonElement>("""{"address":"456 Oak Ave"}""");
 
         await tool.ExecuteAsync(json, session, CancellationToken.None);
@@ -101,24 +102,58 @@ public class CmaToolTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_ReturnsRichResultDescription()
+    public async Task ExecuteAsync_ReturnsCardMarkerAndSuccessText()
     {
         var tool = CreateTool(out _, out _, out _);
-        var session = MakeSessionWithProfile();
+        var session = MakeSessionWithProfile(OnboardingState.DemoCma);
         var json = JsonSerializer.Deserialize<JsonElement>("""{"address":"456 Oak Ave","city":"Newark","state":"NJ","zip":"07102"}""");
 
         var result = await tool.ExecuteAsync(json, session, CancellationToken.None);
 
+        Assert.Contains("[CARD:cma_progress]", result);
         Assert.Contains("456 Oak Ave", result);
         Assert.Contains("email", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Drive", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
+    public async Task ExecuteAsync_AdvancesToShowResults_OnSuccess()
+    {
+        var tool = CreateTool(out _, out _, out _);
+        var session = MakeSessionWithProfile(OnboardingState.DemoCma);
+        var json = JsonSerializer.Deserialize<JsonElement>("""{"address":"456 Oak Ave","city":"Newark","state":"NJ","zip":"07102"}""");
+
+        await tool.ExecuteAsync(json, session, CancellationToken.None);
+
+        Assert.Equal(OnboardingState.ShowResults, session.CurrentState);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_AdvancesToShowResults_OnFailure()
+    {
+        var tool = CreateTool(out var pipeline, out _, out _);
+        pipeline.Setup(p => p.ExecuteAsync(
+                It.IsAny<CmaJob>(),
+                It.IsAny<string>(),
+                It.IsAny<Lead>(),
+                It.IsAny<Func<CmaJobStatus, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Pipeline internal error"));
+        var session = MakeSessionWithProfile(OnboardingState.DemoCma);
+        var json = JsonSerializer.Deserialize<JsonElement>("""{"address":"456 Oak Ave","city":"Newark","state":"NJ","zip":"07102"}""");
+
+        var result = await tool.ExecuteAsync(json, session, CancellationToken.None);
+
+        Assert.Equal(OnboardingState.ShowResults, session.CurrentState);
+        Assert.StartsWith("FAILED:", result);
+        Assert.DoesNotContain("Pipeline internal error", result); // Don't leak internals
+    }
+
+    [Fact]
     public async Task ExecuteAsync_UsesSessionAgentConfigId()
     {
         var tool = CreateTool(out var pipeline, out _, out _);
-        var session = MakeSessionWithProfile();
+        var session = MakeSessionWithProfile(OnboardingState.DemoCma);
         session.AgentConfigId = "custom-agent-slug";
         var json = JsonSerializer.Deserialize<JsonElement>("""{"address":"456 Oak Ave","city":"Newark","state":"NJ","zip":"07102"}""");
 
@@ -143,7 +178,7 @@ public class CmaToolTests
                 It.IsAny<Func<CmaJobStatus, Task>>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Pipeline internal error"));
-        var session = MakeSessionWithProfile();
+        var session = MakeSessionWithProfile(OnboardingState.DemoCma);
         var json = JsonSerializer.Deserialize<JsonElement>("""{"address":"456 Oak Ave","city":"Newark","state":"NJ","zip":"07102"}""");
 
         var result = await tool.ExecuteAsync(json, session, CancellationToken.None);
@@ -156,7 +191,7 @@ public class CmaToolTests
     public async Task ExecuteAsync_InitializesDriveFolders_OnFirstCma()
     {
         var tool = CreateTool(out _, out _, out var driveFolderInit);
-        var session = MakeSessionWithProfile();
+        var session = MakeSessionWithProfile(OnboardingState.DemoCma);
         var json = JsonSerializer.Deserialize<JsonElement>("""{"address":"456 Oak Ave","city":"Newark","state":"NJ","zip":"07102"}""");
 
         await tool.ExecuteAsync(json, session, CancellationToken.None);
@@ -171,7 +206,7 @@ public class CmaToolTests
     public async Task ExecuteAsync_PassesCancellationToken()
     {
         var tool = CreateTool(out var pipeline, out _, out _);
-        var session = MakeSessionWithProfile();
+        var session = MakeSessionWithProfile(OnboardingState.DemoCma);
         var json = JsonSerializer.Deserialize<JsonElement>("""{"address":"456 Oak Ave","city":"Newark","state":"NJ","zip":"07102"}""");
         using var cts = new CancellationTokenSource();
 
@@ -220,6 +255,7 @@ public class CmaToolTests
         var tool = CreateTool(out _, out _, out var driveFolderInit);
         var session = OnboardingSession.Create(null);
         session.AgentConfigId = "jane-doe";
+        session.CurrentState = OnboardingState.DemoCma;
         session.Profile = new ScrapedProfile
         {
             Name = "Jane Doe",
@@ -242,6 +278,7 @@ public class CmaToolTests
         var tool = CreateTool(out var pipeline, out _, out _);
         var session = OnboardingSession.Create(null);
         session.AgentConfigId = null; // null — falls back to GenerateSlug(profile.Name)
+        session.CurrentState = OnboardingState.DemoCma;
         session.Profile = new ScrapedProfile
         {
             Name = "Jane Doe",
@@ -252,7 +289,7 @@ public class CmaToolTests
 
         await tool.ExecuteAsync(json, session, CancellationToken.None);
 
-        // GenerateSlug("Jane Doe") → "jane-doe"
+        // GenerateSlug("Jane Doe") -> "jane-doe"
         pipeline.Verify(p => p.ExecuteAsync(
             It.IsAny<CmaJob>(),
             "jane-doe",
@@ -312,12 +349,91 @@ public class CmaToolTests
         Assert.Null(lead.Sqft);
     }
 
+    // --- New tests for progress card and state advancement ---
+
+    [Fact]
+    public void BuildProgressCardJson_ReturnsValidJson()
+    {
+        var json = SubmitCmaFormTool.BuildProgressCardJson("456 Oak Ave, Newark, NJ 07102", "jane@remax.com", "complete");
+
+        var doc = JsonDocument.Parse(json);
+        Assert.Equal("456 Oak Ave, Newark, NJ 07102", doc.RootElement.GetProperty("address").GetString());
+        Assert.Equal("jane@remax.com", doc.RootElement.GetProperty("recipientEmail").GetString());
+        Assert.Equal("complete", doc.RootElement.GetProperty("status").GetString());
+        Assert.True(doc.RootElement.GetProperty("steps").GetArrayLength() > 0);
+    }
+
+    [Fact]
+    public void BuildProgressCardJson_AllStepsDone_WhenComplete()
+    {
+        var json = SubmitCmaFormTool.BuildProgressCardJson("123 Main St", "test@test.com", "complete");
+
+        var doc = JsonDocument.Parse(json);
+        var steps = doc.RootElement.GetProperty("steps");
+        foreach (var step in steps.EnumerateArray())
+        {
+            Assert.Equal("done", step.GetProperty("status").GetString());
+        }
+    }
+
+    [Fact]
+    public void BuildProgressCardJson_AllStepsPending_WhenNotComplete()
+    {
+        var json = SubmitCmaFormTool.BuildProgressCardJson("123 Main St", "test@test.com", "running");
+
+        var doc = JsonDocument.Parse(json);
+        var steps = doc.RootElement.GetProperty("steps");
+        foreach (var step in steps.EnumerateArray())
+        {
+            Assert.Equal("pending", step.GetProperty("status").GetString());
+        }
+    }
+
+    [Fact]
+    public void StepLabels_ContainsExpectedStatuses()
+    {
+        Assert.True(SubmitCmaFormTool.StepLabels.ContainsKey(CmaJobStatus.SearchingComps));
+        Assert.True(SubmitCmaFormTool.StepLabels.ContainsKey(CmaJobStatus.Analyzing));
+        Assert.True(SubmitCmaFormTool.StepLabels.ContainsKey(CmaJobStatus.GeneratingPdf));
+        Assert.True(SubmitCmaFormTool.StepLabels.ContainsKey(CmaJobStatus.SendingEmail));
+        Assert.True(SubmitCmaFormTool.StepLabels.ContainsKey(CmaJobStatus.Complete));
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_DoesNotAdvance_WhenNotInDemoCmaState()
+    {
+        // When state is already past DemoCma (e.g. ShowResults), CanAdvance returns false
+        var tool = CreateTool(out _, out _, out _);
+        var session = MakeSessionWithProfile(OnboardingState.ShowResults);
+        var json = JsonSerializer.Deserialize<JsonElement>("""{"address":"456 Oak Ave","city":"Newark","state":"NJ","zip":"07102"}""");
+
+        await tool.ExecuteAsync(json, session, CancellationToken.None);
+
+        // State should remain unchanged since CanAdvance(ShowResults, ShowResults) is false
+        Assert.Equal(OnboardingState.ShowResults, session.CurrentState);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ReturnsCardWithRecipientEmail()
+    {
+        var tool = CreateTool(out _, out _, out _);
+        var session = MakeSessionWithProfile(OnboardingState.DemoCma);
+        var json = JsonSerializer.Deserialize<JsonElement>("""{"address":"456 Oak Ave","city":"Newark","state":"NJ","zip":"07102"}""");
+
+        var result = await tool.ExecuteAsync(json, session, CancellationToken.None);
+
+        // Extract card JSON from the result
+        Assert.Contains("jane@remax.com", result);
+        Assert.Contains("\"status\":\"complete\"", result);
+    }
+
     // --- Helpers ---
 
-    private static OnboardingSession MakeSessionWithProfile()
+    private static OnboardingSession MakeSessionWithProfile(OnboardingState state = OnboardingState.DemoCma)
     {
         var session = OnboardingSession.Create(null);
         session.AgentConfigId = "jane-doe";
+        session.CurrentState = state;
         session.Profile = new ScrapedProfile
         {
             Name = "Jane Doe",
@@ -340,6 +456,8 @@ public class CmaToolTests
 
         return new SubmitCmaFormTool(
             pipeline.Object,
-            driveFolderInit.Object);
+            driveFolderInit.Object,
+            new OnboardingStateMachine(),
+            NullLogger<SubmitCmaFormTool>.Instance);
     }
 }
