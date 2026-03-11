@@ -12,7 +12,8 @@ beforeEach(() => {
   mockSearchParams = new URLSearchParams("profileUrl=https://zillow.com/profile/test");
   global.fetch = vi.fn().mockResolvedValue({
     ok: true,
-    json: () => Promise.resolve({ sessionId: "abc123" }),
+    headers: new Headers({ "content-type": "application/json" }),
+    json: () => Promise.resolve({ sessionId: "abc123", token: "test-token", response: "" }),
   });
 });
 
