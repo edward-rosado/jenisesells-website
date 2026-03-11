@@ -13,7 +13,7 @@ public class GoogleAuthCardTool(GoogleOAuthService oAuthService, ISessionStore s
         session.OAuthNonce = nonce;
         await sessionStore.SaveAsync(session, ct);
 
-        return $"Google OAuth URL: {authUrl} — " +
-            "Render a google_auth card with a 'Connect Google Account' button that opens this URL in a popup window.";
+        var json = JsonSerializer.Serialize(new { oauthUrl = authUrl });
+        return $"[CARD:google_auth]{json}";
     }
 }

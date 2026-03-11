@@ -1,8 +1,9 @@
 using System.Text.Json;
+using RealEstateStar.Api.Features.Onboarding.Services;
 
 namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
-public class SetBrandingTool : IOnboardingTool
+public class SetBrandingTool(OnboardingStateMachine stateMachine) : IOnboardingTool
 {
     public string Name => "set_branding";
 
@@ -17,6 +18,10 @@ public class SetBrandingTool : IOnboardingTool
             LogoUrl = parameters.TryGetProperty("logoUrl", out var lu) ? lu.GetString() : current.LogoUrl,
         };
 
-        return Task.FromResult($"Branding set: primary={session.Profile.PrimaryColor}, accent={session.Profile.AccentColor}");
+        // Auto-advance to ConnectGoogle
+        if (stateMachine.CanAdvance(session, OnboardingState.ConnectGoogle))
+            stateMachine.Advance(session, OnboardingState.ConnectGoogle);
+
+        return Task.FromResult($"SUCCESS: Branding saved — primary={session.Profile.PrimaryColor}, accent={session.Profile.AccentColor}.");
     }
 }

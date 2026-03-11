@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Threading.RateLimiting;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Infrastructure;
@@ -18,28 +19,78 @@ public class PostChatEndpoint : IEndpoint
         HttpContext httpContext,
         ISessionStore sessionStore,
         OnboardingChatService chatService,
+        ILogger<PostChatEndpoint> logger,
         CancellationToken ct)
     {
+        logger.LogDebug("[CHAT-010] Loading session {SessionId}", sessionId);
+
         var session = await sessionStore.LoadAsync(sessionId, ct);
-        if (session is null) return Results.NotFound();
+        if (session is null)
+        {
+            logger.LogWarning("[CHAT-011] Session {SessionId} not found", sessionId);
+            return Results.NotFound();
+        }
 
         if (!ValidateBearerToken(httpContext, session))
+        {
+            logger.LogWarning("[CHAT-012] Bearer token validation failed for session {SessionId}", sessionId);
             return Results.Unauthorized();
+        }
+
+        logger.LogInformation("[CHAT-013] Starting stream for session {SessionId}, state={State}, message length={Len}",
+            sessionId, session.CurrentState, request.Message?.Length ?? 0);
 
         // User message is added by StreamResponseAsync via BuildMessages — not here,
         // to avoid sending it to Claude twice. We persist after streaming completes.
 
         return Results.Stream(async stream =>
         {
-            var writer = new StreamWriter(stream) { AutoFlush = true };
-
-            await foreach (var chunk in chatService.StreamResponseAsync(session, request.Message, ct))
+            try
             {
-                await writer.WriteAsync($"data: {chunk}\n\n");
-            }
+                // Do NOT use AutoFlush = true — it calls synchronous Flush() which
+                // Kestrel rejects. Call FlushAsync() manually instead.
+                var writer = new StreamWriter(stream);
 
-            await writer.WriteAsync("data: [DONE]\n\n");
-            await sessionStore.SaveAsync(session, ct);
+                await foreach (var chunk in chatService.StreamResponseAsync(session, request.Message, ct))
+                {
+                    // SSE uses \n as frame delimiter — newlines inside data break parsing.
+                    // JSON-encode the chunk so \n becomes \\n, preserving formatting.
+                    var safeChunk = JsonSerializer.Serialize(chunk);
+                    await writer.WriteAsync($"data: {safeChunk}\n\n");
+                    await writer.FlushAsync();
+                }
+
+                await writer.WriteAsync("data: [DONE]\n\n");
+                await writer.FlushAsync();
+                await sessionStore.SaveAsync(session, ct);
+
+                logger.LogInformation("[CHAT-014] Stream completed successfully for session {SessionId}", sessionId);
+            }
+            catch (OperationCanceledException)
+            {
+                logger.LogInformation("[CHAT-015] Stream cancelled by client for session {SessionId}", sessionId);
+            }
+            catch (Exception ex)
+            {
+                // CRITICAL: Results.Stream() swallows exceptions — ASP.NET cannot send an error
+                // status code because the 200 response has already started. We MUST log here
+                // or the error is silently lost.
+                logger.LogError(ex, "[CHAT-016] Stream failed for session {SessionId}. " +
+                    "ExType={ExType}, Message={ExMessage}",
+                    sessionId, ex.GetType().Name, ex.Message);
+
+                // Attempt to send an error event to the client before the stream dies
+                try
+                {
+                    var errorWriter = new StreamWriter(stream);
+                    await errorWriter.WriteAsync($"data: [ERROR] Internal error — check server logs for CHAT-016\n\n");
+                    await errorWriter.FlushAsync();
+                }
+                catch
+                {
+                    // Stream may already be broken — nothing we can do
+                }
+            }
         }, "text/event-stream");
     }
 

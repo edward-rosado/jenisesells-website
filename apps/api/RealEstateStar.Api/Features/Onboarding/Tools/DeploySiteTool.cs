@@ -3,7 +3,7 @@ using RealEstateStar.Api.Features.Onboarding.Services;
 
 namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
-public class DeploySiteTool(ISiteDeployService siteDeployService) : IOnboardingTool
+public class DeploySiteTool(ISiteDeployService siteDeployService, OnboardingStateMachine stateMachine) : IOnboardingTool
 {
     public string Name => "deploy_site";
 
@@ -12,11 +12,25 @@ public class DeploySiteTool(ISiteDeployService siteDeployService) : IOnboardingT
         try
         {
             var siteUrl = await siteDeployService.DeployAsync(session, ct);
-            return $"Site deployed at {siteUrl}";
+            session.SiteUrl = siteUrl;
+
+            // Advance past PreviewSite to DemoCma (preview is the deployed URL)
+            if (stateMachine.CanAdvance(session, OnboardingState.PreviewSite))
+                stateMachine.Advance(session, OnboardingState.PreviewSite);
+            if (stateMachine.CanAdvance(session, OnboardingState.DemoCma))
+                stateMachine.Advance(session, OnboardingState.DemoCma);
+
+            return $"SUCCESS: Site deployed and live at {siteUrl}. The agent can visit this URL now.";
         }
         catch (Exception)
         {
-            return "Site deployment failed. The team has been notified and will resolve the issue shortly.";
+            // Advance past deploy so the flow doesn't get stuck — CMA demo can still run
+            if (stateMachine.CanAdvance(session, OnboardingState.PreviewSite))
+                stateMachine.Advance(session, OnboardingState.PreviewSite);
+            if (stateMachine.CanAdvance(session, OnboardingState.DemoCma))
+                stateMachine.Advance(session, OnboardingState.DemoCma);
+
+            return "FAILED: Site deployment failed due to a configuration issue. Tell the agent honestly that site deployment is not available yet and the team will set it up. Move on to the CMA demo.";
         }
     }
 }

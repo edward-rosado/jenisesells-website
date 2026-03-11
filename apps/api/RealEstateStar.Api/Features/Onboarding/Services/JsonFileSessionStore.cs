@@ -1,21 +1,24 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 
-public partial class JsonFileSessionStore(string basePath) : ISessionStore
+public partial class JsonFileSessionStore(string basePath, ILogger<JsonFileSessionStore> logger) : ISessionStore
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
 
-    public JsonFileSessionStore()
-        : this(Path.Combine(AppContext.BaseDirectory, "data", "sessions")) { }
+    public JsonFileSessionStore(ILogger<JsonFileSessionStore> logger)
+        : this(Path.Combine(AppContext.BaseDirectory, "data", "sessions"), logger) { }
 
     public async Task SaveAsync(OnboardingSession session, CancellationToken ct)
     {
@@ -25,10 +28,31 @@ public partial class JsonFileSessionStore(string basePath) : ISessionStore
         {
             Directory.CreateDirectory(basePath);
             var path = GetSafePath(session.Id);
-            var json = JsonSerializer.Serialize(session, JsonOptions);
+
+            string json;
+            try
+            {
+                json = JsonSerializer.Serialize(session, JsonOptions);
+            }
+            catch (JsonException ex)
+            {
+                logger.LogError(ex, "[SESSION-010] Failed to serialize session {SessionId}. " +
+                    "State={State}, MessageCount={MessageCount}",
+                    session.Id, session.CurrentState, session.Messages.Count);
+                throw;
+            }
+
             var tmp = path + ".tmp";
             await File.WriteAllTextAsync(tmp, json, ct);
             File.Move(tmp, path, overwrite: true);
+
+            logger.LogDebug("[SESSION-011] Saved session {SessionId} ({Bytes} bytes)", session.Id, json.Length);
+        }
+        catch (IOException ex)
+        {
+            logger.LogError(ex, "[SESSION-012] I/O error saving session {SessionId} to {BasePath}",
+                session.Id, basePath);
+            throw;
         }
         finally
         {
@@ -43,9 +67,32 @@ public partial class JsonFileSessionStore(string basePath) : ISessionStore
         try
         {
             var path = GetSafePath(sessionId);
-            if (!File.Exists(path)) return null;
+            if (!File.Exists(path))
+            {
+                logger.LogDebug("[SESSION-013] Session file not found for {SessionId}", sessionId);
+                return null;
+            }
+
             var json = await File.ReadAllTextAsync(path, ct);
-            return JsonSerializer.Deserialize<OnboardingSession>(json, JsonOptions);
+            logger.LogDebug("[SESSION-014] Read session file for {SessionId} ({Bytes} bytes)", sessionId, json.Length);
+
+            try
+            {
+                return JsonSerializer.Deserialize<OnboardingSession>(json, JsonOptions);
+            }
+            catch (JsonException ex)
+            {
+                logger.LogError(ex, "[SESSION-015] Failed to deserialize session {SessionId}. " +
+                    "JSON preview: {Preview}",
+                    sessionId, json[..Math.Min(json.Length, 500)]);
+                throw;
+            }
+        }
+        catch (IOException ex)
+        {
+            logger.LogError(ex, "[SESSION-016] I/O error loading session {SessionId} from {BasePath}",
+                sessionId, basePath);
+            throw;
         }
         finally
         {
@@ -56,11 +103,17 @@ public partial class JsonFileSessionStore(string basePath) : ISessionStore
     private string GetSafePath(string sessionId)
     {
         if (!SessionIdRegex().IsMatch(sessionId))
+        {
+            logger.LogWarning("[SESSION-017] Invalid session ID format: {SessionId}", sessionId);
             throw new ArgumentException("Invalid session ID format", nameof(sessionId));
+        }
 
         var fullPath = Path.GetFullPath(Path.Combine(basePath, $"{sessionId}.json"));
         if (!fullPath.StartsWith(Path.GetFullPath(basePath), StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogWarning("[SESSION-018] Path traversal detected for session ID: {SessionId}", sessionId);
             throw new ArgumentException("Path traversal detected", nameof(sessionId));
+        }
 
         return fullPath;
     }
