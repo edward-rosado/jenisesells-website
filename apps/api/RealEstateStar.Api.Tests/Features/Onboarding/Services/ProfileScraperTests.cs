@@ -48,7 +48,7 @@ public class ProfileScraperTests
     public async Task ScrapeAsync_FetchFailure_ReturnsNull()
     {
         var factory = CreateThrowingFactory();
-        var scraper = new ProfileScraperService(factory, "test-key", NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(factory, "test-key", null, NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/nobody", CancellationToken.None);
 
@@ -59,7 +59,7 @@ public class ProfileScraperTests
     public async Task ScrapeAsync_EmptyPage_ReturnsNull()
     {
         var factory = CreateMockFactory(HttpStatusCode.OK, "<html><body></body></html>");
-        var scraper = new ProfileScraperService(factory, "test-key", NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(factory, "test-key", null, NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://example.com/empty", CancellationToken.None);
 
@@ -72,7 +72,7 @@ public class ProfileScraperTests
         // When Claude API call fails (bad key), scraper returns partial profile as fallback
         var html = "<html><body><h1>Jane Doe</h1><p>RE/MAX agent serving New Jersey with 15 years experience and 200 homes sold in the tri-state area.</p></body></html>";
         var factory = CreateMockFactory(HttpStatusCode.OK, html);
-        var scraper = new ProfileScraperService(factory, "invalid-key", NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(factory, "invalid-key", null, NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/jane-doe", CancellationToken.None);
 

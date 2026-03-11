@@ -49,7 +49,7 @@ public class ToolDispatcherTests
     [Fact]
     public async Task UpdateProfileTool_UpdatesSessionProfile()
     {
-        var tool = new UpdateProfileTool();
+        var tool = new UpdateProfileTool(new OnboardingStateMachine());
         var session = OnboardingSession.Create(null);
         var json = JsonSerializer.Deserialize<JsonElement>("""{"name":"Jane Doe","brokerage":"RE/MAX"}""");
 
@@ -63,7 +63,7 @@ public class ToolDispatcherTests
     [Fact]
     public async Task SetBrandingTool_SetsBrandingColors()
     {
-        var tool = new SetBrandingTool();
+        var tool = new SetBrandingTool(new OnboardingStateMachine());
         var session = OnboardingSession.Create(null);
         var json = JsonSerializer.Deserialize<JsonElement>("""{"primaryColor":"#ff0000","accentColor":"#00ff00"}""");
 
@@ -80,9 +80,12 @@ public class ToolDispatcherTests
         var deploySvc = new Mock<ISiteDeployService>();
         deploySvc.Setup(d => d.DeployAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("https://jane-doe.realestatestar.com");
-        var tool = new DeploySiteTool(deploySvc.Object);
+        var sm = new OnboardingStateMachine();
+        var tool = new DeploySiteTool(deploySvc.Object, sm);
         var session = OnboardingSession.Create(null);
         session.Profile = new ScrapedProfile { Name = "Jane Doe" };
+        // Advance to GenerateSite so deploy_site can advance further
+        session.CurrentState = OnboardingState.GenerateSite;
 
         var result = await tool.ExecuteAsync(default, session, CancellationToken.None);
 

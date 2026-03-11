@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using Xunit;
@@ -12,7 +13,7 @@ public class SessionStoreTests : IDisposable
     public SessionStoreTests()
     {
         _testDir = Path.Combine(Path.GetTempPath(), $"res-sessions-{Guid.NewGuid():N}");
-        _store = new JsonFileSessionStore(_testDir);
+        _store = new JsonFileSessionStore(_testDir, NullLogger<JsonFileSessionStore>.Instance);
     }
 
     public void Dispose()
@@ -60,5 +61,91 @@ public class SessionStoreTests : IDisposable
         await _store.SaveAsync(session, CancellationToken.None);
         var loaded = await _store.LoadAsync(session.Id, CancellationToken.None);
         Assert.Equal(OnboardingState.CollectBranding, loaded!.CurrentState);
+    }
+
+    // --- Path validation ---
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not-hex-chars!")]
+    [InlineData("AABBCCDDEEFF")] // uppercase not allowed
+    [InlineData("aabbccddee")] // too short (10 chars, needs 12)
+    [InlineData("aabbccddeeffaa")] // too long (14 chars)
+    [InlineData("../../../etc")]
+    public async Task Load_InvalidSessionId_ThrowsArgumentException(string badId)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => _store.LoadAsync(badId, CancellationToken.None));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not-valid")]
+    [InlineData("../secret")]
+    public async Task Save_InvalidSessionId_ThrowsArgumentException(string badId)
+    {
+        var session = OnboardingSession.Create(null);
+        // Overwrite the ID to something invalid
+        typeof(OnboardingSession).GetProperty("Id")!.SetValue(session, badId);
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => _store.SaveAsync(session, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task SaveAndLoad_PreservesProfile()
+    {
+        var session = OnboardingSession.Create(null);
+        session.Profile = new ScrapedProfile
+        {
+            Name = "Jane Doe",
+            Phone = "555-1234",
+            Email = "jane@test.com",
+            Brokerage = "RE/MAX",
+            State = "NJ",
+            PrimaryColor = "#003366",
+        };
+        await _store.SaveAsync(session, CancellationToken.None);
+        var loaded = await _store.LoadAsync(session.Id, CancellationToken.None);
+        Assert.NotNull(loaded!.Profile);
+        Assert.Equal("Jane Doe", loaded.Profile!.Name);
+        Assert.Equal("#003366", loaded.Profile.PrimaryColor);
+    }
+
+    [Fact]
+    public async Task SaveAndLoad_PreservesGoogleTokens()
+    {
+        var session = OnboardingSession.Create(null);
+        session.GoogleTokens = new GoogleTokens
+        {
+            AccessToken = "at",
+            RefreshToken = "rt",
+            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            Scopes = ["email"],
+            GoogleEmail = "j@g.com",
+            GoogleName = "Jane",
+        };
+        await _store.SaveAsync(session, CancellationToken.None);
+        var loaded = await _store.LoadAsync(session.Id, CancellationToken.None);
+        Assert.NotNull(loaded!.GoogleTokens);
+        Assert.Equal("j@g.com", loaded.GoogleTokens!.GoogleEmail);
+    }
+
+    [Fact]
+    public async Task ConcurrentSaves_DoNotCorrupt()
+    {
+        var session = OnboardingSession.Create(null);
+
+        // Run 10 concurrent saves — should not throw or corrupt
+        var tasks = Enumerable.Range(0, 10).Select(i =>
+        {
+            session.CurrentState = (OnboardingState)(i % 5);
+            return _store.SaveAsync(session, CancellationToken.None);
+        });
+
+        await Task.WhenAll(tasks);
+
+        var loaded = await _store.LoadAsync(session.Id, CancellationToken.None);
+        Assert.NotNull(loaded);
     }
 }

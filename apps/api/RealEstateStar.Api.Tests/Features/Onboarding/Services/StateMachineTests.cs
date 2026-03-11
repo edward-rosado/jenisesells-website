@@ -102,4 +102,62 @@ public class StateMachineTests
         session.CurrentState = from;
         Assert.True(_sm.CanAdvance(session, to));
     }
+
+    // --- Missing branch coverage ---
+
+    [Fact]
+    public void CanAdvance_WithUnknownState_ReturnsFalse()
+    {
+        var session = OnboardingSession.Create(null);
+        session.CurrentState = (OnboardingState)999;
+        Assert.False(_sm.CanAdvance(session, OnboardingState.ConfirmIdentity));
+    }
+
+    [Fact]
+    public void CanAdvance_FromTrialActivated_ReturnsFalseForAllTargets()
+    {
+        var session = OnboardingSession.Create(null);
+        session.CurrentState = OnboardingState.TrialActivated;
+        // TrialActivated has an empty allowed array — TryGetValue succeeds but Contains returns false
+        Assert.False(_sm.CanAdvance(session, OnboardingState.ScrapeProfile));
+        Assert.False(_sm.CanAdvance(session, OnboardingState.ConfirmIdentity));
+        Assert.False(_sm.CanAdvance(session, OnboardingState.CollectPayment));
+    }
+
+    [Fact]
+    public void GetAllowedTools_WithUnknownState_ReturnsEmpty()
+    {
+        var tools = _sm.GetAllowedTools((OnboardingState)999);
+        Assert.Empty(tools);
+    }
+
+    [Fact]
+    public void Advance_UpdatesUpdatedAtTimestamp()
+    {
+        var session = OnboardingSession.Create(null);
+        var before = DateTime.UtcNow;
+        _sm.Advance(session, OnboardingState.ConfirmIdentity);
+        Assert.True(session.UpdatedAt >= before);
+    }
+
+    [Theory]
+    [InlineData(OnboardingState.ConfirmIdentity, "update_profile")]
+    [InlineData(OnboardingState.CollectBranding, "set_branding")]
+    [InlineData(OnboardingState.GenerateSite, "deploy_site")]
+    [InlineData(OnboardingState.PreviewSite, "get_preview_url")]
+    [InlineData(OnboardingState.DemoCma, "submit_cma_form")]
+    public void GetAllowedTools_ReturnsExpectedToolForState(OnboardingState state, string expectedTool)
+    {
+        var tools = _sm.GetAllowedTools(state);
+        Assert.Contains(expectedTool, tools);
+    }
+
+    [Theory]
+    [InlineData(OnboardingState.ShowResults)]
+    [InlineData(OnboardingState.TrialActivated)]
+    public void GetAllowedTools_EmptyStates_ReturnsEmpty(OnboardingState state)
+    {
+        var tools = _sm.GetAllowedTools(state);
+        Assert.Empty(tools);
+    }
 }
