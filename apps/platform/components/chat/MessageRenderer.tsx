@@ -16,9 +16,10 @@ export interface ChatMessageData {
 interface MessageRendererProps {
   message: ChatMessageData;
   onAction?: (action: string, data?: unknown) => void;
+  isStreaming?: boolean;
 }
 
-export function MessageRenderer({ message, onAction }: MessageRendererProps) {
+export function MessageRenderer({ message, onAction, isStreaming }: MessageRendererProps) {
   const meta = message.metadata ?? {};
   const act = onAction ?? (() => {});
 
@@ -68,6 +69,6 @@ export function MessageRenderer({ message, onAction }: MessageRendererProps) {
         />
       );
     default:
-      return <MessageBubble role={message.role} content={message.content} />;
+      return <MessageBubble role={message.role} content={message.content} isStreaming={isStreaming} />;
   }
 }

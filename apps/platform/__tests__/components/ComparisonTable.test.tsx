@@ -17,6 +17,21 @@ describe("ComparisonTable", () => {
     expect(screen.getByText("Ylopo")).toBeInTheDocument();
   });
 
+  it("has an accessible caption for screen readers", () => {
+    const { container } = render(<ComparisonTable />);
+    const caption = container.querySelector("caption");
+    expect(caption).toBeInTheDocument();
+    expect(caption).toHaveClass("sr-only");
+  });
+
+  it("uses scope attributes on table headers", () => {
+    const { container } = render(<ComparisonTable />);
+    const colHeaders = container.querySelectorAll("th[scope='col']");
+    expect(colHeaders.length).toBe(4);
+    const rowHeaders = container.querySelectorAll("th[scope='row']");
+    expect(rowHeaders.length).toBe(5);
+  });
+
   it("renders the price row", () => {
     render(<ComparisonTable />);
     expect(screen.getByText("$900 one-time")).toBeInTheDocument();

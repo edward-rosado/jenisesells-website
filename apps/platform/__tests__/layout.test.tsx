@@ -1,13 +1,20 @@
 import { render, screen } from "@testing-library/react";
-import RootLayout from "../app/layout";
 
 vi.mock("next/link", () => ({
-  default: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  default: ({ children, href, ...props }: { children: React.ReactNode; href: string; [key: string]: unknown }) => (
+    <a href={href} {...props}>{children}</a>
   ),
 }));
 
 describe("RootLayout", () => {
+  // Dynamic import to avoid issues with layout's <html>/<body> tags in test
+  let RootLayout: typeof import("../app/layout").default;
+
+  beforeAll(async () => {
+    const mod = await import("../app/layout");
+    RootLayout = mod.default;
+  });
+
   it("renders the brand name", () => {
     render(
       <RootLayout>
@@ -62,5 +69,26 @@ describe("RootLayout", () => {
     );
     expect(screen.getByText(/All rights reserved/i)).toBeInTheDocument();
     expect(screen.getByRole("contentinfo")).toBeInTheDocument();
+  });
+
+  it("renders a skip navigation link for ADA compliance", () => {
+    render(
+      <RootLayout>
+        <div>child</div>
+      </RootLayout>
+    );
+    const skipLink = screen.getByText("Skip to main content");
+    expect(skipLink).toBeInTheDocument();
+    expect(skipLink).toHaveAttribute("href", "#main-content");
+  });
+
+  it("brand link points to home", () => {
+    render(
+      <RootLayout>
+        <div>child</div>
+      </RootLayout>
+    );
+    const brandLink = screen.getByRole("link", { name: /real estate star home/i });
+    expect(brandLink).toHaveAttribute("href", "/");
   });
 });

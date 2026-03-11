@@ -36,9 +36,13 @@ export default function LandingPage() {
           <p className="text-lg text-gray-400 mb-12">
             Website. CMA automation. Lead management. One payment. Done.
           </p>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" aria-label="Get started">
+            <label htmlFor="hero-profile-url" className="sr-only">
+              Your Zillow or Realtor.com profile URL
+            </label>
             <input
-              type="text"
+              id="hero-profile-url"
+              type="url"
               value={profileUrl}
               onChange={(e) => setProfileUrl(e.target.value)}
               placeholder="Paste your Zillow or Realtor.com URL"

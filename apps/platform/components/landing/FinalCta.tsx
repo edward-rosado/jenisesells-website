@@ -2,9 +2,9 @@ import Link from "next/link";
 
 export function FinalCta() {
   return (
-    <section className="py-24 px-6 text-center">
+    <section className="py-24 px-6 text-center" aria-labelledby="final-cta-heading">
       <div className="max-w-2xl mx-auto space-y-6">
-        <h2 className="text-3xl md:text-4xl font-bold">
+        <h2 id="final-cta-heading" className="text-3xl md:text-4xl font-bold">
           Ready to Get Started?
         </h2>
         <p className="text-lg text-gray-400">

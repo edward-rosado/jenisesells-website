@@ -68,7 +68,10 @@ export function FeatureCards() {
               <div className="flex items-start justify-between mb-3">
                 <h3 className="font-semibold text-white">{feature.name}</h3>
                 {feature.comingSoon && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-800 text-gray-400 whitespace-nowrap ml-2">
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full bg-gray-800 text-gray-400 whitespace-nowrap ml-2"
+                    aria-label={`${feature.name} is coming soon`}
+                  >
                     Coming Soon
                   </span>
                 )}

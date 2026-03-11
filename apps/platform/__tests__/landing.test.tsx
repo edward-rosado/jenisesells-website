@@ -83,4 +83,17 @@ describe("Landing Page", () => {
     const hero = container.querySelector("[data-testid='hero-section']");
     expect(hero).toBeInTheDocument();
   });
+
+  it("has an accessible label for the profile URL input", () => {
+    render(<LandingPage />);
+    const input = screen.getByLabelText(/zillow or realtor\.com/i);
+    expect(input).toBeInTheDocument();
+    expect(input).toHaveAttribute("type", "url");
+  });
+
+  it("hero form has aria-label for screen readers", () => {
+    const { container } = render(<LandingPage />);
+    const form = container.querySelector("form[aria-label]");
+    expect(form).toBeInTheDocument();
+  });
 });

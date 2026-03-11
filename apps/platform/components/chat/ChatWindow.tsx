@@ -7,6 +7,8 @@ interface ChatWindowProps {
   sessionId: string;
   token: string;
   initialMessages: ChatMessageData[];
+  /** If set, auto-sent to the API on mount without showing a user bubble */
+  autoMessage?: string;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
@@ -85,21 +87,33 @@ function parseAssistantContent(content: string): ChatMessageData[] {
   return messages;
 }
 
-export function ChatWindow({ sessionId, token, initialMessages }: ChatWindowProps) {
+export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: ChatWindowProps) {
   const [messages, setMessages] = useState<ChatMessageData[]>(initialMessages);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const autoSent = useRef(false);
 
   useEffect(() => {
     scrollRef.current?.scrollTo?.(0, scrollRef.current.scrollHeight);
   }, [messages]);
 
-  async function sendMessage(text: string) {
+  // Auto-send profileUrl on mount — no user bubble
+  useEffect(() => {
+    if (autoMessage && !autoSent.current) {
+      autoSent.current = true;
+      sendMessage(autoMessage, { silent: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoMessage]);
+
+  async function sendMessage(text: string, opts?: { silent?: boolean }) {
     if (!text || sending) return;
 
-    const userMsg: ChatMessageData = { role: "user", content: text };
-    setMessages((prev) => [...prev, userMsg]);
+    if (!opts?.silent) {
+      const userMsg: ChatMessageData = { role: "user", content: text };
+      setMessages((prev) => [...prev, userMsg]);
+    }
     setInput("");
     setSending(true);
 
@@ -192,15 +206,23 @@ export function ChatWindow({ sessionId, token, initialMessages }: ChatWindowProp
 
   function handleAction(action: string, data?: unknown) {
     const text = data ? `[Action: ${action}] ${JSON.stringify(data)}` : `[Action: ${action}]`;
-    sendMessage(text);
+    sendMessage(text, { silent: true });
   }
 
   return (
     <main className="flex flex-col h-screen bg-gray-950 text-white">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((msg, i) => (
-          <MessageRenderer key={i} message={msg} onAction={handleAction} />
-        ))}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3" role="log" aria-live="polite" aria-label="Chat messages">
+        {messages.map((msg, i) => {
+          const isLastAssistant = sending && msg.role === "assistant" && i === messages.length - 1;
+          return (
+            <MessageRenderer
+              key={i}
+              message={msg}
+              onAction={handleAction}
+              isStreaming={isLastAssistant}
+            />
+          );
+        })}
         {sending && (
           <div className="flex justify-start">
             <div className="bg-gray-800 rounded-2xl px-4 py-2 text-gray-400">
@@ -216,7 +238,9 @@ export function ChatWindow({ sessionId, token, initialMessages }: ChatWindowProp
         }}
         className="p-4 border-t border-gray-800 flex gap-2"
       >
+        <label htmlFor="chat-input" className="sr-only">Chat message</label>
         <input
+          id="chat-input"
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
