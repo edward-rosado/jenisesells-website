@@ -65,6 +65,16 @@ describe("Landing Page", () => {
     expect(cards).toHaveLength(8);
   });
 
+  it("renders the FinalCta section", () => {
+    render(<LandingPage />);
+    expect(
+      screen.getByRole("heading", { name: /ready to get started/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /start your free trial/i })
+    ).toBeInTheDocument();
+  });
+
   it("has proper page structure with hero at top", () => {
     const { container } = render(<LandingPage />);
     const main = container.querySelector("main");

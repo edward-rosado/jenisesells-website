@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FeatureCards } from "@/components/landing/FeatureCards";
 import { ComparisonTable } from "@/components/landing/ComparisonTable";
 import { TrustStrip } from "@/components/landing/TrustStrip";
+import { FinalCta } from "@/components/landing/FinalCta";
 
 export default function LandingPage() {
   const [profileUrl, setProfileUrl] = useState("");
@@ -64,6 +65,9 @@ export default function LandingPage() {
 
       {/* Comparison Table */}
       <ComparisonTable />
+
+      {/* Final CTA */}
+      <FinalCta />
     </main>
   );
 }
