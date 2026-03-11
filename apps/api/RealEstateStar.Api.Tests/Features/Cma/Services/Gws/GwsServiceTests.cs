@@ -134,12 +134,166 @@ public class GwsServiceTests
             PdfLink = "link"
         });
 
-        // Should not contain optional fields that are null
         content.Should().NotContain("Purchased");
         content.Should().NotContain("Owned for");
         content.Should().NotContain("Estimated equity");
         content.Should().NotContain("Lot:");
         content.Should().NotContain("Current tax assessment");
         content.Should().NotContain("Annual property taxes");
+    }
+
+    [Fact]
+    public void BuildLeadBriefContent_IncludesOccupationOnly_WhenEmployerIsNull()
+    {
+        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        {
+            LeadName = "Solo Worker",
+            Address = "100 Test St",
+            Timeline = "ASAP",
+            SubmittedAt = new DateTime(2026, 1, 1),
+            Occupation = "Freelancer",
+            Employer = null,
+            CompCount = 0,
+            SearchRadius = "1 mile",
+            ValueRange = "$0",
+            MedianDom = 0,
+            MarketTrend = "neutral",
+            ConversationStarters = [],
+            LeadEmail = "test@test.com",
+            LeadPhone = "555-0000",
+            PdfLink = "link"
+        });
+
+        content.Should().Contain("Freelancer");
+    }
+
+    [Fact]
+    public void BuildLeadBriefContent_IncludesEmployerOnly_WhenOccupationIsNull()
+    {
+        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        {
+            LeadName = "Corp Person",
+            Address = "100 Test St",
+            Timeline = "ASAP",
+            SubmittedAt = new DateTime(2026, 1, 1),
+            Occupation = null,
+            Employer = "BigCorp",
+            CompCount = 0,
+            SearchRadius = "1 mile",
+            ValueRange = "$0",
+            MedianDom = 0,
+            MarketTrend = "neutral",
+            ConversationStarters = [],
+            LeadEmail = "test@test.com",
+            LeadPhone = "555-0000",
+            PdfLink = "link"
+        });
+
+        content.Should().Contain("BigCorp");
+    }
+
+    [Fact]
+    public void BuildLeadBriefContent_OmitsPropertyLine_WhenBedsOrBathsNull()
+    {
+        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        {
+            LeadName = "Test User",
+            Address = "100 Test St",
+            Timeline = "6-12 months",
+            SubmittedAt = new DateTime(2026, 1, 1),
+            Beds = 3,
+            Baths = null,
+            Sqft = 1800,
+            YearBuilt = 2000,
+            CompCount = 0,
+            SearchRadius = "1 mile",
+            ValueRange = "$0",
+            MedianDom = 0,
+            MarketTrend = "neutral",
+            ConversationStarters = [],
+            LeadEmail = "test@test.com",
+            LeadPhone = "555-0000",
+            PdfLink = "link"
+        });
+
+        content.Should().NotContain("bed /");
+    }
+
+    [Fact]
+    public void BuildLeadBriefContent_IncludesPropertyLine_WhenAllPropertyFieldsPresent()
+    {
+        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        {
+            LeadName = "Test User",
+            Address = "100 Test St",
+            Timeline = "ASAP",
+            SubmittedAt = new DateTime(2026, 1, 1),
+            Beds = 4,
+            Baths = 3,
+            Sqft = 2500,
+            YearBuilt = 2005,
+            CompCount = 0,
+            SearchRadius = "1 mile",
+            ValueRange = "$0",
+            MedianDom = 0,
+            MarketTrend = "neutral",
+            ConversationStarters = [],
+            LeadEmail = "test@test.com",
+            LeadPhone = "555-0000",
+            PdfLink = "link"
+        });
+
+        content.Should().Contain("4 bed / 3 bath / 2,500 sqft, built 2005");
+    }
+
+    [Fact]
+    public void BuildLeadBriefContent_OmitsPurchaseLine_WhenPurchaseDateOnly()
+    {
+        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        {
+            LeadName = "Test User",
+            Address = "100 Test St",
+            Timeline = "ASAP",
+            SubmittedAt = new DateTime(2026, 1, 1),
+            PurchaseDate = new DateOnly(2020, 1, 1),
+            PurchasePrice = null,
+            CompCount = 0,
+            SearchRadius = "1 mile",
+            ValueRange = "$0",
+            MedianDom = 0,
+            MarketTrend = "neutral",
+            ConversationStarters = [],
+            LeadEmail = "test@test.com",
+            LeadPhone = "555-0000",
+            PdfLink = "link"
+        });
+
+        content.Should().NotContain("Purchased");
+    }
+
+    [Fact]
+    public void BuildLeadBriefContent_IncludesTaxAssessmentAndAnnualTax()
+    {
+        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        {
+            LeadName = "Test User",
+            Address = "100 Test St",
+            Timeline = "ASAP",
+            SubmittedAt = new DateTime(2026, 1, 1),
+            TaxAssessment = 400_000m,
+            AnnualTax = 9_000m,
+            CompCount = 0,
+            SearchRadius = "1 mile",
+            ValueRange = "$0",
+            MedianDom = 0,
+            MarketTrend = "neutral",
+            ConversationStarters = [],
+            LeadEmail = "test@test.com",
+            LeadPhone = "555-0000",
+            PdfLink = "link"
+        });
+
+        content.Should().Contain("Current tax assessment: $400,000");
+        content.Should().Contain("Annual property taxes: $9,000");
     }
 }
