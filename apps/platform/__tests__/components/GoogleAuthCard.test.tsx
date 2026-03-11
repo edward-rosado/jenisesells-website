@@ -159,4 +159,115 @@ describe("GoogleAuthCard", () => {
     expect(mockOnConnected).not.toHaveBeenCalled();
     expect(mockOnError).not.toHaveBeenCalled();
   });
+
+  it("cleans up message listener on unmount", () => {
+    const { unmount } = render(
+      <GoogleAuthCard
+        oauthUrl={oauthUrl}
+        onConnected={mockOnConnected}
+        onError={mockOnError}
+        apiOrigin={apiOrigin}
+      />
+    );
+
+    unmount();
+
+    // Fire postMessage after unmount — callbacks should not be invoked
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        origin: apiOrigin,
+        data: {
+          type: "google_oauth_callback",
+          success: true,
+          message: "Should not arrive",
+        },
+      })
+    );
+
+    expect(mockOnConnected).not.toHaveBeenCalled();
+    expect(mockOnError).not.toHaveBeenCalled();
+  });
+
+  it("opens popup idempotently on multiple rapid clicks", async () => {
+    const openSpy = vi.spyOn(window, "open").mockReturnValue(null);
+    render(
+      <GoogleAuthCard
+        oauthUrl={oauthUrl}
+        onConnected={mockOnConnected}
+        apiOrigin={apiOrigin}
+      />
+    );
+
+    const button = screen.getByRole("button", { name: /connect with google/i });
+    // Rapid-fire three clicks
+    await userEvent.click(button);
+    await userEvent.click(button);
+    await userEvent.click(button);
+
+    // window.open is called with the same named target "google-oauth",
+    // so the browser reuses the same popup window. Each call is valid.
+    expect(openSpy).toHaveBeenCalledTimes(3);
+    // All calls use the same target name, ensuring idempotent popup reuse
+    for (const call of openSpy.mock.calls) {
+      expect(call[1]).toBe("google-oauth");
+    }
+
+    openSpy.mockRestore();
+  });
+
+  it("does not throw when failure postMessage received without onError prop", () => {
+    // Render without onError prop
+    render(
+      <GoogleAuthCard
+        oauthUrl={oauthUrl}
+        onConnected={mockOnConnected}
+        apiOrigin={apiOrigin}
+      />
+    );
+
+    // Should not throw — onError?. optional chaining handles the missing prop
+    expect(() => {
+      fireEvent(
+        window,
+        new MessageEvent("message", {
+          origin: apiOrigin,
+          data: {
+            type: "google_oauth_callback",
+            success: false,
+            message: "Access denied",
+          },
+        })
+      );
+    }).not.toThrow();
+
+    expect(mockOnConnected).not.toHaveBeenCalled();
+  });
+
+  it("defaults apiOrigin to NEXT_PUBLIC_API_URL when not provided", () => {
+    // The component reads process.env.NEXT_PUBLIC_API_URL via API_BASE constant.
+    // When apiOrigin prop is omitted, it falls back to new URL(API_BASE).origin.
+    // API_BASE defaults to "http://localhost:5000" when env var is not set.
+    render(
+      <GoogleAuthCard
+        oauthUrl={oauthUrl}
+        onConnected={mockOnConnected}
+      />
+    );
+
+    // Fire postMessage from the default origin (localhost:5000)
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        origin: "http://localhost:5000",
+        data: {
+          type: "google_oauth_callback",
+          success: true,
+          message: "Connected via default origin",
+        },
+      })
+    );
+
+    expect(mockOnConnected).toHaveBeenCalledWith("Connected via default origin");
+  });
 });

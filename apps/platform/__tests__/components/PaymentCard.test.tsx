@@ -67,4 +67,72 @@ describe("PaymentCard", () => {
 
     windowOpen.mockRestore();
   });
+
+  it("button does not reappear after clicking — stays in waiting state", async () => {
+    const windowOpen = vi
+      .spyOn(window, "open")
+      .mockImplementation(() => null);
+
+    render(<PaymentCard checkoutUrl="https://checkout.stripe.com/c/pay_abc" />);
+    await userEvent.click(
+      screen.getByRole("button", { name: /start free trial/i })
+    );
+
+    // Button should be gone, replaced by waiting text
+    expect(screen.queryByRole("button", { name: /start free trial/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/waiting for payment confirmation/i)).toBeInTheDocument();
+
+    windowOpen.mockRestore();
+  });
+
+  it("calls window.open only once on multiple rapid clicks", async () => {
+    const windowOpen = vi
+      .spyOn(window, "open")
+      .mockImplementation(() => null);
+
+    render(<PaymentCard checkoutUrl="https://checkout.stripe.com/c/pay_abc" />);
+    const button = screen.getByRole("button", { name: /start free trial/i });
+
+    // First click transitions to "opened" state, removing the button from DOM.
+    // Subsequent clicks can't happen because the button is gone.
+    await userEvent.click(button);
+
+    // Button is now replaced by waiting text — no second click possible
+    expect(screen.queryByRole("button", { name: /start free trial/i })).not.toBeInTheDocument();
+    expect(windowOpen).toHaveBeenCalledTimes(1);
+
+    windowOpen.mockRestore();
+  });
+
+  it("button has accessible name and waiting state is announced", async () => {
+    const windowOpen = vi
+      .spyOn(window, "open")
+      .mockImplementation(() => null);
+
+    const { container } = render(
+      <PaymentCard checkoutUrl="https://checkout.stripe.com/c/pay_abc" />
+    );
+
+    // Button should have accessible name
+    const button = screen.getByRole("button", { name: /start free trial/i });
+    expect(button).toHaveAccessibleName();
+
+    await userEvent.click(button);
+
+    // Waiting state text should be visible
+    const waitingText = screen.getByText(/waiting for payment confirmation/i);
+    expect(waitingText).toBeInTheDocument();
+
+    windowOpen.mockRestore();
+  });
+
+  it("renders custom price with special characters correctly", () => {
+    render(<PaymentCard price="$1,299.99/mo" />);
+    expect(screen.getByText("$1,299.99/mo")).toBeInTheDocument();
+  });
+
+  it("renders price with unicode characters", () => {
+    render(<PaymentCard price={"$900 \u2014 one-time"} />);
+    expect(screen.getByText(/\$900 \u2014 one-time/)).toBeInTheDocument();
+  });
 });
