@@ -11,7 +11,10 @@ export function Footer({ agent }: FooterProps) {
       <p className="text-lg font-bold">
         {identity.name}{identity.title ? `, ${identity.title}` : ""}
       </p>
-      {identity.brokerage && <p className="text-sm opacity-80">{identity.brokerage}</p>}
+      <p className="text-sm opacity-80">
+        {identity.brokerage}
+        {identity.license_id && ` · Lic. #${identity.license_id}`}
+      </p>
       <p className="mt-3 text-sm">
         <a href={`tel:${identity.phone}`} style={{ color: "var(--color-accent)" }}>{identity.phone}</a>
         {" | "}
@@ -27,7 +30,21 @@ export function Footer({ agent }: FooterProps) {
           {identity.languages.join(" · ")}
         </p>
       )}
-      <p className="mt-6 text-xs opacity-40">
+      <div className="mt-6 flex items-center justify-center gap-2 text-xs opacity-60">
+        <svg
+          aria-hidden="true"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <rect x="1" y="1" width="22" height="22" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+          <text x="12" y="16.5" textAnchor="middle" fontSize="11" fontWeight="bold" fill="currentColor">=</text>
+        </svg>
+        <span>Equal Housing Opportunity</span>
+      </div>
+      <p className="mt-2 text-xs opacity-40">
         &copy; {new Date().getFullYear()} {identity.name}. All rights reserved.
       </p>
     </footer>

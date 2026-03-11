@@ -13,7 +13,7 @@
     },
     "identity": {
       "type": "object",
-      "required": ["name", "email", "phone"],
+      "required": ["name", "email", "phone", "brokerage", "license_id"],
       "properties": {
         "name": { "type": "string" },
         "title": { "type": "string", "default": "REALTOR\u00ae" },

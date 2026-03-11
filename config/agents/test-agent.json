@@ -3,7 +3,9 @@
   "identity": {
     "name": "Test Agent",
     "phone": "555-000-0000",
-    "email": "test@example.com"
+    "email": "test@example.com",
+    "brokerage": "Test Brokerage LLC",
+    "license_id": "0000000"
   },
   "location": {
     "state": "NY"

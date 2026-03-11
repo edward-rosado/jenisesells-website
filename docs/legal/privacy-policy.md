@@ -125,7 +125,7 @@ If you are a California resident, you have the following rights under the Califo
 - **Right to Opt Out of Sale:** We do not sell personal information.
 - **Right to Non-Discrimination:** We will not discriminate against you for exercising any of these rights.
 
-To exercise your rights, contact us at **privacy@real-estate-star.com**. We will respond within 45 days.
+To exercise your rights, contact us at **Misteredr@gmail.com**. We will respond within 45 days.
 
 ### Categories of personal information collected (past 12 months)
 | Category | Collected | Sold |
@@ -140,7 +140,7 @@ To exercise your rights, contact us at **privacy@real-estate-star.com**. We will
 
 ## 9. Children's Privacy
 
-The Platform is intended solely for licensed real estate professionals (adults 18+). We do not knowingly collect personal information from anyone under 18. If you believe a minor has submitted information to us, contact us at privacy@real-estate-star.com and we will delete it promptly.
+The Platform is intended solely for licensed real estate professionals (adults 18+). We do not knowingly collect personal information from anyone under 18. If you believe a minor has submitted information to us, contact us at Misteredr@gmail.com and we will delete it promptly.
 
 ---
 
@@ -161,7 +161,7 @@ We may update this Privacy Policy from time to time. We will notify you of mater
 For privacy questions, data requests, or concerns:
 
 **Real Estate Star**
-Email: privacy@real-estate-star.com
+Email: Misteredr@gmail.com
 Website: https://real-estate-star.com/privacy
 
 ---

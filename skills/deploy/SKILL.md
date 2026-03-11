@@ -140,6 +140,34 @@ git push
 
 For non-git providers, rollback procedures will be documented per provider adapter.
 
+## Legal & Compliance Requirements
+
+Every deployed agent site **must** meet the following before going live. These are non-negotiable.
+
+### Broker Name & License Number (State Law)
+- The agent's **brokerage name** and **license number** must appear on every page, typically in the footer.
+- Many states (NJ, CA, TX) have specific rules about font size and placement.
+- These values come from `{agent.identity.brokerage}` and `{agent.identity.license_id}` — they must not be optional or hidden behind a conditional.
+- If either field is missing from the agent config, **halt deployment** and require the agent to provide them.
+
+### Equal Housing Opportunity (Fair Housing Act)
+- Every deployed site must display the **Equal Housing Opportunity** logo or text.
+- This is a federal requirement for all real estate advertising under the Fair Housing Act.
+- The logo and notice are rendered in the footer component — do not remove or make conditional.
+
+### WCAG 2.1 AA Accessibility (ADA Title III)
+- All deployed agent sites must meet **WCAG 2.1 Level AA** accessibility standards.
+- Real estate websites have been specifically targeted in ADA Title III lawsuits.
+- Since we deploy sites on agents' behalf, both the agent and the platform carry liability.
+- Key requirements:
+  - Sufficient color contrast ratios (4.5:1 for normal text, 3:1 for large text)
+  - All images must have `alt` text
+  - All interactive elements must be keyboard-accessible
+  - Semantic HTML (`nav`, `main`, `footer`, headings in order)
+  - Form inputs must have associated `<label>` elements
+  - `lang` attribute on `<html>` element
+- Run an accessibility audit (axe, Lighthouse) before marking deployment complete.
+
 ## Important Notes
 
 - Never deploy without reading and validating the agent config first
