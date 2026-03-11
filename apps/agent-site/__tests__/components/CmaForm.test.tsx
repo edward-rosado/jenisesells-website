@@ -5,6 +5,25 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { CmaForm } from "@/components/sections/CmaForm";
 import type { CmaFormData } from "@/lib/types";
+import type { CmaStatusUpdate } from "@/lib/cma-api";
+
+// --- Mock useCmaSubmit ---
+const mockSubmit = vi.fn();
+const mockReset = vi.fn();
+
+let mockCmaState = {
+  phase: "idle" as string,
+  statusUpdate: null as CmaStatusUpdate | null,
+  errorMessage: null as string | null,
+};
+
+vi.mock("@/lib/useCmaSubmit", () => ({
+  useCmaSubmit: () => ({
+    state: mockCmaState,
+    submit: mockSubmit,
+    reset: mockReset,
+  }),
+}));
 
 const FORM_DATA: CmaFormData = {
   title: "What's Your Home Worth?",
@@ -21,8 +40,8 @@ const FORMSPREE_PROPS = {
   data: FORM_DATA,
 };
 
-// Props matching the AGENT_MINIMAL fixture (no form handler)
-const MINIMAL_PROPS = {
+// Props matching the AGENT_MINIMAL fixture (no form handler — uses API mode)
+const API_PROPS = {
   agentId: "minimal-agent",
   agentName: "Bob Jones",
   defaultState: "TX",
@@ -41,6 +60,12 @@ function fillForm() {
   fireEvent.change(screen.getByPlaceholderText("Zip"), { target: { value: "07030" } });
   fireEvent.change(screen.getByRole("combobox"), { target: { value: "asap" } });
 }
+
+beforeEach(() => {
+  mockCmaState = { phase: "idle", statusUpdate: null, errorMessage: null };
+  mockSubmit.mockReset();
+  mockReset.mockReset();
+});
 
 describe("CmaForm rendering", () => {
   it("renders the form title", () => {
@@ -275,56 +300,241 @@ describe("CmaForm form submission — formspree handler", () => {
   });
 });
 
-describe("CmaForm form submission — custom API handler", () => {
-  beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn());
+describe("CmaForm — API mode submission", () => {
+  it("calls useCmaSubmit.submit with correct request shape on submit", async () => {
+    mockSubmit.mockResolvedValueOnce(undefined);
+
+    render(<CmaForm {...API_PROPS} />);
+    fillForm();
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    expect(mockSubmit).toHaveBeenCalledWith("minimal-agent", {
+      firstName: "Alice",
+      lastName: "Test",
+      email: "alice@test.com",
+      phone: "555-111-2222",
+      address: "1 Test St",
+      city: "Hoboken",
+      state: "NJ",
+      zip: "07030",
+      timeline: "asap",
+      notes: undefined,
+    });
   });
 
-  afterEach(() => {
+  it("passes notes when provided", async () => {
+    mockSubmit.mockResolvedValueOnce(undefined);
+
+    render(<CmaForm {...API_PROPS} />);
+    fillForm();
+    fireEvent.change(screen.getByPlaceholderText("Anything else I should know?"), {
+      target: { value: "Corner lot, recently renovated" },
+    });
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    expect(mockSubmit).toHaveBeenCalledWith(
+      "minimal-agent",
+      expect.objectContaining({ notes: "Corner lot, recently renovated" }),
+    );
+  });
+
+  it("does NOT call fetch directly in API mode", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    const mockFetch = vi.mocked(fetch);
+    mockSubmit.mockResolvedValueOnce(undefined);
+
+    render(<CmaForm {...API_PROPS} />);
+    fillForm();
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    expect(mockFetch).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
 
-  it("calls the internal API endpoint when form_handler is not formspree", async () => {
-    const mockFetch = vi.mocked(fetch);
-    mockFetch.mockResolvedValueOnce({ ok: true } as Response);
-
-    const locationMock = { href: "" };
-    Object.defineProperty(window, "location", { value: locationMock, writable: true });
-
-    render(<CmaForm {...MINIMAL_PROPS} />);
-    fillForm();
-
-    await act(async () => {
-      fireEvent.submit(screen.getByRole("button").closest("form")!);
-    });
-
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(
-        "/api/agents/minimal-agent/cma",
-        expect.objectContaining({ method: "POST" })
-      );
-    });
+  it("disables submit button when phase is submitting", () => {
+    mockCmaState = { phase: "submitting", statusUpdate: null, errorMessage: null };
+    render(<CmaForm {...API_PROPS} />);
+    expect(screen.getByRole("button")).toBeDisabled();
+    expect(screen.getByRole("button")).toHaveTextContent("Submitting...");
   });
 
-  it("includes Accept application/json header", async () => {
+  it("shows error from cmaSubmit state when phase is error (pre-SignalR)", () => {
+    mockCmaState = { phase: "error", statusUpdate: null, errorMessage: "CMA submission failed (500)" };
+    render(<CmaForm {...API_PROPS} />);
+    expect(screen.getByText("CMA submission failed (500)")).toBeInTheDocument();
+  });
+});
+
+describe("CmaForm — progress tracker UI", () => {
+  it("shows progress view when phase is tracking", () => {
+    mockCmaState = {
+      phase: "tracking",
+      statusUpdate: {
+        status: "SearchingComps",
+        step: 2,
+        totalSteps: 9,
+        message: "Searching MLS databases...",
+      },
+      errorMessage: null,
+    };
+    render(<CmaForm {...API_PROPS} />);
+
+    expect(screen.getByText("Preparing Your Report...")).toBeInTheDocument();
+    expect(screen.getByText("Searching MLS databases...")).toBeInTheDocument();
+    expect(screen.getByText("Step 2 of 9")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+  });
+
+  it("shows correct progress percentage", () => {
+    mockCmaState = {
+      phase: "tracking",
+      statusUpdate: { status: "Analyzing", step: 4, totalSteps: 9, message: "Analyzing..." },
+      errorMessage: null,
+    };
+    render(<CmaForm {...API_PROPS} />);
+
+    const progressbar = screen.getByRole("progressbar");
+    expect(progressbar).toHaveAttribute("aria-valuenow", "44");
+  });
+
+  it("shows completion view when phase is complete", () => {
+    mockCmaState = {
+      phase: "complete",
+      statusUpdate: {
+        status: "Complete",
+        step: 9,
+        totalSteps: 9,
+        message: "Your report has been sent to your email!",
+      },
+      errorMessage: null,
+    };
+    render(<CmaForm {...API_PROPS} />);
+
+    expect(screen.getByText("Your Report Is Ready!")).toBeInTheDocument();
+    expect(screen.getByText(/Check your inbox/)).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
+  });
+
+  it("shows link to thank-you page on complete", () => {
+    mockCmaState = {
+      phase: "complete",
+      statusUpdate: { status: "Complete", step: 9, totalSteps: 9, message: "Done!" },
+      errorMessage: null,
+    };
+    render(<CmaForm {...API_PROPS} />);
+
+    const link = screen.getByRole("link", { name: /Back to Bob Jones/ });
+    expect(link).toHaveAttribute("href", "/thank-you?agentId=minimal-agent");
+  });
+
+  it("shows error view with pipeline error message", () => {
+    mockCmaState = {
+      phase: "error",
+      statusUpdate: {
+        status: "Failed",
+        step: 3,
+        totalSteps: 9,
+        message: "An error occurred while processing your report.",
+        errorMessage: "Pipeline execution failed. Please try again or contact support.",
+      },
+      errorMessage: "Pipeline execution failed. Please try again or contact support.",
+    };
+    render(<CmaForm {...API_PROPS} />);
+
+    expect(screen.getByText("Something Went Wrong")).toBeInTheDocument();
+    expect(screen.getByText("Pipeline execution failed. Please try again or contact support.")).toBeInTheDocument();
+  });
+
+  it("shows Try Again button on error and calls reset when clicked", () => {
+    mockCmaState = {
+      phase: "error",
+      statusUpdate: { status: "Failed", step: 3, totalSteps: 9, message: "Error", errorMessage: "Fail" },
+      errorMessage: "Fail",
+    };
+    render(<CmaForm {...API_PROPS} />);
+
+    const tryAgainButton = screen.getByRole("button", { name: "Try Again" });
+    expect(tryAgainButton).toBeInTheDocument();
+
+    fireEvent.click(tryAgainButton);
+    expect(mockReset).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders section id cma-form in all progress states", () => {
+    mockCmaState = {
+      phase: "tracking",
+      statusUpdate: { status: "Parsing", step: 1, totalSteps: 9, message: "Starting..." },
+      errorMessage: null,
+    };
+    const { container } = render(<CmaForm {...API_PROPS} />);
+    expect(container.querySelector("#cma-form")).toBeInTheDocument();
+  });
+
+  it("shows default message when statusUpdate is null during tracking", () => {
+    mockCmaState = { phase: "tracking", statusUpdate: null, errorMessage: null };
+    render(<CmaForm {...API_PROPS} />);
+
+    // Still shows form since statusUpdate is null and phase is tracking
+    // (the progress view only shows when there's a statusUpdate or when in the right phases)
+    expect(screen.getByText("Preparing Your Report...")).toBeInTheDocument();
+    expect(screen.getByText("Starting...")).toBeInTheDocument();
+  });
+});
+
+describe("CmaForm — formspree vs API mode detection", () => {
+  it("uses formspree path when formHandler is formspree", async () => {
+    vi.stubGlobal("fetch", vi.fn());
     const mockFetch = vi.mocked(fetch);
     mockFetch.mockResolvedValueOnce({ ok: true } as Response);
 
     const locationMock = { href: "" };
     Object.defineProperty(window, "location", { value: locationMock, writable: true });
 
-    render(<CmaForm {...MINIMAL_PROPS} />);
+    render(<CmaForm {...FORMSPREE_PROPS} />);
     fillForm();
 
     await act(async () => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);
     });
 
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({ headers: { Accept: "application/json" } })
-      );
+    // Formspree mode should call fetch, not useCmaSubmit.submit
+    expect(mockFetch).toHaveBeenCalled();
+    expect(mockSubmit).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it("uses API mode when formHandler is undefined", async () => {
+    mockSubmit.mockResolvedValueOnce(undefined);
+
+    render(<CmaForm {...API_PROPS} />);
+    fillForm();
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
     });
+
+    expect(mockSubmit).toHaveBeenCalled();
+  });
+
+  it("uses API mode when formHandler is custom", async () => {
+    mockSubmit.mockResolvedValueOnce(undefined);
+
+    render(<CmaForm {...{ ...API_PROPS, formHandler: "custom" as const }} />);
+    fillForm();
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    expect(mockSubmit).toHaveBeenCalled();
   });
 });

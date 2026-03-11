@@ -168,6 +168,48 @@ describe("middleware", () => {
     const response = middleware(req as never);
     expect(response.headers.get("x-nonce")).toBeTruthy();
   });
+
+  it("includes API URL in CSP connect-src when NEXT_PUBLIC_API_URL is set", async () => {
+    process.env.NEXT_PUBLIC_API_URL = "https://api.example.com";
+    vi.resetModules();
+    const mod = await import("@/middleware");
+    const freshMiddleware = mod.middleware;
+
+    const req = makeRequest("realestatestar.com");
+    mockNext.mockReturnValue(createMockResponse());
+    const response = freshMiddleware(req as never);
+    const csp = response.headers.get("Content-Security-Policy")!;
+    expect(csp).toContain("https://api.example.com");
+    expect(csp).toContain("wss://api.example.com");
+
+    delete process.env.NEXT_PUBLIC_API_URL;
+  });
+
+  it("includes ws:// for http API URL in CSP connect-src", async () => {
+    process.env.NEXT_PUBLIC_API_URL = "http://localhost:5000";
+    vi.resetModules();
+    const mod = await import("@/middleware");
+    const freshMiddleware = mod.middleware;
+
+    const req = makeRequest("realestatestar.com");
+    mockNext.mockReturnValue(createMockResponse());
+    const response = freshMiddleware(req as never);
+    const csp = response.headers.get("Content-Security-Policy")!;
+    expect(csp).toContain("http://localhost:5000");
+    expect(csp).toContain("ws://localhost:5000");
+
+    delete process.env.NEXT_PUBLIC_API_URL;
+  });
+
+  it("omits API URL from CSP when NEXT_PUBLIC_API_URL is not set", () => {
+    delete process.env.NEXT_PUBLIC_API_URL;
+    const req = makeRequest("realestatestar.com");
+    const response = middleware(req as never);
+    const csp = response.headers.get("Content-Security-Policy")!;
+    // Should not have trailing space or empty entries from missing API URL
+    expect(csp).not.toContain("ws://");
+    expect(csp).not.toContain("wss://");
+  });
 });
 
 describe("middleware config export", () => {

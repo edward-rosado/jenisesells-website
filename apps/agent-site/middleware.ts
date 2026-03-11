@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { extractAgentId } from "./lib/routing";
 
 function buildCspHeader(nonce: string): string {
+  // Allow SignalR WebSocket + fetch connections to the CMA API
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
+  const apiWs = apiUrl.replace(/^https:/, "wss:").replace(/^http:/, "ws:");
+  const apiConnectSrc = apiUrl ? ` ${apiUrl} ${apiWs}` : "";
+
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.sentry.io https://*.googletagmanager.com https://*.google-analytics.com https://connect.facebook.net`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
-    "connect-src 'self' https://formspree.io https://*.sentry.io https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.facebook.com https://connect.facebook.net",
+    `connect-src 'self' https://formspree.io https://*.sentry.io https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.facebook.com https://connect.facebook.net${apiConnectSrc}`,
     "frame-ancestors 'none'",
   ].join("; ");
 }
