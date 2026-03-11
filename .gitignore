@@ -28,6 +28,7 @@ Thumbs.db
 # .NET
 *.user
 *.suo
+appsettings.Development.json
 
 # Worktrees
 .worktrees/
