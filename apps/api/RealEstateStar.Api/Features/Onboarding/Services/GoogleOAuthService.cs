@@ -76,7 +76,7 @@ public class GoogleOAuthService(
         var email = profileData.GetProperty("email").GetString()!;
         var name = profileData.GetProperty("name").GetString()!;
 
-        logger.LogInformation("Google OAuth completed for {Email}", email);
+        logger.LogInformation("[OAUTH-012] Google OAuth completed for user");
 
         return new GoogleTokens
         {
