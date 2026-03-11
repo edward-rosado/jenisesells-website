@@ -1386,6 +1386,140 @@ public class ChatServiceBranchCoverageTests
         capturedSystem.Should().NotBeNull();
         capturedSystem.Should().Contain(expectedFragment);
     }
+
+    // ── Branch: HttpRequestException catch in StreamSingleCallAsync ──
+
+    [Fact]
+    public async Task StreamResponseAsync_HttpRequestException_Rethrows()
+    {
+        var handler = new ThrowingOnSendHandler(new HttpRequestException("Connection refused"));
+        var service = CreateService(handler);
+        var session = OnboardingSession.Create(null);
+
+        var act = async () =>
+        {
+            await foreach (var _ in service.StreamResponseAsync(session, "hello", CancellationToken.None))
+            {
+            }
+        };
+
+        await act.Should().ThrowAsync<HttpRequestException>()
+            .WithMessage("*Connection refused*");
+    }
+
+    // ── Branch: non-success HTTP status code → logs error body and throws ──
+
+    [Fact]
+    public async Task StreamResponseAsync_NonSuccessStatusCode_ThrowsWithErrorBody()
+    {
+        var handler = new StatusCodeResponseHandler(
+            System.Net.HttpStatusCode.TooManyRequests,
+            "{\"error\":{\"type\":\"rate_limit_error\",\"message\":\"Too many requests\"}}");
+        var service = CreateService(handler);
+        var session = OnboardingSession.Create(null);
+
+        var act = async () =>
+        {
+            await foreach (var _ in service.StreamResponseAsync(session, "hello", CancellationToken.None))
+            {
+            }
+        };
+
+        await act.Should().ThrowAsync<HttpRequestException>()
+            .WithMessage("*STREAM-015*429*");
+    }
+
+    // ── Branch: empty line in SSE stream → skipped ──
+
+    [Fact]
+    public async Task StreamResponseAsync_EmptyLinesInStream_Skipped()
+    {
+        // SSE data with extra empty lines between events (normal for SSE)
+        var sseData = """
+            data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}
+
+
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"ok"}}
+
+            data: {"type":"content_block_stop","index":0}
+
+            data: [DONE]
+
+            """;
+
+        var service = CreateService(new SseResponseHandler(sseData));
+        var session = OnboardingSession.Create(null);
+
+        var chunks = new List<string>();
+        await foreach (var chunk in service.StreamResponseAsync(session, "test", CancellationToken.None))
+        {
+            chunks.Add(chunk);
+        }
+
+        chunks.Should().ContainSingle(c => c == "ok");
+    }
+
+    // ── Branch: non-"data: " lines in SSE stream → skipped ──
+
+    [Fact]
+    public async Task StreamResponseAsync_NonDataLines_Skipped()
+    {
+        var sseData = """
+            event: message_start
+            data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}
+
+            retry: 5000
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"ok"}}
+
+            data: {"type":"content_block_stop","index":0}
+
+            data: [DONE]
+
+            """;
+
+        var service = CreateService(new SseResponseHandler(sseData));
+        var session = OnboardingSession.Create(null);
+
+        var chunks = new List<string>();
+        await foreach (var chunk in service.StreamResponseAsync(session, "test", CancellationToken.None))
+        {
+            chunks.Add(chunk);
+        }
+
+        chunks.Should().ContainSingle(c => c == "ok");
+    }
+}
+
+/// <summary>
+/// Test handler that throws an exception when SendAsync is called.
+/// Used to test the HttpRequestException catch branch.
+/// </summary>
+internal class ThrowingOnSendHandler(Exception exception) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        throw exception;
+    }
+}
+
+/// <summary>
+/// Test handler that returns a specific HTTP status code with a body.
+/// Used to test non-success status code branches.
+/// </summary>
+internal class StatusCodeResponseHandler(System.Net.HttpStatusCode statusCode, string body) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        var response = new HttpResponseMessage(statusCode)
+        {
+            Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json")
+        };
+        return Task.FromResult(response);
+    }
 }
 
 /// <summary>

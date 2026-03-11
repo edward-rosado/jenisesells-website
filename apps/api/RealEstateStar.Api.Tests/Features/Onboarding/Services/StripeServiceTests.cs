@@ -215,4 +215,72 @@ public class StripeServiceTests
                 config,
                 NullLogger<StripeService>.Instance));
     }
+
+    [Fact]
+    public void Constructor_WithWhitespaceSecretKey_Throws()
+    {
+        var config = BuildConfig(secretKey: "   ");
+
+        Assert.Throws<InvalidOperationException>(
+            () => new StripeService(
+                config,
+                NullLogger<StripeService>.Instance));
+    }
+
+    [Fact]
+    public async Task CreateCheckoutSessionAsync_SetsIdempotencyKey()
+    {
+        var mockSessionService = new Mock<SessionService>();
+        RequestOptions? capturedOptions = null;
+
+        mockSessionService
+            .Setup(s => s.CreateAsync(
+                It.IsAny<SessionCreateOptions>(),
+                It.IsAny<RequestOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<SessionCreateOptions, RequestOptions?, CancellationToken>(
+                (_, opts, _) => capturedOptions = opts)
+            .ReturnsAsync(new Session { Url = "https://checkout.stripe.com/test" });
+
+        var config = BuildConfig();
+        var service = new StripeService(
+            config,
+            NullLogger<StripeService>.Instance,
+            mockSessionService.Object);
+
+        var session = OnboardingSession.Create(null);
+        await service.CreateCheckoutSessionAsync(
+            session.Id, "test@test.com", CancellationToken.None);
+
+        Assert.NotNull(capturedOptions);
+        Assert.Equal(session.Id, capturedOptions!.IdempotencyKey);
+    }
+
+    [Fact]
+    public void InternalConstructor_WithWhitespaceSecretKey_Throws()
+    {
+        // The internal constructor only validates SecretKey via the shared config check
+        var mockSessionService = new Mock<SessionService>();
+        var config = BuildConfig(secretKey: "   ");
+
+        Assert.Throws<InvalidOperationException>(
+            () => new StripeService(
+                config,
+                NullLogger<StripeService>.Instance,
+                mockSessionService.Object));
+    }
+
+    [Fact]
+    public void InternalConstructor_WithAllValid_Succeeds()
+    {
+        var mockSessionService = new Mock<SessionService>();
+        var config = BuildConfig();
+
+        var service = new StripeService(
+            config,
+            NullLogger<StripeService>.Instance,
+            mockSessionService.Object);
+
+        Assert.NotNull(service);
+    }
 }

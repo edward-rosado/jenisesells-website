@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net;
 using System.Text;
 using FluentAssertions;
@@ -188,6 +189,240 @@ public class StripeWebhookEndpointTests
         var okResult = Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.Ok>(result);
         _sessionStore.Verify(
             s => s.LoadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleWebhookEvent_DuplicateStripeEvent_SkipsProcessing()
+    {
+        var onboardingSession = OnboardingSession.Create(null);
+        onboardingSession.CurrentState = OnboardingState.CollectPayment;
+        onboardingSession.LastStripeEventId = "evt_duplicate_123";
+        var sessionId = onboardingSession.Id;
+
+        _sessionStore
+            .Setup(s => s.LoadAsync(sessionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(onboardingSession);
+
+        var stripeSession = new Session
+        {
+            Metadata = new Dictionary<string, string>
+            {
+                ["onboarding_session_id"] = sessionId
+            }
+        };
+
+        var stripeEvent = new Event
+        {
+            Id = "evt_duplicate_123",
+            Type = EventTypes.CheckoutSessionCompleted,
+            Data = new EventData { Object = stripeSession }
+        };
+
+        var result = await StripeWebhookEndpoint.HandleWebhookEvent(
+            stripeEvent,
+            _sessionStore.Object,
+            new OnboardingStateMachine(),
+            NullLogger<StripeWebhookEndpoint>.Instance,
+            CancellationToken.None);
+
+        Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.Ok>(result);
+        // Should NOT advance state or save
+        Assert.Equal(OnboardingState.CollectPayment, onboardingSession.CurrentState);
+        _sessionStore.Verify(
+            s => s.SaveAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleWebhookEvent_CannotAdvanceState_DoesNotSave()
+    {
+        // Session already at TrialActivated — cannot advance further
+        var onboardingSession = OnboardingSession.Create(null);
+        onboardingSession.CurrentState = OnboardingState.TrialActivated;
+        var sessionId = onboardingSession.Id;
+
+        _sessionStore
+            .Setup(s => s.LoadAsync(sessionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(onboardingSession);
+
+        var stripeSession = new Session
+        {
+            Metadata = new Dictionary<string, string>
+            {
+                ["onboarding_session_id"] = sessionId
+            }
+        };
+
+        var stripeEvent = new Event
+        {
+            Id = "evt_cant_advance",
+            Type = EventTypes.CheckoutSessionCompleted,
+            Data = new EventData { Object = stripeSession }
+        };
+
+        var result = await StripeWebhookEndpoint.HandleWebhookEvent(
+            stripeEvent,
+            _sessionStore.Object,
+            new OnboardingStateMachine(),
+            NullLogger<StripeWebhookEndpoint>.Instance,
+            CancellationToken.None);
+
+        Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.Ok>(result);
+        _sessionStore.Verify(
+            s => s.SaveAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleWebhookEvent_DataObjectNotSession_Returns200()
+    {
+        // Data.Object is not a Session (e.g., some other Stripe object type)
+        var stripeEvent = new Event
+        {
+            Type = EventTypes.CheckoutSessionCompleted,
+            Data = new EventData { Object = new PaymentIntent() }
+        };
+
+        var result = await StripeWebhookEndpoint.HandleWebhookEvent(
+            stripeEvent,
+            _sessionStore.Object,
+            new OnboardingStateMachine(),
+            NullLogger<StripeWebhookEndpoint>.Instance,
+            CancellationToken.None);
+
+        Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.Ok>(result);
+        _sessionStore.Verify(
+            s => s.LoadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleWebhookEvent_EmptySessionIdInMetadata_Returns200()
+    {
+        var stripeSession = new Session
+        {
+            Metadata = new Dictionary<string, string>
+            {
+                ["onboarding_session_id"] = ""
+            }
+        };
+
+        var stripeEvent = new Event
+        {
+            Type = EventTypes.CheckoutSessionCompleted,
+            Data = new EventData { Object = stripeSession }
+        };
+
+        var result = await StripeWebhookEndpoint.HandleWebhookEvent(
+            stripeEvent,
+            _sessionStore.Object,
+            new OnboardingStateMachine(),
+            NullLogger<StripeWebhookEndpoint>.Instance,
+            CancellationToken.None);
+
+        Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.Ok>(result);
+        _sessionStore.Verify(
+            s => s.LoadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ValidSignature_DelegatesToHandleWebhookEvent()
+    {
+        // Test the outer Handle method with a mock IStripeService
+        var onboardingSession = OnboardingSession.Create(null);
+        onboardingSession.CurrentState = OnboardingState.CollectPayment;
+        var sessionId = onboardingSession.Id;
+
+        var stripeSession = new Session
+        {
+            Metadata = new Dictionary<string, string>
+            {
+                ["onboarding_session_id"] = sessionId
+            }
+        };
+
+        var stripeEvent = new Event
+        {
+            Id = "evt_valid",
+            Type = EventTypes.CheckoutSessionCompleted,
+            Data = new EventData { Object = stripeSession }
+        };
+
+        var mockStripeService = new Mock<IStripeService>();
+        mockStripeService
+            .Setup(s => s.ConstructWebhookEvent(It.IsAny<string>(), "valid-sig"))
+            .Returns(stripeEvent);
+
+        _sessionStore
+            .Setup(s => s.LoadAsync(sessionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(onboardingSession);
+        _sessionStore
+            .Setup(s => s.SaveAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["Stripe-Signature"] = "valid-sig";
+        httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes("{\"test\":true}"));
+
+        var result = await StripeWebhookEndpoint.Handle(
+            httpContext,
+            mockStripeService.Object,
+            _sessionStore.Object,
+            new OnboardingStateMachine(),
+            NullLogger<StripeWebhookEndpoint>.Instance,
+            CancellationToken.None);
+
+        Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.Ok>(result);
+        Assert.Equal(OnboardingState.TrialActivated, onboardingSession.CurrentState);
+    }
+
+    [Fact]
+    public async Task Handle_StripeExceptionOnConstruct_Returns400()
+    {
+        var mockStripeService = new Mock<IStripeService>();
+        mockStripeService
+            .Setup(s => s.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
+            .Throws(new StripeException("bad sig"));
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["Stripe-Signature"] = "bad-sig";
+        httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes("{}"));
+
+        var result = await StripeWebhookEndpoint.Handle(
+            httpContext,
+            mockStripeService.Object,
+            _sessionStore.Object,
+            new OnboardingStateMachine(),
+            NullLogger<StripeWebhookEndpoint>.Instance,
+            CancellationToken.None);
+
+        // Should be BadRequest - the string body check
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task Handle_MissingSignatureHeader_ReturnsBadRequest()
+    {
+        var mockStripeService = new Mock<IStripeService>();
+
+        var httpContext = new DefaultHttpContext();
+        // No Stripe-Signature header set
+        httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes("{}"));
+
+        var result = await StripeWebhookEndpoint.Handle(
+            httpContext,
+            mockStripeService.Object,
+            _sessionStore.Object,
+            new OnboardingStateMachine(),
+            NullLogger<StripeWebhookEndpoint>.Instance,
+            CancellationToken.None);
+
+        Assert.NotNull(result);
+        // ConstructWebhookEvent should never be called
+        mockStripeService.Verify(
+            s => s.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 }

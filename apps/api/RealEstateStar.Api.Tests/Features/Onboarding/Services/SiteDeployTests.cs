@@ -255,6 +255,111 @@ public class SiteDeployTests : IDisposable
         Assert.True(options.IsValid());
     }
 
+    // --- Cloudflare config missing throws tests ---
+
+    [Fact]
+    public async Task DeployAsync_MissingApiToken_ThrowsInvalidOperationException()
+    {
+        var processRunner = new Mock<IProcessRunner>();
+        var options = new CloudflareOptions { ApiToken = "", AccountId = "acct-123" };
+        var svc = new SiteDeployService(
+            NullLogger<SiteDeployService>.Instance,
+            processRunner.Object,
+            options,
+            _configDir);
+        var session = MakeSession();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.DeployAsync(session, CancellationToken.None));
+
+        Assert.Contains("ApiToken", ex.Message);
+    }
+
+    [Fact]
+    public async Task DeployAsync_WhitespaceApiToken_ThrowsInvalidOperationException()
+    {
+        var processRunner = new Mock<IProcessRunner>();
+        var options = new CloudflareOptions { ApiToken = "   ", AccountId = "acct-123" };
+        var svc = new SiteDeployService(
+            NullLogger<SiteDeployService>.Instance,
+            processRunner.Object,
+            options,
+            _configDir);
+        var session = MakeSession();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.DeployAsync(session, CancellationToken.None));
+
+        Assert.Contains("ApiToken", ex.Message);
+    }
+
+    [Fact]
+    public async Task DeployAsync_MissingAccountId_ThrowsInvalidOperationException()
+    {
+        var processRunner = new Mock<IProcessRunner>();
+        var options = new CloudflareOptions { ApiToken = "valid-token", AccountId = "" };
+        var svc = new SiteDeployService(
+            NullLogger<SiteDeployService>.Instance,
+            processRunner.Object,
+            options,
+            _configDir);
+        var session = MakeSession();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.DeployAsync(session, CancellationToken.None));
+
+        Assert.Contains("AccountId", ex.Message);
+    }
+
+    [Fact]
+    public async Task DeployAsync_WhitespaceAccountId_ThrowsInvalidOperationException()
+    {
+        var processRunner = new Mock<IProcessRunner>();
+        var options = new CloudflareOptions { ApiToken = "valid-token", AccountId = "   " };
+        var svc = new SiteDeployService(
+            NullLogger<SiteDeployService>.Instance,
+            processRunner.Object,
+            options,
+            _configDir);
+        var session = MakeSession();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.DeployAsync(session, CancellationToken.None));
+
+        Assert.Contains("AccountId", ex.Message);
+    }
+
+    [Fact]
+    public async Task DeployAsync_NullServiceAreas_DefaultsToEmptyArray()
+    {
+        var svc = CreateService(out _);
+        var session = MakeSession();
+        // Create a profile with null ServiceAreas to hit the ?? [] branch
+        session.Profile = new ScrapedProfile
+        {
+            Name = "Test Agent",
+            Brokerage = "RE/MAX",
+            State = "NJ",
+            Phone = "555-0000",
+            Email = "test@example.com",
+            LicenseId = "NJ-00000",
+            ServiceAreas = null,
+            OfficeAddress = null,
+            PrimaryColor = null,
+            AccentColor = null,
+            LogoUrl = null,
+        };
+
+        await svc.DeployAsync(session, CancellationToken.None);
+
+        var configPath = Path.Combine(_configDir, "test-agent.json");
+        var json = await File.ReadAllTextAsync(configPath);
+        Assert.Contains("\"serviceAreas\": []", json);
+        // Null colors should use defaults
+        Assert.Contains("#1e40af", json);
+        Assert.Contains("#10b981", json);
+    }
+
     // --- Helper to create service with mocked process runner ---
 
     private SiteDeployService CreateService(out Mock<IProcessRunner> processRunner)
