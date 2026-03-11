@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -128,20 +127,106 @@ public class SiteDeployTests : IDisposable
         Assert.Equal(expectedSlug, session.AgentConfigId);
     }
 
+    // --- Build step invocation tests ---
+
+    [Fact]
+    public async Task DeployAsync_InvokesNextBuild()
+    {
+        var svc = CreateService(out var processRunner);
+        var session = MakeSession();
+
+        await svc.DeployAsync(session, CancellationToken.None);
+
+        processRunner.Verify(p => p.RunAsync(
+            It.Is<ProcessStartInfo>(psi =>
+                psi.FileName == "npx" &&
+                psi.ArgumentList.Contains("next") &&
+                psi.ArgumentList.Contains("build")),
+            It.IsAny<TimeSpan>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeployAsync_InvokesOpenNextBuild()
+    {
+        var svc = CreateService(out var processRunner);
+        var session = MakeSession();
+
+        await svc.DeployAsync(session, CancellationToken.None);
+
+        processRunner.Verify(p => p.RunAsync(
+            It.Is<ProcessStartInfo>(psi =>
+                psi.FileName == "npx" &&
+                psi.ArgumentList.Contains("opennextjs-cloudflare") &&
+                psi.ArgumentList.Contains("build")),
+            It.IsAny<TimeSpan>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeployAsync_ThrowsOnNextBuildFailure()
+    {
+        var processRunner = new Mock<IProcessRunner>();
+        // First call (next build) fails
+        processRunner.Setup(p => p.RunAsync(
+                It.Is<ProcessStartInfo>(psi => psi.ArgumentList.Contains("next")),
+                It.IsAny<TimeSpan>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessResult(1, "", "Build error"));
+
+        var svc = new SiteDeployService(
+            NullLogger<SiteDeployService>.Instance,
+            processRunner.Object,
+            ValidCloudflareOptions(),
+            _configDir);
+        var session = MakeSession();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.DeployAsync(session, CancellationToken.None));
+
+        Assert.Contains("Next.js build failed", ex.Message);
+    }
+
+    [Fact]
+    public async Task DeployAsync_ThrowsOnOpenNextBuildFailure()
+    {
+        var processRunner = new Mock<IProcessRunner>();
+        // next build succeeds
+        processRunner.Setup(p => p.RunAsync(
+                It.Is<ProcessStartInfo>(psi =>
+                    psi.ArgumentList.Contains("next") && psi.ArgumentList.Contains("build")),
+                It.IsAny<TimeSpan>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessResult(0, "", ""));
+        // opennext build fails
+        processRunner.Setup(p => p.RunAsync(
+                It.Is<ProcessStartInfo>(psi => psi.ArgumentList.Contains("opennextjs-cloudflare")),
+                It.IsAny<TimeSpan>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessResult(1, "", "OpenNext error"));
+
+        var svc = new SiteDeployService(
+            NullLogger<SiteDeployService>.Instance,
+            processRunner.Object,
+            ValidCloudflareOptions(),
+            _configDir);
+        var session = MakeSession();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.DeployAsync(session, CancellationToken.None));
+
+        Assert.Contains("OpenNext build failed", ex.Message);
+    }
+
     // --- Wrangler CLI invocation tests ---
 
     [Fact]
     public async Task DeployAsync_InvokesWranglerWithArgumentList()
     {
         var svc = CreateService(out var processRunner);
-        processRunner.Setup(p => p.RunAsync(
-                It.IsAny<ProcessStartInfo>(),
-                It.IsAny<TimeSpan>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ProcessResult(0, "https://abc123.real-estate-star-agents.pages.dev", ""));
         var session = MakeSession();
 
-        var url = await svc.DeployAsync(session, CancellationToken.None);
+        await svc.DeployAsync(session, CancellationToken.None);
 
         processRunner.Verify(p => p.RunAsync(
             It.Is<ProcessStartInfo>(psi =>
@@ -149,6 +234,7 @@ public class SiteDeployTests : IDisposable
                 psi.ArgumentList.Contains("wrangler") &&
                 psi.ArgumentList.Contains("pages") &&
                 psi.ArgumentList.Contains("deploy") &&
+                psi.ArgumentList.Contains(".open-next/assets") &&
                 psi.ArgumentList.Contains("--project-name") &&
                 psi.ArgumentList.Contains("real-estate-star-agents") &&
                 psi.ArgumentList.Contains("--branch") &&
@@ -160,14 +246,22 @@ public class SiteDeployTests : IDisposable
     [Fact]
     public async Task DeployAsync_ParsesPreviewUrlFromWranglerOutput()
     {
-        var svc = CreateService(out var processRunner);
+        var processRunner = new Mock<IProcessRunner>();
+        SetupBuildSteps(processRunner);
+        // Wrangler returns preview URL
         processRunner.Setup(p => p.RunAsync(
-                It.IsAny<ProcessStartInfo>(),
+                It.Is<ProcessStartInfo>(psi => psi.ArgumentList.Contains("wrangler")),
                 It.IsAny<TimeSpan>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ProcessResult(0,
                 "Uploading... (12/12)\n\nDeployment complete! Take a peek over at https://abc123.real-estate-star-agents.pages.dev",
                 ""));
+
+        var svc = new SiteDeployService(
+            NullLogger<SiteDeployService>.Instance,
+            processRunner.Object,
+            ValidCloudflareOptions(),
+            _configDir);
         var session = MakeSession();
 
         var url = await svc.DeployAsync(session, CancellationToken.None);
@@ -179,12 +273,19 @@ public class SiteDeployTests : IDisposable
     [Fact]
     public async Task DeployAsync_FallsBackToConventionUrl_WhenNoUrlParsed()
     {
-        var svc = CreateService(out var processRunner);
+        var processRunner = new Mock<IProcessRunner>();
+        SetupBuildSteps(processRunner);
         processRunner.Setup(p => p.RunAsync(
-                It.IsAny<ProcessStartInfo>(),
+                It.Is<ProcessStartInfo>(psi => psi.ArgumentList.Contains("wrangler")),
                 It.IsAny<TimeSpan>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ProcessResult(0, "Success!", ""));
+
+        var svc = new SiteDeployService(
+            NullLogger<SiteDeployService>.Instance,
+            processRunner.Object,
+            ValidCloudflareOptions(),
+            _configDir);
         var session = MakeSession();
 
         var url = await svc.DeployAsync(session, CancellationToken.None);
@@ -195,12 +296,19 @@ public class SiteDeployTests : IDisposable
     [Fact]
     public async Task DeployAsync_ThrowsOnWranglerFailure()
     {
-        var svc = CreateService(out var processRunner);
+        var processRunner = new Mock<IProcessRunner>();
+        SetupBuildSteps(processRunner);
         processRunner.Setup(p => p.RunAsync(
-                It.IsAny<ProcessStartInfo>(),
+                It.Is<ProcessStartInfo>(psi => psi.ArgumentList.Contains("wrangler")),
                 It.IsAny<TimeSpan>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ProcessResult(1, "", "Error: Authentication required"));
+
+        var svc = new SiteDeployService(
+            NullLogger<SiteDeployService>.Instance,
+            processRunner.Object,
+            ValidCloudflareOptions(),
+            _configDir);
         var session = MakeSession();
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -214,17 +322,13 @@ public class SiteDeployTests : IDisposable
     public async Task DeployAsync_PassesEnvironmentVariables()
     {
         var svc = CreateService(out var processRunner);
-        processRunner.Setup(p => p.RunAsync(
-                It.IsAny<ProcessStartInfo>(),
-                It.IsAny<TimeSpan>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ProcessResult(0, "https://x.pages.dev", ""));
         var session = MakeSession();
 
         await svc.DeployAsync(session, CancellationToken.None);
 
         processRunner.Verify(p => p.RunAsync(
             It.Is<ProcessStartInfo>(psi =>
+                psi.ArgumentList.Contains("wrangler") &&
                 psi.Environment.ContainsKey("CLOUDFLARE_API_TOKEN") &&
                 psi.Environment["CLOUDFLARE_API_TOKEN"] == "test-token" &&
                 psi.Environment.ContainsKey("CLOUDFLARE_ACCOUNT_ID") &&
@@ -234,20 +338,27 @@ public class SiteDeployTests : IDisposable
     }
 
     [Fact]
-    public async Task DeployAsync_Uses60SecondTimeout()
+    public async Task DeployAsync_UsesCorrectTimeouts()
     {
         var svc = CreateService(out var processRunner);
-        processRunner.Setup(p => p.RunAsync(
-                It.IsAny<ProcessStartInfo>(),
-                It.IsAny<TimeSpan>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ProcessResult(0, "https://x.pages.dev", ""));
         var session = MakeSession();
 
         await svc.DeployAsync(session, CancellationToken.None);
 
+        // Build steps use 120s timeout
         processRunner.Verify(p => p.RunAsync(
-            It.IsAny<ProcessStartInfo>(),
+            It.Is<ProcessStartInfo>(psi => psi.ArgumentList.Contains("next")),
+            TimeSpan.FromSeconds(120),
+            It.IsAny<CancellationToken>()));
+
+        processRunner.Verify(p => p.RunAsync(
+            It.Is<ProcessStartInfo>(psi => psi.ArgumentList.Contains("opennextjs-cloudflare")),
+            TimeSpan.FromSeconds(120),
+            It.IsAny<CancellationToken>()));
+
+        // Wrangler deploy uses 60s timeout
+        processRunner.Verify(p => p.RunAsync(
+            It.Is<ProcessStartInfo>(psi => psi.ArgumentList.Contains("wrangler")),
             TimeSpan.FromSeconds(60),
             It.IsAny<CancellationToken>()));
     }
@@ -380,13 +491,77 @@ public class SiteDeployTests : IDisposable
         Assert.Contains("#10b981", json);
     }
 
+    [Fact]
+    public async Task DeployAsync_CallsBuildStepsBeforeWranglerDeploy()
+    {
+        var callOrder = new List<string>();
+        var processRunner = new Mock<IProcessRunner>();
+
+        processRunner.Setup(p => p.RunAsync(
+                It.Is<ProcessStartInfo>(psi =>
+                    psi.ArgumentList.Contains("next") && psi.ArgumentList.Contains("build")),
+                It.IsAny<TimeSpan>(),
+                It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("next-build"))
+            .ReturnsAsync(new ProcessResult(0, "", ""));
+
+        processRunner.Setup(p => p.RunAsync(
+                It.Is<ProcessStartInfo>(psi => psi.ArgumentList.Contains("opennextjs-cloudflare")),
+                It.IsAny<TimeSpan>(),
+                It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("opennext-build"))
+            .ReturnsAsync(new ProcessResult(0, "", ""));
+
+        processRunner.Setup(p => p.RunAsync(
+                It.Is<ProcessStartInfo>(psi => psi.ArgumentList.Contains("wrangler")),
+                It.IsAny<TimeSpan>(),
+                It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("wrangler-deploy"))
+            .ReturnsAsync(new ProcessResult(0, "https://test.real-estate-star-agents.pages.dev", ""));
+
+        var svc = new SiteDeployService(
+            NullLogger<SiteDeployService>.Instance,
+            processRunner.Object,
+            ValidCloudflareOptions(),
+            _configDir);
+        var session = MakeSession();
+
+        await svc.DeployAsync(session, CancellationToken.None);
+
+        Assert.Equal(["next-build", "opennext-build", "wrangler-deploy"], callOrder);
+    }
+
     // --- Helper to create service with mocked process runner ---
+
+    /// <summary>
+    /// Sets up next build and opennext build to succeed (used by tests that
+    /// manually configure the wrangler step).
+    /// </summary>
+    private static void SetupBuildSteps(Mock<IProcessRunner> processRunner)
+    {
+        processRunner.Setup(p => p.RunAsync(
+                It.Is<ProcessStartInfo>(psi =>
+                    psi.ArgumentList.Contains("next") && psi.ArgumentList.Contains("build")),
+                It.IsAny<TimeSpan>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessResult(0, "", ""));
+
+        processRunner.Setup(p => p.RunAsync(
+                It.Is<ProcessStartInfo>(psi => psi.ArgumentList.Contains("opennextjs-cloudflare")),
+                It.IsAny<TimeSpan>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessResult(0, "", ""));
+    }
 
     private SiteDeployService CreateService(out Mock<IProcessRunner> processRunner)
     {
         processRunner = new Mock<IProcessRunner>();
+
+        // Default: all three steps succeed
+        SetupBuildSteps(processRunner);
+
         processRunner.Setup(p => p.RunAsync(
-                It.IsAny<ProcessStartInfo>(),
+                It.Is<ProcessStartInfo>(psi => psi.ArgumentList.Contains("wrangler")),
                 It.IsAny<TimeSpan>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ProcessResult(0, "https://test.real-estate-star-agents.pages.dev", ""));

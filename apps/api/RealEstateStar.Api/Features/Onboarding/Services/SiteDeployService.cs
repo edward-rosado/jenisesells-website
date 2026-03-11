@@ -17,6 +17,7 @@ public partial class SiteDeployService(
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
     };
 
+    private static readonly TimeSpan BuildTimeout = TimeSpan.FromSeconds(120);
     private static readonly TimeSpan DeployTimeout = TimeSpan.FromSeconds(60);
 
     [GeneratedRegex(@"https://[a-z0-9\-]+\.real-estate-star-agents\.pages\.dev")]
@@ -44,7 +45,13 @@ public partial class SiteDeployService(
         // Step 2: Write agent content JSON (config/agents/{slug}.content.json)
         await WriteAgentContentAsync(agentSlug, profile, ct);
 
-        // Step 3: Run Wrangler to deploy to Cloudflare Pages
+        // Step 3: Build Next.js for Cloudflare using OpenNext adapter
+        await RunNextBuildAsync(ct);
+
+        // Step 4: Build OpenNext worker + assets bundle
+        await RunOpenNextBuildAsync(ct);
+
+        // Step 5: Deploy to Cloudflare Pages via Wrangler
         var siteUrl = await RunWranglerDeployAsync(agentSlug, ct);
 
         session.SiteUrl = siteUrl;
@@ -90,14 +97,61 @@ public partial class SiteDeployService(
         return filePath;
     }
 
+    private async Task RunNextBuildAsync(CancellationToken ct)
+    {
+        var psi = new ProcessStartInfo("npx")
+        {
+            WorkingDirectory = Path.GetFullPath("apps/agent-site"),
+        };
+        psi.ArgumentList.Add("next");
+        psi.ArgumentList.Add("build");
+
+        var result = await processRunner.RunAsync(psi, BuildTimeout, ct);
+
+        if (result.ExitCode != 0)
+        {
+            logger.LogError("[DEPLOY-005] Next.js build failed with exit code {ExitCode}: {Stderr}",
+                result.ExitCode, result.Stderr);
+            throw new InvalidOperationException(
+                $"Next.js build failed (exit code {result.ExitCode}). Check logs for details.");
+        }
+
+        logger.LogInformation("[DEPLOY-006] Next.js build completed successfully");
+    }
+
+    private async Task RunOpenNextBuildAsync(CancellationToken ct)
+    {
+        var psi = new ProcessStartInfo("npx")
+        {
+            WorkingDirectory = Path.GetFullPath("apps/agent-site"),
+        };
+        psi.ArgumentList.Add("opennextjs-cloudflare");
+        psi.ArgumentList.Add("build");
+
+        var result = await processRunner.RunAsync(psi, BuildTimeout, ct);
+
+        if (result.ExitCode != 0)
+        {
+            logger.LogError("[DEPLOY-007] OpenNext build failed with exit code {ExitCode}: {Stderr}",
+                result.ExitCode, result.Stderr);
+            throw new InvalidOperationException(
+                $"OpenNext build failed (exit code {result.ExitCode}). Check logs for details.");
+        }
+
+        logger.LogInformation("[DEPLOY-008] OpenNext Cloudflare build completed successfully");
+    }
+
     private async Task<string> RunWranglerDeployAsync(string agentSlug, CancellationToken ct)
     {
-        var psi = new ProcessStartInfo("npx");
+        var psi = new ProcessStartInfo("npx")
+        {
+            WorkingDirectory = Path.GetFullPath("apps/agent-site"),
+        };
 
         psi.ArgumentList.Add("wrangler");
         psi.ArgumentList.Add("pages");
         psi.ArgumentList.Add("deploy");
-        psi.ArgumentList.Add("apps/agent-site/.next");
+        psi.ArgumentList.Add(".open-next/assets");
         psi.ArgumentList.Add("--project-name");
         psi.ArgumentList.Add("real-estate-star-agents");
         psi.ArgumentList.Add("--branch");
