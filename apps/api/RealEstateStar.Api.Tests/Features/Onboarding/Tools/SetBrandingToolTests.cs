@@ -8,7 +8,7 @@ namespace RealEstateStar.Api.Tests.Features.Onboarding.Tools;
 
 public class SetBrandingToolTests
 {
-    private static SetBrandingTool CreateTool() => new(new OnboardingStateMachine());
+    private static SetBrandingTool CreateTool() => new();
 
     private static JsonElement ParseJson(string json) =>
         JsonSerializer.Deserialize<JsonElement>(json);
@@ -30,7 +30,7 @@ public class SetBrandingToolTests
     {
         var tool = CreateTool();
         var session = OnboardingSession.Create(null);
-        session.CurrentState = OnboardingState.CollectBranding;
+        session.CurrentState = OnboardingState.ScrapeProfile;
         var json = ParseJson("""
             {
                 "primaryColor": "#003366",
@@ -52,7 +52,7 @@ public class SetBrandingToolTests
     {
         var tool = CreateTool();
         var session = OnboardingSession.Create(null);
-        session.CurrentState = OnboardingState.CollectBranding;
+        session.CurrentState = OnboardingState.ScrapeProfile;
         session.Profile = new ScrapedProfile
         {
             PrimaryColor = "#111111",
@@ -74,7 +74,7 @@ public class SetBrandingToolTests
     {
         var tool = CreateTool();
         var session = OnboardingSession.Create(null);
-        session.CurrentState = OnboardingState.CollectBranding;
+        session.CurrentState = OnboardingState.ScrapeProfile;
         session.Profile = null;
         var json = ParseJson("""{"primaryColor":"#AABBCC"}""");
 
@@ -90,7 +90,7 @@ public class SetBrandingToolTests
         // Covers the "primaryColor NOT present" branch — the one field omitted in all other missing-param tests
         var tool = CreateTool();
         var session = OnboardingSession.Create(null);
-        session.CurrentState = OnboardingState.CollectBranding;
+        session.CurrentState = OnboardingState.ScrapeProfile;
         session.Profile = new ScrapedProfile { PrimaryColor = "#PRESERVED" };
         // JSON has accentColor and logoUrl but not primaryColor
         var json = ParseJson("""{"accentColor":"#CCCCCC","logoUrl":"https://example.com/logo.png"}""");
@@ -107,7 +107,7 @@ public class SetBrandingToolTests
     {
         var tool = CreateTool();
         var session = OnboardingSession.Create(null);
-        session.CurrentState = OnboardingState.CollectBranding;
+        session.CurrentState = OnboardingState.ScrapeProfile;
         session.Profile = new ScrapedProfile
         {
             PrimaryColor = "#AAA",
@@ -123,35 +123,6 @@ public class SetBrandingToolTests
         session.Profile.LogoUrl.Should().Be("https://example.com/logo.png");
     }
 
-    // ── State machine transitions ──────────────────────────────────────────────
-
-    [Fact]
-    public async Task ExecuteAsync_AdvancesFromCollectBrandingToConnectGoogle()
-    {
-        var tool = CreateTool();
-        var session = OnboardingSession.Create(null);
-        session.CurrentState = OnboardingState.CollectBranding;
-        var json = ParseJson("""{"primaryColor":"#003366","accentColor":"#FFD700"}""");
-
-        await tool.ExecuteAsync(json, session, CancellationToken.None);
-
-        session.CurrentState.Should().Be(OnboardingState.ConnectGoogle);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_DoesNotAdvanceWhenNotInCollectBrandingState()
-    {
-        var tool = CreateTool();
-        var session = OnboardingSession.Create(null);
-        // ScrapeProfile cannot transition to ConnectGoogle, so CanAdvance returns false
-        session.CurrentState = OnboardingState.ScrapeProfile;
-        var json = ParseJson("""{"primaryColor":"#003366"}""");
-
-        await tool.ExecuteAsync(json, session, CancellationToken.None);
-
-        session.CurrentState.Should().Be(OnboardingState.ScrapeProfile);
-    }
-
     // ── Result message ─────────────────────────────────────────────────────────
 
     [Fact]
@@ -159,7 +130,7 @@ public class SetBrandingToolTests
     {
         var tool = CreateTool();
         var session = OnboardingSession.Create(null);
-        session.CurrentState = OnboardingState.CollectBranding;
+        session.CurrentState = OnboardingState.ScrapeProfile;
         var json = ParseJson("""{"primaryColor":"#FF0000","accentColor":"#0000FF"}""");
 
         var result = await tool.ExecuteAsync(json, session, CancellationToken.None);

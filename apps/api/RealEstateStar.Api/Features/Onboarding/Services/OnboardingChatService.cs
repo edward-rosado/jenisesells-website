@@ -384,35 +384,21 @@ public class OnboardingChatService(
                 If the agent provides a URL, immediately call scrape_url. Do NOT ask clarifying questions first.
                 If no URL yet, ask for their Zillow, Realtor.com, or Redfin profile URL.
                 If they don't have one, use update_profile to collect: name, phone, email, brokerage, state.
-                """,
-            OnboardingState.ConfirmIdentity => """
-                Present a COMPLETE summary of everything scraped — name, brokerage, phone, email, state,
-                specialties, designations, years of experience, homes sold, rating, service areas, bio,
-                brand colors, testimonials count, and recent sales count.
-                Format it cleanly with sections. Ask if anything needs correcting.
-                When they confirm, call update_profile with their name to advance to branding.
-                If brand colors were already extracted from the scrape, mention them.
-                """,
-            OnboardingState.CollectBranding => """
-                Check the profile data — if primaryColor and accentColor already exist from scraping,
-                call set_branding IMMEDIATELY with those colors. Show the agent what you're using but
-                do NOT ask "do you have colors?" — just apply them and confirm.
-                If no colors exist, suggest colors based on their brokerage and call set_branding.
-                This step should be fast — one tool call and move on.
-                """,
-            OnboardingState.ConnectGoogle => """
-                Call google_auth_card IMMEDIATELY to show the connect button. Don't explain first — show the card,
-                then explain what it does below the card.
+                After scraping, briefly show the agent's key info (name, brokerage, stats) and immediately
+                move to building their site — do NOT ask for confirmation or branding preferences.
                 """,
             OnboardingState.GenerateSite => """
                 Call deploy_site immediately. Don't ask permission — just do it.
                 AFTER the tool returns, read the result carefully:
                 - If it starts with "SUCCESS:", tell the agent their site is live and show the URL.
                 - If it starts with "FAILED:", be HONEST — tell them site deployment isn't available yet
-                  and the team will set it up. Do NOT pretend the site deployed. Move to the CMA demo.
+                  and the team will set it up. Do NOT pretend the site deployed.
+                Either way, move on to connecting their Google account next.
                 """,
-            OnboardingState.PreviewSite =>
-                "Show the agent their site preview URL and ask for approval.",
+            OnboardingState.ConnectGoogle => """
+                Call google_auth_card IMMEDIATELY to show the connect button. Don't explain first — show the card,
+                then explain what it does below the card. Google connection enables CMA emails and Drive integration.
+                """,
             OnboardingState.DemoCma => """
                 Run a live CMA demo. Pick an address in the agent's primary service area
                 (use their office address or a nearby residential address). Call submit_cma_form with that address.

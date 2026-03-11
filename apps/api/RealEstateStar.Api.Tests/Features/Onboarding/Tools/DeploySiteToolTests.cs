@@ -30,11 +30,11 @@ public class DeploySiteToolTests
 
         deploySvc.Verify(d => d.DeployAsync(session, CancellationToken.None), Times.Once);
         Assert.Contains("https://jane-doe.pages.dev", result);
-        Assert.Equal(OnboardingState.DemoCma, session.CurrentState);
+        Assert.Equal(OnboardingState.ConnectGoogle, session.CurrentState);
     }
 
     [Fact]
-    public async Task ExecuteAsync_AdvancesToDemoCma_OnFailure()
+    public async Task ExecuteAsync_AdvancesToConnectGoogle_OnFailure()
     {
         var tool = CreateTool(out var deploySvc);
         deploySvc.Setup(d => d.DeployAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
@@ -47,7 +47,7 @@ public class DeploySiteToolTests
 
         Assert.StartsWith("FAILED:", result);
         Assert.DoesNotContain("Deploy failed internally", result);
-        Assert.Equal(OnboardingState.DemoCma, session.CurrentState);
+        Assert.Equal(OnboardingState.ConnectGoogle, session.CurrentState);
     }
 
     [Fact]

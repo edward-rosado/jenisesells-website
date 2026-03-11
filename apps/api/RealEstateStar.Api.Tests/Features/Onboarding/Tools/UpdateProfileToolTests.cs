@@ -130,7 +130,7 @@ public class UpdateProfileToolTests
     // ── State machine transitions ──────────────────────────────────────────────
 
     [Fact]
-    public async Task ExecuteAsync_AdvancesFromScrapeProfileToConfirmIdentity()
+    public async Task ExecuteAsync_AdvancesFromScrapeProfileToGenerateSite()
     {
         var tool = CreateTool();
         var session = OnboardingSession.Create(null);
@@ -139,20 +139,7 @@ public class UpdateProfileToolTests
 
         await tool.ExecuteAsync(json, session, CancellationToken.None);
 
-        session.CurrentState.Should().Be(OnboardingState.ConfirmIdentity);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_AdvancesFromConfirmIdentityToCollectBranding()
-    {
-        var tool = CreateTool();
-        var session = OnboardingSession.Create(null);
-        session.CurrentState = OnboardingState.ConfirmIdentity;
-        var json = ParseJson("""{"name":"Jane Doe"}""");
-
-        await tool.ExecuteAsync(json, session, CancellationToken.None);
-
-        session.CurrentState.Should().Be(OnboardingState.CollectBranding);
+        session.CurrentState.Should().Be(OnboardingState.GenerateSite);
     }
 
     [Fact]
@@ -160,13 +147,13 @@ public class UpdateProfileToolTests
     {
         var tool = CreateTool();
         var session = OnboardingSession.Create(null);
-        session.CurrentState = OnboardingState.CollectBranding;
+        session.CurrentState = OnboardingState.GenerateSite;
         var json = ParseJson("""{"name":"Jane Doe"}""");
 
         await tool.ExecuteAsync(json, session, CancellationToken.None);
 
-        // CollectBranding is neither ScrapeProfile nor ConfirmIdentity — no transition fires
-        session.CurrentState.Should().Be(OnboardingState.CollectBranding);
+        // GenerateSite is not ScrapeProfile — no transition fires
+        session.CurrentState.Should().Be(OnboardingState.GenerateSite);
     }
 
     [Fact]

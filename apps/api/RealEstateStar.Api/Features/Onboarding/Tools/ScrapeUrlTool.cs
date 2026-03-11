@@ -19,9 +19,9 @@ public class ScrapeUrlTool(IProfileScraper scraper, OnboardingStateMachine state
 
         session.Profile = profile;
 
-        // Auto-advance to ConfirmIdentity when we have a profile
-        if (stateMachine.CanAdvance(session, OnboardingState.ConfirmIdentity))
-            stateMachine.Advance(session, OnboardingState.ConfirmIdentity);
+        // Auto-advance to GenerateSite — skip confirmation/branding, go straight to site build
+        if (stateMachine.CanAdvance(session, OnboardingState.GenerateSite))
+            stateMachine.Advance(session, OnboardingState.GenerateSite);
 
         // Return a rich summary so Claude knows exactly what was extracted
         return BuildResultSummary(profile, url);

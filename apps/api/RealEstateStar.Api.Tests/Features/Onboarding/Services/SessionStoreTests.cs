@@ -57,10 +57,10 @@ public class SessionStoreTests : IDisposable
     public async Task Save_PreservesStateChanges()
     {
         var session = OnboardingSession.Create(null);
-        session.CurrentState = OnboardingState.CollectBranding;
+        session.CurrentState = OnboardingState.GenerateSite;
         await _store.SaveAsync(session, CancellationToken.None);
         var loaded = await _store.LoadAsync(session.Id, CancellationToken.None);
-        Assert.Equal(OnboardingState.CollectBranding, loaded!.CurrentState);
+        Assert.Equal(OnboardingState.GenerateSite, loaded!.CurrentState);
     }
 
     // --- Path validation ---

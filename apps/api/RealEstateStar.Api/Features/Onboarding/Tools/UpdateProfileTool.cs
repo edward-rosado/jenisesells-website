@@ -23,16 +23,11 @@ public class UpdateProfileTool(OnboardingStateMachine stateMachine) : IOnboardin
             Tagline = parameters.TryGetProperty("tagline", out var tg) ? tg.GetString() : current.Tagline,
         };
 
-        // Auto-advance: ScrapeProfile → ConfirmIdentity, or ConfirmIdentity → CollectBranding
+        // Auto-advance: ScrapeProfile → GenerateSite (manual profile entry skips scrape)
         if (session.CurrentState == OnboardingState.ScrapeProfile
-            && stateMachine.CanAdvance(session, OnboardingState.ConfirmIdentity))
+            && stateMachine.CanAdvance(session, OnboardingState.GenerateSite))
         {
-            stateMachine.Advance(session, OnboardingState.ConfirmIdentity);
-        }
-        else if (session.CurrentState == OnboardingState.ConfirmIdentity
-            && stateMachine.CanAdvance(session, OnboardingState.CollectBranding))
-        {
-            stateMachine.Advance(session, OnboardingState.CollectBranding);
+            stateMachine.Advance(session, OnboardingState.GenerateSite);
         }
 
         return Task.FromResult($"SUCCESS: Profile saved for {session.Profile.Name}.");
