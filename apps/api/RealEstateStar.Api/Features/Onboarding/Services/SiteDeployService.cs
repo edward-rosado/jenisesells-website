@@ -11,10 +11,10 @@ public partial class SiteDeployService(
     CloudflareOptions cloudflareOptions,
     string configDirectory) : ISiteDeployService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    internal static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
     };
 
     private static readonly TimeSpan DeployTimeout = TimeSpan.FromSeconds(60);
@@ -37,11 +37,14 @@ public partial class SiteDeployService(
 
         var agentSlug = OnboardingHelpers.GenerateSlug(profile.Name);
 
-        // Step 1: Write agent config JSON
+        // Step 1: Write agent config JSON (config/agents/{slug}.json)
         await WriteAgentConfigAsync(agentSlug, profile, ct);
         session.AgentConfigId = agentSlug;
 
-        // Step 2: Run Wrangler to deploy to Cloudflare Pages
+        // Step 2: Write agent content JSON (config/agents/{slug}.content.json)
+        await WriteAgentContentAsync(agentSlug, profile, ct);
+
+        // Step 3: Run Wrangler to deploy to Cloudflare Pages
         var siteUrl = await RunWranglerDeployAsync(agentSlug, ct);
 
         session.SiteUrl = siteUrl;
@@ -52,43 +55,39 @@ public partial class SiteDeployService(
 
     private async Task WriteAgentConfigAsync(string agentSlug, ScrapedProfile profile, CancellationToken ct)
     {
-        Directory.CreateDirectory(configDirectory);
-
-        var agentConfig = new
-        {
-            identity = new
-            {
-                name = profile.Name,
-                phone = profile.Phone,
-                email = profile.Email,
-                brokerage = profile.Brokerage,
-                licenseId = profile.LicenseId,
-            },
-            location = new
-            {
-                state = profile.State,
-                serviceAreas = profile.ServiceAreas ?? [],
-                officeAddress = profile.OfficeAddress,
-            },
-            branding = new
-            {
-                primaryColor = profile.PrimaryColor ?? "#1e40af",
-                accentColor = profile.AccentColor ?? "#10b981",
-                logoUrl = profile.LogoUrl,
-            },
-        };
-
-        var configPath = Path.GetFullPath(Path.Combine(configDirectory, $"{agentSlug}.json"));
-
-        // Path traversal protection: ensure config path stays within config directory
-        var canonicalConfigDir = Path.GetFullPath(configDirectory);
-        if (!configPath.StartsWith(canonicalConfigDir, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Invalid agent slug — path traversal detected");
-
+        var configPath = ValidateAndGetPath(agentSlug, $"{agentSlug}.json");
+        var agentConfig = OnboardingMappers.ToAgentConfig(agentSlug, profile);
         var json = JsonSerializer.Serialize(agentConfig, JsonOptions);
         await File.WriteAllTextAsync(configPath, json, ct);
 
-        logger.LogInformation("Wrote agent config for {AgentSlug} at {ConfigPath}", agentSlug, configPath);
+        logger.LogInformation("[DEPLOY-001] Wrote agent config for {AgentSlug} at {ConfigPath}", agentSlug, configPath);
+    }
+
+    private async Task WriteAgentContentAsync(string agentSlug, ScrapedProfile profile, CancellationToken ct)
+    {
+        var contentPath = ValidateAndGetPath(agentSlug, $"{agentSlug}.content.json");
+        var agentContent = OnboardingMappers.ToAgentContent(agentSlug, profile);
+        var json = JsonSerializer.Serialize(agentContent, JsonOptions);
+        await File.WriteAllTextAsync(contentPath, json, ct);
+
+        logger.LogInformation("[DEPLOY-002] Wrote agent content for {AgentSlug} at {ContentPath}", agentSlug, contentPath);
+    }
+
+    /// <summary>
+    /// Validates the path stays within the config directory (path traversal protection)
+    /// and ensures the directory exists.
+    /// </summary>
+    private string ValidateAndGetPath(string agentSlug, string fileName)
+    {
+        Directory.CreateDirectory(configDirectory);
+
+        var filePath = Path.GetFullPath(Path.Combine(configDirectory, fileName));
+        var canonicalConfigDir = Path.GetFullPath(configDirectory);
+
+        if (!filePath.StartsWith(canonicalConfigDir, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Invalid agent slug — path traversal detected");
+
+        return filePath;
     }
 
     private async Task<string> RunWranglerDeployAsync(string agentSlug, CancellationToken ct)
@@ -112,7 +111,7 @@ public partial class SiteDeployService(
 
         if (result.ExitCode != 0)
         {
-            logger.LogError("Wrangler deploy failed with exit code {ExitCode}: {Stderr}",
+            logger.LogError("[DEPLOY-003] Wrangler deploy failed with exit code {ExitCode}: {Stderr}",
                 result.ExitCode, result.Stderr);
             throw new InvalidOperationException(
                 $"Site deploy failed (exit code {result.ExitCode}). Check logs for details.");
@@ -125,7 +124,7 @@ public partial class SiteDeployService(
 
         // Fallback to convention-based URL
         var fallbackUrl = $"https://{agentSlug}.real-estate-star-agents.pages.dev";
-        logger.LogWarning("Could not parse preview URL from Wrangler output, falling back to {FallbackUrl}", fallbackUrl);
+        logger.LogWarning("[DEPLOY-004] Could not parse preview URL from Wrangler output, falling back to {FallbackUrl}", fallbackUrl);
         return fallbackUrl;
     }
 }

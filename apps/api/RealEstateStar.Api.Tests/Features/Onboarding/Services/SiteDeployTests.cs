@@ -65,10 +65,30 @@ public class SiteDeployTests : IDisposable
         Assert.True(File.Exists(configPath));
 
         var json = await File.ReadAllTextAsync(configPath);
+        Assert.Contains("\"id\": \"jane-doe\"", json);
         Assert.Contains("\"name\": \"Jane Doe\"", json);
         Assert.Contains("\"brokerage\": \"RE/MAX\"", json);
         Assert.Contains("\"state\": \"NJ\"", json);
-        Assert.Contains("\"primaryColor\": \"#1e40af\"", json);
+        Assert.Contains("\"primary_color\": \"#1e40af\"", json);
+    }
+
+    [Fact]
+    public async Task DeployAsync_WritesAgentContentJson()
+    {
+        var svc = CreateService(out _);
+        var session = MakeSession();
+
+        await svc.DeployAsync(session, CancellationToken.None);
+
+        var contentPath = Path.Combine(_configDir, "jane-doe.content.json");
+        Assert.True(File.Exists(contentPath));
+
+        var json = await File.ReadAllTextAsync(contentPath);
+        Assert.Contains("\"template\": \"emerald-classic\"", json);
+        Assert.Contains("\"hero\"", json);
+        Assert.Contains("\"services\"", json);
+        Assert.Contains("\"about\"", json);
+        Assert.Contains("Jane Doe", json);
     }
 
     [Fact]
@@ -354,7 +374,7 @@ public class SiteDeployTests : IDisposable
 
         var configPath = Path.Combine(_configDir, "test-agent.json");
         var json = await File.ReadAllTextAsync(configPath);
-        Assert.Contains("\"serviceAreas\": []", json);
+        Assert.Contains("\"service_areas\": []", json);
         // Null colors should use defaults
         Assert.Contains("#1e40af", json);
         Assert.Contains("#10b981", json);

@@ -81,7 +81,7 @@ public class ToolDispatcherTests
         deploySvc.Setup(d => d.DeployAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("https://jane-doe.realestatestar.com");
         var sm = new OnboardingStateMachine();
-        var tool = new DeploySiteTool(deploySvc.Object, sm);
+        var tool = new DeploySiteTool(deploySvc.Object, sm, Microsoft.Extensions.Logging.Abstractions.NullLogger<DeploySiteTool>.Instance);
         var session = OnboardingSession.Create(null);
         session.Profile = new ScrapedProfile { Name = "Jane Doe" };
         // Advance to GenerateSite so deploy_site can advance further

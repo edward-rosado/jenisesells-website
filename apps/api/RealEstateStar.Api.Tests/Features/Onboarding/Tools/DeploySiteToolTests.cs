@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.Services;
@@ -71,6 +72,6 @@ public class DeploySiteToolTests
         deploySvc = new Mock<ISiteDeployService>();
         deploySvc.Setup(d => d.DeployAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("https://default.pages.dev");
-        return new DeploySiteTool(deploySvc.Object, new OnboardingStateMachine());
+        return new DeploySiteTool(deploySvc.Object, new OnboardingStateMachine(), NullLogger<DeploySiteTool>.Instance);
     }
 }

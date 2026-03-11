@@ -1,9 +1,10 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using RealEstateStar.Api.Features.Onboarding.Services;
 
 namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
-public class DeploySiteTool(ISiteDeployService siteDeployService, OnboardingStateMachine stateMachine) : IOnboardingTool
+public class DeploySiteTool(ISiteDeployService siteDeployService, OnboardingStateMachine stateMachine, ILogger<DeploySiteTool> logger) : IOnboardingTool
 {
     public string Name => "deploy_site";
 
@@ -20,8 +21,10 @@ public class DeploySiteTool(ISiteDeployService siteDeployService, OnboardingStat
 
             return $"SUCCESS: Site deployed and live at {siteUrl}. The agent can visit this URL now.";
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogError(ex, "[DEPLOY-TOOL-001] Site deployment failed for session {SessionId}", session.Id);
+
             // Advance past deploy so the flow doesn't get stuck
             if (stateMachine.CanAdvance(session, OnboardingState.ConnectGoogle))
                 stateMachine.Advance(session, OnboardingState.ConnectGoogle);
