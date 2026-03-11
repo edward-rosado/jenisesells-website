@@ -24,26 +24,30 @@ public class DeploySiteToolTests
             .ReturnsAsync("https://jane-doe.pages.dev");
         var session = OnboardingSession.Create(null);
         session.Profile = new ScrapedProfile { Name = "Jane Doe" };
+        session.CurrentState = OnboardingState.GenerateSite;
 
         var result = await tool.ExecuteAsync(default, session, CancellationToken.None);
 
         deploySvc.Verify(d => d.DeployAsync(session, CancellationToken.None), Times.Once);
         Assert.Contains("https://jane-doe.pages.dev", result);
+        Assert.Equal(OnboardingState.DemoCma, session.CurrentState);
     }
 
     [Fact]
-    public async Task ExecuteAsync_ReturnsErrorMessage_OnFailure()
+    public async Task ExecuteAsync_AdvancesToDemoCma_OnFailure()
     {
         var tool = CreateTool(out var deploySvc);
         deploySvc.Setup(d => d.DeployAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Deploy failed internally"));
         var session = OnboardingSession.Create(null);
         session.Profile = new ScrapedProfile { Name = "Jane Doe" };
+        session.CurrentState = OnboardingState.GenerateSite;
 
         var result = await tool.ExecuteAsync(default, session, CancellationToken.None);
 
-        Assert.Contains("failed", result, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("Deploy failed internally", result); // Don't expose internal details
+        Assert.StartsWith("FAILED:", result);
+        Assert.DoesNotContain("Deploy failed internally", result);
+        Assert.Equal(OnboardingState.DemoCma, session.CurrentState);
     }
 
     [Fact]
@@ -54,6 +58,7 @@ public class DeploySiteToolTests
             .ReturnsAsync("https://test.pages.dev");
         var session = OnboardingSession.Create(null);
         session.Profile = new ScrapedProfile { Name = "Test" };
+        session.CurrentState = OnboardingState.GenerateSite;
         using var cts = new CancellationTokenSource();
 
         await tool.ExecuteAsync(default, session, cts.Token);
@@ -66,6 +71,6 @@ public class DeploySiteToolTests
         deploySvc = new Mock<ISiteDeployService>();
         deploySvc.Setup(d => d.DeployAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("https://default.pages.dev");
-        return new DeploySiteTool(deploySvc.Object);
+        return new DeploySiteTool(deploySvc.Object, new OnboardingStateMachine());
     }
 }

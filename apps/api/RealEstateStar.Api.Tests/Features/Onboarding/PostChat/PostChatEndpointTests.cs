@@ -43,7 +43,7 @@ public class PostChatEndpointTests
         var request = new PostChatRequest { Message = "hello" };
         var httpContext = CreateHttpContext("any-token");
         var result = await PostChatEndpoint.Handle(
-            "nope", request, httpContext, _mockStore.Object, CreateStubChatService(), CancellationToken.None);
+            "nope", request, httpContext, _mockStore.Object, CreateStubChatService(), NullLogger<PostChatEndpoint>.Instance, CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
     }
@@ -60,7 +60,7 @@ public class PostChatEndpointTests
         var request = new PostChatRequest { Message = "hello" };
         var httpContext = CreateHttpContext(session.BearerToken);
         var result = await PostChatEndpoint.Handle(
-            session.Id, request, httpContext, _mockStore.Object, CreateStubChatService(), CancellationToken.None);
+            session.Id, request, httpContext, _mockStore.Object, CreateStubChatService(), NullLogger<PostChatEndpoint>.Instance, CancellationToken.None);
 
         // User message is added inside StreamResponseAsync (not the endpoint)
         // so we can only verify the endpoint returns a streaming result
@@ -77,7 +77,7 @@ public class PostChatEndpointTests
         var request = new PostChatRequest { Message = "hello" };
         var httpContext = CreateHttpContext(null);
         var result = await PostChatEndpoint.Handle(
-            session.Id, request, httpContext, _mockStore.Object, CreateStubChatService(), CancellationToken.None);
+            session.Id, request, httpContext, _mockStore.Object, CreateStubChatService(), NullLogger<PostChatEndpoint>.Instance, CancellationToken.None);
 
         Assert.IsType<UnauthorizedHttpResult>(result);
     }
@@ -92,7 +92,7 @@ public class PostChatEndpointTests
         var request = new PostChatRequest { Message = "hello" };
         var httpContext = CreateHttpContext("wrong-token");
         var result = await PostChatEndpoint.Handle(
-            session.Id, request, httpContext, _mockStore.Object, CreateStubChatService(), CancellationToken.None);
+            session.Id, request, httpContext, _mockStore.Object, CreateStubChatService(), NullLogger<PostChatEndpoint>.Instance, CancellationToken.None);
 
         Assert.IsType<UnauthorizedHttpResult>(result);
     }

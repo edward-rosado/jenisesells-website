@@ -183,4 +183,36 @@ public class StripeServiceTests
                 config,
                 NullLogger<StripeService>.Instance));
     }
+
+    // --- Missing branch coverage ---
+
+    [Fact]
+    public void ConstructWebhookEvent_InvalidSignature_ThrowsStripeException()
+    {
+        var mockSessionService = new Mock<SessionService>();
+        var config = BuildConfig();
+        var service = new StripeService(
+            config,
+            NullLogger<StripeService>.Instance,
+            mockSessionService.Object);
+
+        // A real Stripe webhook signature validation will throw StripeException
+        // when the payload and signature don't match the secret
+        Assert.Throws<StripeException>(
+            () => service.ConstructWebhookEvent(
+                payload: """{"id":"evt_test","type":"checkout.session.completed","data":{}}""",
+                signatureHeader: "t=1234567890,v1=invalidsignature"));
+    }
+
+    [Fact]
+    public void Constructor_WithWhitespacePlatformUrl_Throws()
+    {
+        // IsNullOrWhiteSpace covers the whitespace branch not hit by null/"" tests
+        var config = BuildConfig(platformUrl: "   ");
+
+        Assert.Throws<InvalidOperationException>(
+            () => new StripeService(
+                config,
+                NullLogger<StripeService>.Instance));
+    }
 }

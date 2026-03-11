@@ -148,7 +148,7 @@ public class CmaToolTests
 
         var result = await tool.ExecuteAsync(json, session, CancellationToken.None);
 
-        Assert.Contains("issue", result, StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith("FAILED:", result);
         Assert.DoesNotContain("Pipeline internal error", result); // Don't leak internals
     }
 
@@ -195,6 +195,121 @@ public class CmaToolTests
         var result = await tool.ExecuteAsync(json, session, CancellationToken.None);
 
         Assert.Contains("profile", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // --- Missing branch coverage ---
+
+    [Theory]
+    [InlineData("NY", "New York")]
+    [InlineData("CA", "Los Angeles")]
+    [InlineData("TX", "Springfield")]
+    public void BuildLeadFromParameters_CityDefaultsByState(string state, string expectedCity)
+    {
+        var profile = new ScrapedProfile { Name = "Test Agent", State = state };
+        // Pass a JSON object with no "city" key so the switch default fires
+        var parameters = JsonSerializer.Deserialize<JsonElement>("""{"address":"1 Test St"}""");
+
+        var lead = SubmitCmaFormTool.BuildLeadFromParameters(parameters, "agent@test.com", profile);
+
+        Assert.Equal(expectedCity, lead.City);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_NullEmail_SkipsDriveInit()
+    {
+        var tool = CreateTool(out _, out _, out var driveFolderInit);
+        var session = OnboardingSession.Create(null);
+        session.AgentConfigId = "jane-doe";
+        session.Profile = new ScrapedProfile
+        {
+            Name = "Jane Doe",
+            Email = null, // null email — should skip drive folder init
+            State = "NJ",
+        };
+        var json = JsonSerializer.Deserialize<JsonElement>("""{"address":"456 Oak Ave","city":"Newark","state":"NJ","zip":"07102"}""");
+
+        await tool.ExecuteAsync(json, session, CancellationToken.None);
+
+        driveFolderInit.Verify(d => d.EnsureFolderStructureAsync(
+            It.IsAny<OnboardingSession>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_NullAgentConfigId_UsesSlugFromProfileName()
+    {
+        var tool = CreateTool(out var pipeline, out _, out _);
+        var session = OnboardingSession.Create(null);
+        session.AgentConfigId = null; // null — falls back to GenerateSlug(profile.Name)
+        session.Profile = new ScrapedProfile
+        {
+            Name = "Jane Doe",
+            Email = "jane@remax.com",
+            State = "NJ",
+        };
+        var json = JsonSerializer.Deserialize<JsonElement>("""{"address":"456 Oak Ave","city":"Newark","state":"NJ","zip":"07102"}""");
+
+        await tool.ExecuteAsync(json, session, CancellationToken.None);
+
+        // GenerateSlug("Jane Doe") → "jane-doe"
+        pipeline.Verify(p => p.ExecuteAsync(
+            It.IsAny<CmaJob>(),
+            "jane-doe",
+            It.IsAny<Lead>(),
+            It.IsAny<Func<CmaJobStatus, Task>>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void BuildLeadFromParameters_WithIntProperties_ParsesCorrectly()
+    {
+        var profile = new ScrapedProfile { Name = "Test Agent", State = "NJ" };
+        var parameters = JsonSerializer.Deserialize<JsonElement>(
+            """{"address":"1 Main St","beds":3,"baths":2,"sqft":1500}""");
+
+        var lead = SubmitCmaFormTool.BuildLeadFromParameters(parameters, "agent@test.com", profile);
+
+        Assert.Equal(3, lead.Beds);
+        Assert.Equal(2, lead.Baths);
+        Assert.Equal(1500, lead.Sqft);
+    }
+
+    [Fact]
+    public void BuildLeadFromParameters_WithNonObjectJson_UsesDefaults()
+    {
+        var profile = new ScrapedProfile { Name = "Test Agent", State = "NJ" };
+        // A JSON string value — ValueKind != Object, so all GetStringProperty/GetIntProperty calls return null
+        var parameters = JsonSerializer.Deserialize<JsonElement>(""""
+            "not-an-object"
+            """");
+
+        var lead = SubmitCmaFormTool.BuildLeadFromParameters(parameters, "agent@test.com", profile);
+
+        // All fields should fall back to defaults
+        Assert.Equal("Demo", lead.FirstName);
+        Assert.Equal("Seller", lead.LastName);
+        Assert.Equal("123 Main St", lead.Address);
+        Assert.Equal("Newark", lead.City); // NJ default
+        Assert.Equal("NJ", lead.State);
+        Assert.Equal("07102", lead.Zip);
+        Assert.Null(lead.Beds);
+        Assert.Null(lead.Baths);
+        Assert.Null(lead.Sqft);
+    }
+
+    [Fact]
+    public void BuildLeadFromParameters_MissingIntProperty_ReturnsNull()
+    {
+        var profile = new ScrapedProfile { Name = "Test Agent", State = "NJ" };
+        // Object with no beds/baths/sqft — TryGetProperty returns false for each
+        var parameters = JsonSerializer.Deserialize<JsonElement>("""{"address":"1 Main St"}""");
+
+        var lead = SubmitCmaFormTool.BuildLeadFromParameters(parameters, "agent@test.com", profile);
+
+        Assert.Null(lead.Beds);
+        Assert.Null(lead.Baths);
+        Assert.Null(lead.Sqft);
     }
 
     // --- Helpers ---
