@@ -90,7 +90,14 @@ function OnboardContent() {
     );
   }
 
-  return <ChatWindow sessionId={sessionId} token={sessionToken!} initialMessages={[]} />;
+  return (
+    <ChatWindow
+      sessionId={sessionId}
+      token={sessionToken!}
+      initialMessages={[]}
+      autoMessage={profileUrl ?? undefined}
+    />
+  );
 }
 
 export default function OnboardPage() {

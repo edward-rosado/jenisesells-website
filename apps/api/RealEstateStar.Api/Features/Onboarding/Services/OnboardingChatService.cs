@@ -57,7 +57,9 @@ public class OnboardingChatService(
         {
             // Rebuild system prompt each round so state-advancing tools get the correct prompt
             systemPrompt = BuildSystemPrompt(session);
-            allowedTools = stateMachine.GetAllowedTools(session.CurrentState);
+            // Give Claude all tools through the current auto-advance chain so it can call them
+            // in sequence without extra round-trips. Tools enforce state transitions internally.
+            allowedTools = GetCumulativeTools(session.CurrentState);
             tools = BuildToolDefinitions(allowedTools);
 
             logger.LogDebug("[STREAM-030] Tool continuation round {Round} for session {SessionId} in state {State}",
@@ -84,7 +86,6 @@ public class OnboardingChatService(
                 result.ToolName, result.ToolUseId, round, session.Id);
 
             string toolResultText;
-            string toolYieldText;
 
             JsonElement toolParams;
             try
@@ -105,7 +106,6 @@ public class OnboardingChatService(
                 toolResultText = await toolDispatcher.DispatchAsync(result.ToolName!, toolParams, session, ct);
                 logger.LogInformation("[STREAM-034] Tool {ToolName} completed for session {SessionId}, result length={Len}",
                     result.ToolName, session.Id, toolResultText.Length);
-                toolYieldText = $"\n[Tool: {result.ToolName}] {toolResultText}\n";
             }
             catch (Exception ex)
             {
@@ -113,10 +113,14 @@ public class OnboardingChatService(
                     "ExType={ExType}, Message={ExMessage}",
                     result.ToolName, session.Id, ex.GetType().Name, ex.Message);
                 toolResultText = "Error: tool execution failed";
-                toolYieldText = $"\n[Tool: {result.ToolName}] Error: tool execution failed\n";
             }
 
-            yield return toolYieldText;
+            // Only stream card markers to the frontend — raw tool text is internal
+            var cardMatch = System.Text.RegularExpressions.Regex.Match(toolResultText, @"\[CARD:\w+\]\{.*\}");
+            if (cardMatch.Success)
+            {
+                yield return cardMatch.Value;
+            }
 
             // Build continuation messages: assistant message with text+tool_use, then user message with tool_result
             var assistantContent = new List<object>();
@@ -357,22 +361,28 @@ public class OnboardingChatService(
     {
         var sb = new StringBuilder();
         sb.AppendLine("""
-            You are the Real Estate Star onboarding assistant. You create a WOW experience for real estate agents.
-            You are warm, professional, and efficient. Do NOT use emojis. Use clean formatting with line breaks between sections.
+            You are the Real Estate Star onboarding assistant. Warm, professional, concise.
 
-            CRITICAL RULES:
-            - Be proactive. Don't wait to be asked. When you have the data, ACT on it.
-            - When a tool gives you data, present it beautifully and move the conversation forward.
-            - Never ask for information that was already extracted by a tool. Read the tool result carefully.
-            - After each step completes, immediately tell the agent what's next and take action.
-            - Keep responses concise but impactful. Show the agent you already know them.
+            STYLE:
+            - 2-3 sentences max per response. No walls of text.
+            - No emojis. Use markdown **bold** for emphasis.
+            - Do NOT dump data fields. Summarize naturally.
+            - Do NOT repeat info from previous messages.
+            - When calling a tool, call it with NO preceding text. Only write text AFTER the result.
 
-            HONESTY RULES (NEVER VIOLATE):
-            - ONLY report what a tool result ACTUALLY says. If a tool returns an error, tell the agent it failed.
-            - NEVER fabricate results. If deploy_site fails, say it failed. If submit_cma_form errors, say it errored.
-            - Every tool returns a text result. Read it word for word. If it says "error" or "failed" or "issue", report that honestly.
-            - Do NOT say "Done" or "Completed" unless the tool result explicitly confirms success.
-            - Do NOT describe emails being sent, files being created, or sites being deployed unless the tool result confirms it.
+            HONESTY:
+            - Read tool results carefully. If "FAILED:" — say it failed honestly.
+            - Never fabricate success. Never claim emails/files/sites unless confirmed.
+
+            CARDS:
+            - Some tools return [CARD:...] markers that render as UI components.
+            - Do NOT describe what the card shows. Add one sentence of context at most.
+            - Never call the same tool twice.
+
+            FLOW: You have access to multiple tools. Chain them in sequence:
+            scrape_url → deploy_site → google_auth_card. Call each one immediately
+            after the previous result, with minimal text between them.
+            After Google is connected, submit_cma_form runs the CMA demo.
             """);
         sb.AppendLine();
         sb.AppendLine($"Current onboarding state: {session.CurrentState}");
@@ -381,39 +391,30 @@ public class OnboardingChatService(
         sb.AppendLine(session.CurrentState switch
         {
             OnboardingState.ScrapeProfile => """
-                If the agent provides a URL, immediately call scrape_url. Do NOT ask clarifying questions first.
-                If no URL yet, ask for their Zillow, Realtor.com, or Redfin profile URL.
-                If they don't have one, use update_profile to collect: name, phone, email, brokerage, state.
-                After scraping, briefly show the agent's key info (name, brokerage, stats) and immediately
-                move to building their site — do NOT ask for confirmation or branding preferences.
+                URL provided → call scrape_url immediately. No URL → ask for it in one sentence.
+                After scrape: one sentence mentioning their name, brokerage, and a notable stat (years experience or homes sold).
+                Then IMMEDIATELY call deploy_site — no confirmation needed.
                 """,
             OnboardingState.GenerateSite => """
-                Call deploy_site immediately. Don't ask permission — just do it.
-                AFTER the tool returns, read the result carefully:
-                - If it starts with "SUCCESS:", tell the agent their site is live and show the URL.
-                - If it starts with "FAILED:", be HONEST — tell them site deployment isn't available yet
-                  and the team will set it up. Do NOT pretend the site deployed.
-                Either way, move on to connecting their Google account next.
-                """,
-            OnboardingState.ConnectGoogle => """
-                Call google_auth_card IMMEDIATELY to show the connect button. Don't explain first — show the card,
-                then explain what it does below the card. Google connection enables CMA emails and Drive integration.
+                Call deploy_site immediately. After result: one sentence on outcome.
+                Then pitch Real Estate Star in 2-3 sentences: automated CMAs, AI lead response, website,
+                contract automation — one platform replacing 5+ subscriptions.
+                Then IMMEDIATELY call submit_cma_form to demo a CMA for an address near their office.
                 """,
             OnboardingState.DemoCma => """
-                Run a live CMA demo. Pick an address in the agent's primary service area
-                (use their office address or a nearby residential address). Call submit_cma_form with that address.
-                AFTER the tool returns, read the result carefully:
-                - If it starts with "SUCCESS:", tell the agent what was delivered (email, Drive file, tracking sheet).
-                - If it starts with "FAILED:", be HONEST — tell them the CMA demo encountered an issue
-                  and the team will fix it. Do NOT claim emails were sent or files were created.
+                Call submit_cma_form with an address near the agent's office. After result: 2 sentences on what happened.
+                Then IMMEDIATELY call google_auth_card to connect their Google account.
+                """,
+            OnboardingState.ConnectGoogle => """
+                Call google_auth_card immediately. After the card: "Click above to connect your Google account." Nothing more.
                 """,
             OnboardingState.ShowResults =>
-                "Present the CMA results and explain all platform features: automated lead response, CMA generation, contract drafting, website hosting.",
+                "Two sentences: what Real Estate Star delivers. Then move to payment.",
             OnboardingState.CollectPayment =>
-                "Present pricing: $900 one-time with 7-day free trial. Call create_stripe_session immediately.",
+                "$900 one-time, 7-day free trial. Call create_stripe_session immediately.",
             OnboardingState.TrialActivated =>
-                "Congratulate them. Summarize everything set up: website, CMA automation, lead tools. Tell them their trial is active.",
-            _ => "Guide the agent through the next step."
+                "One sentence congratulations. Trial is active, check email for next steps.",
+            _ => "Guide the agent to the next step."
         });
 
         if (session.Profile is not null)
@@ -458,6 +459,37 @@ public class OnboardingChatService(
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Returns tools for the current state PLUS all subsequent auto-advance states
+    /// (up to user-blocking steps like ConnectGoogle). This lets Claude chain
+    /// scrape → deploy → google_auth_card in a single session.
+    /// </summary>
+    private static string[] GetCumulativeTools(OnboardingState currentState)
+    {
+        // States in order. Each state's tools are included up to and including
+        // the first user-blocking state (ConnectGoogle needs the user to click).
+        var stateChain = new (OnboardingState State, string[] Tools, bool UserBlocking)[]
+        {
+            (OnboardingState.ScrapeProfile, ["scrape_url", "update_profile"], false),
+            (OnboardingState.GenerateSite, ["deploy_site"], false),
+            (OnboardingState.DemoCma, ["submit_cma_form"], false),
+            (OnboardingState.ConnectGoogle, ["google_auth_card"], true),  // blocks: user clicks
+            (OnboardingState.ShowResults, [], true),                      // blocks: user reads
+            (OnboardingState.CollectPayment, ["create_stripe_session"], true),
+        };
+
+        var tools = new List<string>();
+        var started = false;
+        foreach (var (state, stateTools, blocking) in stateChain)
+        {
+            if (state == currentState) started = true;
+            if (!started) continue;
+            tools.AddRange(stateTools);
+            if (blocking) break; // stop at user-blocking step
+        }
+        return tools.ToArray();
     }
 
     private static List<object> BuildToolDefinitions(string[] allowedTools)

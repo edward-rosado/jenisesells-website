@@ -30,12 +30,12 @@ describe("ChatWindow", () => {
   }
 
   it("renders input field", () => {
-    render(<ChatWindow sessionId="test-123" initialMessages={[]} />);
+    render(<ChatWindow sessionId="test-123" token="test-token" initialMessages={[]} />);
     expect(screen.getByPlaceholderText(/Type a message/i)).toBeInTheDocument();
   });
 
   it("renders send button", () => {
-    render(<ChatWindow sessionId="test-123" initialMessages={[]} />);
+    render(<ChatWindow sessionId="test-123" token="test-token" initialMessages={[]} />);
     expect(screen.getByRole("button", { name: /Send/i })).toBeInTheDocument();
   });
 
@@ -43,6 +43,7 @@ describe("ChatWindow", () => {
     render(
       <ChatWindow
         sessionId="test-123"
+        token="test-token"
         initialMessages={[
           { role: "assistant", content: "Welcome!" },
         ]}
@@ -55,7 +56,7 @@ describe("ChatWindow", () => {
     mockFetchJsonOk({ response: "Hello back!" });
     const user = userEvent.setup();
 
-    render(<ChatWindow sessionId="test-123" initialMessages={[]} />);
+    render(<ChatWindow sessionId="test-123" token="test-token" initialMessages={[]} />);
 
     const input = screen.getByPlaceholderText(/Type a message/i);
     await user.type(input, "Hello");
@@ -79,7 +80,7 @@ describe("ChatWindow", () => {
     mockFetchJsonOk({ response: "Got it!" });
     const user = userEvent.setup();
 
-    render(<ChatWindow sessionId="test-123" initialMessages={[]} />);
+    render(<ChatWindow sessionId="test-123" token="test-token" initialMessages={[]} />);
 
     const input = screen.getByPlaceholderText(/Type a message/i);
     await user.type(input, "Test message{enter}");
@@ -107,7 +108,7 @@ describe("ChatWindow", () => {
     );
     const user = userEvent.setup();
 
-    render(<ChatWindow sessionId="test-123" initialMessages={[]} />);
+    render(<ChatWindow sessionId="test-123" token="test-token" initialMessages={[]} />);
 
     const input = screen.getByPlaceholderText(/Type a message/i);
     await user.type(input, "Hello");
@@ -133,7 +134,7 @@ describe("ChatWindow", () => {
     mockFetchError();
     const user = userEvent.setup();
 
-    render(<ChatWindow sessionId="test-123" initialMessages={[]} />);
+    render(<ChatWindow sessionId="test-123" token="test-token" initialMessages={[]} />);
 
     const input = screen.getByPlaceholderText(/Type a message/i);
     await user.type(input, "Hello");
@@ -149,7 +150,7 @@ describe("ChatWindow", () => {
   it("does not send empty messages", async () => {
     const user = userEvent.setup();
 
-    render(<ChatWindow sessionId="test-123" initialMessages={[]} />);
+    render(<ChatWindow sessionId="test-123" token="test-token" initialMessages={[]} />);
 
     await user.click(screen.getByRole("button", { name: /Send/i }));
 
@@ -160,7 +161,7 @@ describe("ChatWindow", () => {
     mockFetchJsonOk({ response: "OK" });
     const user = userEvent.setup();
 
-    render(<ChatWindow sessionId="test-123" initialMessages={[]} />);
+    render(<ChatWindow sessionId="test-123" token="test-token" initialMessages={[]} />);
 
     const input = screen.getByPlaceholderText(/Type a message/i);
     await user.type(input, "Hello");
@@ -173,6 +174,7 @@ describe("ChatWindow", () => {
     render(
       <ChatWindow
         sessionId="test-123"
+        token="test-token"
         initialMessages={[
           { role: "assistant", content: "Hello!" },
         ]}
@@ -188,6 +190,7 @@ describe("ChatWindow", () => {
     render(
       <ChatWindow
         sessionId="test-123"
+        token="test-token"
         initialMessages={[
           { role: "user", content: "Hi there" },
         ]}
@@ -207,7 +210,7 @@ describe("ChatWindow", () => {
     );
     const user = userEvent.setup();
 
-    render(<ChatWindow sessionId="test-123" initialMessages={[]} />);
+    render(<ChatWindow sessionId="test-123" token="test-token" initialMessages={[]} />);
 
     const input = screen.getByPlaceholderText(/Type a message/i);
     await user.type(input, "Hello");
