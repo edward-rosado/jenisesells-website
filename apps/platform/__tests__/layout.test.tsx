@@ -48,7 +48,8 @@ describe("RootLayout", () => {
         <div>child</div>
       </RootLayout>
     );
-    expect(screen.getByRole("img", { hidden: true })).toBeInTheDocument();
+    const imgs = screen.getAllByRole("img", { hidden: true });
+    expect(imgs.length).toBeGreaterThanOrEqual(1);
   });
 
   it("header has frosted-glass backdrop-blur styling", () => {
@@ -90,5 +91,38 @@ describe("RootLayout", () => {
     );
     const brandLink = screen.getByRole("link", { name: /real estate star home/i });
     expect(brandLink).toHaveAttribute("href", "/");
+  });
+
+  it("renders footer legal links", () => {
+    render(
+      <RootLayout>
+        <div>child</div>
+      </RootLayout>
+    );
+    const legalNav = screen.getByRole("navigation", { name: /legal links/i });
+    const links = legalNav.querySelectorAll("a");
+    const hrefs = Array.from(links).map((a) => a.getAttribute("href"));
+    expect(hrefs).toContain("/privacy");
+    expect(hrefs).toContain("/terms");
+    expect(hrefs).toContain("/dmca");
+    expect(hrefs).toContain("/accessibility");
+  });
+
+  it("renders the Equal Housing Opportunity statement in footer", () => {
+    render(
+      <RootLayout>
+        <div>child</div>
+      </RootLayout>
+    );
+    expect(screen.getByText("Equal Housing Opportunity")).toBeInTheDocument();
+  });
+
+  it("renders the legal links navigation with aria-label", () => {
+    render(
+      <RootLayout>
+        <div>child</div>
+      </RootLayout>
+    );
+    expect(screen.getByRole("navigation", { name: /legal links/i })).toBeInTheDocument();
   });
 });

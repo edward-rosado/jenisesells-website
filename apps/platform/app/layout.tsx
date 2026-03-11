@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GeometricStar } from "@/components/GeometricStar";
+import { EqualHousingOpportunity } from "@/components/legal/EqualHousingOpportunity";
+import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -42,8 +44,27 @@ export default function RootLayout({
           role="contentinfo"
           className="border-t border-gray-800/50 px-6 py-8 text-center text-sm text-gray-500"
         >
-          <p>&copy; {new Date().getFullYear()} Real Estate Star. All rights reserved.</p>
+          <nav aria-label="Legal links" className="mb-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <Link href="/privacy" className="hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <span aria-hidden="true">|</span>
+            <Link href="/terms" className="hover:text-white transition-colors">
+              Terms of Service
+            </Link>
+            <span aria-hidden="true">|</span>
+            <Link href="/dmca" className="hover:text-white transition-colors">
+              DMCA
+            </Link>
+            <span aria-hidden="true">|</span>
+            <Link href="/accessibility" className="hover:text-white transition-colors">
+              Accessibility
+            </Link>
+          </nav>
+          <EqualHousingOpportunity />
+          <p className="mt-4">&copy; {new Date().getFullYear()} Real Estate Star. All rights reserved.</p>
         </footer>
+        <CookieConsentBanner />
       </body>
     </html>
   );
