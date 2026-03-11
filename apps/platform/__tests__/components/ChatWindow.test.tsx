@@ -169,6 +169,35 @@ describe("ChatWindow", () => {
     expect(input).toHaveValue("");
   });
 
+  it("renders GeometricStar avatar next to assistant messages", () => {
+    render(
+      <ChatWindow
+        sessionId="test-123"
+        initialMessages={[
+          { role: "assistant", content: "Hello!" },
+        ]}
+      />
+    );
+    const avatars = screen.getAllByRole("img", { hidden: true });
+    expect(avatars.length).toBeGreaterThanOrEqual(1);
+    // The avatar SVG should have the star logo aria-label
+    expect(avatars.some((el) => el.getAttribute("aria-label")?.includes("logo"))).toBe(true);
+  });
+
+  it("does not render avatar next to user messages", () => {
+    render(
+      <ChatWindow
+        sessionId="test-123"
+        initialMessages={[
+          { role: "user", content: "Hi there" },
+        ]}
+      />
+    );
+    const avatars = screen.queryAllByRole("img", { hidden: true });
+    // No star avatar for user messages
+    expect(avatars.every((el) => !el.getAttribute("aria-label")?.includes("logo"))).toBe(true);
+  });
+
   it("shows Thinking indicator while sending", async () => {
     let resolveResponse!: (value: Response) => void;
     fetchSpy.mockReturnValueOnce(
