@@ -53,10 +53,19 @@ public class PostChatEndpoint : IEndpoint
 
                 await foreach (var chunk in chatService.StreamResponseAsync(session, request.Message, ct))
                 {
-                    // SSE uses \n as frame delimiter — newlines inside data break parsing.
-                    // JSON-encode the chunk so \n becomes \\n, preserving formatting.
-                    var safeChunk = JsonSerializer.Serialize(chunk);
-                    await writer.WriteAsync($"data: {safeChunk}\n\n");
+                    // Card markers get their own event type so the frontend doesn't
+                    // concatenate them into the text stream.
+                    if (chunk.StartsWith("[CARD:"))
+                    {
+                        await writer.WriteAsync($"event: card\ndata: {chunk}\n\n");
+                    }
+                    else
+                    {
+                        // SSE uses \n as frame delimiter — newlines inside data break parsing.
+                        // JSON-encode the chunk so \n becomes \\n, preserving formatting.
+                        var safeChunk = JsonSerializer.Serialize(chunk);
+                        await writer.WriteAsync($"data: {safeChunk}\n\n");
+                    }
                     await writer.FlushAsync();
                 }
 
