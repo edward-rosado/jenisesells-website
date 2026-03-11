@@ -100,7 +100,7 @@ public partial class JsonFileSessionStore(string basePath, ILogger<JsonFileSessi
         }
     }
 
-    private string GetSafePath(string sessionId)
+    internal string GetSafePath(string sessionId)
     {
         if (!SessionIdRegex().IsMatch(sessionId))
         {
@@ -109,13 +109,23 @@ public partial class JsonFileSessionStore(string basePath, ILogger<JsonFileSessi
         }
 
         var fullPath = Path.GetFullPath(Path.Combine(basePath, $"{sessionId}.json"));
-        if (!fullPath.StartsWith(Path.GetFullPath(basePath), StringComparison.OrdinalIgnoreCase))
+        ValidatePathWithinBase(fullPath, Path.GetFullPath(basePath), sessionId);
+
+        return fullPath;
+    }
+
+    /// <summary>
+    /// Defense-in-depth: verifies the resolved file path is within the base directory.
+    /// The regex on session IDs prevents path traversal, but this check catches
+    /// any edge cases in path normalization.
+    /// </summary>
+    internal void ValidatePathWithinBase(string fullPath, string resolvedBasePath, string sessionId)
+    {
+        if (!fullPath.StartsWith(resolvedBasePath, StringComparison.OrdinalIgnoreCase))
         {
             logger.LogWarning("[SESSION-018] Path traversal detected for session ID: {SessionId}", sessionId);
             throw new ArgumentException("Path traversal detected", nameof(sessionId));
         }
-
-        return fullPath;
     }
 
     [GeneratedRegex(@"^[a-f0-9]{12}$")]

@@ -798,11 +798,26 @@ public class ProfileScraperTests
     [Fact]
     public void ValidateUrl_LoopbackIpInHost_ReturnsError()
     {
-        // This won't pass domain allowlist, but tests the IP branch if it were allowed
         var result = ProfileScraperService.ValidateUrl("https://127.0.0.1/profile");
         Assert.NotNull(result);
-        // Fails domain allowlist first
-        Assert.Contains("not in the allowed list", result);
+        Assert.Contains("Private/loopback IP addresses are not allowed", result);
+    }
+
+    [Fact]
+    public void ValidateUrl_PrivateIpInHost_ReturnsError()
+    {
+        var result = ProfileScraperService.ValidateUrl("https://10.0.0.1/profile");
+        Assert.NotNull(result);
+        Assert.Contains("Private/loopback IP addresses are not allowed", result);
+    }
+
+    [Fact]
+    public void ValidateUrl_PublicIpInHost_ReturnsDirectIpError()
+    {
+        // Public IPs are valid but not allowed — should get the "direct IP" error
+        var result = ProfileScraperService.ValidateUrl("https://8.8.8.8/profile");
+        Assert.NotNull(result);
+        Assert.Contains("Direct IP addresses are not allowed", result);
     }
 
     // --- ValidateUrl: all allowed domains pass ---

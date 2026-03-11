@@ -285,15 +285,18 @@ public partial class ProfileScraperService(
         if (uri.Scheme != Uri.UriSchemeHttps)
             return "Only HTTPS URLs are allowed";
 
-        if (!AllowedDomains.Contains(uri.Host))
-            return $"Domain '{uri.Host}' is not in the allowed list";
-
-        // Block private/loopback IPs in case of DNS rebinding or direct IP URLs
+        // Block private/loopback IPs before domain check — direct IP URLs are never allowed
         if (IPAddress.TryParse(uri.Host, out var ip))
         {
             if (IPAddress.IsLoopback(ip) || IsPrivateIp(ip))
                 return "Private/loopback IP addresses are not allowed";
+
+            // Public IPs are also not in the domain allowlist, but give a clearer error
+            return $"Direct IP addresses are not allowed; use a domain name";
         }
+
+        if (!AllowedDomains.Contains(uri.Host))
+            return $"Domain '{uri.Host}' is not in the allowed list";
 
         return null;
     }

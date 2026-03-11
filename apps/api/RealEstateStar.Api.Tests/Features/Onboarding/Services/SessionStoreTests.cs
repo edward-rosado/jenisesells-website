@@ -212,6 +212,29 @@ public class SessionStoreTests : IDisposable
         Assert.Equal(OnboardingState.ConnectGoogle, loaded!.CurrentState);
     }
 
+    // --- Path traversal defense-in-depth ---
+
+    [Fact]
+    public void ValidatePathWithinBase_PathInsideBase_DoesNotThrow()
+    {
+        _store.ValidatePathWithinBase(
+            Path.Combine(_testDir, "aabbccddeeff.json"),
+            _testDir,
+            "aabbccddeeff");
+    }
+
+    [Fact]
+    public void ValidatePathWithinBase_PathOutsideBase_ThrowsArgumentException()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            _store.ValidatePathWithinBase(
+                Path.Combine(Path.GetTempPath(), "other-dir", "aabbccddeeff.json"),
+                _testDir,
+                "aabbccddeeff"));
+
+        Assert.Contains("Path traversal detected", ex.Message);
+    }
+
     [Fact]
     public async Task Load_TruncatesJsonPreviewInErrorLog()
     {

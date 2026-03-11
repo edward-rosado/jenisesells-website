@@ -204,6 +204,14 @@ public class StripeServiceTests
                 signatureHeader: "t=1234567890,v1=invalidsignature"));
     }
 
+    // NOTE: ConstructWebhookEvent happy-path return cannot be unit-tested because
+    // Stripe.net v50 EventConverter.ReadJson throws NullReferenceException when deserializing
+    // hand-crafted event JSON — even with correct api_version and StripeConfiguration initialized.
+    // The SDK's thin-model architecture requires internal serializer context that only exists when
+    // events are received through the real Stripe API. The method IS executed by the invalid-signature
+    // test (line hit, throws before return). The StripeWebhookEndpoint tests cover the full pipeline
+    // with mock IStripeService, which bypasses EventUtility.ConstructEvent entirely.
+
     [Fact]
     public void Constructor_WithWhitespacePlatformUrl_Throws()
     {

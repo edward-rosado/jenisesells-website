@@ -1387,6 +1387,45 @@ public class ChatServiceBranchCoverageTests
         capturedSystem.Should().Contain(expectedFragment);
     }
 
+    // ── Branch: system prompt switch — default case (invalid enum value) ──
+
+    [Fact]
+    public void BuildSystemPrompt_UnknownState_UsesDefaultGuidance()
+    {
+        string? capturedSystem = null;
+
+        var handler = new CapturingHttpMessageHandler(request =>
+        {
+            var body = request.Content!.ReadAsStringAsync().Result;
+            var doc = JsonDocument.Parse(body);
+            capturedSystem = doc.RootElement.GetProperty("system").GetString();
+        });
+
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(handler));
+
+        var session = OnboardingSession.Create(null);
+        // Cast an invalid int to OnboardingState to exercise the _ default branch
+        session.CurrentState = (OnboardingState)99;
+
+        var service = new OnboardingChatService(
+            factory.Object,
+            "test-key",
+            new OnboardingStateMachine(),
+            new ToolDispatcher([], NullLogger<ToolDispatcher>.Instance),
+            NullLogger<OnboardingChatService>.Instance);
+
+        var enumerator = service.StreamResponseAsync(session, "Hello", CancellationToken.None)
+            .GetAsyncEnumerator(CancellationToken.None);
+
+        var act = async () => await enumerator.MoveNextAsync();
+        act.Should().ThrowAsync<HttpRequestException>();
+
+        capturedSystem.Should().NotBeNull();
+        capturedSystem.Should().Contain("Guide the agent to the next step",
+            "default case should provide generic guidance for unknown states");
+    }
+
     // ── Branch: HttpRequestException catch in StreamSingleCallAsync ──
 
     [Fact]
