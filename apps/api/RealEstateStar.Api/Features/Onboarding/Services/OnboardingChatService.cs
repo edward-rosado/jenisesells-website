@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Api.Features.Onboarding.Tools;
 
@@ -19,6 +20,8 @@ public class OnboardingChatService(
     private const string Model = "claude-sonnet-4-6";
     private const int MaxTokens = 2048;
     private const int MaxToolRounds = 5;
+
+    private static readonly Regex CardMarkerRegex = new(@"\[CARD:\w+\]\{[\s\S]*?\}", RegexOptions.Compiled);
 
     /// <summary>
     /// Result from a single streaming API call. Contains text chunks to yield,
@@ -116,7 +119,7 @@ public class OnboardingChatService(
             }
 
             // Only stream card markers to the frontend — raw tool text is internal
-            var cardMatch = System.Text.RegularExpressions.Regex.Match(toolResultText, @"\[CARD:\w+\]\{.*\}");
+            var cardMatch = CardMarkerRegex.Match(toolResultText);
             if (cardMatch.Success)
             {
                 yield return cardMatch.Value;
@@ -380,9 +383,8 @@ public class OnboardingChatService(
             - Never call the same tool twice.
 
             FLOW: You have access to multiple tools. Chain them in sequence:
-            scrape_url → deploy_site → google_auth_card. Call each one immediately
+            scrape_url → deploy_site → submit_cma_form → google_auth_card. Call each one immediately
             after the previous result, with minimal text between them.
-            After Google is connected, submit_cma_form runs the CMA demo.
             """);
         sb.AppendLine();
         sb.AppendLine($"Current onboarding state: {session.CurrentState}");
@@ -399,14 +401,14 @@ public class OnboardingChatService(
                 Call deploy_site immediately. After result: one sentence on outcome.
                 Then pitch Real Estate Star in 2-3 sentences: automated CMAs, AI lead response, website,
                 contract automation — one platform replacing 5+ subscriptions.
-                Then IMMEDIATELY call submit_cma_form to demo a CMA for an address near their office.
-                """,
-            OnboardingState.DemoCma => """
-                Call submit_cma_form with an address near the agent's office. After result: 2 sentences on what happened.
                 Then IMMEDIATELY call google_auth_card to connect their Google account.
                 """,
+            OnboardingState.DemoCma => """
+                Google is connected. Now run a live CMA demo. Call submit_cma_form with an address
+                near the agent's office. After result: 2 sentences on what was delivered.
+                """,
             OnboardingState.ConnectGoogle => """
-                Call google_auth_card immediately. After the card: "Click above to connect your Google account." Nothing more.
+                Call google_auth_card immediately. After the card: "Click above to connect your Google account — this powers CMA emails and Drive integration." Nothing more.
                 """,
             OnboardingState.ShowResults =>
                 "Two sentences: what Real Estate Star delivers. Then move to payment.",
@@ -464,9 +466,9 @@ public class OnboardingChatService(
     /// <summary>
     /// Returns tools for the current state PLUS all subsequent auto-advance states
     /// (up to user-blocking steps like ConnectGoogle). This lets Claude chain
-    /// scrape → deploy → google_auth_card in a single session.
+    /// scrape → deploy → submit_cma_form → google_auth_card in a single session.
     /// </summary>
-    private static string[] GetCumulativeTools(OnboardingState currentState)
+    internal static string[] GetCumulativeTools(OnboardingState currentState)
     {
         // States in order. Each state's tools are included up to and including
         // the first user-blocking state (ConnectGoogle needs the user to click).

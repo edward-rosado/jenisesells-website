@@ -35,7 +35,7 @@ export default function RootLayout({
             Log In
           </Link>
         </header>
-        <div id="main-content">
+        <div id="main-content" tabIndex={-1}>
           {children}
         </div>
         <footer
