@@ -417,8 +417,18 @@ public class OnboardingChatService(
                 Then IMMEDIATELY call google_auth_card to connect their Google account.
                 """,
             OnboardingState.DemoCma => """
-                Google is connected. Now run a live CMA demo. Call submit_cma_form with an address
-                near the agent's office. After result: 2 sentences on what was delivered.
+                Google is connected. Now demonstrate the CMA tool live.
+
+                FLOW:
+                1. Tell the agent: "Let me show you the CMA tool in action — this is what your leads see."
+                2. Call submit_cma_form immediately with a demo property address near the agent's
+                   service area (use their state and a realistic address). Include city, state, zip.
+                3. After result: "A professional CMA report was just generated and emailed to you at
+                   {agent email}. Every lead who fills out that form on your site gets the same treatment,
+                   automatically — in under 2 minutes."
+
+                KEY: This is the wow moment. Be enthusiastic but not wordy. Let the CMA progress card
+                speak for itself. Do NOT describe each step — the card shows it visually.
                 """,
             OnboardingState.ConnectGoogle => """
                 Call google_auth_card immediately. After the card: "Click above to connect your Google account — this powers CMA emails and Drive integration." Nothing more.
@@ -569,11 +579,20 @@ public class OnboardingChatService(
             ["submit_cma_form"] = new
             {
                 name = "submit_cma_form",
-                description = "Submit a CMA demo form with a sample property address",
+                description = "Run a live CMA demo — generates a professional report, emails it to the agent, saves it to Drive, and logs the lead. Use a realistic address near the agent's service area.",
                 input_schema = new
                 {
                     type = "object",
-                    properties = new { address = new { type = "string", description = "Property address for the demo CMA" } }
+                    properties = new
+                    {
+                        address = new { type = "string", description = "Street address (e.g. '456 Oak Ave')" },
+                        city = new { type = "string", description = "City name" },
+                        state = new { type = "string", description = "Two-letter state code (e.g. 'NJ')" },
+                        zip = new { type = "string", description = "ZIP code (e.g. '07102')" },
+                        firstName = new { type = "string", description = "Demo lead first name (default: Demo)" },
+                        lastName = new { type = "string", description = "Demo lead last name (default: Seller)" },
+                    },
+                    required = new[] { "address", "city", "state", "zip" }
                 }
             },
             ["create_stripe_session"] = new

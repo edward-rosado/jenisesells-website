@@ -69,4 +69,44 @@ describe("MessageRenderer", () => {
     expect(screen.getByText("Connect Google Account")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /connect with google/i })).toBeInTheDocument();
   });
+
+  it("renders cma_progress type as CmaProgressCard", () => {
+    render(
+      <MessageRenderer
+        message={{
+          role: "assistant",
+          content: "",
+          type: "cma_progress",
+          metadata: {
+            address: "456 Oak Ave, Newark, NJ 07102",
+            recipientEmail: "jane@remax.com",
+            status: "complete",
+            steps: [
+              { label: "Searching comparable sales", status: "done" },
+              { label: "Emailing report", status: "done" },
+            ],
+          },
+        }}
+      />
+    );
+    expect(screen.getByText("CMA Report Delivered")).toBeInTheDocument();
+    expect(screen.getByText("456 Oak Ave, Newark, NJ 07102")).toBeInTheDocument();
+    expect(screen.getByText("jane@remax.com")).toBeInTheDocument();
+  });
+
+  it("renders site_preview with showCmaHighlight metadata", () => {
+    render(
+      <MessageRenderer
+        message={{
+          role: "assistant",
+          content: "",
+          type: "site_preview",
+          metadata: { siteUrl: "https://example.com", showCmaHighlight: true },
+        }}
+      />
+    );
+    expect(screen.getByText("Your CMA Form")).toBeInTheDocument();
+    const iframe = screen.getByTitle("CMA form preview");
+    expect(iframe).toHaveAttribute("src", "https://example.com#cma-form");
+  });
 });

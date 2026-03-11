@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using RealEstateStar.Api.Features.Cma;
 using RealEstateStar.Api.Features.Cma.Services;
 using RealEstateStar.Api.Features.Onboarding.Services;
@@ -7,9 +8,26 @@ namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
 public class SubmitCmaFormTool(
     ICmaPipeline cmaPipeline,
-    IDriveFolderInitializer driveFolderInitializer) : IOnboardingTool
+    IDriveFolderInitializer driveFolderInitializer,
+    OnboardingStateMachine stateMachine,
+    ILogger<SubmitCmaFormTool> logger) : IOnboardingTool
 {
     public string Name => "submit_cma_form";
+
+    /// <summary>
+    /// Human-readable labels for each CMA pipeline step, shown in the progress card.
+    /// </summary>
+    internal static readonly Dictionary<CmaJobStatus, string> StepLabels = new()
+    {
+        [CmaJobStatus.SearchingComps] = "Searching comparable sales",
+        [CmaJobStatus.ResearchingLead] = "Researching property records",
+        [CmaJobStatus.Analyzing] = "Analyzing market trends",
+        [CmaJobStatus.GeneratingPdf] = "Generating PDF report",
+        [CmaJobStatus.OrganizingDrive] = "Organizing in Google Drive",
+        [CmaJobStatus.SendingEmail] = "Emailing report",
+        [CmaJobStatus.Logging] = "Logging lead",
+        [CmaJobStatus.Complete] = "Complete",
+    };
 
     public async Task<string> ExecuteAsync(JsonElement parameters, OnboardingSession session, CancellationToken ct)
     {
@@ -34,15 +52,52 @@ public class SubmitCmaFormTool(
             await cmaPipeline.ExecuteAsync(job, agentId, lead, _ => Task.CompletedTask, ct);
 
             var address = lead.FullAddress;
-            return $"SUCCESS: CMA pipeline completed for {address}. " +
+
+            // Advance to ShowResults after successful CMA demo
+            if (stateMachine.CanAdvance(session, OnboardingState.ShowResults))
+                stateMachine.Advance(session, OnboardingState.ShowResults);
+
+            logger.LogInformation("[CMA-TOOL-001] CMA demo completed for session {SessionId}, address {Address}",
+                session.Id, address);
+
+            // Return a card marker so the frontend can render a CMA progress card
+            var cardJson = BuildProgressCardJson(address, agentEmail, "complete");
+            return $"[CARD:cma_progress]{cardJson} " +
+                   $"SUCCESS: CMA pipeline completed for {address}. " +
                    $"Report emailed to {agentEmail}, Lead Brief saved to Google Drive, lead logged in tracking sheet.";
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogError(ex, "[CMA-TOOL-002] CMA demo failed for session {SessionId}. ExType={ExType}",
+                session.Id, ex.GetType().Name);
+
+            // Advance past DemoCma so the flow doesn't get stuck
+            if (stateMachine.CanAdvance(session, OnboardingState.ShowResults))
+                stateMachine.Advance(session, OnboardingState.ShowResults);
+
             return "FAILED: CMA demo could not run — the pipeline encountered an error. " +
                    "Tell the agent honestly that the CMA demo is not working right now and the team will fix it. " +
                    "Do NOT claim emails were sent or files were created.";
         }
+    }
+
+    internal static string BuildProgressCardJson(string address, string recipientEmail, string status)
+    {
+        var steps = StepLabels.Select(kvp => new
+        {
+            label = kvp.Value,
+            status = status == "complete" ? "done" : "pending"
+        });
+
+        var card = new
+        {
+            address,
+            recipientEmail,
+            status,
+            steps = steps.ToArray()
+        };
+
+        return JsonSerializer.Serialize(card);
     }
 
     internal static Lead BuildLeadFromParameters(JsonElement parameters, string agentEmail, ScrapedProfile profile)
@@ -92,5 +147,4 @@ public class SubmitCmaFormTool(
             return value;
         return null;
     }
-
 }
