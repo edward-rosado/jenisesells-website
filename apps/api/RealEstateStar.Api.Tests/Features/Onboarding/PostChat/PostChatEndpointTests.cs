@@ -314,6 +314,54 @@ public class PostChatEndpointTests
     }
 
     [Fact]
+    public async Task Handle_ServiceException_ErrorWriteFails_LogsCHAT017()
+    {
+        var session = OnboardingSession.Create(null);
+        _mockStore.Setup(s => s.LoadAsync(session.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(session);
+
+        var mockChat = CreateMockChatService(
+            YieldThenThrow(["partial"], new InvalidOperationException("boom")));
+
+        var mockLogger = new Mock<ILogger<PostChatEndpoint>>();
+
+        var request = new PostChatRequest { Message = "hi" };
+        var httpContext = CreateHttpContext(session.BearerToken);
+        var result = await PostChatEndpoint.Handle(
+            session.Id, request, httpContext, _mockStore.Object, mockChat.Object,
+            mockLogger.Object, CancellationToken.None);
+
+        // Execute the stream using a ClosedStream that throws on write,
+        // causing the inner error-write attempt to fail (CHAT-017 branch)
+        var services = new ServiceCollection()
+            .AddLogging()
+            .BuildServiceProvider();
+        var ctx = new DefaultHttpContext { RequestServices = services };
+        ctx.Response.Body = new ThrowOnWriteStream();
+        await result.ExecuteAsync(ctx);
+
+        // Verify [CHAT-016] was logged (the main error)
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[CHAT-016]")),
+                It.IsAny<InvalidOperationException>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+
+        // Verify [CHAT-017] was logged (the inner error write failure)
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[CHAT-017]")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_HappyPath_SavesSessionAfterStream()
     {
         var session = OnboardingSession.Create(null);
@@ -336,5 +384,48 @@ public class PostChatEndpointTests
         _mockStore.Verify(
             s => s.SaveAsync(session, It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+}
+
+/// <summary>
+/// A stream that allows reading the initial partial data written before an exception,
+/// then throws on subsequent writes. Used to trigger the CHAT-017 inner catch path.
+/// </summary>
+internal class ThrowOnWriteStream : MemoryStream
+{
+    private int _writeCount;
+
+    public override void Write(byte[] buffer, int offset, int count)
+    {
+        _writeCount++;
+        // Let the first few writes through (the partial data before the exception),
+        // then throw to simulate a broken stream
+        if (_writeCount > 2)
+            throw new IOException("Connection reset");
+        base.Write(buffer, offset, count);
+    }
+
+    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    {
+        _writeCount++;
+        if (_writeCount > 2)
+            throw new IOException("Connection reset");
+        return base.WriteAsync(buffer, offset, count, cancellationToken);
+    }
+
+    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        _writeCount++;
+        if (_writeCount > 2)
+            throw new IOException("Connection reset");
+        return base.WriteAsync(buffer, cancellationToken);
+    }
+
+    public override Task FlushAsync(CancellationToken cancellationToken)
+    {
+        // Allow flush after initial writes but throw on error-recovery writes
+        if (_writeCount > 2)
+            throw new IOException("Connection reset");
+        return base.FlushAsync(cancellationToken);
     }
 }

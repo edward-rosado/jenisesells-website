@@ -1,4 +1,6 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using RealEstateStar.Api.Services;
 
 namespace RealEstateStar.Api.Tests.Services;
@@ -106,5 +108,52 @@ public class AgentConfigServiceTests
         var act = () => service.GetAgentAsync(validId, CancellationToken.None);
 
         await act.Should().NotThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task GetAgentAsync_WithLogger_LogsFileNotFound()
+    {
+        var repoRoot = FindRepoRoot();
+        var configDir = Path.Combine(repoRoot, "config", "agents");
+        var service = new AgentConfigService(configDir, NullLogger<AgentConfigService>.Instance);
+
+        var config = await service.GetAgentAsync("nonexistent-agent", CancellationToken.None);
+
+        config.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetAgentAsync_WithLogger_LogsSuccessfulLoad()
+    {
+        var repoRoot = FindRepoRoot();
+        var configDir = Path.Combine(repoRoot, "config", "agents");
+        var service = new AgentConfigService(configDir, NullLogger<AgentConfigService>.Instance);
+
+        var config = await service.GetAgentAsync("jenise-buckalew", CancellationToken.None);
+
+        config.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task GetAgentAsync_WithNullLogger_StillWorks()
+    {
+        var repoRoot = FindRepoRoot();
+        var configDir = Path.Combine(repoRoot, "config", "agents");
+        // Passing null logger explicitly (the default parameter)
+        var service = new AgentConfigService(configDir, null);
+
+        var config = await service.GetAgentAsync("nonexistent-agent", CancellationToken.None);
+
+        config.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetAgentAsync_NullAgentId_Throws()
+    {
+        var service = CreateService();
+
+        var act = () => service.GetAgentAsync(null!, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentException>();
     }
 }
