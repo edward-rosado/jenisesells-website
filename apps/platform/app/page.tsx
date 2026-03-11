@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { FeatureCards } from "@/components/landing/FeatureCards";
 import { ComparisonTable } from "@/components/landing/ComparisonTable";
 import { TrustStrip } from "@/components/landing/TrustStrip";
@@ -57,6 +58,17 @@ export default function LandingPage() {
           </form>
           <p className="text-sm text-gray-500 mt-4">
             7-day free trial. No credit card.
+          </p>
+          <p className="text-xs text-gray-600 mt-6">
+            By continuing, you agree to our{" "}
+            <Link href="/terms" className="underline hover:text-gray-400 transition-colors">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="underline hover:text-gray-400 transition-colors">
+              Privacy Policy
+            </Link>
+            .
           </p>
         </div>
       </section>
