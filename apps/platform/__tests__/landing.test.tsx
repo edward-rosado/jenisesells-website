@@ -39,4 +39,38 @@ describe("Landing Page", () => {
       screen.getByText(/7-day free trial\. no credit card\./i)
     ).toBeInTheDocument();
   });
+
+  it("renders the FeatureCards section", () => {
+    render(<LandingPage />);
+    expect(
+      screen.getByRole("heading", { name: /everything you need/i })
+    ).toBeInTheDocument();
+  });
+
+  it("renders the ComparisonTable section", () => {
+    render(<LandingPage />);
+    expect(
+      screen.getByRole("heading", { name: /why agents switch/i })
+    ).toBeInTheDocument();
+  });
+
+  it("renders the TrustStrip section", () => {
+    render(<LandingPage />);
+    expect(screen.getByText(/no monthly fees/i)).toBeInTheDocument();
+  });
+
+  it("renders all 8 feature cards", () => {
+    const { container } = render(<LandingPage />);
+    const cards = container.querySelectorAll("[data-testid='feature-card']");
+    expect(cards).toHaveLength(8);
+  });
+
+  it("has proper page structure with hero at top", () => {
+    const { container } = render(<LandingPage />);
+    const main = container.querySelector("main");
+    expect(main).toBeInTheDocument();
+    // Hero section should contain the headline
+    const hero = container.querySelector("[data-testid='hero-section']");
+    expect(hero).toBeInTheDocument();
+  });
 });
