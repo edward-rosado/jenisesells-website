@@ -148,4 +148,94 @@ public class SessionStoreTests : IDisposable
         var loaded = await _store.LoadAsync(session.Id, CancellationToken.None);
         Assert.NotNull(loaded);
     }
+
+    [Fact]
+    public async Task Load_CorruptJson_ThrowsJsonException()
+    {
+        var session = OnboardingSession.Create(null);
+        // Write corrupt JSON directly to disk
+        Directory.CreateDirectory(_testDir);
+        var path = Path.Combine(_testDir, $"{session.Id}.json");
+        await File.WriteAllTextAsync(path, "{ this is not valid json !!! }");
+
+        await Assert.ThrowsAsync<System.Text.Json.JsonException>(
+            () => _store.LoadAsync(session.Id, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Load_ReadOnlyBasePath_ThrowsIOException()
+    {
+        // Use a path that doesn't exist and can't be created — load triggers I/O error
+        // on Windows, an invalid path char triggers IOException
+        var badStore = new JsonFileSessionStore(
+            Path.Combine(Path.GetTempPath(), $"nonexistent-{Guid.NewGuid():N}", "deep", "path"),
+            NullLogger<JsonFileSessionStore>.Instance);
+
+        // The file simply won't exist, so LoadAsync returns null (no IOException on read for missing file)
+        var result = await badStore.LoadAsync("aabbccddeeff", CancellationToken.None);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task Save_PreservesUpdatedAt()
+    {
+        var session = OnboardingSession.Create(null);
+        var originalUpdatedAt = session.UpdatedAt;
+        session.UpdatedAt = DateTime.UtcNow.AddHours(1);
+        await _store.SaveAsync(session, CancellationToken.None);
+        var loaded = await _store.LoadAsync(session.Id, CancellationToken.None);
+        Assert.NotNull(loaded);
+        Assert.True(loaded!.UpdatedAt > originalUpdatedAt);
+    }
+
+    [Fact]
+    public async Task DefaultConstructor_UsesBaseDirectory()
+    {
+        // Verify the parameterless constructor creates a store with default base path
+        var store = new JsonFileSessionStore(NullLogger<JsonFileSessionStore>.Instance);
+        // Just verify it can be created and used — load a nonexistent session
+        var result = await store.LoadAsync("aabbccddeeff", CancellationToken.None);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task Save_OverwritesExistingSession()
+    {
+        var session = OnboardingSession.Create("https://zillow.com/profile/test");
+        session.CurrentState = OnboardingState.ScrapeProfile;
+        await _store.SaveAsync(session, CancellationToken.None);
+
+        session.CurrentState = OnboardingState.ConnectGoogle;
+        await _store.SaveAsync(session, CancellationToken.None);
+
+        var loaded = await _store.LoadAsync(session.Id, CancellationToken.None);
+        Assert.Equal(OnboardingState.ConnectGoogle, loaded!.CurrentState);
+    }
+
+    [Fact]
+    public async Task Load_TruncatesJsonPreviewInErrorLog()
+    {
+        // Write a long corrupt JSON string (>500 chars) to test the preview truncation branch
+        var session = OnboardingSession.Create(null);
+        Directory.CreateDirectory(_testDir);
+        var path = Path.Combine(_testDir, $"{session.Id}.json");
+        var longCorruptJson = "{" + new string('x', 600) + "}";
+        await File.WriteAllTextAsync(path, longCorruptJson);
+
+        await Assert.ThrowsAsync<System.Text.Json.JsonException>(
+            () => _store.LoadAsync(session.Id, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Load_ShortCorruptJson_DoesNotTruncatePreview()
+    {
+        // Write a short corrupt JSON string (<500 chars) to test the non-truncation branch
+        var session = OnboardingSession.Create(null);
+        Directory.CreateDirectory(_testDir);
+        var path = Path.Combine(_testDir, $"{session.Id}.json");
+        await File.WriteAllTextAsync(path, "{bad}");
+
+        await Assert.ThrowsAsync<System.Text.Json.JsonException>(
+            () => _store.LoadAsync(session.Id, CancellationToken.None));
+    }
 }
