@@ -88,11 +88,18 @@ function parseAssistantContent(content: string): ChatMessageData[] {
 }
 
 export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: ChatWindowProps) {
-  const [messages, setMessages] = useState<ChatMessageData[]>(initialMessages);
+  const [messages, setMessages] = useState<ChatMessageData[]>(() =>
+    initialMessages.map((m, i) => ({ ...m, msgId: m.msgId ?? i + 1 }))
+  );
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const autoSent = useRef(false);
+  const msgIdCounter = useRef(initialMessages.length);
+
+  function nextMsgId(): number {
+    return ++msgIdCounter.current;
+  }
 
   useEffect(() => {
     scrollRef.current?.scrollTo?.(0, scrollRef.current.scrollHeight);
@@ -111,7 +118,7 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
     if (!text || sending) return;
 
     if (!opts?.silent) {
-      const userMsg: ChatMessageData = { role: "user", content: text };
+      const userMsg: ChatMessageData = { role: "user", content: text, msgId: nextMsgId() };
       setMessages((prev) => [...prev, userMsg]);
     }
     setInput("");
@@ -130,7 +137,7 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
       if (!res.ok) {
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: "Something went wrong. Please try again." },
+          { role: "assistant", content: "Something went wrong. Please try again.", msgId: nextMsgId() },
         ]);
         return;
       }
@@ -146,7 +153,8 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
         let assistantContent = "";
 
         // Show streaming placeholder
-        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+        const streamingId = nextMsgId();
+        setMessages((prev) => [...prev, { role: "assistant", content: "", msgId: streamingId }]);
 
         while (true) {
           const { done, value } = await reader.read();
@@ -173,7 +181,7 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
             const updatedContent = assistantContent;
             setMessages((prev) => {
               const next = [...prev];
-              next[next.length - 1] = { role: "assistant", content: updatedContent };
+              next[next.length - 1] = { role: "assistant", content: updatedContent, msgId: streamingId };
               return next;
             });
           }
@@ -182,17 +190,18 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
         // Stream complete — parse content into text + card segments
         const parsed = parseAssistantContent(assistantContent);
         if (parsed.length > 0) {
+          const withIds = parsed.map((m) => ({ ...m, msgId: nextMsgId() }));
           setMessages((prev) => {
             // Remove the streaming placeholder and append parsed segments
             const withoutPlaceholder = prev.slice(0, -1);
-            return [...withoutPlaceholder, ...parsed];
+            return [...withoutPlaceholder, ...withIds];
           });
         }
       } else {
         const data = await res.json();
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: data.response },
+          { role: "assistant", content: data.response, msgId: nextMsgId() },
         ]);
       }
     } finally {
@@ -216,7 +225,7 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
           const isLastAssistant = sending && msg.role === "assistant" && i === messages.length - 1;
           return (
             <MessageRenderer
-              key={i}
+              key={msg.msgId ?? i}
               message={msg}
               onAction={handleAction}
               isStreaming={isLastAssistant}

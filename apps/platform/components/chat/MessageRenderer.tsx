@@ -11,6 +11,7 @@ export interface ChatMessageData {
   content: string;
   type?: "text" | "profile_card" | "color_palette" | "google_auth" | "site_preview" | "feature_checklist" | "payment_card";
   metadata?: Record<string, unknown>;
+  msgId?: number;
 }
 
 interface MessageRendererProps {

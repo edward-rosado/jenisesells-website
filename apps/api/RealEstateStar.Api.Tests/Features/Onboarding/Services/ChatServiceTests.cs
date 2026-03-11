@@ -47,6 +47,80 @@ public class ChatServiceTests
         Assert.Contains("google_auth_card", tools);
     }
 
+    // ── GetCumulativeTools — direct tests (now internal static) ──
+
+    [Fact]
+    public void GetCumulativeTools_ScrapeProfile_IncludesToolsThroughConnectGoogle()
+    {
+        var tools = OnboardingChatService.GetCumulativeTools(OnboardingState.ScrapeProfile);
+        tools.Should().BeEquivalentTo(
+            ["scrape_url", "update_profile", "deploy_site", "submit_cma_form", "google_auth_card"],
+            options => options.WithStrictOrdering(),
+            "ScrapeProfile should include all tools up to and including the first blocking state (ConnectGoogle)");
+    }
+
+    [Fact]
+    public void GetCumulativeTools_GenerateSite_IncludesDeployThroughConnectGoogle()
+    {
+        var tools = OnboardingChatService.GetCumulativeTools(OnboardingState.GenerateSite);
+        tools.Should().BeEquivalentTo(
+            ["deploy_site", "submit_cma_form", "google_auth_card"],
+            options => options.WithStrictOrdering(),
+            "GenerateSite should include deploy_site, submit_cma_form, and google_auth_card (stops at ConnectGoogle blocking)");
+    }
+
+    [Fact]
+    public void GetCumulativeTools_DemoCma_IncludesCmaAndConnectGoogle()
+    {
+        var tools = OnboardingChatService.GetCumulativeTools(OnboardingState.DemoCma);
+        tools.Should().BeEquivalentTo(
+            ["submit_cma_form", "google_auth_card"],
+            options => options.WithStrictOrdering(),
+            "DemoCma should include submit_cma_form and google_auth_card (stops at ConnectGoogle blocking)");
+    }
+
+    [Fact]
+    public void GetCumulativeTools_ConnectGoogle_OnlyIncludesGoogleAuthCard()
+    {
+        var tools = OnboardingChatService.GetCumulativeTools(OnboardingState.ConnectGoogle);
+        tools.Should().BeEquivalentTo(
+            ["google_auth_card"],
+            "ConnectGoogle is user-blocking, so only its own tool is included");
+    }
+
+    [Fact]
+    public void GetCumulativeTools_ShowResults_ReturnsEmptyArray()
+    {
+        var tools = OnboardingChatService.GetCumulativeTools(OnboardingState.ShowResults);
+        tools.Should().BeEmpty("ShowResults is user-blocking with no tools");
+    }
+
+    [Fact]
+    public void GetCumulativeTools_CollectPayment_OnlyIncludesStripe()
+    {
+        var tools = OnboardingChatService.GetCumulativeTools(OnboardingState.CollectPayment);
+        tools.Should().BeEquivalentTo(
+            ["create_stripe_session"],
+            "CollectPayment is user-blocking, so only its own tool is included");
+    }
+
+    [Fact]
+    public void GetCumulativeTools_TrialActivated_ReturnsEmptyArray()
+    {
+        var tools = OnboardingChatService.GetCumulativeTools(OnboardingState.TrialActivated);
+        tools.Should().BeEmpty("TrialActivated is not in the chain, so no tools are returned");
+    }
+
+    [Fact]
+    public void GetCumulativeTools_DemoCmaBeforeConnectGoogle_EnsuresCorrectChainOrder()
+    {
+        // Verify the critical fix: DemoCma tools must appear BEFORE ConnectGoogle
+        // so that GenerateSite can chain into submit_cma_form
+        var generateSiteTools = OnboardingChatService.GetCumulativeTools(OnboardingState.GenerateSite);
+        generateSiteTools.Should().Contain("submit_cma_form",
+            "GenerateSite cumulative tools must include submit_cma_form because DemoCma comes before ConnectGoogle in the chain");
+    }
+
     [Fact]
     public void BuildMessages_IncludesSessionHistoryAndCurrentMessage()
     {
@@ -238,7 +312,10 @@ public class ChatServiceTests
             t => t.ExecuteAsync(It.IsAny<JsonElement>(), session, It.IsAny<CancellationToken>()),
             Times.Once);
 
-        chunks.Should().ContainSingle(c => c.Contains("scrape_url") && c.Contains("Scraped successfully"));
+        // Tool results are not yielded to the stream — only [CARD:...] markers pass through.
+        // Raw tool result text ("Scraped successfully") is internal and never streamed.
+        chunks.Should().NotContain(c => c.Contains("Scraped successfully"),
+            "raw tool result text should not be yielded to the stream");
         chunks.Should().ContainSingle(c => c.Contains("I found your profile!"));
     }
 
@@ -662,10 +739,109 @@ public class ChatServiceBranchCoverageTests
             chunks.Add(chunk);
         }
 
-        chunks.Should().Contain(c => c.Contains("scrape_url") && c.Contains("Error: tool execution failed"),
-            "error yield should include the tool name and error message");
+        // Tool errors are not yielded to the stream — only [CARD:...] markers pass through.
+        // The error is logged internally; "Error: tool execution failed" is only sent back to Claude as a tool_result.
+        chunks.Should().NotContain(c => c.Contains("Error: tool execution failed"),
+            "tool error text should not be yielded to the stream");
         chunks.Should().Contain(c => c.Contains("Continuing after error"),
             "streaming should continue after the tool error");
+    }
+
+    // ── Card marker extraction — only [CARD:...]{json} is yielded from tool results ──
+
+    [Fact]
+    public async Task StreamResponseAsync_CardMarkerInToolResult_IsYieldedToStream()
+    {
+        var toolCallSse = """
+            data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"tu_card","name":"google_auth_card","input":{}}}
+
+            data: {"type":"content_block_stop","index":0}
+
+            data: [DONE]
+
+            """;
+
+        var followUpSse = """
+            data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}
+
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Click above to connect."}}
+
+            data: {"type":"content_block_stop","index":0}
+
+            data: [DONE]
+
+            """;
+
+        var handler = new SequentialSseResponseHandler([toolCallSse, followUpSse]);
+
+        var mockTool = new Mock<IOnboardingTool>();
+        mockTool.Setup(t => t.Name).Returns("google_auth_card");
+        mockTool.Setup(t => t.ExecuteAsync(It.IsAny<JsonElement>(), It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("[CARD:google_auth]{\"oauthUrl\":\"https://accounts.google.com/o/oauth2/auth\"}");
+
+        var dispatcher = new ToolDispatcher([mockTool.Object], NullLogger<ToolDispatcher>.Instance);
+        var service = CreateService(handler, dispatcher);
+        var session = OnboardingSession.Create(null);
+        session.CurrentState = OnboardingState.ConnectGoogle;
+
+        var chunks = new List<string>();
+        await foreach (var chunk in service.StreamResponseAsync(session, "connect google", CancellationToken.None))
+        {
+            chunks.Add(chunk);
+        }
+
+        chunks.Should().Contain(c => c.Contains("[CARD:google_auth]"),
+            "card markers from tool results must be yielded to the stream");
+        chunks.Should().Contain(c => c.Contains("oauthUrl"),
+            "card JSON payload must be included");
+    }
+
+    [Fact]
+    public async Task StreamResponseAsync_PlainToolResult_NotYieldedToStream()
+    {
+        var toolCallSse = """
+            data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"tu_plain","name":"scrape_url","input":{}}}
+
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"url\":\"https://example.com\"}"}}
+
+            data: {"type":"content_block_stop","index":0}
+
+            data: [DONE]
+
+            """;
+
+        var followUpSse = """
+            data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}
+
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Profile scraped."}}
+
+            data: {"type":"content_block_stop","index":0}
+
+            data: [DONE]
+
+            """;
+
+        var handler = new SequentialSseResponseHandler([toolCallSse, followUpSse]);
+
+        var mockTool = new Mock<IOnboardingTool>();
+        mockTool.Setup(t => t.Name).Returns("scrape_url");
+        mockTool.Setup(t => t.ExecuteAsync(It.IsAny<JsonElement>(), It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("SUCCESS: Scraped profile for Jenise Buckalew. Name, brokerage, stats all found.");
+
+        var dispatcher = new ToolDispatcher([mockTool.Object], NullLogger<ToolDispatcher>.Instance);
+        var service = CreateService(handler, dispatcher);
+        var session = OnboardingSession.Create(null);
+
+        var chunks = new List<string>();
+        await foreach (var chunk in service.StreamResponseAsync(session, "scrape this url", CancellationToken.None))
+        {
+            chunks.Add(chunk);
+        }
+
+        chunks.Should().NotContain(c => c.Contains("SUCCESS: Scraped profile"),
+            "raw tool result text must NOT be yielded to the stream — only card markers");
+        chunks.Should().Contain(c => c.Contains("Profile scraped."),
+            "Claude's follow-up text response should still be yielded");
     }
 
     // ── Branch: text before tool call — assistant content includes text block ──
@@ -909,7 +1085,7 @@ public class ChatServiceBranchCoverageTests
     [InlineData(OnboardingState.DemoCma, "CMA")]
     [InlineData(OnboardingState.ShowResults, "results")]
     [InlineData(OnboardingState.CollectPayment, "900")]
-    [InlineData(OnboardingState.TrialActivated, "Congratulate")]
+    [InlineData(OnboardingState.TrialActivated, "congratulations")]
     public void BuildSystemPrompt_ContainsStateSpecificGuidance(OnboardingState state, string expectedFragment)
     {
         string? capturedSystem = null;
@@ -987,8 +1163,11 @@ public class ChatServiceBranchCoverageTests
         act.Should().ThrowAsync<HttpRequestException>();
 
         capturedToolNames.Should().NotBeNull();
-        capturedToolNames.Should().OnlyContain(name => name == "deploy_site",
-            "GenerateSite state only allows deploy_site; no unknown tools should leak through");
+        // GetCumulativeTools includes tools through the next user-blocking state (ConnectGoogle),
+        // so GenerateSite yields deploy_site + submit_cma_form + google_auth_card. Unknown tools are still filtered.
+        capturedToolNames.Should().OnlyContain(
+            name => name == "deploy_site" || name == "submit_cma_form" || name == "google_auth_card",
+            "GenerateSite cumulative tools are deploy_site, submit_cma_form, and google_auth_card; no unknown tools should leak through");
     }
 
     // ── Branch: empty tool input (ToolInputJson.Length == 0) → deserializes to default ──

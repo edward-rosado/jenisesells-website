@@ -151,4 +151,43 @@ public class StateMachineTests
         _sm.Advance(session, OnboardingState.GenerateSite);
         Assert.True(session.UpdatedAt >= before);
     }
+
+    /// <summary>
+    /// The onboarding flow MUST follow this exact order. This test exists because
+    /// the order has been accidentally changed multiple times. See MEMORY.md.
+    /// Flow: Scrape → Deploy → Google Auth → CMA Demo → Show Results → Payment → Trial
+    /// </summary>
+    [Fact]
+    public void FullFlow_FollowsExactOrder_ScrapeDeployGoogleCma()
+    {
+        var session = OnboardingSession.Create(null);
+
+        // 1. ScrapeProfile → GenerateSite
+        Assert.Equal(OnboardingState.ScrapeProfile, session.CurrentState);
+        _sm.Advance(session, OnboardingState.GenerateSite);
+
+        // 2. GenerateSite → ConnectGoogle (NOT DemoCma)
+        Assert.Equal(OnboardingState.GenerateSite, session.CurrentState);
+        Assert.False(_sm.CanAdvance(session, OnboardingState.DemoCma),
+            "GenerateSite must go to ConnectGoogle, not DemoCma");
+        _sm.Advance(session, OnboardingState.ConnectGoogle);
+
+        // 3. ConnectGoogle → DemoCma
+        Assert.Equal(OnboardingState.ConnectGoogle, session.CurrentState);
+        _sm.Advance(session, OnboardingState.DemoCma);
+
+        // 4. DemoCma → ShowResults
+        Assert.Equal(OnboardingState.DemoCma, session.CurrentState);
+        _sm.Advance(session, OnboardingState.ShowResults);
+
+        // 5. ShowResults → CollectPayment
+        _sm.Advance(session, OnboardingState.CollectPayment);
+
+        // 6. CollectPayment → TrialActivated
+        _sm.Advance(session, OnboardingState.TrialActivated);
+
+        // 7. TrialActivated is terminal
+        Assert.Equal(OnboardingState.TrialActivated, session.CurrentState);
+        Assert.False(_sm.CanAdvance(session, OnboardingState.ScrapeProfile));
+    }
 }
