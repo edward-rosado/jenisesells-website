@@ -7,7 +7,7 @@ interface ChatWindowProps {
   sessionId: string;
   token: string;
   initialMessages: ChatMessageData[];
-  /** If set, auto-sent to the API on mount without showing a user bubble */
+  /** If set, auto-sent to the API on mount and shown as a user bubble */
   autoMessage?: string;
 }
 
@@ -105,11 +105,11 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
     scrollRef.current?.scrollTo?.(0, scrollRef.current.scrollHeight);
   }, [messages]);
 
-  // Auto-send profileUrl on mount — no user bubble
+  // Auto-send profileUrl on mount — shown as a user bubble
   useEffect(() => {
     if (autoMessage && !autoSent.current) {
       autoSent.current = true;
-      sendMessage(autoMessage, { silent: true });
+      sendMessage(autoMessage);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoMessage]);
@@ -151,10 +151,13 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
         const decoder = new TextDecoder();
         let buffer = "";
         let assistantContent = "";
+        const cardMarkers: string[] = [];
 
         // Show streaming placeholder
         const streamingId = nextMsgId();
         setMessages((prev) => [...prev, { role: "assistant", content: "", msgId: streamingId }]);
+
+        let currentEventType = "";
 
         while (true) {
           const { done, value } = await reader.read();
@@ -165,9 +168,22 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
           buffer = lines.pop() ?? "";
 
           for (const line of lines) {
+            // Track SSE event type (e.g. "event: card")
+            if (line.startsWith("event: ")) {
+              currentEventType = line.slice(7).trim();
+              continue;
+            }
             if (!line.startsWith("data: ")) continue;
             const data = line.slice(6);
             if (data === "[DONE]") continue;
+
+            // Card events are collected separately — not shown in streaming text
+            if (currentEventType === "card") {
+              cardMarkers.push(data);
+              currentEventType = "";
+              continue;
+            }
+            currentEventType = "";
 
             let decoded: string;
             try {
@@ -189,6 +205,25 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
 
         // Stream complete — parse content into text + card segments
         const parsed = parseAssistantContent(assistantContent);
+
+        // Parse collected card markers into card messages
+        for (const marker of cardMarkers) {
+          const cardMatch = marker.match(/\[CARD:(\w+)\]/);
+          if (cardMatch) {
+            const cardType = cardMatch[1] as ChatMessageData["type"];
+            const jsonStart = marker.indexOf("{", cardMatch.index! + cardMatch[0].length);
+            if (jsonStart !== -1) {
+              const extracted = extractJson(marker, jsonStart);
+              if (extracted) {
+                try {
+                  const metadata = JSON.parse(extracted.json) as Record<string, unknown>;
+                  parsed.push({ role: "assistant", content: "", type: cardType, metadata });
+                } catch { /* skip malformed card */ }
+              }
+            }
+          }
+        }
+
         if (parsed.length > 0) {
           const withIds = parsed.map((m) => ({ ...m, msgId: nextMsgId() }));
           setMessages((prev) => {
