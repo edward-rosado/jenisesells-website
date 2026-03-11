@@ -41,7 +41,7 @@ public class OnboardingChatService(
         string ToolInputJson,
         bool HasToolCall);
 
-    public async IAsyncEnumerable<string> StreamResponseAsync(
+    public virtual async IAsyncEnumerable<string> StreamResponseAsync(
         OnboardingSession session,
         string userMessage,
         [EnumeratorCancellation] CancellationToken ct)
