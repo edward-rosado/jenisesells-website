@@ -11,6 +11,7 @@ public partial class ProfileScraperService(
     IHttpClientFactory httpClientFactory,
     string apiKey,
     string? scraperApiKey,
+    IDnsResolver dnsResolver,
     ILogger<ProfileScraperService> logger) : IProfileScraper
 {
     private const string ApiUrl = "https://api.anthropic.com/v1/messages";
@@ -86,6 +87,15 @@ public partial class ProfileScraperService(
         if (validationError is not null)
         {
             logger.LogWarning("Blocked profile scrape attempt: {Reason} for URL {Url}", validationError, url);
+            return null;
+        }
+
+        // DNS rebinding prevention: resolve hostname and verify all IPs are public
+        var uri = new Uri(url);
+        var dnsError = await ValidateDnsResolutionAsync(uri.Host, ct);
+        if (dnsError is not null)
+        {
+            logger.LogWarning("[SCRAPE-025] DNS rebinding blocked: {Reason} for host {Host}", dnsError, uri.Host);
             return null;
         }
 
@@ -288,16 +298,57 @@ public partial class ProfileScraperService(
         return null;
     }
 
-    private static bool IsPrivateIp(IPAddress ip)
+    internal async Task<string?> ValidateDnsResolutionAsync(string hostname, CancellationToken ct)
     {
-        var bytes = ip.GetAddressBytes();
-        return bytes.Length == 4 && bytes[0] switch
+        IPAddress[] addresses;
+        try
+        {
+            addresses = await dnsResolver.ResolveAsync(hostname, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[SCRAPE-026] DNS resolution failed for host {Host}", hostname);
+            return $"DNS resolution failed for '{hostname}'";
+        }
+
+        if (addresses.Length == 0)
+            return $"DNS resolution returned no addresses for '{hostname}'";
+
+        foreach (var ip in addresses)
+        {
+            if (IPAddress.IsLoopback(ip) || IsPrivateIp(ip))
+                return $"DNS resolved to private/loopback IP {ip} for '{hostname}'";
+        }
+
+        return null;
+    }
+
+    internal static bool IsPrivateIp(IPAddress ip)
+    {
+        // IPv6: check for unique local addresses (fd00::/8) and link-local (fe80::/10)
+        if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+        {
+            var bytes = ip.GetAddressBytes();
+            // fd00::/8 — unique local
+            if (bytes[0] == 0xfd)
+                return true;
+            // fe80::/10 — link-local
+            if (bytes[0] == 0xfe && (bytes[1] & 0xc0) == 0x80)
+                return true;
+            // ::ffff:x.x.x.x — IPv4-mapped IPv6, check the embedded IPv4
+            if (ip.IsIPv4MappedToIPv6)
+                return IsPrivateIp(ip.MapToIPv4());
+            return false;
+        }
+
+        var ipBytes = ip.GetAddressBytes();
+        return ipBytes.Length == 4 && ipBytes[0] switch
         {
             10 => true,
-            172 => bytes[1] >= 16 && bytes[1] <= 31,
-            192 => bytes[1] == 168,
+            172 => ipBytes[1] >= 16 && ipBytes[1] <= 31,
+            192 => ipBytes[1] == 168,
             127 => true,
-            169 => bytes[1] == 254,
+            169 => ipBytes[1] == 254,
             _ => false,
         };
     }

@@ -75,11 +75,13 @@ if (string.IsNullOrEmpty(scraperApiKey))
     Log.Warning("ScraperApi:ApiKey not configured — profile scraping will use direct HTTP (may be blocked by Zillow/Realtor)");
 
 builder.Services.AddHttpClient(nameof(ProfileScraperService));
+builder.Services.AddSingleton<IDnsResolver, SystemDnsResolver>();
 builder.Services.AddSingleton<IProfileScraper>(sp =>
     new ProfileScraperService(
         sp.GetRequiredService<IHttpClientFactory>(),
         anthropicKey,
         scraperApiKey,
+        sp.GetRequiredService<IDnsResolver>(),
         sp.GetRequiredService<ILogger<ProfileScraperService>>()));
 builder.Services.AddHttpClient(nameof(GoogleOAuthService));
 builder.Services.AddSingleton(sp =>
