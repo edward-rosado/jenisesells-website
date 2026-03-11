@@ -1,4 +1,3 @@
-using System.Threading.RateLimiting;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Infrastructure;
 
@@ -24,6 +23,7 @@ public class CreateSessionEndpoint : IEndpoint
         var session = request.ToSession();
         await sessionStore.SaveAsync(session, ct);
 
+        OnboardingChatService.SessionsCreated.Add(1);
         logger.LogInformation("[SESSION-CREATE-011] Session created: {SessionId}", session.Id);
         return Results.Ok(session.ToCreateResponse());
     }

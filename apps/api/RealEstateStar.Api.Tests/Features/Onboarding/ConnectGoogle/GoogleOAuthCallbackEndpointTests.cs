@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.ConnectGoogle;
@@ -15,6 +16,7 @@ public class GoogleOAuthCallbackEndpointTests
     private readonly IConfiguration _configuration = new ConfigurationBuilder()
         .AddInMemoryCollection(new Dictionary<string, string?> { ["Platform:BaseUrl"] = "http://localhost:3000" })
         .Build();
+    private readonly NullLogger<GoogleOAuthCallbackEndpoint> _logger = new();
 
     public GoogleOAuthCallbackEndpointTests()
     {
@@ -50,7 +52,7 @@ public class GoogleOAuthCallbackEndpointTests
 
         var result = await GoogleOAuthCallbackEndpoint.Handle(
             "auth-code", $"{session.Id}:test-nonce", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
 
         Assert.NotNull(session.GoogleTokens);
         Assert.Equal("agent@gmail.com", session.GoogleTokens.GoogleEmail);
@@ -66,7 +68,7 @@ public class GoogleOAuthCallbackEndpointTests
 
         var result = await GoogleOAuthCallbackEndpoint.Handle(
             "code", "bad-id:test-nonce", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
 
         Assert.NotNull(result);
     }
@@ -76,7 +78,7 @@ public class GoogleOAuthCallbackEndpointTests
     {
         var result = await GoogleOAuthCallbackEndpoint.Handle(
             null, "session-id", "access_denied",
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
 
         Assert.NotNull(result);
     }
@@ -97,7 +99,7 @@ public class GoogleOAuthCallbackEndpointTests
 
         var result = await GoogleOAuthCallbackEndpoint.Handle(
             "bad-code", $"{session.Id}:test-nonce", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
 
         Assert.Null(session.GoogleTokens);
     }

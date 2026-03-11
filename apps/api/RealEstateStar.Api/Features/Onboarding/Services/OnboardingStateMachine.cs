@@ -34,6 +34,9 @@ public class OnboardingStateMachine
             throw new InvalidOperationException(
                 $"Cannot transition from {session.CurrentState} to {targetState}");
 
+        OnboardingChatService.StateTransitions.Add(1,
+            new KeyValuePair<string, object?>("from_state", session.CurrentState.ToString()),
+            new KeyValuePair<string, object?>("to_state", targetState.ToString()));
         session.CurrentState = targetState;
         session.UpdatedAt = DateTime.UtcNow;
     }

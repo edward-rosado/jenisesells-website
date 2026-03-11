@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Web;
+using Microsoft.Extensions.Logging;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Infrastructure;
 
@@ -20,6 +21,7 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
         GoogleOAuthService oAuthService,
         OnboardingStateMachine stateMachine,
         IConfiguration configuration,
+        ILogger<GoogleOAuthCallbackEndpoint> logger,
         CancellationToken ct)
     {
         var platformOrigin = configuration["Platform:BaseUrl"] ?? "http://localhost:3000";
@@ -65,8 +67,10 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
                 BuildCallbackHtml(true, $"Connected as {tokens.GoogleName} ({tokens.GoogleEmail})", platformOrigin),
                 "text/html");
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
+            logger.LogError(ex, "[OAUTH-010] Google token exchange failed for session {SessionId}. ExType={ExType}",
+                sessionId, ex.GetType().Name);
             await sessionStore.SaveAsync(session, ct);
             return Results.Content(BuildCallbackHtml(false, "Failed to connect Google account", platformOrigin), "text/html");
         }

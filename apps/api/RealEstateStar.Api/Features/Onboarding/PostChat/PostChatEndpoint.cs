@@ -95,9 +95,9 @@ public class PostChatEndpoint : IEndpoint
                     await errorWriter.WriteAsync($"data: [ERROR] Internal error — check server logs for CHAT-016\n\n");
                     await errorWriter.FlushAsync();
                 }
-                catch
+                catch (Exception innerEx)
                 {
-                    // Stream may already be broken — nothing we can do
+                    logger.LogWarning(innerEx, "[CHAT-017] Failed to write error event to stream for session {SessionId}", sessionId);
                 }
             }
         }, "text/event-stream");

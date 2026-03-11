@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
@@ -7,7 +9,6 @@ using RealEstateStar.Api.Features.Onboarding.Tools;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 
-// TODO: MED-8 — Add ActivitySource spans for chat processing, tool dispatch, and state transitions
 // TODO: LOW-6 — Extract shared Anthropic API client into a common AnthropicClient service
 public class OnboardingChatService(
     IHttpClientFactory httpClientFactory,
@@ -20,6 +21,11 @@ public class OnboardingChatService(
     private const string Model = "claude-sonnet-4-6";
     private const int MaxTokens = 2048;
     private const int MaxToolRounds = 5;
+
+    internal static readonly ActivitySource ActivitySource = new("RealEstateStar.Onboarding");
+    private static readonly Meter Meter = new("RealEstateStar.Onboarding");
+    internal static readonly Counter<long> SessionsCreated = Meter.CreateCounter<long>("onboarding.sessions_created");
+    internal static readonly Counter<long> StateTransitions = Meter.CreateCounter<long>("onboarding.state_transitions");
 
     private static readonly Regex CardMarkerRegex = new(@"\[CARD:\w+\]\{[\s\S]*?\}", RegexOptions.Compiled);
 
@@ -40,6 +46,10 @@ public class OnboardingChatService(
         string userMessage,
         [EnumeratorCancellation] CancellationToken ct)
     {
+        using var activity = ActivitySource.StartActivity("StreamResponseAsync");
+        activity?.SetTag("session.id", session.Id);
+        activity?.SetTag("session.state", session.CurrentState.ToString());
+
         var allowedTools = stateMachine.GetAllowedTools(session.CurrentState);
         var systemPrompt = BuildSystemPrompt(session);
 
@@ -106,15 +116,18 @@ public class OnboardingChatService(
 
             try
             {
+                using var toolActivity = ActivitySource.StartActivity("ToolDispatch");
+                toolActivity?.SetTag("tool.name", result.ToolName);
+                toolActivity?.SetTag("session.id", session.Id);
+
                 toolResultText = await toolDispatcher.DispatchAsync(result.ToolName!, toolParams, session, ct);
                 logger.LogInformation("[STREAM-034] Tool {ToolName} completed for session {SessionId}, result length={Len}",
                     result.ToolName, session.Id, toolResultText.Length);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "[STREAM-035] Tool {ToolName} threw for session {SessionId}. " +
-                    "ExType={ExType}, Message={ExMessage}",
-                    result.ToolName, session.Id, ex.GetType().Name, ex.Message);
+                logger.LogError(ex, "[STREAM-035] Tool {ToolName} threw for session {SessionId}. ExType={ExType}",
+                    result.ToolName, session.Id, ex.GetType().Name);
                 toolResultText = "Error: tool execution failed";
             }
 
