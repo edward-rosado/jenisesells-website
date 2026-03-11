@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { GeometricStar } from "@/components/GeometricStar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,9 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-gray-950 text-white antialiased">
-        <header className="fixed top-0 w-full z-50 flex items-center justify-between px-6 py-4">
-          <span className="text-lg font-bold tracking-tight">
-            <span aria-hidden="true">★ </span>
+        <header className="fixed top-0 w-full z-50 flex items-center justify-between px-6 py-4 backdrop-blur-md bg-gray-950/80 border-b border-gray-800/50">
+          <span className="flex items-center gap-2 text-lg font-bold tracking-tight">
+            <GeometricStar className="w-6 h-6" />
             <span>Real Estate Star</span>
           </span>
           <Link
@@ -28,6 +29,9 @@ export default function RootLayout({
           </Link>
         </header>
         {children}
+        <footer className="border-t border-gray-800/50 px-6 py-8 text-center text-sm text-gray-500">
+          <p>&copy; {new Date().getFullYear()} Real Estate Star. All rights reserved.</p>
+        </footer>
       </body>
     </html>
   );
