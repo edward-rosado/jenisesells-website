@@ -62,9 +62,14 @@ jobs:
           NEXT_PUBLIC_STRIPE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
         run: npm run build --prefix apps/platform
 
+      - name: Build for Cloudflare (OpenNext)
+        working-directory: apps/platform
+        run: npx opennextjs-cloudflare build
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy apps/platform/.next --project-name=real-estate-star-platform
+          workingDirectory: apps/platform
+          command: pages deploy .open-next/assets --project-name=real-estate-star-platform
