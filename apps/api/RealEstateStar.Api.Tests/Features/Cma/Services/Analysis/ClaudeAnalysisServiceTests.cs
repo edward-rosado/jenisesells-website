@@ -67,7 +67,9 @@ public class ClaudeAnalysisServiceTests
             .ReturnsAsync(response);
 
         var httpClient = new HttpClient(handler.Object);
-        var service = new ClaudeAnalysisService(httpClient, "test-api-key");
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(httpClient);
+        var service = new ClaudeAnalysisService(factory.Object, "test-api-key");
         return (service, handler);
     }
 
@@ -156,7 +158,9 @@ public class ClaudeAnalysisServiceTests
             .ReturnsAsync(response);
 
         var httpClient = new HttpClient(handler.Object);
-        var service = new ClaudeAnalysisService(httpClient, "test-api-key");
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(httpClient);
+        var service = new ClaudeAnalysisService(factory.Object, "test-api-key");
         var research = new LeadResearch { Occupation = "Engineer", Employer = "Corp" };
 
         await service.AnalyzeAsync(

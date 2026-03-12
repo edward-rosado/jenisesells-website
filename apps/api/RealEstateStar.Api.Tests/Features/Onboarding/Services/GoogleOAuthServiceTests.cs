@@ -158,6 +158,51 @@ public class GoogleOAuthServiceTests
     }
 
     [Fact]
+    public void HashEmail_NullEmail_ReturnsNull()
+    {
+        var result = GoogleOAuthService.HashEmail(null);
+        Assert.Equal("null", result);
+    }
+
+    [Fact]
+    public void HashEmail_WhitespaceEmail_ReturnsNull()
+    {
+        var result = GoogleOAuthService.HashEmail("   ");
+        Assert.Equal("null", result);
+    }
+
+    [Fact]
+    public void HashEmail_EmptyEmail_ReturnsNull()
+    {
+        var result = GoogleOAuthService.HashEmail("");
+        Assert.Equal("null", result);
+    }
+
+    [Fact]
+    public void HashEmail_ValidEmail_ReturnsHashString()
+    {
+        var result = GoogleOAuthService.HashEmail("test@example.com");
+        Assert.NotEqual("null", result);
+        Assert.Equal(12, result.Length); // First 12 hex chars
+    }
+
+    [Fact]
+    public void HashEmail_IsCaseInsensitive()
+    {
+        var lower = GoogleOAuthService.HashEmail("Test@Example.COM");
+        var upper = GoogleOAuthService.HashEmail("test@example.com");
+        Assert.Equal(lower, upper);
+    }
+
+    [Fact]
+    public void HashEmail_TrimsWhitespace()
+    {
+        var trimmed = GoogleOAuthService.HashEmail("test@example.com");
+        var untrimmed = GoogleOAuthService.HashEmail("  test@example.com  ");
+        Assert.Equal(trimmed, untrimmed);
+    }
+
+    [Fact]
     public async Task RefreshAccessTokenAsync_WhenRefreshFails_Throws()
     {
         var handler = new Mock<HttpMessageHandler>();

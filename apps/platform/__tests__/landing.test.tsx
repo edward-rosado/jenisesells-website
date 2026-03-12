@@ -1,9 +1,12 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import LandingPage from "@/app/page";
 
+const mockPush = vi.fn();
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mockPush }),
 }));
 
 describe("Landing Page", () => {
@@ -95,5 +98,30 @@ describe("Landing Page", () => {
     const { container } = render(<LandingPage />);
     const form = container.querySelector("form[aria-label]");
     expect(form).toBeInTheDocument();
+  });
+
+  // ---- Branch coverage for handleSubmit (lines 15-19, 47) ----
+
+  it("navigates to /onboard with profileUrl query param on submit", async () => {
+    const user = userEvent.setup();
+    render(<LandingPage />);
+
+    const input = screen.getByPlaceholderText(/paste your zillow or realtor\.com/i);
+    await user.type(input, "https://zillow.com/profile/janedoe");
+    await user.click(screen.getByRole("button", { name: /get started free/i }));
+
+    expect(mockPush).toHaveBeenCalledWith(
+      "/onboard?profileUrl=https%3A%2F%2Fzillow.com%2Fprofile%2Fjanedoe"
+    );
+  });
+
+  it("navigates to /onboard without query param when profileUrl is empty", async () => {
+    const user = userEvent.setup();
+    render(<LandingPage />);
+
+    // Submit without typing a URL
+    await user.click(screen.getByRole("button", { name: /get started free/i }));
+
+    expect(mockPush).toHaveBeenCalledWith("/onboard");
   });
 });

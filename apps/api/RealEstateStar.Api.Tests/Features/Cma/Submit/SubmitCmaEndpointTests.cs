@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -280,6 +281,38 @@ public class SubmitCmaEndpointUnitTests
         capturedJob.Should().NotBeNull();
         capturedJob!.Status.Should().Be(CmaJobStatus.Failed);
         capturedJob.ErrorMessage.Should().Be("Pipeline execution failed. Please try again or contact support.");
+    }
+
+    [Fact]
+    public void GroupValidationErrors_WithEmptyMemberNames_GroupsUnderEmptyKey()
+    {
+        // ValidationResult with no MemberNames — FirstOrDefault() returns null, ?? "" fires
+        var results = new List<ValidationResult>
+        {
+            new("Error with no member"),  // MemberNames is empty by default
+            new("Named error", ["Email"]),
+        };
+
+        var grouped = SubmitCmaEndpoint.GroupValidationErrors(results);
+
+        grouped.Should().ContainKey("", "empty MemberNames should produce an empty-string key");
+        grouped[""].Should().Contain("Error with no member");
+        grouped.Should().ContainKey("Email");
+        grouped["Email"].Should().Contain("Named error");
+    }
+
+    [Fact]
+    public void GroupValidationErrors_MultipleSameMember_GroupsTogether()
+    {
+        var results = new List<ValidationResult>
+        {
+            new("Too short", ["FirstName"]),
+            new("Required", ["FirstName"]),
+        };
+
+        var grouped = SubmitCmaEndpoint.GroupValidationErrors(results);
+
+        grouped["FirstName"].Should().HaveCount(2);
     }
 
     [Fact]

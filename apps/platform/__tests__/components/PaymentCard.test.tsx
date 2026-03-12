@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import { PaymentCard } from "../../components/chat/PaymentCard";
@@ -109,7 +109,7 @@ describe("PaymentCard", () => {
       .spyOn(window, "open")
       .mockImplementation(() => null);
 
-    const { container } = render(
+    render(
       <PaymentCard checkoutUrl="https://checkout.stripe.com/c/pay_abc" />
     );
 
@@ -134,5 +134,29 @@ describe("PaymentCard", () => {
   it("renders price with unicode characters", () => {
     render(<PaymentCard price={"$900 \u2014 one-time"} />);
     expect(screen.getByText(/\$900 \u2014 one-time/)).toBeInTheDocument();
+  });
+
+  // ---- Additional branch coverage: handleClick when no checkoutUrl ----
+
+  it("does not call window.open when checkoutUrl is empty string (falsy)", () => {
+    const windowOpen = vi
+      .spyOn(window, "open")
+      .mockImplementation(() => null);
+
+    // Render with empty string checkoutUrl — button is disabled, but we force
+    // the onClick handler by dispatching a native click event directly on the
+    // underlying DOM element, bypassing React's disabled check.
+    render(<PaymentCard checkoutUrl="" />);
+
+    const button = screen.getByRole("button", { name: /start free trial/i });
+    // Remove the disabled attribute temporarily to allow click dispatch
+    button.removeAttribute("disabled");
+    fireEvent.click(button);
+
+    expect(windowOpen).not.toHaveBeenCalled();
+    // Should still show button (not transition to waiting state)
+    expect(button).toBeInTheDocument();
+
+    windowOpen.mockRestore();
   });
 });

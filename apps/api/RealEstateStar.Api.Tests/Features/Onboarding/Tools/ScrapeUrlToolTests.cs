@@ -111,6 +111,33 @@ public class ScrapeUrlToolTests
         session.Profile.Should().BeSameAs(profile);
     }
 
+    [Fact]
+    public async Task ExecuteAsync_ProfileWithNullBrokerage_ReportsMissingBrokerage()
+    {
+        var session = OnboardingSession.Create(null);
+        var parameters = JsonSerializer.Deserialize<JsonElement>("{\"url\": \"https://realtor.com/agent/nobroker\"}");
+
+        var profile = new ScrapedProfile
+        {
+            Name = "Agent NoBroker",
+            Phone = "555-9999",
+            Email = "nobroker@example.com",
+            Brokerage = null,  // null brokerage — covers the missing-check branch
+            State = "NJ",
+        };
+
+        _scraper
+            .Setup(s => s.ScrapeAsync("https://realtor.com/agent/nobroker", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(profile);
+
+        var result = await _tool.ExecuteAsync(parameters, session, CancellationToken.None);
+
+        result.Should().Contain("Missing critical fields");
+        result.Should().Contain("brokerage");
+        result.Should().NotContain("Brokerage:", "null brokerage should not appear in the field list");
+        session.Profile.Should().BeSameAs(profile);
+    }
+
     // ── Full profile: all fields present → "All critical fields present" ──
 
     [Fact]

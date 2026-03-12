@@ -247,7 +247,7 @@ describe("GoogleAuthCard", () => {
   it("defaults apiOrigin to NEXT_PUBLIC_API_URL when not provided", () => {
     // The component reads process.env.NEXT_PUBLIC_API_URL via API_BASE constant.
     // When apiOrigin prop is omitted, it falls back to new URL(API_BASE).origin.
-    // API_BASE defaults to "http://localhost:5000" when env var is not set.
+    // API_BASE defaults to "http://localhost:5135" when env var is not set.
     render(
       <GoogleAuthCard
         oauthUrl={oauthUrl}
@@ -255,11 +255,11 @@ describe("GoogleAuthCard", () => {
       />
     );
 
-    // Fire postMessage from the default origin (localhost:5000)
+    // Fire postMessage from the default origin (localhost:5135)
     fireEvent(
       window,
       new MessageEvent("message", {
-        origin: "http://localhost:5000",
+        origin: "http://localhost:5135",
         data: {
           type: "google_oauth_callback",
           success: true,

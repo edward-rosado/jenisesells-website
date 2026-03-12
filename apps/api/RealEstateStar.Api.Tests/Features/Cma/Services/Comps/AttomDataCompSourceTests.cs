@@ -1,5 +1,6 @@
 using System.Net;
 using FluentAssertions;
+using Moq;
 using RealEstateStar.Api.Features.Cma;
 using RealEstateStar.Api.Features.Cma.Services.Comps;
 
@@ -13,15 +14,23 @@ public class AttomDataCompSourceTests
         Beds = 3, Baths = 2, SqFt = 1500
     };
 
+    private static (AttomDataCompSource source, FakeHttpMessageHandler handler) CreateSource(HttpResponseMessage response)
+    {
+        var handler = new FakeHttpMessageHandler(response);
+        var client = new HttpClient(handler);
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
+        var source = new AttomDataCompSource(factory.Object, "test-api-key");
+        return (source, handler);
+    }
+
     [Fact]
     public void Name_ReturnsAttomData()
     {
-        var handler = new FakeHttpMessageHandler(new HttpResponseMessage(HttpStatusCode.OK)
+        var (source, _) = CreateSource(new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent("{}")
         });
-        var client = new HttpClient(handler);
-        var source = new AttomDataCompSource(client, "test-api-key");
 
         source.Name.Should().Be("ATTOM Data");
     }
@@ -29,12 +38,10 @@ public class AttomDataCompSourceTests
     [Fact]
     public async Task FetchAsync_MakesHttpRequest_AndReturnsResults()
     {
-        var handler = new FakeHttpMessageHandler(new HttpResponseMessage(HttpStatusCode.OK)
+        var (source, handler) = CreateSource(new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent("{}")
         });
-        var client = new HttpClient(handler);
-        var source = new AttomDataCompSource(client, "test-api-key");
 
         var result = await source.FetchAsync(DefaultRequest, CancellationToken.None);
 
@@ -47,9 +54,7 @@ public class AttomDataCompSourceTests
     [Fact]
     public async Task FetchAsync_ThrowsOnHttpError()
     {
-        var handler = new FakeHttpMessageHandler(new HttpResponseMessage(HttpStatusCode.InternalServerError));
-        var client = new HttpClient(handler);
-        var source = new AttomDataCompSource(client, "test-api-key");
+        var (source, _) = CreateSource(new HttpResponseMessage(HttpStatusCode.InternalServerError));
 
         var act = () => source.FetchAsync(DefaultRequest, CancellationToken.None);
 

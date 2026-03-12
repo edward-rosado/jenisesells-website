@@ -154,6 +154,233 @@ public class CmaPdfGeneratorTests
     }
 
     [Fact]
+    public void Generate_MinimalAgent_NullOptionalFields_ProducesValidPdf()
+    {
+        var generator = new CmaPdfGenerator();
+        var path = Path.Combine(Path.GetTempPath(), $"cma_minimal_agent_{Guid.NewGuid()}.pdf");
+
+        try
+        {
+            // Agent with all optional Identity fields null
+            var minimalAgent = new AgentConfig
+            {
+                Id = "minimal-agent",
+                Identity = new AgentIdentity
+                {
+                    Name = null!,  // triggers ?? "Agent" fallback
+                    Brokerage = null,
+                    Phone = null!,
+                    Email = null!,
+                    Website = null,
+                    Languages = [],
+                    Tagline = null,
+                    Title = null,
+                },
+                Location = new AgentLocation
+                {
+                    State = "NJ",
+                    ServiceAreas = [],
+                },
+            };
+
+            // Lead with all optional fields null
+            var minimalLead = new Lead
+            {
+                FirstName = "Min",
+                LastName = "Lead",
+                Email = "min@test.com",
+                Phone = "555-0000",
+                Address = "1 Test St",
+                City = "Testville",
+                State = "NJ",
+                Zip = "07000",
+                Timeline = "ASAP",
+                Beds = null,
+                Baths = null,
+                Sqft = null,
+            };
+
+            // Research with all optional fields null
+            var minimalResearch = new LeadResearch
+            {
+                YearBuilt = null,
+                LotSize = null,
+                TaxAssessment = null,
+                NeighborhoodContext = null,
+            };
+
+            generator.Generate(new PdfGenerationRequest
+            {
+                OutputPath = path,
+                Agent = minimalAgent,
+                Lead = minimalLead,
+                Comps = [],  // empty comps list
+                Analysis = CreateTestAnalysis(),
+                Research = minimalResearch,
+                ReportType = ReportType.Comprehensive
+            }, CancellationToken.None);
+
+            File.Exists(path).Should().BeTrue("PDF should be created even with minimal/null fields");
+            new FileInfo(path).Length.Should().BeGreaterThan(0);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Generate_NullIdentity_UsesAgentFallback()
+    {
+        var generator = new CmaPdfGenerator();
+        var path = Path.Combine(Path.GetTempPath(), $"cma_null_identity_{Guid.NewGuid()}.pdf");
+
+        try
+        {
+            // Agent with null Identity entirely
+            var agent = new AgentConfig
+            {
+                Id = "null-identity",
+                Identity = null,
+                Location = null,
+            };
+
+            generator.Generate(new PdfGenerationRequest
+            {
+                OutputPath = path,
+                Agent = agent,
+                Lead = CreateTestLead(),
+                Comps = CreateTestComps(),
+                Analysis = CreateTestAnalysis(),
+                Research = null,  // null research
+                ReportType = ReportType.Comprehensive
+            }, CancellationToken.None);
+
+            File.Exists(path).Should().BeTrue("PDF should be created even with null Identity");
+            new FileInfo(path).Length.Should().BeGreaterThan(0);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Generate_LotSizePresent_NullLotSizeUnit_UseAcresFallback()
+    {
+        var generator = new CmaPdfGenerator();
+        var path = Path.Combine(Path.GetTempPath(), $"cma_null_lotunit_{Guid.NewGuid()}.pdf");
+
+        try
+        {
+            // Research with non-null LotSize but null LotSizeUnit => "acres" fallback
+            var research = new LeadResearch
+            {
+                LotSize = 0.5m,
+                LotSizeUnit = null,
+                TaxAssessment = 400_000m,
+                YearBuilt = 1990,
+            };
+
+            generator.Generate(new PdfGenerationRequest
+            {
+                OutputPath = path,
+                Agent = CreateTestAgent(),
+                Lead = CreateTestLead(),
+                Comps = CreateTestComps(),
+                Analysis = CreateTestAnalysis(),
+                Research = research,
+                ReportType = ReportType.Standard
+            }, CancellationToken.None);
+
+            File.Exists(path).Should().BeTrue("PDF should be created with null LotSizeUnit fallback");
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Generate_StandardReport_IncludesPropertyOverview()
+    {
+        var generator = new CmaPdfGenerator();
+        var leanPath = Path.Combine(Path.GetTempPath(), $"cma_lean_std_{Guid.NewGuid()}.pdf");
+        var stdPath = Path.Combine(Path.GetTempPath(), $"cma_std_{Guid.NewGuid()}.pdf");
+
+        try
+        {
+            generator.Generate(new PdfGenerationRequest
+            {
+                OutputPath = leanPath,
+                Agent = CreateTestAgent(),
+                Lead = CreateTestLead(),
+                Comps = CreateTestComps(),
+                Analysis = CreateTestAnalysis(),
+                Research = CreateTestResearch(),
+                ReportType = ReportType.Lean
+            }, CancellationToken.None);
+
+            generator.Generate(new PdfGenerationRequest
+            {
+                OutputPath = stdPath,
+                Agent = CreateTestAgent(),
+                Lead = CreateTestLead(),
+                Comps = CreateTestComps(),
+                Analysis = CreateTestAnalysis(),
+                Research = CreateTestResearch(),
+                ReportType = ReportType.Standard
+            }, CancellationToken.None);
+
+            // Standard includes property overview page that Lean doesn't
+            new FileInfo(stdPath).Length.Should().BeGreaterThan(new FileInfo(leanPath).Length);
+        }
+        finally
+        {
+            if (File.Exists(leanPath)) File.Delete(leanPath);
+            if (File.Exists(stdPath)) File.Delete(stdPath);
+        }
+    }
+
+    [Fact]
+    public void Generate_ComprehensiveWithNullPricingRecommendation_ProducesValidPdf()
+    {
+        var generator = new CmaPdfGenerator();
+        var path = Path.Combine(Path.GetTempPath(), $"cma_no_pricing_{Guid.NewGuid()}.pdf");
+
+        try
+        {
+            var analysis = new CmaAnalysis
+            {
+                ValueLow = 510_000m,
+                ValueMid = 545_000m,
+                ValueHigh = 580_000m,
+                MarketNarrative = "Market analysis text.",
+                PricingRecommendation = null,
+                MarketTrend = "Stable",
+                MedianDaysOnMarket = 20
+            };
+
+            generator.Generate(new PdfGenerationRequest
+            {
+                OutputPath = path,
+                Agent = CreateTestAgent(),
+                Lead = CreateTestLead(),
+                Comps = CreateTestComps(),
+                Analysis = analysis,
+                Research = CreateTestResearch(),
+                ReportType = ReportType.Comprehensive
+            }, CancellationToken.None);
+
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Generate_ComprehensiveReport_HasMorePages()
     {
         var generator = new CmaPdfGenerator();

@@ -43,6 +43,39 @@ public class LeadResearchServiceTests
     // --- ResearchAsync ---
 
     [Fact]
+    public async Task Research_WithNullLogger_AllSourcesFail_ReturnsNonNullResult()
+    {
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ThrowsAsync(new HttpRequestException("Connection refused"));
+
+        var httpClient = new HttpClient(handler.Object);
+        // Pass null logger to cover the logger?.Log* null-conditional branches in catch blocks
+        var service = new LeadResearchService(httpClient, null);
+
+        var result = await service.ResearchAsync(MakeLead(), CancellationToken.None);
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Research_WithNullLogger_AllSourcesSucceed_ReturnsNonNullResult()
+    {
+        var handler = MakeHandler(HttpStatusCode.OK, "{}");
+        var httpClient = new HttpClient(handler.Object);
+        // Pass null logger to cover the logger?.Log* null-conditional branches in success paths
+        var service = new LeadResearchService(httpClient, null);
+
+        var result = await service.ResearchAsync(MakeLead(), CancellationToken.None);
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task Research_ReturnsNonNullResult_WhenAllSourcesFail()
     {
         var handler = new Mock<HttpMessageHandler>();
@@ -214,6 +247,62 @@ public class LeadResearchServiceTests
         var result = LeadResearchService.CalculateOwnershipDuration(purchaseDate);
 
         result.Should().Be("1 year");
+    }
+
+    [Fact]
+    public void CalculateOwnershipDuration_SameMonthDayNotLess_NoAdjustment()
+    {
+        // Same month, day >= purchase day — should NOT subtract a year
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        // Purchase date: same month, day <= today.Day (so anniversary has passed or is today)
+        var purchaseDay = Math.Min(today.Day, 1); // Use day 1 which is always <= today.Day
+        var purchaseDate = new DateOnly(today.Year - 3, today.Month, purchaseDay);
+
+        var result = LeadResearchService.CalculateOwnershipDuration(purchaseDate);
+
+        result.Should().Be("3 years", "anniversary already reached this month — no adjustment needed");
+    }
+
+    [Fact]
+    public void CalculateOwnershipDuration_MonthAlreadyPassed_NoAdjustment()
+    {
+        // Purchase month is earlier than today's month — anniversary already passed this year
+        // This covers the branch: A=false (month not less), B=false (month not equal) -> skip years--
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        // Use a month that's definitely before today's month
+        int pastMonth;
+        if (today.Month > 1)
+            pastMonth = 1; // January is always before any month > 1
+        else
+            pastMonth = 12; // If today is January, use December (will be handled by A=true path)
+
+        // Only proceed if we can get a past month (today.Month > 1)
+        if (today.Month > 1)
+        {
+            var purchaseDate = new DateOnly(today.Year - 4, pastMonth, 15);
+            var result = LeadResearchService.CalculateOwnershipDuration(purchaseDate);
+            result.Should().Be("4 years", "anniversary month already passed — should be full 4 years");
+        }
+        else
+        {
+            // January edge case: pick a month that's definitely past = impossible
+            // Use same-month test instead (already covered above)
+            var purchaseDate = new DateOnly(today.Year - 4, 1, today.Day);
+            var result = LeadResearchService.CalculateOwnershipDuration(purchaseDate);
+            result.Should().Be("4 years");
+        }
+    }
+
+    [Fact]
+    public void CalculateOwnershipDuration_ExactAnniversary_NoAdjustment()
+    {
+        // Exact anniversary date: same month, same day
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var purchaseDate = new DateOnly(today.Year - 2, today.Month, today.Day);
+
+        var result = LeadResearchService.CalculateOwnershipDuration(purchaseDate);
+
+        result.Should().Be("2 years", "exact anniversary — should not subtract a year");
     }
 
     // --- EstimateEquity ---

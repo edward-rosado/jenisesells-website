@@ -427,6 +427,22 @@ public class CmaToolTests
         Assert.Contains("\"status\":\"complete\"", result);
     }
 
+    [Fact]
+    public void BuildLeadFromParameters_NullStateParam_NullProfileState_DefaultsToNJ()
+    {
+        // Both GetStringProperty("state") returns null AND profile.State is null
+        // So it falls through: null ?? null ?? "NJ" -> "NJ"
+        var profile = new ScrapedProfile { Name = "Test Agent", State = null };
+        var parameters = JsonSerializer.Deserialize<JsonElement>("""{"address":"1 Test St"}""");
+
+        var lead = SubmitCmaFormTool.BuildLeadFromParameters(parameters, "agent@test.com", profile);
+
+        Assert.Equal("NJ", lead.State);
+        // City should also default via the null state switch:
+        // profile.State is null -> _ => "Springfield"
+        Assert.Equal("Springfield", lead.City);
+    }
+
     // --- Helpers ---
 
     private static OnboardingSession MakeSessionWithProfile(OnboardingState state = OnboardingState.DemoCma)
