@@ -82,8 +82,8 @@ export function CmaForm({
       notes: notes.length > 0 ? notes : undefined,
     };
 
-    trackCmaConversion(tracking);
     await cmaSubmit.submit(agentId, request);
+    trackCmaConversion(tracking);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

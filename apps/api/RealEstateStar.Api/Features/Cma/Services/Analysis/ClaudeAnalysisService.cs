@@ -5,7 +5,7 @@ using RealEstateStar.Api.Features.Cma;
 
 namespace RealEstateStar.Api.Features.Cma.Services.Analysis;
 
-public class ClaudeAnalysisService(HttpClient httpClient, string apiKey, ILogger<ClaudeAnalysisService>? logger = null) : IAnalysisService
+public class ClaudeAnalysisService(IHttpClientFactory httpClientFactory, string apiKey, ILogger<ClaudeAnalysisService>? logger = null) : IAnalysisService
 {
     private const string ApiUrl = "https://api.anthropic.com/v1/messages";
     private const string Model = "claude-sonnet-4-6";
@@ -57,6 +57,7 @@ public class ClaudeAnalysisService(HttpClient httpClient, string apiKey, ILogger
         request.Headers.Add("x-api-key", apiKey);
         request.Headers.Add("anthropic-version", "2023-06-01");
 
+        var httpClient = httpClientFactory.CreateClient(nameof(ClaudeAnalysisService));
         var response = await httpClient.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
 

@@ -62,7 +62,6 @@ jobs:
           az acr build \
             --registry ${{ env.ACR_NAME }} \
             --image ${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            --image ${{ env.IMAGE_NAME }}:latest \
             --file apps/api/Dockerfile \
             apps/api
 
@@ -96,3 +95,18 @@ jobs:
 
           echo "Health check failed after 30 attempts"
           exit 1
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          PREV_REVISION=$(az containerapp revision list \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "[1].name" -o tsv)
+          if [ -n "$PREV_REVISION" ]; then
+            echo "Rolling back to previous revision: $PREV_REVISION"
+            az containerapp ingress traffic set \
+              --name ${{ env.CONTAINER_APP_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --revision-weight "$PREV_REVISION=100"
+          fi

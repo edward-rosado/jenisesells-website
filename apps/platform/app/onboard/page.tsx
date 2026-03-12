@@ -4,17 +4,41 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5135";
 
 function OnboardContent() {
   const searchParams = useSearchParams();
   const profileUrl = searchParams.get("profileUrl");
   const paymentStatus = searchParams.get("payment");
+  const sessionIdParam = searchParams.get("session_id");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [paymentVerified, setPaymentVerified] = useState<boolean | null>(null);
+
+  // Verify payment status with the server
+  useEffect(() => {
+    if (paymentStatus !== "success" || !sessionIdParam) return;
+
+    async function verifyPayment() {
+      try {
+        const res = await fetch(`${API_BASE}/onboard/${sessionIdParam}`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+        if (!res.ok) throw new Error("Failed to verify payment");
+        const data = await res.json();
+        setPaymentVerified(data.state === "TrialActivated");
+      } catch {
+        setPaymentVerified(false);
+      }
+    }
+    verifyPayment();
+  }, [paymentStatus, sessionIdParam]);
 
   useEffect(() => {
+    if (paymentStatus === "success" || paymentStatus === "cancelled") return;
+
     async function createSession() {
       try {
         const res = await fetch(`${API_BASE}/onboard`, {
@@ -31,9 +55,41 @@ function OnboardContent() {
       }
     }
     createSession();
-  }, [profileUrl]);
+  }, [profileUrl, paymentStatus]);
 
   if (paymentStatus === "success") {
+    if (paymentVerified === null) {
+      return (
+        <main className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+            <span className="text-gray-400">Verifying payment...</span>
+          </div>
+        </main>
+      );
+    }
+
+    if (!paymentVerified) {
+      return (
+        <main className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+          <div className="text-center space-y-4 max-w-md">
+            <h1 className="text-2xl font-bold text-yellow-400">
+              Payment Not Confirmed
+            </h1>
+            <p className="text-gray-400">
+              We could not verify your payment. Please contact support or try again.
+            </p>
+            <a
+              href="/onboard"
+              className="inline-block px-6 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors"
+            >
+              Try Again
+            </a>
+          </div>
+        </main>
+      );
+    }
+
     return (
       <main className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md">

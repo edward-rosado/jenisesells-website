@@ -16,7 +16,7 @@ set -euo pipefail
 
 # --- Configuration -----------------------------------------------------------
 RESOURCE_GROUP="real-estate-star-rg"
-ACR_NAME="realestatestaracr"
+ACR_NAME="realestatestar"
 SP_NAME="github-actions-real-estate-star"
 
 # --- Preflight checks --------------------------------------------------------

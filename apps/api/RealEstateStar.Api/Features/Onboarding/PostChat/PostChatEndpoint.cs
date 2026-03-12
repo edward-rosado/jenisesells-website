@@ -88,6 +88,18 @@ public class PostChatEndpoint : IEndpoint
                     "ExType={ExType}, Message={ExMessage}",
                     sessionId, ex.GetType().Name, ex.Message);
 
+                // Save session state even on error — tool executions may have mutated
+                // session state (e.g., state transitions, profile updates) before the failure
+                try
+                {
+                    await sessionStore.SaveAsync(session, ct);
+                    logger.LogInformation("[CHAT-018] Saved session {SessionId} after stream error", sessionId);
+                }
+                catch (Exception saveEx)
+                {
+                    logger.LogError(saveEx, "[CHAT-019] Failed to save session {SessionId} after stream error", sessionId);
+                }
+
                 // Attempt to send an error event to the client before the stream dies
                 try
                 {

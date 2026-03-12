@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
@@ -115,6 +116,15 @@ public class GoogleOAuthService(
         tokens.AccessToken = data.GetProperty("access_token").GetString()!;
         tokens.ExpiresAt = DateTime.UtcNow.AddSeconds(data.GetProperty("expires_in").GetInt32());
 
-        logger.LogInformation("Refreshed Google access token for {Email}", tokens.GoogleEmail);
+        logger.LogInformation("Refreshed Google access token for {EmailHash}", HashEmail(tokens.GoogleEmail));
+    }
+
+    internal static string HashEmail(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return "null";
+
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(email.Trim().ToLowerInvariant()));
+        return Convert.ToHexString(bytes)[..12].ToLowerInvariant();
     }
 }

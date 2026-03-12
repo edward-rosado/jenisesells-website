@@ -1,7 +1,7 @@
 // TODO: LOW-7 — Extract Google logo SVG to a shared component
 import { useEffect, useCallback } from "react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5135";
 
 interface GoogleAuthCardProps {
   oauthUrl: string;
@@ -71,6 +71,7 @@ export function GoogleAuthCard({ oauthUrl, onConnected, onError, apiOrigin }: Go
         and automated lead tracking in Sheets.
       </p>
       <button
+        type="button"
         onClick={openOAuthPopup}
         className="w-full px-4 py-2 rounded-lg bg-white hover:bg-gray-100 text-gray-800 font-semibold transition-colors flex items-center justify-center gap-2"
       >

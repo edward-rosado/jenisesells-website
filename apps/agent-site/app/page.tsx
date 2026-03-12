@@ -62,7 +62,7 @@ export default async function AgentPage({ searchParams }: PageProps) {
       <div style={cssVars as React.CSSProperties}>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/<\/script>/gi, "<\\/script>") }}
         />
         <Analytics tracking={agent.integrations?.tracking} />
         <Template agent={agent} content={content} />

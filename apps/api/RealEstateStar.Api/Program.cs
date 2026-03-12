@@ -46,7 +46,7 @@ var googleClientId = builder.Configuration["Google:ClientId"]
 var googleClientSecret = builder.Configuration["Google:ClientSecret"]
     ?? throw new InvalidOperationException("Google:ClientSecret configuration is required");
 var googleRedirectUri = builder.Configuration["Google:RedirectUri"]
-    ?? "http://localhost:5000/oauth/google/callback";
+    ?? throw new InvalidOperationException("Google:RedirectUri configuration is required");
 
 // Stripe config validation (StripeService constructor validates details)
 _ = builder.Configuration["Stripe:SecretKey"]
@@ -130,10 +130,10 @@ builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<RealtorCo
 builder.Services.AddHttpClient<RedfinCompSource>();
 builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<RedfinCompSource>());
 
-builder.Services.AddHttpClient<AttomDataCompSource>();
+builder.Services.AddHttpClient(nameof(AttomDataCompSource));
 builder.Services.AddSingleton<ICompSource>(sp =>
     new AttomDataCompSource(
-        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(AttomDataCompSource)),
+        sp.GetRequiredService<IHttpClientFactory>(),
         attomKey,
         sp.GetService<ILogger<AttomDataCompSource>>()));
 
@@ -146,10 +146,10 @@ builder.Services.AddSingleton<ILeadResearchService>(sp => sp.GetRequiredService<
 builder.Services.AddSingleton<ICmaPdfGenerator, CmaPdfGenerator>();
 builder.Services.AddSingleton<IGwsService, GwsService>();
 
-builder.Services.AddHttpClient<ClaudeAnalysisService>();
+builder.Services.AddHttpClient(nameof(ClaudeAnalysisService));
 builder.Services.AddSingleton<IAnalysisService>(sp =>
     new ClaudeAnalysisService(
-        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(ClaudeAnalysisService)),
+        sp.GetRequiredService<IHttpClientFactory>(),
         anthropicKey,
         sp.GetService<ILogger<ClaudeAnalysisService>>()));
 
@@ -216,13 +216,13 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromHours(1)
             }));
 
-    // Session creation: 5 per hour per IP
+    // Session creation: 5 per hour per IP (session creation triggers Claude API calls)
     options.AddPolicy("session-create", context =>
         RateLimitPartition.GetFixedWindowLimiter(
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 50,
+                PermitLimit = 5,
                 Window = TimeSpan.FromHours(1)
             }));
 
@@ -270,6 +270,10 @@ app.UseExceptionHandler(exceptionApp =>
     });
 });
 
+// ForwardedHeaders MUST be first — it resolves the real client IP from X-Forwarded-For
+// so that rate limiting, logging, and all downstream middleware see the correct RemoteIpAddress.
+app.UseForwardedHeaders();
+
 app.UseMiddleware<CorrelationIdMiddleware>();
 
 app.Use(async (context, next) =>
@@ -290,7 +294,6 @@ app.UseSerilogRequestLogging(options =>
 
 app.UseHttpsRedirection();
 app.UseCors();
-app.UseForwardedHeaders();
 app.UseRateLimiter();
 
 // Liveness probe — no dependency checks, just "am I running?"

@@ -56,6 +56,14 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefix apps/platform
 
+      - name: Validate Stripe key type
+        run: |
+          KEY="${{ secrets.STRIPE_PUBLISHABLE_KEY }}"
+          if [ -n "$KEY" ] && [[ "$KEY" != pk_* ]]; then
+            echo "ERROR: STRIPE_PUBLISHABLE_KEY does not start with pk_"
+            exit 1
+          fi
+
       - name: Build
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}

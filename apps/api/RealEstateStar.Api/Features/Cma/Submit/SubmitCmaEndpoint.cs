@@ -29,9 +29,7 @@ public class SubmitCmaEndpoint : IEndpoint
 
         var validationResults = new List<ValidationResult>();
         if (!Validator.TryValidateObject(lead, new ValidationContext(lead), validationResults, true))
-            return Results.ValidationProblem(
-                validationResults.GroupBy(v => v.MemberNames.FirstOrDefault() ?? "")
-                    .ToDictionary(g => g.Key, g => g.Select(v => v.ErrorMessage!).ToArray()));
+            return Results.ValidationProblem(GroupValidationErrors(validationResults));
 
         var job = CmaJob.Create(agentId, lead);
         store.Set(agentId, job);
@@ -74,4 +72,8 @@ public class SubmitCmaEndpoint : IEndpoint
             Status = "processing"
         });
     }
+
+    internal static Dictionary<string, string[]> GroupValidationErrors(List<ValidationResult> results) =>
+        results.GroupBy(v => v.MemberNames.FirstOrDefault() ?? "")
+            .ToDictionary(g => g.Key, g => g.Select(v => v.ErrorMessage!).ToArray());
 }

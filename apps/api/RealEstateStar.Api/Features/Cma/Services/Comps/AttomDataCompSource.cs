@@ -3,7 +3,7 @@ using RealEstateStar.Api.Features.Cma;
 
 namespace RealEstateStar.Api.Features.Cma.Services.Comps;
 
-public class AttomDataCompSource(HttpClient httpClient, string apiKey, ILogger<AttomDataCompSource>? logger = null) : ICompSource
+public class AttomDataCompSource(IHttpClientFactory httpClientFactory, string apiKey, ILogger<AttomDataCompSource>? logger = null) : ICompSource
 {
     public string Name => "ATTOM Data";
 
@@ -19,6 +19,7 @@ public class AttomDataCompSource(HttpClient httpClient, string apiKey, ILogger<A
         httpRequest.Headers.Add("apikey", apiKey);
         httpRequest.Headers.Add("Accept", "application/json");
 
+        var httpClient = httpClientFactory.CreateClient(nameof(AttomDataCompSource));
         var response = await httpClient.SendAsync(httpRequest, ct);
         response.EnsureSuccessStatusCode();
 

@@ -7,11 +7,11 @@ interface ChatWindowProps {
   sessionId: string;
   token: string;
   initialMessages: ChatMessageData[];
-  /** If set, auto-sent to the API on mount and shown as a user bubble */
+  /** If set, auto-sent to the API on mount (silent — no user bubble) */
   autoMessage?: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5135";
 
 // Matches [CARD:type] followed by a JSON object
 const CARD_MARKER = /\[CARD:(\w+)\]/g;
@@ -45,7 +45,7 @@ function parseAssistantContent(content: string): ChatMessageData[] {
   let lastIndex = 0;
 
   for (const match of content.matchAll(CARD_MARKER)) {
-    const markerStart = match.index ?? 0;
+    const markerStart = match.index!;  // always defined for matchAll per spec
     const markerEnd = markerStart + match[0].length;
     const cardType = match[1] as ChatMessageData["type"];
 
@@ -105,11 +105,11 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
     scrollRef.current?.scrollTo?.(0, scrollRef.current.scrollHeight);
   }, [messages]);
 
-  // Auto-send profileUrl on mount — shown as a user bubble
+  // Auto-send profileUrl on mount — silent (no user bubble)
   useEffect(() => {
     if (autoMessage && !autoSent.current) {
       autoSent.current = true;
-      sendMessage(autoMessage);
+      sendMessage(autoMessage, { silent: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoMessage]);
@@ -165,7 +165,7 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split("\n");
-          buffer = lines.pop() ?? "";
+          buffer = lines.pop()!;  // split("\n") always produces at least one element
 
           for (const line of lines) {
             // Track SSE event type (e.g. "event: card")
@@ -260,7 +260,7 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
           const isLastAssistant = sending && msg.role === "assistant" && i === messages.length - 1;
           return (
             <MessageRenderer
-              key={msg.msgId ?? i}
+              key={msg.msgId!}  /* msgId is always assigned during initialization and message creation */
               message={msg}
               onAction={handleAction}
               isStreaming={isLastAssistant}

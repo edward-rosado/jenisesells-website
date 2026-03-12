@@ -6,20 +6,21 @@ set -euo pipefail
 #
 # Prerequisites:
 #   - Azure CLI installed and logged in (`az login`)
+#   - Docker Desktop installed and running
 #   - Docker image source at apps/api/ (relative to repo root)
 #
 # This script creates:
 #   1. Resource group
 #   2. Azure Container Registry (Basic SKU)
 #   3. Container Apps Environment
-#   4. Builds and pushes the API Docker image via ACR
+#   4. Builds Docker image locally and pushes to ACR
 #   5. Container App with scale-to-zero, secrets, and external ingress
 ###############################################################################
 
 # --- Configuration -----------------------------------------------------------
 RESOURCE_GROUP="real-estate-star-rg"
 LOCATION="eastus"
-ACR_NAME="realestatestaracr"
+ACR_NAME="realestatestar"
 ENVIRONMENT="real-estate-star-env"
 APP_NAME="real-estate-star-api"
 IMAGE_NAME="real-estate-star-api"
@@ -47,23 +48,31 @@ echo "    Using subscription: $SUBSCRIPTION"
 echo ""
 
 # --- Step 1: Resource Group --------------------------------------------------
-echo "==> Creating resource group '$RESOURCE_GROUP' in '$LOCATION'..."
-az group create \
-  --name "$RESOURCE_GROUP" \
-  --location "$LOCATION" \
-  --output none
-echo "    Done."
+if ! az group exists --name "$RESOURCE_GROUP" | grep -q true; then
+  echo "==> Creating resource group '$RESOURCE_GROUP' in '$LOCATION'..."
+  az group create \
+    --name "$RESOURCE_GROUP" \
+    --location "$LOCATION" \
+    --output none
+  echo "    Done."
+else
+  echo "==> Resource group '$RESOURCE_GROUP' already exists, skipping."
+fi
 echo ""
 
 # --- Step 2: Azure Container Registry ---------------------------------------
-echo "==> Creating Azure Container Registry '$ACR_NAME' (Basic SKU)..."
-az acr create \
-  --resource-group "$RESOURCE_GROUP" \
-  --name "$ACR_NAME" \
-  --sku Basic \
-  --admin-enabled true \
-  --output none
-echo "    Done."
+if ! az acr show --name "$ACR_NAME" &>/dev/null; then
+  echo "==> Creating Azure Container Registry '$ACR_NAME' (Basic SKU)..."
+  az acr create \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$ACR_NAME" \
+    --sku Basic \
+    --admin-enabled true \
+    --output none
+  echo "    Done."
+else
+  echo "==> ACR '$ACR_NAME' already exists, skipping."
+fi
 echo ""
 
 ACR_LOGIN_SERVER=$(az acr show \
@@ -74,74 +83,101 @@ echo "    ACR login server: $ACR_LOGIN_SERVER"
 echo ""
 
 # --- Step 3: Container Apps Environment --------------------------------------
-echo "==> Creating Container Apps Environment '$ENVIRONMENT'..."
-az containerapp env create \
-  --name "$ENVIRONMENT" \
-  --resource-group "$RESOURCE_GROUP" \
-  --location "$LOCATION" \
-  --output none
-echo "    Done."
+if ! az containerapp env show --name "$ENVIRONMENT" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+  echo "==> Creating Container Apps Environment '$ENVIRONMENT'..."
+  az containerapp env create \
+    --name "$ENVIRONMENT" \
+    --resource-group "$RESOURCE_GROUP" \
+    --location "$LOCATION" \
+    --output none
+  echo "    Done."
+else
+  echo "==> Container Apps Environment '$ENVIRONMENT' already exists, skipping."
+fi
 echo ""
 
-# --- Step 4: Build and push Docker image via ACR ----------------------------
+# --- Step 4: Build and push Docker image ------------------------------------
 FULL_IMAGE="$ACR_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG"
 
-echo "==> Building and pushing Docker image via ACR..."
+echo "==> Building Docker image locally..."
 echo "    Source: $API_DIR"
 echo "    Image:  $FULL_IMAGE"
-az acr build \
-  --registry "$ACR_NAME" \
-  --image "$IMAGE_NAME:$IMAGE_TAG" \
-  --file "$API_DIR/Dockerfile" \
-  "$API_DIR"
-echo "    Done."
+
+# Check if Docker is available
+if ! command -v docker &>/dev/null; then
+  echo "ERROR: Docker not found. Install Docker Desktop and re-run."
+  echo "       https://www.docker.com/products/docker-desktop/"
+  exit 1
+fi
+
+# Check if Docker daemon is running
+if ! docker info &>/dev/null; then
+  echo "ERROR: Docker daemon is not running. Start Docker Desktop and re-run."
+  exit 1
+fi
+
+# Build locally
+docker build -t "$FULL_IMAGE" -f "$API_DIR/Dockerfile" "$API_DIR"
+echo "    Build complete."
+
+# Login to ACR and push
+echo "==> Logging into ACR '$ACR_NAME'..."
+az acr login --name "$ACR_NAME"
+
+echo "==> Pushing image to ACR..."
+docker push "$FULL_IMAGE"
+echo "    Push complete."
 echo ""
 
 # --- Step 5: Create Container App --------------------------------------------
-echo "==> Creating Container App '$APP_NAME'..."
+if ! az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+  echo "==> Creating Container App '$APP_NAME'..."
 
-ACR_PASSWORD=$(az acr credential show \
-  --name "$ACR_NAME" \
-  --query "passwords[0].value" \
-  --output tsv)
+  ACR_PASSWORD=$(az acr credential show \
+    --name "$ACR_NAME" \
+    --query "passwords[0].value" \
+    --output tsv)
 
-az containerapp create \
-  --name "$APP_NAME" \
-  --resource-group "$RESOURCE_GROUP" \
-  --environment "$ENVIRONMENT" \
-  --image "$FULL_IMAGE" \
-  --registry-server "$ACR_LOGIN_SERVER" \
-  --registry-username "$ACR_NAME" \
-  --registry-password "$ACR_PASSWORD" \
-  --target-port "$CONTAINER_PORT" \
-  --ingress external \
-  --min-replicas "$MIN_REPLICAS" \
-  --max-replicas "$MAX_REPLICAS" \
-  --cpu "$CPU" \
-  --memory "$MEMORY" \
-  --secrets \
-    anthropic-api-key="placeholder" \
-    stripe-secret-key="placeholder" \
-    stripe-webhook-secret="placeholder" \
-    google-client-id="placeholder" \
-    google-client-secret="placeholder" \
-    cloudflare-api-token="placeholder" \
-    cloudflare-account-id="placeholder" \
-    scraper-api-key="placeholder" \
-    attom-api-key="placeholder" \
-  --env-vars \
-    Anthropic__ApiKey=secretref:anthropic-api-key \
-    Stripe__SecretKey=secretref:stripe-secret-key \
-    Stripe__WebhookSecret=secretref:stripe-webhook-secret \
-    Google__ClientId=secretref:google-client-id \
-    Google__ClientSecret=secretref:google-client-secret \
-    Cloudflare__ApiToken=secretref:cloudflare-api-token \
-    Cloudflare__AccountId=secretref:cloudflare-account-id \
-    ScraperApi__ApiKey=secretref:scraper-api-key \
-    Attom__ApiKey=secretref:attom-api-key \
-    ASPNETCORE_ENVIRONMENT=Production \
-  --output none
-echo "    Done."
+  az containerapp create \
+    --name "$APP_NAME" \
+    --resource-group "$RESOURCE_GROUP" \
+    --environment "$ENVIRONMENT" \
+    --image "$FULL_IMAGE" \
+    --registry-server "$ACR_LOGIN_SERVER" \
+    --registry-username "$ACR_NAME" \
+    --registry-password "$ACR_PASSWORD" \
+    --target-port "$CONTAINER_PORT" \
+    --ingress external \
+    --min-replicas "$MIN_REPLICAS" \
+    --max-replicas "$MAX_REPLICAS" \
+    --cpu "$CPU" \
+    --memory "$MEMORY" \
+    --secrets \
+      anthropic-api-key="placeholder" \
+      stripe-secret-key="placeholder" \
+      stripe-webhook-secret="placeholder" \
+      google-client-id="placeholder" \
+      google-client-secret="placeholder" \
+      cloudflare-api-token="placeholder" \
+      cloudflare-account-id="placeholder" \
+      scraper-api-key="placeholder" \
+      attom-api-key="placeholder" \
+    --env-vars \
+      Anthropic__ApiKey=secretref:anthropic-api-key \
+      Stripe__SecretKey=secretref:stripe-secret-key \
+      Stripe__WebhookSecret=secretref:stripe-webhook-secret \
+      Google__ClientId=secretref:google-client-id \
+      Google__ClientSecret=secretref:google-client-secret \
+      Cloudflare__ApiToken=secretref:cloudflare-api-token \
+      Cloudflare__AccountId=secretref:cloudflare-account-id \
+      ScraperApi__ApiKey=secretref:scraper-api-key \
+      Attom__ApiKey=secretref:attom-api-key \
+      ASPNETCORE_ENVIRONMENT=Production \
+    --output none
+  echo "    Done."
+else
+  echo "==> Container App '$APP_NAME' already exists, skipping."
+fi
 echo ""
 
 # --- Step 6: Print results ---------------------------------------------------

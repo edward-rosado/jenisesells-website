@@ -27,7 +27,7 @@ Use this checklist before the first production deployment and before each major 
 - [ ] `Stripe__PriceId` set to production price ID
 - [ ] `ScraperApi__ApiKey` set as secret
 - [ ] `Cloudflare__ApiToken` set as secret
-- [ ] `Cloudflare__AccountId` set as env var
+- [ ] `Cloudflare__AccountId` set as secret
 - [ ] `Platform__BaseUrl` set to `https://platform.realestatestar.com`
 - [ ] `Otel__Endpoint` set to Grafana Cloud OTLP gateway URL
 - [ ] `OTEL_EXPORTER_OTLP_HEADERS` set with Grafana Cloud auth header

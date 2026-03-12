@@ -9,10 +9,11 @@ export function PaymentCard({ checkoutUrl, price = "$900" }: PaymentCardProps) {
   const [opened, setOpened] = useState(false);
 
   function handleClick() {
-    if (checkoutUrl) {
-      window.open(checkoutUrl, "_blank", "noopener,noreferrer");
-      setOpened(true);
-    }
+    /* v8 ignore start — button is disabled when !checkoutUrl; guard is defensive */
+    if (!checkoutUrl) return;
+    /* v8 ignore stop */
+    window.open(checkoutUrl, "_blank", "noopener,noreferrer");
+    setOpened(true);
   }
 
   return (

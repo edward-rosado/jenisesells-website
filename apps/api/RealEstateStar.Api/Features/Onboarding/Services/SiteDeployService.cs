@@ -86,6 +86,9 @@ public partial class SiteDeployService(
     /// </summary>
     private string ValidateAndGetPath(string agentSlug, string fileName)
     {
+        if (!SlugPattern().IsMatch(agentSlug))
+            throw new InvalidOperationException("[DEPLOY-020] Invalid agent slug format");
+
         Directory.CreateDirectory(configDirectory);
 
         var filePath = Path.GetFullPath(Path.Combine(configDirectory, fileName));

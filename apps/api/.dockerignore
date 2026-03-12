@@ -1,0 +1,7 @@
+**/*.Tests/
+**/TestResults/
+**/obj/
+**/bin/
+appsettings.Development.json
+scripts/
+*.md
