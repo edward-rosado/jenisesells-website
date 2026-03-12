@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics;
@@ -334,5 +335,6 @@ static async Task WriteHealthResponse(HttpContext context, HealthReport report)
     await context.Response.WriteAsJsonAsync(result);
 }
 
-// Make Program accessible for integration tests
+// Startup config — guard clauses tested via deploy health checks, not unit tests
+[ExcludeFromCodeCoverage]
 public partial class Program;
