@@ -1,3 +1,4 @@
+using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -6,21 +7,37 @@ namespace RealEstateStar.Api.Diagnostics;
 
 public static class OpenTelemetryExtensions
 {
+    private const string OnboardingSourceName = "RealEstateStar.Onboarding";
+    private const string DefaultOtlpEndpoint = "http://localhost:4317";
+
     public static WebApplicationBuilder AddObservability(this WebApplicationBuilder builder)
     {
+        var otlpEndpoint = new Uri(
+            builder.Configuration["Otel:Endpoint"] ?? DefaultOtlpEndpoint);
+
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource => resource
                 .AddService(CmaDiagnostics.ServiceName))
             .WithTracing(tracing => tracing
                 .AddSource(CmaDiagnostics.SourceName)
+                .AddSource(OnboardingSourceName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
-                .AddOtlpExporter())
+                .AddOtlpExporter(options =>
+                {
+                    options.Endpoint = otlpEndpoint;
+                    options.Protocol = OtlpExportProtocol.Grpc;
+                }))
             .WithMetrics(metrics => metrics
                 .AddMeter(CmaDiagnostics.SourceName)
+                .AddMeter(OnboardingSourceName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
-                .AddOtlpExporter());
+                .AddOtlpExporter(options =>
+                {
+                    options.Endpoint = otlpEndpoint;
+                    options.Protocol = OtlpExportProtocol.Grpc;
+                }));
 
         return builder;
     }
