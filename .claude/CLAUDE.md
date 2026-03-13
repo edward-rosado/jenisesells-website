@@ -56,6 +56,7 @@ When working on a skill, load the agent profile first:
 
 ## Key Conventions
 
+- **Domain name**: The domain is `real-estate-star.com` (hyphenated). Use `real-estate-star` everywhere -- DNS, Azure resource names, Cloudflare, GitHub, etc. NEVER use `realestatestar` (no hyphens).
 - **Commits**: Conventional commits (`feat:`, `fix:`, `docs:`, `chore:`, etc.)
 - **Skills**: Reference agent config with `{agent.*}` variable syntax
 - **Contracts**: State-specific templates live in `skills/contracts/templates/{STATE}/`

@@ -42,8 +42,8 @@ echo -n "INSTANCE_ID:API_TOKEN" | base64
 
 ```bash
 az containerapp update \
-  --name realestatestar-api \
-  --resource-group realestatestar-rg \
+  --name real-estate-star-api \
+  --resource-group real-estate-star-rg \
   --set-env-vars \
     "Otel__Endpoint=https://otlp-gateway-prod-us-east-0.grafana.net/otlp" \
     "OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic <base64-value>" \
