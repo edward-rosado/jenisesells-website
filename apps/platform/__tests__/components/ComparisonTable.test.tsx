@@ -34,7 +34,7 @@ describe("ComparisonTable", () => {
 
   it("renders the price row", () => {
     render(<ComparisonTable />);
-    expect(screen.getByText("$900 one-time")).toBeInTheDocument();
+    expect(screen.getByText("$10/mo")).toBeInTheDocument();
     expect(screen.getByText("$499/mo")).toBeInTheDocument();
     expect(screen.getByText("$395/mo")).toBeInTheDocument();
   });

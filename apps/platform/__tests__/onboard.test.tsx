@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import OnboardPage from "../app/onboard/page";
 
 let mockSearchParams = new URLSearchParams("profileUrl=https://zillow.com/profile/test");
@@ -174,5 +174,41 @@ describe("OnboardPage", () => {
     // Since payment=success, skip createSession. Since no session_id, skip verifyPayment.
     // paymentVerified stays null -> shows verifying state forever
     expect(screen.getByText(/Verifying payment/i)).toBeInTheDocument();
+  });
+});
+
+describe("OnboardPage - Coming Soon", () => {
+  const originalEnv = process.env.NEXT_PUBLIC_COMING_SOON;
+
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    if (originalEnv === undefined) {
+      delete process.env.NEXT_PUBLIC_COMING_SOON;
+    } else {
+      process.env.NEXT_PUBLIC_COMING_SOON = originalEnv;
+    }
+  });
+
+  it("renders Coming Soon page when NEXT_PUBLIC_COMING_SOON is true", async () => {
+    process.env.NEXT_PUBLIC_COMING_SOON = "true";
+    const mod = await import("../app/onboard/page");
+    const Page = mod.default;
+    render(<Page />);
+    expect(screen.getByRole("heading", { name: /coming soon/i })).toBeInTheDocument();
+    expect(screen.getByText(/finishing touches/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /back to home/i })).toHaveAttribute("href", "/");
+    expect(screen.getByText(/\$10\/mo after your website goes live/i)).toBeInTheDocument();
+  });
+
+  it("does not render Coming Soon when NEXT_PUBLIC_COMING_SOON is not set", async () => {
+    delete process.env.NEXT_PUBLIC_COMING_SOON;
+    const mod = await import("../app/onboard/page");
+    const Page = mod.default;
+    render(<Page />);
+    // Should show loading/onboarding, not Coming Soon
+    expect(screen.queryByRole("heading", { name: /coming soon/i })).not.toBeInTheDocument();
   });
 });

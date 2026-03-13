@@ -2,9 +2,38 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5135";
+const COMING_SOON = process.env.NEXT_PUBLIC_COMING_SOON === "true";
+
+function ComingSoon() {
+  return (
+    <main className="min-h-screen bg-gray-950 text-white flex items-center justify-center px-4">
+      <div className="text-center space-y-6 max-w-lg">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+          Coming Soon
+        </h1>
+        <p className="text-lg text-gray-400">
+          We&apos;re putting the finishing touches on our AI-powered automation
+          platform for real estate agents. Check back soon.
+        </p>
+        <div className="pt-4">
+          <Link
+            href="/"
+            className="inline-block px-8 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors"
+          >
+            Back to Home
+          </Link>
+        </div>
+        <p className="text-sm text-gray-600">
+          $10/mo after your website goes live. Free to set up.
+        </p>
+      </div>
+    </main>
+  );
+}
 
 function OnboardContent() {
   const searchParams = useSearchParams();
@@ -157,6 +186,10 @@ function OnboardContent() {
 }
 
 export default function OnboardPage() {
+  if (COMING_SOON) {
+    return <ComingSoon />;
+  }
+
   return (
     <Suspense
       fallback={

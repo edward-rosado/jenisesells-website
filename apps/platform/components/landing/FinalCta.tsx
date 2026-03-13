@@ -8,13 +8,13 @@ export function FinalCta() {
           Ready to Get Started?
         </h2>
         <p className="text-lg text-gray-400">
-          Join agents who stopped paying monthly. No credit card required.
+          AI-powered automation for your real estate business. Just $10/mo.
         </p>
         <Link
           href="/onboard"
           className="inline-block px-8 py-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-lg transition-colors"
         >
-          Start Your Free Trial
+          Build Your Site Free
         </Link>
       </div>
     </section>

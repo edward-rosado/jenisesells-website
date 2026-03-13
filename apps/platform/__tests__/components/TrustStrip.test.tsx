@@ -5,9 +5,9 @@ import { TrustStrip } from "@/components/landing/TrustStrip";
 describe("TrustStrip", () => {
   it("renders trust indicators", () => {
     render(<TrustStrip />);
-    expect(screen.getByText(/no monthly fees/i)).toBeInTheDocument();
+    expect(screen.getByText(/just \$10\/mo/i)).toBeInTheDocument();
     expect(screen.getByText(/setup in minutes/i)).toBeInTheDocument();
-    expect(screen.getByText(/7-day free trial/i)).toBeInTheDocument();
+    expect(screen.getByText(/free until live/i)).toBeInTheDocument();
   });
 
   it("renders a section element", () => {

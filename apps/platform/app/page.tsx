@@ -28,13 +28,13 @@ export default function LandingPage() {
       >
         <div className="max-w-xl w-full text-center">
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-2">
-            Stop paying monthly.
+            Your business, automated by AI.
           </h1>
           <p className="text-4xl md:text-5xl font-bold text-emerald-400 mb-8">
-            $900. Everything.
+            $10/mo. Everything.
           </p>
           <p className="text-lg text-gray-400 mb-12">
-            Website. CMA automation. Lead management. One payment. Done.
+            Website. CMA automation. Lead management. All for less than lunch.
           </p>
           <form onSubmit={handleSubmit} className="space-y-4" aria-label="Get started">
             <label htmlFor="hero-profile-url" className="sr-only">
@@ -56,7 +56,7 @@ export default function LandingPage() {
             </button>
           </form>
           <p className="text-sm text-gray-500 mt-4">
-            7-day free trial. No credit card.
+            Free to set up. $10/mo after your website goes live.
           </p>
         </div>
       </section>
