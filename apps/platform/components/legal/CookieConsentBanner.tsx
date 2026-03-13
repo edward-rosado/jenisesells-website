@@ -1,30 +1,37 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 const COOKIE_CONSENT_KEY = "res-cookie-consent";
 
-export function CookieConsentBanner() {
-  const [visible, setVisible] = useState(false);
+function getConsentSnapshot() {
+  return localStorage.getItem(COOKIE_CONSENT_KEY);
+}
 
-  useEffect(() => {
-    const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
-    if (!consent) {
-      setVisible(true);
-    }
-  }, []);
+function getServerSnapshot() {
+  return "pending";
+}
+
+function subscribeToConsent(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+
+export function CookieConsentBanner() {
+  const consent = useSyncExternalStore(subscribeToConsent, getConsentSnapshot, getServerSnapshot);
+  const [dismissed, setDismissed] = useState(false);
 
   function handleAccept() {
     localStorage.setItem(COOKIE_CONSENT_KEY, "accepted");
-    setVisible(false);
+    setDismissed(true);
   }
 
   function handleDecline() {
     localStorage.setItem(COOKIE_CONSENT_KEY, "declined");
-    setVisible(false);
+    setDismissed(true);
   }
 
-  if (!visible) {
+  if (consent || dismissed) {
     return null;
   }
 
