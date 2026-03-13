@@ -18,7 +18,7 @@ describe("FinalCta", () => {
 
   it("renders a CTA link to onboard", () => {
     render(<FinalCta />);
-    const link = screen.getByRole("link", { name: /start your free trial/i });
+    const link = screen.getByRole("link", { name: /build your site free/i });
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "/onboard");
   });
@@ -30,6 +30,6 @@ describe("FinalCta", () => {
 
   it("renders a subheading with value proposition", () => {
     render(<FinalCta />);
-    expect(screen.getByText(/no credit card required/i)).toBeInTheDocument();
+    expect(screen.getByText(/ai-powered automation for your real estate business/i)).toBeInTheDocument();
   });
 });

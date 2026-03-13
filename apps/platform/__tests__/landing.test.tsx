@@ -10,16 +10,16 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("Landing Page", () => {
-  it('displays the headline "Stop paying monthly."', () => {
+  it('displays the headline "Your business, automated by AI."', () => {
     render(<LandingPage />);
     expect(
-      screen.getByRole("heading", { name: /stop paying monthly\./i })
+      screen.getByRole("heading", { name: /your business, automated by ai\./i })
     ).toBeInTheDocument();
   });
 
-  it('displays the price "$900. Everything."', () => {
+  it('displays the price "$10/mo. Everything."', () => {
     render(<LandingPage />);
-    expect(screen.getByText(/\$900\. everything\./i)).toBeInTheDocument();
+    expect(screen.getByText(/\$10\/mo\. everything\./i)).toBeInTheDocument();
   });
 
   it("renders a URL input for the agent profile", () => {
@@ -39,7 +39,7 @@ describe("Landing Page", () => {
   it("displays a trial disclaimer", () => {
     render(<LandingPage />);
     expect(
-      screen.getByText(/7-day free trial\. no credit card\./i)
+      screen.getByText(/free to set up\. \$10\/mo after your website goes live\./i)
     ).toBeInTheDocument();
   });
 
@@ -59,7 +59,7 @@ describe("Landing Page", () => {
 
   it("renders the TrustStrip section", () => {
     render(<LandingPage />);
-    expect(screen.getByText(/no monthly fees/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/just \$10\/mo/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders all 8 feature cards", () => {
@@ -74,7 +74,7 @@ describe("Landing Page", () => {
       screen.getByRole("heading", { name: /ready to get started/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /start your free trial/i })
+      screen.getByRole("link", { name: /build your site free/i })
     ).toBeInTheDocument();
   });
 
