@@ -40,8 +40,9 @@ builder.Services.AddSingleton<OnboardingStateMachine>();
 // Configuration keys
 var anthropicKey = builder.Configuration["Anthropic:ApiKey"]
     ?? throw new InvalidOperationException("Anthropic:ApiKey configuration is required");
-var attomKey = builder.Configuration["Attom:ApiKey"]
-    ?? throw new InvalidOperationException("Attom:ApiKey configuration is required");
+var attomKey = builder.Configuration["Attom:ApiKey"];
+if (string.IsNullOrEmpty(attomKey))
+    Log.Warning("Attom:ApiKey not configured — ATTOM comp source will be disabled");
 var googleClientId = builder.Configuration["Google:ClientId"]
     ?? throw new InvalidOperationException("Google:ClientId configuration is required");
 var googleClientSecret = builder.Configuration["Google:ClientSecret"]
@@ -131,12 +132,15 @@ builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<RealtorCo
 builder.Services.AddHttpClient<RedfinCompSource>();
 builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<RedfinCompSource>());
 
-builder.Services.AddHttpClient(nameof(AttomDataCompSource));
-builder.Services.AddSingleton<ICompSource>(sp =>
-    new AttomDataCompSource(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        attomKey,
-        sp.GetService<ILogger<AttomDataCompSource>>()));
+if (!string.IsNullOrEmpty(attomKey))
+{
+    builder.Services.AddHttpClient(nameof(AttomDataCompSource));
+    builder.Services.AddSingleton<ICompSource>(sp =>
+        new AttomDataCompSource(
+            sp.GetRequiredService<IHttpClientFactory>(),
+            attomKey,
+            sp.GetService<ILogger<AttomDataCompSource>>()));
+}
 
 // Core services
 builder.Services.AddSingleton<CompAggregator>();
@@ -169,7 +173,6 @@ builder.Services.AddSignalR();
 
 // Health checks
 builder.Services.AddHealthChecks()
-    .AddCheck<GwsCliHealthCheck>("gws_cli", tags: ["ready"])
     .AddCheck<ClaudeApiHealthCheck>("claude_api", tags: ["ready"]);
 
 // CORS
