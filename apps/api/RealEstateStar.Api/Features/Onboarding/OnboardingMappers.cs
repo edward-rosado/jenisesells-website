@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 using RealEstateStar.Api.Features.Onboarding.CreateSession;
 using RealEstateStar.Api.Features.Onboarding.GetSession;
@@ -175,7 +176,7 @@ public static class OnboardingMappers
             Address = s.Address ?? "Address not available",
             City = ExtractCity(s.Address),
             State = profile.State ?? "",
-            Price = s.Price is > 0 ? s.Price.Value.ToString("C0") : "",
+            Price = s.Price is > 0 ? s.Price.Value.ToString("C0", CultureInfo.GetCultureInfo("en-US")) : "",
             SoldDate = s.Date,
         }).ToArray();
 

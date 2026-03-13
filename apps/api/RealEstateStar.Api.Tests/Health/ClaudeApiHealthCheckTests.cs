@@ -1,5 +1,6 @@
 using System.Net;
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
 using RealEstateStar.Api.Health;
@@ -8,6 +9,10 @@ namespace RealEstateStar.Api.Tests.Health;
 
 public class ClaudeApiHealthCheckTests
 {
+    private static IConfiguration CreateConfig(string apiKey = "test-key") =>
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Anthropic:ApiKey"] = apiKey })
+            .Build();
     [Fact]
     public async Task CheckHealthAsync_HealthyWhenApiReturns200()
     {
@@ -15,7 +20,7 @@ public class ClaudeApiHealthCheckTests
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(handler));
 
-        var check = new ClaudeApiHealthCheck(factory.Object);
+        var check = new ClaudeApiHealthCheck(factory.Object, CreateConfig());
 
         var result = await check.CheckHealthAsync(new HealthCheckContext(), CancellationToken.None);
 
@@ -34,7 +39,7 @@ public class ClaudeApiHealthCheckTests
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(handler));
 
-        var check = new ClaudeApiHealthCheck(factory.Object);
+        var check = new ClaudeApiHealthCheck(factory.Object, CreateConfig());
 
         var result = await check.CheckHealthAsync(new HealthCheckContext(), CancellationToken.None);
 
@@ -49,7 +54,7 @@ public class ClaudeApiHealthCheckTests
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(handler));
 
-        var check = new ClaudeApiHealthCheck(factory.Object);
+        var check = new ClaudeApiHealthCheck(factory.Object, CreateConfig());
 
         var result = await check.CheckHealthAsync(new HealthCheckContext(), CancellationToken.None);
 
@@ -65,7 +70,7 @@ public class ClaudeApiHealthCheckTests
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(handler));
 
-        var check = new ClaudeApiHealthCheck(factory.Object);
+        var check = new ClaudeApiHealthCheck(factory.Object, CreateConfig());
 
         var result = await check.CheckHealthAsync(new HealthCheckContext(), CancellationToken.None);
 

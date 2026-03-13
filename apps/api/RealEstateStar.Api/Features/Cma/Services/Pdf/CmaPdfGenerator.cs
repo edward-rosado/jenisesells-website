@@ -1,3 +1,4 @@
+using System.Globalization;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -105,7 +106,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
                     ComposeDetailRow(col, "Lot Size", $"{lotSize:N2} {research.LotSizeUnit ?? "acres"}");
 
                 if (research?.TaxAssessment is { } taxAssessment)
-                    ComposeDetailRow(col, "Tax Assessment", taxAssessment.ToString("C0"));
+                    ComposeDetailRow(col, "Tax Assessment", taxAssessment.ToString("C0", CultureInfo.GetCultureInfo("en-US")));
             });
 
             ComposeFooter(page);
@@ -146,10 +147,10 @@ public class CmaPdfGenerator : ICmaPdfGenerator
                 foreach (var comp in comps)
                 {
                     ComposeTableCell(table, comp.Address);
-                    ComposeTableCell(table, comp.SalePrice.ToString("C0"));
+                    ComposeTableCell(table, comp.SalePrice.ToString("C0", CultureInfo.GetCultureInfo("en-US")));
                     ComposeTableCell(table, $"{comp.Beds}/{comp.Baths}");
                     ComposeTableCell(table, comp.Sqft.ToString("N0"));
-                    ComposeTableCell(table, comp.PricePerSqft.ToString("C0"));
+                    ComposeTableCell(table, comp.PricePerSqft.ToString("C0", CultureInfo.GetCultureInfo("en-US")));
                     ComposeTableCell(table, comp.SaleDate.ToString("MM/dd/yyyy"));
                     ComposeTableCell(table, comp.Source.ToString());
                 }
@@ -350,7 +351,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
             .Padding(15).Column(col =>
             {
                 col.Item().AlignCenter().Text(label).FontSize(11).FontColor(Colors.Grey.Darken1);
-                col.Item().AlignCenter().PaddingTop(5).Text(value.ToString("C0"))
+                col.Item().AlignCenter().PaddingTop(5).Text(value.ToString("C0", CultureInfo.GetCultureInfo("en-US")))
                     .FontSize(18).Bold();
             });
 }

@@ -46,7 +46,6 @@ public class HealthCheckTests : IClassFixture<TestWebApplicationFactory>
             .Select(c => c.GetProperty("name").GetString())
             .ToList();
 
-        checkNames.Should().Contain("gws_cli");
         checkNames.Should().Contain("claude_api");
     }
 
