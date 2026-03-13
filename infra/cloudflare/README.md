@@ -4,46 +4,46 @@ This guide covers DNS records, custom domain setup, and Cloudflare configuration
 
 ## 1. Required DNS Records
 
-All domains use Cloudflare as the DNS provider. The primary domain is `realestatestar.com` (or your chosen domain).
+All domains use Cloudflare as the DNS provider. The primary domain is `real-estate-star.com` (or your chosen domain).
 
 | Type | Name | Target | Proxy | Purpose |
 |------|------|--------|-------|---------|
-| CNAME | `platform` | `realestatestar-platform.pages.dev` | Proxied (orange cloud) | Platform app (portal) |
-| CNAME | `*.agents` | `realestatestar-agent-site.pages.dev` | Proxied (orange cloud) | White-label agent sites (wildcard) |
-| CNAME | `api` | `realestatestar-api.<region>.azurecontainerapps.io` | Proxied (orange cloud) | Backend API |
-| CNAME | `www` | `platform.realestatestar.com` | Proxied (orange cloud) | Redirect to platform |
+| CNAME | `platform` | `real-estate-star-platform.pages.dev` | Proxied (orange cloud) | Platform app (portal) |
+| CNAME | `*.agents` | `real-estate-star-agent-site.pages.dev` | Proxied (orange cloud) | White-label agent sites (wildcard) |
+| CNAME | `api` | `real-estate-star-api.<region>.azurecontainerapps.io` | Proxied (orange cloud) | Backend API |
+| CNAME | `www` | `platform.real-estate-star.com` | Proxied (orange cloud) | Redirect to platform |
 
 This gives you:
-- `platform.realestatestar.com` -- the Real Estate Star admin portal
-- `<agent-slug>.agents.realestatestar.com` -- each agent's white-label site
-- `api.realestatestar.com` -- the backend API
-- `www.realestatestar.com` -- redirects to platform
+- `platform.real-estate-star.com` -- the Real Estate Star admin portal
+- `<agent-slug>.agents.real-estate-star.com` -- each agent's white-label site
+- `api.real-estate-star.com` -- the backend API
+- `www.real-estate-star.com` -- redirects to platform
 
 ## 2. Cloudflare Pages Custom Domain Setup
 
 ### Platform App
 
-1. In Cloudflare dashboard, go to **Workers & Pages > realestatestar-platform**
+1. In Cloudflare dashboard, go to **Workers & Pages > real-estate-star-platform**
 2. Click **Custom domains > Set up a custom domain**
-3. Enter `platform.realestatestar.com`
+3. Enter `platform.real-estate-star.com`
 4. Cloudflare auto-creates the CNAME record if the domain is on Cloudflare DNS
 5. Wait for SSL certificate provisioning (usually < 5 minutes)
 
 ### Agent Site (Wildcard)
 
-1. Go to **Workers & Pages > realestatestar-agent-site**
+1. Go to **Workers & Pages > real-estate-star-agent-site**
 2. Click **Custom domains > Set up a custom domain**
-3. Enter `*.agents.realestatestar.com`
+3. Enter `*.agents.real-estate-star.com`
 4. Cloudflare requires an **Advanced Certificate Manager** subscription ($10/mo) for wildcard custom domains on Pages
-5. Alternatively, add individual agent domains (e.g., `jenise.agents.realestatestar.com`) without the wildcard -- this works on the free plan but requires manual setup per agent
+5. Alternatively, add individual agent domains (e.g., `jenise.agents.real-estate-star.com`) without the wildcard -- this works on the free plan but requires manual setup per agent
 
 ### Custom Vanity Domains (per agent)
 
 Agents can bring their own domains (e.g., `jenisesellsnj.com`):
 
 1. Agent adds their domain to Cloudflare (free plan is fine)
-2. Agent creates a CNAME: `@` -> `realestatestar-agent-site.pages.dev`
-3. Add the domain in **Workers & Pages > realestatestar-agent-site > Custom domains**
+2. Agent creates a CNAME: `@` -> `real-estate-star-agent-site.pages.dev`
+3. Add the domain in **Workers & Pages > real-estate-star-agent-site > Custom domains**
 4. Update the agent's config in `config/agents/<agent-id>.json` with the custom domain
 
 ## 3. Azure Container Apps Custom Domain Setup
@@ -53,23 +53,23 @@ The API runs on Azure Container Apps. To add a custom domain:
 ```bash
 # 1. Add the custom domain to the Container App Environment
 az containerapp env certificate upload \
-  --name realestatestar-env \
-  --resource-group realestatestar-rg \
+  --name real-estate-star-env \
+  --resource-group real-estate-star-rg \
   --certificate-file /path/to/cert.pem \
   --certificate-password ""
 
 # 2. Bind the domain to the container app
 az containerapp hostname add \
-  --name realestatestar-api \
-  --resource-group realestatestar-rg \
-  --hostname api.realestatestar.com
+  --name real-estate-star-api \
+  --resource-group real-estate-star-rg \
+  --hostname api.real-estate-star.com
 
 # 3. Bind the managed certificate
 az containerapp hostname bind \
-  --name realestatestar-api \
-  --resource-group realestatestar-rg \
-  --hostname api.realestatestar.com \
-  --environment realestatestar-env \
+  --name real-estate-star-api \
+  --resource-group real-estate-star-rg \
+  --hostname api.real-estate-star.com \
+  --environment real-estate-star-env \
   --validation-method CNAME
 ```
 
@@ -78,7 +78,7 @@ Since Cloudflare is proxying, you need to temporarily set the CNAME to DNS-only 
 Alternatively, use Cloudflare Origin Certificates:
 
 1. In Cloudflare, go to **SSL/TLS > Origin Server > Create Certificate**
-2. Generate a certificate for `api.realestatestar.com`
+2. Generate a certificate for `api.real-estate-star.com`
 3. Upload to Azure Container Apps as shown above
 4. Set SSL mode to **Full (strict)** (see below)
 
@@ -102,7 +102,7 @@ Create these page rules (or use Cache Rules in the new dashboard):
 
 ### Bypass Cache for API
 
-**URL pattern:** `api.realestatestar.com/*`
+**URL pattern:** `api.real-estate-star.com/*`
 
 | Setting | Value |
 |---------|-------|
@@ -113,7 +113,7 @@ This ensures API responses are never cached by Cloudflare's edge, which would br
 
 ### Bypass Cache for Platform Auth Routes
 
-**URL pattern:** `platform.realestatestar.com/api/*`
+**URL pattern:** `platform.real-estate-star.com/api/*`
 
 | Setting | Value |
 |---------|-------|
@@ -123,7 +123,7 @@ Next.js API routes and server actions must not be edge-cached.
 
 ### Cache Static Assets Aggressively
 
-**URL pattern:** `*.agents.realestatestar.com/_next/static/*`
+**URL pattern:** `*.agents.real-estate-star.com/_next/static/*`
 
 | Setting | Value |
 |---------|-------|
@@ -151,7 +151,7 @@ Create these custom firewall rules:
 
 | Rule | Expression | Action |
 |------|------------|--------|
-| Block non-US traffic to API | `http.host eq "api.realestatestar.com" and ip.geoip.country ne "US"` | Block |
+| Block non-US traffic to API | `http.host eq "api.real-estate-star.com" and ip.geoip.country ne "US"` | Block |
 | Challenge suspicious bots | `cf.threat_score gt 30` | Managed Challenge |
 | Allow health checks | `http.request.uri.path contains "/health"` | Allow |
 
@@ -163,14 +163,14 @@ After setting up DNS records, verify propagation:
 
 ```bash
 # Check CNAME resolution
-dig platform.realestatestar.com CNAME +short
-dig api.realestatestar.com CNAME +short
+dig platform.real-estate-star.com CNAME +short
+dig api.real-estate-star.com CNAME +short
 
 # Check SSL
-curl -vI https://platform.realestatestar.com 2>&1 | grep "SSL certificate"
-curl -vI https://api.realestatestar.com 2>&1 | grep "SSL certificate"
+curl -vI https://platform.real-estate-star.com 2>&1 | grep "SSL certificate"
+curl -vI https://api.real-estate-star.com 2>&1 | grep "SSL certificate"
 
 # Check API health through Cloudflare
-curl https://api.realestatestar.com/health/live
-curl https://api.realestatestar.com/health/ready
+curl https://api.real-estate-star.com/health/live
+curl https://api.real-estate-star.com/health/ready
 ```

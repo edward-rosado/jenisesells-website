@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ###############################################################################
-# setup.sh — One-time Azure Container Apps infrastructure setup
+# setup.sh -- One-time Azure Container Apps infrastructure setup
 #
 # Prerequisites:
 #   - Azure CLI installed and logged in (`az login`)
@@ -103,16 +103,20 @@ echo "==> Building Docker image locally..."
 echo "    Source: $API_DIR"
 echo "    Image:  $FULL_IMAGE"
 
-# Check if Docker is available
+# Check if Docker is available (safety net -- go-live.ps1 checks this in prereqs)
 if ! command -v docker &>/dev/null; then
-  echo "ERROR: Docker not found. Install Docker Desktop and re-run."
-  echo "       https://www.docker.com/products/docker-desktop/"
+  echo ""
+  echo "ERROR: Docker CLI not found."
+  echo "       Install Docker Desktop: https://www.docker.com/products/docker-desktop/"
+  echo "       Then start Docker Desktop and re-run this script."
   exit 1
 fi
 
 # Check if Docker daemon is running
 if ! docker info &>/dev/null; then
-  echo "ERROR: Docker daemon is not running. Start Docker Desktop and re-run."
+  echo ""
+  echo "ERROR: Docker daemon is not running."
+  echo "       Start Docker Desktop, wait for it to finish loading, then re-run."
   exit 1
 fi
 
