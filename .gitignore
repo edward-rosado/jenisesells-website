@@ -4,6 +4,7 @@ node_modules/
 
 # Build output
 .next/
+.open-next/
 out/
 bin/
 obj/
@@ -25,6 +26,7 @@ TestResults/
 # OS
 .DS_Store
 Thumbs.db
+.fuse_hidden*
 
 # .NET
 *.user

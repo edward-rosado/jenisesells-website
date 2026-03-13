@@ -63,6 +63,7 @@ export default function RootLayout({
           </nav>
           <EqualHousingOpportunity />
           <p className="mt-4">&copy; {new Date().getFullYear()} Real Estate Star. All rights reserved.</p>
+          <p className="mt-1 text-gray-600 text-xs" data-testid="version">v1.0</p>
         </footer>
         <CookieConsentBanner />
       </body>

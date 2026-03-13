@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: "Platform — lint, test, build"
+    name: "Platform -- lint, test"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,14 +30,10 @@ jobs:
       - name: Test
         run: npm run test:coverage --prefix apps/platform
 
-      - name: Build
-        run: npm run build --prefix apps/platform
-
   deploy:
-    name: "Deploy to Cloudflare Pages"
+    name: "Build & Deploy to Cloudflare Workers"
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
 
     permissions:
       contents: read
@@ -64,20 +60,17 @@ jobs:
             exit 1
           fi
 
-      - name: Build
+      - name: Build with OpenNext
+        working-directory: apps/platform
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
           NEXT_PUBLIC_STRIPE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
-        run: npm run build --prefix apps/platform
-
-      - name: Build for Cloudflare (OpenNext)
-        working-directory: apps/platform
         run: npx opennextjs-cloudflare build
 
-      - name: Deploy to Cloudflare Pages
+      - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/platform
-          command: pages deploy .open-next/assets --project-name=real-estate-star-platform
+          command: deploy
