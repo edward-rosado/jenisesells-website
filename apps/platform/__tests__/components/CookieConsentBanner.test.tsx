@@ -1,5 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, cleanup, act } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 
 describe("CookieConsentBanner", () => {
@@ -58,5 +60,40 @@ describe("CookieConsentBanner", () => {
     render(<CookieConsentBanner />);
     const link = screen.getByRole("link", { name: /privacy policy/i });
     expect(link).toHaveAttribute("href", "/privacy");
+  });
+
+  it("hides banner when storage event updates consent externally", () => {
+    render(<CookieConsentBanner />);
+    expect(
+      screen.getByRole("dialog", { name: /cookie consent/i })
+    ).toBeInTheDocument();
+
+    // Simulate another tab setting consent via storage event
+    act(() => {
+      localStorage.setItem("res-cookie-consent", "accepted");
+      window.dispatchEvent(new StorageEvent("storage"));
+    });
+
+    expect(
+      screen.queryByRole("dialog", { name: /cookie consent/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders nothing during SSR because getServerSnapshot returns a truthy value", () => {
+    const html = renderToString(<CookieConsentBanner />);
+    expect(html).toBe("");
+  });
+
+  it("cleans up storage event listener on unmount", () => {
+    const removeSpy = vi.spyOn(window, "removeEventListener");
+    render(<CookieConsentBanner />);
+
+    cleanup();
+
+    expect(removeSpy).toHaveBeenCalledWith(
+      "storage",
+      expect.any(Function)
+    );
+    removeSpy.mockRestore();
   });
 });
