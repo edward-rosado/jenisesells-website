@@ -754,12 +754,21 @@ function createMockResponse() {
   };
 }
 
+// Mock NextResponse as both a class (for `new NextResponse(body, opts)`) and static methods
+class MockNextResponse {
+  headers: Map<string, string>;
+  status: number;
+  constructor(body?: string, init?: { status?: number }) {
+    this.headers = new Map();
+    this.status = init?.status ?? 200;
+  }
+  static rewrite = mockRewrite;
+  static next = mockNext;
+  static redirect = mockRedirect;
+}
+
 vi.mock("next/server", () => ({
-  NextResponse: {
-    rewrite: mockRewrite,
-    next: mockNext,
-    redirect: mockRedirect,
-  },
+  NextResponse: MockNextResponse,
 }));
 
 vi.mock("@/lib/routing", () => ({
@@ -835,8 +844,8 @@ describe("middleware", () => {
     const req = makeRequest("unknown-agent.real-estate-star.com");
     const response = middleware(req as never);
     expect(mockRewrite).not.toHaveBeenCalled();
-    // 404 is returned via NextResponse.next() with rewritten status or custom response
-    // The middleware should not rewrite for unknown agents
+    expect(mockNext).not.toHaveBeenCalled();
+    expect(response.status).toBe(404);
   });
 
   it("sets agentId search param when rewriting for known subdomain", () => {
@@ -859,17 +868,19 @@ describe("middleware", () => {
   it("returns 404 for completely unknown hostname", () => {
     const req = makeRequest("random.com");
     const response = middleware(req as never);
-    // Should not call rewrite or next for unknown domains
     expect(mockRewrite).not.toHaveBeenCalled();
+    expect(mockNext).not.toHaveBeenCalled();
+    expect(response.status).toBe(404);
   });
 
-  // --- reserved subdomains ---
-  it("returns 404 for reserved subdomains (no passthrough)", () => {
+  // --- reserved subdomains fall through to 404 (not served by agent-site) ---
+  it("returns 404 when extractAgentId returns null and no custom domain match", () => {
     mockExtractAgentId.mockReturnValue(null);
+    mockResolveCustomDomain.mockReturnValue(null);
     const req = makeRequest("www.real-estate-star.com");
-    middleware(req as never);
-    // Reserved subdomains are handled by extractAgentId returning null
-    // Then middleware checks custom domain (also null) -> 404
+    const response = middleware(req as never);
+    expect(mockRewrite).not.toHaveBeenCalled();
+    expect(response.status).toBe(404);
   });
 
   // --- CSP ---
@@ -933,7 +944,7 @@ Replace the entire file with:
 
 ```typescript
 import { NextRequest, NextResponse } from "next/server";
-import { extractAgentId, resolveAgentFromCustomDomain, isWwwCustomDomain, getAgentIds } from "./lib/routing";
+import { extractAgentId, resolveAgentFromCustomDomain, isWwwCustomDomain, getAgentIds } from "@/lib/routing";
 
 function buildCspHeader(nonce: string): string {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
