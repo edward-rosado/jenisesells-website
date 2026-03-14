@@ -22,7 +22,7 @@ import AccessibilityPage, { generateMetadata } from "@/app/accessibility/page";
 describe("generateMetadata (accessibility)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockLoadAgentConfig.mockResolvedValue(AGENT);
+    mockLoadAgentConfig.mockReturnValue(AGENT);
   });
 
   it("returns title with agent name when config loads", async () => {
@@ -31,7 +31,7 @@ describe("generateMetadata (accessibility)", () => {
   });
 
   it("returns fallback title when config fails", async () => {
-    mockLoadAgentConfig.mockRejectedValue(new Error("fail"));
+    mockLoadAgentConfig.mockImplementation(() => { throw new Error("fail"); });
     const meta = await generateMetadata({ searchParams: Promise.resolve({ agentId: "bad" }) });
     expect(meta.title).toBe("Accessibility");
   });
@@ -53,8 +53,8 @@ describe("generateMetadata (accessibility)", () => {
 describe("AccessibilityPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockLoadAgentConfig.mockResolvedValue(AGENT);
-    mockLoadLegalContent.mockResolvedValue({ above: undefined, below: undefined });
+    mockLoadAgentConfig.mockReturnValue(AGENT);
+    mockLoadLegalContent.mockReturnValue({ above: undefined, below: undefined });
   });
 
   it("renders Accessibility Statement heading", async () => {
@@ -92,7 +92,7 @@ describe("AccessibilityPage", () => {
   });
 
   it("calls notFound() when agent config fails", async () => {
-    mockLoadAgentConfig.mockRejectedValue(new Error("not found"));
+    mockLoadAgentConfig.mockImplementation(() => { throw new Error("not found"); });
     await expect(
       AccessibilityPage({ searchParams: Promise.resolve({ agentId: "bad" }) })
     ).rejects.toThrow("NOT_FOUND");
@@ -101,7 +101,7 @@ describe("AccessibilityPage", () => {
   });
 
   it("renders with AGENT_MINIMAL", async () => {
-    mockLoadAgentConfig.mockResolvedValue(AGENT_MINIMAL);
+    mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
     const page = await AccessibilityPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
     render(page);
     expect(screen.getByRole("heading", { level: 1, name: /Accessibility Statement/i })).toBeInTheDocument();

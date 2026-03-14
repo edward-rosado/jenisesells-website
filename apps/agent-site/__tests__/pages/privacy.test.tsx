@@ -22,7 +22,7 @@ import PrivacyPage, { generateMetadata } from "@/app/privacy/page";
 describe("generateMetadata (privacy)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockLoadAgentConfig.mockResolvedValue(AGENT);
+    mockLoadAgentConfig.mockReturnValue(AGENT);
   });
 
   it("returns title with agent name when config loads", async () => {
@@ -31,7 +31,7 @@ describe("generateMetadata (privacy)", () => {
   });
 
   it("returns fallback title when config fails", async () => {
-    mockLoadAgentConfig.mockRejectedValue(new Error("fail"));
+    mockLoadAgentConfig.mockImplementation(() => { throw new Error("fail"); });
     const meta = await generateMetadata({ searchParams: Promise.resolve({ agentId: "bad" }) });
     expect(meta.title).toBe("Privacy Policy");
   });
@@ -53,8 +53,8 @@ describe("generateMetadata (privacy)", () => {
 describe("PrivacyPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockLoadAgentConfig.mockResolvedValue(AGENT);
-    mockLoadLegalContent.mockResolvedValue({ above: undefined, below: undefined });
+    mockLoadAgentConfig.mockReturnValue(AGENT);
+    mockLoadLegalContent.mockReturnValue({ above: undefined, below: undefined });
   });
 
   it("renders Privacy Policy heading", async () => {
@@ -88,21 +88,21 @@ describe("PrivacyPage", () => {
   });
 
   it("renders custom_above markdown when loadLegalContent returns above content", async () => {
-    mockLoadLegalContent.mockResolvedValue({ above: "## Important Notice", below: undefined });
+    mockLoadLegalContent.mockReturnValue({ above: "## Important Notice", below: undefined });
     const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "test" }) });
     render(page);
     expect(screen.getByRole("heading", { level: 2, name: "Important Notice" })).toBeInTheDocument();
   });
 
   it("renders custom_below markdown when provided", async () => {
-    mockLoadLegalContent.mockResolvedValue({ above: undefined, below: "## Additional Info" });
+    mockLoadLegalContent.mockReturnValue({ above: undefined, below: "## Additional Info" });
     const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "test" }) });
     render(page);
     expect(screen.getByRole("heading", { level: 2, name: "Additional Info" })).toBeInTheDocument();
   });
 
   it("calls notFound() when loadAgentConfig rejects", async () => {
-    mockLoadAgentConfig.mockRejectedValue(new Error("not found"));
+    mockLoadAgentConfig.mockImplementation(() => { throw new Error("not found"); });
     await expect(
       PrivacyPage({ searchParams: Promise.resolve({ agentId: "bad" }) })
     ).rejects.toThrow("NOT_FOUND");
@@ -111,7 +111,7 @@ describe("PrivacyPage", () => {
   });
 
   it("renders with AGENT_MINIMAL (no brokerage, no service_areas)", async () => {
-    mockLoadAgentConfig.mockResolvedValue(AGENT_MINIMAL);
+    mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
     const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
     render(page);
     expect(screen.getByRole("heading", { level: 1, name: /Privacy Policy/i })).toBeInTheDocument();
