@@ -4,6 +4,16 @@
 
 Deploy agent websites to `{slug}.real-estate-star.com` on Cloudflare Workers (free tier), with build-time config bundling and per-agent DNS setup via the Cloudflare API.
 
+## Deployment Target: Cloudflare Workers (NOT Pages)
+
+The agent-site deploys as a **Cloudflare Worker** via `wrangler deploy`, matching the platform
+pattern. `wrangler.jsonc` has `"main": ".open-next/worker.js"` — this is a Workers project.
+
+**This distinction matters for:**
+- Custom domains: Workers use `PUT /workers/domains` API, NOT Pages `POST /pages/projects/{project}/domains`
+- DNS: CNAME targets `{worker-name}.{account-subdomain}.workers.dev`, NOT `*.pages.dev`
+- Rollback: `wrangler rollback` (Workers), NOT Pages rollback UI
+
 ## Approach: Bundle All Configs at Build Time
 
 Agent JSON configs are bundled into the Next.js app at build time via a generated registry module. A single Cloudflare Workers deployment serves all agents. Middleware extracts the subdomain and looks up the bundled config.
@@ -82,19 +92,28 @@ The current `config.ts` uses `fs.readFileSync` to load agent configs. Cloudflare
 
 ### Prebuild Script: `generate-config-registry.mjs`
 
-- Scans `config/agents/*/config.json` using `fs` + `glob`
-- For each agent directory, generates an import for `config.json` and `content.json`
+- Scans `config/agents/` for BOTH config layouts:
+  - Directory layout: `config/agents/{id}/config.json` (e.g. `jenise-buckalew/config.json`)
+  - Flat layout: `config/agents/{id}.json` (e.g. `test-agent.json`)
+  - Skip files matching `bad-*.json` or `*.schema.json` (test fixtures, schema)
+- For each agent, generates imports for:
+  - `config.json` (required)
+  - `content.json` (optional — falls back to generated default content)
+  - `legal/*.md` files (optional — privacy, terms, accessibility above/below markdown)
+- Reads `identity.website` from each config to build the `customDomains` map
 - Writes `apps/agent-site/lib/config-registry.ts` with typed exports
 - The generated file is `.gitignored` -- it is a build artifact, not source code
 
 ### Config.ts Changes
 
-- Remove `fs.readFileSync` and `path.resolve` imports
-- Import `configs` and `contents` from `./config-registry`
-- `loadAgentConfig(id)` becomes a lookup: `configs[id] ?? throw "unknown agent"`
-- `loadAgentContent(id, config)` becomes: `contents[id] ?? generateDefaultContent(config)`
-- Keep all validation logic (required fields check)
-- Keep content fallback generation for agents without content.json
+- Remove ALL `fs`, `fs/promises`, `path` imports — none work on Cloudflare Workers
+- Import `configs`, `contents`, `legalContent` from `./config-registry`
+- `loadAgentConfig(id)` becomes a sync lookup: `configs[id] ?? throw "unknown agent"`
+- `loadAgentContent(id, config)` becomes: `contents[id] ?? buildDefaultContent(config)`
+- `loadLegalContent(id, page)` becomes: `legalContent[id]?.[page] ?? { above: undefined, below: undefined }`
+- Keep all validation logic (`assertAgentConfig`)
+- Keep content fallback generation (`buildDefaultContent`)
+- Functions change from `async` to sync (no I/O, just object lookup)
 
 ---
 
@@ -106,15 +125,16 @@ Cloudflare free tier does not support wildcard custom domains on Pages/Workers p
                          DNS (Cloudflare -- Free Tier)
   +-------------------------------------------------------------+
   |                                                              |
-  |  Per-agent CNAME records (added by deploy script):           |
+  |  Per-agent custom domains (added by deploy script):          |
   |                                                              |
   |  jenise-buckalew.real-estate-star.com                        |
-  |    CNAME -> real-estate-star-agents.pages.dev                |
+  |    Workers custom domain (PUT /workers/domains)              |
+  |    CF auto-creates DNS + SSL cert                            |
   |                                                              |
   |  future-agent.real-estate-star.com                           |
-  |    CNAME -> real-estate-star-agents.pages.dev                |
+  |    Workers custom domain (same API)                          |
   |                                                              |
-  |  (Each record added via Cloudflare API during onboarding)    |
+  |  (Each domain added via Cloudflare API during onboarding)    |
   |                                                              |
   |  Existing records (unchanged):                               |
   |  platform.real-estate-star.com  -> platform Workers          |
@@ -130,19 +150,19 @@ Cloudflare free tier does not support wildcard custom domains on Pages/Workers p
   |                                                              |
   |  Step 1: Validate slug exists in config/agents/              |
   |                                                              |
-  |  Step 2: Create DNS CNAME record                             |
-  |    POST /zones/{zone_id}/dns_records                         |
-  |    name: {slug}.real-estate-star.com                         |
-  |    content: real-estate-star-agents.pages.dev                |
-  |    proxied: true                                             |
+  |  Step 2: Add Workers custom domain                           |
+  |    PUT /accounts/{account_id}/workers/domains                |
+  |    hostname: {slug}.real-estate-star.com                     |
+  |    service: real-estate-star-agents                          |
+  |    zone_id: {zone_id}                                        |
+  |    (CF auto-creates the DNS record + SSL cert)               |
   |                                                              |
-  |  Step 3: Add custom domain to Pages project                  |
-  |    POST /pages/projects/{project}/domains                    |
-  |    name: {slug}.real-estate-star.com                         |
+  |  Step 3: Check domain status once                            |
+  |    GET /accounts/{account_id}/workers/domains/{domain_id}    |
+  |    Print status. If not active, tell user to check later.    |
+  |    (NO polling loop -- "it's not polite to stare")           |
   |                                                              |
-  |  Step 4: Poll until domain status = active                   |
-  |                                                              |
-  |  Step 5: Print confirmation URL                              |
+  |  Step 4: Print confirmation URL                              |
   |                                                              |
   +-------------------------------------------------------------+
 
@@ -152,8 +172,8 @@ Cloudflare free tier does not support wildcard custom domains on Pages/Workers p
   |  Browser: jenise-buckalew.real-estate-star.com               |
   |       |                                                      |
   |       v                                                      |
-  |  Cloudflare DNS                                              |
-  |    CNAME -> real-estate-star-agents.pages.dev                |
+  |  Cloudflare DNS (auto-created by Workers custom domain)      |
+  |    Routes to Worker: real-estate-star-agents                 |
   |       |                                                      |
   |       v                                                      |
   |  middleware.ts (edge)                                        |
@@ -197,18 +217,27 @@ field. The `add-agent-domain.ps1` script supports adding custom domains alongsid
   |  add-agent-domain.ps1 "jenise-buckalew"                      |
   |       |                                                      |
   |       +-- Step A: Add subdomain (always)                     |
-  |       |   CNAME: jenise-buckalew.real-estate-star.com        |
-  |       |          -> real-estate-star-agents.pages.dev        |
-  |       |   Custom domain on Pages project                     |
+  |       |   Workers custom domain:                             |
+  |       |     jenise-buckalew.real-estate-star.com              |
+  |       |     -> real-estate-star-agents Worker                |
   |       |                                                      |
   |       +-- Step B: Add custom domain (if identity.website     |
-  |           exists AND domain DNS is on Cloudflare)            |
-  |           Custom domain: jenisesellsnj.com                   |
-  |           on the same Pages project                          |
+  |       |   exists AND domain DNS is on Cloudflare)            |
+  |       |   Workers custom domain:                             |
+  |       |     jenisesellsnj.com                                |
+  |       |     -> real-estate-star-agents Worker                |
+  |       |                                                      |
+  |       +-- Step C: Add www redirect (if custom domain added)  |
+  |           Workers custom domain:                             |
+  |             www.jenisesellsnj.com                             |
+  |             -> real-estate-star-agents Worker                |
+  |           Middleware: www.jenisesellsnj.com -> 301 redirect  |
+  |             to jenisesellsnj.com                             |
   |                                                              |
-  |  Middleware handles BOTH:                                    |
+  |  Middleware handles ALL:                                     |
   |    jenise-buckalew.real-estate-star.com -> subdomain match   |
   |    jenisesellsnj.com -> full hostname match in registry      |
+  |    www.jenisesellsnj.com -> 301 redirect to bare domain      |
   |                                                              |
   +-------------------------------------------------------------+
 
@@ -252,8 +281,21 @@ Middleware checks this map when the hostname does not match `*.real-estate-star.
 
 ### Routing.ts Changes
 
-- Add a `resolveAgentFromCustomDomain(hostname)` function
-- `middleware.ts` calls this as a fallback when subdomain extraction returns null
+- Add `resolveAgentFromCustomDomain(hostname)` — imports `customDomains` from config-registry, returns agent ID or null
+- Add `isWwwCustomDomain(hostname)` — checks if `www.{domain}` is in `customDomains`, returns bare domain for redirect
+- `middleware.ts` calls `resolveAgentFromCustomDomain` as fallback when subdomain extraction returns null
+- `middleware.ts` calls `isWwwCustomDomain` first, returns 301 redirect if matched
+- Export `getAgentIds()` function for middleware to check if extracted subdomain exists in registry
+
+### Middleware.ts Changes (detailed)
+
+Current middleware passes through to `NextResponse.next()` when no subdomain is found. New behavior:
+
+1. **www redirect**: If hostname is `www.{customDomain}`, 301 redirect to `https://{customDomain}{path}`
+2. **Subdomain match**: If `extractAgentId(hostname)` returns an ID, verify it exists in the registry. If not in registry -> 404
+3. **Custom domain match**: If subdomain extraction returns null, try `resolveAgentFromCustomDomain(hostname)`. If found -> rewrite with agent ID
+4. **No match**: Return 404 (do NOT fall through to default rendering)
+5. **CSP on custom domains**: The CSP header must work for custom domains too — `frame-ancestors 'none'` and `connect-src` remain the same since the API URL comes from `NEXT_PUBLIC_API_URL` env var (not from the request hostname)
 
 ---
 
@@ -316,15 +358,19 @@ Middleware checks this map when the hostname does not match `*.real-estate-star.
 
 ### Workflow Changes
 
-- Add prebuild step (`node scripts/generate-config-registry.mjs`) before `next build`
-- The test job also runs prebuild so tests can import from config-registry
+- Add prebuild step (`node scripts/generate-config-registry.mjs`) before `next build` in BOTH jobs:
+  - **test job**: prebuild before lint/test/smoke-build (tests import from config-registry)
+  - **deploy job**: prebuild before production build
 - Deploy uses `wrangler deploy` (Workers) matching wrangler.jsonc config
+- Set `NEXT_PUBLIC_API_URL` env var in both build steps
 
 ### Local Deploy Script
 
 - New file: `infra/cloudflare/deploy-agent-site.ps1`
 - Follows same structure as `deploy-platform.ps1` (Docker build, prerequisites, branch guard)
 - Runs prebuild script before the Docker build step
+- Sets `NEXT_PUBLIC_API_URL` env var during build (from `.env.local` or parameter)
+- **WARNING**: Do NOT commit `.env.local` with `NEXT_PUBLIC_API_URL` — it overrides CI secrets silently. The local deploy script reads it but `.gitignore` must include it
 
 ---
 
@@ -334,13 +380,13 @@ Middleware checks this map when the hostname does not match `*.real-estate-star.
 
 | File | Change |
 |------|--------|
-| `apps/agent-site/lib/config.ts` | Replace `fs.readFileSync` with config-registry lookup |
-| `apps/agent-site/lib/routing.ts` | Fix domain to `real-estate-star.com`, add `platform` to reserved, add `resolveAgentFromCustomDomain()` |
-| `apps/agent-site/middleware.ts` | Return 404 for unknown agents, custom domain fallback lookup |
-| `apps/agent-site/wrangler.jsonc` | Add services self-reference binding |
-| `apps/agent-site/package.json` | Add `prebuild` script |
-| `.github/workflows/deploy-agent-site.yml` | Add prebuild step, update deploy command |
-| `.gitignore` | Add `config-registry.ts` |
+| `apps/agent-site/lib/config.ts` | Remove ALL fs/path imports. Replace with sync lookups from config-registry. Change async functions to sync. Add `loadLegalContent` registry lookup. |
+| `apps/agent-site/lib/routing.ts` | Fix `BASE_DOMAINS` to `real-estate-star.com`. Add `platform` to `RESERVED_SUBDOMAINS`. Add `resolveAgentFromCustomDomain()`, `isWwwCustomDomain()`, `getAgentIds()`. Import `customDomains` from config-registry. |
+| `apps/agent-site/middleware.ts` | Return 404 for unknown agents. Add custom domain fallback. Add www->bare 301 redirect. Verify subdomain exists in registry before rewriting. |
+| `apps/agent-site/wrangler.jsonc` | Add `services` array with `WORKER_SELF_REFERENCE` binding pointing to `real-estate-star-agents` (matches platform pattern) |
+| `apps/agent-site/package.json` | Add `prebuild` script: `node scripts/generate-config-registry.mjs` |
+| `.github/workflows/deploy-agent-site.yml` | Add prebuild step in BOTH test and deploy jobs. Set `NEXT_PUBLIC_API_URL` env var. |
+| `.gitignore` | Add `apps/agent-site/lib/config-registry.ts` |
 
 ### New
 
@@ -354,16 +400,27 @@ Middleware checks this map when the hostname does not match `*.real-estate-star.
 
 | File | Change |
 |------|--------|
-| `apps/agent-site/lib/__tests__/config.test.ts` | Mock config-registry instead of fs |
-| `apps/agent-site/lib/__tests__/routing.test.ts` | Update domain expectations |
-| `apps/agent-site/__tests__/middleware/middleware.test.ts` | Test 404 for unknown agents |
+| `apps/agent-site/lib/__tests__/config.test.ts` | Mock `config-registry` module instead of `fs`. Test sync behavior. Test `loadLegalContent` registry lookup. Test missing agent returns error. |
+| `apps/agent-site/lib/__tests__/routing.test.ts` | Update domain to `real-estate-star.com`. Test `platform` is reserved. Test `resolveAgentFromCustomDomain`. Test `isWwwCustomDomain`. Test `getAgentIds`. |
+| `apps/agent-site/__tests__/middleware/middleware.test.ts` | Test 404 for unknown subdomain. Test custom domain rewrite. Test www redirect. Test known subdomain rewrite. |
+
+**Test fixtures**: Tests must NOT use `bad-*.json` files from `config/agents/` (those are schema validation test fixtures). Create test-specific mocks of the config-registry module.
 
 ### Not Changed
 
-- `apps/agent-site/app/page.tsx` -- no changes needed
+- `apps/agent-site/app/page.tsx` -- no changes needed (but callers of `loadAgentConfig` change from `await` to sync — page.tsx uses `await` so it must be updated to remove the `await`)
 - `apps/agent-site/templates/*` -- rendering untouched
 - `apps/agent-site/components/*` -- UI untouched
 - `config/agents/**` -- source configs untouched
+
+### Potentially Changed
+
+| File | Change |
+|------|--------|
+| `apps/agent-site/app/page.tsx` | Remove `await` from `loadAgentConfig()` and `loadAgentContent()` calls (they become sync). Remove `await` from `loadLegalContent()`. |
+| `apps/agent-site/app/[slug]/privacy/page.tsx` (if exists) | Same — remove `await` from `loadLegalContent()` |
+| `apps/agent-site/app/[slug]/terms/page.tsx` (if exists) | Same |
+| `apps/agent-site/open-next.config.ts` | May need `edgeExternals: ["node:crypto"]` if `crypto.randomUUID()` in middleware causes build issues on Cloudflare (test during build — only add if needed) |
 
 ---
 
@@ -388,6 +445,15 @@ For the initial deployment of Jenise's agent site:
   13. Verify: https://jenisesellsnj.com loads the agent-site
   14. Decommission Netlify project (prismatic-naiad-5466af)
 ```
+
+### Rollback Plan
+
+If the Cloudflare deployment fails or the agent site is broken:
+
+1. **Worker rollback**: `wrangler rollback` reverts to the previous Worker version
+2. **Custom domain rollback**: DNS for `jenisesellsnj.com` is only updated AFTER verification on the subdomain. If the subdomain doesn't work, custom domain migration hasn't started yet.
+3. **Full rollback**: If `jenisesellsnj.com` DNS was already cut to Cloudflare and it breaks, point DNS back to Netlify (the Netlify project stays alive until step 14 of the deploy sequence)
+4. **Netlify decommission is the LAST step** — never delete Netlify until both subdomain and custom domain are verified working
 
 ---
 
