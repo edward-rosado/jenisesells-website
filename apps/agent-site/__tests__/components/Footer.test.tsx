@@ -36,13 +36,13 @@ describe("Footer", () => {
 
   it("renders phone as a tel link", () => {
     render(<Footer agent={AGENT} />);
-    const phoneLink = screen.getByRole("link", { name: "555-123-4567" });
+    const phoneLink = screen.getByRole("link", { name: /call jane smith/i });
     expect(phoneLink).toHaveAttribute("href", "tel:555-123-4567");
   });
 
   it("renders email as a mailto link", () => {
     render(<Footer agent={AGENT} />);
-    const emailLink = screen.getByRole("link", { name: "jane@example.com" });
+    const emailLink = screen.getByRole("link", { name: /email jane smith/i });
     expect(emailLink).toHaveAttribute("href", "mailto:jane@example.com");
   });
 
@@ -89,5 +89,29 @@ describe("Footer", () => {
   it("renders a footer element", () => {
     const { container } = render(<Footer agent={AGENT} />);
     expect(container.querySelector("footer")).toBeInTheDocument();
+  });
+
+  it("renders legal links nav", () => {
+    render(<Footer agent={AGENT} />);
+    const legalNav = screen.getByRole("navigation", { name: "Legal links" });
+    expect(legalNav).toBeInTheDocument();
+  });
+
+  it("renders privacy link", () => {
+    render(<Footer agent={AGENT} />);
+    const link = screen.getByRole("link", { name: /privacy/i });
+    expect(link).toHaveAttribute("href", "/privacy");
+  });
+
+  it("renders terms link", () => {
+    render(<Footer agent={AGENT} />);
+    const link = screen.getByRole("link", { name: /terms/i });
+    expect(link).toHaveAttribute("href", "/terms");
+  });
+
+  it("renders accessibility link", () => {
+    render(<Footer agent={AGENT} />);
+    const link = screen.getByRole("link", { name: /accessibility/i });
+    expect(link).toHaveAttribute("href", "/accessibility");
   });
 });

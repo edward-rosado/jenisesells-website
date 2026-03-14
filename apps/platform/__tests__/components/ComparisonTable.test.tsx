@@ -29,12 +29,12 @@ describe("ComparisonTable", () => {
     const colHeaders = container.querySelectorAll("th[scope='col']");
     expect(colHeaders.length).toBe(4);
     const rowHeaders = container.querySelectorAll("th[scope='row']");
-    expect(rowHeaders.length).toBe(5);
+    expect(rowHeaders.length).toBe(6);
   });
 
-  it("renders the price row", () => {
+  it("renders the pricing rows", () => {
     render(<ComparisonTable />);
-    expect(screen.getByText("$10/mo")).toBeInTheDocument();
+    expect(screen.getByText("$14.99/mo")).toBeInTheDocument();
     expect(screen.getByText("$499/mo")).toBeInTheDocument();
     expect(screen.getByText("$395/mo")).toBeInTheDocument();
   });

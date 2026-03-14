@@ -8,7 +8,7 @@ export function FinalCta() {
           Ready to Get Started?
         </h2>
         <p className="text-lg text-gray-400">
-          AI-powered automation for your real estate business. Just $10/mo.
+          14 days free. $14.99/mo. Your business, automated.
         </p>
         <Link
           href="/onboard"

@@ -5,6 +5,7 @@ import { loadAgentConfig, loadAgentContent } from "@/lib/config";
 import { buildCssVariableStyle } from "@/lib/branding";
 import { getTemplate } from "@/templates";
 import { Analytics } from "@/components/Analytics";
+import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 
 interface PageProps {
   searchParams: Promise<{ agentId?: string }>;
@@ -66,6 +67,7 @@ export default async function AgentPage({ searchParams }: PageProps) {
         />
         <Analytics tracking={agent.integrations?.tracking} />
         <Template agent={agent} content={content} />
+        <CookieConsentBanner agentId={id} />
       </div>
     );
   } catch (err) {

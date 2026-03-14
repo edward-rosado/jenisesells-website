@@ -200,7 +200,7 @@ describe("OnboardPage - Coming Soon", () => {
     expect(screen.getByRole("heading", { name: /coming soon/i })).toBeInTheDocument();
     expect(screen.getByText(/finishing touches/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /back to home/i })).toHaveAttribute("href", "/");
-    expect(screen.getByText(/\$10\/mo after your website goes live/i)).toBeInTheDocument();
+    expect(screen.getByText(/14 days free\. \$14\.99\/mo after\./i)).toBeInTheDocument();
   });
 
   it("does not render Coming Soon when NEXT_PUBLIC_COMING_SOON is not set", async () => {

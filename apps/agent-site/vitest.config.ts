@@ -13,12 +13,16 @@ export default defineConfig({
       reporter: ["text", "lcov", "html"],
       include: [
         "lib/**/*.ts",
+        "components/**/*.ts",
         "components/**/*.tsx",
+        "app/privacy/**/*.tsx",
+        "app/terms/**/*.tsx",
+        "app/accessibility/**/*.tsx",
         "templates/**/*.ts",
         "templates/**/*.tsx",
         "middleware.ts",
       ],
-      exclude: ["lib/types.ts", "**/__tests__/**"],
+      exclude: ["lib/types.ts", "**/__tests__/**", "components/sections/index.ts"],
       thresholds: {
         branches: 100,
         functions: 100,

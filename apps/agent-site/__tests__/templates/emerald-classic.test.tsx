@@ -10,7 +10,7 @@ import type { AgentContent } from "@/lib/types";
 describe("EmeraldClassic template", () => {
   it("always renders the Nav", () => {
     render(<EmeraldClassic agent={AGENT} content={CONTENT} />);
-    expect(screen.getByRole("navigation")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
   });
 
   it("always renders the Footer", () => {

@@ -1,0 +1,112 @@
+import * as Sentry from "@sentry/nextjs";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { loadAgentConfig, loadLegalContent } from "@/lib/config";
+import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
+import { MarkdownContent } from "@/components/legal/MarkdownContent";
+import { LEGAL_EFFECTIVE_DATE } from "@/components/legal/constants";
+
+interface PageProps {
+  searchParams: Promise<{ agentId?: string }>;
+}
+
+function resolveAgentId(agentId?: string): string {
+  return agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+}
+
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const { agentId } = await searchParams;
+  const id = resolveAgentId(agentId);
+  try {
+    const agent = await loadAgentConfig(id);
+    return { title: `Privacy Policy | ${agent.identity.name}` };
+  } catch {
+    return { title: "Privacy Policy" };
+  }
+}
+
+export default async function PrivacyPage({ searchParams }: PageProps) {
+  const { agentId } = await searchParams;
+  const id = resolveAgentId(agentId);
+
+  let agent: Awaited<ReturnType<typeof loadAgentConfig>>;
+  try {
+    agent = await loadAgentConfig(id);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { agentId: id } });
+    notFound();
+  }
+
+  const { above, below } = await loadLegalContent(id, "privacy");
+  const { identity, location } = agent;
+
+  const content = `# Privacy Policy
+
+**Effective Date:** ${LEGAL_EFFECTIVE_DATE}
+
+This privacy policy describes how ${identity.name}${identity.brokerage ? ` of ${identity.brokerage}` : ""} ("we", "us", "our") collects, uses, and protects your personal information when you use this website.
+
+## Information We Collect
+
+When you use our website, we may collect the following information:
+
+- **Contact information** you provide through forms: name, email address, phone number, and property address
+- **Property details** submitted for Comparative Market Analysis (CMA) requests
+- **Usage data** including pages visited, time spent, and interactions with site features
+- **Cookies and local storage** data used to remember your preferences${location.service_areas ? `
+
+We serve the following areas: ${location.service_areas.join(", ")}.` : ""}
+
+## How We Use Your Information
+
+We use the information we collect to:
+
+- Respond to your real estate inquiries and requests
+- Prepare and deliver Comparative Market Analysis reports
+- Communicate with you about properties and real estate services
+- Improve our website and services
+- Comply with legal obligations
+
+## Cookies and Local Storage
+
+This website uses cookies and browser local storage to:
+
+- Remember your cookie consent preferences
+- Improve site performance and user experience
+- Track anonymous usage analytics
+
+You can control cookies through your browser settings. Declining cookies may limit some site functionality.
+
+## Information Sharing
+
+We may share your information with:
+
+- ${identity.brokerage ? `**${identity.brokerage}**` : "Our affiliated brokerage"} for real estate transaction purposes
+- Service providers who assist in operating our website
+- Legal authorities when required by law
+
+**We do not sell your personal information to third parties.**
+
+## Your Rights (CCPA Notice)
+
+If you are a California resident, you have the right to:
+
+- Know what personal information we collect about you
+- Request deletion of your personal information
+- Opt out of the sale of your personal information (we do not sell personal data)
+- Non-discrimination for exercising your privacy rights
+
+## Contact Us
+
+If you have questions about this privacy policy, contact us at:
+
+**Email:** [${identity.email}](mailto:${identity.email})
+
+*Last updated: ${LEGAL_EFFECTIVE_DATE}*`;
+
+  return (
+    <LegalPageLayout agent={agent} agentId={id} customAbove={above} customBelow={below}>
+      <MarkdownContent content={content} />
+    </LegalPageLayout>
+  );
+}

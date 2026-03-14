@@ -46,6 +46,11 @@ export function Footer({ agent }: FooterProps) {
         </svg>
         <span>Equal Housing Opportunity</span>
       </div>
+      <nav aria-label="Legal links" className="mt-4 flex justify-center gap-4 text-xs opacity-60">
+        <a href="/privacy" className="hover:opacity-100 underline">Privacy Policy</a>
+        <a href="/terms" className="hover:opacity-100 underline">Terms of Use</a>
+        <a href="/accessibility" className="hover:opacity-100 underline">Accessibility</a>
+      </nav>
       <p className="mt-2 text-xs opacity-40">
         &copy; {new Date().getFullYear()} {identity.name}. All rights reserved.
       </p>

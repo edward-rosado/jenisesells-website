@@ -7,7 +7,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Real Estate Star",
-  description: "Stop paying monthly. $900. Everything.",
+  description: "14 days free, then $14.99/mo. Your business, automated.",
 };
 
 export default function RootLayout({
@@ -29,12 +29,6 @@ export default function RootLayout({
           >
             <GeometricStar size={24} />
             <span>Real Estate Star</span>
-          </Link>
-          <Link
-            href="/login"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Log In
           </Link>
         </header>
         <div id="main-content" tabIndex={-1}>
