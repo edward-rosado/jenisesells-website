@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { loadAgentConfig, loadAgentContent } from "../config";
+import { loadAgentConfig, loadAgentContent, loadLegalContent } from "../config";
+import { writeFile, mkdir, rm } from "fs/promises";
+import path from "path";
 
 describe("loadAgentConfig", () => {
   it("should load jenise-buckalew config from config/agents/", async () => {
@@ -90,5 +92,79 @@ describe("loadAgentContent", () => {
 
   it("should reject path traversal in content loading", async () => {
     await expect(loadAgentContent("../../etc/passwd")).rejects.toThrow("Invalid agent ID");
+  });
+});
+
+describe("directory-first config resolution", () => {
+  it("loadAgentConfig reads from {id}/config.json when directory exists", async () => {
+    // jenise-buckalew has been migrated to directory structure
+    const config = await loadAgentConfig("jenise-buckalew");
+    expect(config.id).toBe("jenise-buckalew");
+    expect(config.identity.name).toBe("Jenise Buckalew");
+  });
+
+  it("loadAgentConfig falls back to {id}.json when directory doesn't exist", async () => {
+    // test-agent only exists as a flat file
+    const config = await loadAgentConfig("test-agent");
+    expect(config.id).toBe("test-agent");
+  });
+
+  it("loadAgentContent reads from {id}/content.json when directory exists", async () => {
+    // jenise-buckalew has content.json in directory
+    const content = await loadAgentContent("jenise-buckalew");
+    expect(content.template).toBe("emerald-classic");
+    // Directory content has stats enabled (unlike defaults)
+    expect(content.sections.stats.enabled).toBe(true);
+  });
+
+  it("loadAgentContent falls back to {id}.content.json when directory doesn't exist", async () => {
+    // test-agent has no directory, no content file — falls back to defaults
+    const content = await loadAgentContent("test-agent");
+    expect(content.template).toBe("emerald-classic");
+    expect(content.sections.stats.enabled).toBe(false);
+  });
+
+  it("loadAgentConfig throws on invalid agent ID", async () => {
+    await expect(loadAgentConfig("UPPER")).rejects.toThrow("Invalid agent ID");
+    await expect(loadAgentConfig("has spaces")).rejects.toThrow("Invalid agent ID");
+    await expect(loadAgentConfig("has.dot")).rejects.toThrow("Invalid agent ID");
+    await expect(loadAgentConfig("../traversal")).rejects.toThrow("Invalid agent ID");
+  });
+});
+
+describe("loadLegalContent", () => {
+  const CONFIG_DIR = path.resolve(process.cwd(), "../../config/agents");
+  const testAgentId = "legal-test-agent";
+  const legalDir = path.join(CONFIG_DIR, testAgentId, "legal");
+
+  it("returns markdown when legal files exist", async () => {
+    // Create temp legal files for testing
+    await mkdir(legalDir, { recursive: true });
+    await writeFile(path.join(legalDir, "privacy-above.md"), "# Privacy Policy\nCustom privacy content.");
+    await writeFile(path.join(legalDir, "privacy-below.md"), "## Additional Privacy Info\nMore content.");
+
+    try {
+      const result = await loadLegalContent(testAgentId, "privacy");
+      expect(result.above).toBe("# Privacy Policy\nCustom privacy content.");
+      expect(result.below).toBe("## Additional Privacy Info\nMore content.");
+    } finally {
+      await rm(path.join(CONFIG_DIR, testAgentId), { recursive: true, force: true });
+    }
+  });
+
+  it("returns undefined for above and below when files don't exist", async () => {
+    const result = await loadLegalContent("jenise-buckalew", "privacy");
+    expect(result.above).toBeUndefined();
+    expect(result.below).toBeUndefined();
+  });
+
+  it("returns undefined for above and below when legal dir doesn't exist", async () => {
+    const result = await loadLegalContent("jenise-buckalew", "terms");
+    expect(result.above).toBeUndefined();
+    expect(result.below).toBeUndefined();
+  });
+
+  it("rejects path traversal in agent ID", async () => {
+    await expect(loadLegalContent("../../../etc/passwd", "privacy")).rejects.toThrow("Invalid agent ID");
   });
 });

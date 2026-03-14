@@ -1,4 +1,4 @@
-import { readFile } from "fs/promises";
+import { access, readFile } from "fs/promises";
 import path from "path";
 import type { AgentConfig, AgentContent } from "./types";
 
@@ -10,6 +10,34 @@ const VALID_AGENT_ID = /^[a-z0-9-]+$/;
 function validateAgentId(agentId: string): void {
   if (!VALID_AGENT_ID.test(agentId)) {
     throw new Error(`Invalid agent ID: ${agentId}`);
+  }
+}
+
+async function resolveConfigPath(agentId: string): Promise<string> {
+  const dirPath = path.join(CONFIG_DIR, agentId, "config.json");
+  try {
+    await access(dirPath);
+    return dirPath;
+  } catch {
+    return path.join(CONFIG_DIR, `${agentId}.json`);
+  }
+}
+
+async function resolveContentPath(agentId: string): Promise<string> {
+  const dirPath = path.join(CONFIG_DIR, agentId, "content.json");
+  try {
+    await access(dirPath);
+    return dirPath;
+  } catch {
+    return path.join(CONFIG_DIR, `${agentId}.content.json`);
+  }
+}
+
+async function readFileSafe(filePath: string): Promise<string | undefined> {
+  try {
+    return await readFile(filePath, "utf-8");
+  } catch {
+    return undefined;
   }
 }
 
@@ -26,7 +54,7 @@ function assertAgentConfig(value: unknown): asserts value is AgentConfig {
 
 export async function loadAgentConfig(agentId: string): Promise<AgentConfig> {
   validateAgentId(agentId);
-  const filePath = path.join(CONFIG_DIR, `${agentId}.json`);
+  const filePath = await resolveConfigPath(agentId);
   const raw = await readFile(filePath, "utf-8");
   const parsed: unknown = JSON.parse(raw);
   assertAgentConfig(parsed);
@@ -38,7 +66,7 @@ export async function loadAgentContent(
   config?: AgentConfig,
 ): Promise<AgentContent> {
   validateAgentId(agentId);
-  const filePath = path.join(CONFIG_DIR, `${agentId}.content.json`);
+  const filePath = await resolveContentPath(agentId);
   try {
     const raw = await readFile(filePath, "utf-8");
     return JSON.parse(raw) as AgentContent;
@@ -46,6 +74,19 @@ export async function loadAgentContent(
     const resolved = config ?? await loadAgentConfig(agentId);
     return buildDefaultContent(resolved);
   }
+}
+
+export async function loadLegalContent(
+  agentId: string,
+  page: "privacy" | "terms" | "accessibility",
+): Promise<{ above?: string; below?: string }> {
+  validateAgentId(agentId);
+  const legalDir = path.join(CONFIG_DIR, agentId, "legal");
+  const [above, below] = await Promise.all([
+    readFileSafe(path.join(legalDir, `${page}-above.md`)),
+    readFileSafe(path.join(legalDir, `${page}-below.md`)),
+  ]);
+  return { above, below };
 }
 
 function buildDefaultContent(config: AgentConfig): AgentContent {
