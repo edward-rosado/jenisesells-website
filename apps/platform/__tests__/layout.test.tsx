@@ -30,7 +30,6 @@ describe("RootLayout", () => {
         <div>child</div>
       </RootLayout>
     );
-    const header = screen.getByRole("banner") || document.querySelector("header");
     expect(screen.queryByRole("link", { name: /Log In/i })).not.toBeInTheDocument();
   });
 

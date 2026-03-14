@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { AgentConfig, AgentContent, SectionConfig } from "../types";
+import type { AgentConfig, AgentContent } from "../types";
 
 describe("AgentConfig type", () => {
   it("should accept a valid agent config", () => {

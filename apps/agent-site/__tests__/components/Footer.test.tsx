@@ -36,13 +36,13 @@ describe("Footer", () => {
 
   it("renders phone as a tel link", () => {
     render(<Footer agent={AGENT} />);
-    const phoneLink = screen.getByRole("link", { name: "555-123-4567" });
+    const phoneLink = screen.getByRole("link", { name: /call jane smith/i });
     expect(phoneLink).toHaveAttribute("href", "tel:555-123-4567");
   });
 
   it("renders email as a mailto link", () => {
     render(<Footer agent={AGENT} />);
-    const emailLink = screen.getByRole("link", { name: "jane@example.com" });
+    const emailLink = screen.getByRole("link", { name: /email jane smith/i });
     expect(emailLink).toHaveAttribute("href", "mailto:jane@example.com");
   });
 
