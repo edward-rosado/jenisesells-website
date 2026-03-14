@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // Mock the config-registry module — prebuild generates this at build time
 vi.mock("../config-registry", () => ({
