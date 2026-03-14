@@ -6,7 +6,8 @@ interface ComparisonRow {
 }
 
 const ROWS: ComparisonRow[] = [
-  { feature: "Price", star: "$10/mo", kvcore: "$499/mo", ylopo: "$395/mo" },
+  { feature: "Monthly", star: "$14.99/mo", kvcore: "$499/mo", ylopo: "$395/mo" },
+  { feature: "Free Trial", star: "14 days", kvcore: "No", ylopo: "No" },
   { feature: "Website", star: "Included", kvcore: "Included", ylopo: "Included" },
   { feature: "CMA Tool", star: "Included", kvcore: "Add-on", ylopo: "No" },
   { feature: "Lead Capture", star: "Included", kvcore: "Included", ylopo: "Included" },

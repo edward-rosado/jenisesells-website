@@ -30,6 +30,6 @@ describe("FinalCta", () => {
 
   it("renders a subheading with value proposition", () => {
     render(<FinalCta />);
-    expect(screen.getByText(/ai-powered automation for your real estate business/i)).toBeInTheDocument();
+    expect(screen.getByText(/14 days free\. \$14\.99\/mo\. Your business, automated\./i)).toBeInTheDocument();
   });
 });

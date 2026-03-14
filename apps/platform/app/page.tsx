@@ -31,10 +31,10 @@ export default function LandingPage() {
             Your business, automated by AI.
           </h1>
           <p className="text-4xl md:text-5xl font-bold text-emerald-400 mb-8">
-            $10/mo. Everything.
+            14 days free. $14.99/mo after.
           </p>
           <p className="text-lg text-gray-400 mb-12">
-            Website. CMA automation. Lead management. All for less than lunch.
+            Everything you need to run your real estate business. All included.
           </p>
           <form onSubmit={handleSubmit} className="space-y-4" aria-label="Get started">
             <label htmlFor="hero-profile-url" className="sr-only">
@@ -56,7 +56,7 @@ export default function LandingPage() {
             </button>
           </form>
           <p className="text-sm text-gray-500 mt-4">
-            Free to set up. $10/mo after your website goes live.
+            No credit card required. Cancel anytime.
           </p>
         </div>
       </section>

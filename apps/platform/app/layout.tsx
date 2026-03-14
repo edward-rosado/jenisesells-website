@@ -7,7 +7,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Real Estate Star",
-  description: "Stop paying monthly. $900. Everything.",
+  description: "14 days free, then $14.99/mo. Your business, automated.",
 };
 
 export default function RootLayout({

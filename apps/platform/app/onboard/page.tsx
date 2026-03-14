@@ -28,7 +28,7 @@ function ComingSoon() {
           </Link>
         </div>
         <p className="text-sm text-gray-600">
-          $10/mo after your website goes live. Free to set up.
+          14 days free. $14.99/mo after.
         </p>
       </div>
     </main>

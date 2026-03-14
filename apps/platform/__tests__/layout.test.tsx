@@ -24,13 +24,14 @@ describe("RootLayout", () => {
     expect(screen.getByText("Real Estate Star")).toBeInTheDocument();
   });
 
-  it("renders the Log In link", () => {
+  it("renders the header with brand link only (no login link)", () => {
     render(
       <RootLayout>
         <div>child</div>
       </RootLayout>
     );
-    expect(screen.getByRole("link", { name: /Log In/i })).toBeInTheDocument();
+    const header = screen.getByRole("banner") || document.querySelector("header");
+    expect(screen.queryByRole("link", { name: /Log In/i })).not.toBeInTheDocument();
   });
 
   it("renders children", () => {

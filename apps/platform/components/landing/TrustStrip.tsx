@@ -4,9 +4,9 @@ interface TrustItem {
 }
 
 const TRUST_ITEMS: TrustItem[] = [
-  { label: "Just $10/mo", detail: "50x cheaper than competitors. All features included." },
-  { label: "Setup in Minutes", detail: "AI-powered onboarding gets you live in under 10 minutes." },
-  { label: "Free Until Live", detail: "Build your site for free. Only pay when it goes live." },
+  { label: "14 Days Free", detail: "Try everything with no commitment." },
+  { label: "$14.99/mo After", detail: "Automation, hosting, and all new features included." },
+  { label: "Live in Minutes", detail: "AI-powered onboarding gets you up and running fast." },
 ];
 
 export function TrustStrip() {

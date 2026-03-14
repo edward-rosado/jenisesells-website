@@ -17,9 +17,9 @@ describe("Landing Page", () => {
     ).toBeInTheDocument();
   });
 
-  it('displays the price "$10/mo. Everything."', () => {
+  it('displays the price "14 days free. $14.99/mo after."', () => {
     render(<LandingPage />);
-    expect(screen.getByText(/\$10\/mo\. everything\./i)).toBeInTheDocument();
+    expect(screen.getByText(/14 days free\. \$14\.99\/mo after\./i)).toBeInTheDocument();
   });
 
   it("renders a URL input for the agent profile", () => {
@@ -36,10 +36,10 @@ describe("Landing Page", () => {
     ).toBeInTheDocument();
   });
 
-  it("displays a trial disclaimer", () => {
+  it("displays a pricing disclaimer", () => {
     render(<LandingPage />);
     expect(
-      screen.getByText(/free to set up\. \$10\/mo after your website goes live\./i)
+      screen.getByText(/no credit card required\. cancel anytime\./i)
     ).toBeInTheDocument();
   });
 
@@ -59,7 +59,7 @@ describe("Landing Page", () => {
 
   it("renders the TrustStrip section", () => {
     render(<LandingPage />);
-    expect(screen.getAllByText(/just \$10\/mo/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("14 Days Free")).toBeInTheDocument();
   });
 
   it("renders all 8 feature cards", () => {
