@@ -90,4 +90,28 @@ describe("Footer", () => {
     const { container } = render(<Footer agent={AGENT} />);
     expect(container.querySelector("footer")).toBeInTheDocument();
   });
+
+  it("renders legal links nav", () => {
+    render(<Footer agent={AGENT} />);
+    const legalNav = screen.getByRole("navigation", { name: "Legal links" });
+    expect(legalNav).toBeInTheDocument();
+  });
+
+  it("renders privacy link", () => {
+    render(<Footer agent={AGENT} />);
+    const link = screen.getByRole("link", { name: /privacy/i });
+    expect(link).toHaveAttribute("href", "/privacy");
+  });
+
+  it("renders terms link", () => {
+    render(<Footer agent={AGENT} />);
+    const link = screen.getByRole("link", { name: /terms/i });
+    expect(link).toHaveAttribute("href", "/terms");
+  });
+
+  it("renders accessibility link", () => {
+    render(<Footer agent={AGENT} />);
+    const link = screen.getByRole("link", { name: /accessibility/i });
+    expect(link).toHaveAttribute("href", "/accessibility");
+  });
 });
