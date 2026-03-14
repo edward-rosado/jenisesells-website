@@ -7,7 +7,7 @@
     Reads the agent config from config/agents/{slug}/ or config/agents/{slug}.json,
     then registers the following custom domains on the Workers service:
 
-      - {slug}.agents.real-estate-star.com  (always)
+      - {slug}.real-estate-star.com  (always)
       - {identity.website}                  (if set in config)
       - www.{identity.website}              (if set in config)
 
@@ -43,7 +43,7 @@ $ErrorActionPreference = "Stop"
 # --- Constants ---
 $WorkersService  = "real-estate-star-agents"
 $BaseDomain      = "real-estate-star.com"
-$AgentSubdomain  = "agents.$BaseDomain"
+$AgentSubdomain  = "$BaseDomain"
 $CfApiBase       = "https://api.cloudflare.com/client/v4"
 $ScriptDir       = $PSScriptRoot
 $RepoRoot        = (Resolve-Path (Join-Path $ScriptDir "..\..")).Path

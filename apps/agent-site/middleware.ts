@@ -30,7 +30,7 @@ export function middleware(request: NextRequest) {
   // 1. www redirect for custom domains
   const bareDomain = isWwwCustomDomain(hostname);
   if (bareDomain) {
-    const url = new URL(`https://${bareDomain}${request.nextUrl.pathname}`);
+    const url = new URL(`https://${bareDomain}${request.nextUrl.pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(url, 301);
   }
 

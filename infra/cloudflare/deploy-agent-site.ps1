@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Build and deploy the Real Estate Star agent site (Next.js) to Cloudflare Pages.
+    Build and deploy the Real Estate Star agent site (Next.js) to Cloudflare Workers.
 
 .DESCRIPTION
     Uses Docker (node:22-slim) to build the Next.js app with OpenNext inside Linux,
@@ -43,7 +43,7 @@ $ErrorActionPreference = "Stop"
 # --- Configuration ---
 $ProjectName   = "real-estate-star-agents"
 $AccountId     = "7674efd9381763796f39ea67fe5e0505"
-$CustomDomain  = "agents.real-estate-star.com"
+$CustomDomain  = "real-estate-star.com"
 $ApiUrl        = "https://api.real-estate-star.com"
 $ScriptDir     = $PSScriptRoot
 $RepoRoot      = (Resolve-Path (Join-Path $ScriptDir "..\..")).Path
@@ -273,7 +273,7 @@ if (-not $SkipBuild) {
 
     docker run --rm `
         -v "${dockerAppDir}:/app" `
-        -v "${dockerRepoRoot}/config:/repo/config:ro" `
+        -v "${dockerRepoRoot}/config:/config:ro" `
         -w /app `
         -e "NEXT_PUBLIC_API_URL=$ApiUrl" `
         $DockerImage `
@@ -378,7 +378,7 @@ try {
 
 # --- Deploy ---
 Write-Host ""
-Write-Host "=== Deploy to Cloudflare Pages ===" -ForegroundColor White
+Write-Host "=== Deploy to Cloudflare Workers ===" -ForegroundColor White
 
 $envLabel = if ($Production) { "production" } else { "preview" }
 Write-Info "Deploying to $envLabel..."
@@ -414,7 +414,7 @@ if ($Production) {
     Write-Host "  If this is the first deploy, set up the custom domain:" -ForegroundColor Yellow
     Write-Host "    1. Go to Cloudflare dashboard > Workers & Pages > $ProjectName" -ForegroundColor Yellow
     Write-Host "    2. Click Custom domains > Set up a custom domain" -ForegroundColor Yellow
-    Write-Host "    3. Enter: {slug}.agents.real-estate-star.com (wildcard via DNS)" -ForegroundColor Yellow
+    Write-Host "    3. Enter: {slug}.real-estate-star.com (wildcard via DNS)" -ForegroundColor Yellow
     Write-Host "    4. Also set up: $CustomDomain as the primary workers route" -ForegroundColor Yellow
 } else {
     Write-Info "Preview URL will be shown in the wrangler output above"
