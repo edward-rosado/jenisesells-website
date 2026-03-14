@@ -30,12 +30,6 @@ export default function RootLayout({
             <GeometricStar size={24} />
             <span>Real Estate Star</span>
           </Link>
-          <Link
-            href="/login"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Log In
-          </Link>
         </header>
         <div id="main-content" tabIndex={-1}>
           {children}
