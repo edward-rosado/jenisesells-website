@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.SITE_URL || "https://realestatestar.com";
+  const baseUrl = process.env.SITE_URL || "https://real-estate-star.com";
 
   return [
     {
