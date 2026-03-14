@@ -311,6 +311,7 @@ Current middleware passes through to `NextResponse.next()` when no subdomain is 
   |  +-------------------------------------------------------+  |
   |  |  Job: test                                             |  |
   |  |    npm ci                                              |  |
+  |  |    node scripts/generate-config-registry.mjs           |  |
   |  |    npm run lint                                        |  |
   |  |    npm run test:coverage                               |  |
   |  |    next build (smoke test)                             |  |
@@ -361,7 +362,7 @@ Current middleware passes through to `NextResponse.next()` when no subdomain is 
 - Add prebuild step (`node scripts/generate-config-registry.mjs`) before `next build` in BOTH jobs:
   - **test job**: prebuild before lint/test/smoke-build (tests import from config-registry)
   - **deploy job**: prebuild before production build
-- Deploy uses `wrangler deploy` (Workers) matching wrangler.jsonc config
+- **CRITICAL**: Replace existing `npx wrangler pages deploy .open-next/assets --project-name=real-estate-star-agents` with `npx wrangler deploy` (Workers, not Pages). The `wrangler deploy` command reads `wrangler.jsonc` — no project name flag needed.
 - Set `NEXT_PUBLIC_API_URL` env var in both build steps
 
 ### Local Deploy Script
@@ -386,6 +387,7 @@ Current middleware passes through to `NextResponse.next()` when no subdomain is 
 | `apps/agent-site/wrangler.jsonc` | Add `services` array with `WORKER_SELF_REFERENCE` binding pointing to `real-estate-star-agents` (matches platform pattern) |
 | `apps/agent-site/package.json` | Add `prebuild` script: `node scripts/generate-config-registry.mjs` |
 | `.github/workflows/deploy-agent-site.yml` | Add prebuild step in BOTH test and deploy jobs. Set `NEXT_PUBLIC_API_URL` env var. |
+| `apps/agent-site/app/sitemap.ts` | Fix fallback domain from `realestatestar.com` to `real-estate-star.com` |
 | `.gitignore` | Add `apps/agent-site/lib/config-registry.ts` |
 
 ### New
@@ -408,19 +410,25 @@ Current middleware passes through to `NextResponse.next()` when no subdomain is 
 
 ### Not Changed
 
-- `apps/agent-site/app/page.tsx` -- no changes needed (but callers of `loadAgentConfig` change from `await` to sync — page.tsx uses `await` so it must be updated to remove the `await`)
 - `apps/agent-site/templates/*` -- rendering untouched
 - `apps/agent-site/components/*` -- UI untouched
 - `config/agents/**` -- source configs untouched
 
-### Potentially Changed
+### Also Modified (async-to-sync migration)
+
+All page files call `await loadAgentConfig()` and some call `await loadLegalContent()`. Since these functions become sync, remove the `await` keyword. The `async generateMetadata()` functions in each page can also drop `async` since they no longer await anything.
 
 | File | Change |
 |------|--------|
-| `apps/agent-site/app/page.tsx` | Remove `await` from `loadAgentConfig()` and `loadAgentContent()` calls (they become sync). Remove `await` from `loadLegalContent()`. |
-| `apps/agent-site/app/[slug]/privacy/page.tsx` (if exists) | Same — remove `await` from `loadLegalContent()` |
-| `apps/agent-site/app/[slug]/terms/page.tsx` (if exists) | Same |
-| `apps/agent-site/open-next.config.ts` | May need `edgeExternals: ["node:crypto"]` if `crypto.randomUUID()` in middleware causes build issues on Cloudflare (test during build — only add if needed) |
+| `apps/agent-site/app/page.tsx` | Remove `await` from `loadAgentConfig()`, `loadAgentContent()`, `loadLegalContent()`. Extract shared `resolveAgentId()` helper. |
+| `apps/agent-site/app/privacy/page.tsx` | Remove `await` from `loadAgentConfig()`, `loadLegalContent()` |
+| `apps/agent-site/app/terms/page.tsx` | Remove `await` from `loadAgentConfig()`, `loadLegalContent()` |
+| `apps/agent-site/app/accessibility/page.tsx` | Remove `await` from `loadAgentConfig()`, `loadLegalContent()` |
+| `apps/agent-site/app/thank-you/page.tsx` | Remove `await` from `loadAgentConfig()` |
+| `apps/agent-site/app/sitemap.ts` | Fix domain from `realestatestar.com` to `real-estate-star.com` |
+| `apps/agent-site/open-next.config.ts` | May need `edgeExternals: ["node:crypto"]` if `crypto.randomUUID()` in middleware causes Cloudflare build issues (test during build — only add if needed) |
+
+**Note**: `resolveAgentId()` is currently duplicated across all 5 page files. Consider extracting to a shared utility during implementation, but this is optional cleanup — not blocking.
 
 ---
 
