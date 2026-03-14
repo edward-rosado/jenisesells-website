@@ -13,6 +13,7 @@ export default defineConfig({
       reporter: ["text", "lcov", "html"],
       include: [
         "lib/**/*.ts",
+        "components/**/*.ts",
         "components/**/*.tsx",
         "templates/**/*.ts",
         "templates/**/*.tsx",
