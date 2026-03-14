@@ -17,12 +17,38 @@ vi.mock("@/lib/config", () => ({
 vi.mock("next/navigation", () => ({ notFound: () => mockNotFound() }));
 vi.mock("@sentry/nextjs", () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }));
 
-import TermsPage from "@/app/terms/page";
+import TermsPage, { generateMetadata } from "@/app/terms/page";
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockLoadAgentConfig.mockResolvedValue(AGENT);
   mockLoadLegalContent.mockResolvedValue({ above: undefined, below: undefined });
+});
+
+describe("generateMetadata (terms)", () => {
+  it("returns title with agent name when config loads", async () => {
+    const meta = await generateMetadata({ searchParams: Promise.resolve({ agentId: "test" }) });
+    expect(meta.title).toBe("Terms of Use | Jane Smith");
+  });
+
+  it("returns fallback title when config fails", async () => {
+    mockLoadAgentConfig.mockRejectedValue(new Error("fail"));
+    const meta = await generateMetadata({ searchParams: Promise.resolve({ agentId: "bad" }) });
+    expect(meta.title).toBe("Terms of Use");
+  });
+
+  it("uses DEFAULT_AGENT_ID env var when agentId is absent", async () => {
+    process.env.DEFAULT_AGENT_ID = "env-agent";
+    await generateMetadata({ searchParams: Promise.resolve({}) });
+    expect(mockLoadAgentConfig).toHaveBeenCalledWith("env-agent");
+    delete process.env.DEFAULT_AGENT_ID;
+  });
+
+  it("falls back to jenise-buckalew when no agentId or env var", async () => {
+    delete process.env.DEFAULT_AGENT_ID;
+    await generateMetadata({ searchParams: Promise.resolve({}) });
+    expect(mockLoadAgentConfig).toHaveBeenCalledWith("jenise-buckalew");
+  });
 });
 
 describe("TermsPage", () => {

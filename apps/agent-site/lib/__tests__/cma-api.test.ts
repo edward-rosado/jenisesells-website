@@ -67,7 +67,7 @@ describe("submitCmaRequest", () => {
     await submitCmaRequest("test-agent", SAMPLE_REQUEST);
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:5000/agents/test-agent/cma",
+      "http://localhost:5135/agents/test-agent/cma",
       {
         method: "POST",
         headers: {
