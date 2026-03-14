@@ -4,6 +4,7 @@ import { loadAgentConfig } from "@/lib/config";
 import { buildCssVariableStyle } from "@/lib/branding";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/sections";
+import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 
 interface PageProps {
   searchParams: Promise<{ agentId?: string }>;
@@ -50,6 +51,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
         </div>
       </main>
       <Footer agent={agent} />
+      <CookieConsentBanner agentId={id} />
     </div>
   );
 }
