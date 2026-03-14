@@ -746,6 +746,7 @@ const mockClone = vi.fn();
 function createMockResponse() {
   const headers = new Map<string, string>();
   return {
+    status: 200,
     headers: {
       set: (key: string, value: string) => headers.set(key, value),
       get: (key: string) => headers.get(key),
@@ -915,6 +916,54 @@ describe("middleware", () => {
     expect(csp).toContain("wss://api.example.com");
 
     delete process.env.NEXT_PUBLIC_API_URL;
+  });
+
+  it("converts http:// to ws:// in CSP connect-src", async () => {
+    process.env.NEXT_PUBLIC_API_URL = "http://localhost:5135";
+    vi.resetModules();
+    vi.resetAllMocks();
+    mockRewrite.mockReturnValue(createMockResponse());
+    mockGetAgentIds.mockReturnValue(new Set(["jenise-buckalew"]));
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    mockIsWwwCustomDomain.mockReturnValue(null);
+
+    const mod = await import("@/middleware");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
+    const response = mod.middleware(req as never);
+    const csp = response.headers.get("Content-Security-Policy")!;
+    expect(csp).toContain("http://localhost:5135");
+    expect(csp).toContain("ws://localhost:5135");
+
+    delete process.env.NEXT_PUBLIC_API_URL;
+  });
+
+  it("omits API URL from CSP when NEXT_PUBLIC_API_URL is not set", () => {
+    delete process.env.NEXT_PUBLIC_API_URL;
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
+    const response = middleware(req as never);
+    const csp = response.headers.get("Content-Security-Policy")!;
+    expect(csp).not.toContain("wss://");
+    expect(csp).not.toContain("ws://");
+  });
+
+  // --- fallback + edge cases ---
+  it("falls back to localhost:3000 when host header is missing", () => {
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    mockGetAgentIds.mockReturnValue(new Set(["jenise-buckalew"]));
+    const req = {
+      headers: { get: () => null },
+      nextUrl: { clone: vi.fn().mockReturnValue(new URL("http://localhost:3000/")), pathname: "/" },
+    };
+    const response = middleware(req as never);
+    expect(response).toBeDefined();
+  });
+
+  it("strips port from production hostname for agent matching", () => {
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com:443");
+    middleware(req as never);
+    expect(mockRewrite).toHaveBeenCalled();
   });
 
   // --- localhost dev ---
