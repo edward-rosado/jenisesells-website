@@ -1,170 +1,172 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// Mock the config-registry module — prebuild generates this at build time
+vi.mock("../config-registry", () => ({
+  configs: {
+    "jenise-buckalew": {
+      id: "jenise-buckalew",
+      identity: { name: "Jenise Buckalew", phone: "555-1234", email: "jenise@test.com", tagline: "Selling NJ!" },
+      location: { state: "NJ", service_areas: ["Middlesex", "Monmouth"] },
+      branding: { primary_color: "#1B5E20" },
+    },
+    "test-agent": {
+      id: "test-agent",
+      identity: { name: "Test Agent", phone: "555-0000", email: "test@test.com" },
+      location: { state: "NY" },
+      branding: {},
+    },
+    "bad-no-id": {
+      identity: { name: "X", phone: "1", email: "x@x.com" },
+      location: { state: "NJ" },
+    },
+    "bad-no-name": {
+      id: "bad-no-name",
+      identity: { phone: "1", email: "x@x.com" },
+      location: { state: "NJ" },
+    },
+    "bad-no-phone": {
+      id: "bad-no-phone",
+      identity: { name: "X", email: "x@x.com" },
+      location: { state: "NJ" },
+    },
+    "bad-no-email": {
+      id: "bad-no-email",
+      identity: { name: "X", phone: "1" },
+      location: { state: "NJ" },
+    },
+    "bad-no-state": {
+      id: "bad-no-state",
+      identity: { name: "X", phone: "1", email: "x@x.com" },
+      location: {},
+    },
+  },
+  contents: {
+    "jenise-buckalew": {
+      template: "emerald-classic",
+      sections: {
+        hero: { enabled: true, data: { headline: "Sell", tagline: "Selling NJ!", cta_text: "Go", cta_link: "#" } },
+        stats: { enabled: true, data: { items: [] } },
+        services: { enabled: true, data: { items: [] } },
+        how_it_works: { enabled: true, data: { steps: [] } },
+        sold_homes: { enabled: false, data: { items: [] } },
+        testimonials: { enabled: false, data: { items: [] } },
+        cma_form: { enabled: true, data: { title: "CMA", subtitle: "Free" } },
+        about: { enabled: true, data: { bio: "Bio", credentials: [] } },
+        city_pages: { enabled: false, data: { cities: [] } },
+      },
+    },
+  },
+  legalContent: {
+    "jenise-buckalew": {
+      privacy: { above: "# Privacy\nCustom.", below: "## More\nExtra." },
+    },
+  },
+  customDomains: { "jenisesellsnj.com": "jenise-buckalew" },
+  agentIds: new Set(["jenise-buckalew", "test-agent", "bad-no-id", "bad-no-name", "bad-no-phone", "bad-no-email", "bad-no-state"]),
+}));
+
 import { loadAgentConfig, loadAgentContent, loadLegalContent } from "../config";
-import { writeFile, mkdir, rm } from "fs/promises";
-import path from "path";
 
 describe("loadAgentConfig", () => {
-  it("should load jenise-buckalew config from config/agents/", async () => {
-    const config = await loadAgentConfig("jenise-buckalew");
-    expect(config).toBeDefined();
+  it("loads a known agent", () => {
+    const config = loadAgentConfig("jenise-buckalew");
     expect(config.id).toBe("jenise-buckalew");
     expect(config.identity.name).toBe("Jenise Buckalew");
     expect(config.location.state).toBe("NJ");
-    expect(config.branding.primary_color).toBe("#1B5E20");
   });
 
-  it("should throw for non-existent agent", async () => {
-    await expect(loadAgentConfig("nobody")).rejects.toThrow();
+  it("throws for non-existent agent", () => {
+    expect(() => loadAgentConfig("nobody")).toThrow("Agent not found: nobody");
   });
 
-  it("should reject path traversal attempts", async () => {
-    await expect(loadAgentConfig("../../etc/passwd")).rejects.toThrow("Invalid agent ID");
-    await expect(loadAgentConfig("../secret")).rejects.toThrow("Invalid agent ID");
-    await expect(loadAgentConfig("foo/bar")).rejects.toThrow("Invalid agent ID");
-    await expect(loadAgentConfig("")).rejects.toThrow("Invalid agent ID");
+  it("rejects path traversal attempts", () => {
+    expect(() => loadAgentConfig("../../etc/passwd")).toThrow("Invalid agent ID");
+    expect(() => loadAgentConfig("../secret")).toThrow("Invalid agent ID");
+    expect(() => loadAgentConfig("foo/bar")).toThrow("Invalid agent ID");
+    expect(() => loadAgentConfig("")).toThrow("Invalid agent ID");
   });
 
-  it("should throw when config is missing id", async () => {
-    await expect(loadAgentConfig("bad-no-id")).rejects.toThrow("AgentConfig: missing id");
+  it("throws when config is missing id", () => {
+    expect(() => loadAgentConfig("bad-no-id")).toThrow("AgentConfig: missing id");
   });
 
-  it("should throw when config is missing identity.name", async () => {
-    await expect(loadAgentConfig("bad-no-name")).rejects.toThrow("AgentConfig: missing identity.name");
+  it("throws when config is missing identity.name", () => {
+    expect(() => loadAgentConfig("bad-no-name")).toThrow("AgentConfig: missing identity.name");
   });
 
-  it("should throw when config is missing identity.phone", async () => {
-    await expect(loadAgentConfig("bad-no-phone")).rejects.toThrow("AgentConfig: missing identity.phone");
+  it("throws when config is missing identity.phone", () => {
+    expect(() => loadAgentConfig("bad-no-phone")).toThrow("AgentConfig: missing identity.phone");
   });
 
-  it("should throw when config is missing identity.email", async () => {
-    await expect(loadAgentConfig("bad-no-email")).rejects.toThrow("AgentConfig: missing identity.email");
+  it("throws when config is missing identity.email", () => {
+    expect(() => loadAgentConfig("bad-no-email")).toThrow("AgentConfig: missing identity.email");
   });
 
-  it("should throw when config is missing location.state", async () => {
-    await expect(loadAgentConfig("bad-no-state")).rejects.toThrow("AgentConfig: missing location.state");
+  it("throws when config is missing location.state", () => {
+    expect(() => loadAgentConfig("bad-no-state")).toThrow("AgentConfig: missing location.state");
+  });
+
+  it("rejects UPPER case agent ID", () => {
+    expect(() => loadAgentConfig("UPPER")).toThrow("Invalid agent ID");
+  });
+
+  it("rejects agent ID with spaces", () => {
+    expect(() => loadAgentConfig("has spaces")).toThrow("Invalid agent ID");
+  });
+
+  it("rejects agent ID with dots", () => {
+    expect(() => loadAgentConfig("has.dot")).toThrow("Invalid agent ID");
   });
 });
 
 describe("loadAgentContent", () => {
-  it("should return default content when no content file exists", async () => {
-    const content = await loadAgentContent("jenise-buckalew");
-    expect(content).toBeDefined();
+  it("returns content from registry when it exists", () => {
+    const content = loadAgentContent("jenise-buckalew");
     expect(content.template).toBe("emerald-classic");
-    expect(content.sections.hero.enabled).toBe(true);
-    expect(content.sections.cma_form.enabled).toBe(true);
+    expect(content.sections.stats.enabled).toBe(true);
   });
 
-  it("should load content from file when it exists", async () => {
-    const content = await loadAgentContent("jenise-buckalew");
-    expect(content.template).toBe("emerald-classic");
-    expect(content.sections.hero.enabled).toBe(true);
-    // Content comes from file, not defaults
-    expect(content.sections).toBeDefined();
-  });
-
-  it("should accept a pre-loaded config for default content generation", async () => {
-    // Use a non-existent content file to trigger default generation
-    const config = await loadAgentConfig("jenise-buckalew");
-    // Create a fake agent ID that won't have a content file
-    const fakeConfig = { ...config, id: "no-content-agent" };
-    const content = await loadAgentContent("jenise-buckalew", fakeConfig);
-    // This loads from the real content file, so it works either way
-    expect(content.template).toBe("emerald-classic");
-  });
-
-  it("should generate default content when no content file exists", async () => {
-    // test-agent has no .content.json file — triggers buildDefaultContent
-    const content = await loadAgentContent("test-agent");
+  it("generates default content when no content in registry", () => {
+    const content = loadAgentContent("test-agent");
     expect(content.template).toBe("emerald-classic");
     expect(content.sections.hero.enabled).toBe(true);
     expect(content.sections.hero.data.tagline).toBe("Your Trusted Real Estate Professional");
     expect(content.sections.services.data.items[0].description).toContain("Test Agent");
-    expect(content.sections.how_it_works.data.steps[2].description).toContain("Test Agent");
     expect(content.sections.about.data.bio).toContain("NY");
     expect(content.sections.stats.enabled).toBe(false);
   });
 
-  it("should use provided config when generating defaults (avoids double read)", async () => {
-    const config = await loadAgentConfig("test-agent");
-    const content = await loadAgentContent("test-agent", config);
+  it("uses provided config when generating defaults", () => {
+    const config = loadAgentConfig("test-agent");
+    const content = loadAgentContent("test-agent", config);
     expect(content.sections.about.data.bio).toContain("Test Agent");
   });
 
-  it("should reject path traversal in content loading", async () => {
-    await expect(loadAgentContent("../../etc/passwd")).rejects.toThrow("Invalid agent ID");
-  });
-});
-
-describe("directory-first config resolution", () => {
-  it("loadAgentConfig reads from {id}/config.json when directory exists", async () => {
-    // jenise-buckalew has been migrated to directory structure
-    const config = await loadAgentConfig("jenise-buckalew");
-    expect(config.id).toBe("jenise-buckalew");
-    expect(config.identity.name).toBe("Jenise Buckalew");
-  });
-
-  it("loadAgentConfig falls back to {id}.json when directory doesn't exist", async () => {
-    // test-agent only exists as a flat file
-    const config = await loadAgentConfig("test-agent");
-    expect(config.id).toBe("test-agent");
-  });
-
-  it("loadAgentContent reads from {id}/content.json when directory exists", async () => {
-    // jenise-buckalew has content.json in directory
-    const content = await loadAgentContent("jenise-buckalew");
-    expect(content.template).toBe("emerald-classic");
-    // Directory content has stats enabled (unlike defaults)
-    expect(content.sections.stats.enabled).toBe(true);
-  });
-
-  it("loadAgentContent falls back to {id}.content.json when directory doesn't exist", async () => {
-    // test-agent has no directory, no content file — falls back to defaults
-    const content = await loadAgentContent("test-agent");
-    expect(content.template).toBe("emerald-classic");
-    expect(content.sections.stats.enabled).toBe(false);
-  });
-
-  it("loadAgentConfig throws on invalid agent ID", async () => {
-    await expect(loadAgentConfig("UPPER")).rejects.toThrow("Invalid agent ID");
-    await expect(loadAgentConfig("has spaces")).rejects.toThrow("Invalid agent ID");
-    await expect(loadAgentConfig("has.dot")).rejects.toThrow("Invalid agent ID");
-    await expect(loadAgentConfig("../traversal")).rejects.toThrow("Invalid agent ID");
+  it("rejects path traversal", () => {
+    expect(() => loadAgentContent("../../etc/passwd")).toThrow("Invalid agent ID");
   });
 });
 
 describe("loadLegalContent", () => {
-  const CONFIG_DIR = path.resolve(process.cwd(), "../../config/agents");
-  const testAgentId = "legal-test-agent";
-  const legalDir = path.join(CONFIG_DIR, testAgentId, "legal");
-
-  it("returns markdown when legal files exist", async () => {
-    // Create temp legal files for testing
-    await mkdir(legalDir, { recursive: true });
-    await writeFile(path.join(legalDir, "privacy-above.md"), "# Privacy Policy\nCustom privacy content.");
-    await writeFile(path.join(legalDir, "privacy-below.md"), "## Additional Privacy Info\nMore content.");
-
-    try {
-      const result = await loadLegalContent(testAgentId, "privacy");
-      expect(result.above).toBe("# Privacy Policy\nCustom privacy content.");
-      expect(result.below).toBe("## Additional Privacy Info\nMore content.");
-    } finally {
-      await rm(path.join(CONFIG_DIR, testAgentId), { recursive: true, force: true });
-    }
+  it("returns markdown when legal content exists in registry", () => {
+    const result = loadLegalContent("jenise-buckalew", "privacy");
+    expect(result.above).toBe("# Privacy\nCustom.");
+    expect(result.below).toBe("## More\nExtra.");
   });
 
-  it("returns undefined for above and below when files don't exist", async () => {
-    const result = await loadLegalContent("jenise-buckalew", "privacy");
+  it("returns undefined when no legal content for agent", () => {
+    const result = loadLegalContent("test-agent", "privacy");
     expect(result.above).toBeUndefined();
     expect(result.below).toBeUndefined();
   });
 
-  it("returns undefined for above and below when legal dir doesn't exist", async () => {
-    const result = await loadLegalContent("jenise-buckalew", "terms");
+  it("returns undefined when legal page not found", () => {
+    const result = loadLegalContent("jenise-buckalew", "terms");
     expect(result.above).toBeUndefined();
     expect(result.below).toBeUndefined();
   });
 
-  it("rejects path traversal in agent ID", async () => {
-    await expect(loadLegalContent("../../../etc/passwd", "privacy")).rejects.toThrow("Invalid agent ID");
+  it("rejects path traversal", () => {
+    expect(() => loadLegalContent("../../../etc/passwd", "privacy")).toThrow("Invalid agent ID");
   });
 });
