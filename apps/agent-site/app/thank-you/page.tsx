@@ -15,9 +15,9 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
   const id = agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 
   // Load data in try/catch — return JSX outside so React can catch render errors.
-  let agent: Awaited<ReturnType<typeof loadAgentConfig>>;
+  let agent: ReturnType<typeof loadAgentConfig>;
   try {
-    agent = await loadAgentConfig(id);
+    agent = loadAgentConfig(id);
   } catch (err) {
     Sentry.captureException(err, { tags: { agentId: id } });
     notFound(); // typed as never — execution stops here on failure
