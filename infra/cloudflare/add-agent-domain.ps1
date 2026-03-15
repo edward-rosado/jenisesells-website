@@ -41,13 +41,14 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # --- Constants ---
-$WorkersService  = "real-estate-star-agents"
-$BaseDomain      = "real-estate-star.com"
-$AgentSubdomain  = "$BaseDomain"
-$CfApiBase       = "https://api.cloudflare.com/client/v4"
-$ScriptDir       = $PSScriptRoot
-$RepoRoot        = (Resolve-Path (Join-Path $ScriptDir "..\..")).Path
-$AgentsDir       = Join-Path $RepoRoot "config\agents"
+$WorkersService      = "real-estate-star-agents"
+$BaseDomain          = "real-estate-star.com"
+$AgentSubdomain      = "$BaseDomain"
+$CfApiBase           = "https://api.cloudflare.com/client/v4"
+$DefaultAccountId    = "7674efd9381763796f39ea67fe5e0505"
+$ScriptDir           = $PSScriptRoot
+$RepoRoot            = (Resolve-Path (Join-Path $ScriptDir "..\..")).Path
+$AgentsDir           = Join-Path $RepoRoot "config\agents"
 
 # --- Helpers ---
 function Write-Ok($Msg)   { Write-Host "    [OK]   $Msg" -ForegroundColor Green }
@@ -76,7 +77,10 @@ if ($env:CLOUDFLARE_API_TOKEN) {
 }
 
 if ($env:CLOUDFLARE_ACCOUNT_ID) {
-    Write-Ok "CLOUDFLARE_ACCOUNT_ID set"
+    Write-Ok "CLOUDFLARE_ACCOUNT_ID set (from env)"
+} elseif ($DefaultAccountId) {
+    $env:CLOUDFLARE_ACCOUNT_ID = $DefaultAccountId
+    Write-Ok "CLOUDFLARE_ACCOUNT_ID set (default)"
 } else {
     Write-Fail "CLOUDFLARE_ACCOUNT_ID is not set"
     $prereqFailed = $true
@@ -291,7 +295,7 @@ if ($hasFailure) {
     Write-Info "Next steps:"
     Write-Info "  - DNS for $subdomain is auto-managed by Cloudflare (same account zone)"
     if ($customWebsite) {
-        Write-Info "  - For $customWebsite: ensure the zone is added to this Cloudflare account"
+        Write-Info "  - For ${customWebsite}: ensure the zone is added to this Cloudflare account"
         Write-Info "    and the nameservers at the registrar point to Cloudflare"
     }
     Write-Info "  - Verify live traffic at https://$subdomain"
