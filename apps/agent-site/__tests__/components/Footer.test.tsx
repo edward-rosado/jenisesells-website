@@ -19,25 +19,25 @@ describe("Footer", () => {
 
   it("does not render title separator when title is absent", () => {
     render(<Footer agent={AGENT_MINIMAL} />);
-    // Should just be the name without a comma
-    expect(screen.getByText("Bob Jones")).toBeInTheDocument();
-    expect(screen.queryByText(/Bob Jones,/)).not.toBeInTheDocument();
+    const heading = screen.getByText("Bob Jones");
+    expect(heading.tagName).toBe("P");
+    expect(heading).toHaveStyle({ fontSize: "22px" });
   });
 
-  it("renders brokerage when present", () => {
+  it("renders brokerage in independent agent line", () => {
     render(<Footer agent={AGENT} />);
-    expect(screen.getByText("Best Homes Realty")).toBeInTheDocument();
+    expect(screen.getByText(/Independent Agent with Best Homes Realty/)).toBeInTheDocument();
   });
 
   it("does not render brokerage when absent", () => {
     render(<Footer agent={AGENT_MINIMAL} />);
-    expect(screen.queryByText("Best Homes Realty")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Best Homes Realty/)).not.toBeInTheDocument();
   });
 
-  it("renders phone as a tel link", () => {
+  it("renders phone as a tel link with digits only", () => {
     render(<Footer agent={AGENT} />);
     const phoneLink = screen.getByRole("link", { name: /call jane smith/i });
-    expect(phoneLink).toHaveAttribute("href", "tel:555-123-4567");
+    expect(phoneLink).toHaveAttribute("href", "tel:5551234567");
   });
 
   it("renders email as a mailto link", () => {
@@ -46,10 +46,9 @@ describe("Footer", () => {
     expect(emailLink).toHaveAttribute("href", "mailto:jane@example.com");
   });
 
-  it("renders service areas when present", () => {
+  it("renders service areas with compact county format", () => {
     render(<Footer agent={AGENT} />);
-    expect(screen.getByText(/Hoboken/)).toBeInTheDocument();
-    expect(screen.getByText(/Jersey City/)).toBeInTheDocument();
+    expect(screen.getByText(/Serving Hoboken & Jersey City Counties, NJ/)).toBeInTheDocument();
   });
 
   it("does not render service areas section when absent", () => {
@@ -57,26 +56,25 @@ describe("Footer", () => {
     expect(screen.queryByText(/Serving/)).not.toBeInTheDocument();
   });
 
-  it("renders languages when agent has more than one language", () => {
-    render(<Footer agent={AGENT} />);
-    expect(screen.getByText(/English/)).toBeInTheDocument();
-    expect(screen.getByText(/Spanish/)).toBeInTheDocument();
-  });
-
-  it("does not render language line for single language", () => {
-    const agentSingleLang = {
+  it("renders office phone in contact line when present", () => {
+    const agentWithOffice = {
       ...AGENT,
-      identity: { ...AGENT.identity, languages: ["English"] },
+      identity: { ...AGENT.identity, office_phone: "Office: (732) 251-2500" },
     };
-    render(<Footer agent={agentSingleLang} />);
-    // The language paragraph should not appear for a single language
-    expect(screen.queryByText("English · Spanish")).not.toBeInTheDocument();
-    expect(screen.queryByText("English")).not.toBeInTheDocument();
+    render(<Footer agent={agentWithOffice} />);
+    const officeLink = screen.getByRole("link", { name: /call office/i });
+    expect(officeLink).toHaveAttribute("href", "tel:7322512500");
   });
 
-  it("does not render language line when languages is undefined", () => {
-    render(<Footer agent={AGENT_MINIMAL} />);
-    expect(screen.queryByText(/·/)).not.toBeInTheDocument();
+  it("renders equal housing opportunity as standalone section", () => {
+    render(<Footer agent={AGENT} />);
+    expect(screen.getByLabelText("Equal Housing Opportunity logo")).toBeInTheDocument();
+    expect(screen.getByText("Equal Housing Opportunity")).toBeInTheDocument();
+  });
+
+  it("renders disclaimer with agent info", () => {
+    render(<Footer agent={AGENT} />);
+    expect(screen.getByText(/general informational purposes/)).toBeInTheDocument();
   });
 
   it("renders copyright with current year and agent name", () => {
@@ -93,8 +91,7 @@ describe("Footer", () => {
 
   it("renders legal links nav", () => {
     render(<Footer agent={AGENT} />);
-    const legalNav = screen.getByRole("navigation", { name: "Legal links" });
-    expect(legalNav).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Legal links" })).toBeInTheDocument();
   });
 
   it("renders privacy link", () => {

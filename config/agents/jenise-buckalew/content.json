@@ -5,8 +5,10 @@
       "enabled": true,
       "data": {
         "headline": "Sell Your Home with Confidence",
+        "highlight_word": "Confidence",
         "tagline": "Forward. Moving.",
-        "cta_text": "Get Your Free Home Value",
+        "body": "I'm Jenise Buckalew, a NJ State Licensed REALTOR\u00ae and independent agent with Green Light Realty LLC. With over 100 homes sold across 20 years in the business, I deliver results \u2014 and I'll start with a free, instant Comparative Market Analysis so you know exactly what your home is worth.",
+        "cta_text": "Get Your Free Home Value Report in Minutes",
         "cta_link": "#cma-form"
       }
     },
@@ -15,57 +17,63 @@
       "data": {
         "items": [
           { "value": "100+", "label": "Homes Sold" },
-          { "value": "5.0", "label": "Zillow Rating (24 Reviews)" },
-          { "value": "Gold", "label": "NJ REALTORS Circle of Excellence" },
+          { "value": "5.0 \u2605", "label": "Zillow Rating (24 Reviews)" },
+          { "value": "Gold", "label": "NJ REALTORS\u00ae Circle of Excellence" },
           { "value": "20+", "label": "Years of Experience" },
-          { "value": "$500K–$1.5M", "label": "Sale Price Range" }
+          { "value": "$500K\u2013$1.5M", "label": "Sale Price Range" }
         ]
       }
     },
     "services": {
       "enabled": true,
       "data": {
+        "title": "What I Bring to the Table",
+        "subtitle": "Every seller gets the full package \u2014 no cutting corners.",
         "items": [
-          { "title": "Expert Market Analysis", "description": "I study local trends, recent sales, and neighborhood data to determine the true value of your home — so you never leave money on the table." },
-          { "title": "Strategic Marketing Plan", "description": "From professional photography to targeted online campaigns, I create a custom marketing plan that puts your home in front of serious buyers." },
-          { "title": "Professional Photography", "description": "First impressions matter. I use high-quality photos and virtual tours to showcase your home beautifully online." },
-          { "title": "Strategic Pricing", "description": "Price it right from day one. I use deep market analysis to position your home competitively — attracting more offers, faster." },
-          { "title": "Home Prep Guidance", "description": "Small improvements can mean big returns. I walk through your home and recommend exactly what to fix, stage, or skip." },
-          { "title": "Maximum Exposure", "description": "Your listing goes on MLS, Zillow, Realtor.com, social media, and my personal network — reaching thousands of potential buyers." },
-          { "title": "Se Habla Español", "description": "I proudly serve both English- and Spanish-speaking homeowners with the same care and expertise." }
+          { "title": "Free Home Value Report in Minutes", "description": "Submit your info and get a personalized Home Value Report within minutes \u2014 so you know exactly what your home is worth before we even meet." },
+          { "title": "Professional Photography", "description": "Every listing gets high-quality, professionally shot photos that make buyers stop scrolling and start scheduling showings." },
+          { "title": "Strategic Pricing", "description": "Data-driven pricing backed by real comparable sales in your neighborhood \u2014 priced to attract serious offers fast." },
+          { "title": "Home Prep Guidance", "description": "I'll walk through your home and tell you exactly what small changes can boost your sale price \u2014 no expensive renovations needed." },
+          { "title": "Maximum Exposure", "description": "Your home gets listed on the MLS, Zillow, Realtor.com, social media, and more \u2014 seen by thousands of active buyers." },
+          { "title": "Se Habla Espa\u00f1ol", "description": "Bilingual service in English and Spanish so every client feels heard, understood, and confident throughout the process." }
         ]
       }
     },
     "how_it_works": {
       "enabled": true,
       "data": {
+        "title": "How It Works",
+        "subtitle": "Three simple steps to selling your home for top dollar.",
         "steps": [
-          { "number": 1, "title": "Submit Your Info", "description": "Fill out the quick form below with your property details." },
-          { "number": 2, "title": "Get Your Free Home Value Report", "description": "I'll prepare a professional Comparative Market Analysis showing what your home is worth today." },
-          { "number": 3, "title": "Schedule a Walkthrough", "description": "We'll meet at your home to discuss strategy, timing, and next steps — no pressure, just expert guidance." }
+          { "number": 1, "title": "Submit Your Info", "description": "Fill out the quick form below with your property details. It takes less than 2 minutes." },
+          { "number": 2, "title": "Get Your Free Home Value Report", "description": "I'll send you a personalized Home Value Report within minutes showing what your home is worth based on recent comparable sales." },
+          { "number": 3, "title": "Schedule a Walkthrough", "description": "I'll visit your home in person to give you the most accurate price based on your upgrades and unique features." }
         ]
       }
     },
     "sold_homes": {
       "enabled": true,
       "data": {
+        "title": "Recently Sold by Jenise",
+        "subtitle": "Real results from the Zillow profile \u2014 verified sales.",
         "items": [
-          { "address": "123 Main St", "city": "East Brunswick", "state": "NJ", "price": "$585,000" },
-          { "address": "456 Oak Ave", "city": "Edison", "state": "NJ", "price": "$520,000" },
-          { "address": "789 Elm Dr", "city": "Sayreville", "state": "NJ", "price": "$475,000" },
-          { "address": "12 Pine Rd", "city": "Hazlet", "state": "NJ", "price": "$610,000" },
-          { "address": "34 Cedar Ln", "city": "Cliffwood", "state": "NJ", "price": "$390,000" }
+          { "address": "308 Myrtle St", "city": "Cliffwood", "state": "NJ", "price": "$660,000", "image_url": "https://photos.zillowstatic.com/fp/1f5770d55c236ab071f18f2d6935d159-cc_ft_960.jpg" },
+          { "address": "16 Hershey Rd", "city": "East Brunswick", "state": "NJ", "price": "$650,000", "image_url": "https://photos.zillowstatic.com/fp/86a8c6c1270be1d7e36ff644ba1c7808-p_d.jpg" },
+          { "address": "18 Charlotte St", "city": "Sayreville", "state": "NJ", "price": "$640,000", "image_url": "https://photos.zillowstatic.com/fp/4b05be85f81bda91072c22ecb163c834-p_d.jpg" },
+          { "address": "195 College Dr", "city": "Edison", "state": "NJ", "price": "$260,000", "image_url": "https://photos.zillowstatic.com/fp/d94d9142ed97da31586a8d9efd88517d-p_d.jpg" }
         ]
       }
     },
     "testimonials": {
       "enabled": true,
       "data": {
+        "title": "What My Clients Say",
+        "subtitle": "Real reviews from real clients on Zillow.",
         "items": [
-          { "text": "Jenise was absolutely incredible throughout the entire selling process. She knew the local market inside and out and helped us price our home perfectly. We received multiple offers within the first week!", "reviewer": "The Martinez Family", "rating": 5, "source": "Zillow" },
-          { "text": "As first-time sellers, we were nervous about everything. Jenise walked us through each step with patience and professionalism. She handled every detail so we didn't have to stress.", "reviewer": "David & Sarah K.", "rating": 5, "source": "Zillow" },
-          { "text": "I interviewed three agents before choosing Jenise, and I'm so glad I did. Her marketing strategy was next-level — professional photos, social media ads, the works. My home sold above asking!", "reviewer": "Linda P.", "rating": 5, "source": "Zillow" },
-          { "text": "Jenise helped us sell our home in Middlesex County in under 30 days. She's responsive, knowledgeable, and genuinely cares about her clients. Highly recommend!", "reviewer": "Carlos & Maria G.", "rating": 5, "source": "Zillow" }
+          { "text": "Jenise was absolutely amazing throughout the entire process. She was always available, incredibly knowledgeable, and made everything so easy. I couldn't have asked for a better experience!", "reviewer": "sra56", "rating": 5, "source": "Zillow" },
+          { "text": "Jenise is a fantastic realtor! She guided us through every step and was always patient with our questions. Her expertise made our home sale smooth and stress-free.", "reviewer": "rv skaarup", "rating": 5, "source": "Zillow" },
+          { "text": "Working with Jenise was the best decision we made. She is professional, responsive, and truly cares about her clients. She sold our home fast and for a great price!", "reviewer": "brittneyc12597", "rating": 5, "source": "Zillow" },
+          { "text": "Jenise went above and beyond for us. She was there every step of the way and made the whole process seamless. Highly recommend her to anyone buying or selling!", "reviewer": "abbynormal56", "rating": 5, "source": "Zillow" }
         ]
       }
     },
@@ -73,14 +81,19 @@
       "enabled": true,
       "data": {
         "title": "What's Your Home Worth?",
-        "subtitle": "Get a free, professional Comparative Market Analysis — delivered within minutes."
+        "subtitle": "Get Your Free Home Value Report \u2014 In Minutes!"
       }
     },
     "about": {
       "enabled": true,
       "data": {
-        "bio": "With over 20 years of experience in New Jersey real estate, I've helped more than 100 families buy and sell homes across Middlesex, Monmouth, and Ocean Counties. I know these neighborhoods, school districts, and market trends — and I use that knowledge to get you the best possible result. Whether you're selling your first home or your fifth, I'm here to guide you every step of the way.",
-        "credentials": ["NJ Licensed REALTOR\u00ae", "Gold Circle of Excellence", "Bilingual: English & Spanish"]
+        "title": "About Jenise",
+        "bio": [
+          "I'm Jenise Buckalew \u2014 a NJ State Licensed REALTOR\u00ae, proud mother of five, and an independent agent with Green Light Realty LLC. With over 20 years of experience and hundreds of successful transactions, I specialize in helping homeowners across Middlesex, Monmouth, and Ocean Counties get the best value for their biggest investment.",
+          "I'm a recurring NJ REALTORS\u00ae Circle of Excellence award winner with a perfect 5.0 Zillow rating. I believe every seller deserves hands-on, personalized service \u2014 from a free professional CMA to expert home prep advice and professional photography. My goal is simple: sell your home for top dollar, as fast as possible.",
+          "Green Light Realty LLC operates three offices \u2014 one in Ocean County and two in Middlesex County \u2014 giving my clients broad reach across Central New Jersey."
+        ],
+        "credentials": ["NJ State Licensed", "Circle of Excellence", "100+ Homes Sold", "5.0 \u2605 Zillow", "Se Habla Espa\u00f1ol"]
       }
     },
     "city_pages": {

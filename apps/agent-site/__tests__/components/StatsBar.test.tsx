@@ -28,17 +28,18 @@ describe("StatsBar", () => {
   });
 
   it("renders correct number of stat items", () => {
-    const { container } = render(<StatsBar items={STATS} />);
-    // Each stat is a div with text-center text-white
-    const items = container.querySelectorAll("section > div");
-    expect(items).toHaveLength(3);
+    render(<StatsBar items={STATS} />);
+    // Each stat has a value and label - check all values render
+    expect(screen.getByText("150+")).toBeInTheDocument();
+    expect(screen.getByText("$2.5M")).toBeInTheDocument();
+    expect(screen.getByText("98%")).toBeInTheDocument();
   });
 
-  it("renders nothing inside section for an empty array", () => {
+  it("renders nothing for an empty array", () => {
     const { container } = render(<StatsBar items={[]} />);
-    const section = container.querySelector("section");
-    expect(section).toBeInTheDocument();
-    expect(section!.children).toHaveLength(0);
+    const wrapper = container.firstElementChild;
+    expect(wrapper).toBeInTheDocument();
+    expect(wrapper!.children).toHaveLength(0);
   });
 
   it("renders a single stat correctly", () => {
@@ -47,8 +48,8 @@ describe("StatsBar", () => {
     expect(screen.getByText("One")).toBeInTheDocument();
   });
 
-  it("renders section element", () => {
+  it("renders div element", () => {
     const { container } = render(<StatsBar items={STATS} />);
-    expect(container.querySelector("section")).toBeInTheDocument();
+    expect(container.querySelector("div")).toBeInTheDocument();
   });
 });

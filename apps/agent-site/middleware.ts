@@ -59,10 +59,24 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // 4. No match -> 404
+  // 4. Dev fallback: bare localhost gets default agent
+  const host = hostname.split(":")[0];
+  if (host === "localhost" && process.env.NODE_ENV !== "production") {
+    const defaultId = process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+    if (getAgentIds().has(defaultId)) {
+      const url = request.nextUrl.clone();
+      url.searchParams.set("agentId", defaultId);
+      const response = NextResponse.rewrite(url);
+      response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
+      response.headers.set("x-nonce", nonce);
+      return response;
+    }
+  }
+
+  // 5. No match -> 404
   return notFoundResponse(nonce);
 }
 
 export const config = {
-  matcher: ["/((?!_next|favicon.ico|api).*)"],
+  matcher: ["/((?!_next|favicon.ico|api|.*\\.(?:jpg|jpeg|png|gif|webp|svg|ico|css|js|woff|woff2)).*)"],
 };

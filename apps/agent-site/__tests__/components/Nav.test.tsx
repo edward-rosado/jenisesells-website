@@ -25,8 +25,8 @@ describe("Nav", () => {
 
   it("renders phone CTA button when phone is present", () => {
     render(<Nav agent={AGENT} />);
-    const phoneLink = screen.getByRole("link", { name: "555-123-4567" });
-    expect(phoneLink).toHaveAttribute("href", "tel:555-123-4567");
+    const phoneLink = screen.getByRole("link", { name: /555-123-4567/ });
+    expect(phoneLink).toHaveAttribute("href", "tel:5551234567");
   });
 
   it("does not render email link when email is absent", () => {

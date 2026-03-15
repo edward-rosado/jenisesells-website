@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { AgentConfig, AboutData } from "@/lib/types";
 
 interface AboutProps {
@@ -7,25 +8,91 @@ interface AboutProps {
 
 export function About({ agent, data }: AboutProps) {
   return (
-    <section className="py-16 px-10 max-w-4xl mx-auto">
-      <h2 className="text-3xl font-bold text-center mb-10" style={{ color: "var(--color-primary)" }}>
-        About {agent.identity.name}
-      </h2>
-      <div className="text-gray-600 leading-relaxed text-center max-w-2xl mx-auto">
-        <p>{data.bio}</p>
-        {data.credentials && data.credentials.length > 0 && (
-          <div className="flex justify-center gap-4 mt-6 flex-wrap">
-            {data.credentials.map((cred) => (
-              <span
-                key={cred}
-                className="px-4 py-2 rounded-full text-sm font-semibold"
-                style={{ backgroundColor: "var(--color-primary)", color: "white" }}
-              >
-                {cred}
-              </span>
-            ))}
+    <section
+      style={{
+        padding: "70px 40px",
+        maxWidth: "1100px",
+        margin: "0 auto",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "50px",
+          flexWrap: "wrap",
+          justifyContent: "center",
+        }}
+      >
+        {agent.identity.headshot_url && (
+          <div
+            style={{
+              width: "250px",
+              height: "250px",
+              borderRadius: "50%",
+              overflow: "hidden",
+              border: "4px solid #C8A951",
+              flexShrink: 0,
+              position: "relative",
+            }}
+          >
+            <Image
+              src={agent.identity.headshot_url}
+              alt={agent.identity.name}
+              fill
+              style={{ objectFit: "cover" }}
+              sizes="250px"
+            />
           </div>
         )}
+        <div style={{ maxWidth: "550px" }}>
+          <h2
+            style={{
+              color: "#1B5E20",
+              fontSize: "28px",
+              marginBottom: "15px",
+            }}
+          >
+            {data.title || `About ${agent.identity.name}`}
+          </h2>
+          {Array.isArray(data.bio) ? (
+            data.bio.map((paragraph, i) => (
+              <p key={i} style={{ color: "#555", fontSize: "15px", marginBottom: "12px" }}>
+                {paragraph}
+              </p>
+            ))
+          ) : (
+            <p style={{ color: "#555", fontSize: "15px", marginBottom: "12px" }}>
+              {data.bio}
+            </p>
+          )}
+          {data.credentials && data.credentials.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "10px",
+                marginTop: "15px",
+              }}
+            >
+              {data.credentials.map((cred) => (
+                <span
+                  key={cred}
+                  style={{
+                    background: "#E8F5E9",
+                    color: "#1B5E20",
+                    padding: "6px 14px",
+                    borderRadius: "20px",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                  }}
+                >
+                  {cred}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

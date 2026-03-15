@@ -50,14 +50,14 @@ const API_PROPS = {
 
 // Helper: fill out all required form fields
 function fillForm() {
-  fireEvent.change(screen.getByPlaceholderText("First Name"), { target: { value: "Alice" } });
-  fireEvent.change(screen.getByPlaceholderText("Last Name"), { target: { value: "Test" } });
-  fireEvent.change(screen.getByPlaceholderText("Email Address"), { target: { value: "alice@test.com" } });
-  fireEvent.change(screen.getByPlaceholderText("Phone Number"), { target: { value: "555-111-2222" } });
-  fireEvent.change(screen.getByPlaceholderText("Property Address"), { target: { value: "1 Test St" } });
+  fireEvent.change(screen.getByPlaceholderText("John"), { target: { value: "Alice" } });
+  fireEvent.change(screen.getByPlaceholderText("Smith"), { target: { value: "Test" } });
+  fireEvent.change(screen.getByPlaceholderText("you@email.com"), { target: { value: "alice@test.com" } });
+  fireEvent.change(screen.getByPlaceholderText("(555) 123-4567"), { target: { value: "555-111-2222" } });
+  fireEvent.change(screen.getByPlaceholderText("Start typing your address..."), { target: { value: "1 Test St" } });
   fireEvent.change(screen.getByPlaceholderText("City"), { target: { value: "Hoboken" } });
-  fireEvent.change(screen.getByPlaceholderText("State"), { target: { value: "NJ" } });
-  fireEvent.change(screen.getByPlaceholderText("Zip"), { target: { value: "07030" } });
+  fireEvent.change(screen.getByLabelText(/State/), { target: { value: "NJ" } });
+  fireEvent.change(screen.getByPlaceholderText("08xxx"), { target: { value: "07030" } });
   fireEvent.change(screen.getByRole("combobox"), { target: { value: "asap" } });
 }
 
@@ -80,14 +80,14 @@ describe("CmaForm rendering", () => {
 
   it("renders all required input fields", () => {
     render(<CmaForm {...FORMSPREE_PROPS} />);
-    expect(screen.getByPlaceholderText("First Name")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Last Name")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Email Address")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Phone Number")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Property Address")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("John")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Smith")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("you@email.com")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("(555) 123-4567")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Start typing your address...")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("City")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("State")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Zip")).toBeInTheDocument();
+    expect(screen.getByLabelText(/State/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("08xxx")).toBeInTheDocument();
   });
 
   it("renders the timeline select dropdown", () => {
@@ -95,15 +95,15 @@ describe("CmaForm rendering", () => {
     const select = screen.getByRole("combobox");
     expect(select).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "As soon as possible" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "1-3 months" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "3-6 months" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "6-12 months" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /1.3 months/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /3.6 months/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /6.12 months/ })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Just curious/ })).toBeInTheDocument();
   });
 
   it("renders the textarea for additional notes", () => {
     render(<CmaForm {...FORMSPREE_PROPS} />);
-    expect(screen.getByPlaceholderText("Anything else I should know?")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Recent upgrades, renovations, special features...")).toBeInTheDocument();
   });
 
   it("renders the submit button with default text", () => {
@@ -113,7 +113,7 @@ describe("CmaForm rendering", () => {
 
   it("pre-fills the state field from defaultState prop", () => {
     render(<CmaForm {...FORMSPREE_PROPS} />);
-    const stateInput = screen.getByPlaceholderText("State") as HTMLInputElement;
+    const stateInput = screen.getByLabelText(/State/) as HTMLInputElement;
     expect(stateInput.value).toBe("NJ");
   });
 
@@ -132,18 +132,18 @@ describe("CmaForm rendering", () => {
     expect(container.querySelector("#cma-form")).toBeInTheDocument();
   });
 
-  it("all inputs have accessible labels via sr-only", () => {
+  it("all inputs have accessible labels", () => {
     render(<CmaForm {...FORMSPREE_PROPS} />);
-    expect(screen.getByLabelText("First Name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Last Name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Email Address")).toBeInTheDocument();
-    expect(screen.getByLabelText("Phone Number")).toBeInTheDocument();
-    expect(screen.getByLabelText("Property Address")).toBeInTheDocument();
-    expect(screen.getByLabelText("City")).toBeInTheDocument();
-    expect(screen.getByLabelText("State")).toBeInTheDocument();
-    expect(screen.getByLabelText("Zip Code")).toBeInTheDocument();
-    expect(screen.getByLabelText("When are you looking to sell?")).toBeInTheDocument();
-    expect(screen.getByLabelText("Additional notes")).toBeInTheDocument();
+    expect(screen.getByLabelText(/First Name/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Last Name/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Email Address/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Phone Number/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Property Address/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/City/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/State/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Zip/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/looking to sell/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Anything else/)).toBeInTheDocument();
   });
 });
 
@@ -330,7 +330,7 @@ describe("CmaForm — API mode submission", () => {
 
     render(<CmaForm {...API_PROPS} />);
     fillForm();
-    fireEvent.change(screen.getByPlaceholderText("Anything else I should know?"), {
+    fireEvent.change(screen.getByPlaceholderText("Recent upgrades, renovations, special features..."), {
       target: { value: "Corner lot, recently renovated" },
     });
 

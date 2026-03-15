@@ -4,33 +4,100 @@ interface FooterProps {
   agent: AgentConfig;
 }
 
+function formatServiceAreas(areas: string[], state: string): string {
+  const names = areas.map((a) => a.replace(/ County$/i, ""));
+  if (names.length <= 2) {
+    return `Serving ${names.join(" & ")} Counties, ${state}`;
+  }
+  const last = names.pop();
+  return `Serving ${names.join(", ")} & ${last} Counties, ${state}`;
+}
+
 export function Footer({ agent }: FooterProps) {
   const { identity, location } = agent;
   return (
-    <footer className="py-10 px-10 text-center text-white" style={{ backgroundColor: "var(--color-primary)" }}>
-      <p className="text-lg font-bold">
+    <footer
+      style={{
+        background: "#1B5E20",
+        color: "white",
+        padding: "40px",
+        textAlign: "center",
+      }}
+    >
+      <p
+        style={{
+          fontSize: "22px",
+          fontWeight: 700,
+          color: "#C8A951",
+          marginBottom: "5px",
+        }}
+      >
         {identity.name}{identity.title ? `, ${identity.title}` : ""}
       </p>
-      <p className="text-sm opacity-80">
-        {identity.brokerage}
-        {identity.license_id && ` · Lic. #${identity.license_id}`}
+      <p
+        style={{
+          fontSize: "14px",
+          color: "#A5D6A7",
+          marginBottom: "3px",
+        }}
+      >
+        Licensed Real Estate Salesperson{identity.license_id && ` | NJ License #${identity.license_id}`}
       </p>
-      <p className="mt-3 text-sm">
-        <a href={`tel:${identity.phone}`} aria-label={`Call ${identity.name}`} style={{ color: "var(--color-accent)" }}>{identity.phone}</a>
-        {" | "}
-        <a href={`mailto:${identity.email}`} aria-label={`Email ${identity.name}`} style={{ color: "var(--color-accent)" }}>{identity.email}</a>
+      <p
+        style={{
+          fontSize: "14px",
+          color: "#A5D6A7",
+          marginBottom: "15px",
+        }}
+      >
+        Independent Agent with {identity.brokerage}
       </p>
-      {location.service_areas && (
-        <p className="mt-2 text-xs opacity-60">
-          Serving {location.service_areas.join(" · ")}
+      <p style={{ fontSize: "14px", color: "#C8E6C9", marginBottom: "3px" }}>
+        <a
+          href={`tel:${identity.phone.replace(/\D/g, "")}`}
+          aria-label={`Call ${identity.name}`}
+          style={{ color: "#C8E6C9", textDecoration: "none" }}
+        >
+          Cell: {identity.phone}
+        </a>
+        {identity.office_phone && (
+          <>
+            {"  |  "}
+            <a
+              href={`tel:${identity.office_phone.replace(/[^0-9]/g, "")}`}
+              aria-label="Call office"
+              style={{ color: "#C8E6C9", textDecoration: "none" }}
+            >
+              {identity.office_phone}
+            </a>
+          </>
+        )}
+      </p>
+      <p style={{ fontSize: "14px", color: "#C8E6C9", marginBottom: "5px" }}>
+        <a
+          href={`mailto:${identity.email}`}
+          aria-label={`Email ${identity.name}`}
+          style={{ color: "#C8E6C9", textDecoration: "none" }}
+        >
+          {identity.email}
+        </a>
+      </p>
+      {location.service_areas && location.service_areas.length > 0 && (
+        <p style={{ fontSize: "13px", color: "#81C784", marginTop: "15px" }}>
+          {formatServiceAreas(location.service_areas, location.state)}
         </p>
       )}
-      {identity.languages && identity.languages.length > 1 && (
-        <p className="mt-1 text-xs opacity-60">
-          {identity.languages.join(" · ")}
-        </p>
-      )}
-      <div className="mt-6 flex items-center justify-center gap-2 text-xs opacity-60">
+      <div
+        style={{
+          marginTop: "20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+          fontSize: "11px",
+          color: "#66BB6A",
+        }}
+      >
         <svg
           aria-label="Equal Housing Opportunity logo"
           role="img"
@@ -46,12 +113,41 @@ export function Footer({ agent }: FooterProps) {
         </svg>
         <span>Equal Housing Opportunity</span>
       </div>
-      <nav aria-label="Legal links" className="mt-4 flex justify-center gap-4 text-xs opacity-60">
-        <a href="/privacy" className="hover:opacity-100 underline">Privacy Policy</a>
-        <a href="/terms" className="hover:opacity-100 underline">Terms of Use</a>
-        <a href="/accessibility" className="hover:opacity-100 underline">Accessibility</a>
+      <p
+        style={{
+          fontSize: "11px",
+          color: "#66BB6A",
+          marginTop: "20px",
+          maxWidth: "700px",
+          marginLeft: "auto",
+          marginRight: "auto",
+        }}
+      >
+        The information on this website is for general informational purposes only. {identity.name}, Licensed Real Estate Salesperson{identity.license_id && ` (NJ License #${identity.license_id})`}, is affiliated with {identity.brokerage}{location.office_address && `, ${location.office_address}`}.{identity.office_phone && ` ${identity.office_phone}.`} All information deemed reliable but not guaranteed.
+      </p>
+      <nav
+        aria-label="Legal links"
+        style={{
+          marginTop: "16px",
+          display: "flex",
+          justifyContent: "center",
+          gap: "16px",
+          fontSize: "11px",
+          color: "#66BB6A",
+        }}
+      >
+        <a href="/privacy" style={{ color: "#66BB6A", textDecoration: "underline" }}>Privacy Policy</a>
+        <a href="/terms" style={{ color: "#66BB6A", textDecoration: "underline" }}>Terms of Use</a>
+        <a href="/accessibility" style={{ color: "#66BB6A", textDecoration: "underline" }}>Accessibility</a>
       </nav>
-      <p className="mt-2 text-xs opacity-40">
+      <p
+        style={{
+          marginTop: "8px",
+          fontSize: "11px",
+          color: "#66BB6A",
+          opacity: 0.6,
+        }}
+      >
         &copy; {new Date().getFullYear()} {identity.name}. All rights reserved.
       </p>
     </footer>

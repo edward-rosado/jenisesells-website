@@ -2,30 +2,87 @@ import type { StepItem } from "@/lib/types";
 
 interface HowItWorksProps {
   steps: StepItem[];
+  title?: string;
+  subtitle?: string;
 }
 
-export function HowItWorks({ steps }: HowItWorksProps) {
+export function HowItWorks({ steps, title, subtitle }: HowItWorksProps) {
   return (
-    <section className="py-16 px-10 max-w-6xl mx-auto">
-      <h2 className="text-3xl font-bold text-center mb-10" style={{ color: "var(--color-primary)" }}>
-        How It Works
-      </h2>
-      <div className="flex justify-center gap-10 flex-wrap">
-        {steps.map((step) => (
-          <div key={step.number} className="text-center max-w-[250px]">
+    <div
+      id="how-it-works"
+      style={{
+        background: "#f5f5f5",
+        maxWidth: "100%",
+        padding: "70px 40px",
+      }}
+    >
+      <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+        <h2
+          style={{
+            textAlign: "center",
+            fontSize: "32px",
+            fontWeight: 700,
+            color: "#1B5E20",
+            marginBottom: "10px",
+          }}
+        >
+          {title ?? "How It Works"}
+        </h2>
+        {subtitle && (
+          <p
+            style={{
+              textAlign: "center",
+              color: "#666",
+              fontSize: "16px",
+              marginBottom: "45px",
+            }}
+          >
+            {subtitle}
+          </p>
+        )}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "40px",
+            flexWrap: "wrap",
+          }}
+        >
+          {steps.map((step) => (
             <div
-              className="w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold text-white mx-auto mb-4"
-              style={{ backgroundColor: "var(--color-secondary)" }}
+              key={step.number}
+              style={{
+                textAlign: "center",
+                maxWidth: "250px",
+              }}
             >
-              {step.number}
+              <div
+                style={{
+                  width: "60px",
+                  height: "60px",
+                  background: "#2E7D32",
+                  color: "white",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "24px",
+                  fontWeight: 700,
+                  margin: "0 auto 15px",
+                }}
+              >
+                {step.number}
+              </div>
+              <h3 style={{ color: "#1B5E20", marginBottom: "8px" }}>
+                {step.title}
+              </h3>
+              <p style={{ color: "#666", fontSize: "14px" }}>
+                {step.description}
+              </p>
             </div>
-            <h3 className="font-bold mb-2" style={{ color: "var(--color-primary)" }}>
-              {step.title}
-            </h3>
-            <p className="text-gray-500 text-sm">{step.description}</p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </section>
+    </div>
   );
 }

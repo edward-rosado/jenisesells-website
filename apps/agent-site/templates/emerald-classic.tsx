@@ -12,7 +12,7 @@ export function EmeraldClassic({ agent, content }: TemplateProps) {
   return (
     <>
       <Nav agent={agent} />
-      <div className="pt-[74px]">
+      <div style={{ paddingTop: "74px" }}>
       {s.hero.enabled && (
         <Hero
           data={s.hero.data}
@@ -21,10 +21,34 @@ export function EmeraldClassic({ agent, content }: TemplateProps) {
         />
       )}
       {s.stats.enabled && s.stats.data.items.length > 0 && <StatsBar items={s.stats.data.items} />}
-      {s.services.enabled && <Services items={s.services.data.items} />}
-      {s.how_it_works.enabled && <HowItWorks steps={s.how_it_works.data.steps} />}
-      {s.sold_homes.enabled && s.sold_homes.data.items.length > 0 && <SoldHomes items={s.sold_homes.data.items} />}
-      {s.testimonials.enabled && s.testimonials.data.items.length > 0 && <Testimonials items={s.testimonials.data.items} />}
+      {s.services.enabled && (
+        <Services
+          items={s.services.data.items}
+          title={s.services.data.title}
+          subtitle={s.services.data.subtitle}
+        />
+      )}
+      {s.how_it_works.enabled && (
+        <HowItWorks
+          steps={s.how_it_works.data.steps}
+          title={s.how_it_works.data.title}
+          subtitle={s.how_it_works.data.subtitle}
+        />
+      )}
+      {s.sold_homes.enabled && s.sold_homes.data.items.length > 0 && (
+        <SoldHomes
+          items={s.sold_homes.data.items}
+          title={s.sold_homes.data.title}
+          subtitle={s.sold_homes.data.subtitle}
+        />
+      )}
+      {s.testimonials.enabled && s.testimonials.data.items.length > 0 && (
+        <Testimonials
+          items={s.testimonials.data.items}
+          title={s.testimonials.data.title}
+          subtitle={s.testimonials.data.subtitle}
+        />
+      )}
       {s.cma_form.enabled && (
         <CmaForm
           agentId={agent.id}
