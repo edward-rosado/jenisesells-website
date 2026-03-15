@@ -9,6 +9,7 @@ interface AboutProps {
 export function About({ agent, data }: AboutProps) {
   return (
     <section
+      id="about"
       style={{
         padding: "70px 40px",
         maxWidth: "1100px",

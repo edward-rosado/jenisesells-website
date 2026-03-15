@@ -14,7 +14,7 @@ export function EmeraldClassic({ agent, content }: TemplateProps) {
     <>
       <Analytics tracking={agent.integrations?.tracking} />
       <Nav agent={agent} />
-      <div style={{ paddingTop: "74px" }}>
+      <div style={{ paddingTop: "0" }}>
       {s.hero.enabled && (
         <Hero
           data={s.hero.data}
