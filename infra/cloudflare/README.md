@@ -9,13 +9,13 @@ All domains use Cloudflare as the DNS provider. The primary domain is `real-esta
 | Type | Name | Target | Proxy | Purpose |
 |------|------|--------|-------|---------|
 | CNAME | `platform` | `real-estate-star-platform.pages.dev` | Proxied (orange cloud) | Platform app (portal) |
-| CNAME | `*.agents` | `real-estate-star-agent-site.pages.dev` | Proxied (orange cloud) | White-label agent sites (wildcard) |
+| CNAME | `<handle>` | `real-estate-star-agent-site.pages.dev` | Proxied (orange cloud) | White-label agent sites (per agent, no wildcard) |
 | CNAME | `api` | `real-estate-star-api.<region>.azurecontainerapps.io` | Proxied (orange cloud) | Backend API |
 | CNAME | `www` | `platform.real-estate-star.com` | Proxied (orange cloud) | Redirect to platform |
 
 This gives you:
 - `platform.real-estate-star.com` -- the Real Estate Star admin portal
-- `<agent-slug>.agents.real-estate-star.com` -- each agent's white-label site
+- `<handle>.real-estate-star.com` -- each agent's white-label site
 - `api.real-estate-star.com` -- the backend API
 - `www.real-estate-star.com` -- redirects to platform
 
@@ -29,13 +29,15 @@ This gives you:
 4. Cloudflare auto-creates the CNAME record if the domain is on Cloudflare DNS
 5. Wait for SSL certificate provisioning (usually < 5 minutes)
 
-### Agent Site (Wildcard)
+### Agent Site (Per Agent)
 
-1. Go to **Workers & Pages > real-estate-star-agent-site**
-2. Click **Custom domains > Set up a custom domain**
-3. Enter `*.agents.real-estate-star.com`
-4. Cloudflare requires an **Advanced Certificate Manager** subscription ($10/mo) for wildcard custom domains on Pages
-5. Alternatively, add individual agent domains (e.g., `jenise.agents.real-estate-star.com`) without the wildcard -- this works on the free plan but requires manual setup per agent
+Each agent subdomain is registered individually (no wildcard DNS). Use the provisioning script:
+
+```powershell
+.\infra\cloudflare\add-agent-domain.ps1 -Slug jenise-buckalew
+```
+
+This registers `{handle}.real-estate-star.com` on the Cloudflare Workers service and works on the free plan with no Advanced Certificate Manager subscription needed.
 
 ### Custom Vanity Domains (per agent)
 
@@ -123,7 +125,7 @@ Next.js API routes and server actions must not be edge-cached.
 
 ### Cache Static Assets Aggressively
 
-**URL pattern:** `*.agents.real-estate-star.com/_next/static/*`
+**URL pattern:** `<handle>.real-estate-star.com/_next/static/*` (one rule per agent, or use a hostname wildcard if supported)
 
 | Setting | Value |
 |---------|-------|
