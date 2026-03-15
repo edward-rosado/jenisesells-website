@@ -65,8 +65,8 @@ export function CookieConsentBanner({ agentId }: { agentId: string }) {
           </button>
           <button
             onClick={handleAccept}
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
-            style={{ backgroundColor: "var(--color-accent)" }}
+            className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+            style={{ backgroundColor: "var(--color-accent)", color: "var(--color-primary)" }}
             aria-label="Accept cookies"
           >
             Accept

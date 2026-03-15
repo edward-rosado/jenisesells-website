@@ -22,7 +22,7 @@ export function EmeraldClassic({ agent, content }: TemplateProps) {
           agentName={agent.identity.name}
         />
       )}
-      {s.stats.enabled && s.stats.data.items.length > 0 && <StatsBar items={s.stats.data.items} />}
+      {s.stats.enabled && s.stats.data.items.length > 0 && <StatsBar items={s.stats.data.items} sourceDisclaimer="Based on data from Zillow. Individual results may vary." />}
       {s.services.enabled && (
         <Services
           items={s.services.data.items}

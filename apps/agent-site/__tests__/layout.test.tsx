@@ -12,9 +12,9 @@ describe("RootLayout accessibility", () => {
     const { container } = render(
       <>
         <a href="#main-content" className="skip-nav">Skip to main content</a>
-        <div id="main-content" tabIndex={-1}>
+        <main id="main-content" tabIndex={-1}>
           <p>Content</p>
-        </div>
+        </main>
       </>
     );
     const skipLink = container.querySelector('a[href="#main-content"]');
@@ -24,13 +24,14 @@ describe("RootLayout accessibility", () => {
     const target = container.querySelector("#main-content");
     expect(target).toBeInTheDocument();
     expect(target).toHaveAttribute("tabindex", "-1");
+    expect(target?.tagName).toBe("MAIN");
   });
 
   it("main-content wrapper renders children", () => {
     const { getByText } = render(
-      <div id="main-content" tabIndex={-1}>
+      <main id="main-content" tabIndex={-1}>
         <p>Test child</p>
-      </div>
+      </main>
     );
     expect(getByText("Test child")).toBeInTheDocument();
   });

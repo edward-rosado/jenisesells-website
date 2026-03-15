@@ -42,7 +42,7 @@ describe("Testimonials", () => {
     render(<Testimonials items={ITEMS} />);
     // Tom C. has no source — verify no "via" text associated
     const cards = screen.getAllByText(/Would recommend/);
-    expect(cards[0].closest("div")).not.toHaveTextContent("via");
+    expect(cards[0].closest("article")).not.toHaveTextContent("via");
   });
 
   it("renders 5 filled stars for rating 5", () => {

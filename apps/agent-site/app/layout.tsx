@@ -9,9 +9,9 @@ export default function RootLayout({
         <a href="#main-content" className="skip-nav">
           Skip to main content
         </a>
-        <div id="main-content" tabIndex={-1}>
+        <main id="main-content" tabIndex={-1}>
           {children}
-        </div>
+        </main>
       </body>
     </html>
   );

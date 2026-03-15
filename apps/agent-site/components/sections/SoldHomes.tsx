@@ -48,7 +48,7 @@ export function SoldHomes({ items, title, subtitle }: SoldHomesProps) {
         }}
       >
         {items.map((item) => (
-          <div
+          <article
             key={`${item.address}-${item.city}`}
             style={{
               background: "#f9f9f9",
@@ -93,6 +93,7 @@ export function SoldHomes({ items, title, subtitle }: SoldHomesProps) {
               SOLD
             </span>
             <div
+              aria-label={`Sold for ${item.price}`}
               style={{
                 fontSize: "22px",
                 fontWeight: 800,
@@ -104,7 +105,7 @@ export function SoldHomes({ items, title, subtitle }: SoldHomesProps) {
             <div style={{ fontSize: "13px", color: "#666", marginTop: "5px" }}>
               {item.address}, {item.city}, {item.state}
             </div>
-          </div>
+          </article>
         ))}
       </div>
     </section>

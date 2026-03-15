@@ -8,7 +8,7 @@ interface TestimonialsProps {
 
 export function Testimonials({ items, title, subtitle }: TestimonialsProps) {
   return (
-    <div
+    <section
       id="testimonials"
       style={{
         background: "#f5f5f5",
@@ -34,12 +34,22 @@ export function Testimonials({ items, title, subtitle }: TestimonialsProps) {
               textAlign: "center",
               color: "#666",
               fontSize: "16px",
-              marginBottom: "45px",
+              marginBottom: "10px",
             }}
           >
             {subtitle}
           </p>
         )}
+        <p
+          style={{
+            textAlign: "center",
+            color: "#999",
+            fontSize: "13px",
+            marginBottom: "45px",
+          }}
+        >
+          Verified customer reviews from Zillow. Individual results may vary.
+        </p>
         <div
           style={{
             display: "grid",
@@ -48,7 +58,7 @@ export function Testimonials({ items, title, subtitle }: TestimonialsProps) {
           }}
         >
           {items.map((item) => (
-            <div
+            <article
               key={item.reviewer}
               style={{
                 background: "#f9f9f9",
@@ -57,15 +67,18 @@ export function Testimonials({ items, title, subtitle }: TestimonialsProps) {
                 position: "relative",
               }}
             >
-              <div
+              <span
+                role="img"
+                aria-label={`${item.rating} out of 5 stars`}
                 style={{
+                  display: "block",
                   color: "#C8A951",
                   fontSize: "18px",
                   marginBottom: "10px",
                 }}
               >
                 {"★".repeat(item.rating)}{"☆".repeat(5 - item.rating)}
-              </div>
+              </span>
               <p
                 style={{
                   fontStyle: "italic",
@@ -91,10 +104,10 @@ export function Testimonials({ items, title, subtitle }: TestimonialsProps) {
                   </span>
                 )}
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

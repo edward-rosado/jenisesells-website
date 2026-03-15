@@ -68,6 +68,8 @@ export function Hero({ data, agentPhotoUrl, agentName }: HeroProps) {
           href={safeHref(data.cta_link)}
           onMouseEnter={() => setCtaHover(true)}
           onMouseLeave={() => setCtaHover(false)}
+          onFocus={() => setCtaHover(true)}
+          onBlur={() => setCtaHover(false)}
           style={{
             display: "inline-block",
             background: ctaHover ? "white" : "var(--color-accent)",

@@ -87,7 +87,30 @@ We may share your information with:
 
 **We do not sell your personal information to third parties.**
 
-## Your Rights (CCPA Notice)
+## Data Retention
+
+We retain form submission data for two years for record-keeping purposes, after which it is securely deleted. Usage analytics data is retained in aggregate form indefinitely.
+
+## TCPA Disclosure
+
+Phone numbers collected through our forms are used solely to deliver requested real estate services. We do not share phone numbers with third parties for marketing purposes. You may opt out of communications at any time by contacting us or replying STOP to any text message.
+
+## Third-Party Services
+
+This website uses the following third-party services that may process your data:
+
+- **Formspree** — form submission handling ([Formspree Privacy Policy](https://formspree.io/legal/privacy-policy/))
+- **Cloudflare** — website hosting and performance ([Cloudflare Privacy Policy](https://www.cloudflare.com/privacypolicy/))
+- **Sentry** — error tracking and monitoring ([Sentry Privacy Policy](https://sentry.io/privacy/))
+- **Google Maps** — address autocomplete ([Google Privacy Policy](https://policies.google.com/privacy))
+
+## Your Rights
+
+### New Jersey Residents
+
+Under New Jersey law, you have the right to request access to the personal information we hold about you and to request its correction or deletion. Contact us using the information below.
+
+### California Residents (CCPA Notice)
 
 If you are a California resident, you have the right to:
 

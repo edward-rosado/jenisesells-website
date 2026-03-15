@@ -184,8 +184,9 @@ export function CmaForm({
     (cmaSubmit.state.phase === "error" ? cmaSubmit.state.errorMessage : null);
 
   return (
-    <div
+    <section
       id="cma-form"
+      aria-label="Home Value Request Form"
       style={{
         background: "linear-gradient(135deg, #E8F5E9, #C8E6C9)",
         padding: "70px 20px",
@@ -242,7 +243,7 @@ export function CmaForm({
           serviceAreas={serviceAreas}
         />
       </div>
-    </div>
+    </section>
   );
 }
 

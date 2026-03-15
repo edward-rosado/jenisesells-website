@@ -82,7 +82,26 @@ describe("TermsPage", () => {
   it("includes fair housing commitment", async () => {
     const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
     render(page);
-    expect(screen.getByRole("heading", { name: /Fair Housing/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Fair Housing Commitment/i })).toBeInTheDocument();
+  });
+
+  it("includes NJ Fair Housing Act reference", async () => {
+    const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
+    render(page);
+    expect(screen.getByRole("heading", { name: /New Jersey Fair Housing/i })).toBeInTheDocument();
+  });
+
+  it("includes NJ LAD protected classes", async () => {
+    const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
+    render(page);
+    const content = screen.getByText(/gender identity or expression/);
+    expect(content).toBeInTheDocument();
+  });
+
+  it("includes licensing information section", async () => {
+    const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
+    render(page);
+    expect(screen.getByRole("heading", { name: /Licensing Information/i })).toBeInTheDocument();
   });
 
   it("uses full state name — New Jersey not NJ", async () => {
@@ -133,6 +152,18 @@ describe("TermsPage", () => {
     const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
     render(page);
     const matches = screen.getAllByText(/12345/);
+    expect(matches.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("displays brokerage_id when present", async () => {
+    const agentWithBrokerageId = {
+      ...AGENT,
+      identity: { ...AGENT.identity, brokerage_id: "BRK-99999" },
+    };
+    mockLoadAgentConfig.mockReturnValue(agentWithBrokerageId);
+    const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
+    render(page);
+    const matches = screen.getAllByText(/BRK-99999/);
     expect(matches.length).toBeGreaterThanOrEqual(1);
   });
 });

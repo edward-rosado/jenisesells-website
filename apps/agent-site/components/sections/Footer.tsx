@@ -36,27 +36,28 @@ export function Footer({ agent }: FooterProps) {
       </p>
       <p
         style={{
-          fontSize: "14px",
-          color: "#A5D6A7",
+          fontSize: "20px",
+          fontWeight: 700,
+          color: "white",
           marginBottom: "3px",
         }}
       >
-        Licensed Real Estate Salesperson{identity.license_id && ` | NJ License #${identity.license_id}`}
+        {identity.brokerage}
       </p>
       <p
         style={{
           fontSize: "14px",
-          color: "#A5D6A7",
+          color: "white",
           marginBottom: "15px",
         }}
       >
-        Independent Agent with {identity.brokerage}
+        {identity.title || "Licensed Real Estate Salesperson"}{identity.license_id && ` | NJ License #${identity.license_id}`}
       </p>
-      <p style={{ fontSize: "14px", color: "#C8E6C9", marginBottom: "3px" }}>
+      <p style={{ fontSize: "14px", color: "white", marginBottom: "3px" }}>
         <a
           href={`tel:${identity.phone.replace(/\D/g, "")}`}
           aria-label={`Call ${identity.name}`}
-          style={{ color: "#C8E6C9", textDecoration: "none" }}
+          style={{ color: "white", textDecoration: "none" }}
         >
           Cell: {identity.phone}
         </a>
@@ -66,24 +67,24 @@ export function Footer({ agent }: FooterProps) {
             <a
               href={`tel:${identity.office_phone.replace(/[^0-9]/g, "")}`}
               aria-label="Call office"
-              style={{ color: "#C8E6C9", textDecoration: "none" }}
+              style={{ color: "white", textDecoration: "none" }}
             >
               {identity.office_phone}
             </a>
           </>
         )}
       </p>
-      <p style={{ fontSize: "14px", color: "#C8E6C9", marginBottom: "5px" }}>
+      <p style={{ fontSize: "14px", color: "white", marginBottom: "5px" }}>
         <a
           href={`mailto:${identity.email}`}
           aria-label={`Email ${identity.name}`}
-          style={{ color: "#C8E6C9", textDecoration: "none" }}
+          style={{ color: "white", textDecoration: "none" }}
         >
           {identity.email}
         </a>
       </p>
       {location.service_areas && location.service_areas.length > 0 && (
-        <p style={{ fontSize: "13px", color: "#81C784", marginTop: "15px" }}>
+        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)", marginTop: "15px" }}>
           {formatServiceAreas(location.service_areas, location.state)}
         </p>
       )}
@@ -95,7 +96,7 @@ export function Footer({ agent }: FooterProps) {
           justifyContent: "center",
           gap: "8px",
           fontSize: "11px",
-          color: "#66BB6A",
+          color: "rgba(255,255,255,0.7)",
         }}
       >
         <svg
@@ -116,7 +117,7 @@ export function Footer({ agent }: FooterProps) {
       <p
         style={{
           fontSize: "11px",
-          color: "#66BB6A",
+          color: "rgba(255,255,255,0.7)",
           marginTop: "20px",
           maxWidth: "700px",
           marginLeft: "auto",
@@ -133,18 +134,18 @@ export function Footer({ agent }: FooterProps) {
           justifyContent: "center",
           gap: "16px",
           fontSize: "11px",
-          color: "#66BB6A",
+          color: "rgba(255,255,255,0.7)",
         }}
       >
-        <a href="/privacy" style={{ color: "#66BB6A", textDecoration: "underline" }}>Privacy Policy</a>
-        <a href="/terms" style={{ color: "#66BB6A", textDecoration: "underline" }}>Terms of Use</a>
-        <a href="/accessibility" style={{ color: "#66BB6A", textDecoration: "underline" }}>Accessibility</a>
+        <a href="/privacy" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Privacy Policy</a>
+        <a href="/terms" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Terms of Use</a>
+        <a href="/accessibility" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Accessibility</a>
       </nav>
       <p
         style={{
           marginTop: "8px",
           fontSize: "11px",
-          color: "#66BB6A",
+          color: "rgba(255,255,255,0.7)",
           opacity: 0.6,
         }}
       >

@@ -37,9 +37,13 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
           <p className="text-lg font-semibold mb-4" style={{ color: "var(--color-accent)" }}>
             Your Free Home Value Report Is Being Prepared Now!
           </p>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 mb-4">
             {agent.identity.name} will send your personalized Comparative Market Analysis
             to your email shortly. Keep an eye on your inbox!
+          </p>
+          <p className="text-gray-500 text-sm italic mb-6">
+            This home value report is a Comparative Market Analysis (CMA) and is not an appraisal.
+            It should not be considered the equivalent of an appraisal.
           </p>
           <a
             href={`tel:${agent.identity.phone}`}

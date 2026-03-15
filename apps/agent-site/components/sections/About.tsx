@@ -68,16 +68,19 @@ export function About({ agent, data }: AboutProps) {
             </p>
           )}
           {data.credentials && data.credentials.length > 0 && (
-            <div
+            <ul
+              aria-label="Credentials"
               style={{
                 display: "flex",
                 flexWrap: "wrap",
                 gap: "10px",
                 marginTop: "15px",
+                listStyle: "none",
+                padding: 0,
               }}
             >
               {data.credentials.map((cred) => (
-                <span
+                <li
                   key={cred}
                   style={{
                     background: "#E8F5E9",
@@ -89,9 +92,9 @@ export function About({ agent, data }: AboutProps) {
                   }}
                 >
                   {cred}
-                </span>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       </div>

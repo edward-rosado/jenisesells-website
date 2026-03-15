@@ -57,7 +57,15 @@ The Comparative Market Analysis (CMA) reports provided through this website are 
 
 ## Fair Housing Commitment
 
-We are committed to the principles of the Fair Housing Act. We do not discriminate based on race, color, religion, sex, national origin, familial status, disability, or any other protected class. All properties are available on an equal opportunity basis.
+We are committed to the principles of the Federal Fair Housing Act (42 U.S.C. 3601 et seq.) and the New Jersey Law Against Discrimination (NJSA 10:5-1 et seq.). We do not discriminate based on race, creed, color, national origin, nationality, ancestry, age, sex (including pregnancy), gender identity or expression, disability, marital status, domestic partnership or civil union status, affectional or sexual orientation, familial status, source of lawful income or rent payments, military service, or any other protected class under federal or state law. All properties are available on an equal opportunity basis.
+
+## New Jersey Fair Housing
+
+In accordance with the New Jersey Fair Housing Act (NJSA 10:5-12), all real estate services are provided without discrimination. If you believe you have experienced housing discrimination, you may file a complaint with the New Jersey Division on Civil Rights at (609) 292-4605.
+
+## Licensing Information
+
+${identity.name} is licensed by the New Jersey Real Estate Commission.${identity.brokerage ? ` Brokerage: ${identity.brokerage}` : ""}${agent.identity.brokerage_id ? ` (License #${agent.identity.brokerage_id})` : ""}.${identity.license_id ? ` Agent License #${identity.license_id}.` : ""}
 
 ## Intellectual Property
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import type { AgentConfig } from "@/lib/types";
 
@@ -10,7 +10,7 @@ interface NavProps {
 
 function OfficeIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <svg aria-hidden="true" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
       <path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16" />
     </svg>
   );
@@ -18,7 +18,7 @@ function OfficeIcon({ size = 14 }: { size?: number }) {
 
 function PhoneIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <svg aria-hidden="true" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
       <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
     </svg>
   );
@@ -26,7 +26,7 @@ function PhoneIcon({ size = 14 }: { size?: number }) {
 
 function EmailIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <svg aria-hidden="true" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
       <rect x="2" y="4" width="20" height="16" rx="2" />
       <path d="M22 7l-10 7L2 7" />
     </svg>
@@ -36,6 +36,8 @@ function EmailIcon({ size = 14 }: { size?: number }) {
 export function Nav({ agent }: NavProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { identity, branding } = agent;
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   function toggleDrawer() {
     setDrawerOpen((prev) => !prev);
@@ -44,6 +46,28 @@ export function Nav({ agent }: NavProps) {
   function closeDrawer() {
     setDrawerOpen(false);
   }
+
+  // Escape key closes drawer
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerOpen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [drawerOpen]);
+
+  // Focus management: focus first link on open, return to hamburger on close
+  useEffect(() => {
+    if (drawerOpen) {
+      const firstFocusable = drawerRef.current?.querySelector<HTMLElement>(
+        'a, button, [tabindex]:not([tabindex="-1"])'
+      );
+      firstFocusable?.focus();
+    } else {
+      hamburgerRef.current?.focus();
+    }
+  }, [drawerOpen]);
 
   const sections = [
     { label: "Why Choose Me", href: "#services" },
@@ -107,6 +131,14 @@ export function Nav({ agent }: NavProps) {
               {identity.tagline?.toUpperCase() || identity.name.toUpperCase()}
             </span>
           )}
+          {identity.brokerage && (
+            <span
+              className="nav-brokerage"
+              style={{ color: "rgba(255,255,255,0.85)", fontSize: "11px", fontWeight: 500 }}
+            >
+              {identity.brokerage}
+            </span>
+          )}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -128,6 +160,8 @@ export function Nav({ agent }: NavProps) {
                   whiteSpace: "nowrap",
                   textDecoration: "none",
                   border: "1px solid rgba(255,255,255,0.2)",
+                  minHeight: "44px",
+                  boxSizing: "border-box",
                 }}
               >
                 <EmailIcon /> {identity.email}
@@ -148,6 +182,8 @@ export function Nav({ agent }: NavProps) {
                   fontSize: "14px",
                   whiteSpace: "nowrap",
                   textDecoration: "none",
+                  minHeight: "44px",
+                  boxSizing: "border-box",
                 }}
               >
                 <PhoneIcon /> {identity.phone}
@@ -180,15 +216,20 @@ export function Nav({ agent }: NavProps) {
 
           {/* Hamburger button */}
           <button
+            ref={hamburgerRef}
             className="nav-hamburger"
             onClick={toggleDrawer}
             aria-label="Menu"
+            aria-expanded={drawerOpen}
+            aria-controls="nav-drawer"
             style={{
               display: "none",
               background: "none",
               border: "none",
               cursor: "pointer",
               padding: "8px",
+              minWidth: "44px",
+              minHeight: "44px",
               zIndex: 1100,
             }}
           >
@@ -214,6 +255,7 @@ export function Nav({ agent }: NavProps) {
       {/* Overlay */}
       {drawerOpen && (
         <div
+          aria-hidden="true"
           onClick={closeDrawer}
           style={{
             position: "fixed",
@@ -229,7 +271,12 @@ export function Nav({ agent }: NavProps) {
 
       {/* Mobile drawer */}
       <div
+        ref={drawerRef}
+        id="nav-drawer"
         className="nav-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation menu"
         style={{
           position: "fixed",
           top: 0,

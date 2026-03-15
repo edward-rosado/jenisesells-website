@@ -47,9 +47,7 @@ describe("About", () => {
 
   it("does not render credential badges when credentials is undefined", () => {
     render(<About agent={AGENT} data={DATA_CREDENTIALS_UNDEFINED} />);
-    // No credential spans should appear
-    const section = screen.getByRole("heading", { level: 2 }).closest("section");
-    expect(section!.querySelectorAll("span")).toHaveLength(0);
+    expect(screen.queryByRole("list", { name: "Credentials" })).not.toBeInTheDocument();
   });
 
   it("uses minimal agent name in heading", () => {
@@ -59,8 +57,8 @@ describe("About", () => {
 
   it("renders correct number of credential badges", () => {
     render(<About agent={AGENT} data={DATA_WITH_CREDENTIALS} />);
-    const section = screen.getByRole("heading", { level: 2 }).closest("section");
-    expect(section!.querySelectorAll("span")).toHaveLength(3);
+    const list = screen.getByRole("list", { name: "Credentials" });
+    expect(list.querySelectorAll("li")).toHaveLength(3);
   });
 
   it("renders a single credential correctly", () => {
