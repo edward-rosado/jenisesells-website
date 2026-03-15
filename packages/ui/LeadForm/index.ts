@@ -1,2 +1,2 @@
-// Stub — LeadForm component will be implemented in a later task
-export {};
+export { LeadForm } from "./LeadForm";
+export type { LeadFormProps } from "./LeadForm";
