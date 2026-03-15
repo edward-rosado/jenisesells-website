@@ -141,4 +141,19 @@ describe("Hero", () => {
     expect(cta.style.background).toContain("var(--color-accent)");
     expect(cta.style.transform).toBe("none");
   });
+
+  it("CTA changes style on focus and reverts on blur", () => {
+    render(<Hero data={BASE_DATA} />);
+    const cta = screen.getByRole("link");
+
+    // Focus
+    fireEvent.focus(cta);
+    expect(cta.style.background).toBe("white");
+    expect(cta.style.transform).toContain("translateY");
+
+    // Blur
+    fireEvent.blur(cta);
+    expect(cta.style.background).toContain("var(--color-accent)");
+    expect(cta.style.transform).toBe("none");
+  });
 });

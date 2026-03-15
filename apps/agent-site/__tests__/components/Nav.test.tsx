@@ -167,4 +167,66 @@ describe("Nav", () => {
     const drawer = container.querySelector(".nav-drawer") as HTMLElement;
     expect(drawer.style.visibility).toBe("hidden");
   });
+
+  it("closes drawer when Escape key is pressed", () => {
+    const { container } = render(<Nav agent={AGENT} />);
+    const hamburger = screen.getByLabelText("Menu");
+
+    fireEvent.click(hamburger);
+    const drawer = container.querySelector(".nav-drawer") as HTMLElement;
+    expect(drawer.style.visibility).toBe("visible");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(drawer.style.visibility).toBe("hidden");
+  });
+
+  it("does not close drawer on non-Escape keys", () => {
+    const { container } = render(<Nav agent={AGENT} />);
+    const hamburger = screen.getByLabelText("Menu");
+
+    fireEvent.click(hamburger);
+    const drawer = container.querySelector(".nav-drawer") as HTMLElement;
+    expect(drawer.style.visibility).toBe("visible");
+
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(drawer.style.visibility).toBe("visible");
+  });
+
+  it("sets aria-expanded on hamburger button", () => {
+    render(<Nav agent={AGENT} />);
+    const hamburger = screen.getByLabelText("Menu");
+
+    expect(hamburger).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(hamburger);
+    expect(hamburger).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(hamburger);
+    expect(hamburger).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("renders drawer as dialog with aria-modal", () => {
+    const { container } = render(<Nav agent={AGENT} />);
+    const drawer = container.querySelector(".nav-drawer") as HTMLElement;
+    expect(drawer).toHaveAttribute("role", "dialog");
+    expect(drawer).toHaveAttribute("aria-modal", "true");
+    expect(drawer).toHaveAttribute("aria-label", "Navigation menu");
+  });
+
+  it("renders brokerage name when present", () => {
+    render(<Nav agent={AGENT} />);
+    expect(screen.getByText("Best Homes Realty")).toBeInTheDocument();
+  });
+
+  it("does not render brokerage when absent", () => {
+    render(<Nav agent={AGENT_MINIMAL} />);
+    expect(screen.queryByText("Best Homes Realty")).not.toBeInTheDocument();
+  });
+
+  it("focuses first link when drawer opens", () => {
+    render(<Nav agent={AGENT} />);
+    const hamburger = screen.getByLabelText("Menu");
+
+    fireEvent.click(hamburger);
+    const firstLink = screen.getByText("Why Choose Me");
+    expect(document.activeElement).toBe(firstLink);
+  });
 });

@@ -47,3 +47,26 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   z-index: 100;
 }
+
+/* Global focus indicator for keyboard navigation (WCAG 2.4.7) */
+:focus-visible {
+  outline: 3px solid #2E7D32;
+  outline-offset: 2px;
+}
+
+/* Remove default outline only when focus-visible is supported */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Respect user motion preferences (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

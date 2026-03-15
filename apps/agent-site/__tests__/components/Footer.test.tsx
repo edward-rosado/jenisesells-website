@@ -24,9 +24,9 @@ describe("Footer", () => {
     expect(heading).toHaveStyle({ fontSize: "22px" });
   });
 
-  it("renders brokerage in independent agent line", () => {
+  it("renders brokerage name prominently", () => {
     render(<Footer agent={AGENT} />);
-    expect(screen.getByText(/Independent Agent with Best Homes Realty/)).toBeInTheDocument();
+    expect(screen.getByText("Best Homes Realty")).toBeInTheDocument();
   });
 
   it("does not render brokerage when absent", () => {

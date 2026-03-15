@@ -35,11 +35,11 @@ describe("StatsBar", () => {
     expect(screen.getByText("98%")).toBeInTheDocument();
   });
 
-  it("renders nothing for an empty array", () => {
+  it("renders empty dl for an empty array", () => {
     const { container } = render(<StatsBar items={[]} />);
-    const wrapper = container.firstElementChild;
-    expect(wrapper).toBeInTheDocument();
-    expect(wrapper!.children).toHaveLength(0);
+    const dl = container.querySelector("dl");
+    expect(dl).toBeInTheDocument();
+    expect(dl!.children).toHaveLength(0);
   });
 
   it("renders a single stat correctly", () => {
@@ -48,8 +48,14 @@ describe("StatsBar", () => {
     expect(screen.getByText("One")).toBeInTheDocument();
   });
 
-  it("renders div element", () => {
+  it("renders section with dl element", () => {
     const { container } = render(<StatsBar items={STATS} />);
-    expect(container.querySelector("div")).toBeInTheDocument();
+    expect(container.querySelector("section")).toBeInTheDocument();
+    expect(container.querySelector("dl")).toBeInTheDocument();
+  });
+
+  it("renders source disclaimer when provided", () => {
+    render(<StatsBar items={STATS} sourceDisclaimer="Based on data from Zillow." />);
+    expect(screen.getByText("Based on data from Zillow.")).toBeInTheDocument();
   });
 });

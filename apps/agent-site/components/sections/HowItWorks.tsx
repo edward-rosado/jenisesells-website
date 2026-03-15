@@ -8,7 +8,7 @@ interface HowItWorksProps {
 
 export function HowItWorks({ steps, title, subtitle }: HowItWorksProps) {
   return (
-    <div
+    <section
       id="how-it-works"
       style={{
         background: "#f5f5f5",
@@ -40,16 +40,19 @@ export function HowItWorks({ steps, title, subtitle }: HowItWorksProps) {
             {subtitle}
           </p>
         )}
-        <div
+        <ol
           style={{
             display: "flex",
             justifyContent: "center",
             gap: "40px",
             flexWrap: "wrap",
+            listStyle: "none",
+            padding: 0,
+            margin: 0,
           }}
         >
           {steps.map((step) => (
-            <div
+            <li
               key={step.number}
               style={{
                 textAlign: "center",
@@ -57,6 +60,7 @@ export function HowItWorks({ steps, title, subtitle }: HowItWorksProps) {
               }}
             >
               <div
+                aria-hidden="true"
                 style={{
                   width: "60px",
                   height: "60px",
@@ -79,10 +83,10 @@ export function HowItWorks({ steps, title, subtitle }: HowItWorksProps) {
               <p style={{ color: "#666", fontSize: "14px" }}>
                 {step.description}
               </p>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
-    </div>
+    </section>
   );
 }

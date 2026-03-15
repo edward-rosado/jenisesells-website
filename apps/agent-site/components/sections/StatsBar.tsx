@@ -2,43 +2,65 @@ import type { StatItem } from "@/lib/types";
 
 interface StatsBarProps {
   items: StatItem[];
+  sourceDisclaimer?: string;
 }
 
-export function StatsBar({ items }: StatsBarProps) {
+export function StatsBar({ items, sourceDisclaimer }: StatsBarProps) {
   return (
-    <div
+    <section
+      aria-label="Agent statistics"
       style={{
         background: "#1B5E20",
         padding: "30px 40px",
-        display: "flex",
-        justifyContent: "center",
-        gap: "50px",
-        flexWrap: "wrap",
       }}
     >
-      {items.map((item) => (
-        <div key={item.label} style={{ textAlign: "center", color: "white" }}>
-          <div
-            style={{
-              fontSize: "32px",
-              fontWeight: 800,
-              color: "#C8A951",
-            }}
-          >
-            {item.value}
+      <dl
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: "50px",
+          flexWrap: "wrap",
+          margin: 0,
+        }}
+      >
+        {items.map((item) => (
+          <div key={item.label} style={{ textAlign: "center", color: "white" }}>
+            <dt
+              style={{
+                fontSize: "13px",
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+                marginTop: "4px",
+                order: 2,
+              }}
+            >
+              {item.label}
+            </dt>
+            <dd
+              style={{
+                fontSize: "32px",
+                fontWeight: 800,
+                color: "#C8A951",
+                margin: 0,
+              }}
+            >
+              {item.value}
+            </dd>
           </div>
-          <div
-            style={{
-              fontSize: "13px",
-              textTransform: "uppercase",
-              letterSpacing: "1px",
-              marginTop: "4px",
-            }}
-          >
-            {item.label}
-          </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </dl>
+      {sourceDisclaimer && (
+        <p
+          style={{
+            textAlign: "center",
+            color: "rgba(255,255,255,0.6)",
+            fontSize: "11px",
+            marginTop: "12px",
+          }}
+        >
+          {sourceDisclaimer}
+        </p>
+      )}
+    </section>
   );
 }
