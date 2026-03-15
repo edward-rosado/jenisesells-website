@@ -6,12 +6,14 @@ on:
     paths:
       - 'apps/agent-site/**'
       - 'config/agents/**'
+      - 'packages/**'
       - '.github/workflows/agent-site.yml'
   pull_request:
     branches: [main]
     paths:
       - 'apps/agent-site/**'
       - 'config/agents/**'
+      - 'packages/**'
       - '.github/workflows/agent-site.yml'
 
 jobs:
@@ -38,11 +40,11 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: apps/agent-site/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         if: steps.check.outputs.exists == 'true'
-        run: npm ci --prefix apps/agent-site
+        run: npm ci
 
       - name: Generate config registry
         if: steps.check.outputs.exists == 'true'
@@ -104,11 +106,11 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: apps/agent-site/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         if: steps.check.outputs.exists == 'true'
-        run: npm ci --prefix apps/agent-site
+        run: npm ci
 
       - name: Build Next.js
         if: steps.check.outputs.exists == 'true'

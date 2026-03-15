@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - 'apps/platform/**'
+      - 'packages/**'
       - '.github/workflows/platform.yml'
   pull_request:
     branches: [main]
     paths:
       - 'apps/platform/**'
+      - 'packages/**'
       - '.github/workflows/platform.yml'
 
 jobs:
@@ -25,10 +27,10 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: apps/platform/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci --prefix apps/platform
+        run: npm ci
 
       - name: Lint
         run: npm run lint --prefix apps/platform
