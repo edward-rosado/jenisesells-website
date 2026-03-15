@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import type { HeroData } from "@/lib/types";
 
@@ -30,18 +33,23 @@ function renderHeadline(headline: string, highlightWord?: string) {
 }
 
 export function Hero({ data, agentPhotoUrl, agentName }: HeroProps) {
+  const [ctaHover, setCtaHover] = useState(false);
+
   return (
     <section
       style={{
         background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 60%, #43A047 100%)",
         color: "white",
-        padding: "80px 40px",
+        paddingTop: "80px",
+        paddingBottom: "60px",
+        paddingLeft: "40px",
+        paddingRight: "40px",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: "60px",
+        gap: "40px",
         flexWrap: "wrap",
-        minHeight: "500px",
+        minHeight: "400px",
       }}
     >
       <div style={{ maxWidth: "520px" }}>
@@ -58,15 +66,20 @@ export function Hero({ data, agentPhotoUrl, agentName }: HeroProps) {
         )}
         <a
           href={safeHref(data.cta_link)}
+          onMouseEnter={() => setCtaHover(true)}
+          onMouseLeave={() => setCtaHover(false)}
           style={{
             display: "inline-block",
-            background: "var(--color-accent)",
+            background: ctaHover ? "white" : "var(--color-accent)",
             color: "var(--color-primary)",
             padding: "16px 36px",
             borderRadius: "30px",
             fontSize: "17px",
             fontWeight: 700,
+            textDecoration: "none",
             transition: "all 0.3s",
+            transform: ctaHover ? "translateY(-2px)" : "none",
+            boxShadow: ctaHover ? "0 8px 25px rgba(0,0,0,0.3)" : "none",
           }}
         >
           {data.cta_text} &rarr;

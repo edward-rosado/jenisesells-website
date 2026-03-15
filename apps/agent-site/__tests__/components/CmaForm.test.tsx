@@ -545,7 +545,7 @@ describe("CmaForm — formspree vs API mode detection", () => {
     fillForm();
     fireEvent.change(screen.getByLabelText(/Beds/), { target: { value: "4" } });
     fireEvent.change(screen.getByLabelText(/Baths/), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText(/Approx Sqft/), { target: { value: "2200" } });
+    fireEvent.change(screen.getByLabelText(/Sqft/), { target: { value: "2200" } });
 
     await act(async () => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);

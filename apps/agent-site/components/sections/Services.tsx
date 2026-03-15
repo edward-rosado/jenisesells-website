@@ -9,6 +9,7 @@ interface ServicesProps {
 export function Services({ items, title, subtitle }: ServicesProps) {
   return (
     <section
+      id="services"
       style={{
         padding: "70px 40px",
         maxWidth: "1100px",

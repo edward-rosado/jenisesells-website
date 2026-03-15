@@ -10,6 +10,7 @@ interface SoldHomesProps {
 export function SoldHomes({ items, title, subtitle }: SoldHomesProps) {
   return (
     <section
+      id="sold"
       style={{
         padding: "70px 40px",
         maxWidth: "1100px",

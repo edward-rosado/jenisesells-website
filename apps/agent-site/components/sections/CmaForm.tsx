@@ -203,7 +203,7 @@ export function CmaForm({
       id="cma-form"
       style={{
         background: "linear-gradient(135deg, #E8F5E9, #C8E6C9)",
-        padding: "70px 40px",
+        padding: "70px 20px",
       }}
     >
       <div
@@ -259,7 +259,7 @@ export function CmaForm({
           style={{
             background: "white",
             borderRadius: "16px",
-            padding: "40px",
+            padding: "clamp(20px, 5vw, 40px)",
             boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
             maxWidth: "600px",
             margin: "0 auto",
@@ -349,8 +349,8 @@ export function CmaForm({
               />
             </div>
 
-            <div style={{ display: "flex", gap: "15px" }}>
-              <div style={{ ...formGroupStyle, flex: 2 }}>
+            <div style={{ display: "flex", gap: "15px", flexWrap: "wrap" }}>
+              <div style={{ ...formGroupStyle, flex: "2 1 120px" }}>
                 <label htmlFor="city" style={labelStyle}>
                   City <span style={{ color: "#d32f2f" }}>*</span>
                 </label>
@@ -363,7 +363,7 @@ export function CmaForm({
                   style={inputStyle}
                 />
               </div>
-              <div style={{ ...formGroupStyle, flex: 1 }}>
+              <div style={{ ...formGroupStyle, flex: "1 1 60px" }}>
                 <label htmlFor="state" style={labelStyle}>
                   State <span style={{ color: "#d32f2f" }}>*</span>
                 </label>
@@ -378,7 +378,7 @@ export function CmaForm({
                   style={inputStyle}
                 />
               </div>
-              <div style={{ ...formGroupStyle, flex: 1 }}>
+              <div style={{ ...formGroupStyle, flex: "1 1 60px" }}>
                 <label htmlFor="zip" style={labelStyle}>
                   Zip <span style={{ color: "#d32f2f" }}>*</span>
                 </label>
@@ -394,10 +394,10 @@ export function CmaForm({
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: "15px" }}>
-              <div style={{ ...formGroupStyle, flex: 1 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "15px", alignItems: "end" }}>
+              <div style={formGroupStyle}>
                 <label htmlFor="beds" style={labelStyle}>
-                  Beds <span style={{ color: "#999", fontSize: "11px" }}>(optional)</span>
+                  Beds<br /><span style={{ color: "#999", fontSize: "11px", fontWeight: 400 }}>(optional)</span>
                 </label>
                 <input
                   id="beds"
@@ -406,12 +406,12 @@ export function CmaForm({
                   placeholder="3"
                   min={0}
                   max={20}
-                  style={inputStyle}
+                  style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
                 />
               </div>
-              <div style={{ ...formGroupStyle, flex: 1 }}>
+              <div style={formGroupStyle}>
                 <label htmlFor="baths" style={labelStyle}>
-                  Baths <span style={{ color: "#999", fontSize: "11px" }}>(optional)</span>
+                  Baths<br /><span style={{ color: "#999", fontSize: "11px", fontWeight: 400 }}>(optional)</span>
                 </label>
                 <input
                   id="baths"
@@ -421,12 +421,12 @@ export function CmaForm({
                   min={0}
                   max={20}
                   step={0.5}
-                  style={inputStyle}
+                  style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
                 />
               </div>
-              <div style={{ ...formGroupStyle, flex: 1 }}>
+              <div style={formGroupStyle}>
                 <label htmlFor="sqft" style={labelStyle}>
-                  Approx Sqft <span style={{ color: "#999", fontSize: "11px" }}>(optional)</span>
+                  Sqft<br /><span style={{ color: "#999", fontSize: "11px", fontWeight: 400 }}>(optional)</span>
                 </label>
                 <input
                   id="sqft"
@@ -435,7 +435,7 @@ export function CmaForm({
                   placeholder="1,800"
                   min={100}
                   max={50000}
-                  style={inputStyle}
+                  style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
                 />
               </div>
             </div>
