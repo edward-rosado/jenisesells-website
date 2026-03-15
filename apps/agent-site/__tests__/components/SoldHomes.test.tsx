@@ -58,4 +58,34 @@ describe("SoldHomes", () => {
     render(<SoldHomes items={special} />);
     expect(screen.getByText("10 O'Brien Ct, Trenton, NJ")).toBeInTheDocument();
   });
+
+  it("renders subtitle paragraph when subtitle is provided", () => {
+    render(<SoldHomes items={ITEMS} subtitle="Real results for real people" />);
+    expect(screen.getByText("Real results for real people")).toBeInTheDocument();
+  });
+
+  it("does not render subtitle paragraph when subtitle is absent", () => {
+    render(<SoldHomes items={ITEMS} />);
+    expect(screen.queryByText("Real results for real people")).not.toBeInTheDocument();
+  });
+
+  it("renders property image when image_url is provided", () => {
+    const withImage: SoldHomeItem[] = [
+      {
+        address: "789 Oak Dr",
+        city: "Princeton",
+        state: "NJ",
+        price: "$900,000",
+        image_url: "https://example.com/house.jpg",
+      },
+    ];
+    render(<SoldHomes items={withImage} />);
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("alt", "789 Oak Dr, Princeton");
+  });
+
+  it("does not render an image when image_url is absent", () => {
+    render(<SoldHomes items={ITEMS} />);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
 });

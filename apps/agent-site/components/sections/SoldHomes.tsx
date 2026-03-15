@@ -1,28 +1,106 @@
+import Image from "next/image";
 import type { SoldHomeItem } from "@/lib/types";
 
 interface SoldHomesProps {
   items: SoldHomeItem[];
+  title?: string;
+  subtitle?: string;
 }
 
-export function SoldHomes({ items }: SoldHomesProps) {
+export function SoldHomes({ items, title, subtitle }: SoldHomesProps) {
   return (
-    <section className="py-16 px-10 max-w-6xl mx-auto">
-      <h2 className="text-3xl font-bold text-center mb-10" style={{ color: "var(--color-primary)" }}>
-        Recently Sold
+    <section
+      style={{
+        padding: "70px 40px",
+        maxWidth: "1100px",
+        margin: "0 auto",
+      }}
+    >
+      <h2
+        style={{
+          textAlign: "center",
+          fontSize: "32px",
+          fontWeight: 700,
+          color: "#1B5E20",
+          marginBottom: "10px",
+        }}
+      >
+        {title ?? "Recently Sold"}
       </h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
+      {subtitle && (
+        <p
+          style={{
+            textAlign: "center",
+            color: "#666",
+            fontSize: "16px",
+            marginBottom: "45px",
+          }}
+        >
+          {subtitle}
+        </p>
+      )}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "20px",
+        }}
+      >
         {items.map((item) => (
-          <div key={`${item.address}-${item.city}`} className="bg-gray-50 rounded-lg p-5 text-center border border-gray-200">
+          <div
+            key={`${item.address}-${item.city}`}
+            style={{
+              background: "#f9f9f9",
+              borderRadius: "10px",
+              padding: "20px",
+              textAlign: "center",
+              border: "1px solid #e0e0e0",
+            }}
+          >
+            {item.image_url && (
+              <div
+                style={{
+                  width: "100%",
+                  height: "180px",
+                  position: "relative",
+                  borderRadius: "8px 8px 0 0",
+                  overflow: "hidden",
+                  marginBottom: "10px",
+                }}
+              >
+                <Image
+                  src={item.image_url}
+                  alt={`${item.address}, ${item.city}`}
+                  fill
+                  style={{ objectFit: "cover" }}
+                  sizes="(max-width: 768px) 50vw, 220px"
+                />
+              </div>
+            )}
             <span
-              className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-3"
-              style={{ backgroundColor: "var(--color-accent)", color: "var(--color-primary)" }}
+              style={{
+                display: "inline-block",
+                background: "#C8A951",
+                color: "#1B5E20",
+                fontSize: "12px",
+                fontWeight: 700,
+                padding: "3px 10px",
+                borderRadius: "12px",
+                marginBottom: "10px",
+              }}
             >
               SOLD
             </span>
-            <div className="text-xl font-extrabold" style={{ color: "var(--color-primary)" }}>
+            <div
+              style={{
+                fontSize: "22px",
+                fontWeight: 800,
+                color: "#1B5E20",
+              }}
+            >
               {item.price}
             </div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div style={{ fontSize: "13px", color: "#666", marginTop: "5px" }}>
               {item.address}, {item.city}, {item.state}
             </div>
           </div>

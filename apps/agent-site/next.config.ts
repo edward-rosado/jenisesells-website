@@ -5,6 +5,15 @@ import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 initOpenNextCloudflareForDev();
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "photos.zillowstatic.com",
+        pathname: "/**",
+      },
+    ],
+  },
   async headers() {
     return [
       {

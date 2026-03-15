@@ -7,6 +7,7 @@ export interface AgentIdentity {
   brokerage?: string;
   brokerage_id?: string;
   phone: string;
+  office_phone?: string;
   email: string;
   website?: string;
   headshot_url?: string;
@@ -68,7 +69,9 @@ export interface SectionConfig<T = Record<string, unknown>> {
 
 export interface HeroData {
   headline: string;
+  highlight_word?: string;
   tagline: string;
+  body?: string;
   cta_text: string;
   cta_link: string;
 }
@@ -95,6 +98,7 @@ export interface SoldHomeItem {
   state: string;
   price: string;
   sold_date?: string;
+  image_url?: string;
 }
 
 export interface TestimonialItem {
@@ -110,7 +114,8 @@ export interface CmaFormData {
 }
 
 export interface AboutData {
-  bio: string;
+  title?: string;
+  bio: string | string[];
   credentials?: string[];
 }
 
@@ -128,10 +133,10 @@ export interface AgentContent {
   sections: {
     hero: SectionConfig<HeroData>;
     stats: SectionConfig<{ items: StatItem[] }>;
-    services: SectionConfig<{ items: ServiceItem[] }>;
-    how_it_works: SectionConfig<{ steps: StepItem[] }>;
-    sold_homes: SectionConfig<{ items: SoldHomeItem[] }>;
-    testimonials: SectionConfig<{ items: TestimonialItem[] }>;
+    services: SectionConfig<{ title?: string; subtitle?: string; items: ServiceItem[] }>;
+    how_it_works: SectionConfig<{ title?: string; subtitle?: string; steps: StepItem[] }>;
+    sold_homes: SectionConfig<{ title?: string; subtitle?: string; items: SoldHomeItem[] }>;
+    testimonials: SectionConfig<{ title?: string; subtitle?: string; items: TestimonialItem[] }>;
     cma_form: SectionConfig<CmaFormData>;
     about: SectionConfig<AboutData>;
     city_pages: SectionConfig<{ cities: CityPageData[] }>;

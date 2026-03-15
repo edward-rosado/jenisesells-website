@@ -18,7 +18,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const { agentId } = await searchParams;
   const id = resolveAgentId(agentId);
   try {
-    const agent = await loadAgentConfig(id);
+    const agent = loadAgentConfig(id);
     return { title: `Accessibility | ${agent.identity.name}` };
   } catch {
     return { title: "Accessibility" };
@@ -29,15 +29,15 @@ export default async function AccessibilityPage({ searchParams }: PageProps) {
   const { agentId } = await searchParams;
   const id = resolveAgentId(agentId);
 
-  let agent: Awaited<ReturnType<typeof loadAgentConfig>>;
+  let agent: ReturnType<typeof loadAgentConfig>;
   try {
-    agent = await loadAgentConfig(id);
+    agent = loadAgentConfig(id);
   } catch (err) {
     Sentry.captureException(err, { tags: { agentId: id } });
     notFound();
   }
 
-  const { above, below } = await loadLegalContent(id, "accessibility");
+  const { above, below } = loadLegalContent(id, "accessibility");
   const { identity } = agent;
 
   const content = `# Accessibility Statement

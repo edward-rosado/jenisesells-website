@@ -69,6 +69,9 @@ export function CmaForm({
     const field = (name: string): string => formData.get(name) as string;
 
     const notes = field("notes");
+    const beds = field("beds");
+    const baths = field("baths");
+    const sqft = field("sqft");
     const request = {
       firstName: field("firstName"),
       lastName: field("lastName"),
@@ -78,6 +81,9 @@ export function CmaForm({
       city: field("city"),
       state: field("state"),
       zip: field("zip"),
+      beds: beds.length > 0 ? Number(beds) : undefined,
+      baths: baths.length > 0 ? Number(baths) : undefined,
+      sqft: sqft.length > 0 ? Number(sqft) : undefined,
       timeline: field("timeline"),
       notes: notes.length > 0 ? notes : undefined,
     };
@@ -169,166 +175,343 @@ export function CmaForm({
     error ??
     (cmaSubmit.state.phase === "error" ? cmaSubmit.state.errorMessage : null);
 
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "12px 16px",
+    border: "2px solid #e0e0e0",
+    borderRadius: "8px",
+    fontSize: "15px",
+    transition: "border 0.3s",
+    outline: "none",
+    boxSizing: "border-box",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: "block",
+    fontSize: "14px",
+    fontWeight: 600,
+    color: "#333",
+    marginBottom: "5px",
+  };
+
+  const formGroupStyle: React.CSSProperties = {
+    marginBottom: "18px",
+  };
+
   return (
-    <section id="cma-form" className="py-16 px-10 max-w-2xl mx-auto">
-      <h2
-        className="text-3xl font-bold text-center mb-2"
-        style={{ color: "var(--color-primary)" }}
+    <div
+      id="cma-form"
+      style={{
+        background: "linear-gradient(135deg, #E8F5E9, #C8E6C9)",
+        padding: "70px 40px",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "800px",
+          margin: "0 auto",
+          textAlign: "center",
+        }}
       >
-        {data.title}
-      </h2>
-      <p className="text-center text-gray-500 mb-10">{data.subtitle}</p>
-      {displayError && (
-        <p className="text-red-600 text-center mb-4 font-medium">
-          {displayError}
-        </p>
-      )}
-      <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="firstName" className="sr-only">
-              First Name
-            </label>
-            <input
-              id="firstName"
-              name="firstName"
-              placeholder="First Name"
-              required
-              className="border rounded-lg px-4 py-3 w-full"
-            />
-          </div>
-          <div>
-            <label htmlFor="lastName" className="sr-only">
-              Last Name
-            </label>
-            <input
-              id="lastName"
-              name="lastName"
-              placeholder="Last Name"
-              required
-              className="border rounded-lg px-4 py-3 w-full"
-            />
-          </div>
-        </div>
-        <label htmlFor="email" className="sr-only">
-          Email Address
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          placeholder="Email Address"
-          required
-          className="border rounded-lg px-4 py-3 w-full"
-        />
-        <label htmlFor="phone" className="sr-only">
-          Phone Number
-        </label>
-        <input
-          id="phone"
-          name="phone"
-          type="tel"
-          placeholder="Phone Number"
-          required
-          className="border rounded-lg px-4 py-3 w-full"
-        />
-        <label htmlFor="address" className="sr-only">
-          Property Address
-        </label>
-        <input
-          id="address"
-          name="address"
-          placeholder="Property Address"
-          required
-          className="border rounded-lg px-4 py-3 w-full"
-        />
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label htmlFor="city" className="sr-only">
-              City
-            </label>
-            <input
-              id="city"
-              name="city"
-              placeholder="City"
-              required
-              className="border rounded-lg px-4 py-3 w-full"
-            />
-          </div>
-          <div>
-            <label htmlFor="state" className="sr-only">
-              State
-            </label>
-            <input
-              id="state"
-              name="state"
-              placeholder="State"
-              defaultValue={defaultState}
-              required
-              className="border rounded-lg px-4 py-3 w-full"
-            />
-          </div>
-          <div>
-            <label htmlFor="zip" className="sr-only">
-              Zip Code
-            </label>
-            <input
-              id="zip"
-              name="zip"
-              placeholder="Zip"
-              required
-              className="border rounded-lg px-4 py-3 w-full"
-            />
-          </div>
-        </div>
-        <label htmlFor="timeline" className="sr-only">
-          When are you looking to sell?
-        </label>
-        <select
-          id="timeline"
-          name="timeline"
-          required
-          className="border rounded-lg px-4 py-3 w-full"
-        >
-          <option value="">When are you looking to sell?</option>
-          <option value="asap">As soon as possible</option>
-          <option value="1-3m">1-3 months</option>
-          <option value="3-6m">3-6 months</option>
-          <option value="6-12m">6-12 months</option>
-          <option value="curious">
-            Just curious about my home&apos;s value
-          </option>
-        </select>
-        <label htmlFor="notes" className="sr-only">
-          Additional notes
-        </label>
-        <textarea
-          id="notes"
-          name="notes"
-          placeholder="Anything else I should know?"
-          rows={3}
-          className="border rounded-lg px-4 py-3 w-full"
-        />
-        <input
-          type="hidden"
-          name="_subject"
-          value={`New CMA Request — ${agentName}`}
-        />
-        <button
-          type="submit"
-          disabled={isProcessing}
-          className="w-full py-4 rounded-full text-lg font-bold transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+        <h2
           style={{
-            backgroundColor: "var(--color-accent)",
-            color: "var(--color-primary)",
+            fontSize: "32px",
+            color: "#1B5E20",
+            marginBottom: "10px",
           }}
         >
-          {isProcessing
-            ? "Submitting..."
-            : "Get My Free Home Value Report \u2192"}
-        </button>
-      </form>
-    </section>
+          {data.title}
+        </h2>
+        <p
+          style={{
+            color: "#C8A951",
+            fontSize: "20px",
+            fontWeight: 700,
+            marginBottom: "15px",
+          }}
+        >
+          {data.subtitle}
+        </p>
+        <p
+          style={{
+            color: "#555",
+            fontSize: "16px",
+            marginBottom: "30px",
+          }}
+        >
+          Fill out the short form below and I&apos;ll send you a personalized Home Value Report showing your home&apos;s estimated market value based on recent comparable sales in your area. <strong>100% free, no obligation.</strong>
+        </p>
+
+        {displayError && (
+          <p
+            style={{
+              color: "#d32f2f",
+              textAlign: "center",
+              marginBottom: "16px",
+              fontWeight: 500,
+            }}
+          >
+            {displayError}
+          </p>
+        )}
+
+        <div
+          style={{
+            background: "white",
+            borderRadius: "16px",
+            padding: "40px",
+            boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
+            maxWidth: "600px",
+            margin: "0 auto",
+            textAlign: "left",
+          }}
+        >
+          <h3
+            style={{
+              textAlign: "center",
+              color: "#1B5E20",
+              fontSize: "22px",
+              marginBottom: "25px",
+            }}
+          >
+            Request Your Free Home Value Report
+          </h3>
+
+          <form ref={formRef} onSubmit={handleSubmit}>
+            <div style={{ display: "flex", gap: "15px" }}>
+              <div style={{ ...formGroupStyle, flex: 1 }}>
+                <label htmlFor="firstName" style={labelStyle}>
+                  First Name <span style={{ color: "#d32f2f" }}>*</span>
+                </label>
+                <input
+                  id="firstName"
+                  name="firstName"
+                  placeholder="John"
+                  required
+                  autoComplete="given-name"
+                  style={inputStyle}
+                />
+              </div>
+              <div style={{ ...formGroupStyle, flex: 1 }}>
+                <label htmlFor="lastName" style={labelStyle}>
+                  Last Name <span style={{ color: "#d32f2f" }}>*</span>
+                </label>
+                <input
+                  id="lastName"
+                  name="lastName"
+                  placeholder="Smith"
+                  required
+                  autoComplete="family-name"
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+
+            <div style={formGroupStyle}>
+              <label htmlFor="email" style={labelStyle}>
+                Email Address <span style={{ color: "#d32f2f" }}>*</span>
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@email.com"
+                required
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={formGroupStyle}>
+              <label htmlFor="phone" style={labelStyle}>
+                Phone Number <span style={{ color: "#d32f2f" }}>*</span>
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                placeholder="(555) 123-4567"
+                required
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={formGroupStyle}>
+              <label htmlFor="address" style={labelStyle}>
+                Property Address <span style={{ color: "#d32f2f" }}>*</span>
+              </label>
+              <input
+                id="address"
+                name="address"
+                placeholder="Start typing your address..."
+                autoComplete="off"
+                required
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: "15px" }}>
+              <div style={{ ...formGroupStyle, flex: 2 }}>
+                <label htmlFor="city" style={labelStyle}>
+                  City <span style={{ color: "#d32f2f" }}>*</span>
+                </label>
+                <input
+                  id="city"
+                  name="city"
+                  placeholder="City"
+                  required
+                  autoComplete="address-level2"
+                  style={inputStyle}
+                />
+              </div>
+              <div style={{ ...formGroupStyle, flex: 1 }}>
+                <label htmlFor="state" style={labelStyle}>
+                  State <span style={{ color: "#d32f2f" }}>*</span>
+                </label>
+                <input
+                  id="state"
+                  name="state"
+                  placeholder={defaultState}
+                  defaultValue={defaultState}
+                  required
+                  autoComplete="address-level1"
+                  maxLength={2}
+                  style={inputStyle}
+                />
+              </div>
+              <div style={{ ...formGroupStyle, flex: 1 }}>
+                <label htmlFor="zip" style={labelStyle}>
+                  Zip <span style={{ color: "#d32f2f" }}>*</span>
+                </label>
+                <input
+                  id="zip"
+                  name="zip"
+                  placeholder="08xxx"
+                  required
+                  autoComplete="postal-code"
+                  maxLength={5}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "15px" }}>
+              <div style={{ ...formGroupStyle, flex: 1 }}>
+                <label htmlFor="beds" style={labelStyle}>
+                  Beds <span style={{ color: "#999", fontSize: "11px" }}>(optional)</span>
+                </label>
+                <input
+                  id="beds"
+                  name="beds"
+                  type="number"
+                  placeholder="3"
+                  min={0}
+                  max={20}
+                  style={inputStyle}
+                />
+              </div>
+              <div style={{ ...formGroupStyle, flex: 1 }}>
+                <label htmlFor="baths" style={labelStyle}>
+                  Baths <span style={{ color: "#999", fontSize: "11px" }}>(optional)</span>
+                </label>
+                <input
+                  id="baths"
+                  name="baths"
+                  type="number"
+                  placeholder="2"
+                  min={0}
+                  max={20}
+                  step={0.5}
+                  style={inputStyle}
+                />
+              </div>
+              <div style={{ ...formGroupStyle, flex: 1 }}>
+                <label htmlFor="sqft" style={labelStyle}>
+                  Approx Sqft <span style={{ color: "#999", fontSize: "11px" }}>(optional)</span>
+                </label>
+                <input
+                  id="sqft"
+                  name="sqft"
+                  type="number"
+                  placeholder="1,800"
+                  min={100}
+                  max={50000}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+
+            <div style={formGroupStyle}>
+              <label htmlFor="timeline" style={labelStyle}>
+                When are you looking to sell? <span style={{ color: "#d32f2f" }}>*</span>
+              </label>
+              <select
+                id="timeline"
+                name="timeline"
+                required
+                style={inputStyle}
+              >
+                <option value="">Select a timeline...</option>
+                <option value="asap">As soon as possible</option>
+                <option value="1-3months">1{"\u2013"}3 months</option>
+                <option value="3-6months">3{"\u2013"}6 months</option>
+                <option value="6-12months">6{"\u2013"}12 months</option>
+                <option value="justcurious">
+                  Just curious about my home&apos;s value
+                </option>
+              </select>
+            </div>
+
+            <div style={formGroupStyle}>
+              <label htmlFor="notes" style={labelStyle}>
+                Anything else I should know? <span style={{ color: "#999", fontSize: "11px" }}>(optional)</span>
+              </label>
+              <textarea
+                id="notes"
+                name="notes"
+                placeholder="Recent upgrades, renovations, special features..."
+                rows={2}
+                style={inputStyle}
+              />
+            </div>
+
+            <input
+              type="hidden"
+              name="_subject"
+              value={`New CMA Request — ${agentName}`}
+            />
+
+            <button
+              type="submit"
+              disabled={isProcessing}
+              style={{
+                display: "block",
+                width: "100%",
+                background: "#2E7D32",
+                color: "white",
+                padding: "16px",
+                border: "none",
+                borderRadius: "30px",
+                fontSize: "17px",
+                fontWeight: 700,
+                cursor: isProcessing ? "not-allowed" : "pointer",
+                transition: "background 0.3s",
+                opacity: isProcessing ? 0.5 : 1,
+              }}
+            >
+              {isProcessing
+                ? "Submitting..."
+                : "Get My Free Home Value Report \u2192"}
+            </button>
+            <p style={{ textAlign: "center", marginTop: "12px", fontSize: "12px", color: "#888" }}>
+              {"\uD83D\uDD12"} Your info is secure and never shared.
+            </p>
+            <p style={{ fontSize: "0.75rem", color: "#999", marginTop: "0.5rem", lineHeight: 1.4, textAlign: "center" }}>
+              <em>This home value report is a Comparative Market Analysis (CMA) and is not an appraisal. It should not be considered the equivalent of an appraisal.</em>
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }
 

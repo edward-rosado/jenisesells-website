@@ -50,4 +50,14 @@ describe("Services", () => {
     expect(screen.getByRole("heading", { level: 3, name: "One Service" })).toBeInTheDocument();
     expect(screen.getByText("One desc")).toBeInTheDocument();
   });
+
+  it("renders subtitle paragraph when subtitle is provided", () => {
+    render(<Services items={ITEMS} subtitle="Full-service real estate representation" />);
+    expect(screen.getByText("Full-service real estate representation")).toBeInTheDocument();
+  });
+
+  it("does not render subtitle paragraph when subtitle is absent", () => {
+    render(<Services items={ITEMS} />);
+    expect(screen.queryByText("Full-service real estate representation")).not.toBeInTheDocument();
+  });
 });

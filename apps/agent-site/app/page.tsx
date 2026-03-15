@@ -21,7 +21,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const { agentId } = await searchParams;
   const id = resolveAgentId(agentId);
   try {
-    const agent = await loadAgentConfig(id);
+    const agent = loadAgentConfig(id);
     return {
       title: `${agent.identity.name} | ${agent.identity.title ?? "Real Estate Agent"}`,
       description: agent.identity.tagline ?? `${agent.identity.name} — serving ${agent.location.service_areas?.join(", ") ?? agent.location.state}`,
@@ -41,8 +41,8 @@ export default async function AgentPage({ searchParams }: PageProps) {
   const id = resolveAgentId(agentId);
 
   try {
-    const agent = await loadAgentConfig(id);
-    const content = await loadAgentContent(id, agent);
+    const agent = loadAgentConfig(id);
+    const content = loadAgentContent(id, agent);
 
     const cssVars = buildCssVariableStyle(agent.branding);
     const Template = getTemplate(content.template);

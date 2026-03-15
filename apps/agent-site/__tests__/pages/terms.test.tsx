@@ -21,8 +21,8 @@ import TermsPage, { generateMetadata } from "@/app/terms/page";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockLoadAgentConfig.mockResolvedValue(AGENT);
-  mockLoadLegalContent.mockResolvedValue({ above: undefined, below: undefined });
+  mockLoadAgentConfig.mockReturnValue(AGENT);
+  mockLoadLegalContent.mockReturnValue({ above: undefined, below: undefined });
 });
 
 describe("generateMetadata (terms)", () => {
@@ -32,7 +32,7 @@ describe("generateMetadata (terms)", () => {
   });
 
   it("returns fallback title when config fails", async () => {
-    mockLoadAgentConfig.mockRejectedValue(new Error("fail"));
+    mockLoadAgentConfig.mockImplementation(() => { throw new Error("fail"); });
     const meta = await generateMetadata({ searchParams: Promise.resolve({ agentId: "bad" }) });
     expect(meta.title).toBe("Terms of Use");
   });
@@ -100,14 +100,14 @@ describe("TermsPage", () => {
   });
 
   it("renders custom below content when provided", async () => {
-    mockLoadLegalContent.mockResolvedValue({ above: undefined, below: "## Custom Footer Content" });
+    mockLoadLegalContent.mockReturnValue({ above: undefined, below: "## Custom Footer Content" });
     const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
     render(page);
     expect(screen.getByText(/Custom Footer Content/)).toBeInTheDocument();
   });
 
   it("calls notFound() when agent config fails", async () => {
-    mockLoadAgentConfig.mockRejectedValue(new Error("Config not found"));
+    mockLoadAgentConfig.mockImplementation(() => { throw new Error("Config not found"); });
     await expect(
       TermsPage({ searchParams: Promise.resolve({ agentId: "bad-agent" }) })
     ).rejects.toThrow("NOT_FOUND");
@@ -116,7 +116,7 @@ describe("TermsPage", () => {
   });
 
   it("renders with AGENT_MINIMAL — covers absent license_id and brokerage branches", async () => {
-    mockLoadAgentConfig.mockResolvedValue(AGENT_MINIMAL);
+    mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
     const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
     render(page);
     expect(screen.getByRole("heading", { level: 1, name: /Terms of Use/i })).toBeInTheDocument();
@@ -129,7 +129,7 @@ describe("TermsPage", () => {
       ...AGENT,
       identity: { ...AGENT.identity, license_id: "12345" },
     };
-    mockLoadAgentConfig.mockResolvedValue(agentWithLicense);
+    mockLoadAgentConfig.mockReturnValue(agentWithLicense);
     const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
     render(page);
     const matches = screen.getAllByText(/12345/);

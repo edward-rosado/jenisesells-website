@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    name: "Agent Site — lint, test, build"
+    name: "Agent Site -- lint, test, build"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,19 +25,22 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefix apps/agent-site
 
+      - name: Generate config registry
+        run: node apps/agent-site/scripts/generate-config-registry.mjs
+
       - name: Lint
         run: npm run lint --prefix apps/agent-site
 
       - name: Test with coverage
         run: npm run test:coverage --prefix apps/agent-site
 
-      - name: Build Next.js
+      - name: Build Next.js (smoke test)
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
         run: npm run build --prefix apps/agent-site
 
   deploy:
-    name: "Deploy to Cloudflare Pages"
+    name: "Deploy to Cloudflare Workers"
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
@@ -59,6 +62,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefix apps/agent-site
 
+      - name: Generate config registry
+        run: node apps/agent-site/scripts/generate-config-registry.mjs
+
       - name: Build Next.js
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
@@ -68,10 +74,10 @@ jobs:
         working-directory: apps/agent-site
         run: npx opennextjs-cloudflare build
 
-      - name: Deploy to Cloudflare Pages
+      - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/agent-site
-          command: pages deploy .open-next/assets --project-name=real-estate-star-agents
+          command: deploy

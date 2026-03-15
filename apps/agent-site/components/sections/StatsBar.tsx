@@ -6,18 +6,39 @@ interface StatsBarProps {
 
 export function StatsBar({ items }: StatsBarProps) {
   return (
-    <section
-      className="py-8 px-10 flex justify-center gap-12 flex-wrap"
-      style={{ backgroundColor: "var(--color-primary)" }}
+    <div
+      style={{
+        background: "#1B5E20",
+        padding: "30px 40px",
+        display: "flex",
+        justifyContent: "center",
+        gap: "50px",
+        flexWrap: "wrap",
+      }}
     >
       {items.map((item) => (
-        <div key={item.label} className="text-center text-white">
-          <div className="text-3xl font-extrabold" style={{ color: "var(--color-accent)" }}>
+        <div key={item.label} style={{ textAlign: "center", color: "white" }}>
+          <div
+            style={{
+              fontSize: "32px",
+              fontWeight: 800,
+              color: "#C8A951",
+            }}
+          >
             {item.value}
           </div>
-          <div className="text-xs uppercase tracking-widest mt-1">{item.label}</div>
+          <div
+            style={{
+              fontSize: "13px",
+              textTransform: "uppercase",
+              letterSpacing: "1px",
+              marginTop: "4px",
+            }}
+          >
+            {item.label}
+          </div>
         </div>
       ))}
-    </section>
+    </div>
   );
 }

@@ -7,10 +7,12 @@
     "brokerage": "Green Light Realty LLC",
     "brokerage_id": "1751390",
     "phone": "(347) 393-5993",
+    "office_phone": "Office: (732) 251-2500 ext 714",
     "email": "jenisesellsnj@gmail.com",
     "website": "jenisesellsnj.com",
     "languages": ["English", "Spanish"],
-    "tagline": "Forward. Moving."
+    "tagline": "Forward. Moving.",
+    "headshot_url": "/agents/jenise-buckalew/headshot.jpg"
   },
   "location": {
     "state": "NJ",
@@ -25,7 +27,8 @@
     "primary_color": "#1B5E20",
     "secondary_color": "#2E7D32",
     "accent_color": "#C8A951",
-    "font_family": "Segoe UI"
+    "font_family": "Segoe UI",
+    "logo_url": "/agents/jenise-buckalew/logo.png"
   },
   "integrations": {
     "email_provider": "gmail",

@@ -44,6 +44,10 @@ jobs:
         if: steps.check.outputs.exists == 'true'
         run: npm ci --prefix apps/agent-site
 
+      - name: Generate config registry
+        if: steps.check.outputs.exists == 'true'
+        run: node apps/agent-site/scripts/generate-config-registry.mjs
+
       - name: Lint
         if: steps.check.outputs.exists == 'true'
         run: npm run lint --prefix apps/agent-site

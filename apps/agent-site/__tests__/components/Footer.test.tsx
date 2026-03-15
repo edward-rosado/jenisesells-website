@@ -19,25 +19,25 @@ describe("Footer", () => {
 
   it("does not render title separator when title is absent", () => {
     render(<Footer agent={AGENT_MINIMAL} />);
-    // Should just be the name without a comma
-    expect(screen.getByText("Bob Jones")).toBeInTheDocument();
-    expect(screen.queryByText(/Bob Jones,/)).not.toBeInTheDocument();
+    const heading = screen.getByText("Bob Jones");
+    expect(heading.tagName).toBe("P");
+    expect(heading).toHaveStyle({ fontSize: "22px" });
   });
 
-  it("renders brokerage when present", () => {
+  it("renders brokerage in independent agent line", () => {
     render(<Footer agent={AGENT} />);
-    expect(screen.getByText("Best Homes Realty")).toBeInTheDocument();
+    expect(screen.getByText(/Independent Agent with Best Homes Realty/)).toBeInTheDocument();
   });
 
   it("does not render brokerage when absent", () => {
     render(<Footer agent={AGENT_MINIMAL} />);
-    expect(screen.queryByText("Best Homes Realty")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Best Homes Realty/)).not.toBeInTheDocument();
   });
 
-  it("renders phone as a tel link", () => {
+  it("renders phone as a tel link with digits only", () => {
     render(<Footer agent={AGENT} />);
     const phoneLink = screen.getByRole("link", { name: /call jane smith/i });
-    expect(phoneLink).toHaveAttribute("href", "tel:555-123-4567");
+    expect(phoneLink).toHaveAttribute("href", "tel:5551234567");
   });
 
   it("renders email as a mailto link", () => {
@@ -46,10 +46,9 @@ describe("Footer", () => {
     expect(emailLink).toHaveAttribute("href", "mailto:jane@example.com");
   });
 
-  it("renders service areas when present", () => {
+  it("renders service areas with compact county format", () => {
     render(<Footer agent={AGENT} />);
-    expect(screen.getByText(/Hoboken/)).toBeInTheDocument();
-    expect(screen.getByText(/Jersey City/)).toBeInTheDocument();
+    expect(screen.getByText(/Serving Hoboken & Jersey City Counties, NJ/)).toBeInTheDocument();
   });
 
   it("does not render service areas section when absent", () => {
@@ -57,26 +56,25 @@ describe("Footer", () => {
     expect(screen.queryByText(/Serving/)).not.toBeInTheDocument();
   });
 
-  it("renders languages when agent has more than one language", () => {
-    render(<Footer agent={AGENT} />);
-    expect(screen.getByText(/English/)).toBeInTheDocument();
-    expect(screen.getByText(/Spanish/)).toBeInTheDocument();
-  });
-
-  it("does not render language line for single language", () => {
-    const agentSingleLang = {
+  it("renders office phone in contact line when present", () => {
+    const agentWithOffice = {
       ...AGENT,
-      identity: { ...AGENT.identity, languages: ["English"] },
+      identity: { ...AGENT.identity, office_phone: "Office: (732) 251-2500" },
     };
-    render(<Footer agent={agentSingleLang} />);
-    // The language paragraph should not appear for a single language
-    expect(screen.queryByText("English · Spanish")).not.toBeInTheDocument();
-    expect(screen.queryByText("English")).not.toBeInTheDocument();
+    render(<Footer agent={agentWithOffice} />);
+    const officeLink = screen.getByRole("link", { name: /call office/i });
+    expect(officeLink).toHaveAttribute("href", "tel:7322512500");
   });
 
-  it("does not render language line when languages is undefined", () => {
-    render(<Footer agent={AGENT_MINIMAL} />);
-    expect(screen.queryByText(/·/)).not.toBeInTheDocument();
+  it("renders equal housing opportunity as standalone section", () => {
+    render(<Footer agent={AGENT} />);
+    expect(screen.getByLabelText("Equal Housing Opportunity logo")).toBeInTheDocument();
+    expect(screen.getByText("Equal Housing Opportunity")).toBeInTheDocument();
+  });
+
+  it("renders disclaimer with agent info", () => {
+    render(<Footer agent={AGENT} />);
+    expect(screen.getByText(/general informational purposes/)).toBeInTheDocument();
   });
 
   it("renders copyright with current year and agent name", () => {
@@ -93,8 +91,7 @@ describe("Footer", () => {
 
   it("renders legal links nav", () => {
     render(<Footer agent={AGENT} />);
-    const legalNav = screen.getByRole("navigation", { name: "Legal links" });
-    expect(legalNav).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Legal links" })).toBeInTheDocument();
   });
 
   it("renders privacy link", () => {
@@ -113,5 +110,66 @@ describe("Footer", () => {
     render(<Footer agent={AGENT} />);
     const link = screen.getByRole("link", { name: /accessibility/i });
     expect(link).toHaveAttribute("href", "/accessibility");
+  });
+
+  it("formats 3+ service areas with comma-separated list and ampersand", () => {
+    const agentThreeAreas = {
+      ...AGENT,
+      location: { ...AGENT.location, service_areas: ["Middlesex County", "Monmouth County", "Ocean County"] },
+    };
+    render(<Footer agent={agentThreeAreas} />);
+    expect(screen.getByText(/Serving Middlesex, Monmouth & Ocean Counties, NJ/)).toBeInTheDocument();
+  });
+
+  it("formats single service area correctly", () => {
+    const agentOneArea = {
+      ...AGENT,
+      location: { ...AGENT.location, service_areas: ["Bergen County"] },
+    };
+    render(<Footer agent={agentOneArea} />);
+    expect(screen.getByText(/Serving Bergen Counties, NJ/)).toBeInTheDocument();
+  });
+
+  it("renders license_id in license line when present", () => {
+    const agentWithLicense = {
+      ...AGENT,
+      identity: { ...AGENT.identity, license_id: "1234567" },
+    };
+    render(<Footer agent={agentWithLicense} />);
+    // The license number appears in both the license line and the disclaimer — confirm at least one is present
+    const matches = screen.getAllByText(/NJ License #1234567/);
+    expect(matches.length).toBeGreaterThan(0);
+  });
+
+  it("does not render license number in license line when license_id is absent", () => {
+    render(<Footer agent={AGENT} />);
+    // AGENT has no license_id — neither the license line nor the disclaimer should have it
+    expect(screen.queryByText(/NJ License #/)).not.toBeInTheDocument();
+  });
+
+  it("renders office_address in disclaimer when present", () => {
+    const agentWithOfficeAddress = {
+      ...AGENT,
+      location: { ...AGENT.location, office_address: "100 Park Ave, Newark, NJ" },
+    };
+    render(<Footer agent={agentWithOfficeAddress} />);
+    expect(screen.getByText(/100 Park Ave, Newark, NJ/)).toBeInTheDocument();
+  });
+
+  it("renders office_phone in disclaimer when present", () => {
+    const agentWithOfficePhone = {
+      ...AGENT,
+      identity: { ...AGENT.identity, office_phone: "Office: (732) 251-2500" },
+    };
+    render(<Footer agent={agentWithOfficePhone} />);
+    // The disclaimer paragraph includes the office phone
+    const disclaimer = screen.getByText(/general informational purposes/);
+    expect(disclaimer).toHaveTextContent("Office: (732) 251-2500");
+  });
+
+  it("does not include office_phone in disclaimer when absent", () => {
+    render(<Footer agent={AGENT_MINIMAL} />);
+    const disclaimer = screen.getByText(/general informational purposes/);
+    expect(disclaimer).not.toHaveTextContent("Office:");
   });
 });

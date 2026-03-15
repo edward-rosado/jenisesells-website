@@ -76,4 +76,14 @@ describe("Testimonials", () => {
     // Each card has the testimonial text
     expect(screen.getAllByText(/Amazing service!|Would recommend|Very professional/)).toHaveLength(3);
   });
+
+  it("renders subtitle paragraph when subtitle is provided", () => {
+    render(<Testimonials items={ITEMS} subtitle="Don't just take our word for it" />);
+    expect(screen.getByText("Don't just take our word for it")).toBeInTheDocument();
+  });
+
+  it("does not render subtitle paragraph when subtitle is absent", () => {
+    render(<Testimonials items={ITEMS} />);
+    expect(screen.queryByText("Don't just take our word for it")).not.toBeInTheDocument();
+  });
 });

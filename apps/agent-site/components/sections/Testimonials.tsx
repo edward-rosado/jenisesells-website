@@ -2,28 +2,99 @@ import type { TestimonialItem } from "@/lib/types";
 
 interface TestimonialsProps {
   items: TestimonialItem[];
+  title?: string;
+  subtitle?: string;
 }
 
-export function Testimonials({ items }: TestimonialsProps) {
+export function Testimonials({ items, title, subtitle }: TestimonialsProps) {
   return (
-    <section className="py-16 px-10 max-w-6xl mx-auto">
-      <h2 className="text-3xl font-bold text-center mb-10" style={{ color: "var(--color-primary)" }}>
-        What My Clients Say
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {items.map((item) => (
-          <div key={item.reviewer} className="bg-gray-50 rounded-xl p-7">
-            <div className="text-lg mb-3" style={{ color: "var(--color-accent)" }}>
-              {"★".repeat(item.rating)}{"☆".repeat(5 - item.rating)}
+    <div
+      id="testimonials"
+      style={{
+        background: "#f5f5f5",
+        maxWidth: "100%",
+        padding: "70px 40px",
+      }}
+    >
+      <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+        <h2
+          style={{
+            textAlign: "center",
+            fontSize: "32px",
+            fontWeight: 700,
+            color: "#1B5E20",
+            marginBottom: "10px",
+          }}
+        >
+          {title ?? "What My Clients Say"}
+        </h2>
+        {subtitle && (
+          <p
+            style={{
+              textAlign: "center",
+              color: "#666",
+              fontSize: "16px",
+              marginBottom: "45px",
+            }}
+          >
+            {subtitle}
+          </p>
+        )}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: "25px",
+          }}
+        >
+          {items.map((item) => (
+            <div
+              key={item.reviewer}
+              style={{
+                background: "#f9f9f9",
+                borderRadius: "12px",
+                padding: "28px",
+                position: "relative",
+              }}
+            >
+              <div
+                style={{
+                  color: "#C8A951",
+                  fontSize: "18px",
+                  marginBottom: "10px",
+                }}
+              >
+                {"★".repeat(item.rating)}{"☆".repeat(5 - item.rating)}
+              </div>
+              <p
+                style={{
+                  fontStyle: "italic",
+                  color: "#555",
+                  fontSize: "14px",
+                  lineHeight: 1.7,
+                }}
+              >
+                {item.text}
+              </p>
+              <div
+                style={{
+                  marginTop: "15px",
+                  fontWeight: 700,
+                  color: "#1B5E20",
+                  fontSize: "14px",
+                }}
+              >
+                — {item.reviewer}
+                {item.source && (
+                  <span style={{ fontWeight: "normal", color: "#999" }}>
+                    {" "}via {item.source}
+                  </span>
+                )}
+              </div>
             </div>
-            <p className="italic text-gray-600 text-sm leading-relaxed">{item.text}</p>
-            <div className="mt-4 font-bold text-sm" style={{ color: "var(--color-primary)" }}>
-              — {item.reviewer}
-              {item.source && <span className="font-normal text-gray-400"> via {item.source}</span>}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </section>
+    </div>
   );
 }

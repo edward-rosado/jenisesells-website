@@ -1,5 +1,7 @@
-const BASE_DOMAINS = ["realestatestar.com", "localhost"];
-const RESERVED_SUBDOMAINS = ["www", "api", "portal", "app", "admin"];
+import { customDomains, agentIds } from "./config-registry";
+
+const BASE_DOMAINS = ["real-estate-star.com", "localhost"];
+const RESERVED_SUBDOMAINS = ["www", "api", "portal", "platform", "app", "admin"];
 
 export function extractAgentId(hostname: string): string | null {
   const host = hostname.split(":")[0]; // strip port
@@ -14,6 +16,21 @@ export function extractAgentId(hostname: string): string | null {
     }
   }
 
-  // Custom domain — look up in domain map (future)
   return null;
+}
+
+export function resolveAgentFromCustomDomain(hostname: string): string | null {
+  const host = hostname.split(":")[0];
+  return customDomains[host] ?? null;
+}
+
+export function isWwwCustomDomain(hostname: string): string | null {
+  const host = hostname.split(":")[0];
+  if (!host.startsWith("www.")) return null;
+  const bare = host.slice(4);
+  return customDomains[bare] ? bare : null;
+}
+
+export function getAgentIds(): Set<string> {
+  return agentIds;
 }

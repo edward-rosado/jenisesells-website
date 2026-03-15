@@ -3,19 +3,19 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock crypto.randomUUID for deterministic nonce
 vi.stubGlobal("crypto", {
   randomUUID: () => "test-uuid-1234",
 });
 
-// Mock NextResponse before importing middleware
 const mockRewrite = vi.fn();
 const mockNext = vi.fn();
+const mockRedirect = vi.fn();
 const mockClone = vi.fn();
 
 function createMockResponse() {
   const headers = new Map<string, string>();
   return {
+    status: 200,
     headers: {
       set: (key: string, value: string) => headers.set(key, value),
       get: (key: string) => headers.get(key),
@@ -24,18 +24,39 @@ function createMockResponse() {
   };
 }
 
-vi.mock("next/server", () => {
-  return {
-    NextResponse: {
-      rewrite: mockRewrite,
-      next: mockNext,
-    },
-  };
-});
+// Mock NextResponse as both a class (for `new NextResponse(body, opts)`) and static methods
+class MockNextResponse {
+  headers: Map<string, string>;
+  status: number;
+  constructor(body?: string, init?: { status?: number }) {
+    this.headers = new Map();
+    this.status = init?.status ?? 200;
+  }
+  static rewrite = mockRewrite;
+  static next = mockNext;
+  static redirect = mockRedirect;
+}
+
+vi.mock("next/server", () => ({
+  NextResponse: MockNextResponse,
+}));
+
+vi.mock("@/lib/routing", () => ({
+  extractAgentId: vi.fn(),
+  resolveAgentFromCustomDomain: vi.fn(),
+  isWwwCustomDomain: vi.fn(),
+  getAgentIds: vi.fn(),
+}));
+
+import { extractAgentId, resolveAgentFromCustomDomain, isWwwCustomDomain, getAgentIds } from "@/lib/routing";
+
+const mockExtractAgentId = vi.mocked(extractAgentId);
+const mockResolveCustomDomain = vi.mocked(resolveAgentFromCustomDomain);
+const mockIsWwwCustomDomain = vi.mocked(isWwwCustomDomain);
+const mockGetAgentIds = vi.mocked(getAgentIds);
 
 let middleware: typeof import("@/middleware").middleware;
 
-// Helper to build a minimal NextRequest-like object
 function makeRequest(host: string, pathname = "/") {
   const clonedUrl = new URL(`http://${host}${pathname}`);
   clonedUrl.searchParams.set = vi.fn((key, value) => {
@@ -49,6 +70,7 @@ function makeRequest(host: string, pathname = "/") {
     },
     nextUrl: {
       clone: mockClone,
+      pathname,
     },
   };
 }
@@ -59,125 +81,105 @@ describe("middleware", () => {
     vi.resetAllMocks();
     mockRewrite.mockReturnValue(createMockResponse());
     mockNext.mockReturnValue(createMockResponse());
+    mockRedirect.mockReturnValue(createMockResponse());
+    mockGetAgentIds.mockReturnValue(new Set(["jenise-buckalew", "test-agent"]));
+    mockExtractAgentId.mockReturnValue(null);
+    mockResolveCustomDomain.mockReturnValue(null);
+    mockIsWwwCustomDomain.mockReturnValue(null);
     const mod = await import("@/middleware");
     middleware = mod.middleware;
   });
 
-  it("calls NextResponse.next() for the base domain (no subdomain)", () => {
-    const req = makeRequest("realestatestar.com");
+  // --- www redirect ---
+  it("301 redirects www.customdomain to bare domain", () => {
+    mockIsWwwCustomDomain.mockReturnValue("jenisesellsnj.com");
+    const req = makeRequest("www.jenisesellsnj.com", "/about");
     middleware(req as never);
-    expect(mockNext).toHaveBeenCalled();
-    expect(mockRewrite).not.toHaveBeenCalled();
+    expect(mockRedirect).toHaveBeenCalled();
+    const redirectUrl = mockRedirect.mock.calls[0][0];
+    expect(redirectUrl.toString()).toContain("jenisesellsnj.com/about");
   });
 
-  it("calls NextResponse.next() for localhost", () => {
-    const req = makeRequest("localhost:3000");
-    middleware(req as never);
-    expect(mockNext).toHaveBeenCalled();
-    expect(mockRewrite).not.toHaveBeenCalled();
-  });
-
-  it("calls NextResponse.rewrite() for a valid agent subdomain", () => {
-    const req = makeRequest("jenise-buckalew.realestatestar.com");
+  // --- subdomain match ---
+  it("rewrites for a known agent subdomain", () => {
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
     middleware(req as never);
     expect(mockRewrite).toHaveBeenCalled();
     expect(mockNext).not.toHaveBeenCalled();
   });
 
-  it("sets agentId search param when rewriting for valid subdomain", () => {
-    const req = makeRequest("jenise-buckalew.realestatestar.com");
+  it("returns 404 response for unknown agent subdomain", () => {
+    mockExtractAgentId.mockReturnValue("unknown-agent");
+    const req = makeRequest("unknown-agent.real-estate-star.com");
+    const response = middleware(req as never);
+    expect(mockRewrite).not.toHaveBeenCalled();
+    expect(mockNext).not.toHaveBeenCalled();
+    expect(response.status).toBe(404);
+  });
+
+  it("sets agentId search param when rewriting for known subdomain", () => {
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
     const clonedUrl = req.nextUrl.clone();
     middleware(req as never);
     expect(clonedUrl.searchParams.set).toHaveBeenCalledWith("agentId", "jenise-buckalew");
   });
 
-  it("calls NextResponse.next() for reserved subdomain 'www'", () => {
-    const req = makeRequest("www.realestatestar.com");
-    middleware(req as never);
-    expect(mockNext).toHaveBeenCalled();
-    expect(mockRewrite).not.toHaveBeenCalled();
-  });
-
-  it("calls NextResponse.next() for reserved subdomain 'api'", () => {
-    const req = makeRequest("api.realestatestar.com");
-    middleware(req as never);
-    expect(mockNext).toHaveBeenCalled();
-    expect(mockRewrite).not.toHaveBeenCalled();
-  });
-
-  it("calls NextResponse.next() for reserved subdomain 'portal'", () => {
-    const req = makeRequest("portal.realestatestar.com");
-    middleware(req as never);
-    expect(mockNext).toHaveBeenCalled();
-  });
-
-  it("calls NextResponse.next() for reserved subdomain 'app'", () => {
-    const req = makeRequest("app.realestatestar.com");
-    middleware(req as never);
-    expect(mockNext).toHaveBeenCalled();
-  });
-
-  it("calls NextResponse.next() for reserved subdomain 'admin'", () => {
-    const req = makeRequest("admin.realestatestar.com");
-    middleware(req as never);
-    expect(mockNext).toHaveBeenCalled();
-  });
-
-  it("calls NextResponse.next() for nested subdomains (more than one level)", () => {
-    const req = makeRequest("agent.sub.realestatestar.com");
-    middleware(req as never);
-    expect(mockNext).toHaveBeenCalled();
-    expect(mockRewrite).not.toHaveBeenCalled();
-  });
-
-  it("calls NextResponse.next() for a custom domain (not in base list)", () => {
-    const req = makeRequest("customdomain.com");
-    middleware(req as never);
-    expect(mockNext).toHaveBeenCalled();
-    expect(mockRewrite).not.toHaveBeenCalled();
-  });
-
-  it("falls back to localhost when host header is missing", () => {
-    const fakeReq = {
-      headers: { get: () => null },
-      nextUrl: { clone: mockClone },
-    };
-    const clonedUrl = { searchParams: { set: vi.fn() } };
-    mockClone.mockReturnValue(clonedUrl);
-    mockNext.mockReturnValue(createMockResponse());
-
-    middleware(fakeReq as never);
-    expect(mockNext).toHaveBeenCalled();
-  });
-
-  it("handles host with port correctly for agent subdomain", () => {
-    const req = makeRequest("my-agent.realestatestar.com:443");
+  // --- custom domain match ---
+  it("rewrites for a known custom domain", () => {
+    mockResolveCustomDomain.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenisesellsnj.com");
     middleware(req as never);
     expect(mockRewrite).toHaveBeenCalled();
   });
 
+  // --- no match -> 404 ---
+  it("returns 404 for completely unknown hostname", () => {
+    const req = makeRequest("random.com");
+    const response = middleware(req as never);
+    expect(mockRewrite).not.toHaveBeenCalled();
+    expect(mockNext).not.toHaveBeenCalled();
+    expect(response.status).toBe(404);
+  });
+
+  // --- reserved subdomains fall through to 404 (not served by agent-site) ---
+  it("returns 404 when extractAgentId returns null and no custom domain match", () => {
+    mockExtractAgentId.mockReturnValue(null);
+    mockResolveCustomDomain.mockReturnValue(null);
+    const req = makeRequest("www.real-estate-star.com");
+    const response = middleware(req as never);
+    expect(mockRewrite).not.toHaveBeenCalled();
+    expect(response.status).toBe(404);
+  });
+
+  // --- CSP ---
   it("sets Content-Security-Policy header on the response", () => {
-    const req = makeRequest("realestatestar.com");
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
     const response = middleware(req as never);
     expect(response.headers.get("Content-Security-Policy")).toContain("default-src 'self'");
-    expect(response.headers.get("Content-Security-Policy")).toContain("nonce-");
   });
 
   it("sets x-nonce header on the response", () => {
-    const req = makeRequest("realestatestar.com");
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
     const response = middleware(req as never);
     expect(response.headers.get("x-nonce")).toBeTruthy();
   });
 
-  it("includes API URL in CSP connect-src when NEXT_PUBLIC_API_URL is set", async () => {
+  it("includes API URL in CSP connect-src when set", async () => {
     process.env.NEXT_PUBLIC_API_URL = "https://api.example.com";
     vi.resetModules();
-    const mod = await import("@/middleware");
-    const freshMiddleware = mod.middleware;
+    vi.resetAllMocks();
+    mockRewrite.mockReturnValue(createMockResponse());
+    mockGetAgentIds.mockReturnValue(new Set(["jenise-buckalew"]));
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    mockIsWwwCustomDomain.mockReturnValue(null);
 
-    const req = makeRequest("realestatestar.com");
-    mockNext.mockReturnValue(createMockResponse());
-    const response = freshMiddleware(req as never);
+    const mod = await import("@/middleware");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
+    const response = mod.middleware(req as never);
     const csp = response.headers.get("Content-Security-Policy")!;
     expect(csp).toContain("https://api.example.com");
     expect(csp).toContain("wss://api.example.com");
@@ -185,39 +187,98 @@ describe("middleware", () => {
     delete process.env.NEXT_PUBLIC_API_URL;
   });
 
-  it("includes ws:// for http API URL in CSP connect-src", async () => {
-    process.env.NEXT_PUBLIC_API_URL = "http://localhost:5000";
+  it("converts http:// to ws:// in CSP connect-src", async () => {
+    process.env.NEXT_PUBLIC_API_URL = "http://localhost:5135";
     vi.resetModules();
-    const mod = await import("@/middleware");
-    const freshMiddleware = mod.middleware;
+    vi.resetAllMocks();
+    mockRewrite.mockReturnValue(createMockResponse());
+    mockGetAgentIds.mockReturnValue(new Set(["jenise-buckalew"]));
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    mockIsWwwCustomDomain.mockReturnValue(null);
 
-    const req = makeRequest("realestatestar.com");
-    mockNext.mockReturnValue(createMockResponse());
-    const response = freshMiddleware(req as never);
+    const mod = await import("@/middleware");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
+    const response = mod.middleware(req as never);
     const csp = response.headers.get("Content-Security-Policy")!;
-    expect(csp).toContain("http://localhost:5000");
-    expect(csp).toContain("ws://localhost:5000");
+    expect(csp).toContain("http://localhost:5135");
+    expect(csp).toContain("ws://localhost:5135");
 
     delete process.env.NEXT_PUBLIC_API_URL;
   });
 
   it("omits API URL from CSP when NEXT_PUBLIC_API_URL is not set", () => {
     delete process.env.NEXT_PUBLIC_API_URL;
-    const req = makeRequest("realestatestar.com");
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
     const response = middleware(req as never);
     const csp = response.headers.get("Content-Security-Policy")!;
-    // Should not have trailing space or empty entries from missing API URL
-    expect(csp).not.toContain("ws://");
     expect(csp).not.toContain("wss://");
+    expect(csp).not.toContain("ws://");
+  });
+
+  // --- fallback + edge cases ---
+  it("falls back to localhost:3000 when host header is missing", () => {
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    mockGetAgentIds.mockReturnValue(new Set(["jenise-buckalew"]));
+    const req = {
+      headers: { get: () => null },
+      nextUrl: { clone: vi.fn().mockReturnValue(new URL("http://localhost:3000/")), pathname: "/" },
+    };
+    const response = middleware(req as never);
+    expect(response).toBeDefined();
+  });
+
+  it("strips port from production hostname for agent matching", () => {
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com:443");
+    middleware(req as never);
+    expect(mockRewrite).toHaveBeenCalled();
+  });
+
+  // --- localhost dev ---
+  it("rewrites for agent subdomain on localhost", () => {
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.localhost:3000");
+    middleware(req as never);
+    expect(mockRewrite).toHaveBeenCalled();
+  });
+
+  // --- dev fallback: bare localhost ---
+  it("rewrites bare localhost to default agent in dev mode", () => {
+    mockExtractAgentId.mockReturnValue(null);
+    mockResolveCustomDomain.mockReturnValue(null);
+    const req = makeRequest("localhost:3000");
+    middleware(req as never);
+    expect(mockRewrite).toHaveBeenCalled();
+  });
+
+  it("uses DEFAULT_AGENT_ID env var for bare localhost fallback", () => {
+    mockExtractAgentId.mockReturnValue(null);
+    mockResolveCustomDomain.mockReturnValue(null);
+    process.env.DEFAULT_AGENT_ID = "test-agent";
+    const req = makeRequest("localhost:3000");
+    middleware(req as never);
+    expect(mockRewrite).toHaveBeenCalled();
+    delete process.env.DEFAULT_AGENT_ID;
+  });
+
+  it("returns 404 when DEFAULT_AGENT_ID is set but not in the known agent set", () => {
+    mockExtractAgentId.mockReturnValue(null);
+    mockResolveCustomDomain.mockReturnValue(null);
+    mockGetAgentIds.mockReturnValue(new Set(["jenise-buckalew"]));
+    process.env.DEFAULT_AGENT_ID = "nonexistent-agent";
+    const req = makeRequest("localhost:3000");
+    const response = middleware(req as never);
+    expect(mockRewrite).not.toHaveBeenCalled();
+    expect(response.status).toBe(404);
+    delete process.env.DEFAULT_AGENT_ID;
   });
 });
 
 describe("middleware config export", () => {
   it("exports a matcher that excludes _next, favicon, and api paths", async () => {
     const { config } = await import("@/middleware");
-    expect(config).toBeDefined();
     expect(config.matcher).toBeDefined();
-    expect(Array.isArray(config.matcher)).toBe(true);
     const pattern = config.matcher[0];
     expect(pattern).toContain("_next");
     expect(pattern).toContain("favicon.ico");

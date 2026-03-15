@@ -2,25 +2,70 @@ import type { ServiceItem } from "@/lib/types";
 
 interface ServicesProps {
   items: ServiceItem[];
+  title?: string;
+  subtitle?: string;
 }
 
-export function Services({ items }: ServicesProps) {
+export function Services({ items, title, subtitle }: ServicesProps) {
   return (
-    <section className="py-16 px-10 max-w-6xl mx-auto">
-      <h2 className="text-3xl font-bold text-center mb-10" style={{ color: "var(--color-primary)" }}>
-        What I Do for You
+    <section
+      style={{
+        padding: "70px 40px",
+        maxWidth: "1100px",
+        margin: "0 auto",
+      }}
+    >
+      <h2
+        style={{
+          textAlign: "center",
+          fontSize: "32px",
+          fontWeight: 700,
+          color: "#1B5E20",
+          marginBottom: "10px",
+        }}
+      >
+        {title ?? "What I Do for You"}
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {subtitle && (
+        <p
+          style={{
+            textAlign: "center",
+            color: "#666",
+            fontSize: "16px",
+            marginBottom: "45px",
+          }}
+        >
+          {subtitle}
+        </p>
+      )}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: "25px",
+        }}
+      >
         {items.map((item) => (
           <div
             key={item.title}
-            className="bg-gray-50 rounded-xl p-7 border-l-4 transition-transform hover:-translate-y-1 hover:shadow-lg"
-            style={{ borderLeftColor: "var(--color-secondary)" }}
+            style={{
+              background: "#f9f9f9",
+              borderRadius: "12px",
+              padding: "30px",
+              borderLeft: "4px solid #2E7D32",
+              transition: "transform 0.3s, box-shadow 0.3s",
+            }}
           >
-            <h3 className="text-lg font-bold mb-2" style={{ color: "var(--color-primary)" }}>
+            <h3
+              style={{
+                color: "#1B5E20",
+                fontSize: "19px",
+                marginBottom: "10px",
+              }}
+            >
               {item.title}
             </h3>
-            <p className="text-gray-600 text-sm">{item.description}</p>
+            <p style={{ color: "#555", fontSize: "15px" }}>{item.description}</p>
           </div>
         ))}
       </div>

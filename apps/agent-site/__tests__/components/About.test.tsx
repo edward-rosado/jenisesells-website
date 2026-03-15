@@ -67,4 +67,33 @@ describe("About", () => {
     render(<About agent={AGENT} data={{ bio: "Bio here", credentials: ["REALTOR"] }} />);
     expect(screen.getByText("REALTOR")).toBeInTheDocument();
   });
+
+  it("renders multiple paragraphs when bio is an array", () => {
+    const arrayBioData: AboutData = {
+      bio: ["First paragraph.", "Second paragraph.", "Third paragraph."],
+      credentials: [],
+    };
+    render(<About agent={AGENT} data={arrayBioData} />);
+    expect(screen.getByText("First paragraph.")).toBeInTheDocument();
+    expect(screen.getByText("Second paragraph.")).toBeInTheDocument();
+    expect(screen.getByText("Third paragraph.")).toBeInTheDocument();
+  });
+
+  it("renders headshot image when agent has headshot_url", () => {
+    const agentWithHeadshot = {
+      ...AGENT,
+      identity: {
+        ...AGENT.identity,
+        headshot_url: "https://example.com/headshot.jpg",
+      },
+    };
+    render(<About agent={agentWithHeadshot} data={DATA_WITH_CREDENTIALS} />);
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("alt", "Jane Smith");
+  });
+
+  it("does not render headshot image when headshot_url is absent", () => {
+    render(<About agent={AGENT} data={DATA_WITH_CREDENTIALS} />);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
 });
