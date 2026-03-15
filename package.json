@@ -6,6 +6,10 @@
     "packages/*"
   ],
   "optionalDependencies": {
-    "@tailwindcss/oxide-linux-x64-gnu": "^4.2.1"
+    "@ast-grep/napi-linux-x64-gnu": "^0.41.1",
+    "@rollup/rollup-linux-x64-gnu": "^4.59.0",
+    "@sentry/cli-linux-x64": "^3.3.3",
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.2.1",
+    "@unrs/resolver-binding-linux-x64-gnu": "^1.11.1"
   }
 }
