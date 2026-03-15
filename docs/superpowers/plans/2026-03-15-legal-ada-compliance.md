@@ -22,14 +22,18 @@
 | `apps/agent-site/components/sections/CmaForm.tsx` | Section wrapper, TCPA checkbox, CMA disclaimer, aria-live, outline fix |
 | `apps/agent-site/components/sections/Testimonials.tsx` | Star rating a11y, article tags, review disclosure |
 | `apps/agent-site/components/sections/HowItWorks.tsx` | Ordered list semantics |
-| `apps/agent-site/components/sections/StatsBar.tsx` | Description list semantics |
+| `apps/agent-site/components/sections/StatsBar.tsx` | Description list semantics, source disclaimer for claims |
 | `apps/agent-site/components/sections/About.tsx` | Credentials list semantics |
 | `apps/agent-site/components/sections/Services.tsx` | Minor contrast tweak |
-| `apps/agent-site/components/sections/SoldHomes.tsx` | Article tags, price aria-label |
-| `apps/agent-site/app/terms/page.tsx` | NJ LAD notice, NJ Fair Housing, license info |
+| `apps/agent-site/components/sections/SoldHomes.tsx` | Article tags, price aria-label, replace Zillow hotlinked images |
+| `apps/agent-site/app/terms/page.tsx` | NJ LAD notice, NJ Fair Housing, license info, Google Maps ToS |
 | `apps/agent-site/app/privacy/page.tsx` | NJ privacy rights, data retention, TCPA, third-party services |
 | `apps/agent-site/app/thank-you/page.tsx` | CMA disclaimer |
+| `packages/ui/LeadForm/LeadForm.tsx` | Remove outline:none, fix gold accent contrast, pill focus, form aria-label, autocomplete a11y |
+| `packages/ui/LeadForm/useGoogleMapsAutocomplete.ts` | Add role="combobox", screen reader announcements |
+| `apps/agent-site/components/CookieConsentBanner.tsx` | Fix white-on-gold button contrast |
 | `config/agents/jenise-buckalew/config.json` | Add license_type field |
+| `config/agents/jenise-buckalew/content.json` | Replace Zillow hotlinked image URLs with local copies |
 
 ---
 
@@ -167,16 +171,28 @@ useEffect(() => {
 
 The backdrop overlay should have `aria-hidden="true"`.
 
-- [ ] **Step 6: Write tests**
+- [ ] **Step 6: Add brokerage name above the fold (NJAC 11:5-6.1(a))**
 
-Test: Escape key closes drawer, aria-expanded toggles, focus moves to first link on open, focus returns to hamburger on close.
+Add brokerage name to the Nav bar (visible on all pages, not just footer). Example: small text below or beside the agent name: "Independent Agent with {brokerage}". Must be "clear and conspicuous."
 
-- [ ] **Step 7: Run coverage and commit**
+- [ ] **Step 7: Hide decorative SVG icons from screen readers**
+
+Add `aria-hidden="true"` to all decorative SVG icons in the Nav (phone, email icons at lines 11-34).
+
+- [ ] **Step 8: Increase touch targets for contact links to 44px minimum**
+
+Nav contact links (~32px) and footer links need min 44x44px touch target (WCAG 2.5.5). Add padding to achieve this.
+
+- [ ] **Step 9: Write tests**
+
+Test: Escape key closes drawer, aria-expanded toggles, focus moves to first link on open, focus returns to hamburger on close, brokerage name renders in nav, SVGs have aria-hidden.
+
+- [ ] **Step 10: Run coverage and commit**
 
 ```bash
 npm run test:coverage --prefix apps/agent-site
 git add apps/agent-site/components/Nav.tsx apps/agent-site/__tests__/components/Nav.test.tsx
-git commit -m "fix(a11y): add focus trap, Escape key, and ARIA attributes to Nav drawer"
+git commit -m "fix(a11y+legal): Nav focus trap, ARIA, brokerage above fold, touch targets"
 ```
 
 ---
@@ -305,7 +321,58 @@ git commit -m "fix(a11y+legal): form accessibility, TCPA consent, CMA disclaimer
 
 ---
 
-## Task 7: Testimonials — A11y + FTC Disclosure
+## Task 7: LeadForm (packages/ui) — Focus, Contrast, Autocomplete A11y
+
+**Files:**
+- Modify: `packages/ui/LeadForm/LeadForm.tsx`
+- Modify: `packages/ui/LeadForm/useGoogleMapsAutocomplete.ts`
+- Test: `packages/ui/LeadForm/LeadForm.test.tsx`, `packages/ui/LeadForm/useGoogleMapsAutocomplete.test.ts`
+
+**Why:** The shared LeadForm has the most critical ADA issues: `outline: "none"` on inputs (WCAG 2.4.7), gold accent `#C8A951` fails contrast on every background (~2.37:1), pill checkboxes have no visible focus, autocomplete missing role="combobox".
+
+- [ ] **Step 1: Remove `outline: "none"` from inputStyle (CRITICAL)**
+
+Delete `outline: "none"` from the input style object. Global `:focus-visible` handles it.
+
+- [ ] **Step 2: Fix gold accent contrast (CRITICAL)**
+
+Replace `#C8A951` with a darker variant `#8B7635` (or similar) for text usage. Gold on white/light backgrounds must hit 4.5:1 ratio. Keep gold for decorative borders/backgrounds where contrast isn't required.
+
+- [ ] **Step 3: Add visible focus to pill checkboxes (HIGH)**
+
+The buying/selling pill toggles use hidden checkboxes with styled labels. Add `:focus-visible` styling via onFocus/onBlur state or CSS adjacent sibling selector so keyboard users see which pill is focused.
+
+- [ ] **Step 4: Add `aria-label` to the form element**
+
+Wrap the form in `<form aria-label="Lead capture form">` or add `aria-labelledby` pointing to the heading.
+
+- [ ] **Step 5: Add `required` attribute and accessible required indicators**
+
+Replace visual-only red asterisks with `aria-required="true"` on inputs. Add `<span class="sr-only">(required)</span>` next to asterisks.
+
+- [ ] **Step 6: Focus first invalid field on validation error**
+
+When form validation fails, programmatically focus the first invalid input so screen readers announce the error.
+
+- [ ] **Step 7: Add `role="combobox"` and `aria-autocomplete` to Google Maps input**
+
+In `useGoogleMapsAutocomplete.ts`, set `role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`, and `aria-haspopup="listbox"` on the input when autocomplete is active. Add screen reader announcement when suggestions appear.
+
+- [ ] **Step 8: Verify Google Maps shows "Powered by Google" attribution**
+
+Google Maps Platform ToS requires visible attribution. The Places autocomplete widget should include this by default — verify it's not hidden by CSS.
+
+- [ ] **Step 9: Write tests and commit**
+
+```bash
+npm run test:coverage --prefix packages/ui
+git add packages/ui/LeadForm/ packages/ui/LeadForm/*.test.*
+git commit -m "fix(a11y): LeadForm focus indicators, contrast, pill focus, autocomplete a11y"
+```
+
+---
+
+## Task 8: Testimonials — A11y + FTC Disclosure
 
 **Files:**
 - Modify: `apps/agent-site/components/sections/Testimonials.tsx`
@@ -356,7 +423,18 @@ Change credential spans to proper list items.
 
 - [ ] **Step 4: SoldHomes — Change cards to `<article>`, add price aria-label**
 
-- [ ] **Step 5: Services — Darken card border from #2E7D32 to #1B5E20**
+- [ ] **Step 5: SoldHomes — Replace Zillow hotlinked images with local copies (LEGAL HIGH)**
+
+Images from `photos.zillowstatic.com` violate Zillow ToS and URLs can break. Download images to `public/agents/{agent-id}/sold/` and update `content.json` to use local paths. If images can't be sourced legally, use placeholder "Sold" graphics.
+
+- [ ] **Step 6: StatsBar — Add source disclaimer for marketing claims (LEGAL HIGH)**
+
+"100+ Homes Sold" and "5.0 Zillow Rating" need either:
+- A footnote: "Based on data from Zillow as of [date]"
+- Or link to the source (Zillow profile URL)
+This satisfies NJ advertising substantiation requirements.
+
+- [ ] **Step 7: Services — Darken card border from #2E7D32 to #1B5E20**
 
 - [ ] **Step 6: Update all tests for new semantic elements**
 
@@ -422,6 +500,24 @@ Add after the thank-you message:
 git add apps/agent-site/app/terms/page.tsx apps/agent-site/app/privacy/page.tsx apps/agent-site/app/thank-you/page.tsx
 git add apps/agent-site/__tests__/pages/
 git commit -m "fix(legal): NJ LAD, TCPA, data retention, CMA disclaimers on legal pages"
+```
+
+---
+
+## Task 12: Cookie Consent Banner — Contrast Fix
+
+**Files:**
+- Modify: `apps/agent-site/components/CookieConsentBanner.tsx` (or wherever the banner lives)
+- Test: corresponding test file
+
+- [ ] **Step 1: Fix white-on-gold button contrast**
+
+The "Accept" button uses white text on gold (`#C8A951`) background — ~2.37:1 contrast. Change to dark text on gold, or darken the gold to `#8B7635` with white text (4.5:1+).
+
+- [ ] **Step 2: Write test and commit**
+
+```bash
+git commit -m "fix(a11y): cookie consent button contrast"
 ```
 
 ---
