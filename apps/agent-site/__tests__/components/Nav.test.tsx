@@ -130,4 +130,41 @@ describe("Nav", () => {
     fireEvent.click(hamburger);
     expect(screen.getByText("Why Choose Me")).toBeInTheDocument();
   });
+
+  it("closes drawer when a section link is clicked", () => {
+    const { container } = render(<Nav agent={AGENT} />);
+    const hamburger = screen.getByLabelText("Menu");
+
+    // Open drawer
+    fireEvent.click(hamburger);
+
+    // Drawer should be visible
+    const drawer = container.querySelector(".nav-drawer") as HTMLElement;
+    expect(drawer.style.visibility).toBe("visible");
+
+    // Click a section link
+    fireEvent.click(screen.getByText("Why Choose Me"));
+
+    // Drawer should be hidden
+    expect(drawer.style.visibility).toBe("hidden");
+  });
+
+  it("closes drawer when overlay is clicked", () => {
+    const { container } = render(<Nav agent={AGENT} />);
+    const hamburger = screen.getByLabelText("Menu");
+
+    // Open drawer
+    fireEvent.click(hamburger);
+
+    // Overlay is a fixed-position div covering the full screen (between nav and drawer)
+    const overlays = Array.from(container.querySelectorAll("div")).filter(
+      (el) => el.style.position === "fixed" && el.style.zIndex === "1050"
+    );
+    expect(overlays).toHaveLength(1);
+    fireEvent.click(overlays[0]);
+
+    // Drawer should be hidden
+    const drawer = container.querySelector(".nav-drawer") as HTMLElement;
+    expect(drawer.style.visibility).toBe("hidden");
+  });
 });

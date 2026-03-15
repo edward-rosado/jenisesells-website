@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { Hero } from "@/components/sections/Hero";
 import type { HeroData } from "@/lib/types";
 
@@ -122,5 +122,23 @@ describe("Hero", () => {
     const data = { ...BASE_DATA, body: "I am a professional agent." };
     render(<Hero data={data} />);
     expect(screen.getByText("I am a professional agent.")).toBeInTheDocument();
+  });
+
+  it("CTA changes style on hover", () => {
+    render(<Hero data={BASE_DATA} />);
+    const cta = screen.getByRole("link");
+
+    // Before hover — accent color background
+    expect(cta.style.background).toContain("var(--color-accent)");
+
+    // Hover
+    fireEvent.mouseEnter(cta);
+    expect(cta.style.background).toBe("white");
+    expect(cta.style.transform).toContain("translateY");
+
+    // Leave
+    fireEvent.mouseLeave(cta);
+    expect(cta.style.background).toContain("var(--color-accent)");
+    expect(cta.style.transform).toBe("none");
   });
 });
