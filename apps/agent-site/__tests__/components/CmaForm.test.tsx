@@ -56,14 +56,14 @@ const API_PROPS = {
 // Helper: fill out all required form fields via LeadForm's labels
 // LeadForm renders with initialMode=["selling"], so seller card is visible
 function fillForm() {
-  fireEvent.change(screen.getByLabelText("First Name"), { target: { value: "Alice" } });
-  fireEvent.change(screen.getByLabelText("Last Name"), { target: { value: "Test" } });
-  fireEvent.change(screen.getByLabelText("Email"), { target: { value: "alice@test.com" } });
-  fireEvent.change(screen.getByLabelText("Phone"), { target: { value: "555-111-2222" } });
-  fireEvent.change(screen.getByLabelText("Property Address"), { target: { value: "1 Test St" } });
-  fireEvent.change(screen.getByLabelText("City"), { target: { value: "Hoboken" } });
-  fireEvent.change(screen.getByLabelText("State"), { target: { value: "NJ" } });
-  fireEvent.change(screen.getByLabelText("Zip"), { target: { value: "07030" } });
+  fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: "Alice" } });
+  fireEvent.change(screen.getByLabelText(/^last name/i), { target: { value: "Test" } });
+  fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: "alice@test.com" } });
+  fireEvent.change(screen.getByLabelText(/^phone/i), { target: { value: "555-111-2222" } });
+  fireEvent.change(screen.getByLabelText(/property address/i), { target: { value: "1 Test St" } });
+  fireEvent.change(screen.getByLabelText(/^city/i), { target: { value: "Hoboken" } });
+  fireEvent.change(screen.getByLabelText(/^state/i), { target: { value: "NJ" } });
+  fireEvent.change(screen.getByLabelText(/^zip/i), { target: { value: "07030" } });
   fireEvent.change(screen.getByLabelText(/looking to sell/), { target: { value: "asap" } });
 }
 
@@ -86,14 +86,14 @@ describe("CmaForm rendering", () => {
 
   it("renders all required input fields via LeadForm", () => {
     render(<CmaForm {...FORMSPREE_PROPS} />);
-    expect(screen.getByLabelText("First Name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Last Name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Email")).toBeInTheDocument();
-    expect(screen.getByLabelText("Phone")).toBeInTheDocument();
-    expect(screen.getByLabelText("Property Address")).toBeInTheDocument();
-    expect(screen.getByLabelText("City")).toBeInTheDocument();
-    expect(screen.getByLabelText("State")).toBeInTheDocument();
-    expect(screen.getByLabelText("Zip")).toBeInTheDocument();
+    expect(screen.getByLabelText(/^first name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^last name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^phone/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/property address/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^city/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^state/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^zip/i)).toBeInTheDocument();
   });
 
   it("renders the timeline select dropdown", () => {
@@ -119,7 +119,7 @@ describe("CmaForm rendering", () => {
 
   it("pre-fills the state field from defaultState prop", () => {
     render(<CmaForm {...FORMSPREE_PROPS} />);
-    const stateInput = screen.getByLabelText("State") as HTMLInputElement;
+    const stateInput = screen.getByLabelText(/^state/i) as HTMLInputElement;
     expect(stateInput.value).toBe("NJ");
   });
 
@@ -140,14 +140,14 @@ describe("CmaForm rendering", () => {
 
   it("all inputs have accessible labels", () => {
     render(<CmaForm {...FORMSPREE_PROPS} />);
-    expect(screen.getByLabelText("First Name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Last Name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Email")).toBeInTheDocument();
-    expect(screen.getByLabelText("Phone")).toBeInTheDocument();
-    expect(screen.getByLabelText("Property Address")).toBeInTheDocument();
-    expect(screen.getByLabelText("City")).toBeInTheDocument();
-    expect(screen.getByLabelText("State")).toBeInTheDocument();
-    expect(screen.getByLabelText("Zip")).toBeInTheDocument();
+    expect(screen.getByLabelText(/^first name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^last name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^phone/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/property address/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^city/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^state/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^zip/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/looking to sell/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Notes/)).toBeInTheDocument();
   });
@@ -545,9 +545,9 @@ describe("CmaForm — formspree vs API mode detection", () => {
 
     render(<CmaForm {...API_PROPS} />);
     fillForm();
-    fireEvent.change(screen.getByLabelText("Beds"), { target: { value: "4" } });
-    fireEvent.change(screen.getByLabelText("Baths"), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText("Sqft"), { target: { value: "2200" } });
+    fireEvent.change(screen.getByLabelText(/^beds$/i), { target: { value: "4" } });
+    fireEvent.change(screen.getByLabelText(/^baths$/i), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText(/^sqft$/i), { target: { value: "2200" } });
 
     await act(async () => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);

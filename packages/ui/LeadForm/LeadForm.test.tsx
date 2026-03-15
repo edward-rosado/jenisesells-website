@@ -30,7 +30,9 @@ function fillContactFields() {
 }
 
 function fillBuyerFields() {
-  fireEvent.change(screen.getByLabelText(/desired area/i), {
+  // When serviceAreas is provided, it's a select; otherwise input
+  const desiredArea = screen.getByLabelText(/desired area/i);
+  fireEvent.change(desiredArea, {
     target: { value: "Hoboken" },
   });
   fireEvent.change(screen.getByLabelText(/min price/i), {
@@ -61,10 +63,10 @@ function fillSellerFields() {
   fireEvent.change(screen.getByLabelText(/zip/i), {
     target: { value: "07102" },
   });
-  fireEvent.change(screen.getByLabelText(/beds/i), {
+  fireEvent.change(screen.getByLabelText("Beds"), {
     target: { value: "4" },
   });
-  fireEvent.change(screen.getByLabelText(/baths/i), {
+  fireEvent.change(screen.getByLabelText("Baths"), {
     target: { value: "2" },
   });
   fireEvent.change(screen.getByLabelText(/sqft/i), {
@@ -314,7 +316,7 @@ describe("LeadForm", () => {
 
   // Test 16
   it("timeline label shows 'sell' when only selling, 'buy' when only buying, 'buy/sell' when both", () => {
-    const { rerender } = render(<LeadForm {...defaultProps} />);
+    render(<LeadForm {...defaultProps} />);
 
     // Buying only
     checkBuying();
@@ -427,5 +429,131 @@ describe("LeadForm", () => {
     expect(
       screen.getByText(/something went wrong, please try again/i)
     ).toBeInTheDocument();
+  });
+
+  // Test 21
+  it("renders Desired Area as a dropdown when serviceAreas are provided", () => {
+    render(
+      <LeadForm {...defaultProps} initialMode={["buying"]} serviceAreas={["Middlesex County", "Monmouth County", "Ocean County"]} />
+    );
+
+    const select = screen.getByLabelText(/desired area/i);
+    expect(select.tagName).toBe("SELECT");
+    expect(screen.getByText("Middlesex County")).toBeInTheDocument();
+    expect(screen.getByText("Monmouth County")).toBeInTheDocument();
+    expect(screen.getByText("Ocean County")).toBeInTheDocument();
+  });
+
+  // Test 22
+  it("renders Desired Area as a free-form input when no serviceAreas provided", () => {
+    render(
+      <LeadForm {...defaultProps} initialMode={["buying"]} />
+    );
+
+    const input = screen.getByLabelText(/desired area/i);
+    expect(input.tagName).toBe("INPUT");
+  });
+
+  // Test 23
+  it("supports dynamic submitLabel as a function", () => {
+    render(
+      <LeadForm
+        {...defaultProps}
+        initialMode={["selling"]}
+        submitLabel={(isBuying, isSelling) => {
+          if (isSelling) return "Get CMA Report";
+          if (isBuying) return "Connect Me";
+          return "Get Started";
+        }}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: /get cma report/i })).toBeInTheDocument();
+  });
+
+  // Test 24
+  it("dynamic submitLabel updates when pills change", () => {
+    render(
+      <LeadForm
+        {...defaultProps}
+        submitLabel={(isBuying, isSelling) => {
+          if (isSelling) return "Get CMA Report";
+          if (isBuying) return "Connect Me";
+          return "Get Started";
+        }}
+      />
+    );
+
+    // Neither selected — default
+    expect(screen.getByRole("button", { name: /get started/i })).toBeInTheDocument();
+
+    // Check buying only
+    checkBuying();
+    expect(screen.getByRole("button", { name: /connect me/i })).toBeInTheDocument();
+
+    // Check selling (both now)
+    checkSelling();
+    expect(screen.getByRole("button", { name: /get cma report/i })).toBeInTheDocument();
+  });
+
+  // Test 25
+  it("clears validation error when a pill is selected", () => {
+    render(<LeadForm {...defaultProps} />);
+
+    fillContactFields();
+    submitForm();
+
+    expect(screen.getByText(/please select at least one/i)).toBeInTheDocument();
+
+    // Select buying — error should clear
+    checkBuying();
+    expect(screen.queryByText(/please select at least one/i)).not.toBeInTheDocument();
+  });
+
+  // Test 26
+  it("pills stretch to fill the full width of the container", () => {
+    render(<LeadForm {...defaultProps} />);
+
+    const buyingPill = screen.getByLabelText(/i'm buying/i).closest("span");
+    expect(buyingPill).toHaveStyle({ flex: "1" });
+  });
+
+  // Test 27
+  it("pills get red border when validation error is shown", () => {
+    render(<LeadForm {...defaultProps} />);
+
+    fillContactFields();
+    submitForm();
+
+    const buyingPill = screen.getByLabelText(/i'm buying/i).closest("span")!;
+    expect(buyingPill.style.borderColor).toBe("red");
+  });
+
+  // Test 28
+  it("prevents submission when no timeline is selected and shows validation error", () => {
+    const onSubmit = vi.fn();
+    render(<LeadForm {...defaultProps} onSubmit={onSubmit} />);
+
+    checkBuying();
+    fillContactFields();
+    fillBuyerFields();
+    // Deliberately skip selectTimeline()
+    // Use fireEvent.submit to bypass native required validation in jsdom
+    fireEvent.submit(screen.getByRole("button", { name: /get started/i }).closest("form")!);
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(/please select a timeline/i)).toBeInTheDocument();
+  });
+
+  // Test 29
+  it("error messages are in an aria-live region for screen readers", () => {
+    render(<LeadForm {...defaultProps} />);
+
+    // Use fireEvent.submit to bypass native required validation in jsdom
+    fireEvent.submit(screen.getByRole("button", { name: /get started/i }).closest("form")!);
+
+    const alertRegion = screen.getByRole("alert");
+    expect(alertRegion).toHaveAttribute("aria-live", "polite");
+    expect(alertRegion).toHaveTextContent(/please select at least one/i);
   });
 });

@@ -13,17 +13,20 @@ import { useGoogleMapsAutocomplete } from "./useGoogleMapsAutocomplete";
 
 export interface LeadFormProps {
   defaultState: string;
-  googleMapsApiKey: string;
+  googleMapsApiKey?: string;
   onSubmit: (data: LeadFormData) => void | Promise<void>;
   initialMode?: LeadType[];
-  submitLabel?: string;
+  submitLabel?: string | ((isBuying: boolean, isSelling: boolean) => string);
   disabled?: boolean;
   error?: string;
+  serviceAreas?: string[];
 }
 
 function parseOptionalNumber(value: string): number | undefined {
   if (!value) return undefined;
-  return Number(value);
+  const n = Number(value);
+  /* v8 ignore next -- defensive guard: number inputs prevent non-numeric values in browsers */
+  return Number.isNaN(n) ? undefined : n;
 }
 
 type FormFields = {
@@ -51,12 +54,13 @@ type FormFields = {
 
 export function LeadForm({
   defaultState,
-  googleMapsApiKey,
+  googleMapsApiKey = "",
   onSubmit,
   initialMode = [],
   submitLabel = "Get Started",
   disabled = false,
   error,
+  serviceAreas = [],
 }: LeadFormProps) {
   const [isBuying, setIsBuying] = useState(initialMode.includes("buying"));
   const [isSelling, setIsSelling] = useState(initialMode.includes("selling"));
@@ -130,6 +134,11 @@ export function LeadForm({
 
     /* v8 ignore next -- button is disabled when submitting; belt-and-suspenders guard */
     if (submitting) return;
+
+    if (!fields.timeline) {
+      setValidationError("Please select a timeline.");
+      return;
+    }
 
     setValidationError(null);
 
@@ -207,17 +216,20 @@ export function LeadForm({
   };
 
   const pillBase: React.CSSProperties = {
+    flex: 1,
     borderRadius: 25,
     padding: "10px 22px",
     fontWeight: 600,
     fontSize: 15,
     cursor: "pointer",
-    border: "2px solid #e0e0e0",
+    borderWidth: 2,
+    borderStyle: "solid",
+    borderColor: "#e0e0e0",
     background: "#fff",
     display: "inline-flex",
     alignItems: "center",
+    justifyContent: "center",
     gap: 8,
-    marginRight: 12,
     transition: "all 200ms ease",
   };
 
@@ -228,12 +240,15 @@ export function LeadForm({
     borderColor: "var(--color-primary, #1B5E20)",
   };
 
+  const requiredMark = <span style={{ color: "red", marginLeft: 2 }} aria-hidden="true">*</span>;
+
   function field(
     name: keyof FormFields,
     props?: {
       id?: string;
       type?: string;
       ref?: React.Ref<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
+      required?: boolean;
     },
   ) {
     return {
@@ -242,6 +257,8 @@ export function LeadForm({
       ref: props?.ref as React.Ref<any>,
       style: inputStyle,
       value: fields[name],
+      required: props?.required,
+      "aria-required": props?.required || undefined,
       onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
         updateField(name, e.target.value),
     };
@@ -260,31 +277,31 @@ export function LeadForm({
       }}
     >
       <style>{`
-        .lead-form-row { display: flex; gap: 16px; }
-        .lead-form-row > div { flex: 1; }
+        .res-lead-form-row { display: flex; gap: 16px; }
+        .res-lead-form-row > div { flex: 1; }
         @media (max-width: 600px) {
-          .lead-form-row { flex-direction: column; gap: 0; }
+          .res-lead-form-row { flex-direction: column; gap: 0; }
         }
       `}</style>
 
       {/* Mode pills */}
-      <div style={{ marginBottom: 20, display: "flex", flexWrap: "wrap", gap: 8 }}>
-        <span style={{ position: "relative", ...(isBuying ? pillChecked : pillBase) }}>
+      <div style={{ marginBottom: 20, display: "flex", gap: 12 }}>
+        <span style={{ position: "relative", ...(isBuying ? pillChecked : pillBase), ...(validationError && !isBuying && !isSelling ? { borderColor: "red" } : {}) }}>
           <input
             id="lf-buying"
             type="checkbox"
             checked={isBuying}
-            onChange={() => setIsBuying((v) => !v)}
+            onChange={() => { setIsBuying((v) => !v); setValidationError(null); }}
             style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
           />
           <label htmlFor="lf-buying" style={{ cursor: "pointer", margin: 0 }}>I&apos;m Buying</label>
         </span>
-        <span style={{ position: "relative", ...(isSelling ? pillChecked : pillBase) }}>
+        <span style={{ position: "relative", ...(isSelling ? pillChecked : pillBase), ...(validationError && !isBuying && !isSelling ? { borderColor: "red" } : {}) }}>
           <input
             id="lf-selling"
             type="checkbox"
             checked={isSelling}
-            onChange={() => setIsSelling((v) => !v)}
+            onChange={() => { setIsSelling((v) => !v); setValidationError(null); }}
             style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
           />
           <label htmlFor="lf-selling" style={{ cursor: "pointer", margin: 0 }}>I&apos;m Selling</label>
@@ -292,24 +309,24 @@ export function LeadForm({
       </div>
 
       {/* Contact fields */}
-      <div className="lead-form-row">
+      <div className="res-lead-form-row">
         <div style={fieldGroupStyle}>
-          <label style={labelStyle} htmlFor="lf-firstName">First Name</label>
-          <input {...field("firstName")} />
+          <label style={labelStyle} htmlFor="lf-firstName">First Name{requiredMark}</label>
+          <input {...field("firstName", { required: true })} />
         </div>
         <div style={fieldGroupStyle}>
-          <label style={labelStyle} htmlFor="lf-lastName">Last Name</label>
-          <input {...field("lastName")} />
+          <label style={labelStyle} htmlFor="lf-lastName">Last Name{requiredMark}</label>
+          <input {...field("lastName", { required: true })} />
         </div>
       </div>
-      <div className="lead-form-row">
+      <div className="res-lead-form-row">
         <div style={fieldGroupStyle}>
-          <label style={labelStyle} htmlFor="lf-email">Email</label>
-          <input {...field("email", { type: "email" })} />
+          <label style={labelStyle} htmlFor="lf-email">Email{requiredMark}</label>
+          <input {...field("email", { type: "email", required: true })} />
         </div>
         <div style={fieldGroupStyle}>
-          <label style={labelStyle} htmlFor="lf-phone">Phone</label>
-          <input {...field("phone", { type: "tel" })} />
+          <label style={labelStyle} htmlFor="lf-phone">Phone{requiredMark}</label>
+          <input {...field("phone", { type: "tel", required: true })} />
         </div>
       </div>
 
@@ -331,10 +348,19 @@ export function LeadForm({
         {isBuying && (
           <>
             <div style={fieldGroupStyle}>
-              <label style={labelStyle} htmlFor="lf-desiredArea">Desired Area</label>
-              <input {...field("desiredArea")} />
+              <label style={labelStyle} htmlFor="lf-desiredArea">Desired Area{requiredMark}</label>
+              {serviceAreas.length > 0 ? (
+                <select {...field("desiredArea", { required: true })}>
+                  <option value="">Select area...</option>
+                  {serviceAreas.map((area) => (
+                    <option key={area} value={area}>{area}</option>
+                  ))}
+                </select>
+              ) : (
+                <input {...field("desiredArea", { required: true })} />
+              )}
             </div>
-            <div className="lead-form-row">
+            <div className="res-lead-form-row">
               <div style={fieldGroupStyle}>
                 <label style={labelStyle} htmlFor="lf-minPrice">Min Price</label>
                 <input {...field("minPrice", { type: "number" })} />
@@ -344,17 +370,17 @@ export function LeadForm({
                 <input {...field("maxPrice", { type: "number" })} />
               </div>
             </div>
-            <div className="lead-form-row">
+            <div className="res-lead-form-row">
               <div style={fieldGroupStyle}>
-                {(!isSelling || !fields.minBeds) && <label style={labelStyle} htmlFor="lf-minBeds">Min Beds</label>}
+                <label style={labelStyle} htmlFor="lf-minBeds">Min Beds</label>
                 <input {...field("minBeds", { type: "number" })} />
               </div>
               <div style={fieldGroupStyle}>
-                {(!isSelling || !fields.minBaths) && <label style={labelStyle} htmlFor="lf-minBaths">Min Baths</label>}
+                <label style={labelStyle} htmlFor="lf-minBaths">Min Baths</label>
                 <input {...field("minBaths", { type: "number" })} />
               </div>
             </div>
-            <div className="lead-form-row">
+            <div className="res-lead-form-row">
               <div style={fieldGroupStyle}>
                 <label style={labelStyle} htmlFor="lf-preApproved">Pre-Approved?</label>
                 <select {...field("preApproved")}>
@@ -391,24 +417,24 @@ export function LeadForm({
         {isSelling && (
           <>
             <div style={fieldGroupStyle}>
-              <label style={labelStyle} htmlFor="lf-address">Property Address</label>
-              <input {...field("address", { ref: addressRef })} />
+              <label style={labelStyle} htmlFor="lf-address">Property Address{requiredMark}</label>
+              <input {...field("address", { ref: addressRef, required: true })} />
             </div>
-            <div className="lead-form-row">
+            <div className="res-lead-form-row">
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-city">City</label>
-                <input {...field("city")} />
+                <label style={labelStyle} htmlFor="lf-city">City{requiredMark}</label>
+                <input {...field("city", { required: true })} />
               </div>
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-sellerState">State</label>
-                <input {...field("sellerState", { id: "lf-sellerState" })} />
+                <label style={labelStyle} htmlFor="lf-sellerState">State{requiredMark}</label>
+                <input {...field("sellerState", { id: "lf-sellerState", required: true })} readOnly style={{ ...inputStyle, backgroundColor: "#f5f5f5", cursor: "default" }} />
               </div>
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-zip">Zip</label>
-                <input {...field("zip")} />
+                <label style={labelStyle} htmlFor="lf-zip">Zip{requiredMark}</label>
+                <input {...field("zip", { required: true })} />
               </div>
             </div>
-            <div className="lead-form-row">
+            <div className="res-lead-form-row">
               <div style={fieldGroupStyle}>
                 <label style={labelStyle} htmlFor="lf-beds">Beds</label>
                 <input {...field("beds", { type: "number" })} />
@@ -430,9 +456,9 @@ export function LeadForm({
       {(isBuying || isSelling) && (
         <div style={fieldGroupStyle}>
           <label style={labelStyle} htmlFor="lf-timeline">
-            When are you looking to {getTimelineLabel()}?
+            When are you looking to {getTimelineLabel()}?{requiredMark}
           </label>
-          <select {...field("timeline")}>
+          <select {...field("timeline", { required: true })}>
             <option value="">Select...</option>
             <option value="asap">ASAP</option>
             <option value="1-3months">1-3 Months</option>
@@ -449,15 +475,15 @@ export function LeadForm({
         <textarea {...field("notes")} style={{ ...inputStyle, minHeight: 80, resize: "vertical" }} />
       </div>
 
-      {/* Validation error */}
-      {validationError && (
-        <p style={{ color: "red", fontSize: 14, marginBottom: 12 }}>{validationError}</p>
-      )}
-
-      {/* External error */}
-      {error && (
-        <p style={{ color: "red", fontSize: 14, marginBottom: 12 }}>{error}</p>
-      )}
+      {/* Errors */}
+      <div aria-live="polite" role="alert">
+        {validationError && (
+          <p style={{ color: "red", fontSize: 14, marginBottom: 12 }}>{validationError}</p>
+        )}
+        {error && (
+          <p style={{ color: "red", fontSize: 14, marginBottom: 12 }}>{error}</p>
+        )}
+      </div>
 
       {/* Submit */}
       <button
@@ -477,7 +503,7 @@ export function LeadForm({
           opacity: disabled || submitting ? 0.6 : 1,
         }}
       >
-        {submitLabel}
+        {typeof submitLabel === "function" ? submitLabel(isBuying, isSelling) : submitLabel}
       </button>
     </form>
   );

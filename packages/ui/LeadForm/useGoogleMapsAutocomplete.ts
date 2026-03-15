@@ -85,7 +85,7 @@ export function useGoogleMapsAutocomplete({
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!enabled || typeof window === "undefined") return;
+    if (!enabled || !apiKey || typeof window === "undefined") return;
 
     let listener: any = null;
     let cancelled = false;
