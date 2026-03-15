@@ -67,6 +67,19 @@ function fillForm() {
   fireEvent.change(screen.getByLabelText(/looking to sell/), { target: { value: "asap" } });
 }
 
+// Helper: switch to buying-only mode and fill buyer fields
+function switchToBuyerAndFill() {
+  // Toggle off selling, toggle on buying
+  fireEvent.click(screen.getByLabelText(/I'm Selling/));
+  fireEvent.click(screen.getByLabelText(/I'm Buying/));
+  fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: "Alice" } });
+  fireEvent.change(screen.getByLabelText(/^last name/i), { target: { value: "Test" } });
+  fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: "alice@test.com" } });
+  fireEvent.change(screen.getByLabelText(/^phone/i), { target: { value: "555-111-2222" } });
+  fireEvent.change(screen.getByLabelText(/desired area/i), { target: { value: "Hoboken" } });
+  fireEvent.change(screen.getByLabelText(/looking to buy/i), { target: { value: "asap" } });
+}
+
 beforeEach(() => {
   mockCmaState = { phase: "idle", statusUpdate: null, errorMessage: null };
   mockSubmit.mockReset();
@@ -115,6 +128,21 @@ describe("CmaForm rendering", () => {
   it("renders the submit button with default text", () => {
     render(<CmaForm {...FORMSPREE_PROPS} />);
     expect(screen.getByRole("button", { name: /Get My Free Home Value Report/ })).toBeInTheDocument();
+  });
+
+  it("shows buyer-specific submit label when only buying is selected", () => {
+    render(<CmaForm {...FORMSPREE_PROPS} />);
+    // Toggle off selling, toggle on buying
+    fireEvent.click(screen.getByLabelText(/I'm Selling/));
+    fireEvent.click(screen.getByLabelText(/I'm Buying/));
+    expect(screen.getByRole("button", { name: /Connect Me With an Agent/ })).toBeInTheDocument();
+  });
+
+  it("shows default submit label when neither mode is selected", () => {
+    render(<CmaForm {...FORMSPREE_PROPS} />);
+    // Toggle off selling (buying is already off since initialMode=["selling"])
+    fireEvent.click(screen.getByLabelText(/I'm Selling/));
+    expect(screen.getByRole("button", { name: /Get Started/ })).toBeInTheDocument();
   });
 
   it("pre-fills the state field from defaultState prop", () => {
@@ -181,6 +209,59 @@ describe("CmaForm form submission — formspree handler", () => {
         "https://formspree.io/f/abc123",
         expect.objectContaining({ method: "POST" })
       );
+    });
+  });
+
+  it("includes seller optional fields and notes in formspree submission", async () => {
+    const mockFetch = vi.mocked(fetch);
+    mockFetch.mockResolvedValueOnce({ ok: true } as Response);
+
+    const locationMock = { href: "" };
+    Object.defineProperty(window, "location", { value: locationMock, writable: true });
+
+    render(<CmaForm {...FORMSPREE_PROPS} />);
+    fillForm();
+    fireEvent.change(screen.getByLabelText(/^beds$/i), { target: { value: "4" } });
+    fireEvent.change(screen.getByLabelText(/^baths$/i), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText(/^sqft$/i), { target: { value: "2200" } });
+    fireEvent.change(screen.getByLabelText(/Notes/), { target: { value: "Pool in backyard" } });
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+      const [, options] = mockFetch.mock.calls[0];
+      const body = (options as RequestInit).body as FormData;
+      expect(body.get("beds")).toBe("4");
+      expect(body.get("baths")).toBe("2");
+      expect(body.get("sqft")).toBe("2200");
+      expect(body.get("notes")).toBe("Pool in backyard");
+    });
+  });
+
+  it("submits formspree without seller fields when buying only", async () => {
+    const mockFetch = vi.mocked(fetch);
+    mockFetch.mockResolvedValueOnce({ ok: true } as Response);
+
+    const locationMock = { href: "" };
+    Object.defineProperty(window, "location", { value: locationMock, writable: true });
+
+    render(<CmaForm {...FORMSPREE_PROPS} />);
+    switchToBuyerAndFill();
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+      const [, options] = mockFetch.mock.calls[0];
+      const body = (options as RequestInit).body as FormData;
+      // No seller fields when buyer-only
+      expect(body.get("address")).toBeNull();
+      expect(body.get("city")).toBeNull();
     });
   });
 
@@ -375,6 +456,27 @@ describe("CmaForm — API mode submission", () => {
     mockCmaState = { phase: "error", statusUpdate: null, errorMessage: "CMA submission failed (500)" };
     render(<CmaForm {...API_PROPS} />);
     expect(screen.getByText("CMA submission failed (500)")).toBeInTheDocument();
+  });
+
+  it("submits with empty seller fields when only buying is selected", async () => {
+    mockSubmit.mockResolvedValueOnce(undefined);
+
+    render(<CmaForm {...API_PROPS} />);
+    switchToBuyerAndFill();
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    expect(mockSubmit).toHaveBeenCalledWith(
+      "minimal-agent",
+      expect.objectContaining({
+        address: "",
+        city: "",
+        state: "",
+        zip: "",
+      }),
+    );
   });
 });
 
