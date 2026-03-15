@@ -21,6 +21,11 @@ export default defineConfig({
       },
     },
   },
+  css: {
+    // Disable PostCSS processing in tests — avoids Tailwind v4 native binding
+    // issues on CI where optional deps may not resolve correctly (npm#4828)
+    postcss: {},
+  },
   resolve: {
     alias: { "@": path.resolve(__dirname, ".") },
   },

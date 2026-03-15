@@ -8,10 +8,10 @@ function buildCspHeader(nonce: string): string {
 
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.sentry.io https://*.googletagmanager.com https://*.google-analytics.com https://connect.facebook.net`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://maps.googleapis.com https://*.sentry.io https://*.googletagmanager.com https://*.google-analytics.com https://connect.facebook.net`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https:",
-    `connect-src 'self' https://formspree.io https://*.sentry.io https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.facebook.com https://connect.facebook.net${apiConnectSrc}`,
+    "img-src 'self' data: https: https://maps.gstatic.com",
+    `connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com https://formspree.io https://*.sentry.io https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.facebook.com https://connect.facebook.net${apiConnectSrc}`,
     "frame-ancestors 'none'",
   ].join("; ");
 }

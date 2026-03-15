@@ -25,6 +25,11 @@ vi.mock("@/lib/useCmaSubmit", () => ({
   }),
 }));
 
+// Mock useGoogleMapsAutocomplete so it doesn't try to load Google Maps SDK
+vi.mock("@real-estate-star/ui/LeadForm/useGoogleMapsAutocomplete", () => ({
+  useGoogleMapsAutocomplete: () => ({ loaded: false }),
+}));
+
 const FORM_DATA: CmaFormData = {
   title: "What's Your Home Worth?",
   subtitle: "Get a free CMA today",
@@ -48,17 +53,31 @@ const API_PROPS = {
   data: FORM_DATA,
 };
 
-// Helper: fill out all required form fields
+// Helper: fill out all required form fields via LeadForm's labels
+// LeadForm renders with initialMode=["selling"], so seller card is visible
 function fillForm() {
-  fireEvent.change(screen.getByPlaceholderText("John"), { target: { value: "Alice" } });
-  fireEvent.change(screen.getByPlaceholderText("Smith"), { target: { value: "Test" } });
-  fireEvent.change(screen.getByPlaceholderText("you@email.com"), { target: { value: "alice@test.com" } });
-  fireEvent.change(screen.getByPlaceholderText("(555) 123-4567"), { target: { value: "555-111-2222" } });
-  fireEvent.change(screen.getByPlaceholderText("Start typing your address..."), { target: { value: "1 Test St" } });
-  fireEvent.change(screen.getByPlaceholderText("City"), { target: { value: "Hoboken" } });
-  fireEvent.change(screen.getByLabelText(/State/), { target: { value: "NJ" } });
-  fireEvent.change(screen.getByPlaceholderText("08xxx"), { target: { value: "07030" } });
-  fireEvent.change(screen.getByRole("combobox"), { target: { value: "asap" } });
+  fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: "Alice" } });
+  fireEvent.change(screen.getByLabelText(/^last name/i), { target: { value: "Test" } });
+  fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: "alice@test.com" } });
+  fireEvent.change(screen.getByLabelText(/^phone/i), { target: { value: "555-111-2222" } });
+  fireEvent.change(screen.getByLabelText(/property address/i), { target: { value: "1 Test St" } });
+  fireEvent.change(screen.getByLabelText(/^city/i), { target: { value: "Hoboken" } });
+  fireEvent.change(screen.getByLabelText(/^state/i), { target: { value: "NJ" } });
+  fireEvent.change(screen.getByLabelText(/^zip/i), { target: { value: "07030" } });
+  fireEvent.change(screen.getByLabelText(/looking to sell/), { target: { value: "asap" } });
+}
+
+// Helper: switch to buying-only mode and fill buyer fields
+function switchToBuyerAndFill() {
+  // Toggle off selling, toggle on buying
+  fireEvent.click(screen.getByLabelText(/I'm Selling/));
+  fireEvent.click(screen.getByLabelText(/I'm Buying/));
+  fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: "Alice" } });
+  fireEvent.change(screen.getByLabelText(/^last name/i), { target: { value: "Test" } });
+  fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: "alice@test.com" } });
+  fireEvent.change(screen.getByLabelText(/^phone/i), { target: { value: "555-111-2222" } });
+  fireEvent.change(screen.getByLabelText(/desired area/i), { target: { value: "Hoboken" } });
+  fireEvent.change(screen.getByLabelText(/looking to buy/i), { target: { value: "asap" } });
 }
 
 beforeEach(() => {
@@ -78,32 +97,32 @@ describe("CmaForm rendering", () => {
     expect(screen.getByText("Get a free CMA today")).toBeInTheDocument();
   });
 
-  it("renders all required input fields", () => {
+  it("renders all required input fields via LeadForm", () => {
     render(<CmaForm {...FORMSPREE_PROPS} />);
-    expect(screen.getByPlaceholderText("John")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Smith")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("you@email.com")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("(555) 123-4567")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Start typing your address...")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("City")).toBeInTheDocument();
-    expect(screen.getByLabelText(/State/)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("08xxx")).toBeInTheDocument();
+    expect(screen.getByLabelText(/^first name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^last name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^phone/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/property address/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^city/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^state/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^zip/i)).toBeInTheDocument();
   });
 
   it("renders the timeline select dropdown", () => {
     render(<CmaForm {...FORMSPREE_PROPS} />);
-    const select = screen.getByRole("combobox");
+    const select = screen.getByLabelText(/looking to sell/);
     expect(select).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "As soon as possible" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /1.3 months/ })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /3.6 months/ })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /6.12 months/ })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /Just curious/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "ASAP" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "1-3 Months" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "3-6 Months" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "6-12 Months" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Just Curious" })).toBeInTheDocument();
   });
 
-  it("renders the textarea for additional notes", () => {
+  it("renders the notes textarea", () => {
     render(<CmaForm {...FORMSPREE_PROPS} />);
-    expect(screen.getByPlaceholderText("Recent upgrades, renovations, special features...")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Notes/)).toBeInTheDocument();
   });
 
   it("renders the submit button with default text", () => {
@@ -111,9 +130,24 @@ describe("CmaForm rendering", () => {
     expect(screen.getByRole("button", { name: /Get My Free Home Value Report/ })).toBeInTheDocument();
   });
 
+  it("shows buyer-specific submit label when only buying is selected", () => {
+    render(<CmaForm {...FORMSPREE_PROPS} />);
+    // Toggle off selling, toggle on buying
+    fireEvent.click(screen.getByLabelText(/I'm Selling/));
+    fireEvent.click(screen.getByLabelText(/I'm Buying/));
+    expect(screen.getByRole("button", { name: /Connect Me With an Agent/ })).toBeInTheDocument();
+  });
+
+  it("shows default submit label when neither mode is selected", () => {
+    render(<CmaForm {...FORMSPREE_PROPS} />);
+    // Toggle off selling (buying is already off since initialMode=["selling"])
+    fireEvent.click(screen.getByLabelText(/I'm Selling/));
+    expect(screen.getByRole("button", { name: /Get Started/ })).toBeInTheDocument();
+  });
+
   it("pre-fills the state field from defaultState prop", () => {
     render(<CmaForm {...FORMSPREE_PROPS} />);
-    const stateInput = screen.getByLabelText(/State/) as HTMLInputElement;
+    const stateInput = screen.getByLabelText(/^state/i) as HTMLInputElement;
     expect(stateInput.value).toBe("NJ");
   });
 
@@ -124,7 +158,7 @@ describe("CmaForm rendering", () => {
 
   it("submit button is not disabled initially", () => {
     render(<CmaForm {...FORMSPREE_PROPS} />);
-    expect(screen.getByRole("button")).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /Get My Free Home Value Report/ })).not.toBeDisabled();
   });
 
   it("renders section with id cma-form", () => {
@@ -134,16 +168,16 @@ describe("CmaForm rendering", () => {
 
   it("all inputs have accessible labels", () => {
     render(<CmaForm {...FORMSPREE_PROPS} />);
-    expect(screen.getByLabelText(/First Name/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Last Name/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Email Address/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Phone Number/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Property Address/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/City/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/State/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Zip/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^first name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^last name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^phone/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/property address/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^city/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^state/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^zip/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/looking to sell/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Anything else/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Notes/)).toBeInTheDocument();
   });
 });
 
@@ -178,7 +212,60 @@ describe("CmaForm form submission — formspree handler", () => {
     });
   });
 
-  it("shows loading state during submission", async () => {
+  it("includes seller optional fields and notes in formspree submission", async () => {
+    const mockFetch = vi.mocked(fetch);
+    mockFetch.mockResolvedValueOnce({ ok: true } as Response);
+
+    const locationMock = { href: "" };
+    Object.defineProperty(window, "location", { value: locationMock, writable: true });
+
+    render(<CmaForm {...FORMSPREE_PROPS} />);
+    fillForm();
+    fireEvent.change(screen.getByLabelText(/^beds$/i), { target: { value: "4" } });
+    fireEvent.change(screen.getByLabelText(/^baths$/i), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText(/^sqft$/i), { target: { value: "2200" } });
+    fireEvent.change(screen.getByLabelText(/Notes/), { target: { value: "Pool in backyard" } });
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+      const [, options] = mockFetch.mock.calls[0];
+      const body = (options as RequestInit).body as FormData;
+      expect(body.get("beds")).toBe("4");
+      expect(body.get("baths")).toBe("2");
+      expect(body.get("sqft")).toBe("2200");
+      expect(body.get("notes")).toBe("Pool in backyard");
+    });
+  });
+
+  it("submits formspree without seller fields when buying only", async () => {
+    const mockFetch = vi.mocked(fetch);
+    mockFetch.mockResolvedValueOnce({ ok: true } as Response);
+
+    const locationMock = { href: "" };
+    Object.defineProperty(window, "location", { value: locationMock, writable: true });
+
+    render(<CmaForm {...FORMSPREE_PROPS} />);
+    switchToBuyerAndFill();
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+      const [, options] = mockFetch.mock.calls[0];
+      const body = (options as RequestInit).body as FormData;
+      // No seller fields when buyer-only
+      expect(body.get("address")).toBeNull();
+      expect(body.get("city")).toBeNull();
+    });
+  });
+
+  it("disables submit button during submission", async () => {
     const mockFetch = vi.mocked(fetch);
     let resolvePromise!: (value: Response) => void;
     mockFetch.mockReturnValueOnce(
@@ -193,11 +280,10 @@ describe("CmaForm form submission — formspree handler", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole("button")).toBeDisabled();
-      expect(screen.getByRole("button")).toHaveTextContent("Submitting...");
+      expect(screen.getByRole("button", { name: /Get My Free Home Value Report/ })).toBeDisabled();
     });
 
-    act(() => {
+    await act(async () => {
       resolvePromise({ ok: true } as Response);
     });
   });
@@ -266,7 +352,7 @@ describe("CmaForm form submission — formspree handler", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole("button")).not.toBeDisabled();
+      expect(screen.getByRole("button", { name: /Get My Free Home Value Report/ })).not.toBeDisabled();
     });
   });
 
@@ -290,7 +376,7 @@ describe("CmaForm form submission — formspree handler", () => {
       expect(screen.getByText("Something went wrong. Please try again.")).toBeInTheDocument();
     });
 
-    act(() => {
+    await act(async () => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);
     });
 
@@ -330,7 +416,7 @@ describe("CmaForm — API mode submission", () => {
 
     render(<CmaForm {...API_PROPS} />);
     fillForm();
-    fireEvent.change(screen.getByPlaceholderText("Recent upgrades, renovations, special features..."), {
+    fireEvent.change(screen.getByLabelText(/Notes/), {
       target: { value: "Corner lot, recently renovated" },
     });
 
@@ -363,14 +449,34 @@ describe("CmaForm — API mode submission", () => {
   it("disables submit button when phase is submitting", () => {
     mockCmaState = { phase: "submitting", statusUpdate: null, errorMessage: null };
     render(<CmaForm {...API_PROPS} />);
-    expect(screen.getByRole("button")).toBeDisabled();
-    expect(screen.getByRole("button")).toHaveTextContent("Submitting...");
+    expect(screen.getByRole("button", { name: /Get My Free Home Value Report/ })).toBeDisabled();
   });
 
   it("shows error from cmaSubmit state when phase is error (pre-SignalR)", () => {
     mockCmaState = { phase: "error", statusUpdate: null, errorMessage: "CMA submission failed (500)" };
     render(<CmaForm {...API_PROPS} />);
     expect(screen.getByText("CMA submission failed (500)")).toBeInTheDocument();
+  });
+
+  it("submits with empty seller fields when only buying is selected", async () => {
+    mockSubmit.mockResolvedValueOnce(undefined);
+
+    render(<CmaForm {...API_PROPS} />);
+    switchToBuyerAndFill();
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    expect(mockSubmit).toHaveBeenCalledWith(
+      "minimal-agent",
+      expect.objectContaining({
+        address: "",
+        city: "",
+        state: "",
+        zip: "",
+      }),
+    );
   });
 });
 
@@ -483,8 +589,6 @@ describe("CmaForm — progress tracker UI", () => {
     mockCmaState = { phase: "tracking", statusUpdate: null, errorMessage: null };
     render(<CmaForm {...API_PROPS} />);
 
-    // Still shows form since statusUpdate is null and phase is tracking
-    // (the progress view only shows when there's a statusUpdate or when in the right phases)
     expect(screen.getByText("Preparing Your Report...")).toBeInTheDocument();
     expect(screen.getByText("Starting...")).toBeInTheDocument();
   });
@@ -543,9 +647,9 @@ describe("CmaForm — formspree vs API mode detection", () => {
 
     render(<CmaForm {...API_PROPS} />);
     fillForm();
-    fireEvent.change(screen.getByLabelText(/Beds/), { target: { value: "4" } });
-    fireEvent.change(screen.getByLabelText(/Baths/), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText(/Sqft/), { target: { value: "2200" } });
+    fireEvent.change(screen.getByLabelText(/^beds$/i), { target: { value: "4" } });
+    fireEvent.change(screen.getByLabelText(/^baths$/i), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText(/^sqft$/i), { target: { value: "2200" } });
 
     await act(async () => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);

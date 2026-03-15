@@ -60,6 +60,7 @@ export function EmeraldClassic({ agent, content }: TemplateProps) {
           formHandlerId={agent.integrations?.form_handler_id}
           tracking={agent.integrations?.tracking}
           data={s.cma_form.data}
+          serviceAreas={agent.location.service_areas}
         />
       )}
       {s.about.enabled && <About agent={agent} data={s.about.data} />}

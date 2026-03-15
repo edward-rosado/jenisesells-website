@@ -49,3 +49,5 @@ config/agents/*.credentials.json
 
 # Generated config registry (rebuilt at build time)
 apps/agent-site/lib/config-registry.ts
+
+.superpowers/

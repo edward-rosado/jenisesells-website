@@ -1,10 +1,12 @@
 "use client";
 
 import * as Sentry from "@sentry/nextjs";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import type { CmaFormData, AgentTracking } from "@/lib/types";
 import { trackCmaConversion } from "@/components/Analytics";
 import { useCmaSubmit } from "@/lib/useCmaSubmit";
+import { LeadForm } from "@real-estate-star/ui";
+import type { LeadFormData } from "@real-estate-star/shared-types";
 
 interface CmaFormProps {
   agentId: string;
@@ -14,6 +16,7 @@ interface CmaFormProps {
   formHandlerId?: string;
   tracking?: AgentTracking;
   data: CmaFormData;
+  serviceAreas?: string[];
 }
 
 export function CmaForm({
@@ -24,10 +27,10 @@ export function CmaForm({
   formHandlerId,
   tracking,
   data,
+  serviceAreas = [],
 }: CmaFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const formRef = useRef<HTMLFormElement>(null);
   const cmaSubmit = useCmaSubmit();
 
   const isApiMode = formHandler !== "formspree";
@@ -36,11 +39,27 @@ export function CmaForm({
     cmaSubmit.state.phase === "submitting" ||
     cmaSubmit.state.phase === "tracking";
 
-  async function handleFormspreeSubmit(form: HTMLFormElement) {
+  async function handleFormspreeSubmit(leadData: LeadFormData) {
     setSubmitting(true);
     setError(null);
-    const formData = new FormData(form);
     const endpoint = `https://formspree.io/f/${formHandlerId}`;
+
+    const formData = new FormData();
+    formData.set("firstName", leadData.firstName);
+    formData.set("lastName", leadData.lastName);
+    formData.set("email", leadData.email);
+    formData.set("phone", leadData.phone);
+    if (leadData.seller) {
+      formData.set("address", leadData.seller.address);
+      formData.set("city", leadData.seller.city);
+      formData.set("state", leadData.seller.state);
+      formData.set("zip", leadData.seller.zip);
+      if (leadData.seller.beds !== undefined) formData.set("beds", String(leadData.seller.beds));
+      if (leadData.seller.baths !== undefined) formData.set("baths", String(leadData.seller.baths));
+      if (leadData.seller.sqft !== undefined) formData.set("sqft", String(leadData.seller.sqft));
+    }
+    formData.set("timeline", leadData.timeline);
+    if (leadData.notes) formData.set("notes", leadData.notes);
 
     try {
       const response = await fetch(endpoint, {
@@ -63,43 +82,32 @@ export function CmaForm({
     }
   }
 
-  async function handleApiSubmit(form: HTMLFormElement) {
-    const formData = new FormData(form);
-    // FormData.get() returns a string for named text inputs present in the form
-    const field = (name: string): string => formData.get(name) as string;
-
-    const notes = field("notes");
-    const beds = field("beds");
-    const baths = field("baths");
-    const sqft = field("sqft");
+  async function handleApiSubmit(leadData: LeadFormData) {
     const request = {
-      firstName: field("firstName"),
-      lastName: field("lastName"),
-      email: field("email"),
-      phone: field("phone"),
-      address: field("address"),
-      city: field("city"),
-      state: field("state"),
-      zip: field("zip"),
-      beds: beds.length > 0 ? Number(beds) : undefined,
-      baths: baths.length > 0 ? Number(baths) : undefined,
-      sqft: sqft.length > 0 ? Number(sqft) : undefined,
-      timeline: field("timeline"),
-      notes: notes.length > 0 ? notes : undefined,
+      firstName: leadData.firstName,
+      lastName: leadData.lastName,
+      email: leadData.email,
+      phone: leadData.phone,
+      address: leadData.seller?.address ?? "",
+      city: leadData.seller?.city ?? "",
+      state: leadData.seller?.state ?? "",
+      zip: leadData.seller?.zip ?? "",
+      beds: leadData.seller?.beds,
+      baths: leadData.seller?.baths,
+      sqft: leadData.seller?.sqft,
+      timeline: leadData.timeline,
+      notes: leadData.notes,
     };
 
     await cmaSubmit.submit(agentId, request);
     trackCmaConversion(tracking);
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-
+  async function handleSubmit(leadData: LeadFormData) {
     if (isApiMode) {
-      await handleApiSubmit(form);
+      await handleApiSubmit(leadData);
     } else {
-      await handleFormspreeSubmit(form);
+      await handleFormspreeSubmit(leadData);
     }
   }
 
@@ -175,29 +183,6 @@ export function CmaForm({
     error ??
     (cmaSubmit.state.phase === "error" ? cmaSubmit.state.errorMessage : null);
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "12px 16px",
-    border: "2px solid #e0e0e0",
-    borderRadius: "8px",
-    fontSize: "15px",
-    transition: "border 0.3s",
-    outline: "none",
-    boxSizing: "border-box",
-  };
-
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    fontSize: "14px",
-    fontWeight: 600,
-    color: "#333",
-    marginBottom: "5px",
-  };
-
-  const formGroupStyle: React.CSSProperties = {
-    marginBottom: "18px",
-  };
-
   return (
     <div
       id="cma-form"
@@ -242,274 +227,20 @@ export function CmaForm({
           Fill out the short form below and I&apos;ll send you a personalized Home Value Report showing your home&apos;s estimated market value based on recent comparable sales in your area. <strong>100% free, no obligation.</strong>
         </p>
 
-        {displayError && (
-          <p
-            style={{
-              color: "#d32f2f",
-              textAlign: "center",
-              marginBottom: "16px",
-              fontWeight: 500,
-            }}
-          >
-            {displayError}
-          </p>
-        )}
-
-        <div
-          style={{
-            background: "white",
-            borderRadius: "16px",
-            padding: "clamp(20px, 5vw, 40px)",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
-            maxWidth: "600px",
-            margin: "0 auto",
-            textAlign: "left",
+        <LeadForm
+          defaultState={defaultState}
+          googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ""}
+          onSubmit={handleSubmit}
+          initialMode={["selling"]}
+          submitLabel={(isBuying, isSelling) => {
+            if (isSelling) return "Get My Free Home Value Report \u2192";
+            if (isBuying) return "Connect Me With an Agent \u2192";
+            return "Get Started \u2192";
           }}
-        >
-          <h3
-            style={{
-              textAlign: "center",
-              color: "#1B5E20",
-              fontSize: "22px",
-              marginBottom: "25px",
-            }}
-          >
-            Request Your Free Home Value Report
-          </h3>
-
-          <form ref={formRef} onSubmit={handleSubmit}>
-            <div style={{ display: "flex", gap: "15px" }}>
-              <div style={{ ...formGroupStyle, flex: 1 }}>
-                <label htmlFor="firstName" style={labelStyle}>
-                  First Name <span style={{ color: "#d32f2f" }}>*</span>
-                </label>
-                <input
-                  id="firstName"
-                  name="firstName"
-                  placeholder="John"
-                  required
-                  autoComplete="given-name"
-                  style={inputStyle}
-                />
-              </div>
-              <div style={{ ...formGroupStyle, flex: 1 }}>
-                <label htmlFor="lastName" style={labelStyle}>
-                  Last Name <span style={{ color: "#d32f2f" }}>*</span>
-                </label>
-                <input
-                  id="lastName"
-                  name="lastName"
-                  placeholder="Smith"
-                  required
-                  autoComplete="family-name"
-                  style={inputStyle}
-                />
-              </div>
-            </div>
-
-            <div style={formGroupStyle}>
-              <label htmlFor="email" style={labelStyle}>
-                Email Address <span style={{ color: "#d32f2f" }}>*</span>
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="you@email.com"
-                required
-                style={inputStyle}
-              />
-            </div>
-
-            <div style={formGroupStyle}>
-              <label htmlFor="phone" style={labelStyle}>
-                Phone Number <span style={{ color: "#d32f2f" }}>*</span>
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                placeholder="(555) 123-4567"
-                required
-                style={inputStyle}
-              />
-            </div>
-
-            <div style={formGroupStyle}>
-              <label htmlFor="address" style={labelStyle}>
-                Property Address <span style={{ color: "#d32f2f" }}>*</span>
-              </label>
-              <input
-                id="address"
-                name="address"
-                placeholder="Start typing your address..."
-                autoComplete="off"
-                required
-                style={inputStyle}
-              />
-            </div>
-
-            <div style={{ display: "flex", gap: "15px", flexWrap: "wrap" }}>
-              <div style={{ ...formGroupStyle, flex: "2 1 120px" }}>
-                <label htmlFor="city" style={labelStyle}>
-                  City <span style={{ color: "#d32f2f" }}>*</span>
-                </label>
-                <input
-                  id="city"
-                  name="city"
-                  placeholder="City"
-                  required
-                  autoComplete="address-level2"
-                  style={inputStyle}
-                />
-              </div>
-              <div style={{ ...formGroupStyle, flex: "1 1 60px" }}>
-                <label htmlFor="state" style={labelStyle}>
-                  State <span style={{ color: "#d32f2f" }}>*</span>
-                </label>
-                <input
-                  id="state"
-                  name="state"
-                  placeholder={defaultState}
-                  defaultValue={defaultState}
-                  required
-                  autoComplete="address-level1"
-                  maxLength={2}
-                  style={inputStyle}
-                />
-              </div>
-              <div style={{ ...formGroupStyle, flex: "1 1 60px" }}>
-                <label htmlFor="zip" style={labelStyle}>
-                  Zip <span style={{ color: "#d32f2f" }}>*</span>
-                </label>
-                <input
-                  id="zip"
-                  name="zip"
-                  placeholder="08xxx"
-                  required
-                  autoComplete="postal-code"
-                  maxLength={5}
-                  style={inputStyle}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "15px", alignItems: "end" }}>
-              <div style={formGroupStyle}>
-                <label htmlFor="beds" style={labelStyle}>
-                  Beds<br /><span style={{ color: "#999", fontSize: "11px", fontWeight: 400 }}>(optional)</span>
-                </label>
-                <input
-                  id="beds"
-                  name="beds"
-                  type="number"
-                  placeholder="3"
-                  min={0}
-                  max={20}
-                  style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
-                />
-              </div>
-              <div style={formGroupStyle}>
-                <label htmlFor="baths" style={labelStyle}>
-                  Baths<br /><span style={{ color: "#999", fontSize: "11px", fontWeight: 400 }}>(optional)</span>
-                </label>
-                <input
-                  id="baths"
-                  name="baths"
-                  type="number"
-                  placeholder="2"
-                  min={0}
-                  max={20}
-                  step={0.5}
-                  style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
-                />
-              </div>
-              <div style={formGroupStyle}>
-                <label htmlFor="sqft" style={labelStyle}>
-                  Sqft<br /><span style={{ color: "#999", fontSize: "11px", fontWeight: 400 }}>(optional)</span>
-                </label>
-                <input
-                  id="sqft"
-                  name="sqft"
-                  type="number"
-                  placeholder="1,800"
-                  min={100}
-                  max={50000}
-                  style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
-                />
-              </div>
-            </div>
-
-            <div style={formGroupStyle}>
-              <label htmlFor="timeline" style={labelStyle}>
-                When are you looking to sell? <span style={{ color: "#d32f2f" }}>*</span>
-              </label>
-              <select
-                id="timeline"
-                name="timeline"
-                required
-                style={inputStyle}
-              >
-                <option value="">Select a timeline...</option>
-                <option value="asap">As soon as possible</option>
-                <option value="1-3months">1{"\u2013"}3 months</option>
-                <option value="3-6months">3{"\u2013"}6 months</option>
-                <option value="6-12months">6{"\u2013"}12 months</option>
-                <option value="justcurious">
-                  Just curious about my home&apos;s value
-                </option>
-              </select>
-            </div>
-
-            <div style={formGroupStyle}>
-              <label htmlFor="notes" style={labelStyle}>
-                Anything else I should know? <span style={{ color: "#999", fontSize: "11px" }}>(optional)</span>
-              </label>
-              <textarea
-                id="notes"
-                name="notes"
-                placeholder="Recent upgrades, renovations, special features..."
-                rows={2}
-                style={inputStyle}
-              />
-            </div>
-
-            <input
-              type="hidden"
-              name="_subject"
-              value={`New CMA Request — ${agentName}`}
-            />
-
-            <button
-              type="submit"
-              disabled={isProcessing}
-              style={{
-                display: "block",
-                width: "100%",
-                background: "#2E7D32",
-                color: "white",
-                padding: "16px",
-                border: "none",
-                borderRadius: "30px",
-                fontSize: "17px",
-                fontWeight: 700,
-                cursor: isProcessing ? "not-allowed" : "pointer",
-                transition: "background 0.3s",
-                opacity: isProcessing ? 0.5 : 1,
-              }}
-            >
-              {isProcessing
-                ? "Submitting..."
-                : "Get My Free Home Value Report \u2192"}
-            </button>
-            <p style={{ textAlign: "center", marginTop: "12px", fontSize: "12px", color: "#888" }}>
-              {"\uD83D\uDD12"} Your info is secure and never shared.
-            </p>
-            <p style={{ fontSize: "0.75rem", color: "#999", marginTop: "0.5rem", lineHeight: 1.4, textAlign: "center" }}>
-              <em>This home value report is a Comparative Market Analysis (CMA) and is not an appraisal. It should not be considered the equivalent of an appraisal.</em>
-            </p>
-          </form>
-        </div>
+          disabled={isProcessing}
+          error={displayError ?? undefined}
+          serviceAreas={serviceAreas}
+        />
       </div>
     </div>
   );

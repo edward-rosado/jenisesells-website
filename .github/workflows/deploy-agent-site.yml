@@ -6,6 +6,7 @@ on:
     paths:
       - 'apps/agent-site/**'
       - 'config/agents/**'
+      - 'packages/**'
       - '.github/workflows/deploy-agent-site.yml'
 
 jobs:
@@ -20,10 +21,10 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: apps/agent-site/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci --prefix apps/agent-site
+        run: npm ci
 
       - name: Generate config registry
         run: node apps/agent-site/scripts/generate-config-registry.mjs
@@ -57,10 +58,10 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: apps/agent-site/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci --prefix apps/agent-site
+        run: npm ci
 
       - name: Generate config registry
         run: node apps/agent-site/scripts/generate-config-registry.mjs
