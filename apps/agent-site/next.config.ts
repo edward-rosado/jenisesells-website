@@ -5,6 +5,7 @@ import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 initOpenNextCloudflareForDev();
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@real-estate-star/ui", "@real-estate-star/shared-types"],
   images: {
     unoptimized: true,
     remotePatterns: [

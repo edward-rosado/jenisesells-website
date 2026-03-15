@@ -233,13 +233,13 @@ export function LeadForm({
     props?: {
       id?: string;
       type?: string;
-      ref?: React.Ref<HTMLInputElement>;
+      ref?: React.Ref<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
     },
   ) {
     return {
       id: props?.id ?? `lf-${name}`,
       type: props?.type,
-      ref: props?.ref,
+      ref: props?.ref as React.Ref<any>,
       style: inputStyle,
       value: fields[name],
       onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
