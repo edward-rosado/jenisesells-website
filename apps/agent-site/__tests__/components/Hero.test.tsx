@@ -94,4 +94,33 @@ describe("Hero", () => {
     const img = screen.getByRole("img");
     expect(img).toHaveAttribute("alt", "Agent photo");
   });
+
+  it("highlights the highlight_word in the headline with accent color", () => {
+    const data = { ...BASE_DATA, headline: "Sell with Confidence", highlight_word: "Confidence" };
+    render(<Hero data={data} />);
+    const heading = screen.getByRole("heading", { level: 1 });
+    const span = heading.querySelector("span");
+    expect(span).toBeInTheDocument();
+    expect(span!.textContent).toBe("Confidence");
+  });
+
+  it("renders headline without highlight when highlight_word is absent", () => {
+    render(<Hero data={BASE_DATA} />);
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading.querySelector("span")).toBeNull();
+  });
+
+  it("renders headline without highlight when highlight_word does not match", () => {
+    const data = { ...BASE_DATA, highlight_word: "Nonexistent" };
+    render(<Hero data={data} />);
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading.querySelector("span")).toBeNull();
+    expect(heading.textContent).toBe("Sell Your Home Fast");
+  });
+
+  it("renders body text when provided", () => {
+    const data = { ...BASE_DATA, body: "I am a professional agent." };
+    render(<Hero data={data} />);
+    expect(screen.getByText("I am a professional agent.")).toBeInTheDocument();
+  });
 });

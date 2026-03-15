@@ -100,3 +100,14 @@ describe("getAgentIds", () => {
     expect(ids.has("nobody")).toBe(false);
   });
 });
+
+describe("extractAgentId — non-base-domain fallback", () => {
+  it("returns null for a hostname that is not related to any base domain", () => {
+    // Hostname like "random.com" does not match localhost or real-estate-star.com
+    expect(extractAgentId("random.com")).toBeNull();
+  });
+
+  it("returns null for a custom domain hostname (not a base domain subdomain)", () => {
+    expect(extractAgentId("jenisesellsnj.com")).toBeNull();
+  });
+});

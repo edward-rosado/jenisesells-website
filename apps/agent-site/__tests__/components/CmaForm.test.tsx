@@ -537,4 +537,23 @@ describe("CmaForm — formspree vs API mode detection", () => {
 
     expect(mockSubmit).toHaveBeenCalled();
   });
+
+  it("passes numeric beds, baths, and sqft when provided", async () => {
+    mockSubmit.mockResolvedValueOnce(undefined);
+
+    render(<CmaForm {...API_PROPS} />);
+    fillForm();
+    fireEvent.change(screen.getByLabelText(/Beds/), { target: { value: "4" } });
+    fireEvent.change(screen.getByLabelText(/Baths/), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText(/Approx Sqft/), { target: { value: "2200" } });
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    expect(mockSubmit).toHaveBeenCalledWith(
+      "minimal-agent",
+      expect.objectContaining({ beds: 4, baths: 2, sqft: 2200 }),
+    );
+  });
 });

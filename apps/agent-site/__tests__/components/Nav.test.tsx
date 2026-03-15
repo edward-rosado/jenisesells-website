@@ -47,6 +47,34 @@ describe("Nav", () => {
     expect(screen.queryByRole("link", { name: /tel:/ })).not.toBeInTheDocument();
   });
 
+  it("renders office phone link when office_phone is present", () => {
+    render(<Nav agent={AGENT} />);
+    const officeLink = screen.getByRole("link", { name: /251-2500/ });
+    expect(officeLink).toHaveAttribute("href", "tel:7322512500");
+  });
+
+  it("does not render office phone link when office_phone is absent", () => {
+    render(<Nav agent={AGENT_MINIMAL} />);
+    const links = screen.getAllByRole("link");
+    const officeLinks = links.filter((l) => l.getAttribute("href")?.startsWith("tel:") && l.textContent?.includes("251"));
+    expect(officeLinks).toHaveLength(0);
+  });
+
+  it("renders logo when logo_url is present", () => {
+    const agentWithLogo = {
+      ...AGENT,
+      branding: { ...AGENT.branding, logo_url: "/images/logo.png" },
+    };
+    render(<Nav agent={agentWithLogo} />);
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("alt", "Best Homes Realty");
+  });
+
+  it("does not render logo when logo_url is absent", () => {
+    render(<Nav agent={AGENT} />);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
   it("has nav landmark role", () => {
     render(<Nav agent={AGENT} />);
     expect(screen.getByRole("navigation")).toBeInTheDocument();
@@ -55,5 +83,16 @@ describe("Nav", () => {
   it("nav has aria-label for accessibility", () => {
     render(<Nav agent={AGENT} />);
     expect(screen.getByRole("navigation")).toHaveAttribute("aria-label", "Main navigation");
+  });
+
+  it("uses 'Brokerage logo' as image alt text when brokerage name is absent", () => {
+    const agentWithLogoNoBrokerage = {
+      ...AGENT_MINIMAL,
+      branding: { ...AGENT_MINIMAL.branding, logo_url: "/images/logo.png" },
+      identity: { ...AGENT_MINIMAL.identity, brokerage: undefined },
+    };
+    render(<Nav agent={agentWithLogoNoBrokerage as never} />);
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("alt", "Brokerage logo");
   });
 });

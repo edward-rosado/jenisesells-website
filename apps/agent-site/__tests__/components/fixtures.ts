@@ -7,6 +7,7 @@ export const AGENT: AgentConfig = {
     title: "REALTOR",
     brokerage: "Best Homes Realty",
     phone: "555-123-4567",
+    office_phone: "(732) 251-2500",
     email: "jane@example.com",
     tagline: "Your Dream Home Awaits",
     languages: ["English", "Spanish"],

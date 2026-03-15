@@ -56,4 +56,15 @@ describe("HowItWorks", () => {
     render(<HowItWorks steps={STEPS} />);
     expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(3);
   });
+
+  it("renders subtitle paragraph when subtitle is provided", () => {
+    render(<HowItWorks steps={STEPS} subtitle="Three simple steps to sell your home" />);
+    expect(screen.getByText("Three simple steps to sell your home")).toBeInTheDocument();
+  });
+
+  it("does not render subtitle paragraph when subtitle is absent", () => {
+    render(<HowItWorks steps={STEPS} />);
+    // No subtitle — the only paragraphs are step descriptions
+    expect(screen.queryByText("Three simple steps to sell your home")).not.toBeInTheDocument();
+  });
 });

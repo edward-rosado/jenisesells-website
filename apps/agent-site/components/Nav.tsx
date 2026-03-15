@@ -5,6 +5,22 @@ interface NavProps {
   agent: AgentConfig;
 }
 
+function OfficeIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }}
+    >
+      <path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16" />
+    </svg>
+  );
+}
+
 function PhoneIcon() {
   return (
     <svg
@@ -92,6 +108,7 @@ export function Nav({ agent }: NavProps) {
                 textDecoration: "none",
               }}
             >
+              <OfficeIcon />
               {identity.office_phone}
             </a>
           </>

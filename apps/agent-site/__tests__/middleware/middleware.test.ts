@@ -242,6 +242,37 @@ describe("middleware", () => {
     middleware(req as never);
     expect(mockRewrite).toHaveBeenCalled();
   });
+
+  // --- dev fallback: bare localhost ---
+  it("rewrites bare localhost to default agent in dev mode", () => {
+    mockExtractAgentId.mockReturnValue(null);
+    mockResolveCustomDomain.mockReturnValue(null);
+    const req = makeRequest("localhost:3000");
+    middleware(req as never);
+    expect(mockRewrite).toHaveBeenCalled();
+  });
+
+  it("uses DEFAULT_AGENT_ID env var for bare localhost fallback", () => {
+    mockExtractAgentId.mockReturnValue(null);
+    mockResolveCustomDomain.mockReturnValue(null);
+    process.env.DEFAULT_AGENT_ID = "test-agent";
+    const req = makeRequest("localhost:3000");
+    middleware(req as never);
+    expect(mockRewrite).toHaveBeenCalled();
+    delete process.env.DEFAULT_AGENT_ID;
+  });
+
+  it("returns 404 when DEFAULT_AGENT_ID is set but not in the known agent set", () => {
+    mockExtractAgentId.mockReturnValue(null);
+    mockResolveCustomDomain.mockReturnValue(null);
+    mockGetAgentIds.mockReturnValue(new Set(["jenise-buckalew"]));
+    process.env.DEFAULT_AGENT_ID = "nonexistent-agent";
+    const req = makeRequest("localhost:3000");
+    const response = middleware(req as never);
+    expect(mockRewrite).not.toHaveBeenCalled();
+    expect(response.status).toBe(404);
+    delete process.env.DEFAULT_AGENT_ID;
+  });
 });
 
 describe("middleware config export", () => {
