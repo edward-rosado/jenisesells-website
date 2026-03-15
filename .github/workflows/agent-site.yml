@@ -44,9 +44,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.check.outputs.exists == 'true'
-        run: |
-          npm ci
-          npm install --no-save @tailwindcss/oxide-linux-x64-gnu 2>/dev/null || true
+        run: npm ci
 
       - name: Generate config registry
         if: steps.check.outputs.exists == 'true'
@@ -112,9 +110,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.check.outputs.exists == 'true'
-        run: |
-          npm ci
-          npm install --no-save @tailwindcss/oxide-linux-x64-gnu 2>/dev/null || true
+        run: npm ci
 
       - name: Build Next.js
         if: steps.check.outputs.exists == 'true'
