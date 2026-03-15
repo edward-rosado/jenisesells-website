@@ -1,0 +1,431 @@
+// @vitest-environment jsdom
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { LeadForm } from "./LeadForm";
+import type { LeadFormData } from "@real-estate-star/shared-types";
+
+vi.mock("./useGoogleMapsAutocomplete", () => ({
+  useGoogleMapsAutocomplete: () => ({ loaded: true }),
+}));
+
+const defaultProps = {
+  defaultState: "NJ",
+  googleMapsApiKey: "test-api-key",
+  onSubmit: vi.fn(),
+};
+
+function fillContactFields() {
+  fireEvent.change(screen.getByLabelText(/first name/i), {
+    target: { value: "Jane" },
+  });
+  fireEvent.change(screen.getByLabelText(/last name/i), {
+    target: { value: "Doe" },
+  });
+  fireEvent.change(screen.getByLabelText(/email/i), {
+    target: { value: "jane@example.com" },
+  });
+  fireEvent.change(screen.getByLabelText(/phone/i), {
+    target: { value: "555-123-4567" },
+  });
+}
+
+function fillBuyerFields() {
+  fireEvent.change(screen.getByLabelText(/desired area/i), {
+    target: { value: "Hoboken" },
+  });
+  fireEvent.change(screen.getByLabelText(/min price/i), {
+    target: { value: "200000" },
+  });
+  fireEvent.change(screen.getByLabelText(/max price/i), {
+    target: { value: "500000" },
+  });
+  fireEvent.change(screen.getByLabelText(/min beds/i), {
+    target: { value: "3" },
+  });
+  fireEvent.change(screen.getByLabelText(/min baths/i), {
+    target: { value: "2" },
+  });
+  fireEvent.change(screen.getByLabelText(/pre-approved/i), {
+    target: { value: "yes" },
+  });
+}
+
+function fillSellerFields() {
+  fireEvent.change(screen.getByLabelText(/property address/i), {
+    target: { value: "123 Main St" },
+  });
+  fireEvent.change(screen.getByLabelText(/city/i), {
+    target: { value: "Newark" },
+  });
+  // State should already be pre-filled from defaultState
+  fireEvent.change(screen.getByLabelText(/zip/i), {
+    target: { value: "07102" },
+  });
+  fireEvent.change(screen.getByLabelText(/beds/i), {
+    target: { value: "4" },
+  });
+  fireEvent.change(screen.getByLabelText(/baths/i), {
+    target: { value: "2" },
+  });
+  fireEvent.change(screen.getByLabelText(/sqft/i), {
+    target: { value: "2000" },
+  });
+}
+
+function selectTimeline(value: string = "asap") {
+  fireEvent.change(screen.getByLabelText(/when are you looking/i), {
+    target: { value },
+  });
+}
+
+function checkBuying() {
+  fireEvent.click(screen.getByLabelText(/i'm buying/i));
+}
+
+function checkSelling() {
+  fireEvent.click(screen.getByLabelText(/i'm selling/i));
+}
+
+function submitForm() {
+  fireEvent.click(screen.getByRole("button", { name: /get started/i }));
+}
+
+describe("LeadForm", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // Test 1
+  it("renders all contact fields with accessible labels", () => {
+    render(<LeadForm {...defaultProps} />);
+
+    expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/last name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/phone/i)).toBeInTheDocument();
+  });
+
+  // Test 2
+  it("renders pill checkboxes for 'I'm Buying' and 'I'm Selling'", () => {
+    render(<LeadForm {...defaultProps} />);
+
+    expect(screen.getByLabelText(/i'm buying/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/i'm selling/i)).toBeInTheDocument();
+  });
+
+  // Test 3
+  it("shows buyer card when 'I'm Buying' is checked", () => {
+    render(<LeadForm {...defaultProps} />);
+
+    checkBuying();
+
+    const buyerCard = screen.getByTestId("buyer-card");
+    expect(buyerCard).toBeVisible();
+  });
+
+  // Test 4
+  it("hides buyer card when 'I'm Buying' is unchecked", () => {
+    render(<LeadForm {...defaultProps} />);
+
+    // Check then uncheck
+    checkBuying();
+    checkBuying();
+
+    const buyerCard = screen.getByTestId("buyer-card");
+    expect(buyerCard).toHaveStyle({ maxHeight: "0" });
+  });
+
+  // Test 5
+  it("shows seller card when 'I'm Selling' is checked", () => {
+    render(<LeadForm {...defaultProps} />);
+
+    checkSelling();
+
+    const sellerCard = screen.getByTestId("seller-card");
+    expect(sellerCard).toBeVisible();
+  });
+
+  // Test 6
+  it("hides seller card when 'I'm Selling' is unchecked", () => {
+    render(<LeadForm {...defaultProps} />);
+
+    // Check then uncheck
+    checkSelling();
+    checkSelling();
+
+    const sellerCard = screen.getByTestId("seller-card");
+    expect(sellerCard).toHaveStyle({ maxHeight: "0" });
+  });
+
+  // Test 7
+  it("shows both cards when both checkboxes are checked", () => {
+    render(<LeadForm {...defaultProps} />);
+
+    checkBuying();
+    checkSelling();
+
+    expect(screen.getByTestId("buyer-card")).toBeVisible();
+    expect(screen.getByTestId("seller-card")).toBeVisible();
+  });
+
+  // Test 8
+  it("prevents submission with neither checkbox checked and shows validation error", () => {
+    const onSubmit = vi.fn();
+    render(<LeadForm {...defaultProps} onSubmit={onSubmit} />);
+
+    fillContactFields();
+    submitForm();
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/please select at least one/i)
+    ).toBeInTheDocument();
+  });
+
+  // Test 9
+  it("calls onSubmit with correct LeadFormData shape — buyer only", async () => {
+    const onSubmit = vi.fn();
+    render(<LeadForm {...defaultProps} onSubmit={onSubmit} />);
+
+    checkBuying();
+    fillContactFields();
+    fillBuyerFields();
+    selectTimeline("1-3months");
+    submitForm();
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    const data: LeadFormData = onSubmit.mock.calls[0][0];
+    expect(data.leadTypes).toEqual(["buying"]);
+    expect(data.firstName).toBe("Jane");
+    expect(data.lastName).toBe("Doe");
+    expect(data.email).toBe("jane@example.com");
+    expect(data.phone).toBe("555-123-4567");
+    expect(data.timeline).toBe("1-3months");
+    expect(data.buyer).toBeDefined();
+    expect(data.buyer!.desiredArea).toBe("Hoboken");
+    expect(data.buyer!.minPrice).toBe(200000);
+    expect(data.buyer!.maxPrice).toBe(500000);
+    expect(data.buyer!.minBeds).toBe(3);
+    expect(data.buyer!.minBaths).toBe(2);
+    expect(data.buyer!.preApproved).toBe("yes");
+    expect(data.seller).toBeUndefined();
+  });
+
+  // Test 10
+  it("calls onSubmit with correct LeadFormData shape — seller only", async () => {
+    const onSubmit = vi.fn();
+    render(<LeadForm {...defaultProps} onSubmit={onSubmit} />);
+
+    checkSelling();
+    fillContactFields();
+    fillSellerFields();
+    selectTimeline("asap");
+    submitForm();
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    const data: LeadFormData = onSubmit.mock.calls[0][0];
+    expect(data.leadTypes).toEqual(["selling"]);
+    expect(data.firstName).toBe("Jane");
+    expect(data.lastName).toBe("Doe");
+    expect(data.email).toBe("jane@example.com");
+    expect(data.phone).toBe("555-123-4567");
+    expect(data.timeline).toBe("asap");
+    expect(data.seller).toBeDefined();
+    expect(data.seller!.address).toBe("123 Main St");
+    expect(data.seller!.city).toBe("Newark");
+    expect(data.seller!.state).toBe("NJ");
+    expect(data.seller!.zip).toBe("07102");
+    expect(data.seller!.beds).toBe(4);
+    expect(data.seller!.baths).toBe(2);
+    expect(data.seller!.sqft).toBe(2000);
+    expect(data.buyer).toBeUndefined();
+  });
+
+  // Test 11
+  it("calls onSubmit with correct LeadFormData shape — both buyer and seller", async () => {
+    const onSubmit = vi.fn();
+    render(<LeadForm {...defaultProps} onSubmit={onSubmit} />);
+
+    checkBuying();
+    checkSelling();
+    fillContactFields();
+    fillBuyerFields();
+    fillSellerFields();
+    selectTimeline("3-6months");
+    submitForm();
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    const data: LeadFormData = onSubmit.mock.calls[0][0];
+    expect(data.leadTypes).toContain("buying");
+    expect(data.leadTypes).toContain("selling");
+    expect(data.buyer).toBeDefined();
+    expect(data.seller).toBeDefined();
+    expect(data.timeline).toBe("3-6months");
+  });
+
+  // Test 12
+  it("pre-fills state field from defaultState prop", () => {
+    render(<LeadForm {...defaultProps} defaultState="CA" />);
+
+    checkSelling();
+
+    const stateInput = screen.getByLabelText(/state/i);
+    expect(stateInput).toHaveValue("CA");
+  });
+
+  // Test 13
+  it("respects initialMode prop — pre-checks specified pills on mount", () => {
+    render(
+      <LeadForm {...defaultProps} initialMode={["buying", "selling"]} />
+    );
+
+    expect(screen.getByLabelText(/i'm buying/i)).toBeChecked();
+    expect(screen.getByLabelText(/i'm selling/i)).toBeChecked();
+    expect(screen.getByTestId("buyer-card")).toBeVisible();
+    expect(screen.getByTestId("seller-card")).toBeVisible();
+  });
+
+  // Test 14
+  it("respects submitLabel prop with custom button text", () => {
+    render(<LeadForm {...defaultProps} submitLabel="Send Request" />);
+
+    expect(
+      screen.getByRole("button", { name: /send request/i })
+    ).toBeInTheDocument();
+  });
+
+  // Test 15
+  it("respects disabled prop — button is disabled", () => {
+    render(<LeadForm {...defaultProps} disabled />);
+
+    expect(
+      screen.getByRole("button", { name: /get started/i })
+    ).toBeDisabled();
+  });
+
+  // Test 16
+  it("timeline label shows 'sell' when only selling, 'buy' when only buying, 'buy/sell' when both", () => {
+    const { rerender } = render(<LeadForm {...defaultProps} />);
+
+    // Buying only
+    checkBuying();
+    expect(screen.getByText(/when are you looking to buy\?/i)).toBeInTheDocument();
+
+    // Uncheck buying, check selling
+    checkBuying();
+    checkSelling();
+    expect(screen.getByText(/when are you looking to sell\?/i)).toBeInTheDocument();
+
+    // Check both
+    checkBuying();
+    expect(screen.getByText(/when are you looking to buy\/sell\?/i)).toBeInTheDocument();
+  });
+
+  // Test 17
+  it("all inputs have accessible labels", () => {
+    render(
+      <LeadForm {...defaultProps} initialMode={["buying", "selling"]} />
+    );
+
+    // Contact fields
+    expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/last name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/phone/i)).toBeInTheDocument();
+
+    // Buyer fields
+    expect(screen.getByLabelText(/desired area/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/min price/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/max price/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/min beds/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/min baths/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/pre-approved/i)).toBeInTheDocument();
+
+    // Seller fields
+    expect(screen.getByLabelText(/property address/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/city/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/state/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/zip/i)).toBeInTheDocument();
+
+    // Shared fields
+    expect(screen.getByLabelText(/when are you looking/i)).toBeInTheDocument();
+  });
+
+  // Test 18
+  it("does not call onSubmit twice while first call is in flight", async () => {
+    let resolveSubmit: () => void;
+    const onSubmit = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSubmit = resolve;
+        })
+    );
+    render(
+      <LeadForm {...defaultProps} onSubmit={onSubmit} initialMode={["buying"]} />
+    );
+
+    fillContactFields();
+    fillBuyerFields();
+    selectTimeline();
+
+    // First submit
+    submitForm();
+    // Second submit while first is in flight
+    submitForm();
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    // Resolve the first call
+    resolveSubmit!();
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // Test 19
+  it("does not crash if onSubmit throws — resets submitting state", async () => {
+    const onSubmit = vi.fn().mockRejectedValue(new Error("Network error"));
+    render(
+      <LeadForm {...defaultProps} onSubmit={onSubmit} initialMode={["selling"]} />
+    );
+
+    fillContactFields();
+    fillSellerFields();
+    selectTimeline();
+    submitForm();
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    // Button should be re-enabled after error (submitting state reset)
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /get started/i })
+      ).not.toBeDisabled();
+    });
+  });
+
+  // Test 20
+  it("shows error prop value when provided by consumer", () => {
+    render(
+      <LeadForm {...defaultProps} error="Something went wrong, please try again." />
+    );
+
+    expect(
+      screen.getByText(/something went wrong, please try again/i)
+    ).toBeInTheDocument();
+  });
+});
