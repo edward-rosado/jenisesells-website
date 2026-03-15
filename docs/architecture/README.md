@@ -13,6 +13,15 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | [Data Model](data-model.md) | Agent config entity model, section types, file relationships |
 | [Skill Integration](skill-integration.md) | Config-driven skills, onboarding flow, field mapping |
 
+## Shared LeadForm Component
+
+| Document | Description |
+|----------|------------|
+| [Component Hierarchy](shared-lead-form-component-hierarchy.md) | How shared packages are consumed by agent sites and platform |
+| [Data Flow](lead-form-data-flow.md) | User input through submission to Formspree or CMA API |
+| [Data Model](lead-form-data-model.md) | Shared type hierarchy for buyer and seller lead capture |
+| [Google Maps Autocomplete](google-maps-autocomplete-lifecycle.md) | Lazy SDK loading and address autocomplete lifecycle |
+
 ## How to Read
 
 All diagrams use [Mermaid](https://mermaid.js.org/) syntax. GitHub renders them natively in Markdown preview. For local viewing, use a Mermaid-compatible Markdown viewer or the [Mermaid Live Editor](https://mermaid.live/).
