@@ -46,6 +46,10 @@ jobs:
         if: steps.check.outputs.exists == 'true'
         run: npm ci
 
+      - name: Fix Tailwind native bindings (npm#4828)
+        if: steps.check.outputs.exists == 'true'
+        run: npm rebuild @tailwindcss/oxide || true
+
       - name: Generate config registry
         if: steps.check.outputs.exists == 'true'
         run: node apps/agent-site/scripts/generate-config-registry.mjs
@@ -111,6 +115,10 @@ jobs:
       - name: Install dependencies
         if: steps.check.outputs.exists == 'true'
         run: npm ci
+
+      - name: Fix Tailwind native bindings (npm#4828)
+        if: steps.check.outputs.exists == 'true'
+        run: npm rebuild @tailwindcss/oxide || true
 
       - name: Build Next.js
         if: steps.check.outputs.exists == 'true'
