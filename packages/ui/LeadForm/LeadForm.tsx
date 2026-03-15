@@ -276,6 +276,7 @@ export function LeadForm({
         margin: "0 auto",
       }}
     >
+      {/* SECURITY: Static CSS only. Never interpolate dynamic values here. */}
       <style>{`
         .res-lead-form-row { display: flex; gap: 16px; }
         .res-lead-form-row > div { flex: 1; }

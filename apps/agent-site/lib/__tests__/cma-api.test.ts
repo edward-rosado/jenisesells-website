@@ -113,7 +113,7 @@ describe("submitCmaRequest", () => {
     } as Response);
 
     await expect(submitCmaRequest("test-agent", SAMPLE_REQUEST))
-      .rejects.toThrow("CMA submission failed (422): Validation failed");
+      .rejects.toThrow("CMA submission failed (422)");
   });
 
   it("throws on non-ok response when body read fails", async () => {
