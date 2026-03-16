@@ -11,6 +11,15 @@ export { SoldGrid } from "./sold/SoldGrid";
 export { TestimonialsGrid } from "./testimonials/TestimonialsGrid";
 export { AboutSplit } from "./about/AboutSplit";
 
+// Modern Minimal variants
+export { HeroSplit } from "./heroes/HeroSplit";
+export { StatsCards } from "./stats/StatsCards";
+export { ServicesClean } from "./services/ServicesClean";
+export { StepsTimeline } from "./steps/StepsTimeline";
+export { SoldMinimal } from "./sold/SoldMinimal";
+export { TestimonialsClean } from "./testimonials/TestimonialsClean";
+export { AboutMinimal } from "./about/AboutMinimal";
+
 // Backward-compatible aliases for EmeraldClassic template
 export { HeroGradient as Hero } from "./heroes/HeroGradient";
 export { ServicesGrid as Services } from "./services/ServicesGrid";
