@@ -280,4 +280,43 @@ describe("Nav", () => {
     const homeLink = img.closest("a");
     expect(homeLink).toHaveAttribute("href", "/");
   });
+
+  it("renders Contact Me button for tablet view (hidden via CSS on other sizes)", () => {
+    render(<Nav agent={AGENT} />);
+    const contactBtn = screen.getByLabelText("Contact information");
+    expect(contactBtn).toBeInTheDocument();
+    expect(contactBtn.tagName).toBe("BUTTON");
+    expect(contactBtn.textContent).toContain("Contact Me");
+  });
+
+  it("Contact Me button toggles drawer", () => {
+    const { container } = render(<Nav agent={AGENT} />);
+    const contactBtn = screen.getByLabelText("Contact information");
+    const drawer = container.querySelector(".nav-drawer") as HTMLElement;
+
+    fireEvent.click(contactBtn);
+    expect(drawer.style.visibility).toBe("visible");
+
+    fireEvent.click(contactBtn);
+    expect(drawer.style.visibility).toBe("hidden");
+  });
+
+  it("drawer contains contact info section with phone, office, and email", () => {
+    const { container } = render(<Nav agent={AGENT} />);
+    const drawerContact = container.querySelector(".drawer-contact") as HTMLElement;
+    expect(drawerContact).toBeInTheDocument();
+
+    const links = drawerContact.querySelectorAll("a");
+    const hrefs = Array.from(links).map((l) => l.getAttribute("href"));
+    expect(hrefs).toContain("tel:5551234567");
+    expect(hrefs).toContain("tel:7322512500");
+    expect(hrefs).toContain("mailto:jane@example.com");
+  });
+
+  it("drawer nav links are inside .drawer-nav-links container", () => {
+    const { container } = render(<Nav agent={AGENT} />);
+    const navLinks = container.querySelector(".drawer-nav-links") as HTMLElement;
+    expect(navLinks).toBeInTheDocument();
+    expect(navLinks.querySelectorAll("a[href*='#']")).toHaveLength(6);
+  });
 });

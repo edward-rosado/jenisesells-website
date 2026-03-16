@@ -39,6 +39,7 @@ export function Nav({ agent }: NavProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { identity, branding } = agent;
   const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const contactBtnRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const isHome = pathname === "/";
@@ -61,7 +62,7 @@ export function Nav({ agent }: NavProps) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [drawerOpen]);
 
-  // Focus management: focus first link on open, return to hamburger on close
+  // Focus management: focus first link on open, return to trigger on close
   useEffect(() => {
     if (drawerOpen) {
       const firstFocusable = drawerRef.current?.querySelector<HTMLElement>(
@@ -69,7 +70,9 @@ export function Nav({ agent }: NavProps) {
       );
       firstFocusable?.focus();
     } else {
+      // Return focus to whichever trigger is visible
       hamburgerRef.current?.focus();
+      contactBtnRef.current?.focus();
     }
   }, [drawerOpen]);
 
@@ -88,21 +91,32 @@ export function Nav({ agent }: NavProps) {
       <style>{`
         html { scroll-behavior: smooth; }
         section[id] { scroll-margin-top: 80px; }
+
+        /* Tablet: 769-1024px — section links visible, contact pills hidden, "Contact Me" button shown */
         @media (max-width: 1024px) {
           .nav-contact { display: none !important; }
-          .nav-mobile-call { display: flex !important; }
-          .nav-hamburger { display: block !important; }
-          .nav-logo { height: 44px !important; }
+          .nav-contact-btn { display: flex !important; }
+          .nav-logo { height: 50px !important; }
           .nav-desktop-links a { font-size: 12px !important; padding: 6px 6px !important; }
         }
+
+        /* Mobile: <=768px — section links hidden, hamburger shown, "Contact Me" button hidden */
         @media (max-width: 768px) {
           .nav-desktop-links { display: none !important; }
+          .nav-contact-btn { display: none !important; }
+          .nav-mobile-call { display: flex !important; }
+          .nav-hamburger { display: block !important; }
           .nav-logo { height: 32px !important; }
           section { padding-top: 35px !important; padding-bottom: 35px !important; padding-left: 16px !important; padding-right: 16px !important; }
           section:first-of-type { padding-top: 70px !important; }
           section h1 { font-size: 28px !important; }
           section h2 { font-size: 22px !important; }
           section p { font-size: 15px !important; }
+        }
+
+        /* Drawer nav links: hidden on tablet (section links already in nav bar) */
+        @media (min-width: 769px) {
+          .drawer-nav-links { display: none !important; }
         }
       `}</style>
       <nav
@@ -168,7 +182,7 @@ export function Nav({ agent }: NavProps) {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          {/* Desktop contact links */}
+          {/* Desktop contact links — visible >1024px */}
           <div className="nav-contact" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {identity.email && (
               <a
@@ -217,7 +231,34 @@ export function Nav({ agent }: NavProps) {
             )}
           </div>
 
-          {/* Mobile call button */}
+          {/* Tablet "Contact Me" button — visible 769-1024px */}
+          <button
+            ref={contactBtnRef}
+            className="nav-contact-btn"
+            onClick={toggleDrawer}
+            aria-label="Contact information"
+            aria-expanded={drawerOpen}
+            aria-controls="nav-drawer"
+            style={{
+              display: "none",
+              alignItems: "center",
+              gap: "6px",
+              background: "var(--color-accent)",
+              color: "var(--color-primary)",
+              padding: "8px 18px",
+              borderRadius: "25px",
+              fontWeight: 700,
+              fontSize: "13px",
+              border: "none",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              minHeight: "44px",
+            }}
+          >
+            <PhoneIcon /> Contact Me
+          </button>
+
+          {/* Mobile call button — visible <=768px */}
           {identity.phone && (
             <a
               href={`tel:${identity.phone.replace(/\D/g, "")}`}
@@ -240,7 +281,7 @@ export function Nav({ agent }: NavProps) {
             </a>
           )}
 
-          {/* Hamburger button */}
+          {/* Hamburger button — visible <=768px */}
           <button
             ref={hamburgerRef}
             className="nav-hamburger"
@@ -295,7 +336,7 @@ export function Nav({ agent }: NavProps) {
         />
       )}
 
-      {/* Mobile drawer */}
+      {/* Drawer — on mobile: nav links + contact; on tablet: contact only */}
       <div
         ref={drawerRef}
         id="nav-drawer"
@@ -318,94 +359,100 @@ export function Nav({ agent }: NavProps) {
           visibility: drawerOpen ? "visible" : "hidden",
         }}
       >
-        {sections.map((s) => (
-          <a
-            key={s.href}
-            href={s.href}
-            onClick={closeDrawer}
-            style={{
-              display: "block",
-              color: "white",
-              fontSize: "16px",
-              padding: "14px 0",
-              borderBottom: "1px solid rgba(255,255,255,0.15)",
-              textDecoration: "none",
-            }}
-          >
-            {s.label}
-          </a>
-        ))}
+        {/* Section nav links — hidden on tablet via CSS (already in nav bar) */}
+        <div className="drawer-nav-links">
+          {sections.map((s) => (
+            <a
+              key={s.href}
+              href={s.href}
+              onClick={closeDrawer}
+              style={{
+                display: "block",
+                color: "white",
+                fontSize: "16px",
+                padding: "14px 0",
+                borderBottom: "1px solid rgba(255,255,255,0.15)",
+                textDecoration: "none",
+              }}
+            >
+              {s.label}
+            </a>
+          ))}
+        </div>
 
-        {identity.phone && (
-          <a
-            href={`tel:${identity.phone.replace(/\D/g, "")}`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              background: "var(--color-accent)",
-              color: "var(--color-primary)",
-              padding: "12px 18px",
-              borderRadius: "10px",
-              fontWeight: 700,
-              fontSize: "15px",
-              marginTop: "20px",
-              textDecoration: "none",
-              justifyContent: "center",
-            }}
-          >
-            <PhoneIcon size={18} />
-            {identity.phone}
-          </a>
-        )}
+        {/* Contact info — always visible in drawer */}
+        <div className="drawer-contact">
+          {identity.phone && (
+            <a
+              href={`tel:${identity.phone.replace(/\D/g, "")}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                background: "var(--color-accent)",
+                color: "var(--color-primary)",
+                padding: "12px 18px",
+                borderRadius: "10px",
+                fontWeight: 700,
+                fontSize: "15px",
+                marginTop: "20px",
+                textDecoration: "none",
+                justifyContent: "center",
+              }}
+            >
+              <PhoneIcon size={18} />
+              {identity.phone}
+            </a>
+          )}
 
-        {identity.office_phone && (
-          <a
-            href={`tel:${identity.office_phone.replace(/[^0-9]/g, "")}`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              background: "rgba(255,255,255,0.1)",
-              color: "var(--color-accent)",
-              padding: "12px 18px",
-              borderRadius: "10px",
-              fontWeight: 600,
-              fontSize: "14px",
-              marginTop: "8px",
-              textDecoration: "none",
-              justifyContent: "center",
-              border: "1px solid rgba(255,255,255,0.2)",
-            }}
-          >
-            <OfficeIcon size={18} />
-            {identity.office_phone}
-          </a>
-        )}
+          {identity.office_phone && (
+            <a
+              href={`tel:${identity.office_phone.replace(/[^0-9]/g, "")}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                background: "rgba(255,255,255,0.1)",
+                color: "var(--color-accent)",
+                padding: "12px 18px",
+                borderRadius: "10px",
+                fontWeight: 600,
+                fontSize: "14px",
+                marginTop: "8px",
+                textDecoration: "none",
+                justifyContent: "center",
+                border: "1px solid rgba(255,255,255,0.2)",
+              }}
+            >
+              <OfficeIcon size={18} />
+              {identity.office_phone}
+            </a>
+          )}
 
-        {identity.email && (
-          <a
-            href={`mailto:${identity.email}`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              background: "rgba(255,255,255,0.1)",
-              color: "white",
-              padding: "12px 18px",
-              borderRadius: "10px",
-              fontWeight: 600,
-              fontSize: "14px",
-              marginTop: "8px",
-              textDecoration: "none",
-              justifyContent: "center",
-              border: "1px solid rgba(255,255,255,0.2)",
-            }}
-          >
-            <EmailIcon size={18} />
-            {identity.email}
-          </a>
-        )}
+          {identity.email && (
+            <a
+              href={`mailto:${identity.email}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                background: "rgba(255,255,255,0.1)",
+                color: "white",
+                padding: "12px 18px",
+                borderRadius: "10px",
+                fontWeight: 600,
+                fontSize: "14px",
+                marginTop: "8px",
+                textDecoration: "none",
+                justifyContent: "center",
+                border: "1px solid rgba(255,255,255,0.2)",
+              }}
+            >
+              <EmailIcon size={18} />
+              {identity.email}
+            </a>
+          )}
+        </div>
       </div>
     </>
   );
