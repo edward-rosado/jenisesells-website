@@ -1,7 +1,7 @@
 import type { AgentConfig } from "@/lib/types";
 import { buildCssVariableStyle } from "@/lib/branding";
 import { Nav } from "@/components/Nav";
-import { Footer } from "@/components/sections/Footer";
+import { Footer } from "@/components/sections/shared/Footer";
 import { CookieConsentBanner } from "./CookieConsentBanner";
 import { MarkdownContent } from "./MarkdownContent";
 

@@ -8,13 +8,22 @@ import { Analytics } from "@/components/Analytics";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 
 interface PageProps {
-  searchParams: Promise<{ agentId?: string }>;
+  searchParams: Promise<{ agentId?: string; template?: string }>;
 }
 
 export const revalidate = 60; // ISR: revalidate every 60 seconds
 
 function resolveAgentId(agentId?: string): string {
+  // In production, always use the bound agent — never trust query params (tenant confusion)
+  if (process.env.NODE_ENV === "production") {
+    return process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+  }
   return agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+}
+
+function resolveTemplateOverride(template?: string): string | undefined {
+  if (process.env.NODE_ENV === "production") return undefined;
+  return template;
 }
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
@@ -37,7 +46,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 }
 
 export default async function AgentPage({ searchParams }: PageProps) {
-  const { agentId } = await searchParams;
+  const { agentId, template: templateOverride } = await searchParams;
   const id = resolveAgentId(agentId);
 
   try {
@@ -45,7 +54,7 @@ export default async function AgentPage({ searchParams }: PageProps) {
     const content = loadAgentContent(id, agent);
 
     const cssVars = buildCssVariableStyle(agent.branding);
-    const Template = getTemplate(content.template);
+    const Template = getTemplate(resolveTemplateOverride(templateOverride) ?? content.template);
 
     const jsonLd = {
       "@context": "https://schema.org",
