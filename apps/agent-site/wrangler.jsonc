@@ -13,5 +13,9 @@
       "binding": "WORKER_SELF_REFERENCE",
       "service": "real-estate-star-agents"
     }
-  ]
+  ],
+  "vars": {
+    "NEXT_PUBLIC_API_URL": "https://api.real-estate-star.com",
+    "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyCD8Lw5xaMCxoWEzkTRCT284Jv37AMfd2Y"
+  }
 }
