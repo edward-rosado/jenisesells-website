@@ -155,6 +155,18 @@ describe("TermsPage", () => {
     expect(matches.length).toBeGreaterThanOrEqual(1);
   });
 
+  it("renders NJ content without brokerage when absent", async () => {
+    const njNoBrokerage = {
+      ...AGENT,
+      identity: { ...AGENT.identity, brokerage: undefined },
+    };
+    mockLoadAgentConfig.mockReturnValue(njNoBrokerage);
+    const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
+    render(page);
+    expect(screen.getByText(/New Jersey Real Estate Commission/)).toBeInTheDocument();
+    expect(screen.queryByText(/Brokerage:/)).not.toBeInTheDocument();
+  });
+
   it("displays brokerage_id when present", async () => {
     const agentWithBrokerageId = {
       ...AGENT,

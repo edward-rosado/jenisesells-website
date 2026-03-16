@@ -747,7 +747,19 @@ describe("LeadForm", () => {
     expect(screen.queryByText(/address autocomplete powered by google maps/i)).not.toBeInTheDocument();
   });
 
-  // Test 40
+  // Test 40 — agentFirstName dynamic label
+  it("shows dynamic buyer CTA with agentFirstName when not selling", () => {
+    render(<LeadForm {...defaultProps} agentFirstName="Jenise" initialMode={["buying"]} />);
+    expect(screen.getByRole("button", { name: /tell jenise you're ready to buy/i })).toBeInTheDocument();
+  });
+
+  // Test 41
+  it("shows seller CTA when agentFirstName is set and selling", () => {
+    render(<LeadForm {...defaultProps} agentFirstName="Jenise" initialMode={["selling"]} />);
+    expect(screen.getByRole("button", { name: /get my free cma/i })).toBeInTheDocument();
+  });
+
+  // Test 42
   it("allows submit when TCPA consent is checked", async () => {
     const onSubmit = vi.fn();
     render(<LeadForm {...defaultProps} onSubmit={onSubmit} initialMode={["buying"]} />);
