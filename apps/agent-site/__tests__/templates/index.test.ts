@@ -5,6 +5,7 @@ import { describe, it, expect } from "vitest";
 import { getTemplate, TEMPLATES } from "@/templates/index";
 import { EmeraldClassic } from "@/templates/emerald-classic";
 import { ModernMinimal } from "@/templates/modern-minimal";
+import { WarmCommunity } from "@/templates/warm-community";
 
 describe("getTemplate", () => {
   it("returns EmeraldClassic for 'emerald-classic'", () => {
@@ -59,5 +60,18 @@ describe("getTemplate", () => {
 
   it("TEMPLATES registry maps modern-minimal to ModernMinimal component", () => {
     expect(TEMPLATES["modern-minimal"]).toBe(ModernMinimal);
+  });
+
+  it("returns WarmCommunity for 'warm-community'", () => {
+    const Template = getTemplate("warm-community");
+    expect(Template).toBe(WarmCommunity);
+  });
+
+  it("TEMPLATES registry contains warm-community key", () => {
+    expect("warm-community" in TEMPLATES).toBe(true);
+  });
+
+  it("TEMPLATES registry maps warm-community to WarmCommunity component", () => {
+    expect(TEMPLATES["warm-community"]).toBe(WarmCommunity);
   });
 });

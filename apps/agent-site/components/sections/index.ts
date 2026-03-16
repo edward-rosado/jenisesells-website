@@ -20,6 +20,15 @@ export { SoldMinimal } from "./sold/SoldMinimal";
 export { TestimonialsClean } from "./testimonials/TestimonialsClean";
 export { AboutMinimal } from "./about/AboutMinimal";
 
+// Warm Community variants
+export { HeroCentered } from "./heroes/HeroCentered";
+export { StatsInline } from "./stats/StatsInline";
+export { ServicesIcons } from "./services/ServicesIcons";
+export { StepsFriendly } from "./steps/StepsFriendly";
+export { SoldCards } from "./sold/SoldCards";
+export { TestimonialsBubble } from "./testimonials/TestimonialsBubble";
+export { AboutCard } from "./about/AboutCard";
+
 // Backward-compatible aliases for EmeraldClassic template
 export { HeroGradient as Hero } from "./heroes/HeroGradient";
 export { ServicesGrid as Services } from "./services/ServicesGrid";
