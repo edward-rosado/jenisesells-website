@@ -3,6 +3,7 @@ import { EqualHousingNotice } from "@real-estate-star/ui";
 
 interface FooterProps {
   agent: AgentConfig;
+  agentId?: string;
 }
 
 function formatServiceAreas(areas: string[], state: string): string {
@@ -14,8 +15,9 @@ function formatServiceAreas(areas: string[], state: string): string {
   return `Serving ${names.join(", ")} & ${last} Counties, ${state}`;
 }
 
-export function Footer({ agent }: FooterProps) {
+export function Footer({ agent, agentId }: FooterProps) {
   const { identity, location } = agent;
+  const qs = agentId ? `?agentId=${encodeURIComponent(agentId)}` : "";
   return (
     <footer
       style={{
@@ -115,9 +117,9 @@ export function Footer({ agent }: FooterProps) {
           color: "rgba(255,255,255,0.7)",
         }}
       >
-        <a href="/privacy" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Privacy Policy</a>
-        <a href="/terms" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Terms of Use</a>
-        <a href="/accessibility" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Accessibility</a>
+        <a href={`/privacy${qs}`} style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Privacy Policy</a>
+        <a href={`/terms${qs}`} style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Terms of Use</a>
+        <a href={`/accessibility${qs}`} style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Accessibility</a>
       </nav>
       <p
         style={{

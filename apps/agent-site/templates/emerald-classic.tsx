@@ -63,7 +63,7 @@ export function EmeraldClassic({ agent, content }: TemplateProps) {
         />
       )}
       {s.about.enabled && <About agent={agent} data={s.about.data} />}
-      <Footer agent={agent} />
+      <Footer agent={agent} agentId={agent.id} />
       </div>
     </>
   );

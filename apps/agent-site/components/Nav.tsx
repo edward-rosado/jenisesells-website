@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import type { AgentConfig } from "@/lib/types";
 
 interface NavProps {
@@ -115,7 +116,7 @@ export function Nav({ agent }: NavProps) {
           boxSizing: "border-box",
         }}
       >
-        <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
           {branding.logo_url ? (
             <div style={{ background: "white", borderRadius: "6px", padding: "4px 8px", display: "flex", alignItems: "center" }}>
               <Image
@@ -136,7 +137,7 @@ export function Nav({ agent }: NavProps) {
               {identity.tagline?.toUpperCase() || identity.name.toUpperCase()}
             </span>
           )}
-        </a>
+        </Link>
 
         {/* Desktop section links */}
         <div className="nav-desktop-links" style={{ display: "flex", alignItems: "center", gap: "4px", flex: 1, justifyContent: "center" }}>

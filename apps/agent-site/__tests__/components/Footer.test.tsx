@@ -94,22 +94,29 @@ describe("Footer", () => {
     expect(screen.getByRole("navigation", { name: "Legal links" })).toBeInTheDocument();
   });
 
-  it("renders privacy link", () => {
+  it("renders privacy link without agentId when not provided", () => {
     render(<Footer agent={AGENT} />);
     const link = screen.getByRole("link", { name: /privacy/i });
     expect(link).toHaveAttribute("href", "/privacy");
   });
 
-  it("renders terms link", () => {
+  it("renders terms link without agentId when not provided", () => {
     render(<Footer agent={AGENT} />);
     const link = screen.getByRole("link", { name: /terms/i });
     expect(link).toHaveAttribute("href", "/terms");
   });
 
-  it("renders accessibility link", () => {
+  it("renders accessibility link without agentId when not provided", () => {
     render(<Footer agent={AGENT} />);
     const link = screen.getByRole("link", { name: /accessibility/i });
     expect(link).toHaveAttribute("href", "/accessibility");
+  });
+
+  it("appends agentId to legal links when provided", () => {
+    render(<Footer agent={AGENT} agentId="test-agent" />);
+    expect(screen.getByRole("link", { name: /privacy/i })).toHaveAttribute("href", "/privacy?agentId=test-agent");
+    expect(screen.getByRole("link", { name: /terms/i })).toHaveAttribute("href", "/terms?agentId=test-agent");
+    expect(screen.getByRole("link", { name: /accessibility/i })).toHaveAttribute("href", "/accessibility?agentId=test-agent");
   });
 
   it("formats 3+ service areas with comma-separated list and ampersand", () => {

@@ -49,10 +49,10 @@ describe("CookieConsentBanner", () => {
     expect(localStorage.getItem("res-cookie-consent-test-agent")).toBeNull();
   });
 
-  it("links to /privacy", () => {
+  it("links to /privacy with agentId", () => {
     render(<CookieConsentBanner agentId="test-agent" />);
     const link = screen.getByRole("link", { name: /privacy/i });
-    expect(link).toHaveAttribute("href", "/privacy");
+    expect(link).toHaveAttribute("href", "/privacy?agentId=test-agent");
   });
 
   it("renders accept and decline buttons", () => {

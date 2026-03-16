@@ -27,7 +27,7 @@ export function LegalPageLayout({
           {customBelow && <div className="mt-8"><MarkdownContent content={customBelow} /></div>}
         </div>
       </main>
-      <Footer agent={agent} />
+      <Footer agent={agent} agentId={agentId} />
       <CookieConsentBanner agentId={agentId} />
     </div>
   );

@@ -50,7 +50,7 @@ export function CookieConsentBanner({ agentId }: { agentId: string }) {
           We use cookies and local storage to improve your experience. By
           continuing to use this site, you consent to our use of cookies. See
           our{" "}
-          <a href="/privacy" className="underline hover:text-white">
+          <a href={`/privacy?agentId=${encodeURIComponent(agentId)}`} className="underline hover:text-white">
             Privacy Policy
           </a>{" "}
           for details.
