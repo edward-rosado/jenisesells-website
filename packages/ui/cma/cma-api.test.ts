@@ -73,52 +73,44 @@ describe("submitCma", () => {
     expect(result).toEqual({ jobId: "abc-123", status: "processing" });
   });
 
-  it("throws on HTTP 400 with status in message", async () => {
+  it("throws on HTTP 400 with error body in message", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("Validation error", { status: 400 }),
     );
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     await expect(submitCma(API_BASE, AGENT_ID, makeRequest())).rejects.toThrow(
-      "CMA submission failed (400)",
-    );
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "[CMA-001] API error body:",
-      "Validation error",
+      "CMA submission failed (400): Validation error",
     );
   });
 
-  it("throws on HTTP 500", async () => {
+  it("throws on HTTP 500 with error body", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("Internal Server Error", { status: 500 }),
     );
-    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(submitCma(API_BASE, AGENT_ID, makeRequest())).rejects.toThrow(
+      "CMA submission failed (500): Internal Server Error",
+    );
+  });
+
+  it("throws without detail when error body is empty", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("", { status: 500 }),
+    );
 
     await expect(submitCma(API_BASE, AGENT_ID, makeRequest())).rejects.toThrow(
       "CMA submission failed (500)",
     );
-  });
-
-  it("does not log when error body is empty", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response("", { status: 500 }),
-    );
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    await expect(submitCma(API_BASE, AGENT_ID, makeRequest())).rejects.toThrow();
-    expect(consoleSpy).not.toHaveBeenCalled();
   });
 
   it("handles response.text() rejection gracefully", async () => {
     const badResponse = new Response(null, { status: 500 });
     vi.spyOn(badResponse, "text").mockRejectedValue(new Error("read failed"));
     vi.spyOn(globalThis, "fetch").mockResolvedValue(badResponse);
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     await expect(submitCma(API_BASE, AGENT_ID, makeRequest())).rejects.toThrow(
       "CMA submission failed (500)",
     );
-    expect(consoleSpy).not.toHaveBeenCalled();
   });
 
   it("uses apiBaseUrl parameter (not process.env)", async () => {

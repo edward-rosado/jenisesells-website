@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { LeadFormData } from "@real-estate-star/shared-types";
 import { submitCma } from "./cma-api";
 import { mapToCmaRequest } from "./mapToCmaRequest";
@@ -39,6 +39,11 @@ export function useCmaSubmit(
 ): UseCmaSubmitReturn {
   const [state, setState] = useState<CmaSubmitState>(INITIAL_STATE);
 
+  const onErrorRef = useRef(options?.onError);
+  useEffect(() => {
+    onErrorRef.current = options?.onError;
+  }, [options?.onError]);
+
   const submit = useCallback(
     async (agentId: string, data: LeadFormData): Promise<boolean> => {
       setState({ phase: "submitting", jobId: null, errorMessage: null });
@@ -55,7 +60,7 @@ export function useCmaSubmit(
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error("Submission failed");
-        options?.onError?.(error);
+        onErrorRef.current?.(error);
         setState({
           phase: "error",
           jobId: null,
@@ -64,7 +69,7 @@ export function useCmaSubmit(
         return false;
       }
     },
-    [apiBaseUrl, options],
+    [apiBaseUrl],
   );
 
   const reset = useCallback(() => {

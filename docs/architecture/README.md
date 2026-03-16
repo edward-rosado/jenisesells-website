@@ -18,7 +18,7 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | Document | Description |
 |----------|------------|
 | [Component Hierarchy](shared-lead-form-component-hierarchy.md) | How shared packages are consumed by agent sites and platform |
-| [Data Flow](lead-form-data-flow.md) | User input through submission to Formspree or CMA API |
+| [Data Flow](lead-form-data-flow.md) | User input through submission to the .NET CMA API |
 | [Data Model](lead-form-data-model.md) | Shared type hierarchy for buyer and seller lead capture |
 | [Google Maps Autocomplete](google-maps-autocomplete-lifecycle.md) | Lazy SDK loading and address autocomplete lifecycle |
 

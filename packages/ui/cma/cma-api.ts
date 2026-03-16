@@ -29,8 +29,8 @@ export async function submitCma(
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    if (text) console.error("[CMA-001] API error body:", text);
-    throw new Error(`CMA submission failed (${response.status})`);
+    const detail = text ? `: ${text}` : "";
+    throw new Error(`CMA submission failed (${response.status})${detail}`);
   }
 
   return (await response.json()) as CmaSubmitResponse;

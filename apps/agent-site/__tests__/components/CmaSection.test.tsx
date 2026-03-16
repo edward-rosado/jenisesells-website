@@ -9,6 +9,7 @@ import type { CmaFormData } from "@/lib/types";
 // --- Mock useCmaSubmit from @real-estate-star/ui ---
 const mockSubmit = vi.fn();
 const mockReset = vi.fn();
+let capturedOnError: ((err: Error) => void) | undefined;
 
 let mockCmaState = {
   phase: "idle" as string,
@@ -20,11 +21,14 @@ vi.mock("@real-estate-star/ui", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@real-estate-star/ui")>();
   return {
     ...actual,
-    useCmaSubmit: (_apiBaseUrl: string, _options?: { onError?: (err: Error) => void }) => ({
-      state: mockCmaState,
-      submit: mockSubmit,
-      reset: mockReset,
-    }),
+    useCmaSubmit: (_apiBaseUrl: string, options?: { onError?: (err: Error) => void }) => {
+      capturedOnError = options?.onError;
+      return {
+        state: mockCmaState,
+        submit: mockSubmit,
+        reset: mockReset,
+      };
+    },
   };
 });
 
@@ -284,5 +288,21 @@ describe("CmaSection form submission", () => {
 
     expect(mockFetch).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+
+  it("calls Sentry.captureException via onError callback when submission fails", async () => {
+    const Sentry = await import("@sentry/nextjs");
+
+    render(<CmaSection {...DEFAULT_PROPS} />);
+
+    // The mock captures the onError callback passed to useCmaSubmit
+    expect(capturedOnError).toBeDefined();
+
+    const testError = new Error("Network failure");
+    capturedOnError!(testError);
+
+    expect(Sentry.captureException).toHaveBeenCalledWith(testError, {
+      tags: { agentId: "test-agent", feature: "cma-form" },
+    });
   });
 });

@@ -10,7 +10,7 @@ flowchart TD
     end
 
     subgraph AgentSite ["apps/agent-site"]
-        CMA["CmaForm section"]
+        CMA["CmaSection"]
         Footer["Footer section"]
         Legal["Legal pages<br/>terms, privacy, accessibility"]
         Nav["Nav component<br/>pathname-aware links"]

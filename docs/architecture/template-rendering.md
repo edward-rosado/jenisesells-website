@@ -39,7 +39,7 @@ flowchart TD
         how["HowItWorks"]
         sold["SoldHomes"]
         testimonials["Testimonials"]
-        cmaform["CmaForm"]
+        cmaform["CmaSection"]
         about["About"]
         footer["Footer"]
     end
@@ -99,7 +99,7 @@ flowchart LR
     subgraph "Output HTML"
         hero_html["<Hero />"]
         services_html["<Services />"]
-        cma_html["<CmaForm />"]
+        cma_html["<CmaSection />"]
         skip["(skipped)"]
     end
 
