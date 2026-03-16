@@ -169,14 +169,49 @@ jobs:
           workingDirectory: apps/agent-site
           command: deploy --config wrangler.preview.jsonc
 
+      - name: Discover agents for preview links
+        if: steps.check.outputs.exists == 'true'
+        id: agents
+        run: |
+          # Find valid agents: directories with config.json OR top-level .json files (skip bad-* test fixtures)
+          AGENTS=""
+          for dir in config/agents/*/; do
+            id=$(basename "$dir")
+            if [ -f "$dir/config.json" ]; then
+              AGENTS="${AGENTS}${id}\n"
+            fi
+          done
+          for f in config/agents/*.json; do
+            id=$(basename "$f" .json)
+            # Skip test fixtures (bad-*) and agent.schema.json
+            case "$id" in bad-*|agent.schema) continue;; esac
+            AGENTS="${AGENTS}${id}\n"
+          done
+          echo "list<<EOF" >> $GITHUB_OUTPUT
+          printf "$AGENTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Comment preview URL on PR
         if: steps.check.outputs.exists == 'true'
         uses: actions/github-script@v7
         with:
           script: |
             const prNumber = context.payload.pull_request.number;
-            const previewUrl = `https://real-estate-star-agents-pr-${prNumber}.workers.dev`;
-            const body = `**Agent Site Preview:** ${previewUrl}`;
+            const baseUrl = `https://real-estate-star-agents-pr-${prNumber}.workers.dev`;
+            const agentList = `${{ steps.agents.outputs.list }}`.trim().split('\n').filter(Boolean);
+
+            let links = agentList.map(id =>
+              `- [${id}](${baseUrl}/?agentId=${id})`
+            ).join('\n');
+
+            const body = [
+              `**Agent Site Preview**`,
+              ``,
+              `Default: ${baseUrl}`,
+              ``,
+              `**Per-agent previews:**`,
+              links,
+            ].join('\n');
 
             // Check for existing preview comment to avoid duplicates
             const { data: comments } = await github.rest.issues.listComments({
@@ -185,7 +220,7 @@ jobs:
               issue_number: prNumber,
             });
 
-            const existing = comments.find(c => c.body.includes('Agent Site Preview:'));
+            const existing = comments.find(c => c.body.includes('Agent Site Preview'));
             if (existing) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,

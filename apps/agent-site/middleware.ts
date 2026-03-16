@@ -59,13 +59,20 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // 4. Dev fallback: bare localhost gets default agent
+  // 4. Preview/dev fallback: workers.dev or localhost with ?agentId= param
   const host = hostname.split(":")[0];
-  if (host === "localhost" && process.env.NODE_ENV !== "production") {
-    const defaultId = process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
-    if (getAgentIds().has(defaultId)) {
+  const queryAgentId = request.nextUrl.searchParams.get("agentId");
+  const isPreviewHost = host.endsWith(".workers.dev");
+  const isLocalhost = host === "localhost";
+
+  if (isPreviewHost || isLocalhost) {
+    const resolvedId = (queryAgentId && getAgentIds().has(queryAgentId))
+      ? queryAgentId
+      : (process.env.DEFAULT_AGENT_ID || "jenise-buckalew");
+
+    if (getAgentIds().has(resolvedId)) {
       const url = request.nextUrl.clone();
-      url.searchParams.set("agentId", defaultId);
+      url.searchParams.set("agentId", resolvedId);
       const response = NextResponse.rewrite(url);
       response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
       response.headers.set("x-nonce", nonce);
