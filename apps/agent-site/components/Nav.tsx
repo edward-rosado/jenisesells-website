@@ -100,8 +100,8 @@ export function Nav({ agent }: NavProps) {
           .nav-desktop-links a { font-size: 12px !important; padding: 6px 6px !important; }
         }
 
-        /* Mobile: <=768px — section links hidden, hamburger shown, "Contact Me" button hidden */
-        @media (max-width: 768px) {
+        /* Mobile + iPad Air: <=834px — section links hidden, hamburger shown, "Contact Me" button hidden */
+        @media (max-width: 834px) {
           .nav-desktop-links { display: none !important; }
           .nav-contact-btn { display: none !important; }
           .nav-mobile-call { display: flex !important; }
@@ -114,8 +114,8 @@ export function Nav({ agent }: NavProps) {
           section p { font-size: 15px !important; }
         }
 
-        /* Drawer nav links: hidden on tablet (section links already in nav bar) */
-        @media (min-width: 769px) {
+        /* Drawer nav links: hidden on tablet/desktop (section links already in nav bar) */
+        @media (min-width: 835px) {
           .drawer-nav-links { display: none !important; }
         }
       `}</style>
