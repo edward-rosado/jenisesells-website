@@ -88,11 +88,15 @@ export function Nav({ agent }: NavProps) {
       <style>{`
         html { scroll-behavior: smooth; }
         section[id] { scroll-margin-top: 80px; }
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
           .nav-contact { display: none !important; }
-          .nav-desktop-links { display: none !important; }
           .nav-mobile-call { display: flex !important; }
           .nav-hamburger { display: block !important; }
+          .nav-logo { height: 44px !important; }
+          .nav-desktop-links a { font-size: 12px !important; padding: 6px 6px !important; }
+        }
+        @media (max-width: 768px) {
+          .nav-desktop-links { display: none !important; }
           .nav-logo { height: 32px !important; }
           section { padding-top: 35px !important; padding-bottom: 35px !important; padding-left: 16px !important; padding-right: 16px !important; }
           section:first-of-type { padding-top: 70px !important; }
