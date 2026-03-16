@@ -46,7 +46,7 @@ export function GoogleAuthCard({ oauthUrl, onConnected, onError, apiOrigin }: Go
   return (
     <div className="bg-gray-800 rounded-xl p-5 max-w-sm space-y-3 text-center">
       <div className="flex justify-center">
-        <svg className="w-10 h-10" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg className="w-10 h-10" viewBox="0 0 24 24" role="img" aria-label="Google logo" xmlns="http://www.w3.org/2000/svg">
           <path
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
             fill="#4285F4"
@@ -75,7 +75,7 @@ export function GoogleAuthCard({ oauthUrl, onConnected, onError, apiOrigin }: Go
         onClick={openOAuthPopup}
         className="w-full px-4 py-2 rounded-lg bg-white hover:bg-gray-100 text-gray-800 font-semibold transition-colors flex items-center justify-center gap-2"
       >
-        <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg className="w-5 h-5" viewBox="0 0 24 24" role="img" aria-label="Google logo" xmlns="http://www.w3.org/2000/svg">
           <path
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
             fill="#4285F4"

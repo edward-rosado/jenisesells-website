@@ -3,10 +3,9 @@ import type { TestimonialItem } from "@/lib/types";
 interface TestimonialsProps {
   items: TestimonialItem[];
   title?: string;
-  subtitle?: string;
 }
 
-export function Testimonials({ items, title, subtitle }: TestimonialsProps) {
+export function Testimonials({ items, title }: TestimonialsProps) {
   return (
     <section
       id="testimonials"
@@ -28,18 +27,6 @@ export function Testimonials({ items, title, subtitle }: TestimonialsProps) {
         >
           {title ?? "What My Clients Say"}
         </h2>
-        {subtitle && (
-          <p
-            style={{
-              textAlign: "center",
-              color: "#666",
-              fontSize: "16px",
-              marginBottom: "10px",
-            }}
-          >
-            {subtitle}
-          </p>
-        )}
         <p
           style={{
             textAlign: "center",
@@ -48,7 +35,8 @@ export function Testimonials({ items, title, subtitle }: TestimonialsProps) {
             marginBottom: "45px",
           }}
         >
-          Verified customer reviews from Zillow. Individual results may vary.
+          Real reviews from real clients. Unedited excerpts from verified reviews on Zillow.
+          No compensation was provided. Individual results may vary.
         </p>
         <div
           style={{

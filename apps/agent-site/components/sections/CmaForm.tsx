@@ -233,14 +233,16 @@ export function CmaForm({
           googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ""}
           onSubmit={handleSubmit}
           initialMode={["selling"]}
+          agentFirstName={agentName.split(" ")[0]}
           submitLabel={(isBuying, isSelling) => {
             if (isSelling) return "Get My Free Home Value Report \u2192";
-            if (isBuying) return "Connect Me With an Agent \u2192";
+            if (isBuying) return `Tell ${agentName.split(" ")[0]} you're ready to buy! \u2192`;
             return "Get Started \u2192";
           }}
           disabled={isProcessing}
           error={displayError ?? undefined}
           serviceAreas={serviceAreas}
+          showCmaDisclaimer
         />
       </div>
     </section>

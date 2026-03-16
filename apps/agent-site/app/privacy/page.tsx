@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { loadAgentConfig, loadLegalContent } from "@/lib/config";
 import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
 import { MarkdownContent } from "@/components/legal/MarkdownContent";
-import { LEGAL_EFFECTIVE_DATE } from "@/components/legal/constants";
+import { LEGAL_EFFECTIVE_DATE, getStateName } from "@/components/legal/constants";
 
 interface PageProps {
   searchParams: Promise<{ agentId?: string }>;
@@ -25,6 +25,18 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   }
 }
 
+function buildNjPrivacyContent(): string {
+  return `### New Jersey Residents
+
+Under the New Jersey Data Privacy Act (N.J.S.A. 56:8-166), you have the right to confirm, access, correct, delete, and obtain a portable copy of your personal data. You also have the right to opt out of the sale of personal data, targeted advertising, and profiling. We honor browser-based opt-out signals (Global Privacy Control). Contact us using the information below.`;
+}
+
+function buildGenericStatePrivacyContent(stateName: string): string {
+  return `### ${stateName} Residents
+
+${stateName} real estate laws and regulations apply. Please consult your state real estate commission and applicable privacy laws for specific requirements regarding your personal data rights. Contact us using the information below.`;
+}
+
 export default async function PrivacyPage({ searchParams }: PageProps) {
   const { agentId } = await searchParams;
   const id = resolveAgentId(agentId);
@@ -39,6 +51,11 @@ export default async function PrivacyPage({ searchParams }: PageProps) {
 
   const { above, below } = loadLegalContent(id, "privacy");
   const { identity, location } = agent;
+  const stateName = getStateName(location.state);
+
+  const statePrivacyContent = location.state === "NJ"
+    ? buildNjPrivacyContent()
+    : buildGenericStatePrivacyContent(stateName);
 
   const content = `# Privacy Policy
 
@@ -106,9 +123,7 @@ This website uses the following third-party services that may process your data:
 
 ## Your Rights
 
-### New Jersey Residents
-
-Under New Jersey law, you have the right to request access to the personal information we hold about you and to request its correction or deletion. Contact us using the information below.
+${statePrivacyContent}
 
 ### California Residents (CCPA Notice)
 

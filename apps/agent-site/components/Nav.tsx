@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import type { AgentConfig } from "@/lib/types";
 
@@ -38,6 +39,8 @@ export function Nav({ agent }: NavProps) {
   const { identity, branding } = agent;
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const isHome = pathname === "/";
 
   function toggleDrawer() {
     setDrawerOpen((prev) => !prev);
@@ -69,13 +72,14 @@ export function Nav({ agent }: NavProps) {
     }
   }, [drawerOpen]);
 
+  const prefix = isHome ? "" : "/";
   const sections = [
-    { label: "Why Choose Me", href: "#services" },
-    { label: "How It Works", href: "#how-it-works" },
-    { label: "Recent Sales", href: "#sold" },
-    { label: "Testimonials", href: "#testimonials" },
-    { label: "Get Your Home Value", href: "#cma-form" },
-    { label: "About", href: "#about" },
+    { label: "Why Choose Me", href: `${prefix}#services` },
+    { label: "How It Works", href: `${prefix}#how-it-works` },
+    { label: "Recent Sales", href: `${prefix}#sold` },
+    { label: "Testimonials", href: `${prefix}#testimonials` },
+    { label: "Get Your Home Value", href: `${prefix}#cma-form` },
+    { label: "About", href: `${prefix}#about` },
   ];
 
   return (

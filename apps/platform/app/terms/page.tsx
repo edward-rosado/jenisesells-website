@@ -13,7 +13,7 @@ export default function TermsPage() {
     <LegalPageLayout>
       <h1 className="text-3xl font-bold text-white mb-2">Terms of Service</h1>
       <p className="text-sm text-gray-400 mb-8">
-        Effective Date: March 11, 2026 | Last Updated: March 11, 2026
+        Effective Date: March 11, 2026 | Last Updated: March 16, 2026
       </p>
 
       <Section title="1. Acceptance of Terms">
@@ -71,6 +71,16 @@ export default function TermsPage() {
         <p>
           We reserve the right to verify licensure and suspend accounts that
           cannot demonstrate active, valid licensure.
+        </p>
+        {/* TODO: Make state-specific when multi-state support is added (currently NJ-only) */}
+        <p>
+          <strong>New Jersey Real Estate Commission (NJREC) Notice:</strong>{" "}
+          Real Estate Star is a software tool and does not provide brokerage,
+          appraisal, or legal services. All agents must maintain current NJREC
+          licensure and comply with N.J.A.C. 11:5 rules. Your broker retains
+          full supervisory responsibility for all transactions and marketing
+          materials generated through this platform. Licensure by the NJ Real
+          Estate Commission does not imply endorsement.
         </p>
       </Section>
 
@@ -162,6 +172,14 @@ export default function TermsPage() {
           You are responsible for verifying all market data independently before
           presenting it to clients.
         </p>
+        {/* TODO: Make state-specific when multi-state support is added (currently NJ-only) */}
+        <p>
+          Under the New Jersey Consumer Fraud Act (N.J.S.A. 56:8-1), agents
+          are prohibited from presenting CMA estimates as definitive property
+          values. All market data and valuations are estimates only. Agents
+          assume liability for misrepresenting estimates as professional
+          appraisals.
+        </p>
       </Section>
 
       <Section title="8. Website Deployment">
@@ -171,6 +189,15 @@ export default function TermsPage() {
           requirements and MLS display rules. You retain ownership of your
           content; by uploading content, you grant us a non-exclusive license to
           host and display it as part of the Service.
+        </p>
+        {/* TODO: Make state-specific when multi-state support is added (currently NJ-only) */}
+        <p>
+          All agent websites must comply with NJREC advertising rules (N.J.A.C.
+          11:5-6.1), including displaying broker name more prominently than
+          agent name, including brokerage office phone number, and displaying
+          appropriate business designation. If referencing commission rates, the
+          statement &quot;In New Jersey commissions are negotiable&quot; must
+          appear clearly.
         </p>
       </Section>
 
@@ -293,10 +320,10 @@ function Section({
 }) {
   return (
     <section className="mt-10">
-      <h2 className="text-xl font-semibold text-white mb-3 border-b border-gray-700 pb-2">
+      <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">
         {title}
       </h2>
-      <div className="text-gray-300 leading-relaxed space-y-4 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_strong]:text-white [&_strong]:font-semibold">
+      <div className="text-base text-gray-300 leading-relaxed space-y-4 [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:space-y-2 [&_strong]:text-white [&_strong]:font-semibold">
         {children}
       </div>
     </section>

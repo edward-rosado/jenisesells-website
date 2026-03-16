@@ -65,6 +65,7 @@ function fillForm() {
   // State is readOnly and pre-filled from defaultState — don't override it
   fireEvent.change(screen.getByLabelText(/^zip/i), { target: { value: "07030" } });
   fireEvent.change(screen.getByLabelText(/looking to sell/), { target: { value: "asap" } });
+  fireEvent.click(screen.getByTestId("tcpa-consent"));
 }
 
 // Helper: switch to buying-only mode and fill buyer fields
@@ -78,6 +79,7 @@ function switchToBuyerAndFill() {
   fireEvent.change(screen.getByLabelText(/^phone/i), { target: { value: "555-111-2222" } });
   fireEvent.change(screen.getByLabelText(/desired area/i), { target: { value: "Hoboken" } });
   fireEvent.change(screen.getByLabelText(/looking to buy/i), { target: { value: "asap" } });
+  fireEvent.click(screen.getByTestId("tcpa-consent"));
 }
 
 beforeEach(() => {
@@ -135,7 +137,7 @@ describe("CmaForm rendering", () => {
     // Toggle off selling, toggle on buying
     fireEvent.click(screen.getByLabelText(/I'm Selling/));
     fireEvent.click(screen.getByLabelText(/I'm Buying/));
-    expect(screen.getByRole("button", { name: /Connect Me With an Agent/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Tell Jane you're ready to buy/ })).toBeInTheDocument();
   });
 
   it("shows default submit label when neither mode is selected", () => {
@@ -659,5 +661,11 @@ describe("CmaForm — formspree vs API mode detection", () => {
       "minimal-agent",
       expect.objectContaining({ beds: 4, baths: 2, sqft: 2200 }),
     );
+  });
+
+  it("renders CMA disclaimer stating it is not an appraisal", () => {
+    render(<CmaForm {...API_PROPS} />);
+    expect(screen.getByText(/not an appraisal/i)).toBeInTheDocument();
+    expect(screen.getByText(/licensed appraiser/i)).toBeInTheDocument();
   });
 });

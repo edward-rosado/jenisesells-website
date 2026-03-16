@@ -20,6 +20,8 @@ export interface LeadFormProps {
   disabled?: boolean;
   error?: string;
   serviceAreas?: string[];
+  showCmaDisclaimer?: boolean;
+  agentFirstName?: string;
 }
 
 function parseOptionalNumber(value: string): number | undefined {
@@ -57,15 +59,22 @@ export function LeadForm({
   googleMapsApiKey = "",
   onSubmit,
   initialMode = [],
-  submitLabel = "Get Started",
+  submitLabel: submitLabelProp,
   disabled = false,
   error,
   serviceAreas = [],
+  showCmaDisclaimer = false,
+  agentFirstName,
 }: LeadFormProps) {
   const [isBuying, setIsBuying] = useState(initialMode.includes("buying"));
   const [isSelling, setIsSelling] = useState(initialMode.includes("selling"));
+  const submitLabel: string | ((b: boolean, s: boolean) => string) = submitLabelProp
+    ?? (agentFirstName
+      ? (_b: boolean, s: boolean) => s ? "Get My Free CMA" : `Tell ${agentFirstName} you're ready to buy!`
+      : "Get Started");
   const [submitting, setSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [tcpaConsent, setTcpaConsent] = useState(false);
   const [fields, setFields] = useState<FormFields>({
     firstName: "",
     lastName: "",
@@ -151,6 +160,11 @@ export function LeadForm({
 
     if (!fields.timeline) {
       setValidationError("Please select a timeline.");
+      return;
+    }
+
+    if (!tcpaConsent) {
+      setValidationError("You must consent to receive communications before submitting.");
       return;
     }
 
@@ -303,6 +317,16 @@ export function LeadForm({
         .res-lead-form-row > div { flex: 1; }
         @media (max-width: 600px) {
           .res-lead-form-row { flex-direction: column; gap: 0; }
+        }
+        .res-lead-form-submit:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+          filter: brightness(1.1);
+        }
+        .res-lead-form-submit:active:not(:disabled) {
+          transform: translateY(1px);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+          filter: brightness(0.95);
         }
       `}</style>
 
@@ -470,6 +494,9 @@ export function LeadForm({
                 <input {...field("sqft", { type: "number" })} />
               </div>
             </div>
+            <p style={{ fontSize: 11, color: "#999", marginTop: 4, marginBottom: 0 }}>
+              Address autocomplete powered by Google Maps.
+            </p>
           </>
         )}
       </div>
@@ -507,9 +534,28 @@ export function LeadForm({
         )}
       </div>
 
+      {/* TCPA Consent */}
+      <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: 11, color: "#999", textAlign: "left", marginTop: "16px" }}>
+        <input
+          type="checkbox"
+          data-testid="tcpa-consent"
+          checked={tcpaConsent}
+          onChange={(e) => setTcpaConsent(e.target.checked)}
+          style={{ marginTop: "2px", flexShrink: 0 }}
+        />
+        <span>
+          By checking this box, you consent to receive calls and text messages from the agent
+          at the phone number you provided, including automated calls. Message and data rates
+          may apply. Reply STOP to opt out. Consent is not a condition of purchasing any
+          property or service.
+        </span>
+      </label>
+
       {/* Submit */}
+      <div style={{ marginTop: 12 }} />
       <button
         type="submit"
+        className="res-lead-form-submit"
         disabled={disabled || submitting}
         style={{
           width: "100%",
@@ -527,6 +573,24 @@ export function LeadForm({
       >
         {typeof submitLabel === "function" ? submitLabel(isBuying, isSelling) : submitLabel}
       </button>
+
+      {showCmaDisclaimer && (
+        <span
+          style={{
+            display: "block",
+            fontSize: 11,
+            color: "#999",
+            marginTop: 16,
+            textAlign: "center",
+            lineHeight: 1.5,
+          }}
+        >
+          This Comparative Market Analysis is not an appraisal. It is an estimate of market
+          value based on comparable sales data and market conditions. It should not be used in
+          lieu of an appraisal for lending purposes. Only a licensed appraiser can provide an
+          appraisal.
+        </span>
+      )}
     </form>
   );
 }

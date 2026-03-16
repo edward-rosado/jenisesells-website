@@ -29,7 +29,7 @@ function fillContactFields() {
   fireEvent.change(screen.getByLabelText(/email/i), {
     target: { value: "jane@example.com" },
   });
-  fireEvent.change(screen.getByLabelText(/phone/i), {
+  fireEvent.change(document.getElementById("lf-phone")!, {
     target: { value: "555-123-4567" },
   });
 }
@@ -93,6 +93,10 @@ function checkSelling() {
   fireEvent.click(screen.getByLabelText(/i'm selling/i));
 }
 
+function checkTcpaConsent() {
+  fireEvent.click(screen.getByRole("checkbox", { name: /consent to receive/i }));
+}
+
 function submitForm() {
   fireEvent.click(screen.getByRole("button", { name: /get started/i }));
 }
@@ -109,7 +113,7 @@ describe("LeadForm", () => {
     expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/last name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/phone/i)).toBeInTheDocument();
+    expect(document.getElementById("lf-phone")).toBeInTheDocument();
   });
 
   // Test 2
@@ -198,6 +202,7 @@ describe("LeadForm", () => {
     fillContactFields();
     fillBuyerFields();
     selectTimeline("1-3months");
+    checkTcpaConsent();
     submitForm();
 
     await waitFor(() => {
@@ -230,6 +235,7 @@ describe("LeadForm", () => {
     fillContactFields();
     fillSellerFields();
     selectTimeline("asap");
+    checkTcpaConsent();
     submitForm();
 
     await waitFor(() => {
@@ -265,6 +271,7 @@ describe("LeadForm", () => {
     fillBuyerFields();
     fillSellerFields();
     selectTimeline("3-6months");
+    checkTcpaConsent();
     submitForm();
 
     await waitFor(() => {
@@ -347,7 +354,7 @@ describe("LeadForm", () => {
     expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/last name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/phone/i)).toBeInTheDocument();
+    expect(document.getElementById("lf-phone")).toBeInTheDocument();
 
     // Buyer fields
     expect(screen.getByLabelText(/desired area/i)).toBeInTheDocument();
@@ -383,6 +390,7 @@ describe("LeadForm", () => {
     fillContactFields();
     fillBuyerFields();
     selectTimeline();
+    checkTcpaConsent();
 
     // First submit
     submitForm();
@@ -411,6 +419,7 @@ describe("LeadForm", () => {
     fillContactFields();
     fillSellerFields();
     selectTimeline();
+    checkTcpaConsent();
     submitForm();
 
     await waitFor(() => {
@@ -613,6 +622,7 @@ describe("LeadForm", () => {
     fillContactFields();
     fillSellerFields();
     selectTimeline();
+    checkTcpaConsent();
 
     // Simulate someone altering the state field via DOM manipulation
     // (the field is readOnly, but can be changed via DevTools)
@@ -684,5 +694,72 @@ describe("LeadForm", () => {
     });
     expect(screen.queryByText(/only serve/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/property address/i)).toHaveValue("456 Park Ave");
+  });
+
+  // Test 34
+  it("renders TCPA consent checkbox unchecked by default", () => {
+    render(<LeadForm {...defaultProps} />);
+    const checkbox = screen.getByRole("checkbox", { name: /consent to receive/i });
+    expect(checkbox).toBeInTheDocument();
+    expect(checkbox).not.toBeChecked();
+  });
+
+  // Test 35
+  it("blocks submit when TCPA consent is not checked", () => {
+    const onSubmit = vi.fn();
+    render(<LeadForm {...defaultProps} onSubmit={onSubmit} initialMode={["buying"]} />);
+
+    fillContactFields();
+    fillBuyerFields();
+    selectTimeline();
+    // Do NOT check TCPA consent
+    fireEvent.submit(screen.getByRole("button", { name: /get started/i }).closest("form")!);
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(/you must consent/i)).toBeInTheDocument();
+  });
+
+  // Test 36 — CMA disclaimer
+  it("shows CMA disclaimer when showCmaDisclaimer is true", () => {
+    render(<LeadForm {...defaultProps} showCmaDisclaimer />);
+    expect(screen.getByText(/not an appraisal/i)).toBeInTheDocument();
+    expect(screen.getByText(/licensed appraiser/i)).toBeInTheDocument();
+  });
+
+  // Test 37
+  it("does not show CMA disclaimer when showCmaDisclaimer is false or undefined", () => {
+    const { rerender } = render(<LeadForm {...defaultProps} />);
+    expect(screen.queryByText(/not an appraisal/i)).not.toBeInTheDocument();
+
+    rerender(<LeadForm {...defaultProps} showCmaDisclaimer={false} />);
+    expect(screen.queryByText(/not an appraisal/i)).not.toBeInTheDocument();
+  });
+
+  // Test 38 — Google Maps attribution
+  it("shows Google Maps attribution when selling mode is active", () => {
+    render(<LeadForm {...defaultProps} initialMode={["selling"]} />);
+    expect(screen.getByText(/address autocomplete powered by google maps/i)).toBeInTheDocument();
+  });
+
+  // Test 39
+  it("does not show Google Maps attribution when selling mode is inactive", () => {
+    render(<LeadForm {...defaultProps} initialMode={["buying"]} />);
+    expect(screen.queryByText(/address autocomplete powered by google maps/i)).not.toBeInTheDocument();
+  });
+
+  // Test 40
+  it("allows submit when TCPA consent is checked", async () => {
+    const onSubmit = vi.fn();
+    render(<LeadForm {...defaultProps} onSubmit={onSubmit} initialMode={["buying"]} />);
+
+    fillContactFields();
+    fillBuyerFields();
+    selectTimeline();
+    fireEvent.click(screen.getByRole("checkbox", { name: /consent to receive/i }));
+    submitForm();
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalled();
+    });
   });
 });

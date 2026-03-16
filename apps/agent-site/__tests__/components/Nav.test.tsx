@@ -1,10 +1,13 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Nav } from "@/components/Nav";
 import { AGENT, AGENT_MINIMAL } from "./fixtures";
+
+const mockPathname = vi.fn(() => "/");
+vi.mock("next/navigation", () => ({ usePathname: () => mockPathname() }));
 
 describe("Nav", () => {
   it("renders the agent tagline in uppercase when tagline is present", () => {
@@ -223,5 +226,19 @@ describe("Nav", () => {
     fireEvent.click(hamburger);
     const firstLink = screen.getByText("Why Choose Me");
     expect(document.activeElement).toBe(firstLink);
+  });
+
+  it("uses hash-only links on the homepage", () => {
+    mockPathname.mockReturnValue("/");
+    render(<Nav agent={AGENT} />);
+    const link = screen.getByText("Why Choose Me");
+    expect(link).toHaveAttribute("href", "#services");
+  });
+
+  it("uses absolute links with / prefix on non-homepage", () => {
+    mockPathname.mockReturnValue("/terms");
+    render(<Nav agent={AGENT} />);
+    const link = screen.getByText("Why Choose Me");
+    expect(link).toHaveAttribute("href", "/#services");
   });
 });

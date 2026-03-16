@@ -48,7 +48,6 @@ export function EmeraldClassic({ agent, content }: TemplateProps) {
         <Testimonials
           items={s.testimonials.data.items}
           title={s.testimonials.data.title}
-          subtitle={s.testimonials.data.subtitle}
         />
       )}
       {s.cma_form.enabled && (

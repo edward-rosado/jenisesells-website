@@ -172,4 +172,17 @@ describe("Footer", () => {
     const disclaimer = screen.getByText(/general informational purposes/);
     expect(disclaimer).not.toHaveTextContent("Office:");
   });
+
+  it("renders brokerage name more prominently than agent name", () => {
+    render(<Footer agent={AGENT} />);
+    const brokerage = screen.getByText(AGENT.identity.brokerage);
+    expect(brokerage).toHaveStyle({ fontSize: "24px" });
+  });
+
+  it("renders NJ fair housing statement with expanded protected classes", () => {
+    render(<Footer agent={AGENT} />);
+    expect(screen.getByText(/gender identity/i)).toBeInTheDocument();
+    expect(screen.getByText(/source of lawful income/i)).toBeInTheDocument();
+  });
+
 });

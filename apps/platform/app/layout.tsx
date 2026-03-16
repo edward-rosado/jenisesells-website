@@ -7,7 +7,22 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Real Estate Star",
-  description: "14 days free, then $14.99/mo. Your business, automated.",
+  description: "14 days free, then $14.99/mo. Your business, automated by AI.",
+  openGraph: {
+    title: "Real Estate Star — AI-Powered Real Estate Automation",
+    description: "Deploy your website, generate CMAs, and manage leads. 14 days free.",
+    url: "https://platform.real-estate-star.com",
+    type: "website",
+    siteName: "Real Estate Star",
+  },
+  twitter: {
+    card: "summary",
+    title: "Real Estate Star",
+    description: "AI-Powered Real Estate Automation for Agents",
+  },
+  alternates: {
+    canonical: "https://platform.real-estate-star.com",
+  },
 };
 
 export default function RootLayout({
@@ -57,7 +72,7 @@ export default function RootLayout({
           </nav>
           <EqualHousingOpportunity />
           <p className="mt-4">&copy; {new Date().getFullYear()} Real Estate Star. All rights reserved.</p>
-          <p className="mt-1 text-gray-600 text-xs" data-testid="version">v1.0</p>
+          <p className="mt-1 text-gray-500 text-xs" data-testid="version">v1.0</p>
         </footer>
         <CookieConsentBanner />
       </body>

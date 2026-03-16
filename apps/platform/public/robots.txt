@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /onboard
+Disallow: /onboard/*
+
+Sitemap: https://platform.real-estate-star.com/sitemap.xml

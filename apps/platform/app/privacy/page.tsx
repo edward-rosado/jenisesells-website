@@ -13,7 +13,7 @@ export default function PrivacyPage() {
     <LegalPageLayout>
       <h1 className="text-3xl font-bold text-white mb-2">Privacy Policy</h1>
       <p className="text-sm text-gray-400 mb-8">
-        Effective Date: March 11, 2026 | Last Updated: March 11, 2026
+        Effective Date: March 11, 2026 | Last Updated: March 16, 2026
       </p>
 
       <Section title="1. Overview">
@@ -29,7 +29,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title="2. Data We Collect">
-        <h3 className="text-base font-semibold text-gray-200 mt-6 mb-2">
+        <h3 className="text-lg font-medium text-gray-200 mt-6 mb-2">
           2.1 Data You Provide Directly
         </h3>
         <ul>
@@ -51,7 +51,7 @@ export default function PrivacyPage() {
           </li>
         </ul>
 
-        <h3 className="text-base font-semibold text-gray-200 mt-6 mb-2">
+        <h3 className="text-lg font-medium text-gray-200 mt-6 mb-2">
           2.2 Data We Collect Automatically
         </h3>
         <ul>
@@ -70,7 +70,7 @@ export default function PrivacyPage() {
           </li>
         </ul>
 
-        <h3 className="text-base font-semibold text-gray-200 mt-6 mb-2">
+        <h3 className="text-lg font-medium text-gray-200 mt-6 mb-2">
           2.3 Data from Third-Party Sources
         </h3>
         <ul>
@@ -82,7 +82,7 @@ export default function PrivacyPage() {
           <li>
             <strong>Google account data:</strong> If you connect your Google
             account, we receive an OAuth access token and your Google account
-            email address. See Section 4 for full details.
+            email address. See Section 6 for full details.
           </li>
         </ul>
       </Section>
@@ -100,7 +100,47 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section title="4. Google API Data -- Limited Use Disclosure">
+      <Section title="4. SMS and Phone Communications (TCPA)">
+        <p>
+          If you or your leads opt in to SMS/text message features, the
+          recipient explicitly consents to receive automated text messages to
+          the phone number provided. By opting in, the recipient acknowledges:
+        </p>
+        <ul>
+          <li>They are the account owner or authorized user of the phone number</li>
+          <li>They consent to receive recurring automated messages</li>
+          <li>Message and data rates may apply</li>
+          <li>To opt out, reply STOP to any message</li>
+          <li>Consent is not a condition of purchasing any property or service</li>
+        </ul>
+        <p>
+          We comply with the Telephone Consumer Protection Act (47 U.S.C.
+          &sect; 227) and maintain records of all opt-in consents.
+        </p>
+      </Section>
+
+      <Section title="5. Email Communications (CAN-SPAM)">
+        <p>
+          All marketing emails sent through Real Estate Star comply with the
+          CAN-SPAM Act (15 U.S.C. &sect; 7701):
+        </p>
+        <ul>
+          <li>All emails include the agent&apos;s business physical address</li>
+          <li>All emails allow recipients to unsubscribe via a clear link</li>
+          <li>We process unsubscribe requests within 3 business days</li>
+          <li>We do not use deceptive subject lines or headers</li>
+          <li>
+            AI-generated email drafts are subject to the same CAN-SPAM
+            requirements as manually composed emails
+          </li>
+        </ul>
+        <p>
+          Transactional emails (account confirmations, payment receipts) are
+          exempt from marketing opt-out requirements per FTC guidance.
+        </p>
+      </Section>
+
+      <Section title="6. Google API Data -- Limited Use Disclosure">
         <p>
           When you connect your Google account, you grant Real Estate Star
           access to specific Google services. Our use of data obtained through
@@ -148,7 +188,7 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section title="5. Data Sharing">
+      <Section title="7. Data Sharing">
         <p>We share data only in the following circumstances:</p>
         <ul>
           <li>
@@ -173,7 +213,7 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section title="6. Data Retention">
+      <Section title="8. Data Retention">
         <div className="overflow-x-auto mb-4">
           <table className="w-full text-sm text-gray-300 border border-gray-700">
             <thead>
@@ -232,7 +272,7 @@ export default function PrivacyPage() {
         </div>
       </Section>
 
-      <Section title="7. Data Security">
+      <Section title="9. Data Security">
         <p>We implement industry-standard security measures including:</p>
         <ul>
           <li>Encryption of data at rest and in transit (TLS)</li>
@@ -249,7 +289,7 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section title="8. California Privacy Rights (CCPA)">
+      <Section title="10. California Privacy Rights (CCPA)">
         <p>
           If you are a California resident, you have the following rights under
           the California Consumer Privacy Act:
@@ -289,7 +329,29 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section title="9. Children's Privacy">
+      {/* TODO: Make state-specific when multi-state support is added (currently NJ-only) */}
+      <Section title="11. New Jersey Privacy Rights">
+        <p>
+          If you are a New Jersey resident, under the New Jersey Data Privacy
+          Act (N.J.S.A. 56:8-166), you have the right to confirm, access,
+          correct, delete, and obtain a portable copy of your personal data.
+          You also have the right to opt out of the sale of personal data,
+          targeted advertising, and profiling. We honor browser-based opt-out
+          signals (Global Privacy Control).
+        </p>
+        <p>
+          To exercise your rights, contact us at{" "}
+          <a
+            href="mailto:privacy@real-estate-star.com"
+            className="text-emerald-400 underline hover:text-emerald-300"
+          >
+            privacy@real-estate-star.com
+          </a>
+          . We will respond within 45 days.
+        </p>
+      </Section>
+
+      <Section title="12. Children's Privacy">
         <p>
           The Platform is intended solely for licensed real estate professionals
           (adults 18+). We do not knowingly collect personal information from
@@ -298,7 +360,7 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section title="10. Third-Party Links and Services">
+      <Section title="13. Third-Party Links and Services">
         <p>
           Your deployed agent website may contain links to third-party sites
           (MLS, brokerage sites, etc.). This Privacy Policy does not apply to
@@ -307,7 +369,7 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section title="11. Changes to This Policy">
+      <Section title="14. Changes to This Policy">
         <p>
           We may update this Privacy Policy from time to time. We will notify
           you of material changes via email or in-app notice at least 14 days
@@ -316,7 +378,7 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section title="12. Contact">
+      <Section title="15. Contact">
         <p>For privacy questions, data requests, or concerns:</p>
         <p>
           <strong>Real Estate Star</strong>
@@ -351,10 +413,10 @@ function Section({
 }) {
   return (
     <section className="mt-10">
-      <h2 className="text-xl font-semibold text-white mb-3 border-b border-gray-700 pb-2">
+      <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">
         {title}
       </h2>
-      <div className="text-gray-300 leading-relaxed space-y-4 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_strong]:text-white [&_strong]:font-semibold">
+      <div className="text-base text-gray-300 leading-relaxed space-y-4 [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:space-y-2 [&_strong]:text-white [&_strong]:font-semibold">
         {children}
       </div>
     </section>
