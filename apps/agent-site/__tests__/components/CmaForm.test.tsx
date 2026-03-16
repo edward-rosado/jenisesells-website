@@ -62,7 +62,7 @@ function fillForm() {
   fireEvent.change(screen.getByLabelText(/^phone/i), { target: { value: "555-111-2222" } });
   fireEvent.change(screen.getByLabelText(/property address/i), { target: { value: "1 Test St" } });
   fireEvent.change(screen.getByLabelText(/^city/i), { target: { value: "Hoboken" } });
-  fireEvent.change(screen.getByLabelText(/^state/i), { target: { value: "NJ" } });
+  // State is readOnly and pre-filled from defaultState — don't override it
   fireEvent.change(screen.getByLabelText(/^zip/i), { target: { value: "07030" } });
   fireEvent.change(screen.getByLabelText(/looking to sell/), { target: { value: "asap" } });
 }
@@ -404,7 +404,7 @@ describe("CmaForm — API mode submission", () => {
       phone: "555-111-2222",
       address: "1 Test St",
       city: "Hoboken",
-      state: "NJ",
+      state: "TX",
       zip: "07030",
       timeline: "asap",
       notes: undefined,

@@ -57,10 +57,10 @@
         "title": "Recently Sold by Jenise",
         "subtitle": "Real results from the Zillow profile \u2014 verified sales.",
         "items": [
-          { "address": "308 Myrtle St", "city": "Cliffwood", "state": "NJ", "price": "$660,000", "image_url": "https://photos.zillowstatic.com/fp/1f5770d55c236ab071f18f2d6935d159-cc_ft_960.jpg" },
-          { "address": "16 Hershey Rd", "city": "East Brunswick", "state": "NJ", "price": "$650,000", "image_url": "https://photos.zillowstatic.com/fp/86a8c6c1270be1d7e36ff644ba1c7808-p_d.jpg" },
-          { "address": "18 Charlotte St", "city": "Sayreville", "state": "NJ", "price": "$640,000", "image_url": "https://photos.zillowstatic.com/fp/4b05be85f81bda91072c22ecb163c834-p_d.jpg" },
-          { "address": "195 College Dr", "city": "Edison", "state": "NJ", "price": "$260,000", "image_url": "https://photos.zillowstatic.com/fp/d94d9142ed97da31586a8d9efd88517d-p_d.jpg" }
+          { "address": "308 Myrtle St", "city": "Cliffwood", "state": "NJ", "price": "$660,000", "image_url": "/agents/jenise-buckalew/sold/308-myrtle-st.jpg" },
+          { "address": "16 Hershey Rd", "city": "East Brunswick", "state": "NJ", "price": "$650,000", "image_url": "/agents/jenise-buckalew/sold/16-hershey-rd.jpg" },
+          { "address": "18 Charlotte St", "city": "Sayreville", "state": "NJ", "price": "$640,000", "image_url": "/agents/jenise-buckalew/sold/18-charlotte-st.jpg" },
+          { "address": "195 College Dr", "city": "Edison", "state": "NJ", "price": "$260,000", "image_url": "/agents/jenise-buckalew/sold/195-college-dr.jpg" }
         ]
       }
     },

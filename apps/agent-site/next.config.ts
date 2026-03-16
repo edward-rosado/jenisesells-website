@@ -8,13 +8,6 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@real-estate-star/ui", "@real-estate-star/shared-types"],
   images: {
     unoptimized: true,
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "photos.zillowstatic.com",
-        pathname: "/**",
-      },
-    ],
   },
   async headers() {
     return [

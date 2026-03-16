@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { LeadForm } from "./LeadForm";
 import type { LeadFormData } from "@real-estate-star/shared-types";
 
+let capturedOnPlaceSelected: ((place: { address: string; city: string; state: string; zip: string }) => void) | null = null;
+
 vi.mock("./useGoogleMapsAutocomplete", () => ({
-  useGoogleMapsAutocomplete: () => ({ loaded: true }),
+  useGoogleMapsAutocomplete: (opts: { onPlaceSelected: (place: { address: string; city: string; state: string; zip: string }) => void }) => {
+    capturedOnPlaceSelected = opts.onPlaceSelected;
+    return { loaded: true };
+  },
 }));
 
 const defaultProps = {
@@ -555,5 +560,129 @@ describe("LeadForm", () => {
     const alertRegion = screen.getByRole("alert");
     expect(alertRegion).toHaveAttribute("aria-live", "polite");
     expect(alertRegion).toHaveTextContent(/please select at least one/i);
+  });
+
+  // Test 30
+  it("shows validation error when autocomplete selects an out-of-state address", () => {
+    render(<LeadForm {...defaultProps} defaultState="NJ" initialMode={["selling"]} />);
+
+    act(() => {
+      capturedOnPlaceSelected!({
+        address: "100 Broadway",
+        city: "New York",
+        state: "NY",
+        zip: "10001",
+      });
+    });
+
+    expect(screen.getByText(/only serve NJ/i)).toBeInTheDocument();
+    expect(screen.getByText(/address you selected is in NY/i)).toBeInTheDocument();
+    // Address fields should be cleared
+    expect(screen.getByLabelText(/property address/i)).toHaveValue("");
+    expect(screen.getByLabelText(/city/i)).toHaveValue("");
+    expect(screen.getByLabelText(/zip/i)).toHaveValue("");
+    // State should reset to defaultState
+    expect(screen.getByLabelText(/state/i)).toHaveValue("NJ");
+  });
+
+  // Test 31
+  it("accepts autocomplete selection when state matches defaultState", () => {
+    render(<LeadForm {...defaultProps} defaultState="NJ" initialMode={["selling"]} />);
+
+    act(() => {
+      capturedOnPlaceSelected!({
+        address: "123 Main St",
+        city: "Newark",
+        state: "NJ",
+        zip: "07102",
+      });
+    });
+
+    expect(screen.queryByText(/only serve/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/property address/i)).toHaveValue("123 Main St");
+    expect(screen.getByLabelText(/city/i)).toHaveValue("Newark");
+    expect(screen.getByLabelText(/state/i)).toHaveValue("NJ");
+    expect(screen.getByLabelText(/zip/i)).toHaveValue("07102");
+  });
+
+  // Test 32
+  it("blocks submission when seller state does not match defaultState", async () => {
+    const onSubmit = vi.fn();
+    render(<LeadForm {...defaultProps} defaultState="NJ" onSubmit={onSubmit} initialMode={["selling"]} />);
+
+    fillContactFields();
+    fillSellerFields();
+    selectTimeline();
+
+    // Simulate someone altering the state field via DOM manipulation
+    // (the field is readOnly, but can be changed via DevTools)
+    // We use the captured callback to set an out-of-state value, then manually
+    // fix the address so the form looks valid, but state is wrong
+    act(() => {
+      capturedOnPlaceSelected!({
+        address: "100 Broadway",
+        city: "New York",
+        state: "PA",
+        zip: "19101",
+      });
+    });
+    // Error from autocomplete fires, clear it and re-fill fields to simulate
+    // a user who dismissed the autocomplete error and edited DOM
+    // Instead, let's directly set the state via a fresh autocomplete pick
+    // that bypasses the check — simulate the tampered scenario:
+    // The readOnly field already has "PA" from the rejected pick being cleared,
+    // so let's use a different approach: accept a valid address first, then
+    // call the callback with wrong state to leave it in a bad state
+
+    // Simpler: just accept the NJ address, then use act to simulate
+    // the state being tampered after autocomplete
+    act(() => {
+      capturedOnPlaceSelected!({
+        address: "123 Main St",
+        city: "Newark",
+        state: "NJ",
+        zip: "07102",
+      });
+    });
+
+    // Now simulate DOM tampering by firing change on the readOnly state field
+    // Since it's readOnly, we force it via the updateField pathway
+    const stateInput = screen.getByLabelText(/state/i);
+    // Override the readOnly by directly dispatching a change event
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(stateInput, 'PA');
+    fireEvent.change(stateInput, { target: { value: "PA" } });
+
+    // Submit the form
+    fireEvent.submit(screen.getByRole("button").closest("form")!);
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(/only serve NJ/i)).toBeInTheDocument();
+    expect(screen.getByText(/address you entered is in PA/i)).toBeInTheDocument();
+  });
+
+  // Test 33
+  it("clears out-of-state error when a valid address is selected", () => {
+    render(<LeadForm {...defaultProps} defaultState="NJ" initialMode={["selling"]} />);
+
+    act(() => {
+      capturedOnPlaceSelected!({
+        address: "100 Broadway",
+        city: "New York",
+        state: "NY",
+        zip: "10001",
+      });
+    });
+    expect(screen.getByText(/only serve NJ/i)).toBeInTheDocument();
+
+    act(() => {
+      capturedOnPlaceSelected!({
+        address: "456 Park Ave",
+        city: "Hoboken",
+        state: "NJ",
+        zip: "07030",
+      });
+    });
+    expect(screen.queryByText(/only serve/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/property address/i)).toHaveValue("456 Park Ave");
   });
 });

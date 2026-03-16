@@ -104,15 +104,29 @@ export function LeadForm({
     /* v8 ignore start -- covered by useGoogleMapsAutocomplete.test.ts integration */
     onPlaceSelected: useCallback(
       (place: { address: string; city: string; state: string; zip: string }) => {
+        if (place.state && place.state !== defaultState) {
+          setValidationError(
+            `Sorry, we only serve ${defaultState}. The address you selected is in ${place.state}.`,
+          );
+          setFields((prev) => ({
+            ...prev,
+            address: "",
+            city: "",
+            sellerState: defaultState,
+            zip: "",
+          }));
+          return;
+        }
+        setValidationError(null);
         setFields((prev) => ({
           ...prev,
           address: place.address,
           city: place.city,
-          sellerState: place.state,
+          sellerState: place.state || defaultState,
           zip: place.zip,
         }));
       },
-      [],
+      [defaultState],
     ),
     /* v8 ignore stop */
     enabled: isSelling,
@@ -137,6 +151,13 @@ export function LeadForm({
 
     if (!fields.timeline) {
       setValidationError("Please select a timeline.");
+      return;
+    }
+
+    if (isSelling && fields.sellerState && fields.sellerState !== defaultState) {
+      setValidationError(
+        `Sorry, we only serve ${defaultState}. The address you entered is in ${fields.sellerState}.`,
+      );
       return;
     }
 

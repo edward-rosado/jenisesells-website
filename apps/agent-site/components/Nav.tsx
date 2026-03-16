@@ -131,14 +131,6 @@ export function Nav({ agent }: NavProps) {
               {identity.tagline?.toUpperCase() || identity.name.toUpperCase()}
             </span>
           )}
-          {identity.brokerage && (
-            <span
-              className="nav-brokerage"
-              style={{ color: "rgba(255,255,255,0.85)", fontSize: "11px", fontWeight: 500 }}
-            >
-              {identity.brokerage}
-            </span>
-          )}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>

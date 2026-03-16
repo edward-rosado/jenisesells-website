@@ -211,13 +211,8 @@ describe("Nav", () => {
     expect(drawer).toHaveAttribute("aria-label", "Navigation menu");
   });
 
-  it("renders brokerage name when present", () => {
+  it("does not render brokerage name in nav (logo is sufficient)", () => {
     render(<Nav agent={AGENT} />);
-    expect(screen.getByText("Best Homes Realty")).toBeInTheDocument();
-  });
-
-  it("does not render brokerage when absent", () => {
-    render(<Nav agent={AGENT_MINIMAL} />);
     expect(screen.queryByText("Best Homes Realty")).not.toBeInTheDocument();
   });
 
