@@ -214,6 +214,38 @@ All templates use the same CSS variable system (`--color-primary`, `--color-seco
 
 All styling remains inline (consistent with existing codebase — no CSS modules or Tailwind).
 
+### Responsive Design
+
+All templates must support the same 3-tier responsive layout as Emerald Classic:
+- **Desktop (>1024px):** Full multi-column layouts
+- **Tablet (835–1024px):** Reduced columns, tighter spacing
+- **Mobile (≤834px):** Single column, stacked layouts
+
+Responsiveness is achieved via CSS flexbox/grid with `flexWrap: "wrap"` and `gridTemplateColumns: "repeat(auto-fit, minmax(Xpx, 1fr))"`. No media queries — the existing codebase uses inline styles with natural CSS breakpoints.
+
+### ADA Accessibility
+
+All templates must maintain the same accessibility level as Emerald Classic:
+- Semantic HTML: `<section>`, `<article>`, `<nav>`, `<h2>`, `<dl>`, `<dt>`, `<dd>`
+- `aria-label` on landmark and interactive elements
+- `alt` text on all images
+- `role="img"` with `aria-label` on star ratings
+- Proper heading hierarchy (h1 → h2 → h3)
+- Visible focus states on all interactive elements
+- Color contrast ratios meeting WCAG 2.1 AA (4.5:1 for text, 3:1 for large text)
+
+### Legal Compliance
+
+All templates must maintain the same legal compliance as Emerald Classic. These are enforced via shared components that are identical across all templates:
+
+- **Footer (shared):** Agent license number, brokerage affiliation, office address, Equal Housing Notice (via `EqualHousingNotice` component), general disclaimer ("information deemed reliable but not guaranteed"), copyright notice, links to Privacy Policy / Terms of Use / Accessibility pages
+- **CmaForm (shared):** Lead capture form with required disclosures
+- **Testimonials disclaimer:** Every Testimonials variant MUST include the FTC-required disclaimer: "Real reviews from real clients. Unedited excerpts from verified reviews on Zillow. No compensation was provided. Individual results may vary."
+- **Stats disclaimer:** Every Stats variant MUST support the `sourceDisclaimer` prop and render it when provided (e.g., "Based on data from Zillow. Individual results may vary.")
+- **Sold Homes:** SOLD badge/label on all sold property listings
+
+Since Footer, CmaForm, and Nav are shared (not variant), legal compliance for those areas is automatic. The variant-specific compliance (Testimonials FTC disclaimer, Stats source disclaimer) must be present in every new variant.
+
 ## Data Flow
 
 No changes to the data flow:
