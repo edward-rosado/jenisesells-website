@@ -87,7 +87,7 @@ export function SoldCards({ items, title, subtitle }: SoldHomesProps) {
                   fontSize: "14px",
                   color: "#8B7355",
                 }}>
-                  {item.address}, {item.city}, {item.state} {item.zip}
+                  {item.address}, {item.city}, {item.state}
                 </div>
               </div>
             </article>

@@ -58,7 +58,7 @@ describe("TestimonialsBubble", () => {
 
   it("uses warm background", () => {
     const { container } = render(<TestimonialsBubble items={ITEMS} />);
-    const section = container.querySelector("#testimonials");
+    const section = container.querySelector("#testimonials") as HTMLElement;
     expect(section?.style.background).toBe("rgb(255, 248, 240)");
   });
 
