@@ -43,7 +43,7 @@ export function AboutCard({ agent, data }: AboutProps) {
           color: "#4A3728",
           marginBottom: "16px",
         }}>
-          About {agent.identity.name}
+          {data.title || `About ${agent.identity.name}`}
         </h2>
         {Array.isArray(data.bio) ? (
           data.bio.map((paragraph, i) => (

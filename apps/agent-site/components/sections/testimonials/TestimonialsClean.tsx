@@ -1,5 +1,5 @@
 // apps/agent-site/components/sections/testimonials/TestimonialsClean.tsx
-import type { TestimonialsProps } from "@/components/sections/types";
+import { clampRating, FTC_DISCLAIMER, type TestimonialsProps } from "@/components/sections/types";
 
 export function TestimonialsClean({ items, title }: TestimonialsProps) {
   return (
@@ -27,8 +27,7 @@ export function TestimonialsClean({ items, title }: TestimonialsProps) {
           fontSize: "12px",
           marginBottom: "50px",
         }}>
-          Real reviews from real clients. Unedited excerpts from verified reviews on Zillow.
-          No compensation was provided. Individual results may vary.
+          {FTC_DISCLAIMER}
         </p>
         <div style={{
           display: "grid",
@@ -47,7 +46,7 @@ export function TestimonialsClean({ items, title }: TestimonialsProps) {
             >
               <span
                 role="img"
-                aria-label={`${item.rating} out of 5 stars`}
+                aria-label={`${clampRating(item.rating)} out of 5 stars`}
                 style={{
                   display: "block",
                   color: "var(--color-accent)",
@@ -55,7 +54,7 @@ export function TestimonialsClean({ items, title }: TestimonialsProps) {
                   marginBottom: "12px",
                 }}
               >
-                {"★".repeat(item.rating)}{"☆".repeat(5 - item.rating)}
+                {"★".repeat(clampRating(item.rating))}{"☆".repeat(5 - clampRating(item.rating))}
               </span>
               <p style={{
                 color: "#555",

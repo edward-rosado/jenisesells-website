@@ -1,4 +1,4 @@
-import type { TestimonialsProps } from "@/components/sections/types";
+import { clampRating, FTC_DISCLAIMER, type TestimonialsProps } from "@/components/sections/types";
 
 export function TestimonialsGrid({ items, title }: TestimonialsProps) {
   return (
@@ -30,8 +30,7 @@ export function TestimonialsGrid({ items, title }: TestimonialsProps) {
             marginBottom: "45px",
           }}
         >
-          Real reviews from real clients. Unedited excerpts from verified reviews on Zillow.
-          No compensation was provided. Individual results may vary.
+          {FTC_DISCLAIMER}
         </p>
         <div
           style={{
@@ -52,7 +51,7 @@ export function TestimonialsGrid({ items, title }: TestimonialsProps) {
             >
               <span
                 role="img"
-                aria-label={`${item.rating} out of 5 stars`}
+                aria-label={`${clampRating(item.rating)} out of 5 stars`}
                 style={{
                   display: "block",
                   color: "#C8A951",
@@ -60,7 +59,7 @@ export function TestimonialsGrid({ items, title }: TestimonialsProps) {
                   marginBottom: "10px",
                 }}
               >
-                {"★".repeat(item.rating)}{"☆".repeat(5 - item.rating)}
+                {"★".repeat(clampRating(item.rating))}{"☆".repeat(5 - clampRating(item.rating))}
               </span>
               <p
                 style={{

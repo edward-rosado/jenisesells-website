@@ -48,10 +48,10 @@ describe("HeroGradient", () => {
     expect(screen.getByRole("link")).toHaveAttribute("href", "https://example.com");
   });
 
-  it("allows http links", () => {
+  it("blocks http links (downgrade protection)", () => {
     const data = { ...BASE_DATA, cta_link: "http://example.com" };
     render(<HeroGradient data={data} />);
-    expect(screen.getByRole("link")).toHaveAttribute("href", "http://example.com");
+    expect(screen.getByRole("link")).toHaveAttribute("href", "#");
   });
 
   it("sanitizes javascript: links to #", () => {

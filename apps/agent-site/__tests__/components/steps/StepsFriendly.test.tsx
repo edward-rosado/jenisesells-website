@@ -58,4 +58,12 @@ describe("StepsFriendly", () => {
     render(<StepsFriendly steps={STEPS} subtitle="Simple and easy" />);
     expect(screen.getByText("Simple and easy")).toBeInTheDocument();
   });
+
+  it("uses semantic ordered list for steps", () => {
+    const { container } = render(<StepsFriendly steps={STEPS} />);
+    const ol = container.querySelector("ol");
+    expect(ol).toBeInTheDocument();
+    const items = ol?.querySelectorAll("li");
+    expect(items?.length).toBe(3);
+  });
 });

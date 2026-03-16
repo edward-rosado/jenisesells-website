@@ -1,6 +1,4 @@
-import type { AgentConfig, AgentContent } from "@/lib/types";
 import { Nav } from "@/components/Nav";
-import { Analytics } from "@/components/Analytics";
 import {
   HeroCentered,
   StatsInline,
@@ -12,17 +10,12 @@ import {
   AboutCard,
   Footer,
 } from "@/components/sections";
-
-interface TemplateProps {
-  agent: AgentConfig;
-  content: AgentContent;
-}
+import type { TemplateProps } from "./types";
 
 export function WarmCommunity({ agent, content }: TemplateProps) {
   const s = content.sections;
   return (
     <>
-      <Analytics tracking={agent.integrations?.tracking} />
       <Nav agent={agent} />
       <div style={{ paddingTop: "0" }}>
       {s.hero.enabled && (

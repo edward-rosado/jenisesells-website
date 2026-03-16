@@ -61,7 +61,7 @@ describe("SoldCards", () => {
     render(<SoldCards items={ITEMS} />);
     const images = screen.getAllByRole("img");
     expect(images.length).toBe(2);
-    expect(images[0]).toHaveAttribute("alt", "123 Main St");
+    expect(images[0]).toHaveAttribute("alt", "123 Main St, Springfield");
   });
 
   it("uses rounded cards with soft shadows", () => {

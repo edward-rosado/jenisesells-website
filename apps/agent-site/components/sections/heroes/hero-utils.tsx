@@ -4,7 +4,7 @@ export function safeHref(href: string): string {
   if (href.startsWith("#") || href.startsWith("/")) return href;
   try {
     const url = new URL(href);
-    if (url.protocol === "https:" || url.protocol === "http:") return href;
+    if (url.protocol === "https:") return href;
   } catch { /* invalid URL */ }
   return "#";
 }

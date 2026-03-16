@@ -28,12 +28,11 @@ describe("AboutCard", () => {
     expect(container.querySelector("#about")).toBeInTheDocument();
   });
 
-  it("renders agent photo when available", () => {
-    render(<AboutCard agent={AGENT} data={ABOUT_DATA} />);
-    const img = screen.queryByRole("img");
-    if (AGENT.identity.headshot_url) {
-      expect(img).toBeInTheDocument();
-    }
+  it("renders agent photo when headshot_url is set", () => {
+    const agentWithPhoto = { ...AGENT, identity: { ...AGENT.identity, headshot_url: "/photos/agent.jpg" } };
+    render(<AboutCard agent={agentWithPhoto} data={ABOUT_DATA} />);
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("alt", "Photo of Jane Smith");
   });
 
   it("renders credentials as badges", () => {
@@ -61,5 +60,50 @@ describe("AboutCard", () => {
     if (AGENT.identity.email) {
       expect(screen.getByText(AGENT.identity.email)).toBeInTheDocument();
     }
+  });
+
+  it("handles array bio with multiple paragraphs", () => {
+    const arrayBio: AboutData = {
+      bio: ["First paragraph.", "Second paragraph."],
+      credentials: [],
+    };
+    render(<AboutCard agent={AGENT} data={arrayBio} />);
+    expect(screen.getByText("First paragraph.")).toBeInTheDocument();
+    expect(screen.getByText("Second paragraph.")).toBeInTheDocument();
+  });
+
+  it("does not render photo when headshot_url is not set", () => {
+    const agentNoPhoto = { ...AGENT, identity: { ...AGENT.identity, headshot_url: undefined } };
+    render(<AboutCard agent={agentNoPhoto} data={ABOUT_DATA} />);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("does not render credentials section when empty", () => {
+    const noCreds: AboutData = { bio: "Bio text", credentials: [] };
+    render(<AboutCard agent={AGENT} data={noCreds} />);
+    expect(screen.queryByText("ABR")).not.toBeInTheDocument();
+  });
+
+  it("does not render phone when not set", () => {
+    const agentNoPhone = { ...AGENT, identity: { ...AGENT.identity, phone: undefined } };
+    render(<AboutCard agent={agentNoPhone} data={ABOUT_DATA} />);
+    expect(screen.queryByText("555-123-4567")).not.toBeInTheDocument();
+  });
+
+  it("does not render email when not set", () => {
+    const agentNoEmail = { ...AGENT, identity: { ...AGENT.identity, email: undefined } };
+    render(<AboutCard agent={agentNoEmail} data={ABOUT_DATA} />);
+    expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
+  });
+
+  it("uses custom title from data.title when provided", () => {
+    const dataWithTitle: AboutData = { ...ABOUT_DATA, title: "Meet Your Agent" };
+    render(<AboutCard agent={AGENT} data={dataWithTitle} />);
+    expect(screen.getByRole("heading", { level: 2, name: "Meet Your Agent" })).toBeInTheDocument();
+  });
+
+  it("falls back to agent name when data.title is not provided", () => {
+    render(<AboutCard agent={AGENT} data={ABOUT_DATA} />);
+    expect(screen.getByRole("heading", { level: 2, name: /About Jane Smith/ })).toBeInTheDocument();
   });
 });

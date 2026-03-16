@@ -19,8 +19,8 @@ describe("safeHref", () => {
     expect(safeHref("https://example.com")).toBe("https://example.com");
   });
 
-  it("allows http URLs", () => {
-    expect(safeHref("http://example.com")).toBe("http://example.com");
+  it("blocks http URLs (downgrade protection)", () => {
+    expect(safeHref("http://example.com")).toBe("#");
   });
 
   it("sanitizes javascript: links to #", () => {

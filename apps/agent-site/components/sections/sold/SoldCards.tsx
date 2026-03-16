@@ -37,7 +37,7 @@ export function SoldCards({ items, title, subtitle }: SoldHomesProps) {
         }}>
           {items.map((item) => (
             <article
-              key={item.address}
+              key={`${item.address}-${item.city}`}
               style={{
                 background: "#FFF8F0",
                 borderRadius: "16px",
@@ -55,9 +55,10 @@ export function SoldCards({ items, title, subtitle }: SoldHomesProps) {
                 }}>
                   <Image
                     src={item.image_url}
-                    alt={item.address}
+                    alt={`${item.address}, ${item.city}`}
                     fill
                     style={{ objectFit: "cover" }}
+                    sizes="(max-width: 768px) 100vw, 280px"
                   />
                 </div>
               )}

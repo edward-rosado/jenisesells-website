@@ -59,4 +59,27 @@ describe("AboutMinimal", () => {
     const section = container.querySelector("#about");
     expect(section?.style.background).not.toContain("gradient");
   });
+
+  it("does not render photo when headshot_url is not set", () => {
+    render(<AboutMinimal agent={AGENT} data={ABOUT_DATA} />);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("renders photo when headshot_url is set", () => {
+    const agentWithPhoto = { ...AGENT, identity: { ...AGENT.identity, headshot_url: "/photos/agent.jpg" } };
+    render(<AboutMinimal agent={agentWithPhoto} data={ABOUT_DATA} />);
+    expect(screen.getByRole("img")).toBeInTheDocument();
+  });
+
+  it("does not render credentials when empty", () => {
+    const noCreds: AboutData = { bio: "Bio text", credentials: [] };
+    render(<AboutMinimal agent={AGENT} data={noCreds} />);
+    expect(screen.queryByText(/Licensed REALTOR/)).not.toBeInTheDocument();
+  });
+
+  it("uses custom title from data.title", () => {
+    const dataWithTitle: AboutData = { ...ABOUT_DATA, title: "Meet Your Agent" };
+    render(<AboutMinimal agent={AGENT} data={dataWithTitle} />);
+    expect(screen.getByRole("heading", { level: 2, name: "Meet Your Agent" })).toBeInTheDocument();
+  });
 });

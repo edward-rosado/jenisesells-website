@@ -29,14 +29,17 @@ export function StepsFriendly({ steps, title, subtitle }: StepsProps) {
             {subtitle}
           </p>
         )}
-        <div style={{
+        <ol style={{
           display: "flex",
           flexDirection: "column",
           gap: "20px",
+          listStyle: "none",
+          padding: 0,
+          margin: 0,
         }}>
           {steps.map((step) => (
-            <div
-              key={step.title}
+            <li
+              key={step.number}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -80,9 +83,9 @@ export function StepsFriendly({ steps, title, subtitle }: StepsProps) {
                   {step.description}
                 </p>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
     </section>
   );

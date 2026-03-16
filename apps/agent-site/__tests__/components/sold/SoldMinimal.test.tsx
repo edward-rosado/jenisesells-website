@@ -42,4 +42,21 @@ describe("SoldMinimal", () => {
     render(<SoldMinimal items={ITEMS} subtitle="Proven track record" />);
     expect(screen.getByText("Proven track record")).toBeInTheDocument();
   });
+
+  it("renders property images when image_url is provided", () => {
+    const itemsWithImages = [
+      { ...ITEMS[0], image_url: "/photos/house1.jpg" },
+      { ...ITEMS[1] },
+    ];
+    render(<SoldMinimal items={itemsWithImages} />);
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("alt", "123 Main St, Hoboken");
+  });
+
+  it("does not render subtitle when omitted", () => {
+    const { container } = render(<SoldMinimal items={ITEMS} />);
+    const section = container.querySelector("#sold");
+    const paragraphs = section?.querySelectorAll("p");
+    expect(paragraphs?.length ?? 0).toBe(0);
+  });
 });

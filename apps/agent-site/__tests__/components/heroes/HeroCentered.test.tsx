@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { HeroCentered } from "@/components/sections/heroes/HeroCentered";
 import type { HeroData } from "@/lib/types";
 
@@ -79,5 +79,29 @@ describe("HeroCentered", () => {
     const span = heading.querySelector("span");
     expect(span).toBeInTheDocument();
     expect(span!.textContent).toBe("Home");
+  });
+
+  it("changes style on CTA hover (mouseEnter/mouseLeave)", () => {
+    render(<HeroCentered data={BASE_DATA} />);
+    const link = screen.getByRole("link");
+    fireEvent.mouseEnter(link);
+    expect(link.style.transform).toBe("translateY(-2px)");
+    fireEvent.mouseLeave(link);
+    expect(link.style.transform).toBe("none");
+  });
+
+  it("changes style on CTA focus/blur", () => {
+    render(<HeroCentered data={BASE_DATA} />);
+    const link = screen.getByRole("link");
+    fireEvent.focus(link);
+    expect(link.style.transform).toBe("translateY(-2px)");
+    fireEvent.blur(link);
+    expect(link.style.transform).toBe("none");
+  });
+
+  it("falls back to generic alt text when agentName is not provided", () => {
+    render(<HeroCentered data={BASE_DATA} agentPhotoUrl="/photos/agent.jpg" />);
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("alt", "Agent photo");
   });
 });

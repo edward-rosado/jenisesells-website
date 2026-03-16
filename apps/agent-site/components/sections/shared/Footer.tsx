@@ -21,7 +21,7 @@ export function Footer({ agent, agentId }: FooterProps) {
   return (
     <footer
       style={{
-        background: "#1B5E20",
+        background: "var(--color-primary)",
         color: "white",
         padding: "40px",
         textAlign: "center",
@@ -31,7 +31,7 @@ export function Footer({ agent, agentId }: FooterProps) {
         style={{
           fontSize: "22px",
           fontWeight: 700,
-          color: "#C8A951",
+          color: "var(--color-accent)",
           marginBottom: "5px",
         }}
       >

@@ -188,7 +188,7 @@ export function CmaForm({
       id="cma-form"
       aria-label="Home Value Request Form"
       style={{
-        background: "linear-gradient(135deg, #E8F5E9, #C8E6C9)",
+        background: "#f7f7f7",
         padding: "70px 20px",
       }}
     >
@@ -202,7 +202,7 @@ export function CmaForm({
         <h2
           style={{
             fontSize: "32px",
-            color: "#1B5E20",
+            color: "var(--color-primary)",
             marginBottom: "10px",
           }}
         >
@@ -210,7 +210,7 @@ export function CmaForm({
         </h2>
         <p
           style={{
-            color: "#C8A951",
+            color: "var(--color-accent)",
             fontSize: "20px",
             fontWeight: 700,
             marginBottom: "15px",

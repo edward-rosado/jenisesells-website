@@ -47,3 +47,10 @@ export interface AboutProps {
   agent: AgentConfig;
   data: AboutData;
 }
+
+export function clampRating(rating: number): number {
+  return Math.min(5, Math.max(0, Math.floor(rating || 0)));
+}
+
+export const FTC_DISCLAIMER =
+  "Real reviews from real clients. Unedited excerpts from verified reviews on Zillow. No compensation was provided. Individual results may vary.";
