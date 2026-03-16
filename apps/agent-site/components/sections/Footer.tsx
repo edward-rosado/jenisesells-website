@@ -1,7 +1,9 @@
 import type { AgentConfig } from "@/lib/types";
+import { EqualHousingNotice } from "@real-estate-star/ui";
 
 interface FooterProps {
   agent: AgentConfig;
+  agentId?: string;
 }
 
 function formatServiceAreas(areas: string[], state: string): string {
@@ -13,8 +15,9 @@ function formatServiceAreas(areas: string[], state: string): string {
   return `Serving ${names.join(", ")} & ${last} Counties, ${state}`;
 }
 
-export function Footer({ agent }: FooterProps) {
+export function Footer({ agent, agentId }: FooterProps) {
   const { identity, location } = agent;
+  const qs = agentId ? `?agentId=${encodeURIComponent(agentId)}` : "";
   return (
     <footer
       style={{
@@ -36,7 +39,7 @@ export function Footer({ agent }: FooterProps) {
       </p>
       <p
         style={{
-          fontSize: "20px",
+          fontSize: "24px",
           fontWeight: 700,
           color: "white",
           marginBottom: "3px",
@@ -88,31 +91,8 @@ export function Footer({ agent }: FooterProps) {
           {formatServiceAreas(location.service_areas, location.state)}
         </p>
       )}
-      <div
-        style={{
-          marginTop: "20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "8px",
-          fontSize: "11px",
-          color: "rgba(255,255,255,0.7)",
-        }}
-      >
-        <svg
-          aria-label="Equal Housing Opportunity logo"
-          role="img"
-          width="20"
-          height="20"
-          viewBox="0 0 64 64"
-          fill="currentColor"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M32 4L2 30h10v28h40V30h10L32 4zm-12 48V28h24v24H20z" />
-          <rect x="24" y="32" width="16" height="4" />
-          <rect x="24" y="40" width="16" height="4" />
-        </svg>
-        <span>Equal Housing Opportunity</span>
+      <div style={{ marginTop: "20px" }}>
+        <EqualHousingNotice agentState={location.state} />
       </div>
       <p
         style={{
@@ -137,9 +117,9 @@ export function Footer({ agent }: FooterProps) {
           color: "rgba(255,255,255,0.7)",
         }}
       >
-        <a href="/privacy" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Privacy Policy</a>
-        <a href="/terms" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Terms of Use</a>
-        <a href="/accessibility" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Accessibility</a>
+        <a href={`/privacy${qs}`} style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Privacy Policy</a>
+        <a href={`/terms${qs}`} style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Terms of Use</a>
+        <a href={`/accessibility${qs}`} style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Accessibility</a>
       </nav>
       <p
         style={{

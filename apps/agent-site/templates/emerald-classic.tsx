@@ -48,7 +48,6 @@ export function EmeraldClassic({ agent, content }: TemplateProps) {
         <Testimonials
           items={s.testimonials.data.items}
           title={s.testimonials.data.title}
-          subtitle={s.testimonials.data.subtitle}
         />
       )}
       {s.cma_form.enabled && (
@@ -64,7 +63,7 @@ export function EmeraldClassic({ agent, content }: TemplateProps) {
         />
       )}
       {s.about.enabled && <About agent={agent} data={s.about.data} />}
-      <Footer agent={agent} />
+      <Footer agent={agent} agentId={agent.id} />
       </div>
     </>
   );

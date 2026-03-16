@@ -14,7 +14,7 @@ vi.mock("@/lib/config", () => ({
   loadAgentConfig: (...args: unknown[]) => mockLoadAgentConfig(...args),
   loadLegalContent: (...args: unknown[]) => mockLoadLegalContent(...args),
 }));
-vi.mock("next/navigation", () => ({ notFound: () => mockNotFound() }));
+vi.mock("next/navigation", () => ({ notFound: () => mockNotFound(), usePathname: () => "/terms" }));
 vi.mock("@sentry/nextjs", () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }));
 
 import TermsPage, { generateMetadata } from "@/app/terms/page";
@@ -85,23 +85,23 @@ describe("TermsPage", () => {
     expect(screen.getByRole("heading", { name: /Fair Housing Commitment/i })).toBeInTheDocument();
   });
 
-  it("includes NJ Fair Housing Act reference", async () => {
+  it("includes NJ Fair Housing section for NJ agents", async () => {
     const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
     render(page);
     expect(screen.getByRole("heading", { name: /New Jersey Fair Housing/i })).toBeInTheDocument();
   });
 
-  it("includes NJ LAD protected classes", async () => {
+  it("includes NJ LAD protected classes for NJ agents", async () => {
     const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
     render(page);
-    const content = screen.getByText(/gender identity or expression/);
-    expect(content).toBeInTheDocument();
+    const matches = screen.getAllByText(/gender identity or expression/);
+    expect(matches.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("includes licensing information section", async () => {
+  it("includes NJ Real Estate Commission section for NJ agents", async () => {
     const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
     render(page);
-    expect(screen.getByRole("heading", { name: /Licensing Information/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /NJ Real Estate Commission/i })).toBeInTheDocument();
   });
 
   it("uses full state name — New Jersey not NJ", async () => {
@@ -155,6 +155,18 @@ describe("TermsPage", () => {
     expect(matches.length).toBeGreaterThanOrEqual(1);
   });
 
+  it("renders NJ content without brokerage when absent", async () => {
+    const njNoBrokerage = {
+      ...AGENT,
+      identity: { ...AGENT.identity, brokerage: undefined },
+    };
+    mockLoadAgentConfig.mockReturnValue(njNoBrokerage);
+    const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
+    render(page);
+    expect(screen.getByText(/New Jersey Real Estate Commission/)).toBeInTheDocument();
+    expect(screen.queryByText(/Brokerage:/)).not.toBeInTheDocument();
+  });
+
   it("displays brokerage_id when present", async () => {
     const agentWithBrokerageId = {
       ...AGENT,
@@ -165,5 +177,42 @@ describe("TermsPage", () => {
     render(page);
     const matches = screen.getAllByText(/BRK-99999/);
     expect(matches.length).toBeGreaterThanOrEqual(1);
+  });
+
+  describe("non-NJ state (dynamic state content)", () => {
+    it("shows generic state-specific notice for non-NJ agents", async () => {
+      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
+      render(page);
+      expect(screen.getByRole("heading", { name: /State-Specific Notices \(Texas\)/i })).toBeInTheDocument();
+    });
+
+    it("shows generic placeholder text for non-NJ agents", async () => {
+      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
+      render(page);
+      expect(screen.getByText(/Texas real estate laws and regulations apply/)).toBeInTheDocument();
+    });
+
+    it("does not show NJ Fair Housing section for non-NJ agents", async () => {
+      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
+      render(page);
+      expect(screen.queryByRole("heading", { name: /New Jersey Fair Housing/i })).not.toBeInTheDocument();
+    });
+
+    it("does not show NJ Real Estate Commission section for non-NJ agents", async () => {
+      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
+      render(page);
+      expect(screen.queryByRole("heading", { name: /NJ Real Estate Commission/i })).not.toBeInTheDocument();
+    });
+
+    it("does not include NJ LAD reference for non-NJ agents", async () => {
+      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
+      render(page);
+      expect(screen.queryByText(/New Jersey Law Against Discrimination/)).not.toBeInTheDocument();
+    });
   });
 });

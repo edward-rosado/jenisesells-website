@@ -3,18 +3,28 @@ name: API
 on:
   push:
     branches: [main]
-    paths:
-      - 'apps/api/**'
-      - '.github/workflows/api.yml'
   pull_request:
     branches: [main]
-    paths:
-      - 'apps/api/**'
-      - '.github/workflows/api.yml'
 
 jobs:
+  changes:
+    name: "Detect changes"
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+
   build-and-test:
     name: "API — build and test"
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -48,3 +58,11 @@ jobs:
           name: api-coverage
           path: apps/api/coverage/**/coverage.cobertura.xml
           retention-days: 7
+
+  skip:
+    name: "API — build and test"
+    needs: changes
+    if: needs.changes.outputs.api != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No API changes detected — skipping build and test."

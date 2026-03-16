@@ -1,10 +1,13 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Nav } from "@/components/Nav";
 import { AGENT, AGENT_MINIMAL } from "./fixtures";
+
+const mockPathname = vi.fn(() => "/");
+vi.mock("next/navigation", () => ({ usePathname: () => mockPathname() }));
 
 describe("Nav", () => {
   it("renders the agent tagline in uppercase when tagline is present", () => {
@@ -109,26 +112,23 @@ describe("Nav", () => {
   });
 
   it("renders section links in the drawer", () => {
-    render(<Nav agent={AGENT} />);
-    expect(screen.getByText("Why Choose Me")).toBeInTheDocument();
-    expect(screen.getByText("How It Works")).toBeInTheDocument();
-    expect(screen.getByText("Recent Sales")).toBeInTheDocument();
-    expect(screen.getByText("Testimonials")).toBeInTheDocument();
-    expect(screen.getByText("Get Your Home Value")).toBeInTheDocument();
-    expect(screen.getByText("About")).toBeInTheDocument();
+    const { container } = render(<Nav agent={AGENT} />);
+    const drawer = container.querySelector(".nav-drawer") as HTMLElement;
+    expect(drawer.querySelectorAll("a[href*='#']")).toHaveLength(6);
   });
 
   it("toggles drawer open and closed on hamburger click", () => {
-    render(<Nav agent={AGENT} />);
+    const { container } = render(<Nav agent={AGENT} />);
     const hamburger = screen.getByLabelText("Menu");
+    const drawer = container.querySelector(".nav-drawer") as HTMLElement;
 
     // Click to open
     fireEvent.click(hamburger);
-    expect(screen.getByText("Why Choose Me")).toBeInTheDocument();
+    expect(drawer.style.visibility).toBe("visible");
 
     // Click again to close
     fireEvent.click(hamburger);
-    expect(screen.getByText("Why Choose Me")).toBeInTheDocument();
+    expect(drawer.style.visibility).toBe("hidden");
   });
 
   it("closes drawer when a section link is clicked", () => {
@@ -142,8 +142,9 @@ describe("Nav", () => {
     const drawer = container.querySelector(".nav-drawer") as HTMLElement;
     expect(drawer.style.visibility).toBe("visible");
 
-    // Click a section link
-    fireEvent.click(screen.getByText("Why Choose Me"));
+    // Click a section link in the drawer
+    const drawerLink = drawer.querySelector("a[href*='#']") as HTMLElement;
+    fireEvent.click(drawerLink);
 
     // Drawer should be hidden
     expect(drawer.style.visibility).toBe("hidden");
@@ -217,11 +218,105 @@ describe("Nav", () => {
   });
 
   it("focuses first link when drawer opens", () => {
-    render(<Nav agent={AGENT} />);
+    const { container } = render(<Nav agent={AGENT} />);
     const hamburger = screen.getByLabelText("Menu");
 
     fireEvent.click(hamburger);
-    const firstLink = screen.getByText("Why Choose Me");
+    const drawer = container.querySelector(".nav-drawer") as HTMLElement;
+    const firstLink = drawer.querySelector("a") as HTMLElement;
     expect(document.activeElement).toBe(firstLink);
+  });
+
+  it("uses hash-only links on the homepage", () => {
+    mockPathname.mockReturnValue("/");
+    const { container } = render(<Nav agent={AGENT} />);
+    const desktopLinks = container.querySelector(".nav-desktop-links") as HTMLElement;
+    const link = desktopLinks.querySelector("a");
+    expect(link).toHaveAttribute("href", "#services");
+  });
+
+  it("uses absolute links with / prefix on non-homepage", () => {
+    mockPathname.mockReturnValue("/terms");
+    const { container } = render(<Nav agent={AGENT} />);
+    const desktopLinks = container.querySelector(".nav-desktop-links") as HTMLElement;
+    const link = desktopLinks.querySelector("a");
+    expect(link).toHaveAttribute("href", "/#services");
+  });
+
+  it("tagline links to homepage", () => {
+    render(<Nav agent={AGENT} />);
+    const tagline = screen.getByText("YOUR DREAM HOME AWAITS");
+    const homeLink = tagline.closest("a");
+    expect(homeLink).toHaveAttribute("href", "/");
+  });
+
+  it("desktop link changes color on hover", () => {
+    const { container } = render(<Nav agent={AGENT} />);
+    const desktopLinks = container.querySelector(".nav-desktop-links") as HTMLElement;
+    const link = desktopLinks.querySelector("a") as HTMLElement;
+
+    fireEvent.mouseEnter(link);
+    expect(link.style.color).toBe("var(--color-accent)");
+
+    fireEvent.mouseLeave(link);
+    expect(link.style.color).toBe("rgba(255, 255, 255, 0.85)");
+  });
+
+  it("renders desktop section links", () => {
+    const { container } = render(<Nav agent={AGENT} />);
+    const desktopLinks = container.querySelector(".nav-desktop-links");
+    expect(desktopLinks).toBeInTheDocument();
+    const links = desktopLinks?.querySelectorAll("a");
+    expect(links?.length).toBe(6);
+  });
+
+  it("logo links to homepage", () => {
+    const agentWithLogo = {
+      ...AGENT,
+      branding: { ...AGENT.branding, logo_url: "/images/logo.png" },
+    };
+    render(<Nav agent={agentWithLogo} />);
+    const img = screen.getByRole("img");
+    const homeLink = img.closest("a");
+    expect(homeLink).toHaveAttribute("href", "/");
+  });
+
+  it("renders Contact Me button for tablet view (hidden via CSS on other sizes)", () => {
+    render(<Nav agent={AGENT} />);
+    const contactBtn = screen.getByLabelText("Contact information");
+    expect(contactBtn).toBeInTheDocument();
+    expect(contactBtn.tagName).toBe("BUTTON");
+    expect(contactBtn.textContent).toContain("Contact Me");
+  });
+
+  it("Contact Me button toggles drawer", () => {
+    const { container } = render(<Nav agent={AGENT} />);
+    const contactBtn = screen.getByLabelText("Contact information");
+    const drawer = container.querySelector(".nav-drawer") as HTMLElement;
+
+    fireEvent.click(contactBtn);
+    expect(drawer.style.visibility).toBe("visible");
+
+    fireEvent.click(contactBtn);
+    expect(drawer.style.visibility).toBe("hidden");
+  });
+
+  it("drawer contains contact info section with phone, office, and email", () => {
+    const { container } = render(<Nav agent={AGENT} />);
+    const drawerContact = container.querySelector(".drawer-contact") as HTMLElement;
+    expect(drawerContact).toBeInTheDocument();
+
+    const links = drawerContact.querySelectorAll("a");
+    const hrefs = Array.from(links).map((l) => l.getAttribute("href"));
+    expect(hrefs).toContain("tel:5551234567");
+    expect(hrefs).toContain("tel:7322512500");
+    expect(hrefs).toContain("mailto:jane@example.com");
+  });
+
+  it("drawer nav links are inside .drawer-nav-links container", () => {
+    const { container } = render(<Nav agent={AGENT} />);
+    const navLinks = container.querySelector(".drawer-nav-links") as HTMLElement;
+    expect(navLinks).toBeInTheDocument();
+    expect(navLinks.querySelectorAll("a[href*='#']")).toHaveLength(6);
   });
 });

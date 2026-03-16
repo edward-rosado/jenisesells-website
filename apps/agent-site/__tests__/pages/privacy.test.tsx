@@ -14,7 +14,7 @@ vi.mock("@/lib/config", () => ({
   loadAgentConfig: (...args: unknown[]) => mockLoadAgentConfig(...args),
   loadLegalContent: (...args: unknown[]) => mockLoadLegalContent(...args),
 }));
-vi.mock("next/navigation", () => ({ notFound: () => mockNotFound() }));
+vi.mock("next/navigation", () => ({ notFound: () => mockNotFound(), usePathname: () => "/privacy" }));
 vi.mock("@sentry/nextjs", () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }));
 
 import PrivacyPage, { generateMetadata } from "@/app/privacy/page";
@@ -129,5 +129,42 @@ describe("PrivacyPage", () => {
     render(page);
     expect(screen.getAllByText(/Hoboken/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Jersey City/).length).toBeGreaterThanOrEqual(1);
+  });
+
+  describe("NJ-specific privacy content", () => {
+    it("shows NJ Data Privacy Act reference for NJ agents", async () => {
+      const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "test" }) });
+      render(page);
+      expect(screen.getByText(/New Jersey Data Privacy Act/)).toBeInTheDocument();
+    });
+
+    it("shows NJ Residents heading for NJ agents", async () => {
+      const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "test" }) });
+      render(page);
+      expect(screen.getByRole("heading", { name: /New Jersey Residents/i })).toBeInTheDocument();
+    });
+  });
+
+  describe("non-NJ state (dynamic state content)", () => {
+    it("shows generic state privacy notice for non-NJ agents", async () => {
+      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
+      render(page);
+      expect(screen.getByRole("heading", { name: /Texas Residents/i })).toBeInTheDocument();
+    });
+
+    it("shows generic placeholder text for non-NJ agents", async () => {
+      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
+      render(page);
+      expect(screen.getByText(/Texas real estate laws and regulations apply/)).toBeInTheDocument();
+    });
+
+    it("does not show NJ Data Privacy Act reference for non-NJ agents", async () => {
+      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
+      render(page);
+      expect(screen.queryByText(/New Jersey Data Privacy Act/)).not.toBeInTheDocument();
+    });
   });
 });

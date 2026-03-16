@@ -18,7 +18,7 @@ on:
 
 jobs:
   lint-test-build:
-    name: "Agent Site -- lint, test, build"
+    name: "Agent Site — lint, test, coverage"
     runs-on: ubuntu-latest
 
     steps:
@@ -113,6 +113,10 @@ jobs:
         if: steps.check.outputs.exists == 'true'
         run: npm ci
 
+      - name: Generate config registry
+        if: steps.check.outputs.exists == 'true'
+        run: node apps/agent-site/scripts/generate-config-registry.mjs
+
       - name: Build Next.js
         if: steps.check.outputs.exists == 'true'
         env:
@@ -125,7 +129,37 @@ jobs:
         working-directory: apps/agent-site
         run: npx opennextjs-cloudflare build
 
-      - name: Deploy preview to Cloudflare Pages
+      - name: Generate preview wrangler config
+        if: steps.check.outputs.exists == 'true'
+        working-directory: apps/agent-site
+        run: |
+          PR_NUM=${{ github.event.pull_request.number }}
+          PREVIEW_NAME="real-estate-star-agents-pr-${PR_NUM}"
+          cat > wrangler.preview.jsonc <<WRANGLER_EOF
+          {
+            "\$schema": "node_modules/wrangler/config-schema.json",
+            "name": "${PREVIEW_NAME}",
+            "main": ".open-next/worker.js",
+            "compatibility_date": "2026-03-11",
+            "compatibility_flags": ["nodejs_compat"],
+            "assets": {
+              "directory": ".open-next/assets",
+              "binding": "ASSETS"
+            },
+            "services": [
+              {
+                "binding": "WORKER_SELF_REFERENCE",
+                "service": "${PREVIEW_NAME}"
+              }
+            ],
+            "vars": {
+              "NEXT_PUBLIC_API_URL": "https://api.real-estate-star.com",
+              "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": "${{ secrets.GOOGLE_MAPS_API_KEY }}"
+            }
+          }
+          WRANGLER_EOF
+
+      - name: Deploy preview to Cloudflare Workers
         if: steps.check.outputs.exists == 'true'
         id: deploy
         uses: cloudflare/wrangler-action@v3
@@ -133,7 +167,29 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/agent-site
-          command: pages deploy .open-next/assets --project-name=real-estate-star-agents --branch=pr-${{ github.event.pull_request.number }}
+          command: deploy --config wrangler.preview.jsonc
+
+      - name: Discover agents for preview links
+        if: steps.check.outputs.exists == 'true'
+        id: agents
+        run: |
+          # Find valid agents: directories with config.json OR top-level .json files (skip bad-* test fixtures)
+          AGENTS=""
+          for dir in config/agents/*/; do
+            id=$(basename "$dir")
+            if [ -f "$dir/config.json" ]; then
+              AGENTS="${AGENTS}${id}\n"
+            fi
+          done
+          for f in config/agents/*.json; do
+            id=$(basename "$f" .json)
+            # Skip test fixtures (bad-*) and agent.schema.json
+            case "$id" in bad-*|agent.schema) continue;; esac
+            AGENTS="${AGENTS}${id}\n"
+          done
+          echo "list<<EOF" >> $GITHUB_OUTPUT
+          printf "$AGENTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Comment preview URL on PR
         if: steps.check.outputs.exists == 'true'
@@ -141,8 +197,21 @@ jobs:
         with:
           script: |
             const prNumber = context.payload.pull_request.number;
-            const previewUrl = `https://pr-${prNumber}.real-estate-star-agents.pages.dev`;
-            const body = `**Agent Site Preview:** ${previewUrl}\n\nThis preview will be available once the Cloudflare Pages project \`real-estate-star-agents\` is created.`;
+            const baseUrl = `https://real-estate-star-agents-pr-${prNumber}.misteredr.workers.dev`;
+            const agentList = `${{ steps.agents.outputs.list }}`.trim().split('\n').filter(Boolean);
+
+            let links = agentList.map(id =>
+              `- [${id}](${baseUrl}/?agentId=${id})`
+            ).join('\n');
+
+            const body = [
+              `**Agent Site Preview**`,
+              ``,
+              `Default: ${baseUrl}`,
+              ``,
+              `**Per-agent previews:**`,
+              links,
+            ].join('\n');
 
             // Check for existing preview comment to avoid duplicates
             const { data: comments } = await github.rest.issues.listComments({
@@ -151,7 +220,7 @@ jobs:
               issue_number: prNumber,
             });
 
-            const existing = comments.find(c => c.body.includes('Agent Site Preview:'));
+            const existing = comments.find(c => c.body.includes('Agent Site Preview'));
             if (existing) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,

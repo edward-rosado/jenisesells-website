@@ -7,5 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/api/", "/thank-you"],
     },
+    sitemap: "https://real-estate-star.com/sitemap.xml",
   };
 }

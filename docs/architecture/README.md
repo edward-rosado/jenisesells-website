@@ -22,6 +22,13 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | [Data Model](lead-form-data-model.md) | Shared type hierarchy for buyer and seller lead capture |
 | [Google Maps Autocomplete](google-maps-autocomplete-lifecycle.md) | Lazy SDK loading and address autocomplete lifecycle |
 
+## Compliance and Legal
+
+| Document | Description |
+|----------|------------|
+| [Compliance Component Hierarchy](compliance-component-hierarchy.md) | How shared TCPA, EHO, and CMA compliance components flow through apps |
+| [Legal Page Rendering](legal-page-rendering.md) | Dynamic state-specific content rendering on terms and privacy pages |
+
 ## How to Read
 
 All diagrams use [Mermaid](https://mermaid.js.org/) syntax. GitHub renders them natively in Markdown preview. For local viewing, use a Mermaid-compatible Markdown viewer or the [Mermaid Live Editor](https://mermaid.live/).

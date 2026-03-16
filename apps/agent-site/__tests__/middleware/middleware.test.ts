@@ -57,13 +57,16 @@ const mockGetAgentIds = vi.mocked(getAgentIds);
 
 let middleware: typeof import("@/middleware").middleware;
 
-function makeRequest(host: string, pathname = "/") {
-  const clonedUrl = new URL(`http://${host}${pathname}`);
+function makeRequest(host: string, pathname = "/", query: Record<string, string> = {}) {
+  const qs = new URLSearchParams(query).toString();
+  const fullPath = qs ? `${pathname}?${qs}` : pathname;
+  const clonedUrl = new URL(`http://${host}${fullPath}`);
   clonedUrl.searchParams.set = vi.fn((key, value) => {
     (clonedUrl as URL).searchParams.append(key, value);
   });
   mockClone.mockReturnValue(clonedUrl);
 
+  const requestUrl = new URL(`http://${host}${fullPath}`);
   return {
     headers: {
       get: (name: string) => (name === "host" ? host : null),
@@ -71,6 +74,8 @@ function makeRequest(host: string, pathname = "/") {
     nextUrl: {
       clone: mockClone,
       pathname,
+      searchParams: requestUrl.searchParams,
+      search: requestUrl.search,
     },
   };
 }
@@ -272,6 +277,37 @@ describe("middleware", () => {
     expect(mockRewrite).not.toHaveBeenCalled();
     expect(response.status).toBe(404);
     delete process.env.DEFAULT_AGENT_ID;
+  });
+
+  // --- workers.dev preview ---
+  it("rewrites workers.dev host with ?agentId to the specified agent", () => {
+    mockExtractAgentId.mockReturnValue(null);
+    mockResolveCustomDomain.mockReturnValue(null);
+    const req = makeRequest("real-estate-star-agents-pr-18.workers.dev", "/", { agentId: "test-agent" });
+    middleware(req as never);
+    expect(mockRewrite).toHaveBeenCalled();
+    const clonedUrl = mockClone.mock.results[0].value;
+    expect(clonedUrl.searchParams.set).toHaveBeenCalledWith("agentId", "test-agent");
+  });
+
+  it("rewrites workers.dev host without ?agentId to default agent", () => {
+    mockExtractAgentId.mockReturnValue(null);
+    mockResolveCustomDomain.mockReturnValue(null);
+    const req = makeRequest("real-estate-star-agents-pr-18.workers.dev");
+    middleware(req as never);
+    expect(mockRewrite).toHaveBeenCalled();
+    const clonedUrl = mockClone.mock.results[0].value;
+    expect(clonedUrl.searchParams.set).toHaveBeenCalledWith("agentId", "jenise-buckalew");
+  });
+
+  it("returns 404 on workers.dev when ?agentId is unknown and default is also unknown", () => {
+    mockExtractAgentId.mockReturnValue(null);
+    mockResolveCustomDomain.mockReturnValue(null);
+    mockGetAgentIds.mockReturnValue(new Set([]));
+    const req = makeRequest("real-estate-star-agents-pr-18.workers.dev", "/", { agentId: "unknown" });
+    const response = middleware(req as never);
+    expect(mockRewrite).not.toHaveBeenCalled();
+    expect(response.status).toBe(404);
   });
 });
 

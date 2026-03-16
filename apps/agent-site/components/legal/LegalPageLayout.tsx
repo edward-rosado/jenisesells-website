@@ -20,14 +20,14 @@ export function LegalPageLayout({
   return (
     <div style={cssVars as React.CSSProperties}>
       <Nav agent={agent} />
-      <main className="pt-[74px] min-h-[70vh] px-6 py-12">
-        <div className="mx-auto max-w-3xl">
+      <main className="pt-[74px] min-h-[70vh] px-6 py-12" style={{ background: "#f5f5f5" }}>
+        <div className="mx-auto max-w-3xl" style={{ background: "#fff", borderRadius: 12, padding: "clamp(24px, 5vw, 48px)", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
           {customAbove && <div className="mb-8"><MarkdownContent content={customAbove} /></div>}
           {children}
           {customBelow && <div className="mt-8"><MarkdownContent content={customBelow} /></div>}
         </div>
       </main>
-      <Footer agent={agent} />
+      <Footer agent={agent} agentId={agentId} />
       <CookieConsentBanner agentId={agentId} />
     </div>
   );
