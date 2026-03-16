@@ -86,9 +86,10 @@ export function Nav({ agent }: NavProps) {
     <>
       <style>{`
         html { scroll-behavior: smooth; }
-        section[id] { scroll-margin-top: 70px; }
+        section[id] { scroll-margin-top: 80px; }
         @media (max-width: 768px) {
           .nav-contact { display: none !important; }
+          .nav-desktop-links { display: none !important; }
           .nav-mobile-call { display: flex !important; }
           .nav-hamburger { display: block !important; }
           .nav-logo { height: 32px !important; }
@@ -103,7 +104,7 @@ export function Nav({ agent }: NavProps) {
         aria-label="Main navigation"
         style={{
           background: "var(--color-primary)",
-          padding: "10px 16px",
+          padding: "10px 24px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -114,16 +115,16 @@ export function Nav({ agent }: NavProps) {
           boxSizing: "border-box",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
           {branding.logo_url ? (
             <div style={{ background: "white", borderRadius: "6px", padding: "4px 8px", display: "flex", alignItems: "center" }}>
               <Image
                 src={branding.logo_url}
                 alt={identity.brokerage || "Brokerage logo"}
-                width={160}
-                height={40}
+                width={240}
+                height={60}
                 className="nav-logo"
-                style={{ height: "40px", width: "auto" }}
+                style={{ height: "60px", width: "auto" }}
                 priority
               />
             </div>
@@ -135,6 +136,30 @@ export function Nav({ agent }: NavProps) {
               {identity.tagline?.toUpperCase() || identity.name.toUpperCase()}
             </span>
           )}
+        </a>
+
+        {/* Desktop section links */}
+        <div className="nav-desktop-links" style={{ display: "flex", alignItems: "center", gap: "4px", flex: 1, justifyContent: "center" }}>
+          {sections.map((s) => (
+            <a
+              key={s.href}
+              href={s.href}
+              style={{
+                color: "rgba(255,255,255,0.85)",
+                fontSize: "13px",
+                fontWeight: 500,
+                padding: "6px 10px",
+                borderRadius: "6px",
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+                transition: "color 0.2s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "var(--color-accent)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.85)"; }}
+            >
+              {s.label}
+            </a>
+          ))}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
