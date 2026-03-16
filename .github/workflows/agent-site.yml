@@ -78,14 +78,6 @@ jobs:
           path: apps/agent-site/coverage/
           retention-days: 7
 
-      - name: Upload build output for preview deploy
-        uses: actions/upload-artifact@v4
-        if: steps.check.outputs.exists == 'true' && github.event_name == 'pull_request'
-        with:
-          name: agent-site-build
-          path: apps/agent-site/.open-next/
-          retention-days: 1
-
   preview-deploy:
     name: "Preview Deploy"
     needs: lint-test-build
@@ -109,13 +101,6 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Download build artifact
-        if: steps.check.outputs.exists == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: agent-site-build
-          path: apps/agent-site/
-
       - name: Setup Node.js
         if: steps.check.outputs.exists == 'true'
         uses: actions/setup-node@v4
@@ -127,6 +112,22 @@ jobs:
       - name: Install dependencies
         if: steps.check.outputs.exists == 'true'
         run: npm ci
+
+      - name: Generate config registry
+        if: steps.check.outputs.exists == 'true'
+        run: node apps/agent-site/scripts/generate-config-registry.mjs
+
+      - name: Build Next.js
+        if: steps.check.outputs.exists == 'true'
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+        run: npm run build --prefix apps/agent-site
+
+      - name: Build for Cloudflare (OpenNext)
+        if: steps.check.outputs.exists == 'true'
+        working-directory: apps/agent-site
+        run: npx opennextjs-cloudflare build
 
       - name: Generate preview wrangler config
         if: steps.check.outputs.exists == 'true'
