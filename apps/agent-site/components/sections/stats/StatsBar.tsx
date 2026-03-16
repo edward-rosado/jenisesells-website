@@ -1,11 +1,6 @@
-import type { StatItem } from "@/lib/types";
+import type { StatsProps } from "@/components/sections/types";
 
-interface StatsBarProps {
-  items: StatItem[];
-  sourceDisclaimer?: string;
-}
-
-export function StatsBar({ items, sourceDisclaimer }: StatsBarProps) {
+export function StatsBar({ items, sourceDisclaimer }: StatsProps) {
   return (
     <section
       aria-label="Agent statistics"

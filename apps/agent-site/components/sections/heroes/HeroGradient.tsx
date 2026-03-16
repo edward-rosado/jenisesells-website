@@ -2,13 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import type { HeroData } from "@/lib/types";
-
-interface HeroProps {
-  data: HeroData;
-  agentPhotoUrl?: string;
-  agentName?: string;
-}
+import type { HeroProps } from "@/components/sections/types";
 
 function safeHref(href: string): string {
   if (href.startsWith("#") || href.startsWith("/")) return href;
@@ -32,7 +26,7 @@ function renderHeadline(headline: string, highlightWord?: string) {
   );
 }
 
-export function Hero({ data, agentPhotoUrl, agentName }: HeroProps) {
+export function HeroGradient({ data, agentPhotoUrl, agentName }: HeroProps) {
   const [ctaHover, setCtaHover] = useState(false);
 
   return (

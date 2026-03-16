@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { Testimonials } from "@/components/sections/Testimonials";
+import { TestimonialsGrid } from "@/components/sections/testimonials/TestimonialsGrid";
 import type { TestimonialItem } from "@/lib/types";
 
 const ITEMS: TestimonialItem[] = [
@@ -12,21 +12,21 @@ const ITEMS: TestimonialItem[] = [
   { text: "Very professional.", reviewer: "Sara D.", rating: 3 },
 ];
 
-describe("Testimonials", () => {
+describe("TestimonialsGrid", () => {
   it("renders the section heading", () => {
-    render(<Testimonials items={ITEMS} />);
+    render(<TestimonialsGrid items={ITEMS} />);
     expect(screen.getByRole("heading", { level: 2, name: "What My Clients Say" })).toBeInTheDocument();
   });
 
   it("renders all testimonial texts", () => {
-    render(<Testimonials items={ITEMS} />);
+    render(<TestimonialsGrid items={ITEMS} />);
     expect(screen.getByText("Amazing service!")).toBeInTheDocument();
     expect(screen.getByText("Would recommend.")).toBeInTheDocument();
     expect(screen.getByText("Very professional.")).toBeInTheDocument();
   });
 
   it("renders all reviewer names with em dash prefix", () => {
-    render(<Testimonials items={ITEMS} />);
+    render(<TestimonialsGrid items={ITEMS} />);
     // Each reviewer is rendered as "— Alice B." etc. The dash is an em-dash character.
     expect(screen.getByText(/Alice B\./)).toBeInTheDocument();
     expect(screen.getByText(/Tom C\./)).toBeInTheDocument();
@@ -34,51 +34,51 @@ describe("Testimonials", () => {
   });
 
   it("renders the source when provided", () => {
-    render(<Testimonials items={ITEMS} />);
+    render(<TestimonialsGrid items={ITEMS} />);
     expect(screen.getByText(/via Zillow/)).toBeInTheDocument();
   });
 
   it("does not render source text when source is absent", () => {
-    render(<Testimonials items={ITEMS} />);
+    render(<TestimonialsGrid items={ITEMS} />);
     // Tom C. has no source — verify no "via" text associated
     const cards = screen.getAllByText(/Would recommend/);
     expect(cards[0].closest("article")).not.toHaveTextContent("via");
   });
 
   it("renders 5 filled stars for rating 5", () => {
-    render(<Testimonials items={[{ text: "Great!", reviewer: "X", rating: 5 }]} />);
+    render(<TestimonialsGrid items={[{ text: "Great!", reviewer: "X", rating: 5 }]} />);
     expect(screen.getByText("★★★★★")).toBeInTheDocument();
   });
 
   it("renders 4 filled and 1 empty star for rating 4", () => {
-    render(<Testimonials items={[{ text: "Good!", reviewer: "X", rating: 4 }]} />);
+    render(<TestimonialsGrid items={[{ text: "Good!", reviewer: "X", rating: 4 }]} />);
     expect(screen.getByText("★★★★☆")).toBeInTheDocument();
   });
 
   it("renders 3 filled and 2 empty stars for rating 3", () => {
-    render(<Testimonials items={[{ text: "OK", reviewer: "X", rating: 3 }]} />);
+    render(<TestimonialsGrid items={[{ text: "OK", reviewer: "X", rating: 3 }]} />);
     expect(screen.getByText("★★★☆☆")).toBeInTheDocument();
   });
 
   it("renders 1 filled and 4 empty stars for rating 1", () => {
-    render(<Testimonials items={[{ text: "Poor", reviewer: "X", rating: 1 }]} />);
+    render(<TestimonialsGrid items={[{ text: "Poor", reviewer: "X", rating: 1 }]} />);
     expect(screen.getByText("★☆☆☆☆")).toBeInTheDocument();
   });
 
   it("renders empty section when items is empty", () => {
-    render(<Testimonials items={[]} />);
+    render(<TestimonialsGrid items={[]} />);
     expect(screen.getByRole("heading", { level: 2 })).toBeInTheDocument();
     expect(screen.queryByText(/★/)).not.toBeInTheDocument();
   });
 
   it("renders correct count of cards", () => {
-    render(<Testimonials items={ITEMS} />);
+    render(<TestimonialsGrid items={ITEMS} />);
     // Each card has the testimonial text
     expect(screen.getAllByText(/Amazing service!|Would recommend|Very professional/)).toHaveLength(3);
   });
 
   it("renders consolidated FTC endorsement disclosure", () => {
-    render(<Testimonials items={ITEMS} />);
+    render(<TestimonialsGrid items={ITEMS} />);
     expect(screen.getByText(/unedited excerpts/i)).toBeInTheDocument();
     expect(screen.getByText(/no compensation/i)).toBeInTheDocument();
   });

@@ -1,0 +1,1 @@
+export { AboutSplit } from "./AboutSplit";

@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { StatsBar } from "@/components/sections/StatsBar";
+import { StatsBar } from "@/components/sections/stats/StatsBar";
 import type { StatItem } from "@/lib/types";
 
 const STATS: StatItem[] = [

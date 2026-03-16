@@ -1,13 +1,7 @@
 import Image from "next/image";
-import type { SoldHomeItem } from "@/lib/types";
+import type { SoldHomesProps } from "@/components/sections/types";
 
-interface SoldHomesProps {
-  items: SoldHomeItem[];
-  title?: string;
-  subtitle?: string;
-}
-
-export function SoldHomes({ items, title, subtitle }: SoldHomesProps) {
+export function SoldGrid({ items, title, subtitle }: SoldHomesProps) {
   return (
     <section
       id="sold"

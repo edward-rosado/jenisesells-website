@@ -1,11 +1,6 @@
-import type { TestimonialItem } from "@/lib/types";
+import type { TestimonialsProps } from "@/components/sections/types";
 
-interface TestimonialsProps {
-  items: TestimonialItem[];
-  title?: string;
-}
-
-export function Testimonials({ items, title }: TestimonialsProps) {
+export function TestimonialsGrid({ items, title }: TestimonialsProps) {
   return (
     <section
       id="testimonials"

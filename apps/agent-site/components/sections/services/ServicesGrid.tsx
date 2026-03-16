@@ -1,12 +1,6 @@
-import type { ServiceItem } from "@/lib/types";
+import type { ServicesProps } from "@/components/sections/types";
 
-interface ServicesProps {
-  items: ServiceItem[];
-  title?: string;
-  subtitle?: string;
-}
-
-export function Services({ items, title, subtitle }: ServicesProps) {
+export function ServicesGrid({ items, title, subtitle }: ServicesProps) {
   return (
     <section
       id="services"

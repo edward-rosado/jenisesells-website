@@ -3,8 +3,8 @@
  */
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { Footer } from "@/components/sections/Footer";
-import { AGENT, AGENT_MINIMAL } from "./fixtures";
+import { Footer } from "@/components/sections/shared/Footer";
+import { AGENT, AGENT_MINIMAL } from "../fixtures";
 
 describe("Footer", () => {
   it("renders the agent name", () => {

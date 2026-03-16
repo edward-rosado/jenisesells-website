@@ -1,12 +1,7 @@
 import Image from "next/image";
-import type { AgentConfig, AboutData } from "@/lib/types";
+import type { AboutProps } from "@/components/sections/types";
 
-interface AboutProps {
-  agent: AgentConfig;
-  data: AboutData;
-}
-
-export function About({ agent, data }: AboutProps) {
+export function AboutSplit({ agent, data }: AboutProps) {
   return (
     <section
       id="about"

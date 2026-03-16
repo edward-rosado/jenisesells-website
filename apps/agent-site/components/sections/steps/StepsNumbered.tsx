@@ -1,12 +1,6 @@
-import type { StepItem } from "@/lib/types";
+import type { StepsProps } from "@/components/sections/types";
 
-interface HowItWorksProps {
-  steps: StepItem[];
-  title?: string;
-  subtitle?: string;
-}
-
-export function HowItWorks({ steps, title, subtitle }: HowItWorksProps) {
+export function StepsNumbered({ steps, title, subtitle }: StepsProps) {
   return (
     <section
       id="how-it-works"

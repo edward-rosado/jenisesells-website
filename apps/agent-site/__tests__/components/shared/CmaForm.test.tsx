@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import { CmaForm } from "@/components/sections/CmaForm";
+import { CmaForm } from "@/components/sections/shared/CmaForm";
 import type { CmaFormData } from "@/lib/types";
 import type { CmaStatusUpdate } from "@/lib/cma-api";
 
