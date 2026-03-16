@@ -197,7 +197,7 @@ jobs:
         with:
           script: |
             const prNumber = context.payload.pull_request.number;
-            const baseUrl = `https://real-estate-star-agents-pr-${prNumber}.workers.dev`;
+            const baseUrl = `https://real-estate-star-agents-pr-${prNumber}.misteredr.workers.dev`;
             const agentList = `${{ steps.agents.outputs.list }}`.trim().split('\n').filter(Boolean);
 
             let links = agentList.map(id =>
