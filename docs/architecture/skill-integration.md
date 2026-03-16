@@ -9,7 +9,7 @@ flowchart TD
         identity["identity.*<br/>name, phone, email, brokerage"]
         location["location.*<br/>state, service_areas"]
         branding["branding.*<br/>colors, fonts"]
-        integrations["integrations.*<br/>email_provider, form_handler"]
+        integrations["integrations.*<br/>email_provider"]
         compliance["compliance.*<br/>state_form, licensing_body"]
     end
 
@@ -23,7 +23,6 @@ flowchart TD
     subgraph "External Services"
         gmail["Gmail API"]
         outlook["Outlook API"]
-        formspree["Formspree"]
         cfpages["Cloudflare Pages"]
         gws["Google Workspace<br/>(Drive, Sheets, Docs)"]
     end
@@ -47,7 +46,6 @@ flowchart TD
 
     emailskill -->|gmail| gmail
     emailskill -->|outlook| outlook
-    cma --> formspree
     cma --> gws
     deployskill --> cfpages
 
@@ -99,7 +97,7 @@ flowchart TD
 
 | Skill | identity.* | location.* | branding.* | integrations.* | compliance.* |
 |-------|-----------|-----------|-----------|---------------|-------------|
-| **CMA** | name, phone, email, brokerage, title, tagline, languages | state, service_areas | primary_color, accent_color, font_family | form_handler, form_handler_id, email_provider | — |
+| **CMA** | name, phone, email, brokerage, title, tagline, languages | state, service_areas | primary_color, accent_color, font_family | email_provider | — |
 | **Contracts** | name, title, license_id, brokerage, brokerage_id | state | — | — | state_form, licensing_body, disclosure_requirements |
 | **Email** | name, title, phone, email, brokerage, tagline, languages | — | — | email_provider | — |
 | **Deploy** | website | — | primary_color, secondary_color, accent_color, font_family | hosting | — |

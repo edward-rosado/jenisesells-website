@@ -15,7 +15,6 @@
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
-    "@microsoft/signalr": "^10.0.0",
     "@opennextjs/cloudflare": "^1.0.0",
     "@real-estate-star/shared-types": "*",
     "@real-estate-star/ui": "*",

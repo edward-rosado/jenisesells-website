@@ -43,8 +43,6 @@ erDiagram
 
     INTEGRATIONS {
         string email_provider "gmail | outlook | smtp"
-        string form_handler "formspree | custom"
-        string form_handler_id "Provider-specific ID"
         string hosting "Hosting provider"
     }
 

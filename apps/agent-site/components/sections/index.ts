@@ -4,6 +4,6 @@ export { Services } from "./Services";
 export { HowItWorks } from "./HowItWorks";
 export { SoldHomes } from "./SoldHomes";
 export { Testimonials } from "./Testimonials";
-export { CmaForm } from "./CmaForm";
+export { CmaSection } from "./CmaSection";
 export { About } from "./About";
 export { Footer } from "./Footer";

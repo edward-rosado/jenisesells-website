@@ -1,7 +1,7 @@
 import type { AgentConfig, AgentContent } from "@/lib/types";
 import { Nav } from "@/components/Nav";
 import { Analytics } from "@/components/Analytics";
-import { Hero, StatsBar, Services, HowItWorks, SoldHomes, Testimonials, CmaForm, About, Footer } from "@/components/sections";
+import { Hero, StatsBar, Services, HowItWorks, SoldHomes, Testimonials, CmaSection, About, Footer } from "@/components/sections";
 
 interface TemplateProps {
   agent: AgentConfig;
@@ -51,12 +51,10 @@ export function EmeraldClassic({ agent, content }: TemplateProps) {
         />
       )}
       {s.cma_form.enabled && (
-        <CmaForm
+        <CmaSection
           agentId={agent.id}
           agentName={agent.identity.name}
           defaultState={agent.location.state}
-          formHandler={agent.integrations?.form_handler}
-          formHandlerId={agent.integrations?.form_handler_id}
           tracking={agent.integrations?.tracking}
           data={s.cma_form.data}
           serviceAreas={agent.location.service_areas}

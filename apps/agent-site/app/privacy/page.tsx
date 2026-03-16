@@ -116,7 +116,6 @@ Phone numbers collected through our forms are used solely to deliver requested r
 
 This website uses the following third-party services that may process your data:
 
-- **Formspree** — form submission handling ([Formspree Privacy Policy](https://formspree.io/legal/privacy-policy/))
 - **Cloudflare** — website hosting and performance ([Cloudflare Privacy Policy](https://www.cloudflare.com/privacypolicy/))
 - **Sentry** — error tracking and monitoring ([Sentry Privacy Policy](https://sentry.io/privacy/))
 - **Google Maps** — address autocomplete ([Google Privacy Policy](https://policies.google.com/privacy))
