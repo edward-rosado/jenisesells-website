@@ -72,8 +72,8 @@ function fillForm() {
 }
 
 function switchToBuyerAndFill(options?: { skipEmail?: boolean }) {
-  fireEvent.click(screen.getByLabelText(/I'm Selling/));
-  fireEvent.click(screen.getByLabelText(/I'm Buying/));
+  fireEvent.click(screen.getByRole("checkbox", { name: /I'm Selling/ }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /I'm Buying/ }));
   fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: "Alice" } });
   fireEvent.change(screen.getByLabelText(/^last name/i), { target: { value: "Test" } });
   if (!options?.skipEmail) {
@@ -122,9 +122,9 @@ describe("CmaSection rendering", () => {
 
   it("shows buyer-specific submit label when only buying is selected", () => {
     render(<CmaSection {...DEFAULT_PROPS} />);
-    fireEvent.click(screen.getByLabelText(/I'm Selling/));
-    fireEvent.click(screen.getByLabelText(/I'm Buying/));
-    expect(screen.getByRole("button", { name: /Tell Jane you're ready to buy/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("checkbox", { name: /I'm Selling/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /I'm Buying/ }));
+    expect(screen.getByRole("button", { name: /Find My Dream Home/ })).toBeInTheDocument();
   });
 
   it("renders CMA disclaimer", () => {

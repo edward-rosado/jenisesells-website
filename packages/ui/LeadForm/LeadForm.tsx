@@ -70,7 +70,7 @@ export function LeadForm({
   const [isSelling, setIsSelling] = useState(initialMode.includes("selling"));
   const submitLabel: string | ((b: boolean, s: boolean) => string) = submitLabelProp
     ?? (agentFirstName
-      ? (_b: boolean, s: boolean) => s ? "Get My Free CMA" : `Tell ${agentFirstName} you're ready to buy!`
+      ? (_b: boolean, s: boolean) => s ? "Get My Free CMA" : `Connect with ${agentFirstName}`
       : "Get Started");
   const [submitting, setSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -318,6 +318,19 @@ export function LeadForm({
         @media (max-width: 600px) {
           .res-lead-form-row { flex-direction: column; gap: 0; }
         }
+        .res-lead-form-pill:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          filter: brightness(1.05);
+        }
+        .res-lead-form-pill:active {
+          transform: translateY(0);
+          box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        .res-lead-form-pill:focus-visible {
+          outline: 2px solid var(--color-primary, #1B5E20);
+          outline-offset: 2px;
+        }
         .res-lead-form-submit:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 8px 25px rgba(0,0,0,0.3);
@@ -332,26 +345,32 @@ export function LeadForm({
 
       {/* Mode pills */}
       <div style={{ marginBottom: 20, display: "flex", gap: 12 }}>
-        <span style={{ position: "relative", ...(isBuying ? pillChecked : pillBase), ...(validationError && !isBuying && !isSelling ? { borderColor: "red" } : {}) }}>
-          <input
-            id="lf-buying"
-            type="checkbox"
-            checked={isBuying}
-            onChange={() => { setIsBuying((v) => !v); setValidationError(null); }}
-            style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
-          />
-          <label htmlFor="lf-buying" style={{ cursor: "pointer", margin: 0 }}>I&apos;m Buying</label>
-        </span>
-        <span style={{ position: "relative", ...(isSelling ? pillChecked : pillBase), ...(validationError && !isBuying && !isSelling ? { borderColor: "red" } : {}) }}>
-          <input
-            id="lf-selling"
-            type="checkbox"
-            checked={isSelling}
-            onChange={() => { setIsSelling((v) => !v); setValidationError(null); }}
-            style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
-          />
-          <label htmlFor="lf-selling" style={{ cursor: "pointer", margin: 0 }}>I&apos;m Selling</label>
-        </span>
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={isBuying}
+          className="res-lead-form-pill"
+          onClick={() => { setIsBuying((v) => !v); setValidationError(null); }}
+          style={{
+            ...(isBuying ? pillChecked : pillBase),
+            ...(validationError && !isBuying && !isSelling ? { borderColor: "red" } : {}),
+          }}
+        >
+          I&apos;m Buying
+        </button>
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={isSelling}
+          className="res-lead-form-pill"
+          onClick={() => { setIsSelling((v) => !v); setValidationError(null); }}
+          style={{
+            ...(isSelling ? pillChecked : pillBase),
+            ...(validationError && !isBuying && !isSelling ? { borderColor: "red" } : {}),
+          }}
+        >
+          I&apos;m Selling
+        </button>
       </div>
 
       {/* Contact fields */}

@@ -28,6 +28,8 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 |----------|------------|
 | [CMA Form Submission Flow](cma-form-submission-flow.md) | Seller vs buyer lead routing through shared hook to .NET API |
 | [Multi-Template Composition](multi-template-composition.md) | How 3 templates compose section variants from the shared library |
+| [Multi-Template Selection](multi-template-selection.md) | How requests resolve to a template and render enabled sections |
+| [Section Variant Architecture](section-variant-architecture.md) | How section categories map to template-specific variants |
 | [Shared Package Dependencies](shared-package-dependencies.md) | How packages/ui and shared-types are consumed by apps |
 
 ## Compliance and Legal

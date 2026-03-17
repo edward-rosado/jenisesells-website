@@ -44,6 +44,10 @@ appsettings.Development.json
 .claude/settings.local.json
 .claude/memory/
 
+# Certificates (never commit)
+*.pfx
+*.p12
+
 # Agent credentials (never commit)
 config/agents/*.credentials.json
 
@@ -51,3 +55,9 @@ config/agents/*.credentials.json
 apps/agent-site/lib/config-registry.ts
 
 .superpowers/
+
+# Coverage reports
+coverage/
+
+# Archives
+*.tar
