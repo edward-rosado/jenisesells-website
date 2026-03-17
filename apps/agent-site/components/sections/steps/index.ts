@@ -5,3 +5,5 @@ export { StepsElegant } from "./StepsElegant";
 export { StepsCards } from "./StepsCards";
 export { StepsJourney } from "./StepsJourney";
 export { StepsRefined } from "./StepsRefined";
+export { StepsBreeze } from "./StepsBreeze";
+export { StepsCorporate } from "./StepsCorporate";

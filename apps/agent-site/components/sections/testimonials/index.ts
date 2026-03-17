@@ -5,3 +5,5 @@ export { TestimonialsMinimal } from "./TestimonialsMinimal";
 export { TestimonialsStack } from "./TestimonialsStack";
 export { TestimonialsHeart } from "./TestimonialsHeart";
 export { TestimonialsQuote } from "./TestimonialsQuote";
+export { TestimonialsBeach } from "./TestimonialsBeach";
+export { TestimonialsCorporate } from "./TestimonialsCorporate";

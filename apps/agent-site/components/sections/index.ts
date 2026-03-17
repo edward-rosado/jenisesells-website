@@ -65,6 +65,24 @@ export { SoldElegant } from "./sold/SoldElegant";
 export { TestimonialsQuote } from "./testimonials/TestimonialsQuote";
 export { AboutGrace } from "./about/AboutGrace";
 
+// Coastal Living variants
+export { HeroCoastal } from "./heroes/HeroCoastal";
+export { StatsWave } from "./stats/StatsWave";
+export { ServicesCoastal } from "./services/ServicesCoastal";
+export { StepsBreeze } from "./steps/StepsBreeze";
+export { SoldCoastal } from "./sold/SoldCoastal";
+export { TestimonialsBeach } from "./testimonials/TestimonialsBeach";
+export { AboutCoastal } from "./about/AboutCoastal";
+
+// Commercial variants
+export { HeroCorporate } from "./heroes/HeroCorporate";
+export { StatsMetrics } from "./stats/StatsMetrics";
+export { ServicesCommercial } from "./services/ServicesCommercial";
+export { StepsCorporate } from "./steps/StepsCorporate";
+export { SoldMetrics } from "./sold/SoldMetrics";
+export { TestimonialsCorporate } from "./testimonials/TestimonialsCorporate";
+export { AboutProfessional } from "./about/AboutProfessional";
+
 // Backward-compatible aliases for EmeraldClassic template
 export { HeroGradient as Hero } from "./heroes/HeroGradient";
 export { ServicesGrid as Services } from "./services/ServicesGrid";

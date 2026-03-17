@@ -5,3 +5,5 @@ export { StatsOverlay } from "./StatsOverlay";
 export { StatsCompact } from "./StatsCompact";
 export { StatsWarm } from "./StatsWarm";
 export { StatsElegant } from "./StatsElegant";
+export { StatsWave } from "./StatsWave";
+export { StatsMetrics } from "./StatsMetrics";

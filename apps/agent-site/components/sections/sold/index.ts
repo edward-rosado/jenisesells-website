@@ -5,3 +5,5 @@ export { SoldCarousel } from "./SoldCarousel";
 export { SoldCompact } from "./SoldCompact";
 export { SoldStories } from "./SoldStories";
 export { SoldElegant } from "./SoldElegant";
+export { SoldCoastal } from "./SoldCoastal";
+export { SoldMetrics } from "./SoldMetrics";
