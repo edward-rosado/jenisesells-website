@@ -22,6 +22,13 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | [Data Model](lead-form-data-model.md) | Shared type hierarchy for buyer and seller lead capture |
 | [Google Maps Autocomplete](google-maps-autocomplete-lifecycle.md) | Lazy SDK loading and address autocomplete lifecycle |
 
+## Multi-Template System
+
+| Document | Description |
+|----------|------------|
+| [Multi-Template Selection](multi-template-selection.md) | How requests resolve to a template and render enabled sections |
+| [Section Variant Architecture](section-variant-architecture.md) | How section categories map to template-specific variants |
+
 ## Compliance and Legal
 
 | Document | Description |
