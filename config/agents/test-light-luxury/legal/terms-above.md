@@ -1,0 +1,1 @@
+The information presented on this website is intended for general informational purposes only and does not constitute legal, financial, or real estate advice. Fontaine & Partners makes no representations or warranties of any kind regarding the accuracy or completeness of any property information displayed herein. All property data is subject to change without notice.
