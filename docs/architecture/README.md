@@ -22,6 +22,14 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | [Data Model](lead-form-data-model.md) | Shared type hierarchy for buyer and seller lead capture |
 | [Google Maps Autocomplete](google-maps-autocomplete-lifecycle.md) | Lazy SDK loading and address autocomplete lifecycle |
 
+## CMA Integration & Multi-Template
+
+| Document | Description |
+|----------|------------|
+| [CMA Form Submission Flow](cma-form-submission-flow.md) | Seller vs buyer lead routing through shared hook to .NET API |
+| [Multi-Template Composition](multi-template-composition.md) | How 3 templates compose section variants from the shared library |
+| [Shared Package Dependencies](shared-package-dependencies.md) | How packages/ui and shared-types are consumed by apps |
+
 ## Compliance and Legal
 
 | Document | Description |
