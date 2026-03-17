@@ -1,5 +1,4 @@
 import { Nav } from "@/components/Nav";
-import { Analytics } from "@/components/Analytics";
 import {
   HeroSplit,
   StatsCards,
@@ -17,7 +16,6 @@ export function ModernMinimal({ agent, content }: TemplateProps) {
   const s = content.sections;
   return (
     <>
-      <Analytics tracking={agent.integrations?.tracking} />
       <Nav agent={agent} />
       <div style={{ paddingTop: "0" }}>
       {s.hero.enabled && (

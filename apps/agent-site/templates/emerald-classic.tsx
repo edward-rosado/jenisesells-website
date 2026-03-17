@@ -1,5 +1,4 @@
 import { Nav } from "@/components/Nav";
-import { Analytics } from "@/components/Analytics";
 import { Hero, StatsBar, Services, HowItWorks, SoldHomes, Testimonials, CmaSection, About, Footer } from "@/components/sections";
 import type { TemplateProps } from "./types";
 
@@ -7,7 +6,6 @@ export function EmeraldClassic({ agent, content }: TemplateProps) {
   const s = content.sections;
   return (
     <>
-      <Analytics tracking={agent.integrations?.tracking} />
       <Nav agent={agent} />
       <div style={{ paddingTop: "0" }}>
       {s.hero.enabled && (
