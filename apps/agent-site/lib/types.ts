@@ -83,6 +83,7 @@ export interface ServiceItem {
   title: string;
   description: string;
   icon?: string;
+  category?: string;  // For two-tier service grouping (e.g., commercial)
 }
 
 export interface StepItem {
@@ -98,6 +99,16 @@ export interface SoldHomeItem {
   price: string;
   sold_date?: string;
   image_url?: string;
+  // Optional fields for specialized templates
+  property_type?: string;    // "Office", "Oceanfront", "Estate"
+  sq_ft?: string;            // "45,000 SF"
+  cap_rate?: string;         // "6.2%"
+  noi?: string;              // "$280,000"
+  badge_label?: string;      // Override "SOLD" text (e.g., "CLOSED")
+  features?: Array<{ label: string; value: string }>;  // e.g., [{ label: "Lot", value: "5 acres" }]
+  client_quote?: string;     // For success story display
+  client_name?: string;      // For success story attribution
+  tags?: string[];           // Multiple property tags (e.g., ["Oceanfront", "Beach Access"])
 }
 
 export interface TestimonialItem {
