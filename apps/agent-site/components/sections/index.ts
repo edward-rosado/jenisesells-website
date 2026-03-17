@@ -29,6 +29,15 @@ export { SoldCards } from "./sold/SoldCards";
 export { TestimonialsBubble } from "./testimonials/TestimonialsBubble";
 export { AboutCard } from "./about/AboutCard";
 
+// Luxury Estate variants
+export { HeroDark } from "./heroes/HeroDark";
+export { StatsOverlay } from "./stats/StatsOverlay";
+export { ServicesElegant } from "./services/ServicesElegant";
+export { StepsElegant } from "./steps/StepsElegant";
+export { SoldCarousel } from "./sold/SoldCarousel";
+export { TestimonialsMinimal } from "./testimonials/TestimonialsMinimal";
+export { AboutEditorial } from "./about/AboutEditorial";
+
 // Backward-compatible aliases for EmeraldClassic template
 export { HeroGradient as Hero } from "./heroes/HeroGradient";
 export { ServicesGrid as Services } from "./services/ServicesGrid";
