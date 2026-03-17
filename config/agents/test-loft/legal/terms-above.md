@@ -1,0 +1,1 @@
+By using this site, you're agreeing to work with us like adults. This site is operated by Kai Nakamura, Licensed Real Estate Salesperson at Loft & Key Realty. Everything here is informational — nothing on this site is a contract or a guarantee of results.
