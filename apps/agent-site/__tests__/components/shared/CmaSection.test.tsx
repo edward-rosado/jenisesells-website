@@ -177,6 +177,7 @@ describe("CmaSection form submission", () => {
 
     expect(locationMock.href).toContain("/thank-you");
     expect(locationMock.href).toContain("test-agent");
+    expect(locationMock.href).toContain("email=alice%40test.com");
   });
 
   it("fires analytics conversion tracking on success", async () => {
@@ -225,9 +226,7 @@ describe("CmaSection form submission", () => {
     expect(screen.getByText("CMA submission failed (500)")).toBeInTheDocument();
   });
 
-  it("submits buyer-only leads (LeadFormData.seller will be undefined)", async () => {
-    mockSubmit.mockResolvedValueOnce(true);
-
+  it("skips CMA API and redirects directly for buyer-only leads", async () => {
     const locationMock = { href: "" };
     Object.defineProperty(window, "location", { value: locationMock, writable: true });
 
@@ -238,13 +237,10 @@ describe("CmaSection form submission", () => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);
     });
 
-    expect(mockSubmit).toHaveBeenCalledWith(
-      "test-agent",
-      expect.objectContaining({
-        firstName: "Alice",
-        leadTypes: ["buying"],
-      }),
-    );
+    // Buyer-only leads skip the CMA pipeline (no property address to analyze)
+    expect(mockSubmit).not.toHaveBeenCalled();
+    expect(locationMock.href).toContain("/thank-you");
+    expect(locationMock.href).toContain("test-agent");
   });
 
   it("passes numeric beds, baths, and sqft when provided", async () => {

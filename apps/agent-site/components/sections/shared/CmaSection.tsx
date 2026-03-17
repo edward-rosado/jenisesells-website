@@ -37,11 +37,16 @@ export function CmaSection({
   const isProcessing = state.phase === "submitting";
 
   async function handleSubmit(leadData: LeadFormData) {
-    const success = await submit(agentId, leadData);
-    if (success) {
-      trackCmaConversion(tracking);
-      window.location.href = `/thank-you?agentId=${encodeURIComponent(agentId)}`;
+    const isSelling = leadData.leadTypes.includes("selling") && leadData.seller?.address;
+
+    if (isSelling) {
+      const success = await submit(agentId, leadData);
+      if (!success) return;
     }
+
+    trackCmaConversion(tracking);
+    const emailParam = leadData.email ? `&email=${encodeURIComponent(leadData.email)}` : "";
+    window.location.href = `/thank-you?agentId=${encodeURIComponent(agentId)}${emailParam}`;
   }
 
   return (
