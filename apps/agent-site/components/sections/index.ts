@@ -1,5 +1,5 @@
 // Shared (identical across all templates)
-export { CmaForm } from "./shared/CmaForm";
+export { CmaSection } from "./shared/CmaSection";
 export { Footer } from "./shared/Footer";
 
 // Emerald Classic variants

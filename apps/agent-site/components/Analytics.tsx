@@ -59,7 +59,7 @@ export function Analytics({ tracking }: AnalyticsProps) {
 
 /**
  * Fire a conversion event for the CMA form submission.
- * Call this from CmaForm after a successful submission.
+ * Call this from CmaSection after a successful submission.
  */
 export function trackCmaConversion(tracking?: AgentTracking) {
   if (!tracking || typeof window === "undefined") return;

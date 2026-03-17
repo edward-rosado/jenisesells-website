@@ -115,12 +115,12 @@ describe("EmeraldClassic template", () => {
     expect(screen.queryByRole("heading", { name: "What My Clients Say" })).not.toBeInTheDocument();
   });
 
-  it("renders CmaForm when enabled", () => {
+  it("renders CmaSection when enabled", () => {
     render(<EmeraldClassic agent={AGENT} content={CONTENT} />);
     expect(screen.getByRole("heading", { level: 2, name: "What's Your Home Worth?" })).toBeInTheDocument();
   });
 
-  it("does not render CmaForm when disabled", () => {
+  it("does not render CmaSection when disabled", () => {
     render(<EmeraldClassic agent={AGENT} content={CONTENT_ALL_DISABLED} />);
     expect(screen.queryByRole("heading", { name: "What's Your Home Worth?" })).not.toBeInTheDocument();
   });

@@ -6,7 +6,7 @@ import {
   StepsFriendly,
   SoldCards,
   TestimonialsBubble,
-  CmaForm,
+  CmaSection,
   AboutCard,
   Footer,
 } from "@/components/sections";
@@ -56,12 +56,10 @@ export function WarmCommunity({ agent, content }: TemplateProps) {
         />
       )}
       {s.cma_form.enabled && (
-        <CmaForm
+        <CmaSection
           agentId={agent.id}
           agentName={agent.identity.name}
           defaultState={agent.location.state}
-          formHandler={agent.integrations?.form_handler}
-          formHandlerId={agent.integrations?.form_handler_id}
           tracking={agent.integrations?.tracking}
           data={s.cma_form.data}
           serviceAreas={agent.location.service_areas}

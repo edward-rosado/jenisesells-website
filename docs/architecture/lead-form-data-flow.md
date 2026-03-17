@@ -1,6 +1,6 @@
 # Lead Form Data Flow
 
-How lead data flows from user input through submission to either Formspree or the CMA API.
+How lead data flows from user input through submission to the .NET CMA API.
 
 ```mermaid
 flowchart LR
@@ -10,20 +10,17 @@ flowchart LR
         Fields["Form fields<br/>Contact, property, timeline"]
     end
 
-    subgraph LeadForm ["LeadForm Component"]
+    subgraph LeadForm ["LeadForm Component (packages/ui)"]
         Validate["Validate required fields<br/>+ timeline check"]
         Build["Build LeadFormData<br/>buyer/seller conditional"]
     end
 
-    subgraph CmaFormWrapper ["CmaForm Wrapper"]
-        ModeCheck{"formHandler<br/>= formspree?"}
-        Formspree["Formspree POST<br/>FormData to formspree.io"]
-        ApiMode["useCmaSubmit hook<br/>POST to API + SignalR tracking"]
+    subgraph CmaSectionWrapper ["CmaSection Wrapper (apps/agent-site)"]
+        Submit["useCmaSubmit hook<br/>(from packages/ui)<br/>POST to .NET API"]
     end
 
     subgraph Outcomes ["Outcomes"]
         ThankYou["Redirect to /thank-you"]
-        Progress["Progress tracker<br/>Real-time SSE updates"]
         Error["Error display<br/>with retry"]
     end
 
@@ -31,12 +28,7 @@ flowchart LR
     GMaps -->|"fills address, city,<br/>state, zip"| Fields
     Fields --> Validate
     Validate --> Build
-    Build -->|"onSubmit callback"| ModeCheck
-    ModeCheck -->|"yes"| Formspree
-    ModeCheck -->|"no"| ApiMode
-    Formspree --> ThankYou
-    ApiMode --> Progress
-    Formspree -.->|"fetch error"| Error
-    ApiMode -.->|"API error"| Error
-    Progress --> ThankYou
+    Build -->|"onSubmit callback"| Submit
+    Submit --> ThankYou
+    Submit -.->|"API error"| Error
 ```

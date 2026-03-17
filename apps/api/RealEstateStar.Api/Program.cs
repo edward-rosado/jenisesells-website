@@ -176,13 +176,20 @@ builder.Services.AddHealthChecks()
     .AddCheck<ClaudeApiHealthCheck>("claude_api", tags: ["ready"]);
 
 // CORS
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? ["http://localhost:3000", "http://localhost:3001"];
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(
-                builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                    ?? ["http://localhost:3000", "http://localhost:3001"])
+        policy.WithOrigins(allowedOrigins)
+            .SetIsOriginAllowed(origin =>
+            {
+                // Allow *.localhost:{port} subdomains in development (e.g. jenise-buckalew.localhost:3000)
+                if (!builder.Environment.IsDevelopment()) return allowedOrigins.Contains(origin);
+                var uri = new Uri(origin);
+                return uri.Host == "localhost" || uri.Host.EndsWith(".localhost");
+            })
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials(); // Required for SignalR

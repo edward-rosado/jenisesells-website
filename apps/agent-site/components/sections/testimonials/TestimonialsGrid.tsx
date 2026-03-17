@@ -16,7 +16,7 @@ export function TestimonialsGrid({ items, title }: TestimonialsProps) {
             textAlign: "center",
             fontSize: "32px",
             fontWeight: 700,
-            color: "#1B5E20",
+            color: "var(--color-primary)",
             marginBottom: "10px",
           }}
         >
@@ -54,7 +54,7 @@ export function TestimonialsGrid({ items, title }: TestimonialsProps) {
                 aria-label={`${clampRating(item.rating)} out of 5 stars`}
                 style={{
                   display: "block",
-                  color: "#C8A951",
+                  color: "var(--color-accent)",
                   fontSize: "18px",
                   marginBottom: "10px",
                 }}
@@ -75,7 +75,7 @@ export function TestimonialsGrid({ items, title }: TestimonialsProps) {
                 style={{
                   marginTop: "15px",
                   fontWeight: 700,
-                  color: "#1B5E20",
+                  color: "var(--color-primary)",
                   fontSize: "14px",
                 }}
               >

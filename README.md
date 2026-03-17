@@ -54,7 +54,7 @@ Every agent (tenant) has a JSON config file at `config/agents/{agent-id}.json`. 
   "identity": { "name": "Jenise Buckalew", "email": "...", "phone": "..." },
   "location": { "state": "NJ", "service_areas": ["Middlesex County", "..."] },
   "branding": { "primary_color": "#1B5E20", "accent_color": "#C8A951" },
-  "integrations": { "email_provider": "gmail", "form_handler": "formspree" },
+  "integrations": { "email_provider": "gmail" },
   "compliance": { "state_form": "NJ-REALTORS-118" }
 }
 ```

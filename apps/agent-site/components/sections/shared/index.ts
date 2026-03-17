@@ -1,2 +1,2 @@
-export { CmaForm } from "./CmaForm";
+export { CmaSection } from "./CmaSection";
 export { Footer } from "./Footer";

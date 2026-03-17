@@ -31,9 +31,7 @@
     "logo_url": "/agents/jenise-buckalew/logo.png"
   },
   "integrations": {
-    "email_provider": "gmail",
-    "form_handler": "formspree",
-    "form_handler_id": "xkovdywn"
+    "email_provider": "gmail"
   },
   "compliance": {
     "state_form": "NJ-REALTORS-118",
