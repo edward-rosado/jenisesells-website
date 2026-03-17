@@ -15,14 +15,15 @@ export const revalidate = 60; // ISR: revalidate every 60 seconds
 
 function resolveAgentId(agentId?: string): string {
   // In production, always use the bound agent — never trust query params (tenant confusion)
-  if (process.env.NODE_ENV === "production") {
+  // Preview deploys set PREVIEW=true so ?agentId works for QA
+  if (process.env.NODE_ENV === "production" && !process.env.PREVIEW) {
     return process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
   }
   return agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 }
 
 function resolveTemplateOverride(template?: string): string | undefined {
-  if (process.env.NODE_ENV === "production") return undefined;
+  if (process.env.NODE_ENV === "production" && !process.env.PREVIEW) return undefined;
   return template;
 }
 

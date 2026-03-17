@@ -154,7 +154,8 @@ jobs:
             ],
             "vars": {
               "NEXT_PUBLIC_API_URL": "https://api.real-estate-star.com",
-              "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": "${{ secrets.GOOGLE_MAPS_API_KEY }}"
+              "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": "${{ secrets.GOOGLE_MAPS_API_KEY }}",
+              "PREVIEW": "true"
             }
           }
           WRANGLER_EOF
