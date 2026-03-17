@@ -318,6 +318,15 @@ export function LeadForm({
         @media (max-width: 600px) {
           .res-lead-form-row { flex-direction: column; gap: 0; }
         }
+        .res-lead-form-pill:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          filter: brightness(1.05);
+        }
+        .res-lead-form-pill:active {
+          transform: translateY(0);
+          box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
         .res-lead-form-pill:focus-visible {
           outline: 2px solid var(--color-primary, #1B5E20);
           outline-offset: 2px;
