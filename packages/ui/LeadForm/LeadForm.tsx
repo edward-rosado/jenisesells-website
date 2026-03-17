@@ -318,6 +318,15 @@ export function LeadForm({
         @media (max-width: 600px) {
           .res-lead-form-row { flex-direction: column; gap: 0; }
         }
+        .res-lead-form-pill:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          filter: brightness(1.05);
+        }
+        .res-lead-form-pill:active {
+          transform: translateY(0);
+          box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
         .res-lead-form-submit:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 8px 25px rgba(0,0,0,0.3);
@@ -332,7 +341,7 @@ export function LeadForm({
 
       {/* Mode pills */}
       <div style={{ marginBottom: 20, display: "flex", gap: 12 }}>
-        <span style={{ position: "relative", ...(isBuying ? pillChecked : pillBase), ...(validationError && !isBuying && !isSelling ? { borderColor: "red" } : {}) }}>
+        <span className="res-lead-form-pill" style={{ position: "relative", ...(isBuying ? pillChecked : pillBase), ...(validationError && !isBuying && !isSelling ? { borderColor: "red" } : {}) }}>
           <input
             id="lf-buying"
             type="checkbox"
@@ -342,7 +351,7 @@ export function LeadForm({
           />
           <label htmlFor="lf-buying" style={{ cursor: "pointer", margin: 0 }}>I&apos;m Buying</label>
         </span>
-        <span style={{ position: "relative", ...(isSelling ? pillChecked : pillBase), ...(validationError && !isBuying && !isSelling ? { borderColor: "red" } : {}) }}>
+        <span className="res-lead-form-pill" style={{ position: "relative", ...(isSelling ? pillChecked : pillBase), ...(validationError && !isBuying && !isSelling ? { borderColor: "red" } : {}) }}>
           <input
             id="lf-selling"
             type="checkbox"
