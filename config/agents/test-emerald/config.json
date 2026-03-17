@@ -1,0 +1,44 @@
+{
+  "id": "test-emerald",
+  "identity": {
+    "name": "Patricia Collins",
+    "title": "REALTOR\u00ae",
+    "license_id": "9876543",
+    "brokerage": "Evergreen Homes Realty",
+    "brokerage_id": "BR-44210",
+    "phone": "(732) 555-0303",
+    "office_phone": "(732) 555-0300 ext 110",
+    "email": "patricia@evergreenhomes.com",
+    "website": "patriciacollinsrealty.com",
+    "languages": ["English"],
+    "tagline": "Your Home. Your Future. My Priority.",
+    "headshot_url": "/agents/test-emerald/headshot.jpg"
+  },
+  "location": {
+    "state": "NJ",
+    "office_address": "250 Main St, Woodbridge, NJ 07095",
+    "service_areas": [
+      "Middlesex County",
+      "Union County",
+      "Somerset County"
+    ]
+  },
+  "branding": {
+    "primary_color": "#1B5E20",
+    "secondary_color": "#2E7D32",
+    "accent_color": "#C8A951",
+    "font_family": "Segoe UI",
+    "logo_url": ""
+  },
+  "integrations": {
+    "email_provider": "gmail"
+  },
+  "compliance": {
+    "state_form": "NJ-REALTORS-118",
+    "licensing_body": "NJ Real Estate Commission",
+    "disclosure_requirements": [
+      "Lead-based paint disclosure (pre-1978)",
+      "Seller property condition disclosure"
+    ]
+  }
+}

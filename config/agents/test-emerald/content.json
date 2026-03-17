@@ -1,0 +1,130 @@
+{
+  "template": "emerald-classic",
+  "navigation": {
+    "items": [
+      { "label": "Why Choose Me", "section": "services" },
+      { "label": "How It Works", "section": "how-it-works" },
+      { "label": "Recent Sales", "section": "sold" },
+      { "label": "Testimonials", "section": "testimonials" },
+      { "label": "Free Home Value", "section": "cma-form" },
+      { "label": "About", "section": "about" }
+    ]
+  },
+  "contact_info": [
+    { "type": "phone", "value": "(732) 555-0303", "label": "Cell Phone", "is_preferred": true },
+    { "type": "phone", "value": "(732) 555-0300", "ext": "110", "label": "Office Phone", "is_preferred": false },
+    { "type": "email", "value": "patricia@evergreenhomes.com", "label": "Email", "is_preferred": false }
+  ],
+  "sections": {
+    "hero": {
+      "enabled": true,
+      "data": {
+        "headline": "Sell Your Home for Top Dollar",
+        "highlight_word": "Top Dollar",
+        "tagline": "Your Home. Your Future. My Priority.",
+        "body": "I'm Patricia Collins, a NJ State Licensed REALTOR\u00ae with Evergreen Homes Realty. With 15 years of experience and over 200 homes sold, I know what it takes to get you the best price. Whether you're upsizing, downsizing, or making your first move \u2014 I'm here to guide you every step of the way.",
+        "cta_text": "Get Your Free Home Value Report",
+        "cta_link": "#cma-form"
+      }
+    },
+    "stats": {
+      "enabled": true,
+      "data": {
+        "items": [
+          { "value": "200+", "label": "Homes Sold" },
+          { "value": "4.9 \u2605", "label": "Google Rating (38 Reviews)" },
+          { "value": "15+", "label": "Years Experience" },
+          { "value": "$350K\u2013$1.2M", "label": "Sale Price Range" }
+        ]
+      }
+    },
+    "services": {
+      "enabled": true,
+      "data": {
+        "title": "Why Work With Me",
+        "subtitle": "Full-service real estate from first call to closing day.",
+        "items": [
+          { "title": "Free Home Valuation", "description": "Get a professional Comparative Market Analysis showing exactly what your home is worth in today's market \u2014 completely free." },
+          { "title": "Professional Photography & Staging", "description": "Every listing gets magazine-quality photos and virtual staging to make buyers fall in love online." },
+          { "title": "Strategic Pricing", "description": "Data-backed pricing strategies that attract competitive offers and avoid sitting on the market." },
+          { "title": "Maximum Exposure", "description": "MLS, Zillow, Realtor.com, social media ads, and targeted email campaigns to reach serious buyers fast." },
+          { "title": "Buyer Representation", "description": "Looking to buy? I'll help you find the right home, negotiate the best deal, and navigate inspections and closing." },
+          { "title": "Relocation Assistance", "description": "Moving in or out of the area? I coordinate with relocation specialists to make your transition seamless." }
+        ]
+      }
+    },
+    "how_it_works": {
+      "enabled": true,
+      "data": {
+        "title": "How It Works",
+        "subtitle": "Three simple steps to get started.",
+        "steps": [
+          { "number": 1, "title": "Submit Your Info", "description": "Fill out the quick form below with your property details. Takes less than 2 minutes." },
+          { "number": 2, "title": "Get Your Home Value Report", "description": "I'll send you a personalized report showing what your home is worth based on recent comparable sales in your area." },
+          { "number": 3, "title": "Meet & Plan", "description": "We'll meet in person or virtually to discuss your goals and create a customized strategy." }
+        ]
+      }
+    },
+    "sold_homes": {
+      "enabled": true,
+      "data": {
+        "title": "Recently Sold by Patricia",
+        "subtitle": "Real results for real families across Central New Jersey.",
+        "items": [
+          { "address": "42 Oak Tree Rd", "city": "Edison", "state": "NJ", "price": "$575,000", "image_url": "/agents/test-emerald/sold/42-oak-tree.jpg" },
+          { "address": "18 Maple Ave", "city": "Woodbridge", "state": "NJ", "price": "$485,000", "image_url": "/agents/test-emerald/sold/18-maple-ave.jpg" },
+          { "address": "305 Park Ave", "city": "Scotch Plains", "state": "NJ", "price": "$720,000", "image_url": "/agents/test-emerald/sold/305-park-ave.jpg" },
+          { "address": "88 Elm St", "city": "Westfield", "state": "NJ", "price": "$890,000", "image_url": "/agents/test-emerald/sold/88-elm-st.jpg" }
+        ]
+      }
+    },
+    "testimonials": {
+      "enabled": true,
+      "data": {
+        "title": "What My Clients Say",
+        "subtitle": "Real reviews from happy homeowners.",
+        "items": [
+          { "text": "Patricia sold our home in just 5 days for over asking price! She handled everything from staging to closing with incredible professionalism. Cannot recommend her enough.", "reviewer": "The Martinez Family", "rating": 5, "source": "Google" },
+          { "text": "As first-time buyers, we were nervous about the process. Patricia made it feel easy and exciting. She found us the perfect home in our budget and negotiated a great deal.", "reviewer": "Mike & Sarah T.", "rating": 5, "source": "Google" },
+          { "text": "We've worked with Patricia on three transactions now \u2014 buying our first home, selling it, and buying our forever home. She's our realtor for life!", "reviewer": "Jennifer K.", "rating": 5, "source": "Zillow" }
+        ]
+      }
+    },
+    "cma_form": {
+      "enabled": true,
+      "data": {
+        "title": "What's Your Home Worth?",
+        "subtitle": "Get a free, no-obligation Home Value Report in minutes.",
+        "description": "Enter your property details below and I'll send you a personalized market analysis based on recent sales in your neighborhood. **100% free, no obligation.**"
+      }
+    },
+    "about": {
+      "enabled": true,
+      "data": {
+        "title": "About Patricia",
+        "bio": [
+          "I'm Patricia Collins \u2014 a lifelong New Jersey resident, NJ State Licensed REALTOR\u00ae, and proud member of Evergreen Homes Realty. For over 15 years, I've helped families across Middlesex, Union, and Somerset Counties buy and sell homes with confidence.",
+          "With more than 200 successful transactions, I bring deep market knowledge and a personal touch to every deal. My clients know they can count on me for honest advice, clear communication, and results that exceed expectations.",
+          "When I'm not showing homes, you'll find me volunteering at the local food bank, cheering on my kids' soccer teams, or exploring the Jersey Shore."
+        ],
+        "credentials": ["NJ State Licensed", "200+ Homes Sold", "4.9 \u2605 Google", "NJ REALTORS\u00ae Member"]
+      }
+    },
+    "city_pages": {
+      "enabled": false,
+      "data": {
+        "cities": []
+      }
+    }
+  },
+  "pages": {
+    "thank_you": {
+      "heading": "Thank You!",
+      "subheading": "Your Home Value Report Is On Its Way!",
+      "body": "{firstName} will send your personalized report to your email shortly.",
+      "disclaimer": "This report is a Comparative Market Analysis (CMA) and is not an appraisal.",
+      "cta_call": "Call {firstName}: {phone}",
+      "cta_back": "Back to {firstName}'s Site"
+    }
+  }
+}

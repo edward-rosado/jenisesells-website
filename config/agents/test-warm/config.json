@@ -2,17 +2,22 @@
   "id": "test-warm",
   "identity": {
     "name": "Maria Santiago",
-    "title": "REALTOR®",
-    "phone": "(512) 555-0202",
-    "email": "maria@hillcountryrealty.com",
+    "title": "REALTOR\u00ae",
+    "license_id": "TX-0654321",
     "brokerage": "Hill Country Realty",
-    "tagline": "Your Neighbor. Your REALTOR®.",
+    "brokerage_id": "HCR-ATX-1105",
+    "phone": "(512) 555-0202",
+    "office_phone": "(512) 555-0200 ext 15",
+    "email": "maria@hillcountryrealty.com",
+    "website": "mariasantiagorealty.com",
+    "languages": ["English", "Spanish"],
+    "tagline": "Your Neighbor. Your REALTOR\u00ae.",
     "headshot_url": "/agents/test-warm/headshot.jpg"
   },
   "location": {
     "state": "TX",
-    "office_address": "1100 Congress Ave, Austin, TX 78701",
-    "service_areas": ["Austin", "Round Rock", "Cedar Park", "Georgetown"]
+    "office_address": "1100 Congress Ave, Suite 200, Austin, TX 78701",
+    "service_areas": ["Austin", "Round Rock", "Cedar Park", "Georgetown", "Pflugerville"]
   },
   "branding": {
     "primary_color": "#5D1A1A",
@@ -21,9 +26,16 @@
     "font_family": "Georgia",
     "logo_url": ""
   },
-  "integrations": {},
+  "integrations": {
+    "email_provider": "gmail"
+  },
   "compliance": {
     "state_form": "TREC-20-16",
-    "licensing_body": "Texas Real Estate Commission"
+    "licensing_body": "Texas Real Estate Commission",
+    "disclosure_requirements": [
+      "Seller's disclosure notice (TREC OP-H)",
+      "Lead-based paint disclosure (pre-1978)",
+      "MUD/PID disclosure"
+    ]
   }
 }

@@ -3,16 +3,21 @@
   "identity": {
     "name": "Alex Rivera",
     "title": "Licensed Real Estate Salesperson",
-    "phone": "(212) 555-0101",
-    "email": "alex@testrealty.com",
+    "license_id": "10401098765",
     "brokerage": "Metro Realty Group",
+    "brokerage_id": "MRG-NYC-2201",
+    "phone": "(212) 555-0101",
+    "office_phone": "(212) 555-0100",
+    "email": "alex@testrealty.com",
+    "website": "alexriveranyc.com",
+    "languages": ["English", "Portuguese"],
     "tagline": "City Living. Simplified.",
     "headshot_url": "/agents/test-modern/headshot.jpg"
   },
   "location": {
     "state": "NY",
-    "office_address": "350 Fifth Ave, New York, NY 10118",
-    "service_areas": ["Manhattan", "Brooklyn", "Queens"]
+    "office_address": "350 Fifth Ave, Suite 4100, New York, NY 10118",
+    "service_areas": ["Manhattan", "Brooklyn", "Queens", "Long Island City"]
   },
   "branding": {
     "primary_color": "#1A237E",
@@ -21,9 +26,15 @@
     "font_family": "Inter",
     "logo_url": ""
   },
-  "integrations": {},
+  "integrations": {
+    "email_provider": "gmail"
+  },
   "compliance": {
     "state_form": "NY-DOS-1736",
-    "licensing_body": "NY Department of State"
+    "licensing_body": "NY Department of State",
+    "disclosure_requirements": [
+      "Property condition disclosure (PCDS)",
+      "Lead-based paint disclosure (pre-1978)"
+    ]
   }
 }
