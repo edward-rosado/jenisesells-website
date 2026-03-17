@@ -1,0 +1,209 @@
+{
+  "template": "luxury-estate",
+  "navigation": {
+    "items": [
+      { "label": "Services", "section": "services" },
+      { "label": "Our Process", "section": "how-it-works" },
+      { "label": "Portfolio", "section": "sold" },
+      { "label": "Testimonials", "section": "testimonials" },
+      { "label": "Valuation", "section": "cma-form" },
+      { "label": "About", "section": "about" }
+    ]
+  },
+  "contact_info": [
+    { "type": "phone", "value": "(212) 555-0199", "label": "Direct", "is_preferred": true },
+    { "type": "phone", "value": "(212) 555-0190", "label": "Office", "is_preferred": false },
+    { "type": "email", "value": "victoria@testrealty.com", "label": "Email", "is_preferred": false }
+  ],
+  "sections": {
+    "hero": {
+      "enabled": true,
+      "data": {
+        "headline": "Exceptional Homes for Exceptional Lives",
+        "highlight_word": "Exceptional Lives",
+        "tagline": "Curating premier properties since 2006",
+        "body": "For 18 years, Sterling & Associates has represented Manhattan's most prestigious addresses — from Park Avenue penthouses to Tribeca lofts.",
+        "cta_text": "View Portfolio",
+        "cta_link": "#sold"
+      }
+    },
+    "stats": {
+      "enabled": true,
+      "data": {
+        "items": [
+          { "value": "$2.1B", "label": "Total Volume" },
+          { "value": "340+", "label": "Properties Sold" },
+          { "value": "#1", "label": "NYC Luxury Agent" },
+          { "value": "18 Years", "label": "Experience" }
+        ]
+      }
+    },
+    "services": {
+      "enabled": true,
+      "data": {
+        "title": "Our Services",
+        "subtitle": "Bespoke real estate solutions for discerning clients",
+        "items": [
+          {
+            "title": "Private Portfolio Access",
+            "description": "Gain exclusive access to off-market properties and pre-market listings unavailable to the general public."
+          },
+          {
+            "title": "White-Glove Service",
+            "description": "Concierge-level support throughout every step of your transaction, from initial consultation through closing."
+          },
+          {
+            "title": "Investment Advisory",
+            "description": "Strategic investment guidance for high-net-worth individuals seeking to build or diversify their real estate portfolio."
+          },
+          {
+            "title": "Strategic Marketing",
+            "description": "Bespoke marketing campaigns featuring architectural photography, international exposure, and curated buyer outreach."
+          },
+          {
+            "title": "International Buyers",
+            "description": "Specialized guidance for international clients navigating NYC real estate, with expertise in FIRPTA and foreign buyer requirements."
+          },
+          {
+            "title": "Architectural Consultation",
+            "description": "Access to our network of award-winning architects and designers to help envision and realize the full potential of any property."
+          }
+        ]
+      }
+    },
+    "how_it_works": {
+      "enabled": true,
+      "data": {
+        "title": "Our Process",
+        "subtitle": "A refined approach to extraordinary results",
+        "steps": [
+          {
+            "number": 1,
+            "title": "Private Consultation",
+            "description": "We begin with a private consultation to understand your vision, timeline, and investment objectives."
+          },
+          {
+            "number": 2,
+            "title": "Market Analysis",
+            "description": "Comprehensive analysis of comparable properties and market conditions to position you for success."
+          },
+          {
+            "number": 3,
+            "title": "Strategic Execution",
+            "description": "Expert negotiation and meticulous execution from accepted offer through closing day."
+          }
+        ]
+      }
+    },
+    "sold_homes": {
+      "enabled": true,
+      "data": {
+        "title": "Portfolio",
+        "subtitle": "A selection of our finest recent closings",
+        "items": [
+          {
+            "address": "432 Park Avenue, PH",
+            "city": "New York",
+            "state": "NY",
+            "price": "$12,000,000",
+            "sold_date": "2025-11-15",
+            "image_url": "/agents/test-luxury/sold/432-park-ave.jpg"
+          },
+          {
+            "address": "15 Central Park West",
+            "city": "New York",
+            "state": "NY",
+            "price": "$8,500,000",
+            "sold_date": "2025-09-03",
+            "image_url": "/agents/test-luxury/sold/15-central-park.jpg"
+          },
+          {
+            "address": "56 Leonard Street",
+            "city": "New York",
+            "state": "NY",
+            "price": "$4,200,000",
+            "sold_date": "2025-07-22",
+            "image_url": "/agents/test-luxury/sold/56-leonard.jpg"
+          },
+          {
+            "address": "1 John Street, PH",
+            "city": "Brooklyn",
+            "state": "NY",
+            "price": "$3,750,000",
+            "sold_date": "2025-06-11",
+            "image_url": "/agents/test-luxury/sold/1-john-st.jpg"
+          },
+          {
+            "address": "110 Central Park South",
+            "city": "New York",
+            "state": "NY",
+            "price": "$2,100,000",
+            "sold_date": "2025-04-28",
+            "image_url": "/agents/test-luxury/sold/110-central-park.jpg"
+          }
+        ]
+      }
+    },
+    "testimonials": {
+      "enabled": true,
+      "data": {
+        "title": "Client Testimonials",
+        "items": [
+          {
+            "text": "Victoria's expertise in the luxury market is unparalleled. She guided us through the acquisition of our Park Avenue penthouse with grace and precision. We couldn't imagine working with anyone else.",
+            "reviewer": "Alexandra & James P.",
+            "rating": 5,
+            "source": "Zillow"
+          },
+          {
+            "text": "Sterling & Associates found us an off-market property that perfectly matched our criteria. Victoria's network and market knowledge are extraordinary. She made the impossible feel effortless.",
+            "reviewer": "Margaret & William L.",
+            "rating": 5,
+            "source": "Zillow"
+          },
+          {
+            "text": "From the initial consultation to closing, Victoria provided truly white-glove service. Her attention to detail and ability to negotiate on our behalf saved us over $400,000 on our purchase.",
+            "reviewer": "Robert H.",
+            "rating": 5,
+            "source": "Zillow"
+          }
+        ]
+      }
+    },
+    "cma_form": {
+      "enabled": true,
+      "data": {
+        "title": "What Is Your Property Worth?",
+        "subtitle": "Complimentary Confidential Valuation",
+        "description": "Receive a **comprehensive market analysis** prepared exclusively for you. No obligation, no pressure — just the data you need to make an informed decision."
+      }
+    },
+    "about": {
+      "enabled": true,
+      "data": {
+        "title": "About Victoria Sterling",
+        "bio": [
+          "Victoria Sterling is one of New York City's most accomplished luxury real estate brokers, with over 18 years of experience representing buyers and sellers of Manhattan's most prestigious properties.",
+          "Having personally closed over $2.1 billion in residential transactions, Victoria brings an unrivaled depth of market knowledge and a discreet, client-focused approach that has earned her a loyal following among the city's most discerning buyers and sellers.",
+          "A member of the Real Estate Board of New York (REBNY) and consistently ranked among the top 1% of agents citywide, Victoria is renowned for her expert negotiation skills, her extensive off-market network, and her commitment to achieving exceptional outcomes for every client she represents."
+        ],
+        "credentials": [
+          "Top 1% NYC Agents",
+          "$2.1B Career Volume",
+          "REBNY Member"
+        ]
+      }
+    },
+    "city_pages": {
+      "enabled": false,
+      "data": {
+        "cities": []
+      }
+    }
+  },
+  "thank_you": {
+    "title": "Thank You for Reaching Out",
+    "subtitle": "We will be in touch within 24 hours to schedule your private consultation.",
+    "body": "At Sterling & Associates, every client relationship begins with a conversation. We look forward to learning more about your real estate goals and exploring how we can serve you."
+  }
+}
