@@ -27,7 +27,7 @@ export function AboutSplit({ agent, data }: AboutProps) {
               height: "250px",
               borderRadius: "50%",
               overflow: "hidden",
-              border: "4px solid #C8A951",
+              border: "4px solid var(--color-accent)",
               flexShrink: 0,
               position: "relative",
             }}
@@ -44,7 +44,7 @@ export function AboutSplit({ agent, data }: AboutProps) {
         <div style={{ maxWidth: "550px" }}>
           <h2
             style={{
-              color: "#1B5E20",
+              color: "var(--color-primary)",
               fontSize: "28px",
               marginBottom: "15px",
             }}
@@ -79,7 +79,7 @@ export function AboutSplit({ agent, data }: AboutProps) {
                   key={cred}
                   style={{
                     background: "#E8F5E9",
-                    color: "#1B5E20",
+                    color: "var(--color-primary)",
                     padding: "6px 14px",
                     borderRadius: "20px",
                     fontSize: "13px",

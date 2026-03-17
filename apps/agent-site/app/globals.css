@@ -1,7 +1,7 @@
 @import "tailwindcss/utilities" layer(utilities);
 
 * {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+  font-family: var(--font-family, 'Segoe UI'), Tahoma, Geneva, Verdana, sans-serif !important;
 }
 
 body {
@@ -39,7 +39,7 @@ body {
   width: auto;
   height: auto;
   padding: 0.75rem 1.5rem;
-  background: #1B5E20;
+  background: var(--color-primary, #1B5E20);
   color: white;
   font-weight: 600;
   text-decoration: none;
@@ -50,7 +50,7 @@ body {
 
 /* Global focus indicator for keyboard navigation (WCAG 2.4.7) */
 :focus-visible {
-  outline: 3px solid #2E7D32;
+  outline: 3px solid var(--color-secondary, #2E7D32);
   outline-offset: 2px;
 }
 

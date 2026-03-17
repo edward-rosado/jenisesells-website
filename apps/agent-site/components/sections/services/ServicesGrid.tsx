@@ -15,7 +15,7 @@ export function ServicesGrid({ items, title, subtitle }: ServicesProps) {
           textAlign: "center",
           fontSize: "32px",
           fontWeight: 700,
-          color: "#1B5E20",
+          color: "var(--color-primary)",
           marginBottom: "10px",
         }}
       >
@@ -47,13 +47,13 @@ export function ServicesGrid({ items, title, subtitle }: ServicesProps) {
               background: "#f9f9f9",
               borderRadius: "12px",
               padding: "30px",
-              borderLeft: "4px solid #2E7D32",
+              borderLeft: "4px solid var(--color-secondary)",
               transition: "transform 0.3s, box-shadow 0.3s",
             }}
           >
             <h3
               style={{
-                color: "#1B5E20",
+                color: "var(--color-primary)",
                 fontSize: "19px",
                 marginBottom: "10px",
               }}
