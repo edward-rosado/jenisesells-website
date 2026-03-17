@@ -1,0 +1,104 @@
+{
+  "template": "warm-community",
+  "navigation": {
+    "items": [
+      { "label": "Services", "section": "services" },
+      { "label": "Process", "section": "how-it-works" },
+      { "label": "Sold Homes", "section": "sold" },
+      { "label": "Reviews", "section": "testimonials" },
+      { "label": "Free Home Value", "section": "cma-form" },
+      { "label": "Meet Maria", "section": "about" }
+    ]
+  },
+  "contact_info": [
+    { "type": "phone", "value": "(512) 555-0202", "label": "Cell Phone", "is_preferred": true },
+    { "type": "email", "value": "maria@hillcountryrealty.com", "label": "Email", "is_preferred": false }
+  ],
+  "sections": {
+    "hero": {
+      "enabled": true,
+      "data": {
+        "headline": "Buy or Sell in the Hill Country",
+        "tagline": "Your Neighbor. Your REALTOR®.",
+        "body": "I'm Maria Santiago, born and raised in Central Texas. Whether you're selling your family home or searching for your next chapter, I bring local expertise and genuine care to every transaction.",
+        "cta_text": "Get Your Free Home Value",
+        "cta_link": "#cma-form"
+      }
+    },
+    "stats": {
+      "enabled": true,
+      "data": {
+        "items": [
+          { "value": "75+", "label": "Homes Sold" },
+          { "value": "4.9 ★", "label": "Google Rating" },
+          { "value": "12+", "label": "Years Experience" }
+        ]
+      }
+    },
+    "services": {
+      "enabled": true,
+      "data": {
+        "title": "How I Help",
+        "subtitle": "Full-service real estate for buyers and sellers.",
+        "items": [
+          { "title": "Free Home Valuation", "description": "Get a professional market analysis of your home's current value — completely free." },
+          { "title": "Buyer Representation", "description": "I'll find homes that fit your budget and lifestyle, and negotiate the best deal." },
+          { "title": "Listing & Marketing", "description": "Professional photos, MLS listing, social media exposure, and open houses." }
+        ]
+      }
+    },
+    "how_it_works": {
+      "enabled": true,
+      "data": {
+        "title": "Getting Started Is Easy",
+        "subtitle": "Three steps to your next move.",
+        "steps": [
+          { "number": 1, "title": "Reach Out", "description": "Fill out the form or give me a call." },
+          { "number": 2, "title": "Get Your Plan", "description": "I'll create a personalized strategy for your goals." },
+          { "number": 3, "title": "Make Your Move", "description": "Buy or sell with confidence — I'll be with you every step." }
+        ]
+      }
+    },
+    "sold_homes": { "enabled": false, "data": { "items": [] } },
+    "testimonials": {
+      "enabled": true,
+      "data": {
+        "title": "What Clients Say",
+        "items": [
+          { "text": "Maria made selling our home so easy. She handled everything and kept us informed the whole time. Highly recommend!", "reviewer": "The Johnson Family", "rating": 5, "source": "Google" },
+          { "text": "We were first-time buyers and Maria walked us through every step. She found us the perfect home in Round Rock!", "reviewer": "David & Lisa", "rating": 5, "source": "Google" }
+        ]
+      }
+    },
+    "cma_form": {
+      "enabled": true,
+      "data": {
+        "title": "What's Your Home Worth?",
+        "subtitle": "Get a free, no-obligation home value report.",
+        "description": "Enter your address below and I'll send you a personalized market analysis. **100% free.**"
+      }
+    },
+    "about": {
+      "enabled": true,
+      "data": {
+        "title": "Meet Maria",
+        "bio": [
+          "I'm Maria Santiago — a lifelong Central Texan, proud mom, and your neighbor. I've been helping families buy and sell homes in the Austin area for over 12 years.",
+          "I believe real estate is about people, not just properties. Every client gets my personal attention, honest advice, and the kind of service I'd want for my own family."
+        ],
+        "credentials": ["Licensed TX REALTOR®", "75+ Homes Sold", "Bilingual: English & Spanish"]
+      }
+    },
+    "city_pages": { "enabled": false, "data": { "cities": [] } }
+  },
+  "pages": {
+    "thank_you": {
+      "heading": "Thank You!",
+      "subheading": "Your Home Value Report Is On Its Way!",
+      "body": "{firstName} will send your personalized report to your email shortly.",
+      "disclaimer": "This report is a Comparative Market Analysis (CMA) and is not an appraisal.",
+      "cta_call": "Call {firstName}: {phone}",
+      "cta_back": "Back to {firstName}'s Site"
+    }
+  }
+}

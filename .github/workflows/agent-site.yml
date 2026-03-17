@@ -173,22 +173,37 @@ jobs:
         if: steps.check.outputs.exists == 'true'
         id: agents
         run: |
-          # Find valid agents: directories with config.json OR top-level .json files (skip bad-* test fixtures)
-          AGENTS=""
+          # Build JSON array of agent metadata for the PR comment
+          AGENTS_JSON="["
+          first=true
+
           for dir in config/agents/*/; do
             id=$(basename "$dir")
             if [ -f "$dir/config.json" ]; then
-              AGENTS="${AGENTS}${id}\n"
+              template=$(jq -r '.template // "emerald-classic"' "$dir/content.json" 2>/dev/null || echo "emerald-classic")
+              primary=$(jq -r '.branding.primary_color // ""' "$dir/config.json" 2>/dev/null || echo "")
+              accent=$(jq -r '.branding.accent_color // ""' "$dir/config.json" 2>/dev/null || echo "")
+              font=$(jq -r '.branding.font_family // ""' "$dir/config.json" 2>/dev/null || echo "")
+              name=$(jq -r '.identity.name // ""' "$dir/config.json" 2>/dev/null || echo "")
+              [ "$first" = true ] && first=false || AGENTS_JSON="${AGENTS_JSON},"
+              AGENTS_JSON="${AGENTS_JSON}{\"id\":\"${id}\",\"name\":\"${name}\",\"template\":\"${template}\",\"primary\":\"${primary}\",\"accent\":\"${accent}\",\"font\":\"${font}\"}"
             fi
           done
+
           for f in config/agents/*.json; do
             id=$(basename "$f" .json)
-            # Skip test fixtures (bad-*) and agent.schema.json
             case "$id" in bad-*|agent.schema) continue;; esac
-            AGENTS="${AGENTS}${id}\n"
+            # Skip if directory layout exists
+            [ -d "config/agents/$id" ] && continue
+            name=$(jq -r '.identity.name // ""' "$f" 2>/dev/null || echo "")
+            primary=$(jq -r '.branding.primary_color // ""' "$f" 2>/dev/null || echo "")
+            [ "$first" = true ] && first=false || AGENTS_JSON="${AGENTS_JSON},"
+            AGENTS_JSON="${AGENTS_JSON}{\"id\":\"${id}\",\"name\":\"${name}\",\"template\":\"emerald-classic\",\"primary\":\"${primary}\",\"accent\":\"\",\"font\":\"\"}"
           done
-          echo "list<<EOF" >> $GITHUB_OUTPUT
-          printf "$AGENTS" >> $GITHUB_OUTPUT
+
+          AGENTS_JSON="${AGENTS_JSON}]"
+          echo "json<<EOF" >> $GITHUB_OUTPUT
+          echo "$AGENTS_JSON" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Comment preview URL on PR
@@ -198,22 +213,24 @@ jobs:
           script: |
             const prNumber = context.payload.pull_request.number;
             const baseUrl = `https://real-estate-star-agents-pr-${prNumber}.misteredr.workers.dev`;
-            const agentList = `${{ steps.agents.outputs.list }}`.trim().split('\n').filter(Boolean);
+            const agents = JSON.parse(`${{ steps.agents.outputs.json }}`);
 
-            let links = agentList.map(id =>
-              `- [${id}](${baseUrl}/?agentId=${id})`
-            ).join('\n');
+            const rows = agents.map(a => {
+              const link = `[${a.name || a.id}](${baseUrl}/?agentId=${a.id})`;
+              const colors = [a.primary, a.accent].filter(Boolean).map(c => `\`${c}\``).join(' / ') || '—';
+              return `| ${link} | ${a.template} | ${colors} | ${a.font || '—'} |`;
+            }).join('\n');
 
             const body = [
-              `**Agent Site Preview**`,
+              `**🏠 Agent Site Preview**`,
               ``,
               `Default: ${baseUrl}`,
               ``,
-              `**Per-agent previews:**`,
-              links,
+              `| Agent | Template | Colors | Font |`,
+              `|-------|----------|--------|------|`,
+              rows,
             ].join('\n');
 
-            // Check for existing preview comment to avoid duplicates
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
