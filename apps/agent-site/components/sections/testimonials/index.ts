@@ -3,3 +3,5 @@ export { TestimonialsClean } from "./TestimonialsClean";
 export { TestimonialsBubble } from "./TestimonialsBubble";
 export { TestimonialsMinimal } from "./TestimonialsMinimal";
 export { TestimonialsStack } from "./TestimonialsStack";
+export { TestimonialsHeart } from "./TestimonialsHeart";
+export { TestimonialsQuote } from "./TestimonialsQuote";

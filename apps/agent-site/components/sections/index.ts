@@ -47,6 +47,24 @@ export { SoldCompact } from "./sold/SoldCompact";
 export { TestimonialsStack } from "./testimonials/TestimonialsStack";
 export { AboutCompact } from "./about/AboutCompact";
 
+// New Beginnings variants
+export { HeroStory } from "./heroes/HeroStory";
+export { StatsWarm } from "./stats/StatsWarm";
+export { ServicesHeart } from "./services/ServicesHeart";
+export { StepsJourney } from "./steps/StepsJourney";
+export { SoldStories } from "./sold/SoldStories";
+export { TestimonialsHeart } from "./testimonials/TestimonialsHeart";
+export { AboutWarm } from "./about/AboutWarm";
+
+// Light Luxury variants
+export { HeroAiry } from "./heroes/HeroAiry";
+export { StatsElegant } from "./stats/StatsElegant";
+export { ServicesRefined } from "./services/ServicesRefined";
+export { StepsRefined } from "./steps/StepsRefined";
+export { SoldElegant } from "./sold/SoldElegant";
+export { TestimonialsQuote } from "./testimonials/TestimonialsQuote";
+export { AboutGrace } from "./about/AboutGrace";
+
 // Backward-compatible aliases for EmeraldClassic template
 export { HeroGradient as Hero } from "./heroes/HeroGradient";
 export { ServicesGrid as Services } from "./services/ServicesGrid";

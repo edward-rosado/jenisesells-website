@@ -3,3 +3,5 @@ export { AboutMinimal } from "./AboutMinimal";
 export { AboutCard } from "./AboutCard";
 export { AboutEditorial } from "./AboutEditorial";
 export { AboutCompact } from "./AboutCompact";
+export { AboutWarm } from "./AboutWarm";
+export { AboutGrace } from "./AboutGrace";
