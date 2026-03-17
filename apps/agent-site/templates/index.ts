@@ -6,6 +6,8 @@ import { LuxuryEstate } from "./luxury-estate";
 import { UrbanLoft } from "./urban-loft";
 import { NewBeginnings } from "./new-beginnings";
 import { LightLuxury } from "./light-luxury";
+import { CoastalLiving } from "./coastal-living";
+import { Commercial } from "./commercial";
 
 export type { TemplateProps, TemplateComponent } from "./types";
 
@@ -17,6 +19,8 @@ export const TEMPLATES: Record<string, TemplateComponent> = {
   "urban-loft": UrbanLoft,
   "new-beginnings": NewBeginnings,
   "light-luxury": LightLuxury,
+  "coastal-living": CoastalLiving,
+  "commercial": Commercial,
 };
 
 export function getTemplate(name: string): TemplateComponent {

@@ -1,0 +1,39 @@
+{
+  "id": "test-coastal",
+  "identity": {
+    "name": "Maya Torres",
+    "title": "Licensed Real Estate Broker",
+    "license_id": "NC-298765",
+    "brokerage": "Coastal Realty Group",
+    "brokerage_id": "CRG-OBX-1201",
+    "phone": "(252) 555-0133",
+    "office_phone": "(252) 555-0100",
+    "email": "maya@testrealty.com",
+    "website": "mayatorresbeach.com",
+    "languages": ["English", "Spanish"],
+    "tagline": "Your Outer Banks Dream Home Awaits",
+    "headshot_url": "/agents/test-coastal/headshot.jpg"
+  },
+  "location": {
+    "state": "NC",
+    "office_address": "4000 S Virginia Dare Trail, Nags Head, NC 27959",
+    "service_areas": ["Nags Head", "Kill Devil Hills", "Duck", "Corolla"]
+  },
+  "branding": {
+    "primary_color": "#2c7a7b",
+    "secondary_color": "#b7791f",
+    "accent_color": "#2c7a7b",
+    "font_family": "Inter",
+    "logo_url": ""
+  },
+  "integrations": { "email_provider": "gmail" },
+  "compliance": {
+    "state_form": "NC-REC-2.14",
+    "licensing_body": "NC Real Estate Commission",
+    "disclosure_requirements": [
+      "Residential Property Disclosure Statement",
+      "Lead-based paint disclosure (pre-1978)",
+      "Flood Zone Disclosure"
+    ]
+  }
+}
