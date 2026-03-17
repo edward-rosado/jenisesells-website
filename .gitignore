@@ -44,6 +44,10 @@ appsettings.Development.json
 .claude/settings.local.json
 .claude/memory/
 
+# Certificates (never commit)
+*.pfx
+*.p12
+
 # Agent credentials (never commit)
 config/agents/*.credentials.json
 

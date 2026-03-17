@@ -8,12 +8,12 @@ Use this checklist before the first production deployment and before each major 
 
 - [ ] Azure Container Apps environment created in target region
 - [ ] Container image built and pushed to Azure Container Registry (ACR)
-- [ ] Dockerfile uses non-root user (`appuser`, UID 1001)
-- [ ] Dockerfile pins base image versions (no `:latest`)
-- [ ] Health check configured: `GET /health/live` (liveness), `GET /health/ready` (readiness)
+- [x] Dockerfile uses non-root user (`appuser`, UID 1001)
+- [x] Dockerfile pins base image versions (no `:latest`)
+- [x] Health check configured: `GET /health/live` (liveness), `GET /health/ready` (readiness)
 - [ ] Min replicas set to 1, max replicas set based on expected load
 - [ ] CPU/memory limits configured (recommend 1 vCPU / 2 GiB minimum)
-- [ ] Ingress configured for HTTPS on port 8080
+- [x] Ingress configured for HTTPS on port 8080
 
 ### Secrets & Environment Variables
 
@@ -28,19 +28,21 @@ Use this checklist before the first production deployment and before each major 
 - [ ] `ScraperApi__ApiKey` set as secret
 - [ ] `Cloudflare__ApiToken` set as secret
 - [ ] `Cloudflare__AccountId` set as secret
-- [ ] `Platform__BaseUrl` set to `https://platform.realestatestar.com`
+- [ ] `Platform__BaseUrl` set to `https://platform.real-estate-star.com`
 - [ ] `Otel__Endpoint` set to Grafana Cloud OTLP gateway URL
 - [ ] `OTEL_EXPORTER_OTLP_HEADERS` set with Grafana Cloud auth header
-- [ ] `Cors__AllowedOrigins__0` set to `https://platform.realestatestar.com`
-- [ ] `AllowedHosts` set to production domain(s) (not `localhost`)
+- [ ] `Cors__AllowedOrigins__0` set to `https://platform.real-estate-star.com`
+- [ ] `AllowedHosts` set to production domain(s) (not `localhost`, not `*`)
 - [ ] No test/dev API keys present in production config
 - [ ] All secrets use Azure Container Apps secrets (not plain env vars)
+
+> **Known issue**: `appsettings.json` currently has `AllowedHosts: "*"` — must override via env var in production.
 
 ### Docker
 
 - [ ] Production image scanned for vulnerabilities (Trivy, Snyk, or ACR scan)
-- [ ] Image size optimized (multi-stage build, no SDK in runtime image)
-- [ ] No development credentials baked into the image
+- [x] Image size optimized (multi-stage build, no SDK in runtime image)
+- [x] No development credentials baked into the image
 - [ ] `.dockerignore` excludes test projects, docs, config/agents
 
 ---
@@ -49,23 +51,25 @@ Use this checklist before the first production deployment and before each major 
 
 See `infra/cloudflare/README.md` for detailed setup steps.
 
-- [ ] `platform.realestatestar.com` CNAME pointing to Cloudflare Pages
-- [ ] `api.realestatestar.com` CNAME pointing to Azure Container Apps
-- [ ] `*.agents.realestatestar.com` CNAME pointing to Cloudflare Pages (or individual agent CNAMEs)
-- [ ] `www.realestatestar.com` CNAME redirecting to platform
-- [ ] SSL/TLS mode set to **Full (strict)** in Cloudflare
-- [ ] HSTS enabled with includeSubDomains
-- [ ] Always Use HTTPS enabled
-- [ ] Minimum TLS version set to 1.2
+- [x] `platform.real-estate-star.com` CNAME pointing to Cloudflare Workers
+- [ ] `api.real-estate-star.com` CNAME pointing to Azure Container Apps
+- [x] Individual agent CNAMEs: `{handle}.real-estate-star.com` pointing to Cloudflare Workers (no wildcard DNS — each agent registered via `infra/cloudflare/add-agent-domain.ps1`)
+- [x] `www.real-estate-star.com` CNAME redirecting to platform
+- [x] SSL/TLS mode set to **Full (strict)** in Cloudflare
+- [x] HSTS enabled with includeSubDomains
+- [x] Always Use HTTPS enabled
+- [x] Minimum TLS version set to 1.2
 - [ ] API cache bypass page rule active
-- [ ] DNS propagation verified with `dig` and `curl`
-- [ ] All endpoints respond with valid SSL certificates
+- [x] DNS propagation verified with `dig` and `curl`
+- [x] All endpoints respond with valid SSL certificates
 
 ---
 
 ## Monitoring (Grafana Cloud)
 
 See `infra/grafana/README.md` for detailed setup steps.
+
+> **Status**: OpenTelemetry instrumentation exists in the API (ActivitySource, Meter, structured logging), but Grafana Cloud is NOT yet configured as a destination. Traces and metrics are instrumented but have no exporter endpoint.
 
 - [ ] Grafana Cloud free tier account created
 - [ ] OTLP connection configured with API token
@@ -94,13 +98,13 @@ See `infra/grafana/README.md` for detailed setup steps.
 - [ ] Production product and price created in Stripe dashboard
 - [ ] `Stripe__PriceId` set to live price ID
 - [ ] Webhook endpoint registered in Stripe dashboard
-  - URL: `https://api.realestatestar.com/stripe/webhook`
+  - URL: `https://api.real-estate-star.com/webhooks/stripe`
   - Events: `checkout.session.completed`
 - [ ] Webhook signing secret (`whsec_...`) set as Azure secret
-- [ ] Webhook endpoint excluded from rate limiting
+- [x] Webhook endpoint excluded from rate limiting
 - [ ] Test a complete checkout flow end-to-end
 - [ ] Verify webhook delivery in Stripe dashboard (Events > Webhooks)
-- [ ] Idempotency: duplicate webhook events do not create duplicate state transitions
+- [x] Idempotency: duplicate webhook events do not create duplicate state transitions
 - [ ] Customer portal link configured for subscription management
 
 ---
@@ -111,17 +115,18 @@ See `infra/grafana/README.md` for detailed setup steps.
 - [ ] OAuth consent screen configured
   - App name: Real Estate Star
   - User support email set
-  - Authorized domains: `realestatestar.com`
+  - Authorized domains: `real-estate-star.com`
   - Scopes: `email`, `profile`, `openid`
 - [ ] OAuth consent screen **published** (not in test mode)
   - If restricted scopes: submit for Google verification
 - [ ] OAuth 2.0 Client ID created (Web application type)
-- [ ] Authorized redirect URI set to: `https://api.realestatestar.com/oauth/google/callback`
+- [ ] Authorized redirect URI set to: `https://api.real-estate-star.com/oauth/google/callback`
 - [ ] `Google__ClientId` and `Google__ClientSecret` set on Azure
 - [ ] `Google__RedirectUri` set to production callback URL
 - [ ] Test full OAuth flow: login, consent, callback, profile extraction
-- [ ] Token storage has TTL with cleanup (not unbounded)
-- [ ] `state` parameter uses cryptographic nonce (CSRF protection)
+- [x] Token storage has TTL with cleanup (not unbounded)
+- [x] `state` parameter uses cryptographic nonce (CSRF protection)
+- [x] Nonce is single-use — cleared after validation
 
 ---
 
@@ -133,25 +138,26 @@ See `infra/grafana/README.md` for detailed setup steps.
   - Require pull request reviews (1+ approver)
   - Require status checks to pass
   - Require linear history (no merge commits)
-- [ ] GitHub Actions secrets configured (not hardcoded in workflows)
-- [ ] No API keys, tokens, or credentials committed to the repository
-- [ ] `.gitignore` includes `appsettings.Development.json`, `.env.local`, `*.pfx`
+- [x] GitHub Actions secrets configured (not hardcoded in workflows)
+- [x] No API keys, tokens, or credentials committed to the repository
+- [x] `.gitignore` includes `appsettings.Development.json`, `.env.local`
+- [ ] `.gitignore` includes `*.pfx`, `*.p12` (certificate files)
 - [ ] Dependency scanning enabled (Dependabot or Snyk)
 
 ### API Security
 
-- [ ] CORS `AllowedOrigins` restricted to production domain(s) only
-- [ ] Rate limiting active: global (100/min/IP), session creation (50/hr/IP), chat (20/min/session)
-- [ ] Security headers present on all responses:
+- [x] CORS `AllowedOrigins` restricted to production domain(s) only
+- [x] Rate limiting active: global (100/min/IP), session creation (5/hr/IP), CMA (10/hr/agent), chat (20/min/session)
+- [x] Security headers present on all responses:
   - `X-Content-Type-Options: nosniff`
   - `X-Frame-Options: DENY`
   - `Referrer-Policy: strict-origin-when-cross-origin`
   - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
-- [ ] Bearer token authentication on session-scoped endpoints
-- [ ] ForwardedHeaders middleware configured for Azure proxy
-- [ ] No PII in telemetry spans or structured logs
-- [ ] Correlation ID validated (length <= 64, charset restricted)
-- [ ] Error responses use ProblemDetails, not raw exception messages
+- [x] Bearer token authentication on session-scoped endpoints
+- [x] ForwardedHeaders middleware configured for Azure proxy (before rate limiter)
+- [ ] No PII in telemetry spans or structured logs (audit: lead names/emails still logged in CmaPipeline warning logs)
+- [x] Correlation ID validated (length <= 64, charset restricted)
+- [x] Error responses use ProblemDetails, not raw exception messages
 
 ### Key Rotation Plan
 
@@ -174,17 +180,17 @@ Run these after every production deployment:
 
 ```bash
 # Liveness (should return 200 immediately)
-curl -sf https://api.realestatestar.com/health/live
+curl -sf https://api.real-estate-star.com/health/live
 
 # Readiness (should return 200 with dependency status)
-curl -sf https://api.realestatestar.com/health/ready | jq .
+curl -sf https://api.real-estate-star.com/health/ready | jq .
 ```
 
 ### Onboarding Flow
 
 ```bash
 # Create a session
-curl -sf -X POST https://api.realestatestar.com/onboarding/sessions \
+curl -sf -X POST https://api.real-estate-star.com/onboarding/sessions \
   -H "Content-Type: application/json" \
   -d '{"profileUrl": "https://www.zillow.com/profile/test-agent"}' \
   | jq '.sessionId'
@@ -197,7 +203,7 @@ curl -sf -X POST https://api.realestatestar.com/onboarding/sessions \
 
 ```bash
 # Submit a CMA job (requires valid agent config)
-curl -sf -X POST https://api.realestatestar.com/agents/jenise-buckalew/cma \
+curl -sf -X POST https://api.real-estate-star.com/agents/jenise-buckalew/cma \
   -H "Content-Type: application/json" \
   -d '{
     "address": "123 Test St",
@@ -212,10 +218,10 @@ curl -sf -X POST https://api.realestatestar.com/agents/jenise-buckalew/cma \
 
 ```bash
 # Verify agent site loads
-curl -sf https://jenise-buckalew.agents.realestatestar.com/ | head -20
+curl -sf https://jenise-buckalew.real-estate-star.com/ | head -20
 
 # Verify static assets load
-curl -sfI https://jenise-buckalew.agents.realestatestar.com/_next/static/ \
+curl -sfI https://jenise-buckalew.real-estate-star.com/_next/static/ \
   | grep "cache-control"
 ```
 
@@ -223,17 +229,17 @@ curl -sfI https://jenise-buckalew.agents.realestatestar.com/_next/static/ \
 
 ```bash
 # Verify platform loads
-curl -sf https://platform.realestatestar.com/ | head -20
+curl -sf https://platform.real-estate-star.com/ | head -20
 
 # Verify onboarding page loads
-curl -sf https://platform.realestatestar.com/onboard | head -20
+curl -sf https://platform.real-estate-star.com/onboard | head -20
 ```
 
 ### Security Headers
 
 ```bash
 # Verify security headers on API
-curl -sI https://api.realestatestar.com/health/live | grep -iE "x-content-type|x-frame|referrer-policy|strict-transport"
+curl -sI https://api.real-estate-star.com/health/live | grep -iE "x-content-type|x-frame|referrer-policy|strict-transport"
 ```
 
 ---
