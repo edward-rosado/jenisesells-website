@@ -38,6 +38,15 @@ export { SoldCarousel } from "./sold/SoldCarousel";
 export { TestimonialsMinimal } from "./testimonials/TestimonialsMinimal";
 export { AboutEditorial } from "./about/AboutEditorial";
 
+// Urban Loft variants
+export { HeroBold } from "./heroes/HeroBold";
+export { StatsCompact } from "./stats/StatsCompact";
+export { ServicesPills } from "./services/ServicesPills";
+export { StepsCards } from "./steps/StepsCards";
+export { SoldCompact } from "./sold/SoldCompact";
+export { TestimonialsStack } from "./testimonials/TestimonialsStack";
+export { AboutCompact } from "./about/AboutCompact";
+
 // Backward-compatible aliases for EmeraldClassic template
 export { HeroGradient as Hero } from "./heroes/HeroGradient";
 export { ServicesGrid as Services } from "./services/ServicesGrid";
