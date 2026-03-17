@@ -1,0 +1,29 @@
+{
+  "id": "test-warm",
+  "identity": {
+    "name": "Maria Santiago",
+    "title": "REALTOR®",
+    "phone": "(512) 555-0202",
+    "email": "maria@hillcountryrealty.com",
+    "brokerage": "Hill Country Realty",
+    "tagline": "Your Neighbor. Your REALTOR®.",
+    "headshot_url": "/agents/test-warm/headshot.jpg"
+  },
+  "location": {
+    "state": "TX",
+    "office_address": "1100 Congress Ave, Austin, TX 78701",
+    "service_areas": ["Austin", "Round Rock", "Cedar Park", "Georgetown"]
+  },
+  "branding": {
+    "primary_color": "#5D1A1A",
+    "secondary_color": "#7B2D2D",
+    "accent_color": "#D4A843",
+    "font_family": "Georgia",
+    "logo_url": ""
+  },
+  "integrations": {},
+  "compliance": {
+    "state_form": "TREC-20-16",
+    "licensing_body": "Texas Real Estate Commission"
+  }
+}

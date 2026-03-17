@@ -1,0 +1,52 @@
+{
+  "template": "modern-minimal",
+  "sections": {
+    "hero": {
+      "enabled": true,
+      "data": {
+        "headline": "Find Your Perfect NYC Home",
+        "tagline": "City Living. Simplified.",
+        "cta_text": "Get Started",
+        "cta_link": "#cma-form"
+      }
+    },
+    "stats": { "enabled": false, "data": { "items": [] } },
+    "services": {
+      "enabled": true,
+      "data": {
+        "items": [
+          { "title": "Market Analysis", "description": "Data-driven pricing for the NYC market." },
+          { "title": "Negotiation", "description": "Expert deal-making in competitive markets." },
+          { "title": "Full-Service Closing", "description": "Coordinated from offer to keys." }
+        ]
+      }
+    },
+    "how_it_works": {
+      "enabled": true,
+      "data": {
+        "steps": [
+          { "number": 1, "title": "Tell Me What You Need", "description": "Fill out the form with your details." },
+          { "number": 2, "title": "Get Your Report", "description": "Receive a personalized market analysis." },
+          { "number": 3, "title": "Let's Meet", "description": "Schedule a walkthrough or virtual tour." }
+        ]
+      }
+    },
+    "sold_homes": { "enabled": false, "data": { "items": [] } },
+    "testimonials": { "enabled": false, "data": { "items": [] } },
+    "cma_form": {
+      "enabled": true,
+      "data": {
+        "title": "What's Your Property Worth?",
+        "subtitle": "Get a free NYC market analysis in minutes."
+      }
+    },
+    "about": {
+      "enabled": true,
+      "data": {
+        "bio": "Alex Rivera specializes in NYC residential real estate — from Manhattan condos to Brooklyn brownstones. With deep neighborhood knowledge and a data-first approach, Alex helps clients make confident decisions in the city's fast-moving market.",
+        "credentials": ["Licensed NY Salesperson", "Top 10% NYC Volume"]
+      }
+    },
+    "city_pages": { "enabled": false, "data": { "cities": [] } }
+  }
+}

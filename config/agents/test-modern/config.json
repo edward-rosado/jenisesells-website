@@ -1,0 +1,29 @@
+{
+  "id": "test-modern",
+  "identity": {
+    "name": "Alex Rivera",
+    "title": "Licensed Real Estate Salesperson",
+    "phone": "(212) 555-0101",
+    "email": "alex@testrealty.com",
+    "brokerage": "Metro Realty Group",
+    "tagline": "City Living. Simplified.",
+    "headshot_url": "/agents/test-modern/headshot.jpg"
+  },
+  "location": {
+    "state": "NY",
+    "office_address": "350 Fifth Ave, New York, NY 10118",
+    "service_areas": ["Manhattan", "Brooklyn", "Queens"]
+  },
+  "branding": {
+    "primary_color": "#1A237E",
+    "secondary_color": "#283593",
+    "accent_color": "#FF6F61",
+    "font_family": "Inter",
+    "logo_url": ""
+  },
+  "integrations": {},
+  "compliance": {
+    "state_form": "NY-DOS-1736",
+    "licensing_body": "NY Department of State"
+  }
+}
