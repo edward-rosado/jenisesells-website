@@ -71,12 +71,14 @@ function fillForm() {
   fireEvent.click(screen.getByTestId("tcpa-consent"));
 }
 
-function switchToBuyerAndFill() {
+function switchToBuyerAndFill(options?: { skipEmail?: boolean }) {
   fireEvent.click(screen.getByLabelText(/I'm Selling/));
   fireEvent.click(screen.getByLabelText(/I'm Buying/));
   fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: "Alice" } });
   fireEvent.change(screen.getByLabelText(/^last name/i), { target: { value: "Test" } });
-  fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: "alice@test.com" } });
+  if (!options?.skipEmail) {
+    fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: "alice@test.com" } });
+  }
   fireEvent.change(screen.getByLabelText(/^phone/i), { target: { value: "555-111-2222" } });
   fireEvent.change(screen.getByLabelText(/desired area/i), { target: { value: "Hoboken" } });
   fireEvent.change(screen.getByLabelText(/looking to buy/i), { target: { value: "asap" } });
@@ -284,6 +286,21 @@ describe("CmaSection form submission", () => {
 
     expect(mockFetch).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+
+  it("omits email param from redirect URL when email is empty", async () => {
+    const locationMock = { href: "" };
+    Object.defineProperty(window, "location", { value: locationMock, writable: true });
+
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    switchToBuyerAndFill({ skipEmail: true });
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    expect(locationMock.href).toBe("/thank-you?agentId=test-agent");
+    expect(locationMock.href).not.toContain("email=");
   });
 
   it("calls Sentry.captureException via onError callback when submission fails", async () => {
