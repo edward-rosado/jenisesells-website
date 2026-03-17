@@ -51,3 +51,9 @@ config/agents/*.credentials.json
 apps/agent-site/lib/config-registry.ts
 
 .superpowers/
+
+# Coverage reports
+coverage/
+
+# Archives
+*.tar
