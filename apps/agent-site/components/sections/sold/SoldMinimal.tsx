@@ -61,6 +61,19 @@ export function SoldMinimal({ items, title, subtitle }: SoldHomesProps) {
               </div>
             )}
             <div style={{ padding: "16px" }}>
+              <span style={{
+                display: "inline-block",
+                background: "#e8e8e8",
+                color: "#555",
+                fontSize: "11px",
+                fontWeight: 600,
+                padding: "2px 8px",
+                borderRadius: "4px",
+                marginBottom: "6px",
+                letterSpacing: "0.5px",
+              }}>
+                SOLD
+              </span>
               <div style={{
                 fontSize: "20px",
                 fontWeight: 700,

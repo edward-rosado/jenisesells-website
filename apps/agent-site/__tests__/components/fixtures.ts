@@ -40,6 +40,21 @@ export const AGENT_MINIMAL: AgentConfig = {
 
 export const CONTENT: AgentContent = {
   template: "emerald-classic",
+  navigation: {
+    items: [
+      { label: "Why Choose Me", section: "services" },
+      { label: "How It Works", section: "how-it-works" },
+      { label: "Recent Sales", section: "sold" },
+      { label: "Testimonials", section: "testimonials" },
+      { label: "Ready to Move?", section: "cma-form" },
+      { label: "About", section: "about" },
+    ],
+  },
+  contact_info: [
+    { type: "email", value: "jane@example.com", label: "Personal Email", is_preferred: false },
+    { type: "phone", value: "555-123-4567", label: "Cell Phone", is_preferred: true },
+    { type: "phone", value: "(732) 251-2500", ext: "714", label: "Office Phone", is_preferred: false },
+  ],
   sections: {
     hero: {
       enabled: true,
@@ -103,6 +118,7 @@ export const CONTENT: AgentContent = {
       data: {
         title: "What's Your Home Worth?",
         subtitle: "Get a free CMA today",
+        description: "Selling? Get a **free** home value report. Buying? Tell us what you need.",
       },
     },
     about: {

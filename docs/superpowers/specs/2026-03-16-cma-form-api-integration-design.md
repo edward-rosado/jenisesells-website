@@ -1,7 +1,7 @@
 # CMA Form .NET API Integration Design
 
 **Date:** 2026-03-16
-**Status:** Draft
+**Status:** Implemented
 **Author:** Eddie Rosado + Claude
 
 ## Summary
@@ -23,28 +23,30 @@ Consolidate CMA form submission into `packages/ui` so it always posts to the .NE
 - Adding new form fields or validation rules
 - Changing the CMA pipeline steps
 
-## Current State
+## Current State (Post-Implementation)
+
+> **Note:** This diagram reflects the implemented architecture. The original Formspree path has been fully removed.
 
 ```
 ┌────────────────────────┐     ┌──────────────────────┐
 │  packages/ui           │     │  apps/agent-site     │
 │                        │     │                      │
-│  LeadForm.tsx          │     │  CmaForm.tsx         │
+│  LeadForm.tsx          │     │  CmaSection.tsx      │
 │  - Validates fields    │────►│  - Wraps LeadForm    │
-│  - Calls onSubmit()    │     │  - Formspree path    │
-│  - No API knowledge    │     │  - API path          │
-│                        │     │  - useCmaSubmit hook  │
-│                        │     │  - cma-api.ts client  │
-│                        │     │  - ProgressTracker   │
-│                        │     │  - SignalR connection │
+│  - Calls onSubmit()    │     │  - Uses useCmaSubmit │
+│  - No API knowledge    │     │    from packages/ui  │
+│                        │     │  - Analytics +       │
+│                        │     │    Sentry on error   │
+│                        │     │  - Redirects to      │
+│                        │     │    /thank-you        │
 └────────────────────────┘     └──────────────────────┘
 ```
 
-**Problems:**
-- Formspree path is dead weight — we never want leads going to a third-party service
-- API client (`cma-api.ts`) and hook (`useCmaSubmit.ts`) are locked in `apps/agent-site`
-- Portal can't reuse submission logic without duplicating code
-- Two code paths to maintain and test
+**Resolved issues (pre-implementation):**
+- ~~Formspree path is dead weight~~ — Removed entirely
+- ~~API client and hook locked in `apps/agent-site`~~ — Moved to `packages/ui`
+- ~~Portal can't reuse submission logic~~ — Shared hook available
+- ~~Two code paths to maintain~~ — Single path through .NET API
 
 ## Proposed Architecture
 
@@ -286,11 +288,15 @@ export interface CmaSubmitState {
 
 export interface UseCmaSubmitReturn {
   state: CmaSubmitState;
-  submit: (agentId: string, data: LeadFormData) => Promise<void>;
+  /** Returns true on success, false on error */
+  submit: (agentId: string, data: LeadFormData) => Promise<boolean>;
   reset: () => void;
 }
 
-export function useCmaSubmit(apiBaseUrl: string): UseCmaSubmitReturn {
+export function useCmaSubmit(
+  apiBaseUrl: string,
+  options?: { onError?: (error: Error) => void },
+): UseCmaSubmitReturn {
   // Implementation: calls submitCma() internally,
   // maps LeadFormData → CmaSubmitRequest (see mapper below)
 }

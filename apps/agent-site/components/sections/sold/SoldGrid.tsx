@@ -16,7 +16,7 @@ export function SoldGrid({ items, title, subtitle }: SoldHomesProps) {
           textAlign: "center",
           fontSize: "32px",
           fontWeight: 700,
-          color: "#1B5E20",
+          color: "var(--color-primary)",
           marginBottom: "10px",
         }}
       >
@@ -75,8 +75,8 @@ export function SoldGrid({ items, title, subtitle }: SoldHomesProps) {
             <span
               style={{
                 display: "inline-block",
-                background: "#C8A951",
-                color: "#1B5E20",
+                background: "var(--color-accent)",
+                color: "var(--color-primary)",
                 fontSize: "12px",
                 fontWeight: 700,
                 padding: "3px 10px",
@@ -91,7 +91,7 @@ export function SoldGrid({ items, title, subtitle }: SoldHomesProps) {
               style={{
                 fontSize: "22px",
                 fontWeight: 800,
-                color: "#1B5E20",
+                color: "var(--color-primary)",
               }}
             >
               {item.price}

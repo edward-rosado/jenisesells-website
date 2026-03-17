@@ -1,5 +1,20 @@
 {
   "template": "emerald-classic",
+  "navigation": {
+    "items": [
+      { "label": "Why Choose Me", "section": "services" },
+      { "label": "How It Works", "section": "how-it-works" },
+      { "label": "Recent Sales", "section": "sold" },
+      { "label": "Testimonials", "section": "testimonials" },
+      { "label": "Ready to Move?", "section": "cma-form" },
+      { "label": "About", "section": "about" }
+    ]
+  },
+  "contact_info": [
+    { "type": "email", "value": "jenisesellsnj@gmail.com", "label": "Personal Email", "is_preferred": false },
+    { "type": "phone", "value": "(347) 393-5993", "label": "Cell Phone", "is_preferred": true },
+    { "type": "phone", "value": "(732) 251-2500", "ext": "714", "label": "Office Phone", "is_preferred": false }
+  ],
   "sections": {
     "hero": {
       "enabled": true,
@@ -82,7 +97,8 @@
       "enabled": true,
       "data": {
         "title": "Ready to Make a Move?",
-        "subtitle": "Selling? Get your free Home Value Report in minutes. Buying? Tell me what you're looking for."
+        "subtitle": "Selling? Get your free Home Value Report in minutes.\u00ae Buying? Tell me what you're looking for.",
+        "description": "Selling your home? Enter your address below to receive a free Market Analysis in minutes! Looking to buy? Tell me what you're looking for and I'll help you find it. **100% free, no obligation.**"
       }
     },
     "about": {
@@ -102,6 +118,16 @@
       "data": {
         "cities": []
       }
+    }
+  },
+  "pages": {
+    "thank_you": {
+      "heading": "Thank You!",
+      "subheading": "Your Free Home Value Report Is Being Prepared Now!",
+      "body": "{firstName} will send your personalized Comparative Market Analysis to your email shortly. Keep an eye on your inbox!",
+      "disclaimer": "This home value report is a Comparative Market Analysis (CMA) and is not an appraisal. It should not be considered the equivalent of an appraisal.",
+      "cta_call": "Call {firstName}: {phone}",
+      "cta_back": "Back to {firstName}'s Site"
     }
   }
 }

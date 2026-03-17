@@ -16,7 +16,7 @@ export function StepsNumbered({ steps, title, subtitle }: StepsProps) {
             textAlign: "center",
             fontSize: "32px",
             fontWeight: 700,
-            color: "#1B5E20",
+            color: "var(--color-primary)",
             marginBottom: "10px",
           }}
         >
@@ -58,7 +58,7 @@ export function StepsNumbered({ steps, title, subtitle }: StepsProps) {
                 style={{
                   width: "60px",
                   height: "60px",
-                  background: "#2E7D32",
+                  background: "var(--color-secondary)",
                   color: "white",
                   borderRadius: "50%",
                   display: "flex",
@@ -71,7 +71,7 @@ export function StepsNumbered({ steps, title, subtitle }: StepsProps) {
               >
                 {step.number}
               </div>
-              <h3 style={{ color: "#1B5E20", marginBottom: "8px" }}>
+              <h3 style={{ color: "var(--color-primary)", marginBottom: "8px" }}>
                 {step.title}
               </h3>
               <p style={{ color: "#666", fontSize: "14px" }}>

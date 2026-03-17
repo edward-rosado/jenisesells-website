@@ -5,7 +5,7 @@ export function StatsBar({ items, sourceDisclaimer }: StatsProps) {
     <section
       aria-label="Agent statistics"
       style={{
-        background: "#1B5E20",
+        background: "var(--color-primary)",
         padding: "30px 40px",
       }}
     >
@@ -35,7 +35,7 @@ export function StatsBar({ items, sourceDisclaimer }: StatsProps) {
               style={{
                 fontSize: "32px",
                 fontWeight: 800,
-                color: "#C8A951",
+                color: "var(--color-accent)",
                 margin: 0,
               }}
             >

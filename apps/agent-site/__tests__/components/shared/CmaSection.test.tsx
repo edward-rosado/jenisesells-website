@@ -127,6 +127,30 @@ describe("CmaSection rendering", () => {
     expect(screen.getByRole("button", { name: /Find My Dream Home/ })).toBeInTheDocument();
   });
 
+  it("renders description paragraph when provided in data", () => {
+    const props = {
+      ...DEFAULT_PROPS,
+      data: { ...FORM_DATA, description: "Enter your address for a **free** report." },
+    };
+    render(<CmaSection {...props} />);
+    expect(screen.getByText(/Enter your address/)).toBeInTheDocument();
+    // **bold** markdown renders as <strong>
+    const strong = screen.getByText("free");
+    expect(strong.tagName).toBe("STRONG");
+  });
+
+  it("does not render description paragraph when absent", () => {
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    // FORM_DATA has no description — no extra paragraph between subtitle and form
+    const section = screen.getByRole("region", { name: /home value request/i });
+    const paragraphs = section.querySelectorAll("p");
+    // Only subtitle paragraph, no description paragraph
+    const descParagraph = Array.from(paragraphs).find(
+      (p) => p.style.color === "#555" && p.style.marginBottom === "30px"
+    );
+    expect(descParagraph).toBeUndefined();
+  });
+
   it("renders CMA disclaimer", () => {
     render(<CmaSection {...DEFAULT_PROPS} />);
     expect(screen.getByText(/not an appraisal/i)).toBeInTheDocument();
