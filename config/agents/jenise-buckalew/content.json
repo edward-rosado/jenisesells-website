@@ -4,10 +4,10 @@
     "hero": {
       "enabled": true,
       "data": {
-        "headline": "Sell Your Home with Confidence",
+        "headline": "Buy or Sell with Confidence",
         "highlight_word": "Confidence",
         "tagline": "Forward. Moving.",
-        "body": "I'm Jenise Buckalew, a NJ State Licensed REALTOR\u00ae and independent agent with Green Light Realty LLC. With over 100 homes sold across 20 years in the business, I deliver results \u2014 and I'll start with a free, instant Comparative Market Analysis so you know exactly what your home is worth.",
+        "body": "I'm Jenise Buckalew, a NJ State Licensed REALTOR\u00ae and independent agent with Green Light Realty LLC. With over 100 homes sold across 20 years in the business, I deliver results \u2014 whether you're selling your home for top dollar or searching for the perfect place to call home. Selling? I'll start with a free, instant Comparative Market Analysis so you know exactly what your home is worth. Buying? Tell me what you're looking for and I'll find it.",
         "cta_text": "Get Your Free Home Value Report in Minutes",
         "cta_link": "#cma-form"
       }
@@ -28,13 +28,14 @@
       "enabled": true,
       "data": {
         "title": "What I Bring to the Table",
-        "subtitle": "Every seller gets the full package \u2014 no cutting corners.",
+        "subtitle": "Every client gets the full package \u2014 no cutting corners.",
         "items": [
           { "title": "Free Home Value Report in Minutes", "description": "Submit your info and get a personalized Home Value Report within minutes \u2014 so you know exactly what your home is worth before we even meet." },
           { "title": "Professional Photography", "description": "Every listing gets high-quality, professionally shot photos that make buyers stop scrolling and start scheduling showings." },
           { "title": "Strategic Pricing", "description": "Data-driven pricing backed by real comparable sales in your neighborhood \u2014 priced to attract serious offers fast." },
           { "title": "Home Prep Guidance", "description": "I'll walk through your home and tell you exactly what small changes can boost your sale price \u2014 no expensive renovations needed." },
           { "title": "Maximum Exposure", "description": "Your home gets listed on the MLS, Zillow, Realtor.com, social media, and more \u2014 seen by thousands of active buyers." },
+          { "title": "Personalized Home Search", "description": "Looking for a home? Tell me your must-haves \u2014 area, price range, bedrooms \u2014 and I'll send you listings that match, before they hit the public market." },
           { "title": "Se Habla Espa\u00f1ol", "description": "Bilingual service in English and Spanish so every client feels heard, understood, and confident throughout the process." }
         ]
       }
@@ -43,10 +44,10 @@
       "enabled": true,
       "data": {
         "title": "How It Works",
-        "subtitle": "Three simple steps to selling your home for top dollar.",
+        "subtitle": "Three simple steps to get started.",
         "steps": [
           { "number": 1, "title": "Submit Your Info", "description": "Fill out the quick form below with your property details. It takes less than 2 minutes." },
-          { "number": 2, "title": "Get Your Free Home Value Report", "description": "I'll send you a personalized Home Value Report within minutes showing what your home is worth based on recent comparable sales." },
+          { "number": 2, "title": "Get Your Free Home Value Report", "description": "Selling your home? I'll send you a personalized Home Value Report within minutes showing what your home is worth based on recent comparable sales. Buying? I'll reach out to learn more about what you're looking for." },
           { "number": 3, "title": "Schedule a Walkthrough", "description": "I'll visit your home in person to give you the most accurate price based on your upgrades and unique features." }
         ]
       }
@@ -80,8 +81,8 @@
     "cma_form": {
       "enabled": true,
       "data": {
-        "title": "What's Your Home Worth?",
-        "subtitle": "Get Your Free Home Value Report \u2014 In Minutes!"
+        "title": "Ready to Make a Move?",
+        "subtitle": "Selling? Get your free Home Value Report in minutes. Buying? Tell me what you're looking for."
       }
     },
     "about": {
@@ -90,7 +91,7 @@
         "title": "About Jenise",
         "bio": [
           "I'm Jenise Buckalew \u2014 a NJ State Licensed REALTOR\u00ae, proud mother of five, and an independent agent with Green Light Realty LLC. With over 20 years of experience and hundreds of successful transactions, I specialize in helping homeowners across Middlesex, Monmouth, and Ocean Counties get the best value for their biggest investment.",
-          "I'm a recurring NJ REALTORS\u00ae Circle of Excellence award winner with a perfect 5.0 Zillow rating. I believe every seller deserves hands-on, personalized service \u2014 from a free professional CMA to expert home prep advice and professional photography. My goal is simple: sell your home for top dollar, as fast as possible.",
+          "I'm a recurring NJ REALTORS\u00ae Circle of Excellence award winner with a perfect 5.0 Zillow rating. I believe every client deserves hands-on, personalized service \u2014 from a free professional CMA to expert home prep advice and professional photography. Whether you're buying your first home or selling a property you've owned for decades, I bring the same dedication to every transaction.",
           "Green Light Realty LLC operates three offices \u2014 one in Ocean County and two in Middlesex County \u2014 giving my clients broad reach across Central New Jersey."
         ],
         "credentials": ["NJ State Licensed", "Circle of Excellence", "100+ Homes Sold", "5.0 \u2605 Zillow", "Se Habla Espa\u00f1ol"]

@@ -225,7 +225,7 @@ export function CmaForm({
             marginBottom: "30px",
           }}
         >
-          Fill out the short form below and I&apos;ll send you a personalized Home Value Report showing your home&apos;s estimated market value based on recent comparable sales in your area. <strong>100% free, no obligation.</strong>
+          Selling your home? Enter your address below to receive a free Market Analysis in minutes! Looking to buy? Tell me what you&apos;re looking for and I&apos;ll help you find it. <strong>100% free, no obligation.</strong>
         </p>
 
         <LeadForm
@@ -236,7 +236,7 @@ export function CmaForm({
           agentFirstName={agentName.split(" ")[0]}
           submitLabel={(isBuying, isSelling) => {
             if (isSelling) return "Get My Free Home Value Report \u2192";
-            if (isBuying) return `Tell ${agentName.split(" ")[0]} you're ready to buy! \u2192`;
+            if (isBuying) return "Find My Dream Home \u2192";
             return "Get Started \u2192";
           }}
           disabled={isProcessing}

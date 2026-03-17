@@ -86,11 +86,11 @@ function selectTimeline(value: string = "asap") {
 }
 
 function checkBuying() {
-  fireEvent.click(screen.getByLabelText(/i'm buying/i));
+  fireEvent.click(screen.getByRole("checkbox", { name: /i'm buying/i }));
 }
 
 function checkSelling() {
-  fireEvent.click(screen.getByLabelText(/i'm selling/i));
+  fireEvent.click(screen.getByRole("checkbox", { name: /i'm selling/i }));
 }
 
 function checkTcpaConsent() {
@@ -120,8 +120,8 @@ describe("LeadForm", () => {
   it("renders pill checkboxes for 'I'm Buying' and 'I'm Selling'", () => {
     render(<LeadForm {...defaultProps} />);
 
-    expect(screen.getByLabelText(/i'm buying/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/i'm selling/i)).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /i'm buying/i })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /i'm selling/i })).toBeInTheDocument();
   });
 
   // Test 3
@@ -302,8 +302,8 @@ describe("LeadForm", () => {
       <LeadForm {...defaultProps} initialMode={["buying", "selling"]} />
     );
 
-    expect(screen.getByLabelText(/i'm buying/i)).toBeChecked();
-    expect(screen.getByLabelText(/i'm selling/i)).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: /i'm buying/i })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("checkbox", { name: /i'm selling/i })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByTestId("buyer-card")).toBeVisible();
     expect(screen.getByTestId("seller-card")).toBeVisible();
   });
@@ -528,7 +528,7 @@ describe("LeadForm", () => {
   it("pills stretch to fill the full width of the container", () => {
     render(<LeadForm {...defaultProps} />);
 
-    const buyingPill = screen.getByLabelText(/i'm buying/i).closest("span");
+    const buyingPill = screen.getByRole("checkbox", { name: /i'm buying/i });
     expect(buyingPill).toHaveStyle({ flex: "1" });
   });
 
@@ -539,7 +539,7 @@ describe("LeadForm", () => {
     fillContactFields();
     submitForm();
 
-    const buyingPill = screen.getByLabelText(/i'm buying/i).closest("span")!;
+    const buyingPill = screen.getByRole("checkbox", { name: /i'm buying/i });
     expect(buyingPill.style.borderColor).toBe("red");
   });
 
@@ -750,7 +750,7 @@ describe("LeadForm", () => {
   // Test 40 — agentFirstName dynamic label
   it("shows dynamic buyer CTA with agentFirstName when not selling", () => {
     render(<LeadForm {...defaultProps} agentFirstName="Jenise" initialMode={["buying"]} />);
-    expect(screen.getByRole("button", { name: /tell jenise you're ready to buy/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /connect with jenise/i })).toBeInTheDocument();
   });
 
   // Test 41
