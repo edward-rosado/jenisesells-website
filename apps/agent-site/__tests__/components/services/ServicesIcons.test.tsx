@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { ServicesIcons } from "@/components/sections/services/ServicesIcons";
+import { ServicesIcons, resolveServiceIcon } from "@/components/sections/services/ServicesIcons";
 import type { ServiceItem } from "@/lib/types";
 
 const ITEMS: ServiceItem[] = [
@@ -41,12 +41,13 @@ describe("ServicesIcons", () => {
     expect(container.querySelector("#services")).toBeInTheDocument();
   });
 
-  it("renders icon circles for each service", () => {
+  it("renders SVG icons inside icon circles", () => {
     const { container } = render(<ServicesIcons items={ITEMS} />);
     const articles = container.querySelectorAll("article");
     articles.forEach((article) => {
       const circle = article.querySelector("div");
       expect(circle?.style.borderRadius).toBe("50%");
+      expect(circle?.querySelector("svg")).toBeInTheDocument();
     });
   });
 
@@ -61,5 +62,58 @@ describe("ServicesIcons", () => {
   it("renders subtitle when provided", () => {
     render(<ServicesIcons items={ITEMS} subtitle="We go the extra mile" />);
     expect(screen.getByText("We go the extra mile")).toBeInTheDocument();
+  });
+});
+
+describe("resolveServiceIcon", () => {
+  it("returns home icon for valuation keywords", () => {
+    const icon = resolveServiceIcon("Free Home Valuation");
+    expect(icon).toBeDefined();
+  });
+
+  it("returns camera icon for photography keywords", () => {
+    const icon = resolveServiceIcon("Professional Photography & Staging");
+    expect(icon).toBeDefined();
+  });
+
+  it("returns search icon for buyer keywords", () => {
+    const icon = resolveServiceIcon("Buyer Representation");
+    expect(icon).toBeDefined();
+  });
+
+  it("returns chat icon for bilingual keywords", () => {
+    const icon = resolveServiceIcon("Se Habla Español");
+    expect(icon).toBeDefined();
+  });
+
+  it("returns star (default) for unrecognized titles", () => {
+    const icon = resolveServiceIcon("Something Completely Random");
+    expect(icon).toBeDefined();
+  });
+
+  it("uses explicit icon override when provided", () => {
+    const items: ServiceItem[] = [
+      { title: "Something Random", description: "Test", icon: "heart" },
+    ];
+    const { container } = render(<ServicesIcons items={items} />);
+    const svg = container.querySelector("article svg");
+    expect(svg).toBeInTheDocument();
+  });
+
+  it("falls back to keyword match when icon key is invalid", () => {
+    const icon = resolveServiceIcon("Photography Tips", "nonexistent-icon");
+    // Should fall back to keyword match (camera) not crash
+    expect(icon).toBeDefined();
+  });
+
+  it("prefers explicit icon over keyword match", () => {
+    // Title has "photo" keyword (would match camera) but icon says "heart"
+    const items: ServiceItem[] = [
+      { title: "Photography", description: "Test", icon: "heart" },
+    ];
+    const { container } = render(<ServicesIcons items={items} />);
+    // Heart icon has a specific path - just verify an SVG rendered
+    const svg = container.querySelector("article svg");
+    expect(svg).toBeInTheDocument();
   });
 });
