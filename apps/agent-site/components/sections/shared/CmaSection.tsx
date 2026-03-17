@@ -6,6 +6,8 @@ import type { CmaFormData, AgentTracking } from "@/lib/types";
 import { trackCmaConversion } from "@/components/Analytics";
 import { LeadForm } from "@real-estate-star/ui";
 import type { LeadFormData } from "@real-estate-star/shared-types";
+import type { ReactNode } from "react";
+import { Fragment } from "react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5135";
 
@@ -84,15 +86,17 @@ export function CmaSection({
         >
           {data.subtitle}
         </p>
-        <p
-          style={{
-            color: "#555",
-            fontSize: "16px",
-            marginBottom: "30px",
-          }}
-        >
-          Selling your home? Enter your address below to receive a free Market Analysis in minutes! Looking to buy? Tell me what you&apos;re looking for and I&apos;ll help you find it. <strong>100% free, no obligation.</strong>
-        </p>
+        {data.description && (
+          <p
+            style={{
+              color: "#555",
+              fontSize: "16px",
+              marginBottom: "30px",
+            }}
+          >
+            {renderBoldMarkdown(data.description)}
+          </p>
+        )}
 
         <LeadForm
           defaultState={defaultState}
@@ -113,4 +117,15 @@ export function CmaSection({
       </div>
     </section>
   );
+}
+
+/** Converts **bold** markdown to <strong> elements in React */
+function renderBoldMarkdown(text: string): ReactNode[] {
+  const parts = text.split(/(\*\*.+?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <Fragment key={i}><strong>{part.slice(2, -2)}</strong></Fragment>;
+    }
+    return <Fragment key={i}>{part}</Fragment>;
+  });
 }

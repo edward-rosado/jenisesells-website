@@ -4,10 +4,12 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import type { AgentConfig } from "@/lib/types";
+import type { AgentConfig, NavItem, ContactMethod } from "@/lib/types";
 
 interface NavProps {
   agent: AgentConfig;
+  navigation?: { items: NavItem[] };
+  contactInfo?: ContactMethod[];
 }
 
 function OfficeIcon({ size = 14 }: { size?: number }) {
@@ -35,7 +37,28 @@ function EmailIcon({ size = 14 }: { size?: number }) {
   );
 }
 
-export function Nav({ agent }: NavProps) {
+/** Default section nav links — used when content.navigation is not provided */
+export const DEFAULT_NAV_ITEMS: NavItem[] = [
+  { label: "Why Choose Me", section: "services" },
+  { label: "How It Works", section: "how-it-works" },
+  { label: "Recent Sales", section: "sold" },
+  { label: "Testimonials", section: "testimonials" },
+  { label: "Ready to Move?", section: "cma-form" },
+  { label: "About", section: "about" },
+];
+
+/** Build a tel: href from a phone value and optional extension */
+function buildTelHref(value: string, ext?: string | null): string {
+  const digits = value.replace(/\D/g, "");
+  return ext ? `tel:${digits},${ext.replace(/\D/g, "")}` : `tel:${digits}`;
+}
+
+/** Format a phone number with its extension for display */
+function formatPhoneDisplay(value: string, ext?: string | null): string {
+  return ext ? `${value} ext ${ext}` : value;
+}
+
+export function Nav({ agent, navigation, contactInfo }: NavProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { identity, branding } = agent;
   const hamburgerRef = useRef<HTMLButtonElement>(null);
@@ -76,15 +99,19 @@ export function Nav({ agent }: NavProps) {
     }
   }, [drawerOpen]);
 
+  const navItems = navigation?.items ?? DEFAULT_NAV_ITEMS;
   const prefix = isHome ? "" : "/";
-  const sections = [
-    { label: "Why Choose Me", href: `${prefix}#services` },
-    { label: "How It Works", href: `${prefix}#how-it-works` },
-    { label: "Recent Sales", href: `${prefix}#sold` },
-    { label: "Testimonials", href: `${prefix}#testimonials` },
-    { label: "Get Your Home Value", href: `${prefix}#cma-form` },
-    { label: "About", href: `${prefix}#about` },
-  ];
+  const sections = navItems.map((item) => ({
+    label: item.label,
+    href: `${prefix}#${item.section}`,
+  }));
+
+  // Resolve contact methods — prefer content-driven, fall back to agent.identity
+  const contacts = contactInfo ?? buildFallbackContacts(identity);
+  const preferredPhone = contacts.find((c) => c.type === "phone" && c.is_preferred)
+    ?? contacts.find((c) => c.type === "phone");
+  const emails = contacts.filter((c) => c.type === "email");
+  const phones = contacts.filter((c) => c.type === "phone");
 
   return (
     <>
@@ -184,9 +211,9 @@ export function Nav({ agent }: NavProps) {
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           {/* Desktop contact links — visible >1024px */}
           <div className="nav-contact" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {identity.email && (
+            {emails[0] && (
               <a
-                href={`mailto:${identity.email}`}
+                href={`mailto:${emails[0].value}`}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -204,12 +231,12 @@ export function Nav({ agent }: NavProps) {
                   boxSizing: "border-box",
                 }}
               >
-                <EmailIcon /> {identity.email}
+                <EmailIcon /> {emails[0].value}
               </a>
             )}
-            {identity.phone && (
+            {preferredPhone && (
               <a
-                href={`tel:${identity.phone.replace(/\D/g, "")}`}
+                href={buildTelHref(preferredPhone.value, preferredPhone.ext)}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -226,7 +253,7 @@ export function Nav({ agent }: NavProps) {
                   boxSizing: "border-box",
                 }}
               >
-                <PhoneIcon /> {identity.phone}
+                <PhoneIcon /> {preferredPhone.value}
               </a>
             )}
           </div>
@@ -259,9 +286,9 @@ export function Nav({ agent }: NavProps) {
           </button>
 
           {/* Mobile call button — visible <=768px */}
-          {identity.phone && (
+          {preferredPhone && (
             <a
-              href={`tel:${identity.phone.replace(/\D/g, "")}`}
+              href={buildTelHref(preferredPhone.value, preferredPhone.ext)}
               className="nav-mobile-call"
               style={{
                 display: "none",
@@ -277,7 +304,7 @@ export function Nav({ agent }: NavProps) {
                 whiteSpace: "nowrap",
               }}
             >
-              <PhoneIcon /> {identity.phone}
+              <PhoneIcon /> {preferredPhone.value}
             </a>
           )}
 
@@ -382,56 +409,35 @@ export function Nav({ agent }: NavProps) {
 
         {/* Contact info — always visible in drawer */}
         <div className="drawer-contact">
-          {identity.phone && (
+          {phones.map((phone, i) => (
             <a
-              href={`tel:${identity.phone.replace(/\D/g, "")}`}
+              key={`phone-${i}`}
+              href={buildTelHref(phone.value, phone.ext)}
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: "10px",
-                background: "var(--color-accent)",
-                color: "var(--color-primary)",
+                background: phone.is_preferred ? "var(--color-accent)" : "rgba(255,255,255,0.1)",
+                color: phone.is_preferred ? "var(--color-primary)" : "var(--color-accent)",
                 padding: "12px 18px",
                 borderRadius: "10px",
-                fontWeight: 700,
-                fontSize: "15px",
-                marginTop: "20px",
+                fontWeight: phone.is_preferred ? 700 : 600,
+                fontSize: phone.is_preferred ? "15px" : "14px",
+                marginTop: i === 0 ? "20px" : "8px",
                 textDecoration: "none",
                 justifyContent: "center",
+                ...(phone.is_preferred ? {} : { border: "1px solid rgba(255,255,255,0.2)" }),
               }}
             >
-              <PhoneIcon size={18} />
-              {identity.phone}
+              {phone.label?.includes("Office") ? <OfficeIcon size={18} /> : <PhoneIcon size={18} />}
+              {formatPhoneDisplay(phone.value, phone.ext)}
             </a>
-          )}
+          ))}
 
-          {identity.office_phone && (
+          {emails.map((email, i) => (
             <a
-              href={`tel:${identity.office_phone.replace(/[^0-9]/g, "")}`}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                background: "rgba(255,255,255,0.1)",
-                color: "var(--color-accent)",
-                padding: "12px 18px",
-                borderRadius: "10px",
-                fontWeight: 600,
-                fontSize: "14px",
-                marginTop: "8px",
-                textDecoration: "none",
-                justifyContent: "center",
-                border: "1px solid rgba(255,255,255,0.2)",
-              }}
-            >
-              <OfficeIcon size={18} />
-              {identity.office_phone}
-            </a>
-          )}
-
-          {identity.email && (
-            <a
-              href={`mailto:${identity.email}`}
+              key={`email-${i}`}
+              href={`mailto:${email.value}`}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -449,11 +455,29 @@ export function Nav({ agent }: NavProps) {
               }}
             >
               <EmailIcon size={18} />
-              {identity.email}
+              {email.value}
             </a>
-          )}
+          ))}
         </div>
       </div>
     </>
   );
+}
+
+/** Build fallback ContactMethod[] from agent.identity when content.contact_info is not provided */
+function buildFallbackContacts(identity: AgentConfig["identity"]): ContactMethod[] {
+  const contacts: ContactMethod[] = [];
+  if (identity.phone) {
+    contacts.push({ type: "phone", value: identity.phone, label: "Cell Phone", is_preferred: true });
+  }
+  if (identity.office_phone) {
+    // Parse extension from formats like "(732) 251-2500 ext 714"
+    const extMatch = identity.office_phone.match(/ext\s*(\d+)/i);
+    const phoneValue = identity.office_phone.replace(/\s*ext\s*\d+/i, "").trim();
+    contacts.push({ type: "phone", value: phoneValue, ext: extMatch?.[1] ?? null, label: "Office Phone", is_preferred: false });
+  }
+  if (identity.email) {
+    contacts.push({ type: "email", value: identity.email, label: "Email", is_preferred: false });
+  }
+  return contacts;
 }

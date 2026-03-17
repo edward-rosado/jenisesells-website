@@ -53,6 +53,12 @@ describe("SoldMinimal", () => {
     expect(img).toHaveAttribute("alt", "123 Main St, Hoboken");
   });
 
+  it("renders SOLD badge on each listing", () => {
+    render(<SoldMinimal items={ITEMS} />);
+    const badges = screen.getAllByText("SOLD");
+    expect(badges).toHaveLength(ITEMS.length);
+  });
+
   it("does not render subtitle when omitted", () => {
     const { container } = render(<SoldMinimal items={ITEMS} />);
     const section = container.querySelector("#sold");

@@ -1,35 +1,51 @@
 import * as Sentry from "@sentry/nextjs";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { loadAgentConfig } from "@/lib/config";
+import { loadAgentConfig, loadAgentContent } from "@/lib/config";
 import { buildCssVariableStyle } from "@/lib/branding";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/sections";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
+import type { ThankYouData } from "@/lib/types";
 
 interface PageProps {
   searchParams: Promise<{ agentId?: string; email?: string }>;
+}
+
+const DEFAULT_THANK_YOU: ThankYouData = {
+  heading: "Thank You!",
+  subheading: "Your Free Home Value Report Is Being Prepared Now!",
+  body: "{firstName} will send your personalized Comparative Market Analysis to your email shortly. Keep an eye on your inbox!",
+  disclaimer: "This home value report is a Comparative Market Analysis (CMA) and is not an appraisal. It should not be considered the equivalent of an appraisal.",
+  cta_call: "Call {firstName}: {phone}",
+  cta_back: "Back to {firstName}'s Site",
+};
+
+function interpolate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`);
 }
 
 export default async function ThankYouPage({ searchParams }: PageProps) {
   const { agentId, email } = await searchParams;
   const id = agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 
-  // Load data in try/catch — return JSX outside so React can catch render errors.
   let agent: ReturnType<typeof loadAgentConfig>;
   try {
     agent = loadAgentConfig(id);
   } catch (err) {
     Sentry.captureException(err, { tags: { agentId: id } });
-    notFound(); // typed as never — execution stops here on failure
+    notFound();
   }
 
+  const content = loadAgentContent(id, agent);
+  const thankYou = content.pages?.thank_you ?? DEFAULT_THANK_YOU;
   const cssVars = buildCssVariableStyle(agent.branding);
   const firstName = agent.identity.name.split(" ")[0];
+  const vars = { firstName, phone: agent.identity.phone };
 
   return (
     <div style={cssVars as React.CSSProperties}>
-      <Nav agent={agent} />
+      <Nav agent={agent} navigation={content.navigation} contactInfo={content.contact_info} />
       <main className="pt-[74px] min-h-[70vh] flex items-center justify-center">
         <div className="text-center max-w-lg px-6">
           <div style={{
@@ -45,10 +61,10 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
             margin: "0 auto 24px",
           }}>&#10003;</div>
           <h1 className="text-3xl font-bold mb-3" style={{ color: "var(--color-primary)" }}>
-            Thank You!
+            {thankYou.heading}
           </h1>
           <p className="text-lg font-semibold mb-4" style={{ color: "var(--color-accent)" }}>
-            Your Free Home Value Report Is Being Prepared Now!
+            {interpolate(thankYou.subheading, vars)}
           </p>
           {email && (
             <p className="text-gray-700 mb-4 text-base">
@@ -56,16 +72,16 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
               <strong>{email}</strong>. Keep an eye on your inbox!
             </p>
           )}
-          {!email && (
+          {!email && thankYou.body && (
             <p className="text-gray-600 mb-4">
-              {firstName} will send your personalized Comparative Market Analysis
-              to your email shortly. Keep an eye on your inbox!
+              {interpolate(thankYou.body, vars)}
             </p>
           )}
-          <p className="text-gray-500 text-sm italic mb-8">
-            This home value report is a Comparative Market Analysis (CMA) and is not an appraisal.
-            It should not be considered the equivalent of an appraisal.
-          </p>
+          {thankYou.disclaimer && (
+            <p className="text-gray-500 text-sm italic mb-8">
+              {interpolate(thankYou.disclaimer, vars)}
+            </p>
+          )}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
             <a
               href={`tel:${agent.identity.phone.replace(/\D/g, "")}`}
@@ -83,7 +99,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-              Call {firstName}: {agent.identity.phone}
+              {interpolate(thankYou.cta_call ?? "Call {firstName}: {phone}", vars)}
             </a>
             <Link
               href="/"
@@ -99,7 +115,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
                 transition: "transform 200ms ease",
               }}
             >
-              Back to {firstName}&apos;s Site
+              {interpolate(thankYou.cta_back ?? "Back to {firstName}'s Site", vars)}
             </Link>
           </div>
         </div>

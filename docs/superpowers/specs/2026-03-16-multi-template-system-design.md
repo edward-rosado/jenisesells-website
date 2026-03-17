@@ -1,5 +1,7 @@
 # Multi-Template System for Agent Sites
 
+**Status:** Implemented
+
 ## Goal
 
 Transform the agent-site from a single-template app into a multi-template system with 3 templates (Emerald Classic, Modern Minimal, Warm Community). Each agent picks a template in their config, and the site renders with that template's layout and style. Section components are reusable across templates via a variant system.
@@ -33,7 +35,7 @@ Each section type (Hero, Stats, Services, etc.) has multiple variant components 
 ### Shared Components (identical across all templates)
 
 - `Nav` — Fixed header with responsive drawer (3-tier breakpoints)
-- `CmaForm` — Lead capture form (API or Formspree modes)
+- `CmaSection` — Lead capture form (posts to .NET CMA API via shared `useCmaSubmit` hook)
 - `Footer` — Legal footer with contact info, Equal Housing, license
 - `CookieConsentBanner` — GDPR/cookie consent
 - `Analytics` — GA4, GTM, Meta Pixel tracking
@@ -92,10 +94,11 @@ apps/agent-site/
     Nav.tsx                              # Shared (unchanged)
     sections/
       shared/                            # Shared across all templates
-        CmaForm.tsx                      # Moved from sections/CmaForm.tsx
+        CmaSection.tsx                   # Renamed from CmaForm.tsx, uses shared useCmaSubmit hook
         Footer.tsx                       # Moved from sections/Footer.tsx
         index.ts
       heroes/                            # Hero variants
+        hero-utils.tsx                   # Shared helpers: safeHref(), renderHeadline()
         HeroGradient.tsx                 # Renamed from Hero.tsx (Emerald)
         HeroSplit.tsx                    # New (Modern Minimal)
         HeroCentered.tsx                 # New (Warm Community)
@@ -130,6 +133,7 @@ apps/agent-site/
         AboutMinimal.tsx                 # New (Modern Minimal)
         AboutCard.tsx                    # New (Warm Community)
         index.ts
+      types.ts                           # Shared props interfaces (HeroProps, StatsProps, etc.) + FTC_DISCLAIMER constant
       index.ts                           # Barrel re-export
     legal/                               # Shared (unchanged)
   templates/
@@ -140,7 +144,7 @@ apps/agent-site/
   __tests__/
     components/
       shared/                            # Shared section tests
-        CmaForm.test.tsx                 # Moved
+        CmaSection.test.tsx              # Renamed from CmaForm.test.tsx
         Footer.test.tsx                  # Moved
       heroes/                            # Hero variant tests
         HeroGradient.test.tsx            # Renamed from Hero.test.tsx
@@ -191,7 +195,7 @@ Renames:
 - `sections/SoldHomes.tsx` → `sections/sold/SoldGrid.tsx`
 - `sections/Testimonials.tsx` → `sections/testimonials/TestimonialsGrid.tsx`
 - `sections/About.tsx` → `sections/about/AboutSplit.tsx`
-- `sections/CmaForm.tsx` → `sections/shared/CmaForm.tsx`
+- `sections/CmaForm.tsx` → `sections/shared/CmaSection.tsx`
 - `sections/Footer.tsx` → `sections/shared/Footer.tsx`
 
 The old `sections/index.ts` barrel export is replaced with per-folder barrel exports + a root `sections/index.ts` that re-exports everything.
@@ -212,7 +216,7 @@ All templates use the same CSS variable system (`--color-primary`, `--color-seco
 - **Modern Minimal:** Primary as accents on white backgrounds, accent for CTAs, lots of white
 - **Warm Community:** Primary as subtle accents, warm interpretation, soft shadows
 
-All styling remains inline (consistent with existing codebase — no CSS modules or Tailwind).
+All section variant styling remains inline (consistent with existing codebase). Legal page components (`CookieConsentBanner`, `LegalPageLayout`, `MarkdownContent`) use Tailwind as a pre-existing exception — they are outside the template variant system.
 
 ### Responsive Design
 

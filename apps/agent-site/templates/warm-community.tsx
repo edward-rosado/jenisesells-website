@@ -16,7 +16,7 @@ export function WarmCommunity({ agent, content }: TemplateProps) {
   const s = content.sections;
   return (
     <>
-      <Nav agent={agent} />
+      <Nav agent={agent} navigation={content.navigation} contactInfo={content.contact_info} />
       <div style={{ paddingTop: "0" }}>
       {s.hero.enabled && (
         <HeroCentered

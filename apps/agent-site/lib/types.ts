@@ -109,6 +109,29 @@ export interface TestimonialItem {
 export interface CmaFormData {
   title: string;
   subtitle: string;
+  description?: string;
+}
+
+export interface ThankYouData {
+  heading: string;
+  subheading: string;
+  body?: string;
+  disclaimer?: string;
+  cta_call?: string;
+  cta_back?: string;
+}
+
+export interface NavItem {
+  label: string;
+  section: string;
+}
+
+export interface ContactMethod {
+  type: "email" | "phone";
+  value: string;
+  ext?: string | null;
+  label: string;
+  is_preferred: boolean;
 }
 
 export interface AboutData {
@@ -128,6 +151,10 @@ export interface CityPageData {
 
 export interface AgentContent {
   template: string;
+  navigation?: {
+    items: NavItem[];
+  };
+  contact_info?: ContactMethod[];
   sections: {
     hero: SectionConfig<HeroData>;
     stats: SectionConfig<{ items: StatItem[] }>;
@@ -138,5 +165,8 @@ export interface AgentContent {
     cma_form: SectionConfig<CmaFormData>;
     about: SectionConfig<AboutData>;
     city_pages: SectionConfig<{ cities: CityPageData[] }>;
+  };
+  pages?: {
+    thank_you?: ThankYouData;
   };
 }
