@@ -31,8 +31,27 @@
         ]
       }
     },
-    "sold_homes": { "enabled": false, "data": { "items": [] } },
-    "testimonials": { "enabled": false, "data": { "items": [] } },
+    "sold_homes": {
+      "enabled": true,
+      "data": {
+        "title": "Recent Sales",
+        "items": [
+          { "address": "350 Fifth Ave, Unit 42B", "city": "Manhattan", "state": "NY", "price": "$1,250,000", "image_url": "/agents/test-modern/sold/350-fifth-ave.jpg" },
+          { "address": "200 Park Ave, Unit 18A", "city": "Manhattan", "state": "NY", "price": "$890,000", "image_url": "/agents/test-modern/sold/200-park-ave.jpg" },
+          { "address": "88 Greenpoint Ave", "city": "Brooklyn", "state": "NY", "price": "$725,000", "image_url": "/agents/test-modern/sold/88-greenpoint.jpg" }
+        ]
+      }
+    },
+    "testimonials": {
+      "enabled": true,
+      "data": {
+        "title": "Client Reviews",
+        "items": [
+          { "text": "Alex found us the perfect condo in record time. Incredibly responsive and knows every neighborhood inside out.", "reviewer": "Sarah M.", "rating": 5, "source": "Google" },
+          { "text": "Best experience buying in NYC. Alex's data-driven approach gave us confidence in a crazy market.", "reviewer": "James & Priya", "rating": 5, "source": "Google" }
+        ]
+      }
+    },
     "cma_form": {
       "enabled": true,
       "data": {

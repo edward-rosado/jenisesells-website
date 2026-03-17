@@ -59,7 +59,18 @@
         ]
       }
     },
-    "sold_homes": { "enabled": false, "data": { "items": [] } },
+    "sold_homes": {
+      "enabled": true,
+      "data": {
+        "title": "Homes Sold by Maria",
+        "subtitle": "Helping families find their place in Central Texas.",
+        "items": [
+          { "address": "1100 Congress Ave", "city": "Austin", "state": "TX", "price": "$485,000", "image_url": "/agents/test-warm/sold/1100-congress.jpg" },
+          { "address": "450 Barton Springs Rd", "city": "Austin", "state": "TX", "price": "$620,000", "image_url": "/agents/test-warm/sold/450-barton-springs.jpg" },
+          { "address": "220 Round Rock Ave", "city": "Round Rock", "state": "TX", "price": "$375,000", "image_url": "/agents/test-warm/sold/220-round-rock.jpg" }
+        ]
+      }
+    },
     "testimonials": {
       "enabled": true,
       "data": {
