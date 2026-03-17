@@ -40,8 +40,6 @@ export interface AgentTracking {
 export interface AgentIntegrations {
   email_provider?: "gmail" | "outlook" | "smtp";
   hosting?: string;
-  form_handler?: "formspree" | "custom";
-  form_handler_id?: string;
   tracking?: AgentTracking;
 }
 

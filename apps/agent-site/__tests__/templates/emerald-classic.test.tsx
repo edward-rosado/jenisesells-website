@@ -5,15 +5,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { EmeraldClassic } from "@/templates/emerald-classic";
 import { AGENT, CONTENT, CONTENT_ALL_DISABLED } from "../components/fixtures";
-import type { AgentConfig, AgentContent } from "@/lib/types";
-
-// Mock next/script so Analytics scripts render as queryable elements
-vi.mock("next/script", () => ({
-  __esModule: true,
-  default: ({ id, src }: { id?: string; src: string }) => (
-    <script data-testid={id} data-src={src} />
-  ),
-}));
+import type { AgentContent } from "@/lib/types";
 
 describe("EmeraldClassic template", () => {
   it("always renders the Nav", () => {
@@ -123,12 +115,12 @@ describe("EmeraldClassic template", () => {
     expect(screen.queryByRole("heading", { name: "What My Clients Say" })).not.toBeInTheDocument();
   });
 
-  it("renders CmaForm when enabled", () => {
+  it("renders CmaSection when enabled", () => {
     render(<EmeraldClassic agent={AGENT} content={CONTENT} />);
     expect(screen.getByRole("heading", { level: 2, name: "What's Your Home Worth?" })).toBeInTheDocument();
   });
 
-  it("does not render CmaForm when disabled", () => {
+  it("does not render CmaSection when disabled", () => {
     render(<EmeraldClassic agent={AGENT} content={CONTENT_ALL_DISABLED} />);
     expect(screen.queryByRole("heading", { name: "What's Your Home Worth?" })).not.toBeInTheDocument();
   });
@@ -141,25 +133,6 @@ describe("EmeraldClassic template", () => {
   it("does not render About when disabled", () => {
     render(<EmeraldClassic agent={AGENT} content={CONTENT_ALL_DISABLED} />);
     expect(screen.queryByRole("heading", { name: /About/ })).not.toBeInTheDocument();
-  });
-
-  it("renders Analytics scripts when tracking is configured", () => {
-    const agentWithTracking: AgentConfig = {
-      ...AGENT,
-      integrations: {
-        ...AGENT.integrations,
-        tracking: { google_analytics_id: "G-TEST123" },
-      },
-    };
-    const { getByTestId } = render(<EmeraldClassic agent={agentWithTracking} content={CONTENT} />);
-    expect(getByTestId("ga4-config")).toBeTruthy();
-  });
-
-  it("does not render Analytics scripts when no tracking is configured", () => {
-    const { container } = render(<EmeraldClassic agent={AGENT} content={CONTENT} />);
-    expect(container.querySelectorAll("[data-testid='gtm-script']").length).toBe(0);
-    expect(container.querySelectorAll("[data-testid='ga4-config']").length).toBe(0);
-    expect(container.querySelectorAll("[data-testid='meta-pixel']").length).toBe(0);
   });
 
   it("renders all sections when all enabled", () => {

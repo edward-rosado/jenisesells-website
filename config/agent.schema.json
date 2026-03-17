@@ -66,14 +66,6 @@
         "hosting": {
           "type": "string",
           "description": "Hosting provider (TBD — analysis pending)"
-        },
-        "form_handler": {
-          "type": "string",
-          "enum": ["formspree", "custom"]
-        },
-        "form_handler_id": {
-          "type": "string",
-          "description": "Provider-specific form ID (e.g. Formspree form ID)"
         }
       }
     },

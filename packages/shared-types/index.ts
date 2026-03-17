@@ -6,3 +6,9 @@ export type {
   SellerDetails,
   LeadFormData,
 } from "./lead-form";
+
+export type {
+  CmaSubmitRequest,
+  CmaSubmitResponse,
+  CmaStatusUpdate,
+} from "./cma";

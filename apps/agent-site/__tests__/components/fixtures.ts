@@ -22,10 +22,7 @@ export const AGENT: AgentConfig = {
     accent_color: "#C8A951",
     font_family: "Segoe UI",
   },
-  integrations: {
-    form_handler: "formspree",
-    form_handler_id: "abc123",
-  },
+  integrations: {},
 };
 
 export const AGENT_MINIMAL: AgentConfig = {

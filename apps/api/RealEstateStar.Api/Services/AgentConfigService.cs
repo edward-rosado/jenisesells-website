@@ -20,9 +20,12 @@ public partial class AgentConfigService(string configDirectory, ILogger<AgentCon
     {
         ValidateAgentId(agentId);
 
-        var filePath = Path.Combine(configDirectory, $"{agentId}.json");
-        var resolvedPath = Path.GetFullPath(filePath);
         var resolvedConfigDir = Path.GetFullPath(configDirectory);
+
+        // Support both directory format ({id}/config.json) and flat format ({id}.json)
+        var directoryPath = Path.GetFullPath(Path.Combine(configDirectory, agentId, "config.json"));
+        var flatPath = Path.GetFullPath(Path.Combine(configDirectory, $"{agentId}.json"));
+        var resolvedPath = File.Exists(directoryPath) ? directoryPath : flatPath;
 
         if (!resolvedPath.StartsWith(resolvedConfigDir, StringComparison.OrdinalIgnoreCase))
         {
