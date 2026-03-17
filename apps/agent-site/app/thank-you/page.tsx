@@ -31,7 +31,18 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
       <Nav agent={agent} />
       <main className="pt-[74px] min-h-[70vh] flex items-center justify-center">
         <div className="text-center max-w-lg px-6">
-          <div className="text-6xl mb-6" style={{ color: "var(--color-primary)" }}>&#10003;</div>
+          <div style={{
+            width: "80px",
+            height: "80px",
+            borderRadius: "50%",
+            backgroundColor: "var(--color-primary)",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "40px",
+            margin: "0 auto 24px",
+          }}>&#10003;</div>
           <h1 className="text-3xl font-bold mb-3" style={{ color: "var(--color-primary)" }}>
             Thank You!
           </h1>
@@ -54,19 +65,38 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
             This home value report is a Comparative Market Analysis (CMA) and is not an appraisal.
             It should not be considered the equivalent of an appraisal.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
             <a
               href={`tel:${agent.identity.phone.replace(/\D/g, "")}`}
-              className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-full font-bold text-white transition-transform hover:-translate-y-0.5"
-              style={{ backgroundColor: "var(--color-primary)" }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "12px 28px",
+                borderRadius: "30px",
+                fontWeight: 700,
+                color: "#fff",
+                backgroundColor: "var(--color-primary)",
+                textDecoration: "none",
+                transition: "transform 200ms ease",
+              }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
               Call {firstName}: {agent.identity.phone}
             </a>
             <a
               href="/"
-              className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-full font-bold transition-transform hover:-translate-y-0.5"
-              style={{ backgroundColor: "var(--color-accent)", color: "var(--color-primary)" }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "12px 28px",
+                borderRadius: "30px",
+                fontWeight: 700,
+                color: "var(--color-primary)",
+                backgroundColor: "var(--color-accent)",
+                textDecoration: "none",
+                transition: "transform 200ms ease",
+              }}
             >
               Back to {firstName}&apos;s Site
             </a>
