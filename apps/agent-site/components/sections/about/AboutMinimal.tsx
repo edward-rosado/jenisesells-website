@@ -33,7 +33,7 @@ export function AboutMinimal({ agent, data }: AboutProps) {
           }}>
             <Image
               src={headshotUrl}
-              alt={displayName}
+              alt={`Photo of ${displayName}`}
               fill
               style={{ objectFit: "cover" }}
               sizes="220px"
@@ -65,7 +65,7 @@ export function AboutMinimal({ agent, data }: AboutProps) {
             <p style={{
               marginTop: "16px",
               fontSize: "13px",
-              color: "#888",
+              color: "#767676",
             }}>
               {data.credentials.join(" · ")}
             </p>

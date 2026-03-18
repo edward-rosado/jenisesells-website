@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { AboutProps } from "@/components/sections/types";
 import { getDisplayName, getHeadshotUrl } from "@/components/sections/types";
+import { safeMailtoHref, safeTelHref } from "@/lib/safe-contact";
 
 export function AboutCard({ agent, data }: AboutProps) {
   const displayName = getDisplayName(agent);
@@ -68,15 +69,21 @@ export function AboutCard({ agent, data }: AboutProps) {
           </p>
         )}
         {data.credentials && data.credentials.length > 0 && (
-          <div style={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            gap: "8px",
-            marginBottom: "24px",
-          }}>
+          <ul
+            aria-label="Credentials"
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: "8px",
+              marginBottom: "24px",
+              listStyle: "none",
+              padding: 0,
+              margin: "0 0 24px",
+            }}
+          >
             {data.credentials.map((cred) => (
-              <span
+              <li
                 key={cred}
                 style={{
                   background: "#FFF0E0",
@@ -88,17 +95,37 @@ export function AboutCard({ agent, data }: AboutProps) {
                 }}
               >
                 {cred}
-              </span>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
         <div style={{
           fontSize: "14px",
           color: "#8B7355",
           lineHeight: 2,
         }}>
-          {phone && <div>{phone}</div>}
-          {email && <div>{email}</div>}
+          {phone && (
+            <div>
+              <a
+                href={safeTelHref(phone)}
+                aria-label={`Call ${displayName}`}
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                {phone}
+              </a>
+            </div>
+          )}
+          {email && (
+            <div>
+              <a
+                href={safeMailtoHref(email)}
+                aria-label={`Email ${displayName}`}
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                {email}
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </section>
