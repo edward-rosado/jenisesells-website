@@ -5,12 +5,16 @@ import { loadAccountConfig, loadLegalContent } from "@/lib/config";
 import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
 import { MarkdownContent } from "@/components/legal/MarkdownContent";
 import { LEGAL_EFFECTIVE_DATE, getStateName } from "@/components/legal/constants";
+import { safeMailtoHref } from "@/lib/safe-contact";
 
 interface PageProps {
   searchParams: Promise<{ agentId?: string }>;
 }
 
 function resolveHandle(agentId?: string): string {
+  if (process.env.NODE_ENV === "production" && !process.env.PREVIEW) {
+    return process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+  }
   return agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 }
 
@@ -114,7 +118,7 @@ These terms are governed by the laws of the state of ${stateName}. Any disputes 
 
 For questions about these terms, contact us at:
 
-**Email:** [${email}](mailto:${email})
+**Email:** [${email}](${safeMailtoHref(email)})
 
 *Last updated: ${LEGAL_EFFECTIVE_DATE}*`;
 
