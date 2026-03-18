@@ -92,11 +92,11 @@ describe("HeroCoastal", () => {
     expect(section!.id).toBe("");
   });
 
-  it("agent photo has circular shape (borderRadius 50%)", () => {
+  it("agent photo has rounded shape (borderRadius 20px)", () => {
     const { container } = render(
       <HeroCoastal data={heroData} agentPhotoUrl="/headshot.jpg" agentName="Maya" />
     );
-    const photoWrapper = container.querySelector("div[style*='border-radius: 50%']");
+    const photoWrapper = container.querySelector("div[style*='border-radius: 20px']");
     expect(photoWrapper).toBeInTheDocument();
   });
 
