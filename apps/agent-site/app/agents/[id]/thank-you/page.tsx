@@ -208,7 +208,7 @@ export default async function AgentThankYouPage({ params }: PageProps) {
           </div>
         </div>
       </main>
-      <Footer agent={account as unknown as import("@/lib/types").AgentConfig} agentId={identity.id} />
+      <Footer agent={account} agentId={identity.id} />
       <CookieConsentBanner agentId={handle} />
     </div>
   );
