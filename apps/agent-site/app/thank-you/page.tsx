@@ -6,6 +6,7 @@ import { buildCssVariableStyle } from "@/lib/branding";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/sections";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
+import { safeTelHref } from "@/lib/safe-contact";
 import type { ThankYouData } from "@/lib/types";
 
 interface PageProps {
@@ -26,7 +27,9 @@ function interpolate(template: string, vars: Record<string, string>): string {
 }
 
 export default async function ThankYouPage({ searchParams }: PageProps) {
-  const { agentId, email } = await searchParams;
+  const { agentId, email: rawEmail } = await searchParams;
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const validEmail = rawEmail && EMAIL_RE.test(rawEmail) && rawEmail.length <= 254 ? rawEmail : null;
   const handle = agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 
   let account: ReturnType<typeof loadAccountConfig>;
@@ -68,13 +71,13 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
           <p className="text-lg font-semibold mb-4" style={{ color: "var(--color-accent)" }}>
             {interpolate(thankYou.subheading, vars)}
           </p>
-          {email && (
+          {validEmail && (
             <p className="text-gray-700 mb-4 text-base">
               We&apos;ll send your personalized report to{" "}
-              <strong>{email}</strong>. Keep an eye on your inbox!
+              <strong>{validEmail}</strong>. Keep an eye on your inbox!
             </p>
           )}
-          {!email && thankYou.body && (
+          {!validEmail && thankYou.body && (
             <p className="text-gray-600 mb-4">
               {interpolate(thankYou.body, vars)}
             </p>
@@ -86,7 +89,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
           )}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
             <a
-              href={`tel:${phone.replace(/\D/g, "")}`}
+              href={safeTelHref(phone)}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
