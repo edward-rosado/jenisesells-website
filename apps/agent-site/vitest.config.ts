@@ -22,7 +22,7 @@ export default defineConfig({
         "templates/**/*.tsx",
         "middleware.ts",
       ],
-      exclude: ["lib/types.ts", "templates/types.ts", "**/config-registry.ts", "**/__tests__/**", "components/sections/index.ts", "components/sections/**/index.ts"],
+      exclude: ["lib/types.ts", "templates/types.ts", "**/config-registry.ts", "**/nav-registry.ts", "**/__tests__/**", "components/sections/index.ts", "components/sections/**/index.ts"],
       thresholds: {
         branches: 100,
         functions: 100,

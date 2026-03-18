@@ -3,12 +3,12 @@ import * as Sentry from "@sentry/nextjs";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadAccountConfig, loadAccountContent, loadAgentConfig, loadAgentContent } from "@/lib/config";
+import { loadNavConfig } from "@/lib/nav-config";
 import { buildCssVariableStyle } from "@/lib/branding";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/sections";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import type { AccountConfig, AgentConfig, ThankYouData } from "@/lib/types";
-import { getEnabledSections } from "@/templates/types";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -103,6 +103,7 @@ export default async function AgentThankYouPage({ params }: PageProps) {
     loadAgentContent(handle, id) ?? loadAccountContent(handle, account);
 
   const thankYou = content.pages?.thank_you ?? DEFAULT_THANK_YOU;
+  const navConfig = loadNavConfig(handle);
   const cssVars = buildCssVariableStyle(account.branding);
   const identity = resolveIdentity(agentConfig, account);
   const firstName = identity.name.split(" ")[0];
@@ -110,7 +111,7 @@ export default async function AgentThankYouPage({ params }: PageProps) {
 
   return (
     <div style={cssVars as React.CSSProperties}>
-      <Nav account={account} navigation={content.navigation} enabledSections={getEnabledSections(content.pages.home.sections)} />
+      <Nav account={account} navigation={navConfig.navigation} enabledSections={navConfig.enabledSections} />
       <main className="pt-[74px] min-h-[70vh] flex items-center justify-center">
         <div className="text-center max-w-lg px-6">
           <div

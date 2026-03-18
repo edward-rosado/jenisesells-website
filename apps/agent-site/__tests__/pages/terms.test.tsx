@@ -6,17 +6,17 @@ import { render, screen } from "@testing-library/react";
 import { ACCOUNT, ACCOUNT_MINIMAL, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY } from "../components/fixtures";
 
 const mockLoadAccountConfig = vi.fn();
-const mockLoadAccountContent = vi.fn();
 const mockLoadLegalContent = vi.fn();
+const mockLoadNavConfig = vi.fn();
 const mockNotFound = vi.fn(() => { throw new Error("NOT_FOUND"); });
 const mockCaptureException = vi.fn();
 
-const MINIMAL_CONTENT = { pages: { home: { sections: { hero: { enabled: true, data: {} }, features: { enabled: true, data: { items: [] } }, steps: { enabled: true, data: { steps: [] } }, contact_form: { enabled: true, data: {} }, about: { enabled: true, data: {} } } } } };
-
 vi.mock("@/lib/config", () => ({
   loadAccountConfig: (...args: unknown[]) => mockLoadAccountConfig(...args),
-  loadAccountContent: (...args: unknown[]) => mockLoadAccountContent(...args),
   loadLegalContent: (...args: unknown[]) => mockLoadLegalContent(...args),
+}));
+vi.mock("@/lib/nav-config", () => ({
+  loadNavConfig: (...args: unknown[]) => mockLoadNavConfig(...args),
 }));
 vi.mock("next/navigation", () => ({ notFound: () => mockNotFound(), usePathname: () => "/terms", useSearchParams: () => new URLSearchParams() }));
 vi.mock("@sentry/nextjs", () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }));
@@ -26,7 +26,7 @@ import TermsPage, { generateMetadata } from "@/app/terms/page";
 beforeEach(() => {
   vi.clearAllMocks();
   mockLoadAccountConfig.mockReturnValue(ACCOUNT);
-  mockLoadAccountContent.mockReturnValue(MINIMAL_CONTENT);
+  mockLoadNavConfig.mockReturnValue({ navigation: undefined, enabledSections: new Set() });
   mockLoadLegalContent.mockReturnValue({ above: undefined, below: undefined });
 });
 
