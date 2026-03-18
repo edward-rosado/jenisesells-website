@@ -57,9 +57,10 @@ describe("Nav", () => {
     expect(phoneLinks).toHaveLength(0);
   });
 
-  it("renders office phone link from fallback identity", () => {
+  it("renders office phone link from contact_info", () => {
     const { container } = render(<Nav account={ACCOUNT} />);
-    const officeLink = container.querySelector('a[href="tel:7322512500"]');
+    // ACCOUNT.contact_info has office phone with ext 714
+    const officeLink = container.querySelector('a[href="tel:7322512500,714"]');
     expect(officeLink).toBeInTheDocument();
     expect(officeLink?.textContent).toContain("251-2500");
   });
@@ -403,7 +404,7 @@ describe("Nav", () => {
     const links = drawerContact.querySelectorAll("a");
     const hrefs = Array.from(links).map((l) => l.getAttribute("href"));
     expect(hrefs).toContain("tel:5551234567");
-    expect(hrefs).toContain("tel:7322512500");
+    expect(hrefs).toContain("tel:7322512500,714"); // ACCOUNT has office phone with ext 714
     expect(hrefs).toContain("mailto:jane@example.com");
   });
 

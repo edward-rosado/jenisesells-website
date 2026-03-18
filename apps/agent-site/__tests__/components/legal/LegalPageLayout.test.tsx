@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
-import { AGENT, AGENT_MINIMAL } from "../fixtures";
+import { ACCOUNT as AGENT, ACCOUNT_MINIMAL as AGENT_MINIMAL } from "../fixtures";
 
 describe("LegalPageLayout", () => {
   it("renders children (standard legal content)", () => {

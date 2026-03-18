@@ -3,15 +3,15 @@
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { AGENT, AGENT_MINIMAL } from "../components/fixtures";
+import { ACCOUNT, ACCOUNT_MINIMAL } from "../components/fixtures";
 
-const mockLoadAgentConfig = vi.fn();
+const mockLoadAccountConfig = vi.fn();
 const mockLoadLegalContent = vi.fn();
 const mockNotFound = vi.fn(() => { throw new Error("NOT_FOUND"); });
 const mockCaptureException = vi.fn();
 
 vi.mock("@/lib/config", () => ({
-  loadAgentConfig: (...args: unknown[]) => mockLoadAgentConfig(...args),
+  loadAccountConfig: (...args: unknown[]) => mockLoadAccountConfig(...args),
   loadLegalContent: (...args: unknown[]) => mockLoadLegalContent(...args),
 }));
 vi.mock("next/navigation", () => ({ notFound: () => mockNotFound(), usePathname: () => "/privacy" }));
@@ -22,7 +22,7 @@ import PrivacyPage, { generateMetadata } from "@/app/privacy/page";
 describe("generateMetadata (privacy)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockLoadAgentConfig.mockReturnValue(AGENT);
+    mockLoadAccountConfig.mockReturnValue(ACCOUNT);
   });
 
   it("returns title with agent name when config loads", async () => {
@@ -31,7 +31,7 @@ describe("generateMetadata (privacy)", () => {
   });
 
   it("returns fallback title when config fails", async () => {
-    mockLoadAgentConfig.mockImplementation(() => { throw new Error("fail"); });
+    mockLoadAccountConfig.mockImplementation(() => { throw new Error("fail"); });
     const meta = await generateMetadata({ searchParams: Promise.resolve({ agentId: "bad" }) });
     expect(meta.title).toBe("Privacy Policy");
   });
@@ -39,21 +39,21 @@ describe("generateMetadata (privacy)", () => {
   it("uses DEFAULT_AGENT_ID env var when agentId is absent", async () => {
     process.env.DEFAULT_AGENT_ID = "env-agent";
     await generateMetadata({ searchParams: Promise.resolve({}) });
-    expect(mockLoadAgentConfig).toHaveBeenCalledWith("env-agent");
+    expect(mockLoadAccountConfig).toHaveBeenCalledWith("env-agent");
     delete process.env.DEFAULT_AGENT_ID;
   });
 
   it("falls back to jenise-buckalew when no agentId or env var", async () => {
     delete process.env.DEFAULT_AGENT_ID;
     await generateMetadata({ searchParams: Promise.resolve({}) });
-    expect(mockLoadAgentConfig).toHaveBeenCalledWith("jenise-buckalew");
+    expect(mockLoadAccountConfig).toHaveBeenCalledWith("jenise-buckalew");
   });
 });
 
 describe("PrivacyPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockLoadAgentConfig.mockReturnValue(AGENT);
+    mockLoadAccountConfig.mockReturnValue(ACCOUNT);
     mockLoadLegalContent.mockReturnValue({ above: undefined, below: undefined });
   });
 
@@ -101,8 +101,8 @@ describe("PrivacyPage", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Additional Info" })).toBeInTheDocument();
   });
 
-  it("calls notFound() when loadAgentConfig rejects", async () => {
-    mockLoadAgentConfig.mockImplementation(() => { throw new Error("not found"); });
+  it("calls notFound() when loadAccountConfig rejects", async () => {
+    mockLoadAccountConfig.mockImplementation(() => { throw new Error("not found"); });
     await expect(
       PrivacyPage({ searchParams: Promise.resolve({ agentId: "bad" }) })
     ).rejects.toThrow("NOT_FOUND");
@@ -110,8 +110,8 @@ describe("PrivacyPage", () => {
     expect(mockNotFound).toHaveBeenCalled();
   });
 
-  it("renders with AGENT_MINIMAL (no brokerage, no service_areas)", async () => {
-    mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+  it("renders with ACCOUNT_MINIMAL (no brokerage, no service_areas)", async () => {
+    mockLoadAccountConfig.mockReturnValue(ACCOUNT_MINIMAL);
     const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
     render(page);
     expect(screen.getByRole("heading", { level: 1, name: /Privacy Policy/i })).toBeInTheDocument();
@@ -147,21 +147,21 @@ describe("PrivacyPage", () => {
 
   describe("non-NJ state (dynamic state content)", () => {
     it("shows generic state privacy notice for non-NJ agents", async () => {
-      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_MINIMAL);
       const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
       render(page);
       expect(screen.getByRole("heading", { name: /Texas Residents/i })).toBeInTheDocument();
     });
 
     it("shows generic placeholder text for non-NJ agents", async () => {
-      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_MINIMAL);
       const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
       render(page);
       expect(screen.getByText(/Texas real estate laws and regulations apply/)).toBeInTheDocument();
     });
 
     it("does not show NJ Data Privacy Act reference for non-NJ agents", async () => {
-      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_MINIMAL);
       const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
       render(page);
       expect(screen.queryByText(/New Jersey Data Privacy Act/)).not.toBeInTheDocument();
