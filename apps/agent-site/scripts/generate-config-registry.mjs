@@ -4,108 +4,118 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const AGENTS_DIR = path.resolve(__dirname, "../../../config/agents");
+const ACCOUNTS_DIR = path.resolve(__dirname, "../../../config/accounts");
 const OUTPUT = path.resolve(__dirname, "../lib/config-registry.ts");
 
 const SKIP_PATTERN = /^bad-|\.schema\.json$/;
-
-function discoverAgents() {
-  const agents = [];
-  for (const entry of fs.readdirSync(AGENTS_DIR, { withFileTypes: true })) {
-    if (entry.isDirectory()) {
-      const configPath = path.join(AGENTS_DIR, entry.name, "config.json");
-      if (fs.existsSync(configPath)) {
-        agents.push({ id: entry.name, layout: "directory" });
-      }
-    } else if (entry.isFile() && entry.name.endsWith(".json") && !SKIP_PATTERN.test(entry.name)) {
-      const id = entry.name.replace(/\.json$/, "");
-      // Skip if directory layout exists (directory takes priority)
-      const dirConfig = path.join(AGENTS_DIR, id, "config.json");
-      if (!fs.existsSync(dirConfig)) {
-        agents.push({ id, layout: "flat" });
-      }
-    }
-  }
-  return agents;
-}
 
 function loadJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf-8"));
 }
 
 function tryReadFile(filePath) {
-  try {
-    return fs.readFileSync(filePath, "utf-8");
-  } catch {
-    return undefined;
+  try { return fs.readFileSync(filePath, "utf-8"); }
+  catch { return undefined; }
+}
+
+function discoverAccounts() {
+  const result = [];
+  for (const entry of fs.readdirSync(ACCOUNTS_DIR, { withFileTypes: true })) {
+    if (!entry.isDirectory() || SKIP_PATTERN.test(entry.name)) continue;
+    const accountPath = path.join(ACCOUNTS_DIR, entry.name, "account.json");
+    if (fs.existsSync(accountPath)) {
+      result.push(entry.name);
+    }
   }
+  return result;
+}
+
+function discoverAgents(accountDir) {
+  const agentsDir = path.join(accountDir, "agents");
+  if (!fs.existsSync(agentsDir)) return [];
+  const result = [];
+  for (const entry of fs.readdirSync(agentsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const configPath = path.join(agentsDir, entry.name, "config.json");
+    if (fs.existsSync(configPath)) {
+      result.push(entry.name);
+    }
+  }
+  return result;
 }
 
 function main() {
-  const agents = discoverAgents();
-  console.log(`[prebuild] Found ${agents.length} agent(s): ${agents.map((a) => a.id).join(", ")}`);
+  const handles = discoverAccounts();
+  console.log(`[prebuild] Found ${handles.length} account(s): ${handles.join(", ")}`);
 
-  const configs = {};
-  const contents = {};
-  const legalContent = {};
+  const accountsMap = {};
+  const accountContentMap = {};
+  const agentConfigsMap = {};
+  const agentContentMap = {};
+  const legalContentMap = {};
   const customDomains = {};
 
-  for (const agent of agents) {
-    const baseDir = agent.layout === "directory"
-      ? path.join(AGENTS_DIR, agent.id)
-      : AGENTS_DIR;
+  for (const handle of handles) {
+    const accountDir = path.join(ACCOUNTS_DIR, handle);
+    const account = loadJson(path.join(accountDir, "account.json"));
+    accountsMap[handle] = account;
 
-    // Config (required)
-    const configPath = agent.layout === "directory"
-      ? path.join(baseDir, "config.json")
-      : path.join(baseDir, `${agent.id}.json`);
-    const config = loadJson(configPath);
-    configs[agent.id] = config;
-
-    // Content (optional)
-    const contentPath = agent.layout === "directory"
-      ? path.join(baseDir, "content.json")
-      : path.join(baseDir, `${agent.id}.content.json`);
+    const contentPath = path.join(accountDir, "content.json");
     if (fs.existsSync(contentPath)) {
-      contents[agent.id] = loadJson(contentPath);
+      accountContentMap[handle] = loadJson(contentPath);
     }
 
-    // Legal markdown (optional, directory layout only)
-    if (agent.layout === "directory") {
-      const legalDir = path.join(baseDir, "legal");
-      if (fs.existsSync(legalDir)) {
-        const legalPages = {};
-        for (const page of ["privacy", "terms", "accessibility"]) {
-          const above = tryReadFile(path.join(legalDir, `${page}-above.md`));
-          const below = tryReadFile(path.join(legalDir, `${page}-below.md`));
-          if (above !== undefined || below !== undefined) {
-            legalPages[page] = { above, below };
-          }
+    const legalDir = path.join(accountDir, "legal");
+    if (fs.existsSync(legalDir)) {
+      const legalPages = {};
+      for (const page of ["privacy", "terms", "accessibility"]) {
+        const above = tryReadFile(path.join(legalDir, `${page}-above.md`));
+        const below = tryReadFile(path.join(legalDir, `${page}-below.md`));
+        if (above !== undefined || below !== undefined) {
+          legalPages[page] = { above, below };
         }
-        if (Object.keys(legalPages).length > 0) {
-          legalContent[agent.id] = legalPages;
-        }
+      }
+      if (Object.keys(legalPages).length > 0) {
+        legalContentMap[handle] = legalPages;
       }
     }
 
-    // Custom domain mapping
-    if (config.identity?.website) {
-      customDomains[config.identity.website] = agent.id;
+    if (account.agent?.id && account.integrations?.hosting) {
+      customDomains[account.integrations.hosting] = handle;
+    }
+
+    const agentIds = discoverAgents(accountDir);
+    if (agentIds.length > 0) {
+      agentConfigsMap[handle] = {};
+      agentContentMap[handle] = {};
+      for (const agentId of agentIds) {
+        const agentDir = path.join(accountDir, "agents", agentId);
+        agentConfigsMap[handle][agentId] = loadJson(path.join(agentDir, "config.json"));
+        const agentContentPath = path.join(agentDir, "content.json");
+        if (fs.existsSync(agentContentPath)) {
+          agentContentMap[handle][agentId] = loadJson(agentContentPath);
+        }
+      }
+      console.log(`  ${handle}: ${agentIds.length} agent(s): ${agentIds.join(", ")}`);
     }
   }
 
-  const output = `// AUTO-GENERATED by scripts/generate-config-registry.mjs — DO NOT EDIT
-import type { AgentConfig, AgentContent } from "./types";
+  const output = `// AUTO-GENERATED by scripts/generate-config-registry.mjs -- DO NOT EDIT
+import type { AccountConfig, AgentConfig, ContentConfig } from "./types";
 
-export const configs: Record<string, AgentConfig> = ${JSON.stringify(configs, null, 2)} as unknown as Record<string, AgentConfig>;
+export const accounts: Record<string, AccountConfig> = ${JSON.stringify(accountsMap, null, 2)} as unknown as Record<string, AccountConfig>;
 
-export const contents: Record<string, AgentContent> = ${JSON.stringify(contents, null, 2)} as unknown as Record<string, AgentContent>;
+export const accountContent: Record<string, ContentConfig> = ${JSON.stringify(accountContentMap, null, 2)} as unknown as Record<string, ContentConfig>;
 
-export const legalContent: Record<string, Record<string, { above?: string; below?: string }>> = ${JSON.stringify(legalContent, null, 2)};
+export const agentConfigs: Record<string, Record<string, AgentConfig>> = ${JSON.stringify(agentConfigsMap, null, 2)} as unknown as Record<string, Record<string, AgentConfig>>;
+
+export const agentContent: Record<string, Record<string, ContentConfig>> = ${JSON.stringify(agentContentMap, null, 2)} as unknown as Record<string, Record<string, ContentConfig>>;
+
+export const legalContent: Record<string, Record<string, { above?: string; below?: string }>> = ${JSON.stringify(legalContentMap, null, 2)};
 
 export const customDomains: Record<string, string> = ${JSON.stringify(customDomains, null, 2)};
 
-export const agentIds: Set<string> = new Set(${JSON.stringify(Object.keys(configs))});
+export const accountHandles: Set<string> = new Set(${JSON.stringify(handles)});
 `;
 
   fs.writeFileSync(OUTPUT, output, "utf-8");
