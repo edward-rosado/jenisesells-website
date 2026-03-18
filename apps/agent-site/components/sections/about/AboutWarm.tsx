@@ -1,7 +1,11 @@
 import Image from "next/image";
 import type { AboutProps } from "@/components/sections/types";
+import { getDisplayName, getHeadshotUrl } from "@/components/sections/types";
 
 export function AboutWarm({ agent, data }: AboutProps) {
+  const displayName = getDisplayName(agent);
+  const headshotUrl = getHeadshotUrl(agent);
+
   return (
     <section
       id="about"
@@ -18,7 +22,7 @@ export function AboutWarm({ agent, data }: AboutProps) {
         }}
       >
         {/* Large circular photo with accent border */}
-        {agent.identity.headshot_url && (
+        {headshotUrl && (
           <div
             style={{
               width: "200px",
@@ -31,8 +35,8 @@ export function AboutWarm({ agent, data }: AboutProps) {
             }}
           >
             <Image
-              src={agent.identity.headshot_url}
-              alt={`Photo of ${agent.identity.name}`}
+              src={headshotUrl}
+              alt={`Photo of ${displayName}`}
               width={200}
               height={200}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -49,7 +53,7 @@ export function AboutWarm({ agent, data }: AboutProps) {
             fontFamily: "var(--font-family, Nunito), sans-serif",
           }}
         >
-          {data.title ?? `About ${agent.identity.name}`}
+          {data.title ?? `About ${displayName}`}
         </h2>
 
         {/* First-person bio paragraphs */}

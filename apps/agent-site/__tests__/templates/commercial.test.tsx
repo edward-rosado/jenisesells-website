@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Commercial } from "@/templates/commercial";
-import { AGENT, CONTENT, CONTENT_ALL_DISABLED } from "../components/fixtures";
+import { ACCOUNT, CONTENT, CONTENT_ALL_DISABLED } from "../components/fixtures";
 
 vi.mock("next/script", () => ({
   __esModule: true,
@@ -15,27 +15,27 @@ vi.mock("next/script", () => ({
 
 describe("Commercial template", () => {
   it("always renders the Nav", () => {
-    render(<Commercial agent={AGENT} content={CONTENT} />);
+    render(<Commercial account={ACCOUNT} content={CONTENT} />);
     expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
   });
 
   it("always renders the Footer", () => {
-    render(<Commercial agent={AGENT} content={CONTENT} />);
+    render(<Commercial account={ACCOUNT} content={CONTENT} />);
     expect(screen.getByRole("contentinfo")).toBeInTheDocument();
   });
 
   it("renders Hero section when enabled", () => {
-    render(<Commercial agent={AGENT} content={CONTENT} />);
+    render(<Commercial account={ACCOUNT} content={CONTENT} />);
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
   });
 
   it("does not render Hero when disabled", () => {
-    render(<Commercial agent={AGENT} content={CONTENT_ALL_DISABLED} />);
+    render(<Commercial account={ACCOUNT} content={CONTENT_ALL_DISABLED} />);
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
   });
 
   it("renders all sections when all enabled", () => {
-    render(<Commercial agent={AGENT} content={CONTENT} />);
+    render(<Commercial account={ACCOUNT} content={CONTENT} />);
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
     expect(screen.getByText("150+")).toBeInTheDocument();
     expect(screen.getByText("Market Analysis")).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe("Commercial template", () => {
   });
 
   it("does not render disabled sections", () => {
-    render(<Commercial agent={AGENT} content={CONTENT_ALL_DISABLED} />);
+    render(<Commercial account={ACCOUNT} content={CONTENT_ALL_DISABLED} />);
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
     expect(screen.queryByText("Homes Sold")).not.toBeInTheDocument();
   });
