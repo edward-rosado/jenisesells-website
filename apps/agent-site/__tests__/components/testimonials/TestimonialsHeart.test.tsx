@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsHeart } from "@/components/sections/testimonials/TestimonialsHeart";
 import type { TestimonialItem } from "@/lib/types";
 
@@ -59,5 +59,15 @@ describe("TestimonialsHeart", () => {
     // decorative quote mark is aria-hidden
     const quoteMarks = section?.querySelectorAll('[aria-hidden="true"]');
     expect(quoteMarks && quoteMarks.length).toBeGreaterThan(0);
+  });
+
+  it("lifts card on hover", () => {
+    const { container } = render(<TestimonialsHeart items={ITEMS} />);
+    const card = container.querySelector("article") as HTMLElement;
+    expect(card.style.transform).toBe("none");
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 });

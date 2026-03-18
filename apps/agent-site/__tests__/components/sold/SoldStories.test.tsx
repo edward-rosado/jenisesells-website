@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { SoldStories } from "@/components/sections/sold/SoldStories";
 import type { SoldHomeItem } from "@/lib/types";
 
@@ -100,6 +100,16 @@ describe("SoldStories", () => {
   it("renders subtitle when provided", () => {
     render(<SoldStories items={ITEMS} subtitle="People we've helped" />);
     expect(screen.getByText("People we've helped")).toBeInTheDocument();
+  });
+
+  it("lifts card on hover", () => {
+    const { container } = render(<SoldStories items={ITEMS} />);
+    const card = container.querySelector("article") as HTMLElement;
+    expect(card.style.transform).toBe("none");
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 
   it("renders quote paragraph with zero bottom margin when client_name is absent", () => {

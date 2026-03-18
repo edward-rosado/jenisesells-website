@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StatsWarm } from "@/components/sections/stats/StatsWarm";
 import type { StatItem } from "@/lib/types";
 
@@ -67,5 +67,15 @@ describe("StatsWarm", () => {
     const { container } = render(<StatsWarm items={ITEMS} />);
     const section = container.querySelector("#stats") as HTMLElement;
     expect(section?.style.background).toBeTruthy();
+  });
+
+  it("lifts card on hover", () => {
+    const { container } = render(<StatsWarm items={ITEMS} />);
+    const card = container.querySelector("[style*='border-radius: 16px']") as HTMLElement;
+    expect(card.style.transform).toBe("none");
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 });
