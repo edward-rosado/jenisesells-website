@@ -1,6 +1,8 @@
-import type { AgentConfig, AgentContent } from "@/lib/types";
+import type { AccountConfig, AgentConfig, ContentConfig } from "@/lib/types";
 
 export interface TemplateProps {
-  agent: AgentConfig;
-  content: AgentContent;
+  account: AccountConfig;
+  content: ContentConfig;
+  /** When rendering an agent sub-page, this is the agent's identity */
+  agent?: AgentConfig;
 }
