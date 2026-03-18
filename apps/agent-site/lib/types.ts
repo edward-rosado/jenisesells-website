@@ -156,6 +156,7 @@ export interface FeatureItem {
   title: string;
   description: string;
   icon?: string;
+  category?: string;
 }
 export type FeaturesData = { title?: string; subtitle?: string; items: FeatureItem[] };
 
@@ -231,3 +232,9 @@ export interface CityPageData {
   market_snapshot: string;
 }
 export type CityPagesData = { cities: CityPageData[] };
+
+/** @deprecated Use FeatureItem */
+export type ServiceItem = FeatureItem;
+
+/** @deprecated Use GalleryItem */
+export type SoldHomeItem = GalleryItem;
