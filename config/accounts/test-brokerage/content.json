@@ -1,0 +1,118 @@
+{
+  "navigation": {
+    "items": [
+      { "label": "Home", "href": "#hero", "enabled": true },
+      { "label": "Services", "href": "#features", "enabled": true },
+      { "label": "Team", "href": "#profiles", "enabled": true },
+      { "label": "Portfolio", "href": "#gallery", "enabled": true },
+      { "label": "Reviews", "href": "#testimonials", "enabled": true },
+      { "label": "Contact", "href": "#contact_form", "enabled": true },
+      { "label": "About", "href": "#about", "enabled": true }
+    ]
+  },
+  "pages": {
+    "home": {
+      "sections": {
+        "hero": {
+          "enabled": true,
+          "data": {
+            "headline": "Sterling & Associates Real Estate",
+            "tagline": "Luxury real estate, personal service.",
+            "body": "With over 30 years of experience in northern New Jersey's luxury market, Sterling & Associates delivers unmatched expertise and white-glove service for discerning buyers and sellers.",
+            "cta_text": "Meet Our Team",
+            "cta_link": "#profiles"
+          }
+        },
+        "stats": {
+          "enabled": true,
+          "data": {
+            "items": [
+              { "value": "500+", "label": "Homes Sold" },
+              { "value": "30+", "label": "Years Experience" },
+              { "value": "$2B+", "label": "Total Sales Volume" },
+              { "value": "5.0", "label": "Client Rating" }
+            ]
+          }
+        },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "Our Services",
+            "subtitle": "Full-service luxury real estate for buyers and sellers.",
+            "items": [
+              { "title": "Luxury Listings", "description": "Expert marketing and staging for high-end properties in Summit, Short Hills, and Chatham." },
+              { "title": "Buyer Representation", "description": "Exclusive access to off-market properties and new developments." },
+              { "title": "Market Analysis", "description": "Data-driven pricing strategies backed by decades of local market knowledge." }
+            ]
+          }
+        },
+        "steps": {
+          "enabled": false,
+          "data": {
+            "steps": []
+          }
+        },
+        "gallery": {
+          "enabled": true,
+          "data": {
+            "title": "Recent Sales",
+            "subtitle": "A selection of properties sold by our team.",
+            "items": [
+              { "address": "100 Summit Ave", "city": "Summit", "state": "NJ", "price": "$2,100,000" },
+              { "address": "55 Old Short Hills Rd", "city": "Short Hills", "state": "NJ", "price": "$1,850,000" }
+            ]
+          }
+        },
+        "testimonials": {
+          "enabled": true,
+          "data": {
+            "title": "Client Reviews",
+            "subtitle": "What our clients say about working with Sterling & Associates.",
+            "items": [
+              { "text": "Victoria and her team made selling our home a seamless experience. Their market knowledge is unmatched.", "reviewer": "The Hendersons", "rating": 5, "source": "Google" },
+              { "text": "James found us the perfect property in Summit. Professional, knowledgeable, and always available.", "reviewer": "Mark & Lisa P.", "rating": 5, "source": "Zillow" }
+            ]
+          }
+        },
+        "profiles": {
+          "enabled": true,
+          "data": {
+            "title": "Meet Our Team",
+            "subtitle": "Experienced agents dedicated to your success.",
+            "items": [
+              { "id": "agent-a", "name": "James Whitfield", "title": "Senior Associate", "phone": "(908) 555-0101", "email": "james@sterling.com" },
+              { "id": "agent-b", "name": "Sarah Chen", "title": "Luxury Specialist", "phone": "(908) 555-0102", "email": "sarah@sterling.com" }
+            ]
+          }
+        },
+        "contact_form": {
+          "enabled": true,
+          "data": {
+            "title": "Get In Touch",
+            "subtitle": "Contact Sterling & Associates for a complimentary consultation."
+          }
+        },
+        "about": {
+          "enabled": true,
+          "data": {
+            "title": "About Sterling & Associates",
+            "bio": "Founded by Victoria Sterling, Sterling & Associates has been serving northern New Jersey's luxury real estate market for over 30 years. Our team of experienced agents brings deep local knowledge and a commitment to exceptional client service.",
+            "credentials": ["30+ Years Experience", "500+ Homes Sold", "$2B+ Total Volume"]
+          }
+        },
+        "city_pages": {
+          "enabled": false,
+          "data": {
+            "cities": []
+          }
+        }
+      }
+    },
+    "thank_you": {
+      "heading": "Thank You!",
+      "subheading": "We'll Be In Touch Shortly",
+      "body": "A member of the Sterling & Associates team will reach out to you soon.",
+      "cta_back": "Back to Sterling & Associates"
+    }
+  }
+}

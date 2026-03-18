@@ -1,0 +1,74 @@
+{
+  "navigation": {
+    "items": [
+      { "label": "Home", "href": "#hero", "enabled": true },
+      { "label": "Services", "href": "#features", "enabled": true },
+      { "label": "Team", "href": "#profiles", "enabled": true },
+      { "label": "Contact", "href": "#contact_form", "enabled": true },
+      { "label": "About", "href": "#about", "enabled": true }
+    ]
+  },
+  "pages": {
+    "home": {
+      "sections": {
+        "hero": {
+          "enabled": true,
+          "data": {
+            "headline": "Broker Direct Realty",
+            "tagline": "Broker and mentor.",
+            "body": "Diana Reyes leads Broker Direct Realty with hands-on expertise and a commitment to mentoring the next generation of agents.",
+            "cta_text": "Get Started",
+            "cta_link": "#contact_form"
+          }
+        },
+        "stats": { "enabled": false, "data": { "items": [] } },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "Our Services",
+            "subtitle": "Full-service brokerage for buyers and sellers.",
+            "items": [
+              { "title": "Buyer Representation", "description": "Expert guidance through every step of the home buying process." },
+              { "title": "Seller Services", "description": "Strategic pricing, professional marketing, and skilled negotiation." }
+            ]
+          }
+        },
+        "steps": { "enabled": false, "data": { "steps": [] } },
+        "gallery": { "enabled": false, "data": { "items": [] } },
+        "testimonials": { "enabled": false, "data": { "items": [] } },
+        "profiles": {
+          "enabled": true,
+          "data": {
+            "title": "Our Team",
+            "subtitle": "Meet the agents of Broker Direct Realty.",
+            "items": [
+              { "id": "agent-c", "name": "Marcus Lee", "title": "Associate Agent", "phone": "(973) 555-0301", "email": "marcus@brokerdirect.com" }
+            ]
+          }
+        },
+        "contact_form": {
+          "enabled": true,
+          "data": {
+            "title": "Contact Us",
+            "subtitle": "Reach out to Broker Direct Realty."
+          }
+        },
+        "about": {
+          "enabled": true,
+          "data": {
+            "title": "About Broker Direct Realty",
+            "bio": "Founded by Diana Reyes, Broker Direct Realty serves the Newark and Montclair communities with integrity and expertise.",
+            "credentials": ["Licensed NJ Broker", "10+ Years Experience"]
+          }
+        },
+        "city_pages": { "enabled": false, "data": { "cities": [] } }
+      }
+    },
+    "thank_you": {
+      "heading": "Thank You!",
+      "subheading": "We'll Be In Touch",
+      "body": "A member of our team will contact you shortly.",
+      "cta_back": "Back to Broker Direct Realty"
+    }
+  }
+}

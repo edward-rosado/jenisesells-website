@@ -1,9 +1,0 @@
-{
-  "id": "bad-no-phone",
-  "identity": {
-    "name": "Test",
-    "email": "test@example.com"
-  },
-  "location": { "state": "NY" },
-  "branding": {}
-}
