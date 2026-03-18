@@ -206,6 +206,30 @@ describe("Nav", () => {
 
   // --- Accessibility ---
 
+  it("email link has descriptive aria-label", () => {
+    render(<Nav account={ACCOUNT} />);
+    const emailLinks = screen.getAllByRole("link", { name: /^Email jane@example\.com$/i });
+    expect(emailLinks.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("phone link has descriptive aria-label", () => {
+    render(<Nav account={ACCOUNT} />);
+    const phoneLinks = screen.getAllByRole("link", { name: /^Call 555-123-4567$/i });
+    expect(phoneLinks.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("phone link with extension has descriptive aria-label including ext", () => {
+    const accountWithExt = {
+      ...ACCOUNT,
+      contact_info: [
+        { type: "phone" as const, value: "(732) 251-2500", ext: "714", label: "Office Phone", is_preferred: true },
+      ],
+    };
+    render(<Nav account={accountWithExt} />);
+    const phoneLinks = screen.getAllByRole("link", { name: /Call \(732\) 251-2500 ext 714/i });
+    expect(phoneLinks.length).toBeGreaterThanOrEqual(1);
+  });
+
   it("has nav landmark role", () => {
     render(<Nav account={ACCOUNT} />);
     expect(screen.getByRole("navigation")).toBeInTheDocument();
@@ -226,7 +250,7 @@ describe("Nav", () => {
 
   it("sets aria-expanded on hamburger button", () => {
     render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
 
     expect(hamburger).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(hamburger);
@@ -239,9 +263,18 @@ describe("Nav", () => {
 
   it("renders hamburger menu button (hidden on desktop via CSS)", () => {
     render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
     expect(hamburger).toBeInTheDocument();
     expect(hamburger.tagName).toBe("BUTTON");
+  });
+
+  it("hamburger aria-label changes to 'Close menu' when drawer is open", () => {
+    render(<Nav account={ACCOUNT} />);
+    const hamburger = screen.getByLabelText("Open menu");
+    fireEvent.click(hamburger);
+    expect(screen.getByLabelText("Close menu")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Close menu"));
+    expect(screen.getByLabelText("Open menu")).toBeInTheDocument();
   });
 
   it("renders section links in the drawer", () => {
@@ -252,7 +285,7 @@ describe("Nav", () => {
 
   it("toggles drawer open and closed on hamburger click", () => {
     const { container } = render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
     const drawer = container.querySelector(".nav-drawer") as HTMLElement;
 
     fireEvent.click(hamburger);
@@ -264,7 +297,7 @@ describe("Nav", () => {
 
   it("closes drawer when a section link is clicked", () => {
     const { container } = render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
 
     fireEvent.click(hamburger);
 
@@ -279,7 +312,7 @@ describe("Nav", () => {
 
   it("closes drawer when overlay is clicked", () => {
     const { container } = render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
 
     fireEvent.click(hamburger);
 
@@ -295,7 +328,7 @@ describe("Nav", () => {
 
   it("closes drawer when Escape key is pressed", () => {
     const { container } = render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
 
     fireEvent.click(hamburger);
     const drawer = container.querySelector(".nav-drawer") as HTMLElement;
@@ -307,7 +340,7 @@ describe("Nav", () => {
 
   it("does not close drawer on non-Escape keys", () => {
     const { container } = render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
 
     fireEvent.click(hamburger);
     const drawer = container.querySelector(".nav-drawer") as HTMLElement;
@@ -319,7 +352,7 @@ describe("Nav", () => {
 
   it("focuses first link when drawer opens", () => {
     const { container } = render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
 
     fireEvent.click(hamburger);
     const drawer = container.querySelector(".nav-drawer") as HTMLElement;

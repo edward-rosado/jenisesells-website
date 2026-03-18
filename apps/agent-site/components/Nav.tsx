@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { AccountConfig, NavigationConfig, ContactMethod } from "@/lib/types";
 import { safeMailtoHref, safeTelHref } from "../lib/safe-contact";
+import { useFocusTrap } from "../lib/use-focus-trap";
 
 interface NavProps {
   account: AccountConfig;
@@ -62,7 +63,7 @@ export function Nav({ account, navigation }: NavProps) {
   const { branding } = account;
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const contactBtnRef = useRef<HTMLButtonElement>(null);
-  const drawerRef = useRef<HTMLDivElement>(null);
+  const focusTrapRef = useFocusTrap(drawerOpen);
   const pathname = usePathname();
   const isHome = pathname === "/";
 
@@ -88,14 +89,9 @@ export function Nav({ account, navigation }: NavProps) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [drawerOpen]);
 
-  // Focus management: focus first link on open, return to trigger on close
+  // Focus management: return to trigger on close (useFocusTrap handles focus-in on open)
   useEffect(() => {
-    if (drawerOpen) {
-      const firstFocusable = drawerRef.current?.querySelector<HTMLElement>(
-        'a, button, [tabindex]:not([tabindex="-1"])'
-      );
-      firstFocusable?.focus();
-    } else {
+    if (!drawerOpen) {
       // Return focus to whichever trigger is visible
       hamburgerRef.current?.focus();
       contactBtnRef.current?.focus();
@@ -218,6 +214,7 @@ export function Nav({ account, navigation }: NavProps) {
             {emails[0] && (
               <a
                 href={safeMailtoHref(emails[0].value)}
+                aria-label={`Email ${emails[0].value}`}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -241,6 +238,7 @@ export function Nav({ account, navigation }: NavProps) {
             {preferredPhone && (
               <a
                 href={buildTelHref(preferredPhone.value, preferredPhone.ext)}
+                aria-label={`Call ${formatPhoneDisplay(preferredPhone.value, preferredPhone.ext)}`}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -293,6 +291,7 @@ export function Nav({ account, navigation }: NavProps) {
           {preferredPhone && (
             <a
               href={buildTelHref(preferredPhone.value, preferredPhone.ext)}
+              aria-label={`Call ${formatPhoneDisplay(preferredPhone.value, preferredPhone.ext)}`}
               className="nav-mobile-call"
               style={{
                 display: "none",
@@ -317,7 +316,7 @@ export function Nav({ account, navigation }: NavProps) {
             ref={hamburgerRef}
             className="nav-hamburger"
             onClick={toggleDrawer}
-            aria-label="Menu"
+            aria-label={drawerOpen ? "Close menu" : "Open menu"}
             aria-expanded={drawerOpen}
             aria-controls="nav-drawer"
             style={{
@@ -369,7 +368,7 @@ export function Nav({ account, navigation }: NavProps) {
 
       {/* Drawer — on mobile: nav links + contact; on tablet: contact only */}
       <div
-        ref={drawerRef}
+        ref={focusTrapRef}
         id="nav-drawer"
         className="nav-drawer"
         role="dialog"
@@ -417,6 +416,7 @@ export function Nav({ account, navigation }: NavProps) {
             <a
               key={`phone-${i}`}
               href={buildTelHref(phone.value, phone.ext)}
+              aria-label={`Call ${formatPhoneDisplay(phone.value, phone.ext)}`}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -442,6 +442,7 @@ export function Nav({ account, navigation }: NavProps) {
             <a
               key={`email-${i}`}
               href={safeMailtoHref(email.value)}
+              aria-label={`Email ${email.value}`}
               style={{
                 display: "flex",
                 alignItems: "center",
