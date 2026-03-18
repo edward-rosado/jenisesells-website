@@ -55,7 +55,7 @@ export function HeroCentered({ data, agentPhotoUrl, agentName }: HeroProps) {
       </h1>
       <p style={{
         fontSize: "18px",
-        color: "#8B7355",
+        color: "#6B5040",
         marginBottom: "16px",
         fontStyle: "italic",
       }}>
@@ -64,7 +64,7 @@ export function HeroCentered({ data, agentPhotoUrl, agentName }: HeroProps) {
       {data.body && (
         <p style={{
           fontSize: "16px",
-          color: "#8B7355",
+          color: "#6B5040",
           marginBottom: "28px",
           maxWidth: "500px",
           marginLeft: "auto",
@@ -94,7 +94,7 @@ export function HeroCentered({ data, agentPhotoUrl, agentName }: HeroProps) {
           boxShadow: ctaHover ? "0 6px 20px rgba(0,0,0,0.15)" : "0 2px 8px rgba(0,0,0,0.08)",
         }}
       >
-        {data.cta_text} &rarr;
+        {data.cta_text} <span aria-hidden="true"> &rarr;</span>
       </a>
     </section>
   );

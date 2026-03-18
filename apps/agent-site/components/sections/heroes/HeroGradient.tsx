@@ -57,7 +57,7 @@ export function HeroGradient({ data, agentPhotoUrl, agentName }: HeroProps) {
             boxShadow: ctaHover ? "0 8px 25px rgba(0,0,0,0.3)" : "none",
           }}
         >
-          {data.cta_text} &rarr;
+          {data.cta_text} <span aria-hidden="true"> &rarr;</span>
         </a>
       </div>
       {agentPhotoUrl && (

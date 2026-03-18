@@ -143,7 +143,7 @@ export function Footer({ agent, agentId }: FooterProps) {
       <p
         style={{
           fontSize: "11px",
-          color: "rgba(255,255,255,0.7)",
+          color: "rgba(255,255,255,0.85)",
           marginTop: "20px",
           maxWidth: "700px",
           marginLeft: "auto",
@@ -159,20 +159,20 @@ export function Footer({ agent, agentId }: FooterProps) {
           display: "flex",
           justifyContent: "center",
           gap: "16px",
-          fontSize: "11px",
-          color: "rgba(255,255,255,0.7)",
+          fontSize: "12px",
+          color: "rgba(255,255,255,0.85)",
         }}
       >
-        <a href={`/privacy${qs}`} style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Privacy Policy</a>
-        <a href={`/terms${qs}`} style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Terms of Use</a>
-        <a href={`/accessibility${qs}`} style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Accessibility</a>
+        <a href={`/privacy${qs}`} style={{ color: "rgba(255,255,255,0.85)", textDecoration: "underline" }}>Privacy Policy</a>
+        <a href={`/terms${qs}`} style={{ color: "rgba(255,255,255,0.85)", textDecoration: "underline" }}>Terms of Use</a>
+        <a href={`/accessibility${qs}`} style={{ color: "rgba(255,255,255,0.85)", textDecoration: "underline" }}>Accessibility</a>
       </nav>
       <p
         style={{
           marginTop: "8px",
           fontSize: "11px",
-          color: "rgba(255,255,255,0.7)",
-          opacity: 0.6,
+          color: "rgba(255,255,255,0.85)",
+          opacity: 0.85,
         }}
       >
         &copy; {new Date().getFullYear()} {name}. All rights reserved.
