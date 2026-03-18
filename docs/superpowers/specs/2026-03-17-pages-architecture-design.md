@@ -17,11 +17,13 @@ config/agents/{agent-id}/
 └── legal/         ← accessibility, privacy, terms markdown
 ```
 
-- 11 agent configs (1 production + 10 test)
+- 4 agent configs on main (jenise-buckalew, test-emerald, test-modern, test-warm) + 7 more on `feat/branding-test-agents` branch (test-luxury, test-loft, test-beginnings, test-light-luxury, test-coastal, test-country, test-commercial)
 - 10 templates (3 on main, 7 on feat/branding-test-agents)
-- Sections: hero, stats, services, how_it_works, sold_homes, testimonials, cma_form, about
+- Sections: hero, stats, services, how_it_works, sold_homes, testimonials, cma_form, about, city_pages (disabled)
+- Additional fields in current schema: `contact_info` (ContactMethod[]), `integrations` (email_provider, tracking/analytics), `city_pages` section
 - Config registry prebuilt at build time for Cloudflare Workers (no fs at runtime)
 - URL model: `{handle}.real-estate-star.com` renders the agent's single-scroll page
+- **Starting point**: This migration applies on top of the `feat/branding-test-agents` branch (or after it merges to main), which has all 11 agent configs
 
 ## Architecture
 
@@ -140,6 +142,22 @@ config/accounts/
     "state": "NJ",
     "service_areas": ["Middlesex County", "Monmouth County", "Ocean County"]
   },
+  "location": {
+    "state": "NJ",
+    "service_areas": ["Middlesex County", "Monmouth County", "Ocean County"]
+  },
+  "integrations": {
+    "email_provider": "gmail",
+    "tracking": {
+      "google_analytics_id": "G-XXXXXXXX",
+      "meta_pixel_id": "1234567890",
+      "gtm_container_id": "GTM-XXXXXXXX"
+    }
+  },
+  "contact_info": [
+    { "type": "phone", "value": "(347) 393-5993", "label": "Cell", "is_preferred": true },
+    { "type": "email", "value": "jenisesellsnj@gmail.com", "label": "Email", "is_preferred": false }
+  ],
   "compliance": {
     "state_form": "NJ-REALTORS-118",
     "licensing_body": "NJ Real Estate Commission",
@@ -163,6 +181,8 @@ Fields:
 | `agent` | no | Inline agent for solo accounts. Has `enabled` flag. |
 | `agent.enabled` | yes (if agent present) | Whether this agent is the active face of the home page. |
 | `location` | yes | State and service areas. Used for compliance and SEO. |
+| `integrations` | no | Email provider, analytics tracking (GA4, Meta Pixel, GTM). Migrated from current config. |
+| `contact_info` | no | Structured contact methods (phone, email) with preferred flag. Migrated from current content. |
 | `compliance` | no | State-specific regulatory info. |
 
 ### agents/{id}/config.json (team member)
@@ -307,12 +327,105 @@ interface ProfilesData {
 
 ### NavItem (updated)
 
+The current `NavItem` uses `section: string`. This renames to `href: string` and adds `enabled`:
+
 ```typescript
-interface NavItem {
-  label: string;
-  href: string;
+// BEFORE:
+interface NavItem { label: string; section: string; }
+
+// AFTER:
+interface NavItem { label: string; href: string; enabled: boolean; }
+```
+
+Migration: `{ label: "Home", section: "hero" }` → `{ label: "Home", href: "#hero", enabled: true }`.
+
+### SectionConfig (unchanged)
+
+Carried forward from the current codebase:
+
+```typescript
+interface SectionConfig<T = Record<string, unknown>> {
   enabled: boolean;
+  data: T;
 }
+```
+
+### Section Data Types
+
+Renamed and new data types used in `PageSections`:
+
+```typescript
+// Renamed: ServiceItem → FeatureItem
+interface FeatureItem {
+  title: string;
+  description: string;
+  icon?: string;
+}
+
+// Renamed: SoldHomeItem → GalleryItem
+interface GalleryItem {
+  address: string;
+  city: string;
+  state: string;
+  price: string;
+  sold_date?: string;
+  image_url?: string;
+}
+
+// Renamed: CmaFormData → ContactFormData
+interface ContactFormData {
+  title: string;
+  subtitle: string;
+  description?: string;
+}
+
+// Unchanged types carried forward:
+interface HeroData {
+  headline: string;
+  highlight_word?: string;  // Rendered in accent color
+  tagline: string;
+  body?: string;
+  cta_text: string;
+  cta_link: string;
+}
+
+interface StatItem { value: string; label: string; }
+interface StepItem { number: number; title: string; description: string; }
+interface TestimonialItem { text: string; reviewer: string; rating: number; source?: string; }
+
+interface AboutData {
+  title?: string;
+  bio: string | string[];    // Supports both single string and array of paragraphs
+  credentials?: string[];
+  image_url?: string;
+}
+
+interface ThankYouData {
+  heading: string;
+  subheading: string;
+  body?: string;
+  disclaimer?: string;
+  cta_call?: string;
+  cta_back?: string;
+}
+
+// Convenience type aliases for section data wrappers:
+type StatsData = { items: StatItem[] };
+type FeaturesData = { title?: string; subtitle?: string; items: FeatureItem[] };
+type StepsData = { title?: string; subtitle?: string; steps: StepItem[] };
+type GalleryData = { title?: string; subtitle?: string; items: GalleryItem[] };
+type TestimonialsData = { title?: string; subtitle?: string; items: TestimonialItem[] };
+
+// city_pages — carried forward as disabled, available for future use
+interface CityPageData {
+  slug: string;
+  city: string;
+  state: string;
+  county: string;
+  highlights: string[];
+  market_snapshot: string;
+}
+type CityPagesData = { cities: CityPageData[] };
 ```
 
 ### Full Type Hierarchy
@@ -326,6 +439,8 @@ interface AccountConfig {
   broker?: BrokerInfo;
   agent?: AccountAgent;
   location: AccountLocation;
+  integrations?: AccountIntegrations;
+  contact_info?: ContactMethod[];
   compliance?: ComplianceInfo;
 }
 
@@ -357,11 +472,33 @@ interface AgentConfig {
 }
 
 interface AccountBranding {
-  primary_color: string;
-  secondary_color: string;
-  accent_color: string;
-  font_family: string;
+  primary_color?: string;    // Optional — templates provide defaults
+  secondary_color?: string;
+  accent_color?: string;
+  font_family?: string;
   logo_url?: string;
+}
+
+interface AccountIntegrations {
+  email_provider?: "gmail" | "outlook" | "smtp";
+  hosting?: string;
+  tracking?: AccountTracking;
+}
+
+interface AccountTracking {
+  google_analytics_id?: string;
+  google_ads_id?: string;
+  google_ads_conversion_label?: string;
+  meta_pixel_id?: string;
+  gtm_container_id?: string;
+}
+
+interface ContactMethod {
+  type: "email" | "phone";
+  value: string;
+  ext?: string | null;
+  label: string;
+  is_preferred: boolean;
 }
 
 interface BrokerageInfo {
@@ -411,6 +548,7 @@ interface PageSections {
   profiles?:      SectionConfig<ProfilesData>;
   contact_form?:  SectionConfig<ContactFormData>;
   about?:         SectionConfig<AboutData>;
+  city_pages?:    SectionConfig<CityPagesData>;  // Carried forward, typically disabled
 }
 ```
 
@@ -494,7 +632,12 @@ Solo accounts with no `agents/` folder will have empty entries in `AGENT_CONFIGS
   - Wrap `sections` under `pages.home.sections`
   - Move existing `thank_you` page data under `pages.thank_you`
   - Rename section keys: `services` → `features`, `how_it_works` → `steps`, `sold_homes` → `gallery`, `cma_form` → `contact_form`
-  - Add `enabled` flag to all nav items
+  - Rename nav item `section` field to `href` (e.g., `"section": "hero"` → `"href": "#hero"`)
+  - Add `enabled: true` flag to all nav items
+  - Migrate `contact_info` from content.json to account.json
+  - Migrate `integrations` from config.json to account.json
+  - Carry forward `city_pages` section (typically `enabled: false`)
+- Branding fields remain optional (templates provide defaults) — no breaking change for configs that omit colors
 - Create `test-brokerage/` account with 2 sub-agents to test company flow
 - Delete old `config/agents/` directory
 
@@ -532,6 +675,15 @@ Solo accounts with no `agents/` folder will have empty entries in `AGENT_CONFIGS
 - Update config registry generation tests
 - Ensure 100% branch coverage on all new and modified code
 
+### Phase 7 — CI/CD Pipeline Updates
+
+- Update GitHub Actions workflows that reference `config/agents/` to read from `config/accounts/`
+- Update the prebuild step in CI that generates `config-registry.ts` (currently runs before `vitest` and `next build`)
+- Update any deploy scripts (Cloudflare wrangler, `infra/` scripts) that enumerate agent configs
+- Update `infra/cloudflare/add-agent-domain.ps1` to read handles from `config/accounts/` instead of `config/agents/`
+- Verify the Cloudflare Workers deploy still bundles the generated registry correctly with the new nested structure
+- Update any test fixtures or CI-specific config references
+
 ## Risks & Mitigations
 
 | Risk | Impact | Mitigation |
@@ -541,15 +693,7 @@ Solo accounts with no `agents/` folder will have empty entries in `AGENT_CONFIGS
 | Section rename breaks existing content | Medium — wrong keys silently ignored | JSON Schema validation catches unknown keys. Build-time test enumerates all expected section keys. |
 | Agent page routing conflicts with existing routes | Low — `/agents/` is a new path | Test that existing routes (`/privacy`, `/terms`, `/thank-you`) still work. |
 | Nav links dead on agent pages | Low — UX annoyance | Config validation test catches nav-to-section mismatches at build time. |
-
-### Phase 7 — CI/CD Pipeline Updates
-
-- Update GitHub Actions workflows that reference `config/agents/` to read from `config/accounts/`
-- Update the prebuild step in CI that generates `config-registry.ts` (currently runs before `vitest` and `next build`)
-- Update any deploy scripts (Cloudflare wrangler, `infra/` scripts) that enumerate agent configs
-- Update `infra/cloudflare/add-agent-domain.ps1` to read handles from `config/accounts/` instead of `config/agents/`
-- Verify the Cloudflare Workers deploy still bundles the generated registry correctly with the new nested structure
-- Update any test fixtures or CI-specific config references
+| Static asset paths break after folder rename | Medium — broken images | Update public asset paths from `/agents/{id}/` to `/accounts/{id}/` or keep existing paths and add redirects. |
 
 ## Out of Scope
 
