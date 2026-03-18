@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { EmeraldClassic } from "@/templates/emerald-classic";
-import { ACCOUNT, CONTENT, CONTENT_ALL_DISABLED } from "../components/fixtures";
+import { ACCOUNT, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY, AGENT_PROP, CONTENT, CONTENT_ALL_DISABLED } from "../components/fixtures";
 import type { ContentConfig } from "@/lib/types";
 
 describe("EmeraldClassic template", () => {
@@ -163,5 +163,20 @@ describe("EmeraldClassic template", () => {
     expect(screen.getByRole("heading", { name: "What My Clients Say" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "What's Your Home Worth?" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "About Jane Smith" })).toBeInTheDocument();
+  });
+
+  it("uses agent prop identity when provided", () => {
+    render(<EmeraldClassic account={ACCOUNT} content={CONTENT} agent={AGENT_PROP} />);
+    expect(screen.getByRole("heading", { name: /About Explicit Agent/ })).toBeInTheDocument();
+  });
+
+  it("falls back to broker name when no agent", () => {
+    render(<EmeraldClassic account={ACCOUNT_BROKER_ONLY} content={CONTENT} />);
+    expect(screen.getByRole("heading", { name: /About Sam Broker/ })).toBeInTheDocument();
+  });
+
+  it("falls back to brokerage name when no agent or broker", () => {
+    render(<EmeraldClassic account={ACCOUNT_BROKERAGE_ONLY} content={CONTENT} />);
+    expect(screen.getByRole("heading", { name: /About Brokerage LLC/ })).toBeInTheDocument();
   });
 });

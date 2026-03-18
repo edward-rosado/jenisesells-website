@@ -3,7 +3,7 @@
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { ACCOUNT, ACCOUNT_MINIMAL } from "../components/fixtures";
+import { ACCOUNT, ACCOUNT_MINIMAL, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY } from "../components/fixtures";
 
 const mockLoadAccountConfig = vi.fn();
 const mockLoadLegalContent = vi.fn();
@@ -131,6 +131,20 @@ describe("PrivacyPage", () => {
     expect(screen.getAllByText(/Jersey City/).length).toBeGreaterThanOrEqual(1);
   });
 
+  it("omits brokerage name when brokerage.name is empty", async () => {
+    const accountNoBrokerage = {
+      ...ACCOUNT,
+      brokerage: { ...ACCOUNT.brokerage, name: "" },
+    };
+    mockLoadAccountConfig.mockReturnValue(accountNoBrokerage);
+    const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "test" }) });
+    render(page);
+    // Line 68: should render without " of <brokerage>" phrase
+    expect(screen.queryByText(/of Best Homes Realty/)).not.toBeInTheDocument();
+    // Line 105: should fall back to "Our affiliated brokerage"
+    expect(screen.getByText(/Our affiliated brokerage/)).toBeInTheDocument();
+  });
+
   describe("NJ-specific privacy content", () => {
     it("shows NJ Data Privacy Act reference for NJ agents", async () => {
       const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "test" }) });
@@ -165,6 +179,36 @@ describe("PrivacyPage", () => {
       const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
       render(page);
       expect(screen.queryByText(/New Jersey Data Privacy Act/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("broker/brokerage name fallback", () => {
+    it("falls back to broker name when agent is absent", async () => {
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_BROKER_ONLY);
+      const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "broker-only" }) });
+      render(page);
+      const main = screen.getByRole("main");
+      expect(main.textContent).toContain("Sam Broker");
+    });
+
+    it("falls back to brokerage name when neither agent nor broker is defined", async () => {
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_BROKERAGE_ONLY);
+      const page = await PrivacyPage({ searchParams: Promise.resolve({ agentId: "brokerage-only" }) });
+      render(page);
+      const main = screen.getByRole("main");
+      expect(main.textContent).toContain("Brokerage LLC");
+    });
+
+    it("uses broker name in generateMetadata when agent is absent", async () => {
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_BROKER_ONLY);
+      const meta = await generateMetadata({ searchParams: Promise.resolve({ agentId: "broker-only" }) });
+      expect(meta.title).toBe("Privacy Policy | Sam Broker");
+    });
+
+    it("uses brokerage name in generateMetadata when neither agent nor broker", async () => {
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_BROKERAGE_ONLY);
+      const meta = await generateMetadata({ searchParams: Promise.resolve({ agentId: "brokerage-only" }) });
+      expect(meta.title).toBe("Privacy Policy | Brokerage LLC");
     });
   });
 });

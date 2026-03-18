@@ -1,4 +1,4 @@
-import type { AccountConfig, ContentConfig } from "@/lib/types";
+import type { AccountConfig, AgentConfig, ContentConfig } from "@/lib/types";
 
 export const ACCOUNT: AccountConfig = {
   handle: "test-agent",
@@ -54,6 +54,34 @@ export const ACCOUNT_MINIMAL: AccountConfig = {
     state: "TX",
     service_areas: [],
   },
+};
+
+/** Account with broker but no agent — exercises broker fallback in identity resolution */
+export const ACCOUNT_BROKER_ONLY: AccountConfig = {
+  handle: "broker-only",
+  template: "emerald-classic",
+  branding: {},
+  brokerage: { name: "Broker Realty", license_number: "999" },
+  broker: { name: "Sam Broker", title: "Managing Broker" },
+  location: { state: "NJ", service_areas: [] },
+};
+
+/** Account with neither agent nor broker — exercises brokerage.name fallback */
+export const ACCOUNT_BROKERAGE_ONLY: AccountConfig = {
+  handle: "brokerage-only",
+  template: "emerald-classic",
+  branding: {},
+  brokerage: { name: "Brokerage LLC", license_number: "888" },
+  location: { state: "NJ", service_areas: [] },
+};
+
+/** Explicit AgentConfig for testing agent prop passthrough */
+export const AGENT_PROP: AgentConfig = {
+  id: "explicit-agent",
+  name: "Explicit Agent",
+  title: "Senior REALTOR",
+  phone: "555-999-0000",
+  email: "explicit@example.com",
 };
 
 export const CONTENT: ContentConfig = {

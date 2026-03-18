@@ -4,7 +4,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Nav, DEFAULT_NAV_ITEMS } from "@/components/Nav";
-import { ACCOUNT, ACCOUNT_MINIMAL, CONTENT } from "./fixtures";
+import { ACCOUNT, ACCOUNT_MINIMAL, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY, CONTENT } from "./fixtures";
 
 const mockPathname = vi.fn(() => "/");
 const mockSearchParams = vi.fn(() => new URLSearchParams());
@@ -91,6 +91,21 @@ describe("Nav", () => {
     expect(links[0].textContent).toBe("Custom Link 1");
     expect(links[0]).toHaveAttribute("href", "#custom-1");
     expect(links[1].textContent).toBe("Custom Link 2");
+  });
+
+  it("passes through non-hash hrefs without prefix or query suffix", () => {
+    mockPathname.mockReturnValue("/");
+    const customNav = {
+      items: [
+        { label: "Blog", href: "/blog", enabled: true },
+        { label: "Home", href: "#hero", enabled: true },
+      ],
+    };
+    const { container } = render(<Nav account={ACCOUNT} navigation={customNav} />);
+    const desktopLinks = container.querySelector(".nav-desktop-links") as HTMLElement;
+    const links = desktopLinks.querySelectorAll("a");
+    expect(links[0]).toHaveAttribute("href", "/blog");
+    expect(links[1]).toHaveAttribute("href", "#hero");
   });
 
   it("renders contact info from account.contact_info", () => {
@@ -492,5 +507,34 @@ describe("Nav", () => {
     expect(hrefs).toContain("tel:5551234567");
     expect(hrefs).toContain("tel:7322512500,714");
     expect(hrefs).toContain("mailto:jane@example.com");
+  });
+
+  // --- Fallback contacts: buildFallbackContacts branch coverage ---
+
+  it("builds fallback contacts with office phone without extension", () => {
+    // No contact_info → triggers buildFallbackContacts; office_phone has no "ext" → extMatch is null
+    const accountNoContactInfo = {
+      ...ACCOUNT,
+      contact_info: undefined,
+      brokerage: { ...ACCOUNT.brokerage, office_phone: "(732) 555-0000" },
+    };
+    const { container } = render(<Nav account={accountNoContactInfo} />);
+    const drawerContact = container.querySelector(".drawer-contact") as HTMLElement;
+    const hrefs = Array.from(drawerContact.querySelectorAll("a")).map((l) => l.getAttribute("href"));
+    // Office phone without extension: tel: with digits only, no comma
+    expect(hrefs).toContain("tel:7325550000");
+    // Also has agent cell and email from fallback
+    expect(hrefs).toContain("tel:5551234567");
+    expect(hrefs).toContain("mailto:jane@example.com");
+  });
+
+  it("falls back to broker name when no agent is defined", () => {
+    render(<Nav account={ACCOUNT_BROKER_ONLY} />);
+    expect(screen.getByText("SAM BROKER")).toBeInTheDocument();
+  });
+
+  it("falls back to brokerage name when no agent or broker is defined", () => {
+    render(<Nav account={ACCOUNT_BROKERAGE_ONLY} />);
+    expect(screen.getByText("BROKERAGE LLC")).toBeInTheDocument();
   });
 });

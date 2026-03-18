@@ -2,7 +2,8 @@
  * @vitest-environment node
  */
 import { describe, it, expect } from "vitest";
-import { clampRating, FTC_DISCLAIMER } from "@/components/sections/types";
+import { clampRating, FTC_DISCLAIMER, getDisplayName } from "@/components/sections/types";
+import { ACCOUNT, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY, AGENT_PROP } from "../fixtures";
 
 describe("clampRating", () => {
   it("returns the rating when within 0-5", () => {
@@ -32,6 +33,24 @@ describe("clampRating", () => {
 
   it("handles 0 as 0", () => {
     expect(clampRating(0)).toBe(0);
+  });
+});
+
+describe("getDisplayName", () => {
+  it("returns agent name from AccountConfig when agent is present", () => {
+    expect(getDisplayName(ACCOUNT)).toBe("Jane Smith");
+  });
+
+  it("returns broker name when AccountConfig has broker but no agent", () => {
+    expect(getDisplayName(ACCOUNT_BROKER_ONLY)).toBe("Sam Broker");
+  });
+
+  it("returns brokerage name when AccountConfig has neither agent nor broker", () => {
+    expect(getDisplayName(ACCOUNT_BROKERAGE_ONLY)).toBe("Brokerage LLC");
+  });
+
+  it("returns name directly from AgentConfig", () => {
+    expect(getDisplayName(AGENT_PROP)).toBe("Explicit Agent");
   });
 });
 

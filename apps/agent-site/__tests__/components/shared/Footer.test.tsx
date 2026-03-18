@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Footer } from "@/components/sections/shared/Footer";
-import { ACCOUNT, ACCOUNT_MINIMAL } from "../fixtures";
+import { ACCOUNT, ACCOUNT_MINIMAL, AGENT_PROP } from "../fixtures";
 import type { AccountConfig } from "@/lib/types";
 
 describe("Footer", () => {
@@ -185,5 +185,21 @@ describe("Footer", () => {
     render(<Footer agent={ACCOUNT} />);
     expect(screen.getByText(/gender identity/i)).toBeInTheDocument();
     expect(screen.getByText(/source of lawful income/i)).toBeInTheDocument();
+  });
+
+  it("renders with AgentConfig (flat agent identity — no handle property)", () => {
+    render(<Footer agent={AGENT_PROP} agentId="explicit-agent" />);
+    expect(screen.getAllByText(/Explicit Agent/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Senior REALTOR/).length).toBeGreaterThan(0);
+    // Flat AgentConfig has no brokerage, service areas, or state
+    expect(screen.queryByText(/Serving/)).not.toBeInTheDocument();
+    // Phone renders
+    const phoneLink = screen.getByRole("link", { name: /call explicit agent/i });
+    expect(phoneLink).toHaveAttribute("href", "tel:5559990000");
+    // Email renders
+    const emailLink = screen.getByRole("link", { name: /email explicit agent/i });
+    expect(emailLink).toHaveAttribute("href", "mailto:explicit@example.com");
+    // Legal links include agentId
+    expect(screen.getByRole("link", { name: /privacy/i })).toHaveAttribute("href", "/privacy?agentId=explicit-agent");
   });
 });

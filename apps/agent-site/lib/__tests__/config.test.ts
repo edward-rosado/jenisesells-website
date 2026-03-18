@@ -40,6 +40,21 @@ vi.mock("../config-registry", () => ({
       brokerage: { name: "X", license_number: "0" },
       location: {},
     },
+    "broker-only": {
+      handle: "broker-only",
+      template: "emerald-classic",
+      branding: {},
+      brokerage: { name: "Broker Realty", license_number: "999" },
+      broker: { name: "Sam Broker", title: "Managing Broker" },
+      location: { state: "NJ", service_areas: [] },
+    },
+    "brokerage-only": {
+      handle: "brokerage-only",
+      template: "emerald-classic",
+      branding: {},
+      brokerage: { name: "Brokerage LLC", license_number: "888" },
+      location: { state: "NJ", service_areas: [] },
+    },
   },
   accountContent: {
     "jenise-buckalew": {
@@ -73,7 +88,7 @@ vi.mock("../config-registry", () => ({
     },
   },
   customDomains: { "jenisesellsnj.com": "jenise-buckalew" },
-  accountHandles: new Set(["jenise-buckalew", "test-handle", "bad-no-handle", "bad-no-template", "bad-no-brokerage", "bad-no-state"]),
+  accountHandles: new Set(["jenise-buckalew", "test-handle", "bad-no-handle", "bad-no-template", "bad-no-brokerage", "bad-no-state", "broker-only", "brokerage-only"]),
 }));
 
 import { loadAccountConfig, loadAccountContent, loadAgentConfig, loadAgentContent, loadLegalContent, getAgentIds } from "../config";
@@ -145,6 +160,23 @@ describe("loadAccountContent", () => {
     const config = loadAccountConfig("test-handle");
     const content = loadAccountContent("test-handle", config);
     expect(content.pages.home.sections.about.data.bio).toContain("Test Agent");
+  });
+
+  it("falls back to broker name in default content when no agent", () => {
+    const content = loadAccountContent("broker-only");
+    expect(content.pages.home.sections.features.data.items[0].description).toContain("Sam Broker");
+    expect(content.pages.home.sections.about.data.bio).toContain("Sam Broker");
+  });
+
+  it("falls back to brokerage name in default content when no agent or broker", () => {
+    const content = loadAccountContent("brokerage-only");
+    expect(content.pages.home.sections.features.data.items[0].description).toContain("Brokerage LLC");
+    expect(content.pages.home.sections.about.data.bio).toContain("Brokerage LLC");
+  });
+
+  it("uses default tagline when agent has no tagline", () => {
+    const content = loadAccountContent("broker-only");
+    expect(content.pages.home.sections.hero.data.tagline).toBe("Your Trusted Real Estate Professional");
   });
 
   it("rejects path traversal", () => {

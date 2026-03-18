@@ -69,7 +69,7 @@ export function CountryEstate({ account, content, agent }: TemplateProps) {
             serviceAreas={account.location.service_areas}
           />
         )}
-        {s.about?.enabled && <AboutHomestead agent={account} data={s.about.data} />}
+        {s.about?.enabled && <AboutHomestead agent={identity} data={s.about.data} />}
         <Footer agent={account} agentId={identity.id} />
       </div>
     </>

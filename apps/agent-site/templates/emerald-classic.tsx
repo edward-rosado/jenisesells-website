@@ -54,7 +54,7 @@ export function EmeraldClassic({ account, content, agent }: TemplateProps) {
           serviceAreas={account.location.service_areas}
         />
       )}
-      {s.about?.enabled && <About agent={account} data={s.about.data} />}
+      {s.about?.enabled && <About agent={identity} data={s.about.data} />}
       <Footer agent={account} agentId={identity.id} />
       </div>
     </>

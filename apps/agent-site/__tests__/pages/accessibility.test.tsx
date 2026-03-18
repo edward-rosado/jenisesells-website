@@ -3,7 +3,7 @@
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { ACCOUNT, ACCOUNT_MINIMAL } from "../components/fixtures";
+import { ACCOUNT, ACCOUNT_MINIMAL, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY } from "../components/fixtures";
 
 const mockLoadAccountConfig = vi.fn();
 const mockLoadLegalContent = vi.fn();
@@ -107,5 +107,33 @@ describe("AccessibilityPage", () => {
     expect(screen.getByRole("heading", { level: 1, name: /Accessibility Statement/i })).toBeInTheDocument();
     const main = screen.getByRole("main");
     expect(main.textContent).toContain("Bob Jones");
+  });
+
+  it("falls back to broker name when agent is absent", async () => {
+    mockLoadAccountConfig.mockReturnValue(ACCOUNT_BROKER_ONLY);
+    const page = await AccessibilityPage({ searchParams: Promise.resolve({ agentId: "broker-only" }) });
+    render(page);
+    const main = screen.getByRole("main");
+    expect(main.textContent).toContain("Sam Broker");
+  });
+
+  it("falls back to brokerage name when neither agent nor broker is defined", async () => {
+    mockLoadAccountConfig.mockReturnValue(ACCOUNT_BROKERAGE_ONLY);
+    const page = await AccessibilityPage({ searchParams: Promise.resolve({ agentId: "brokerage-only" }) });
+    render(page);
+    const main = screen.getByRole("main");
+    expect(main.textContent).toContain("Brokerage LLC");
+  });
+
+  it("uses broker name in generateMetadata when agent is absent", async () => {
+    mockLoadAccountConfig.mockReturnValue(ACCOUNT_BROKER_ONLY);
+    const meta = await generateMetadata({ searchParams: Promise.resolve({ agentId: "broker-only" }) });
+    expect(meta.title).toBe("Accessibility | Sam Broker");
+  });
+
+  it("uses brokerage name in generateMetadata when neither agent nor broker", async () => {
+    mockLoadAccountConfig.mockReturnValue(ACCOUNT_BROKERAGE_ONLY);
+    const meta = await generateMetadata({ searchParams: Promise.resolve({ agentId: "brokerage-only" }) });
+    expect(meta.title).toBe("Accessibility | Brokerage LLC");
   });
 });

@@ -3,7 +3,7 @@
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { ACCOUNT, ACCOUNT_MINIMAL } from "../components/fixtures";
+import { ACCOUNT, ACCOUNT_MINIMAL, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY } from "../components/fixtures";
 
 const mockLoadAccountConfig = vi.fn();
 const mockLoadLegalContent = vi.fn();
@@ -179,6 +179,19 @@ describe("TermsPage", () => {
     expect(matches.length).toBeGreaterThanOrEqual(1);
   });
 
+  it("renders NJ content without brokerage license when license_number is empty", async () => {
+    const njNoBrokerageLicense = {
+      ...ACCOUNT,
+      brokerage: { ...ACCOUNT.brokerage, license_number: "" },
+    };
+    mockLoadAccountConfig.mockReturnValue(njNoBrokerageLicense);
+    const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
+    render(page);
+    expect(screen.getByText(/NJ Real Estate Commission/)).toBeInTheDocument();
+    // brokerage_id is falsy → no "(License #...)" text
+    expect(screen.queryByText(/\(License #/)).not.toBeInTheDocument();
+  });
+
   describe("non-NJ state (dynamic state content)", () => {
     it("shows generic state-specific notice for non-NJ agents", async () => {
       mockLoadAccountConfig.mockReturnValue(ACCOUNT_MINIMAL);
@@ -213,6 +226,36 @@ describe("TermsPage", () => {
       const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
       render(page);
       expect(screen.queryByText(/New Jersey Law Against Discrimination/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("broker/brokerage name fallback", () => {
+    it("falls back to broker name when agent is absent", async () => {
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_BROKER_ONLY);
+      const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "broker-only" }) });
+      render(page);
+      const main = screen.getByRole("main");
+      expect(main.textContent).toContain("Sam Broker");
+    });
+
+    it("falls back to brokerage name when neither agent nor broker is defined", async () => {
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_BROKERAGE_ONLY);
+      const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "brokerage-only" }) });
+      render(page);
+      const main = screen.getByRole("main");
+      expect(main.textContent).toContain("Brokerage LLC");
+    });
+
+    it("uses broker name in generateMetadata when agent is absent", async () => {
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_BROKER_ONLY);
+      const meta = await generateMetadata({ searchParams: Promise.resolve({ agentId: "broker-only" }) });
+      expect(meta.title).toBe("Terms of Use | Sam Broker");
+    });
+
+    it("uses brokerage name in generateMetadata when neither agent nor broker", async () => {
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_BROKERAGE_ONLY);
+      const meta = await generateMetadata({ searchParams: Promise.resolve({ agentId: "brokerage-only" }) });
+      expect(meta.title).toBe("Terms of Use | Brokerage LLC");
     });
   });
 });
