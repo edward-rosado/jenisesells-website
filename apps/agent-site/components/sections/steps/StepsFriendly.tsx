@@ -29,7 +29,7 @@ export function StepsFriendly({ steps, title, subtitle }: StepsProps) {
             {subtitle}
           </p>
         )}
-        <ol style={{
+        <ol role="list" style={{
           display: "flex",
           flexDirection: "column",
           gap: "20px",
@@ -50,7 +50,7 @@ export function StepsFriendly({ steps, title, subtitle }: StepsProps) {
                 boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
               }}
             >
-              <div style={{
+              <div aria-hidden="true" style={{
                 width: "44px",
                 height: "44px",
                 borderRadius: "12px",

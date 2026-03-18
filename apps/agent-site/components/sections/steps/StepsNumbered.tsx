@@ -35,6 +35,7 @@ export function StepsNumbered({ steps, title, subtitle }: StepsProps) {
           </p>
         )}
         <ol
+          role="list"
           style={{
             display: "flex",
             justifyContent: "center",

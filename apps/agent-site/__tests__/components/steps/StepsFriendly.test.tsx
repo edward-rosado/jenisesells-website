@@ -66,4 +66,16 @@ describe("StepsFriendly", () => {
     const items = ol?.querySelectorAll("li");
     expect(items?.length).toBe(3);
   });
+
+  it("has role=list on the ordered list", () => {
+    const { container } = render(<StepsFriendly steps={STEPS} />);
+    const ol = container.querySelector("ol");
+    expect(ol).toHaveAttribute("role", "list");
+  });
+
+  it("hides step number from assistive technology", () => {
+    const { container } = render(<StepsFriendly steps={STEPS} />);
+    const hiddenNumbers = container.querySelectorAll("[aria-hidden='true']");
+    expect(hiddenNumbers.length).toBeGreaterThanOrEqual(STEPS.length);
+  });
 });

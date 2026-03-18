@@ -67,4 +67,10 @@ describe("StepsNumbered", () => {
     // No subtitle — the only paragraphs are step descriptions
     expect(screen.queryByText("Three simple steps to sell your home")).not.toBeInTheDocument();
   });
+
+  it("has role=list on the ordered list", () => {
+    const { container } = render(<StepsNumbered steps={STEPS} />);
+    const ol = container.querySelector("ol");
+    expect(ol).toHaveAttribute("role", "list");
+  });
 });

@@ -45,4 +45,10 @@ describe("StepsTimeline", () => {
     render(<StepsTimeline steps={STEPS} subtitle="Simple 3-step process" />);
     expect(screen.getByText("Simple 3-step process")).toBeInTheDocument();
   });
+
+  it("has role=list on the ordered list", () => {
+    const { container } = render(<StepsTimeline steps={STEPS} />);
+    const ol = container.querySelector("ol");
+    expect(ol).toHaveAttribute("role", "list");
+  });
 });
