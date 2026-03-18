@@ -1,151 +1,174 @@
-import type { AgentConfig, AgentContent } from "@/lib/types";
+import type { AccountConfig, ContentConfig } from "@/lib/types";
 
-export const AGENT: AgentConfig = {
-  id: "test-agent",
-  identity: {
-    name: "Jane Smith",
-    title: "REALTOR",
-    brokerage: "Best Homes Realty",
-    phone: "555-123-4567",
-    office_phone: "(732) 251-2500",
-    email: "jane@example.com",
-    tagline: "Your Dream Home Awaits",
-    languages: ["English", "Spanish"],
-  },
-  location: {
-    state: "NJ",
-    service_areas: ["Hoboken", "Jersey City"],
-  },
+export const ACCOUNT: AccountConfig = {
+  handle: "test-agent",
+  template: "emerald-classic",
   branding: {
     primary_color: "#1B5E20",
     secondary_color: "#2E7D32",
     accent_color: "#C8A951",
     font_family: "Segoe UI",
   },
-  integrations: {},
-};
-
-export const AGENT_MINIMAL: AgentConfig = {
-  id: "minimal-agent",
-  identity: {
-    name: "Bob Jones",
-    phone: "555-000-1234",
-    email: "bob@example.com",
+  brokerage: {
+    name: "Best Homes Realty",
+    license_number: "123456",
+    office_phone: "(732) 251-2500",
+  },
+  agent: {
+    enabled: true,
+    id: "test-agent",
+    name: "Jane Smith",
+    title: "REALTOR",
+    phone: "555-123-4567",
+    email: "jane@example.com",
+    tagline: "Your Dream Home Awaits",
+    languages: ["English", "Spanish"],
+    headshot_url: undefined,
   },
   location: {
-    state: "TX",
+    state: "NJ",
+    service_areas: ["Hoboken", "Jersey City"],
   },
-  branding: {},
-};
-
-export const CONTENT: AgentContent = {
-  template: "emerald-classic",
-  navigation: {
-    items: [
-      { label: "Why Choose Me", section: "services" },
-      { label: "How It Works", section: "how-it-works" },
-      { label: "Recent Sales", section: "sold" },
-      { label: "Testimonials", section: "testimonials" },
-      { label: "Ready to Move?", section: "cma-form" },
-      { label: "About", section: "about" },
-    ],
-  },
+  integrations: {},
   contact_info: [
     { type: "email", value: "jane@example.com", label: "Personal Email", is_preferred: false },
     { type: "phone", value: "555-123-4567", label: "Cell Phone", is_preferred: true },
     { type: "phone", value: "(732) 251-2500", ext: "714", label: "Office Phone", is_preferred: false },
   ],
-  sections: {
-    hero: {
-      enabled: true,
-      data: {
-        headline: "Sell Your Home Fast",
-        tagline: "Expert guidance every step",
-        cta_text: "Get Free Report",
-        cta_link: "#cma-form",
+};
+
+export const ACCOUNT_MINIMAL: AccountConfig = {
+  handle: "minimal-agent",
+  template: "emerald-classic",
+  branding: {},
+  brokerage: { name: "Min Realty", license_number: "000" },
+  agent: {
+    enabled: true,
+    id: "minimal-agent",
+    name: "Bob Jones",
+    title: "Agent",
+    phone: "555-000-1234",
+    email: "bob@example.com",
+  },
+  location: {
+    state: "TX",
+    service_areas: [],
+  },
+};
+
+export const CONTENT: ContentConfig = {
+  navigation: {
+    items: [
+      { label: "Why Choose Me", href: "#features", enabled: true },
+      { label: "How It Works", href: "#steps", enabled: true },
+      { label: "Recent Sales", href: "#gallery", enabled: true },
+      { label: "Testimonials", href: "#testimonials", enabled: true },
+      { label: "Ready to Move?", href: "#contact_form", enabled: true },
+      { label: "About", href: "#about", enabled: true },
+    ],
+  },
+  pages: {
+    home: {
+      sections: {
+        hero: {
+          enabled: true,
+          data: {
+            headline: "Sell Your Home Fast",
+            tagline: "Expert guidance every step",
+            cta_text: "Get Free Report",
+            cta_link: "#contact_form",
+          },
+        },
+        stats: {
+          enabled: true,
+          data: {
+            items: [
+              { value: "150+", label: "Homes Sold" },
+              { value: "$2.5M", label: "Total Volume" },
+            ],
+          },
+        },
+        features: {
+          enabled: true,
+          data: {
+            items: [
+              { title: "Market Analysis", description: "Deep market insights" },
+              { title: "Photography", description: "Professional photos" },
+              { title: "Negotiation", description: "Expert negotiation" },
+            ],
+          },
+        },
+        steps: {
+          enabled: true,
+          data: {
+            steps: [
+              { number: 1, title: "Submit Info", description: "Fill out the form" },
+              { number: 2, title: "Get Report", description: "Receive your CMA" },
+              { number: 3, title: "Meet Agent", description: "Schedule walkthrough" },
+            ],
+          },
+        },
+        gallery: {
+          enabled: true,
+          data: {
+            items: [
+              { address: "123 Main St", city: "Hoboken", state: "NJ", price: "$750,000" },
+              { address: "456 Elm Ave", city: "Jersey City", state: "NJ", price: "$620,000" },
+            ],
+          },
+        },
+        testimonials: {
+          enabled: true,
+          data: {
+            items: [
+              { text: "Amazing service!", reviewer: "Alice B.", rating: 5, source: "Zillow" },
+              { text: "Would recommend.", reviewer: "Tom C.", rating: 4 },
+              { text: "Smooth process.", reviewer: "Sara D.", rating: 3 },
+            ],
+          },
+        },
+        contact_form: {
+          enabled: true,
+          data: {
+            title: "What's Your Home Worth?",
+            subtitle: "Get a free CMA today",
+            description: "Selling? Get a **free** home value report. Buying? Tell us what you need.",
+          },
+        },
+        about: {
+          enabled: true,
+          data: {
+            bio: "Jane Smith is a top agent in New Jersey.",
+            credentials: ["ABR", "CRS"],
+          },
+        },
+        city_pages: {
+          enabled: false,
+          data: { cities: [] },
+        },
       },
-    },
-    stats: {
-      enabled: true,
-      data: {
-        items: [
-          { value: "150+", label: "Homes Sold" },
-          { value: "$2.5M", label: "Total Volume" },
-        ],
-      },
-    },
-    services: {
-      enabled: true,
-      data: {
-        items: [
-          { title: "Market Analysis", description: "Deep market insights" },
-          { title: "Photography", description: "Professional photos" },
-          { title: "Negotiation", description: "Expert negotiation" },
-        ],
-      },
-    },
-    how_it_works: {
-      enabled: true,
-      data: {
-        steps: [
-          { number: 1, title: "Submit Info", description: "Fill out the form" },
-          { number: 2, title: "Get Report", description: "Receive your CMA" },
-          { number: 3, title: "Meet Agent", description: "Schedule walkthrough" },
-        ],
-      },
-    },
-    sold_homes: {
-      enabled: true,
-      data: {
-        items: [
-          { address: "123 Main St", city: "Hoboken", state: "NJ", price: "$750,000" },
-          { address: "456 Elm Ave", city: "Jersey City", state: "NJ", price: "$620,000" },
-        ],
-      },
-    },
-    testimonials: {
-      enabled: true,
-      data: {
-        items: [
-          { text: "Amazing service!", reviewer: "Alice B.", rating: 5, source: "Zillow" },
-          { text: "Would recommend.", reviewer: "Tom C.", rating: 4 },
-          { text: "Smooth process.", reviewer: "Sara D.", rating: 3 },
-        ],
-      },
-    },
-    cma_form: {
-      enabled: true,
-      data: {
-        title: "What's Your Home Worth?",
-        subtitle: "Get a free CMA today",
-        description: "Selling? Get a **free** home value report. Buying? Tell us what you need.",
-      },
-    },
-    about: {
-      enabled: true,
-      data: {
-        bio: "Jane Smith is a top agent in New Jersey.",
-        credentials: ["ABR", "CRS"],
-      },
-    },
-    city_pages: {
-      enabled: false,
-      data: { cities: [] },
     },
   },
 };
 
-export const CONTENT_ALL_DISABLED: AgentContent = {
-  template: "emerald-classic",
-  sections: {
-    hero: { enabled: false, data: { headline: "", tagline: "", cta_text: "", cta_link: "" } },
-    stats: { enabled: false, data: { items: [] } },
-    services: { enabled: false, data: { items: [] } },
-    how_it_works: { enabled: false, data: { steps: [] } },
-    sold_homes: { enabled: false, data: { items: [] } },
-    testimonials: { enabled: false, data: { items: [] } },
-    cma_form: { enabled: false, data: { title: "", subtitle: "" } },
-    about: { enabled: false, data: { bio: "", credentials: [] } },
-    city_pages: { enabled: false, data: { cities: [] } },
+export const CONTENT_ALL_DISABLED: ContentConfig = {
+  pages: {
+    home: {
+      sections: {
+        hero: { enabled: false, data: { headline: "", tagline: "", cta_text: "", cta_link: "" } },
+        stats: { enabled: false, data: { items: [] } },
+        features: { enabled: false, data: { items: [] } },
+        steps: { enabled: false, data: { steps: [] } },
+        gallery: { enabled: false, data: { items: [] } },
+        testimonials: { enabled: false, data: { items: [] } },
+        contact_form: { enabled: false, data: { title: "", subtitle: "" } },
+        about: { enabled: false, data: { bio: "", credentials: [] } },
+        city_pages: { enabled: false, data: { cities: [] } },
+      },
+    },
   },
 };
+
+// Backward-compatible aliases for gradual test migration
+export const AGENT = ACCOUNT;
+export const AGENT_MINIMAL = ACCOUNT_MINIMAL;
