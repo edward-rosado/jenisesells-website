@@ -1,5 +1,6 @@
 import type { AccountConfig, AgentConfig } from "@/lib/types";
 import { EqualHousingNotice } from "@real-estate-star/ui";
+import { safeMailtoHref, safeTelHref } from "../../../lib/safe-contact";
 
 interface FooterProps {
   agent: AccountConfig | AgentConfig;
@@ -98,7 +99,7 @@ export function Footer({ agent, agentId }: FooterProps) {
       {phone && (
         <p style={{ fontSize: "14px", color: "white", marginBottom: "3px" }}>
           <a
-            href={`tel:${phone.replace(/\D/g, "")}`}
+            href={safeTelHref(phone)}
             aria-label={`Call ${name}`}
             style={{ color: "white", textDecoration: "none" }}
           >
@@ -108,7 +109,7 @@ export function Footer({ agent, agentId }: FooterProps) {
             <>
               {"  |  "}
               <a
-                href={`tel:${officePhone.replace(/[^0-9]/g, "")}`}
+                href={safeTelHref(officePhone)}
                 aria-label="Call office"
                 style={{ color: "white", textDecoration: "none" }}
               >
@@ -121,7 +122,7 @@ export function Footer({ agent, agentId }: FooterProps) {
       {email && (
         <p style={{ fontSize: "14px", color: "white", marginBottom: "5px" }}>
           <a
-            href={`mailto:${email}`}
+            href={safeMailtoHref(email)}
             aria-label={`Email ${name}`}
             style={{ color: "white", textDecoration: "none" }}
           >

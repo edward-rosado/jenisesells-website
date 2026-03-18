@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { AccountConfig, NavigationConfig, ContactMethod } from "@/lib/types";
+import { safeMailtoHref, safeTelHref } from "../lib/safe-contact";
 
 interface NavProps {
   account: AccountConfig;
@@ -48,8 +49,7 @@ export const DEFAULT_NAV_ITEMS = [
 
 /** Build a tel: href from a phone value and optional extension */
 function buildTelHref(value: string, ext?: string | null): string {
-  const digits = value.replace(/\D/g, "");
-  return ext ? `tel:${digits},${ext.replace(/\D/g, "")}` : `tel:${digits}`;
+  return safeTelHref(value, ext ?? undefined);
 }
 
 /** Format a phone number with its extension for display */
@@ -217,7 +217,7 @@ export function Nav({ account, navigation }: NavProps) {
           <div className="nav-contact" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {emails[0] && (
               <a
-                href={`mailto:${emails[0].value}`}
+                href={safeMailtoHref(emails[0].value)}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -441,7 +441,7 @@ export function Nav({ account, navigation }: NavProps) {
           {emails.map((email, i) => (
             <a
               key={`email-${i}`}
-              href={`mailto:${email.value}`}
+              href={safeMailtoHref(email.value)}
               style={{
                 display: "flex",
                 alignItems: "center",
