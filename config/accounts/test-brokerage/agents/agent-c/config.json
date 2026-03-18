@@ -1,0 +1,12 @@
+{
+  "id": "agent-c",
+  "name": "Robert Dalton",
+  "title": "Commercial Director",
+  "phone": "(908) 555-0103",
+  "email": "robert@sterling.com",
+  "headshot_url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face",
+  "license_number": "NJ-2024-22222",
+  "languages": ["English"],
+  "tagline": "Smart deals, structured right.",
+  "credentials": ["REALTOR\u00ae", "CCIM"]
+}

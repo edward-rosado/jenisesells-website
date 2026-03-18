@@ -1,0 +1,12 @@
+{
+  "id": "agent-d",
+  "name": "Priya Mehta",
+  "title": "Buyer Specialist",
+  "phone": "(908) 555-0104",
+  "email": "priya@sterling.com",
+  "headshot_url": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=300&fit=crop&crop=face",
+  "license_number": "NJ-2024-33333",
+  "languages": ["English", "Hindi", "Gujarati"],
+  "tagline": "Your advocate in every offer.",
+  "credentials": ["REALTOR\u00ae", "ABR"]
+}

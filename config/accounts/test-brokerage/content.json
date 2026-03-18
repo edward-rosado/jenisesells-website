@@ -146,42 +146,54 @@
                 "name": "James Whitfield",
                 "title": "Senior Associate",
                 "phone": "(908) 555-0101",
-                "email": "james@sterling.com"
+                "email": "james@sterling.com",
+                "headshot_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&crop=face",
+                "bio": "James specializes in luxury residential properties across Summit and Short Hills. With 12 years of experience and over $400M in career sales, he brings a detail-oriented approach to every transaction. Certified Residential Specialist (CRS) and Accredited Buyer's Representative (ABR)."
               },
               {
                 "id": "agent-b",
                 "name": "Sarah Chen",
                 "title": "Luxury Specialist",
                 "phone": "(908) 555-0102",
-                "email": "sarah@sterling.com"
+                "email": "sarah@sterling.com",
+                "headshot_url": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&h=300&fit=crop&crop=face",
+                "bio": "Sarah brings 8 years of luxury market expertise and fluency in Mandarin, making her the go-to agent for international buyers relocating to northern New Jersey. She negotiated over $120M in transactions last year alone."
               },
               {
                 "id": "agent-c",
                 "name": "Robert Dalton",
                 "title": "Commercial Director",
                 "phone": "(908) 555-0103",
-                "email": "robert@sterling.com"
+                "email": "robert@sterling.com",
+                "headshot_url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face",
+                "bio": "Robert leads Sterling's commercial division, specializing in retail, office, and mixed-use properties. A former commercial banker with an MBA from Rutgers, he brings financial acumen to every deal structure and 1031 exchange."
               },
               {
                 "id": "agent-d",
                 "name": "Priya Mehta",
                 "title": "Buyer Specialist",
                 "phone": "(908) 555-0104",
-                "email": "priya@sterling.com"
+                "email": "priya@sterling.com",
+                "headshot_url": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=300&fit=crop&crop=face",
+                "bio": "Priya is dedicated exclusively to buyer representation, ensuring her clients never compete against her own listings. She has helped over 150 families find their perfect home in Chatham, Summit, and surrounding communities."
               },
               {
                 "id": "agent-e",
                 "name": "Thomas Reilly",
                 "title": "Investment Advisor",
                 "phone": "(908) 555-0105",
-                "email": "thomas@sterling.com"
+                "email": "thomas@sterling.com",
+                "headshot_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=300&fit=crop&crop=face",
+                "bio": "Thomas advises high-net-worth clients on residential and commercial investment portfolios. With a background in asset management and 15 years in real estate, he identifies opportunities that deliver long-term value."
               },
               {
                 "id": "agent-f",
                 "name": "Angela Moreau",
                 "title": "Listing Coordinator",
                 "phone": "(908) 555-0106",
-                "email": "angela@sterling.com"
+                "email": "angela@sterling.com",
+                "headshot_url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&h=300&fit=crop&crop=face",
+                "bio": "Angela manages the listing lifecycle from staging consultation through closing. Her background in interior design and marketing ensures every Sterling listing presents at its absolute best — averaging just 18 days on market."
               }
             ]
           }

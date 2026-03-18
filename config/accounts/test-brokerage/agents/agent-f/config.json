@@ -1,0 +1,12 @@
+{
+  "id": "agent-f",
+  "name": "Angela Moreau",
+  "title": "Listing Coordinator",
+  "phone": "(908) 555-0106",
+  "email": "angela@sterling.com",
+  "headshot_url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&h=300&fit=crop&crop=face",
+  "license_number": "NJ-2024-55555",
+  "languages": ["English", "French"],
+  "tagline": "Every listing, picture-perfect.",
+  "credentials": ["REALTOR\u00ae"]
+}
