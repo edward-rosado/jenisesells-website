@@ -48,7 +48,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
   return (
     <div style={cssVars as React.CSSProperties}>
       <Nav account={account} navigation={content.navigation} />
-      <main className="pt-[74px] min-h-[70vh] flex items-center justify-center">
+      <main id="main-content" tabIndex={-1} className="pt-[74px] min-h-[70vh] flex items-center justify-center">
         <div className="text-center max-w-lg px-6">
           <div style={{
             width: "80px",

@@ -8,7 +8,7 @@ export function EmeraldClassic({ account, content, agent }: TemplateProps) {
   return (
     <>
       <Nav account={account} navigation={content.navigation} />
-      <div style={{ paddingTop: "0" }}>
+      <div id="main-content" tabIndex={-1} style={{ paddingTop: "0" }}>
       {s.hero?.enabled && (
         <Hero
           data={s.hero.data}

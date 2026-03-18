@@ -21,7 +21,7 @@ export default function RootLayout({
         <a href="#main-content" className="skip-nav">
           Skip to main content
         </a>
-        <main id="main-content" tabIndex={-1}>
+        <main>
           {children}
         </main>
       </body>
