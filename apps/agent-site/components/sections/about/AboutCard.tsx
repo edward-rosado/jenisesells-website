@@ -1,7 +1,13 @@
 import Image from "next/image";
 import type { AboutProps } from "@/components/sections/types";
+import { getDisplayName, getHeadshotUrl } from "@/components/sections/types";
 
 export function AboutCard({ agent, data }: AboutProps) {
+  const displayName = getDisplayName(agent);
+  const headshotUrl = getHeadshotUrl(agent);
+  const phone = "handle" in agent ? agent.agent?.phone : agent.phone;
+  const email = "handle" in agent ? agent.agent?.email : agent.email;
+
   return (
     <section
       id="about"
@@ -19,7 +25,7 @@ export function AboutCard({ agent, data }: AboutProps) {
         boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
         textAlign: "center",
       }}>
-        {agent.identity.headshot_url && (
+        {headshotUrl && (
           <div style={{
             width: "140px",
             height: "140px",
@@ -29,8 +35,8 @@ export function AboutCard({ agent, data }: AboutProps) {
             border: "4px solid var(--color-accent)",
           }}>
             <Image
-              src={agent.identity.headshot_url}
-              alt={`Photo of ${agent.identity.name}`}
+              src={headshotUrl}
+              alt={`Photo of ${displayName}`}
               width={140}
               height={140}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -43,7 +49,7 @@ export function AboutCard({ agent, data }: AboutProps) {
           color: "#4A3728",
           marginBottom: "16px",
         }}>
-          {data.title || `About ${agent.identity.name}`}
+          {data.title || `About ${displayName}`}
         </h2>
         {Array.isArray(data.bio) ? (
           data.bio.map((paragraph, i) => (
@@ -91,8 +97,8 @@ export function AboutCard({ agent, data }: AboutProps) {
           color: "#8B7355",
           lineHeight: 2,
         }}>
-          {agent.identity.phone && <div>{agent.identity.phone}</div>}
-          {agent.identity.email && <div>{agent.identity.email}</div>}
+          {phone && <div>{phone}</div>}
+          {email && <div>{email}</div>}
         </div>
       </div>
     </section>

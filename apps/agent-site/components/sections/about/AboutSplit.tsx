@@ -1,7 +1,11 @@
 import Image from "next/image";
 import type { AboutProps } from "@/components/sections/types";
+import { getDisplayName, getHeadshotUrl } from "@/components/sections/types";
 
 export function AboutSplit({ agent, data }: AboutProps) {
+  const displayName = getDisplayName(agent);
+  const headshotUrl = getHeadshotUrl(agent);
+
   return (
     <section
       id="about"
@@ -20,7 +24,7 @@ export function AboutSplit({ agent, data }: AboutProps) {
           justifyContent: "center",
         }}
       >
-        {agent.identity.headshot_url && (
+        {headshotUrl && (
           <div
             style={{
               width: "250px",
@@ -33,8 +37,8 @@ export function AboutSplit({ agent, data }: AboutProps) {
             }}
           >
             <Image
-              src={agent.identity.headshot_url}
-              alt={agent.identity.name}
+              src={headshotUrl}
+              alt={displayName}
               fill
               style={{ objectFit: "cover" }}
               sizes="250px"
@@ -49,7 +53,7 @@ export function AboutSplit({ agent, data }: AboutProps) {
               marginBottom: "15px",
             }}
           >
-            {data.title || `About ${agent.identity.name}`}
+            {data.title || `About ${displayName}`}
           </h2>
           {Array.isArray(data.bio) ? (
             data.bio.map((paragraph, i) => (
