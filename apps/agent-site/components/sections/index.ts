@@ -65,6 +65,15 @@ export { SoldElegant } from "./sold/SoldElegant";
 export { TestimonialsQuote } from "./testimonials/TestimonialsQuote";
 export { AboutGrace } from "./about/AboutGrace";
 
+// Country Estate variants
+export { HeroEstate } from "./heroes/HeroEstate";
+export { StatsRugged } from "./stats/StatsRugged";
+export { ServicesEstate } from "./services/ServicesEstate";
+export { StepsPath } from "./steps/StepsPath";
+export { SoldEstate } from "./sold/SoldEstate";
+export { TestimonialsRustic } from "./testimonials/TestimonialsRustic";
+export { AboutHomestead } from "./about/AboutHomestead";
+
 // Coastal Living variants
 export { HeroCoastal } from "./heroes/HeroCoastal";
 export { StatsWave } from "./stats/StatsWave";

@@ -5,5 +5,6 @@ export { AboutEditorial } from "./AboutEditorial";
 export { AboutCompact } from "./AboutCompact";
 export { AboutWarm } from "./AboutWarm";
 export { AboutGrace } from "./AboutGrace";
+export { AboutHomestead } from "./AboutHomestead";
 export { AboutCoastal } from "./AboutCoastal";
 export { AboutProfessional } from "./AboutProfessional";

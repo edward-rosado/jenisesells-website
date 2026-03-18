@@ -1,11 +1,11 @@
 ---
-name: template-builder
-description: "Step-by-step process for creating a new agent site template with section variants, test agent, tests, and optional URL-based design extraction"
+name: create-template
+description: "Create a new agent site template from scratch or from a URL — generates section variants, test agent, tests, images, and legal content"
 user-invocable: true
 origin: auto-extracted
 ---
 
-# Template Builder
+# Create Template
 
 **Extracted:** 2026-03-17
 **Context:** Creating new agent site templates for the Real Estate Star multi-template system.

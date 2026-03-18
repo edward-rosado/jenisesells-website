@@ -5,5 +5,6 @@ export { ServicesElegant } from "./ServicesElegant";
 export { ServicesPills } from "./ServicesPills";
 export { ServicesHeart } from "./ServicesHeart";
 export { ServicesRefined } from "./ServicesRefined";
+export { ServicesEstate } from "./ServicesEstate";
 export { ServicesCoastal } from "./ServicesCoastal";
 export { ServicesCommercial } from "./ServicesCommercial";

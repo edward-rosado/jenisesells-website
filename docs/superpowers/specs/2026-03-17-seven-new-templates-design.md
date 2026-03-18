@@ -80,6 +80,23 @@ All templates reuse these unchanged:
 - **CookieConsentBanner** — GDPR/privacy consent
 - **Legal pages** — privacy, terms, accessibility (auto-generated + custom markdown slots)
 
+### Branding System — Agent Config Drives All Colors & Fonts
+
+Every template **must** honor the agent's branding configuration from `config.json`. Templates define a visual *personality* (layout, spacing, component choices), but the actual colors and fonts come from the agent's config at runtime.
+
+**How it works:**
+1. Agent's `config.json` defines `branding.primary_color`, `branding.secondary_color`, `branding.accent_color`, and `branding.font_family`
+2. `buildCssVariableStyle()` in the layout converts these into CSS custom properties: `--color-primary`, `--color-secondary`, `--color-accent`, `--font-family`
+3. All section variants use `var(--color-primary)`, `var(--color-accent)`, etc. — **never hardcoded hex values**
+4. The same template renders differently for each agent based on their branding config
+
+**Example:** The `luxury-estate` template's *design identity* uses dark backgrounds with gold accents. But a specific agent using `luxury-estate` could override:
+- `primary_color: "#8B0000"` (deep red instead of dark navy)
+- `accent_color: "#C0C0C0"` (silver instead of gold)
+- `font_family: "Cormorant Garamond"` (different serif)
+
+**Constraint:** Section variants must not rely on specific color values for their layout to work. A dark-themed template variant must use opacity-based overlays and CSS variable colors so it still looks correct with any agent's palette.
+
 ### Registration Checklist (Per Template)
 
 Each new template must be registered in **three** places:
