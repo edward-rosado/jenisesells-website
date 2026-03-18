@@ -1,7 +1,7 @@
 import Image from "next/image";
-import type { SoldHomesProps } from "@/components/sections/types";
+import type { GalleryProps } from "@/components/sections/types";
 
-export function SoldGrid({ items, title, subtitle }: SoldHomesProps) {
+export function SoldGrid({ items, title, subtitle }: GalleryProps) {
   return (
     <section
       id="sold"

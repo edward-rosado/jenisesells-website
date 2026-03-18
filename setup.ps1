@@ -127,12 +127,12 @@ if (Test-Path "config/agent.schema.json") {
     Fail "config/agent.schema.json missing"
 }
 
-$agentProfiles = Get-ChildItem -Path "config/agents" -Filter "*.json" -ErrorAction SilentlyContinue
-$agentCount = if ($agentProfiles) { $agentProfiles.Count } else { 0 }
-if ($agentCount -gt 0) {
-    Info "$agentCount agent profile(s) found"
+$accountDirs = Get-ChildItem -Path "config/accounts" -Directory -ErrorAction SilentlyContinue
+$accountCount = if ($accountDirs) { $accountDirs.Count } else { 0 }
+if ($accountCount -gt 0) {
+    Info "$accountCount account(s) found"
 } else {
-    Warn "No agent profiles found in config/agents/"
+    Warn "No accounts found in config/accounts/"
 }
 
 # 5. Validate skills
@@ -178,7 +178,7 @@ Write-Host "  Setup Complete!"
 Write-Host "================================================"
 Write-Host ""
 Write-Host "Next steps:"
-Write-Host "  1. Review config/agents/jenise-buckalew.json (reference tenant)"
+Write-Host "  1. Review config/accounts/jenise-buckalew/account.json (reference tenant)"
 Write-Host "  2. Read docs/onboarding.md for contributor guide"
 Write-Host "  3. Check docs/plans/ for design docs and implementation plans"
 Write-Host ""

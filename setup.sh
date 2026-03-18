@@ -116,11 +116,11 @@ else
   fail "config/agent.schema.json missing"
 fi
 
-AGENT_COUNT=$(find config/agents -name "*.json" 2>/dev/null | wc -l)
-if [ "$AGENT_COUNT" -gt 0 ]; then
-  info "$AGENT_COUNT agent profile(s) found"
+ACCOUNT_COUNT=$(find config/accounts -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+if [ "$ACCOUNT_COUNT" -gt 0 ]; then
+  info "$ACCOUNT_COUNT account(s) found"
 else
-  warn "No agent profiles found in config/agents/"
+  warn "No accounts found in config/accounts/"
 fi
 
 # 5. Validate skills
@@ -166,7 +166,7 @@ echo "  Setup Complete!"
 echo "================================================"
 echo ""
 echo "Next steps:"
-echo "  1. Review config/agents/jenise-buckalew.json (reference tenant)"
+echo "  1. Review config/accounts/jenise-buckalew/account.json (reference tenant)"
 echo "  2. Read docs/onboarding.md for contributor guide"
 echo "  3. Check docs/plans/ for design docs and implementation plans"
 echo ""
