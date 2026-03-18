@@ -309,11 +309,11 @@ describe("SoldCarousel", () => {
     clearIntervalSpy.mockRestore();
   });
 
-  it("server snapshot returns false (useSyncExternalStore third argument)", () => {
+  it("server snapshot returns false (useSyncExternalStore third argument)", async () => {
     // renderToString exercises the server snapshot (third arg to useSyncExternalStore).
     // The server snapshot `() => false` means reducedMotion=false on SSR, so the
     // carousel markup (not the reduced-motion stack) should be rendered.
-    const { renderToString } = require("react-dom/server");
+    const { renderToString } = await import("react-dom/server");
     const html = renderToString(<SoldCarousel items={ITEMS} />);
     // Carousel region should be present (server snapshot returned false = no reduced motion)
     expect(html).toContain("aria-roledescription=\"carousel\"");
