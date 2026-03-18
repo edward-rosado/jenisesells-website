@@ -1,10 +1,11 @@
 import * as Sentry from "@sentry/nextjs";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { loadAccountConfig, loadLegalContent } from "@/lib/config";
+import { loadAccountConfig, loadAccountContent, loadLegalContent } from "@/lib/config";
 import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
 import { MarkdownContent } from "@/components/legal/MarkdownContent";
 import { LEGAL_EFFECTIVE_DATE, getStateName } from "@/components/legal/constants";
+import { getEnabledSections } from "@/templates/types";
 
 interface PageProps {
   searchParams: Promise<{ accountId?: string }>;
@@ -118,8 +119,11 @@ For questions about these terms, contact us at:
 
 *Last updated: ${LEGAL_EFFECTIVE_DATE}*`;
 
+  const contentConfig = loadAccountContent(handle, account);
+  const enabledSections = getEnabledSections(contentConfig.pages.home.sections);
+
   return (
-    <LegalPageLayout agent={account} accountId={handle} customAbove={above} customBelow={below}>
+    <LegalPageLayout agent={account} accountId={handle} customAbove={above} customBelow={below} navigation={contentConfig.navigation} enabledSections={enabledSections}>
       <MarkdownContent content={content} />
     </LegalPageLayout>
   );

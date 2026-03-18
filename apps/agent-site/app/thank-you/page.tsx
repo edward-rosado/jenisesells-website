@@ -7,6 +7,7 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/sections";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import type { ThankYouData } from "@/lib/types";
+import { getEnabledSections } from "@/templates/types";
 
 interface PageProps {
   searchParams: Promise<{ accountId?: string; email?: string }>;
@@ -47,7 +48,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
 
   return (
     <div style={cssVars as React.CSSProperties}>
-      <Nav account={account} navigation={content.navigation} />
+      <Nav account={account} navigation={content.navigation} enabledSections={getEnabledSections(content.pages.home.sections)} />
       <main className="pt-[74px] min-h-[70vh] flex items-center justify-center">
         <div className="text-center max-w-lg px-6">
           <div style={{

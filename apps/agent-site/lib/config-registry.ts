@@ -3523,6 +3523,45 @@ export const agentConfigs: Record<string, Record<string, AgentConfig>> = {
         "ABR"
       ]
     }
+  },
+  "test-light-luxury": {
+    "agent-a": {
+      "id": "agent-a",
+      "name": "Olivier Marchetti",
+      "title": "International Sales Director",
+      "phone": "(305) 555-0401",
+      "email": "olivier@prestigeproperties.com"
+    },
+    "agent-b": {
+      "id": "agent-b",
+      "name": "Natalia Voss",
+      "title": "Waterfront Specialist",
+      "phone": "(305) 555-0402",
+      "email": "natalia@prestigeproperties.com"
+    },
+    "agent-c": {
+      "id": "agent-c",
+      "name": "Rafael Andrade",
+      "title": "Investment Advisor",
+      "phone": "(305) 555-0403",
+      "email": "rafael@prestigeproperties.com"
+    }
+  },
+  "test-warm": {
+    "agent-a": {
+      "id": "agent-a",
+      "name": "Miguel Torres",
+      "title": "Buyer Specialist",
+      "phone": "(512) 555-0201",
+      "email": "miguel@santiago-realty.com"
+    },
+    "agent-b": {
+      "id": "agent-b",
+      "name": "Ashley Brooks",
+      "title": "Listing Coordinator",
+      "phone": "(512) 555-0202",
+      "email": "ashley@santiago-realty.com"
+    }
   }
 } as unknown as Record<string, Record<string, AgentConfig>>;
 
@@ -3759,7 +3798,9 @@ export const agentContent: Record<string, Record<string, ContentConfig>> = {
         }
       }
     }
-  }
+  },
+  "test-light-luxury": {},
+  "test-warm": {}
 } as unknown as Record<string, Record<string, ContentConfig>>;
 
 export const legalContent: Record<string, Record<string, { above?: string; below?: string }>> = {};
