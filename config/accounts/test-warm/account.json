@@ -1,0 +1,75 @@
+{
+  "handle": "test-warm",
+  "template": "warm-community",
+  "branding": {
+    "primary_color": "#5D1A1A",
+    "secondary_color": "#7B2D2D",
+    "accent_color": "#D4A843",
+    "font_family": "Georgia",
+    "logo_url": ""
+  },
+  "brokerage": {
+    "name": "Hill Country Realty",
+    "license_number": "HCR-ATX-1105",
+    "office_phone": "(512) 555-0200 ext 15",
+    "office_address": "1100 Congress Ave, Suite 200, Austin, TX 78701"
+  },
+  "agent": {
+    "enabled": true,
+    "id": "test-warm",
+    "name": "Maria Santiago",
+    "title": "REALTOR®",
+    "phone": "(512) 555-0202",
+    "email": "maria@hillcountryrealty.com",
+    "headshot_url": "/agents/test-warm/headshot.jpg",
+    "license_number": "TX-0654321",
+    "languages": [
+      "English",
+      "Spanish"
+    ],
+    "tagline": "Your Neighbor. Your REALTOR®."
+  },
+  "location": {
+    "state": "TX",
+    "service_areas": [
+      "Austin",
+      "Round Rock",
+      "Cedar Park",
+      "Georgetown",
+      "Pflugerville"
+    ]
+  },
+  "integrations": {
+    "email_provider": "gmail"
+  },
+  "compliance": {
+    "state_form": "TREC-20-16",
+    "licensing_body": "Texas Real Estate Commission",
+    "disclosure_requirements": [
+      "Seller's disclosure notice (TREC OP-H)",
+      "Lead-based paint disclosure (pre-1978)",
+      "MUD/PID disclosure"
+    ]
+  },
+  "contact_info": [
+    {
+      "type": "phone",
+      "value": "(512) 555-0202",
+      "label": "Cell Phone",
+      "is_preferred": true
+    },
+    {
+      "type": "phone",
+      "value": "(512) 555-0200",
+      "ext": "15",
+      "label": "Office Phone",
+      "is_preferred": false
+    },
+    {
+      "type": "email",
+      "value": "maria@hillcountryrealty.com",
+      "label": "Email",
+      "is_preferred": false
+    }
+  ]
+}

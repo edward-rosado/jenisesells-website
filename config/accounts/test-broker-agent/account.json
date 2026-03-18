@@ -1,0 +1,25 @@
+{
+  "handle": "test-broker-agent",
+  "template": "emerald-classic",
+  "branding": {
+    "primary_color": "#2c3e50",
+    "accent_color": "#e67e22"
+  },
+  "brokerage": {
+    "name": "Broker Direct Realty",
+    "license_number": "NJ-2024-99999"
+  },
+  "agent": {
+    "enabled": true,
+    "id": "test-broker-agent",
+    "name": "Diana Reyes",
+    "title": "Broker/Owner",
+    "phone": "(973) 555-0300",
+    "email": "diana@brokerdirect.com",
+    "tagline": "Broker and mentor."
+  },
+  "location": {
+    "state": "NJ",
+    "service_areas": ["Newark", "Montclair"]
+  }
+}

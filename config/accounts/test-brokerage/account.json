@@ -1,0 +1,25 @@
+{
+  "handle": "test-brokerage",
+  "template": "emerald-classic",
+  "branding": {
+    "primary_color": "#1a1a2e",
+    "secondary_color": "#16213e",
+    "accent_color": "#d4af37",
+    "font_family": "Georgia"
+  },
+  "brokerage": {
+    "name": "Sterling & Associates Real Estate",
+    "license_number": "NJ-2024-12345",
+    "office_address": "100 Summit Ave, Summit, NJ 07901",
+    "office_phone": "(908) 555-0100"
+  },
+  "broker": {
+    "name": "Victoria Sterling",
+    "title": "Managing Broker",
+    "bio": "30 years of luxury real estate experience."
+  },
+  "location": {
+    "state": "NJ",
+    "service_areas": ["Summit", "Short Hills", "Chatham"]
+  }
+}

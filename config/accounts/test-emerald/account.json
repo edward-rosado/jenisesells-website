@@ -1,0 +1,71 @@
+{
+  "handle": "test-emerald",
+  "template": "emerald-classic",
+  "branding": {
+    "primary_color": "#1B5E20",
+    "secondary_color": "#2E7D32",
+    "accent_color": "#C8A951",
+    "font_family": "Segoe UI",
+    "logo_url": ""
+  },
+  "brokerage": {
+    "name": "Evergreen Homes Realty",
+    "license_number": "BR-44210",
+    "office_phone": "(732) 555-0300 ext 110",
+    "office_address": "250 Main St, Woodbridge, NJ 07095"
+  },
+  "agent": {
+    "enabled": true,
+    "id": "test-emerald",
+    "name": "Patricia Collins",
+    "title": "REALTOR®",
+    "phone": "(732) 555-0303",
+    "email": "patricia@evergreenhomes.com",
+    "headshot_url": "/agents/test-emerald/headshot.jpg",
+    "license_number": "9876543",
+    "languages": [
+      "English"
+    ],
+    "tagline": "Your Home. Your Future. My Priority."
+  },
+  "location": {
+    "state": "NJ",
+    "service_areas": [
+      "Middlesex County",
+      "Union County",
+      "Somerset County"
+    ]
+  },
+  "integrations": {
+    "email_provider": "gmail"
+  },
+  "compliance": {
+    "state_form": "NJ-REALTORS-118",
+    "licensing_body": "NJ Real Estate Commission",
+    "disclosure_requirements": [
+      "Lead-based paint disclosure (pre-1978)",
+      "Seller property condition disclosure"
+    ]
+  },
+  "contact_info": [
+    {
+      "type": "phone",
+      "value": "(732) 555-0303",
+      "label": "Cell Phone",
+      "is_preferred": true
+    },
+    {
+      "type": "phone",
+      "value": "(732) 555-0300",
+      "ext": "110",
+      "label": "Office Phone",
+      "is_preferred": false
+    },
+    {
+      "type": "email",
+      "value": "patricia@evergreenhomes.com",
+      "label": "Email",
+      "is_preferred": false
+    }
+  ]
+}
