@@ -56,7 +56,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { id } = await params;
   const handle = resolveHandle();
   try {
-    const account = loadAccountConfig(handle);
+    loadAccountConfig(handle); // validate account exists
     const agentConfig = loadAgentConfig(handle, id);
     return {
       title: `Thank You | ${agentConfig.name}`,

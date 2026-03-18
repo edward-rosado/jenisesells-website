@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import type { Metadata } from "next";
 import * as Sentry from "@sentry/nextjs";
 import { notFound } from "next/navigation";
@@ -69,7 +70,7 @@ export default async function AgentSubPage({ params }: PageProps) {
     loadAgentContent(handle, id) ?? loadAccountContent(handle, account);
 
   const cssVars = buildCssVariableStyle(account.branding);
-  const Template = getTemplate(account.template);
+  const TemplateComponent = getTemplate(account.template);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -100,11 +101,10 @@ export default async function AgentSubPage({ params }: PageProps) {
     <div style={cssVars as React.CSSProperties}>
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: jsonLdString }}
       />
       <Analytics tracking={account.integrations?.tracking} />
-      <Template account={account} content={agentContent} agent={agentConfig} />
+      {createElement(TemplateComponent, { account, content: agentContent, agent: agentConfig })}
       <CookieConsentBanner agentId={handle} />
     </div>
   );
