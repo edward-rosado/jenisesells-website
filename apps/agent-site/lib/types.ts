@@ -174,6 +174,15 @@ export interface GalleryItem {
   price: string;
   sold_date?: string;
   image_url?: string;
+  badge_label?: string;
+  tags?: string[];
+  features?: { label: string; value: string }[];
+  property_type?: string;
+  sq_ft?: string;
+  cap_rate?: string;
+  noi?: string;
+  client_quote?: string;
+  client_name?: string;
 }
 export type GalleryData = { title?: string; subtitle?: string; items: GalleryItem[] };
 
