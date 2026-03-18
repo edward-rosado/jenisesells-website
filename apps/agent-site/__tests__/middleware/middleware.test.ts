@@ -309,6 +309,28 @@ describe("middleware", () => {
     expect(mockRewrite).not.toHaveBeenCalled();
     expect(response.status).toBe(404);
   });
+
+  // --- security headers ---
+  it("sets X-Content-Type-Options header", () => {
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
+    const response = middleware(req as never);
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+  });
+
+  it("sets Referrer-Policy header", () => {
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
+    const response = middleware(req as never);
+    expect(response.headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
+  });
+
+  it("sets Strict-Transport-Security header", () => {
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
+    const response = middleware(req as never);
+    expect(response.headers.get("Strict-Transport-Security")).toBe("max-age=63072000; includeSubDomains");
+  });
 });
 
 describe("middleware config export", () => {

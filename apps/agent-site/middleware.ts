@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractAgentId, resolveAgentFromCustomDomain, isWwwCustomDomain, getAgentIds } from "@/lib/routing";
+import { applySecurityHeaders, safeCspUrl } from "./lib/security-headers";
 
 function buildCspHeader(nonce: string): string {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
+  const apiUrl = safeCspUrl(process.env.NEXT_PUBLIC_API_URL);
   const apiWs = apiUrl.replace(/^https:/, "wss:").replace(/^http:/, "ws:");
   const apiConnectSrc = apiUrl ? ` ${apiUrl} ${apiWs}` : "";
 
@@ -20,6 +21,7 @@ function notFoundResponse(nonce: string): NextResponse {
   const response = new NextResponse("Not Found", { status: 404 });
   response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
   response.headers.set("x-nonce", nonce);
+  applySecurityHeaders(response);
   return response;
 }
 
@@ -31,7 +33,9 @@ export function middleware(request: NextRequest) {
   const bareDomain = isWwwCustomDomain(hostname);
   if (bareDomain) {
     const url = new URL(`https://${bareDomain}${request.nextUrl.pathname}${request.nextUrl.search}`);
-    return NextResponse.redirect(url, 301);
+    const redirectResponse = NextResponse.redirect(url, 301);
+    applySecurityHeaders(redirectResponse);
+    return redirectResponse;
   }
 
   // 2. Subdomain match
@@ -45,6 +49,7 @@ export function middleware(request: NextRequest) {
     const response = NextResponse.rewrite(url);
     response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
     response.headers.set("x-nonce", nonce);
+    applySecurityHeaders(response);
     return response;
   }
 
@@ -56,6 +61,7 @@ export function middleware(request: NextRequest) {
     const response = NextResponse.rewrite(url);
     response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
     response.headers.set("x-nonce", nonce);
+    applySecurityHeaders(response);
     return response;
   }
 
@@ -76,6 +82,7 @@ export function middleware(request: NextRequest) {
       const response = NextResponse.rewrite(url);
       response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
       response.headers.set("x-nonce", nonce);
+      applySecurityHeaders(response);
       return response;
     }
   }
