@@ -24,7 +24,7 @@
     "secondary_color": "#334155",
     "accent_color": "#2563eb",
     "font_family": "Inter",
-    "logo_url": "/agents/test-commercial/logo.png"
+    "logo_url": "/agents/test-commercial/logo.svg"
   },
   "integrations": { "email_provider": "gmail" },
   "compliance": {

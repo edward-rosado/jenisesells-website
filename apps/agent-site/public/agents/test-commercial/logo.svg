@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80">
+  <rect width="320" height="80" fill="transparent"/>
+  <!-- Blue building icon -->
+  <rect x="16" y="20" width="16" height="40" rx="1" fill="#2563eb"/>
+  <rect x="36" y="10" width="16" height="50" rx="1" fill="#1e293b"/>
+  <!-- Windows -->
+  <rect x="20" y="26" width="4" height="4" rx="0.5" fill="white"/>
+  <rect x="20" y="36" width="4" height="4" rx="0.5" fill="white"/>
+  <rect x="20" y="46" width="4" height="4" rx="0.5" fill="white"/>
+  <rect x="28" y="26" width="4" height="4" rx="0.5" fill="white"/>
+  <rect x="28" y="36" width="4" height="4" rx="0.5" fill="white"/>
+  <rect x="28" y="46" width="4" height="4" rx="0.5" fill="white"/>
+  <rect x="40" y="16" width="4" height="4" rx="0.5" fill="white"/>
+  <rect x="40" y="26" width="4" height="4" rx="0.5" fill="white"/>
+  <rect x="40" y="36" width="4" height="4" rx="0.5" fill="white"/>
+  <rect x="40" y="46" width="4" height="4" rx="0.5" fill="white"/>
+  <rect x="48" y="16" width="4" height="4" rx="0.5" fill="white"/>
+  <rect x="48" y="26" width="4" height="4" rx="0.5" fill="white"/>
+  <rect x="48" y="36" width="4" height="4" rx="0.5" fill="white"/>
+  <rect x="48" y="46" width="4" height="4" rx="0.5" fill="white"/>
+  <!-- Company name -->
+  <text x="64" y="34" font-family="Inter, sans-serif" font-size="18" font-weight="700" fill="#1e293b" letter-spacing="0.5">CHEN</text>
+  <text x="64" y="52" font-family="Inter, sans-serif" font-size="11" fill="#64748b" letter-spacing="2">COMMERCIAL GROUP</text>
+</svg>
