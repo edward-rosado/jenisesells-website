@@ -374,31 +374,21 @@ describe("Nav", () => {
     expect(link).toHaveAttribute("href", "#features");
   });
 
-  it("uses absolute links with / prefix on non-homepage", () => {
+  it("uses same-page anchor links on non-homepage (no / prefix)", () => {
     mockPathname.mockReturnValue("/terms");
     const { container } = render(<Nav account={ACCOUNT} />);
     const desktopLinks = container.querySelector(".nav-desktop-links") as HTMLElement;
     const link = desktopLinks.querySelector("a");
-    expect(link).toHaveAttribute("href", "/#features");
+    expect(link).toHaveAttribute("href", "#features");
   });
 
-  it("preserves query parameters in section links", () => {
-    mockPathname.mockReturnValue("/");
-    mockSearchParams.mockReturnValue(new URLSearchParams("agent=test-luxury"));
+  it("uses same-page anchor links on agent sub-pages", () => {
+    mockPathname.mockReturnValue("/agents/agent-b");
+    mockSearchParams.mockReturnValue(new URLSearchParams("accountId=test-brokerage"));
     const { container } = render(<Nav account={ACCOUNT} />);
     const desktopLinks = container.querySelector(".nav-desktop-links") as HTMLElement;
     const link = desktopLinks.querySelector("a");
-    expect(link).toHaveAttribute("href", "?agent=test-luxury#features");
-    mockSearchParams.mockReturnValue(new URLSearchParams());
-  });
-
-  it("preserves query parameters on non-homepage links", () => {
-    mockPathname.mockReturnValue("/terms");
-    mockSearchParams.mockReturnValue(new URLSearchParams("agent=test-coastal&foo=bar"));
-    const { container } = render(<Nav account={ACCOUNT} />);
-    const desktopLinks = container.querySelector(".nav-desktop-links") as HTMLElement;
-    const link = desktopLinks.querySelector("a");
-    expect(link).toHaveAttribute("href", "/?agent=test-coastal&foo=bar#features");
+    expect(link).toHaveAttribute("href", "#features");
     mockSearchParams.mockReturnValue(new URLSearchParams());
   });
 

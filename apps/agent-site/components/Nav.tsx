@@ -118,11 +118,10 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
     }
     return true;
   });
-  const prefix = isHome ? "" : "/";
   const qsSuffix = qs ? `?${qs}` : "";
   const sections = enabledItems.map((item) => ({
     label: item.label,
-    href: item.href.startsWith("#") ? `${prefix}${qsSuffix}${item.href}` : item.href,
+    href: item.href,
   }));
 
   // Resolve contact methods from account.contact_info or fallback
