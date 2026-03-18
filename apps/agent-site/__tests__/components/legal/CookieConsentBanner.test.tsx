@@ -65,4 +65,11 @@ describe("CookieConsentBanner", () => {
     const html = renderToString(<CookieConsentBanner agentId="test-agent" />);
     expect(html).toBe("");
   });
+
+  it("has aria-modal and aria-describedby on dialog", () => {
+    render(<CookieConsentBanner agentId="test" />);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toHaveAttribute("aria-describedby", "cookie-desc");
+  });
 });

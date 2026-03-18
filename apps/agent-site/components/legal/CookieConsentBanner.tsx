@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { useFocusTrap } from "../../lib/use-focus-trap";
 
 function getConsentKey(agentId: string) {
   return `res-cookie-consent-${agentId}`;
@@ -23,6 +24,7 @@ export function CookieConsentBanner({ agentId }: { agentId: string }) {
   );
 
   const [dismissed, setDismissed] = useState(false);
+  const bannerRef = useFocusTrap(!consent && !dismissed);
 
   function handleAccept() {
     localStorage.setItem(key, "accepted");
@@ -40,13 +42,16 @@ export function CookieConsentBanner({ agentId }: { agentId: string }) {
 
   return (
     <div
+      ref={bannerRef}
       role="dialog"
       aria-label="Cookie consent"
+      aria-modal="true"
+      aria-describedby="cookie-desc"
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/20 px-6 py-4"
       style={{ backgroundColor: "var(--color-primary)" }}
     >
       <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 sm:flex-row sm:justify-between">
-        <p className="text-sm text-white/90">
+        <p id="cookie-desc" className="text-sm text-white/90">
           We use cookies and local storage to improve your experience. By
           continuing to use this site, you consent to our use of cookies. See
           our{" "}
