@@ -28,9 +28,11 @@ export async function submitCma(
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    const detail = text ? `: ${text}` : "";
-    throw new Error(`CMA submission failed (${response.status})${detail}`);
+    // Capture detail for Sentry but don't expose to user
+    const detail = await response.text().catch(() => "");
+    const error = new Error(`CMA submission failed (${response.status})`);
+    (error as Error & { serverDetail?: string }).serverDetail = detail || undefined;
+    throw error;
   }
 
   return (await response.json()) as CmaSubmitResponse;

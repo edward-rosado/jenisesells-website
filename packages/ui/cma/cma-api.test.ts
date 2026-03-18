@@ -73,24 +73,40 @@ describe("submitCma", () => {
     expect(result).toEqual({ jobId: "abc-123", status: "processing" });
   });
 
-  it("throws on HTTP 400 with error body in message", async () => {
+  it("throws on HTTP 400 without exposing error body", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("Validation error", { status: 400 }),
     );
 
     await expect(submitCma(API_BASE, AGENT_ID, makeRequest())).rejects.toThrow(
-      "CMA submission failed (400): Validation error",
+      "CMA submission failed (400)",
     );
   });
 
-  it("throws on HTTP 500 with error body", async () => {
+  it("throws on HTTP 500 without exposing error body", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("Internal Server Error", { status: 500 }),
     );
 
     await expect(submitCma(API_BASE, AGENT_ID, makeRequest())).rejects.toThrow(
-      "CMA submission failed (500): Internal Server Error",
+      "CMA submission failed (500)",
     );
+  });
+
+  it("attaches server detail to error object but not to message", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("NullReferenceException at Server.Internal.Handler", { status: 500 }),
+    );
+
+    try {
+      await submitCma(API_BASE, AGENT_ID, makeRequest());
+      expect.fail("should have thrown");
+    } catch (e) {
+      const err = e as Error & { serverDetail?: string };
+      expect(err.message).toBe("CMA submission failed (500)");
+      expect(err.message).not.toContain("NullReferenceException");
+      expect(err.serverDetail).toBe("NullReferenceException at Server.Internal.Handler");
+    }
   });
 
   it("throws without detail when error body is empty", async () => {
