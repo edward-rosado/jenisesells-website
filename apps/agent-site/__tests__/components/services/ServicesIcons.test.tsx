@@ -63,6 +63,14 @@ describe("ServicesIcons", () => {
     render(<ServicesIcons items={ITEMS} subtitle="We go the extra mile" />);
     expect(screen.getByText("We go the extra mile")).toBeInTheDocument();
   });
+
+  it("hides decorative SVG icons from assistive technology", () => {
+    const { container } = render(<ServicesIcons items={ITEMS} />);
+    const svgs = container.querySelectorAll("svg");
+    svgs.forEach((svg) => {
+      expect(svg).toHaveAttribute("aria-hidden", "true");
+    });
+  });
 });
 
 describe("resolveServiceIcon", () => {

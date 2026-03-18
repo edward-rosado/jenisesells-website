@@ -11,6 +11,7 @@ const SVG_PROPS = {
   strokeWidth: "1.8",
   strokeLinecap: "round" as const,
   strokeLinejoin: "round" as const,
+  "aria-hidden": "true" as const,
 };
 
 /** Named icon registry — agents can override via `icon` field in content.json. */
