@@ -56,6 +56,12 @@ export interface AboutProps {
   data: AboutData;
 }
 
+/** @deprecated Use FeaturesProps */
+export type ServicesProps = FeaturesProps;
+
+/** @deprecated Use GalleryProps */
+export type SoldHomesProps = GalleryProps;
+
 /** Extract display name from either AccountConfig or AgentConfig */
 export function getDisplayName(agent: AccountConfig | AgentConfig): string {
   if ("handle" in agent) {
