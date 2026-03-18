@@ -21,7 +21,7 @@ export function TestimonialsBubble({ items, title }: TestimonialsProps) {
         </h2>
         <p style={{
           textAlign: "center",
-          color: "#B0A090",
+          color: "#8B7355",
           fontSize: "12px",
           marginBottom: "45px",
         }}>
@@ -83,7 +83,9 @@ export function TestimonialsBubble({ items, title }: TestimonialsProps) {
                 gap: "12px",
                 paddingLeft: "12px",
               }}>
-                <div style={{
+                <div
+                  aria-hidden="true"
+                  style={{
                   width: "36px",
                   height: "36px",
                   borderRadius: "50%",
@@ -106,7 +108,7 @@ export function TestimonialsBubble({ items, title }: TestimonialsProps) {
                     {item.reviewer}
                   </div>
                   {item.source && (
-                    <div style={{ color: "#B0A090", fontSize: "12px" }}>
+                    <div style={{ color: "#8B7355", fontSize: "12px" }}>
                       via {item.source}
                     </div>
                   )}
