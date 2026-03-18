@@ -1,7 +1,11 @@
 import Image from "next/image";
 import type { AboutProps } from "@/components/sections/types";
+import { getDisplayName, getHeadshotUrl } from "@/components/sections/types";
 
 export function AboutMinimal({ agent, data }: AboutProps) {
+  const displayName = getDisplayName(agent);
+  const headshotUrl = getHeadshotUrl(agent);
+
   return (
     <section
       id="about"
@@ -18,7 +22,7 @@ export function AboutMinimal({ agent, data }: AboutProps) {
         flexWrap: "wrap",
         justifyContent: "center",
       }}>
-        {agent.identity.headshot_url && (
+        {headshotUrl && (
           <div style={{
             width: "220px",
             height: "280px",
@@ -28,8 +32,8 @@ export function AboutMinimal({ agent, data }: AboutProps) {
             position: "relative",
           }}>
             <Image
-              src={agent.identity.headshot_url}
-              alt={agent.identity.name}
+              src={headshotUrl}
+              alt={displayName}
               fill
               style={{ objectFit: "cover" }}
               sizes="220px"
@@ -44,7 +48,7 @@ export function AboutMinimal({ agent, data }: AboutProps) {
             marginBottom: "16px",
             letterSpacing: "-0.3px",
           }}>
-            {data.title || `About ${agent.identity.name}`}
+            {data.title || `About ${displayName}`}
           </h2>
           {Array.isArray(data.bio) ? (
             data.bio.map((paragraph, i) => (

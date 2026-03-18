@@ -4,8 +4,8 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { AboutCard } from "@/components/sections/about/AboutCard";
-import { AGENT } from "../fixtures";
-import type { AboutData } from "@/lib/types";
+import { AGENT, ACCOUNT } from "../fixtures";
+import type { AboutData, AccountConfig } from "@/lib/types";
 
 const ABOUT_DATA: AboutData = {
   bio: "I love helping families find their dream home.",
@@ -29,7 +29,7 @@ describe("AboutCard", () => {
   });
 
   it("renders agent photo when headshot_url is set", () => {
-    const agentWithPhoto = { ...AGENT, identity: { ...AGENT.identity, headshot_url: "/photos/agent.jpg" } };
+    const agentWithPhoto: AccountConfig = { ...ACCOUNT, agent: { ...ACCOUNT.agent!, headshot_url: "/photos/agent.jpg" } };
     render(<AboutCard agent={agentWithPhoto} data={ABOUT_DATA} />);
     const img = screen.getByRole("img");
     expect(img).toHaveAttribute("alt", "Photo of Jane Smith");
@@ -50,15 +50,15 @@ describe("AboutCard", () => {
 
   it("renders phone number when available", () => {
     render(<AboutCard agent={AGENT} data={ABOUT_DATA} />);
-    if (AGENT.identity.phone) {
-      expect(screen.getByText(new RegExp(AGENT.identity.phone.replace(/[()]/g, "\\$&")))).toBeInTheDocument();
+    if (ACCOUNT.agent?.phone) {
+      expect(screen.getByText(new RegExp(ACCOUNT.agent.phone.replace(/[()]/g, "\\$&")))).toBeInTheDocument();
     }
   });
 
   it("renders email when available", () => {
     render(<AboutCard agent={AGENT} data={ABOUT_DATA} />);
-    if (AGENT.identity.email) {
-      expect(screen.getByText(AGENT.identity.email)).toBeInTheDocument();
+    if (ACCOUNT.agent?.email) {
+      expect(screen.getByText(ACCOUNT.agent.email)).toBeInTheDocument();
     }
   });
 
@@ -73,7 +73,7 @@ describe("AboutCard", () => {
   });
 
   it("does not render photo when headshot_url is not set", () => {
-    const agentNoPhoto = { ...AGENT, identity: { ...AGENT.identity, headshot_url: undefined } };
+    const agentNoPhoto: AccountConfig = { ...ACCOUNT, agent: { ...ACCOUNT.agent!, headshot_url: undefined } };
     render(<AboutCard agent={agentNoPhoto} data={ABOUT_DATA} />);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
@@ -85,13 +85,13 @@ describe("AboutCard", () => {
   });
 
   it("does not render phone when not set", () => {
-    const agentNoPhone = { ...AGENT, identity: { ...AGENT.identity, phone: undefined } };
+    const agentNoPhone: AccountConfig = { ...ACCOUNT, agent: { ...ACCOUNT.agent!, phone: "" } };
     render(<AboutCard agent={agentNoPhone} data={ABOUT_DATA} />);
     expect(screen.queryByText("555-123-4567")).not.toBeInTheDocument();
   });
 
   it("does not render email when not set", () => {
-    const agentNoEmail = { ...AGENT, identity: { ...AGENT.identity, email: undefined } };
+    const agentNoEmail: AccountConfig = { ...ACCOUNT, agent: { ...ACCOUNT.agent!, email: "" } };
     render(<AboutCard agent={agentNoEmail} data={ABOUT_DATA} />);
     expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
   });
