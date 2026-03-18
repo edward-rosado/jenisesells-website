@@ -31,13 +31,18 @@ const ITEMS: SoldHomeItem[] = [
 ];
 
 describe("SoldCarousel", () => {
+  const scrollToSpy = vi.fn();
+
   beforeEach(() => {
     mockMatchMedia(false); // not reduced motion by default
     vi.useFakeTimers();
+    // jsdom doesn't implement scrollTo — add it so the scrollTo branch is covered
+    Element.prototype.scrollTo = scrollToSpy;
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    scrollToSpy.mockReset();
   });
 
   it("renders section with id=sold", () => {
@@ -307,6 +312,21 @@ describe("SoldCarousel", () => {
     unmount();
     expect(clearIntervalSpy).toHaveBeenCalled();
     clearIntervalSpy.mockRestore();
+  });
+
+  it("gracefully handles missing scrollTo on track element", () => {
+    // Remove scrollTo to cover the typeof guard branch
+    const orig = Element.prototype.scrollTo;
+    // @ts-expect-error — intentionally removing for test
+    delete Element.prototype.scrollTo;
+    render(<SoldCarousel items={ITEMS} />);
+    const nextBtn = screen.getByLabelText("Next slide");
+    // Should not throw when scrollTo is missing
+    fireEvent.click(nextBtn);
+    const dots = screen.getAllByRole("tab");
+    expect(dots[1]).toHaveAttribute("aria-selected", "true");
+    // Restore
+    Element.prototype.scrollTo = orig;
   });
 
   it("server snapshot returns false (useSyncExternalStore third argument)", async () => {

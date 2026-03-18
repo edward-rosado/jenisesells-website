@@ -109,6 +109,23 @@ describe("AboutHomestead", () => {
     expect(imgWrapper).toBeInTheDocument();
   });
 
+  it("prefers data.image_url over headshot_url", () => {
+    const agentWithPhoto = {
+      ...AGENT,
+      identity: { ...AGENT.identity, headshot_url: "/headshot.jpg" },
+    };
+    render(
+      <AboutHomestead
+        agent={agentWithPhoto}
+        data={{ ...DATA, image_url: "/about-landscape.jpg" }}
+      />
+    );
+    const img = screen.getByRole("img");
+    // Next.js Image with fill may transform the src attribute
+    expect(img.getAttribute("src")).toContain("about-landscape");
+    expect(img).toHaveAttribute("alt", "About Jane Smith");
+  });
+
   it("renders minimal agent without crashing", () => {
     render(
       <AboutHomestead
