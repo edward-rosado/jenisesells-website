@@ -3,5 +3,10 @@
   "name": "Miguel Torres",
   "title": "Buyer Specialist",
   "phone": "(512) 555-0201",
-  "email": "miguel@santiago-realty.com"
+  "email": "miguel@santiago-realty.com",
+  "headshot_url": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&h=300&fit=crop&crop=face",
+  "license_number": "TX-2024-11111",
+  "languages": ["English", "Spanish"],
+  "tagline": "Helping you find the perfect home in Central Texas.",
+  "credentials": ["REALTOR\u00ae", "ABR"]
 }

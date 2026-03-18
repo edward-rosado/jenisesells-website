@@ -197,21 +197,27 @@
                 "name": "Olivier Marchetti",
                 "title": "International Sales Director",
                 "phone": "(305) 555-0401",
-                "email": "olivier@prestigeproperties.com"
+                "email": "olivier@prestigeproperties.com",
+                "headshot_url": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&h=300&fit=crop&crop=face",
+                "bio": "Olivier brings a decade of international luxury real estate experience to Prestige Properties. Trilingual in English, French, and Italian, he serves a global clientele seeking premier residences in Miami's most exclusive neighborhoods."
               },
               {
                 "id": "agent-b",
                 "name": "Natalia Voss",
                 "title": "Waterfront Specialist",
                 "phone": "(305) 555-0402",
-                "email": "natalia@prestigeproperties.com"
+                "email": "natalia@prestigeproperties.com",
+                "headshot_url": "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=300&h=300&fit=crop&crop=face",
+                "bio": "Natalia specializes in waterfront properties across Miami Beach, Key Biscayne, and Coconut Grove. Her expertise in dock permits, seawall assessments, and coastal property considerations makes her the go-to agent for waterfront buyers."
               },
               {
                 "id": "agent-c",
                 "name": "Rafael Andrade",
                 "title": "Investment Advisor",
                 "phone": "(305) 555-0403",
-                "email": "rafael@prestigeproperties.com"
+                "email": "rafael@prestigeproperties.com",
+                "headshot_url": "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=300&h=300&fit=crop&crop=face",
+                "bio": "Rafael advises investors on luxury residential and commercial opportunities in South Florida. Trilingual in English, Portuguese, and Spanish, he serves a growing Latin American investor clientele with a background in finance."
               }
             ]
           }

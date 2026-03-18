@@ -2,7 +2,7 @@ import { createElement } from "react";
 import type { Metadata } from "next";
 import * as Sentry from "@sentry/nextjs";
 import { notFound } from "next/navigation";
-import { loadAccountConfig, loadAccountContent, loadAgentConfig, loadAgentContent } from "@/lib/config";
+import { loadAccountConfig, loadAgentConfig, loadAgentContent } from "@/lib/config";
 import { buildCssVariableStyle } from "@/lib/branding";
 import { getTemplate } from "@/templates";
 import { Analytics } from "@/components/Analytics";
@@ -69,8 +69,10 @@ export default async function AgentSubPage({ params, searchParams }: PageProps) 
     notFound();
   }
 
-  const agentContent =
-    loadAgentContent(handle, id) ?? loadAccountContent(handle, account);
+  const agentContent = loadAgentContent(handle, id);
+  if (!agentContent) {
+    notFound();
+  }
 
   const cssVars = buildCssVariableStyle(account.branding);
   const TemplateComponent = getTemplate(account.template);

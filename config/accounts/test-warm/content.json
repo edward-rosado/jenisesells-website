@@ -202,14 +202,18 @@
                 "name": "Miguel Torres",
                 "title": "Buyer Specialist",
                 "phone": "(512) 555-0201",
-                "email": "miguel@santiago-realty.com"
+                "email": "miguel@santiago-realty.com",
+                "headshot_url": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&h=300&fit=crop&crop=face",
+                "bio": "Miguel is a buyer specialist with deep roots in Austin. Born and raised in Central Texas, he knows every neighborhood, school district, and hidden gem. Bilingual in English and Spanish, he's helped over 80 families find their perfect home."
               },
               {
                 "id": "agent-b",
                 "name": "Ashley Brooks",
                 "title": "Listing Coordinator",
                 "phone": "(512) 555-0202",
-                "email": "ashley@santiago-realty.com"
+                "email": "ashley@santiago-realty.com",
+                "headshot_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&h=300&fit=crop&crop=face",
+                "bio": "Ashley coordinates listings for Santiago Realty, ensuring every property is presented beautifully. With a background in marketing and an eye for detail, she manages the entire listing lifecycle — averaging just 21 days on market."
               }
             ]
           }
