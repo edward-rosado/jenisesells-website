@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'apps/agent-site/**'
-      - 'config/agents/**'
+      - 'config/accounts/**'
       - 'packages/**'
       - '.github/workflows/deploy-agent-site.yml'
 
