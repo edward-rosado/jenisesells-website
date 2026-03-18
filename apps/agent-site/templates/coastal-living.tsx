@@ -4,7 +4,7 @@ import {
   StatsWave,
   ServicesCoastal,
   StepsBreeze,
-  SoldCoastal,
+  SoldCarousel,
   TestimonialsBeach,
   CmaSection,
   AboutCoastal,
@@ -46,7 +46,7 @@ export function CoastalLiving({ agent, content }: TemplateProps) {
           />
         )}
         {s.sold_homes.enabled && s.sold_homes.data.items.length > 0 && (
-          <SoldCoastal
+          <SoldCarousel
             items={s.sold_homes.data.items}
             title={s.sold_homes.data.title}
             subtitle={s.sold_homes.data.subtitle}

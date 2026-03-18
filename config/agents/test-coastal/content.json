@@ -75,7 +75,7 @@
             "city": "Nags Head",
             "state": "NC",
             "price": "$2,200,000",
-            "image_url": "https://picsum.photos/id/1040/400/300",
+            "image_url": "/agents/test-coastal/sold/1040.jpg",
             "tags": ["Oceanfront", "Beach Access"]
           },
           {
@@ -83,7 +83,7 @@
             "city": "Kill Devil Hills",
             "state": "NC",
             "price": "$875,000",
-            "image_url": "https://picsum.photos/id/1041/400/300",
+            "image_url": "/agents/test-coastal/sold/1041.jpg",
             "tags": ["Canal Front", "Boat Dock"]
           },
           {
@@ -91,7 +91,7 @@
             "city": "Duck",
             "state": "NC",
             "price": "$1,450,000",
-            "image_url": "https://picsum.photos/id/1044/400/300",
+            "image_url": "/agents/test-coastal/sold/1044.jpg",
             "tags": ["Soundfront", "Sunset Views"]
           },
           {
@@ -99,7 +99,7 @@
             "city": "Corolla",
             "state": "NC",
             "price": "$650,000",
-            "image_url": "https://picsum.photos/id/1050/400/300",
+            "image_url": "/agents/test-coastal/sold/1050.jpg",
             "tags": ["4WD Beach Access"]
           },
           {
@@ -107,7 +107,7 @@
             "city": "Nags Head",
             "state": "NC",
             "price": "$475,000",
-            "image_url": "https://picsum.photos/id/1051/400/300",
+            "image_url": "/agents/test-coastal/sold/1051.jpg",
             "tags": ["Beach Block", "Updated Kitchen"]
           }
         ]

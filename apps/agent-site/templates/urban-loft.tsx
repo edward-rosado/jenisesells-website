@@ -4,7 +4,7 @@ import {
   StatsCompact,
   ServicesPills,
   StepsCards,
-  SoldCompact,
+  SoldCarousel,
   TestimonialsStack,
   CmaSection,
   AboutCompact,
@@ -46,7 +46,7 @@ export function UrbanLoft({ agent, content }: TemplateProps) {
           />
         )}
         {s.sold_homes.enabled && s.sold_homes.data.items.length > 0 && (
-          <SoldCompact
+          <SoldCarousel
             items={s.sold_homes.data.items}
             title={s.sold_homes.data.title}
             subtitle={s.sold_homes.data.subtitle}

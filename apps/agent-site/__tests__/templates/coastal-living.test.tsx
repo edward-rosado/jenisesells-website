@@ -13,6 +13,21 @@ vi.mock("next/script", () => ({
   ),
 }));
 
+// Mock matchMedia for SoldCarousel's useSyncExternalStore
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
 describe("CoastalLiving template", () => {
   it("always renders the Nav", () => {
     render(<CoastalLiving agent={AGENT} content={CONTENT} />);
