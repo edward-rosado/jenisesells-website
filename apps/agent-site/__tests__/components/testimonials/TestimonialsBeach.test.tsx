@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsBeach } from "@/components/sections/testimonials/TestimonialsBeach";
 import type { TestimonialItem } from "@/lib/types";
 
@@ -71,5 +71,16 @@ describe("TestimonialsBeach", () => {
     const { container } = render(<TestimonialsBeach items={ITEMS} />);
     const starEl = container.querySelector("[role='img']");
     expect((starEl as HTMLElement).style.color).toMatch(/var\(--color-primary|#2c7a7b/);
+  });
+
+  it("card floats on hover with enhanced shadow", () => {
+    const { container } = render(<TestimonialsBeach items={ITEMS} />);
+    const article = container.querySelector("article")!;
+    expect(article.style.transform).toBe("translateY(0)");
+    fireEvent.mouseEnter(article);
+    expect(article.style.transform).toBe("translateY(-4px)");
+    expect(article.style.boxShadow).toMatch(/0 8px 24px/);
+    fireEvent.mouseLeave(article);
+    expect(article.style.transform).toBe("translateY(0)");
   });
 });

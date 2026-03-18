@@ -78,8 +78,8 @@ export function HeroSplit({ data, agentPhotoUrl, agentName }: HeroProps) {
       </div>
       {agentPhotoUrl && (
         <div style={{
-          width: "320px",
-          height: "380px",
+          width: "420px",
+          height: "500px",
           borderRadius: "16px",
           overflow: "hidden",
           flexShrink: 0,
@@ -87,8 +87,8 @@ export function HeroSplit({ data, agentPhotoUrl, agentName }: HeroProps) {
           <Image
             src={agentPhotoUrl}
             alt={agentName ? `Photo of ${agentName}` : "Agent photo"}
-            width={320}
-            height={380}
+            width={420}
+            height={500}
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
             priority
           />

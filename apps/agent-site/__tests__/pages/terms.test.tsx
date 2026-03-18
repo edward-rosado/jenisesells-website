@@ -14,7 +14,7 @@ vi.mock("@/lib/config", () => ({
   loadAgentConfig: (...args: unknown[]) => mockLoadAgentConfig(...args),
   loadLegalContent: (...args: unknown[]) => mockLoadLegalContent(...args),
 }));
-vi.mock("next/navigation", () => ({ notFound: () => mockNotFound(), usePathname: () => "/terms" }));
+vi.mock("next/navigation", () => ({ notFound: () => mockNotFound(), usePathname: () => "/terms", useSearchParams: () => new URLSearchParams() }));
 vi.mock("@sentry/nextjs", () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }));
 
 import TermsPage, { generateMetadata } from "@/app/terms/page";

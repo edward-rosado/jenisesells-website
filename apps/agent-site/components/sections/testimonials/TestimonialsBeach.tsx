@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { clampRating, FTC_DISCLAIMER, type TestimonialsProps } from "@/components/sections/types";
 
 export function TestimonialsBeach({ items, title }: TestimonialsProps) {
+  const [hovered, setHovered] = useState<number | null>(null);
   return (
     <section
       id="testimonials"
@@ -41,11 +43,19 @@ export function TestimonialsBeach({ items, title }: TestimonialsProps) {
           {items.map((item, index) => (
             <div key={item.reviewer}>
               <article
+                onMouseEnter={() => setHovered(index)}
+                onMouseLeave={() => setHovered(null)}
                 style={{
                   background: "#fefcf8",
                   borderRadius: "12px",
                   padding: "28px",
-                  boxShadow: "0 2px 10px rgba(44, 122, 123, 0.07)",
+                  boxShadow:
+                    hovered === index
+                      ? "0 8px 24px rgba(44, 122, 123, 0.18)"
+                      : "0 2px 10px rgba(44, 122, 123, 0.07)",
+                  transform: hovered === index ? "translateY(-4px)" : "translateY(0)",
+                  transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                  cursor: "default",
                 }}
               >
                 <span

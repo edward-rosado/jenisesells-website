@@ -67,7 +67,7 @@ export function Nav({ agent, navigation, contactInfo }: NavProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isHome = pathname === "/";
-  const qs = searchParams.toString();
+  const qs = searchParams?.toString() ?? "";
 
   function toggleDrawer() {
     setDrawerOpen((prev) => !prev);

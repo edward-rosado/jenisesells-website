@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesCoastal } from "@/components/sections/services/ServicesCoastal";
 import type { ServiceItem } from "@/lib/types";
 
@@ -75,5 +75,16 @@ describe("ServicesCoastal", () => {
     const { container } = render(<ServicesCoastal items={ITEMS} />);
     const grid = container.querySelector("div[style*='grid']");
     expect(grid).toBeInTheDocument();
+  });
+
+  it("card lifts on hover with enhanced shadow", () => {
+    const { container } = render(<ServicesCoastal items={ITEMS} />);
+    const article = container.querySelector("article")!;
+    expect(article.style.transform).toBe("translateY(0)");
+    fireEvent.mouseEnter(article);
+    expect(article.style.transform).toBe("translateY(-4px)");
+    expect(article.style.boxShadow).toMatch(/0 8px 24px/);
+    fireEvent.mouseLeave(article);
+    expect(article.style.transform).toBe("translateY(0)");
   });
 });

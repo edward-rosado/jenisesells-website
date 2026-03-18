@@ -1,6 +1,8 @@
+import { useState } from "react";
 import type { ServicesProps } from "@/components/sections/types";
 
 export function ServicesCoastal({ items, title, subtitle }: ServicesProps) {
+  const [hovered, setHovered] = useState<number | null>(null);
   return (
     <section
       id="services"
@@ -40,15 +42,23 @@ export function ServicesCoastal({ items, title, subtitle }: ServicesProps) {
             gap: "24px",
           }}
         >
-          {items.map((item) => (
+          {items.map((item, index) => (
             <article
               key={item.title}
+              onMouseEnter={() => setHovered(index)}
+              onMouseLeave={() => setHovered(null)}
               style={{
                 background: "#fefcf8",
                 borderRadius: "12px",
                 padding: "28px",
                 borderTop: "3px solid var(--color-accent, #2c7a7b)",
-                boxShadow: "0 2px 10px rgba(44, 122, 123, 0.08)",
+                boxShadow:
+                  hovered === index
+                    ? "0 8px 24px rgba(44, 122, 123, 0.18)"
+                    : "0 2px 10px rgba(44, 122, 123, 0.08)",
+                transform: hovered === index ? "translateY(-4px)" : "translateY(0)",
+                transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                cursor: "default",
               }}
             >
               <h3
