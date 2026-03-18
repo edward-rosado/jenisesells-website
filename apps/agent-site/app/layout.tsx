@@ -9,12 +9,16 @@ export default function RootLayout({
     url: process.env.SITE_URL || "https://real-estate-star.com",
   };
 
+  // Escape </script> to prevent early tag termination in JSON-LD blocks
+  const jsonLdHtml = JSON.stringify(structuredData).replace(/<\/script>/gi, "<\\/script>");
+
   return (
     <html lang="en">
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+          // JSON.stringify on controlled data — safe, not user HTML
+          dangerouslySetInnerHTML={{ __html: jsonLdHtml }}
         />
       </head>
       <body>
