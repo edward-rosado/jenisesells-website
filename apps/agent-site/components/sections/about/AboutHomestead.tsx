@@ -22,8 +22,8 @@ export function AboutHomestead({ agent, data }: AboutProps) {
           alignItems: "center",
         }}
       >
-        {/* Landscape-oriented agent photo */}
-        {agent.identity.headshot_url && (
+        {/* Landscape-oriented photo — prefer about-specific image, fall back to headshot */}
+        {(data.image_url || agent.identity.headshot_url) && (
           <div
             style={{
               width: "640px",
@@ -36,8 +36,8 @@ export function AboutHomestead({ agent, data }: AboutProps) {
             }}
           >
             <Image
-              src={agent.identity.headshot_url}
-              alt={agent.identity.name}
+              src={data.image_url || agent.identity.headshot_url!}
+              alt={data.image_url ? `About ${agent.identity.name}` : agent.identity.name}
               fill
               style={{ objectFit: "cover" }}
               sizes="(max-width: 768px) 100vw, 640px"

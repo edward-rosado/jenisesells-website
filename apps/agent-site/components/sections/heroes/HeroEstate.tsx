@@ -121,8 +121,8 @@ export function HeroEstate({ data, agentPhotoUrl, agentName }: HeroProps) {
         {agentPhotoUrl && (
           <div
             style={{
-              width: "200px",
-              height: "240px",
+              width: "320px",
+              height: "400px",
               borderRadius: "6px",
               overflow: "hidden",
               flexShrink: 0,
@@ -132,8 +132,8 @@ export function HeroEstate({ data, agentPhotoUrl, agentName }: HeroProps) {
             <Image
               src={agentPhotoUrl}
               alt={agentName ? `Photo of ${agentName}` : "Agent photo"}
-              width={200}
-              height={240}
+              width={320}
+              height={400}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
               priority
             />

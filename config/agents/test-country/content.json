@@ -206,7 +206,8 @@
           "1,200+ Acres Sold",
           "LCAR Member",
           "20 Years Experience"
-        ]
+        ],
+        "image_url": "/agents/test-country/about.jpg"
       }
     },
     "city_pages": { "enabled": false, "data": { "cities": [] } }

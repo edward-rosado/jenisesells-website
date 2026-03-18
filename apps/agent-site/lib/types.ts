@@ -150,6 +150,7 @@ export interface AboutData {
   title?: string;
   bio: string | string[];
   credentials?: string[];
+  image_url?: string;
 }
 
 export interface CityPageData {

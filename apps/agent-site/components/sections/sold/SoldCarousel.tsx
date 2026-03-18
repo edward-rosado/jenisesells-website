@@ -17,6 +17,7 @@ export function SoldCarousel({ items, title, subtitle }: SoldHomesProps) {
     () => false,
   );
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
 
   const goTo = useCallback((index: number) => {
     setCurrent(((index % items.length) + items.length) % items.length);
@@ -24,6 +25,16 @@ export function SoldCarousel({ items, title, subtitle }: SoldHomesProps) {
 
   const goNext = useCallback(() => goTo(current + 1), [current, goTo]);
   const goPrev = useCallback(() => goTo(current - 1), [current, goTo]);
+
+  // Scroll track to current slide
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const slide = track.children[current] as HTMLElement | undefined;
+    if (slide && typeof track.scrollTo === "function") {
+      track.scrollTo({ left: slide.offsetLeft, behavior: "smooth" });
+    }
+  }, [current]);
 
   // Auto-advance every 5s, pause on hover/focus
   useEffect(() => {
@@ -121,6 +132,7 @@ export function SoldCarousel({ items, title, subtitle }: SoldHomesProps) {
       >
         {/* Slide track */}
         <div
+          ref={trackRef}
           style={{
             display: "flex",
             overflowX: "scroll",

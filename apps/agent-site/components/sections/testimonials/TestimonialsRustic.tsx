@@ -64,7 +64,7 @@ export function TestimonialsRustic({ items, title }: TestimonialsProps) {
                   aria-label={`${rating} out of 5 stars`}
                   style={{
                     display: "block",
-                    color: "var(--color-accent, #c8a84b)",
+                    color: "#d4a017",
                     fontSize: "16px",
                     marginBottom: "14px",
                     letterSpacing: "2px",
