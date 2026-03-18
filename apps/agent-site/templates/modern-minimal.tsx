@@ -12,61 +12,62 @@ import {
 } from "@/components/sections";
 import type { TemplateProps } from "./types";
 
-export function ModernMinimal({ agent, content }: TemplateProps) {
-  const s = content.sections;
+export function ModernMinimal({ account, content, agent }: TemplateProps) {
+  const s = content.pages.home.sections;
+  const identity = agent ?? account.agent ?? { id: account.handle, name: account.broker?.name ?? account.brokerage.name, title: account.broker?.title ?? "", phone: "", email: "" };
   return (
     <>
-      <Nav agent={agent} navigation={content.navigation} contactInfo={content.contact_info} />
+      <Nav account={account} navigation={content.navigation} />
       <div style={{ paddingTop: "0" }}>
-      {s.hero.enabled && (
+      {s.hero?.enabled && (
         <HeroSplit
           data={s.hero.data}
-          agentPhotoUrl={agent.identity.headshot_url}
-          agentName={agent.identity.name}
+          agentPhotoUrl={identity.headshot_url ?? account.agent?.headshot_url}
+          agentName={identity.name}
         />
       )}
-      {s.stats.enabled && s.stats.data.items.length > 0 && (
+      {s.stats?.enabled && s.stats.data.items.length > 0 && (
         <StatsCards items={s.stats.data.items} sourceDisclaimer="Based on data from Zillow. Individual results may vary." />
       )}
-      {s.services.enabled && (
+      {s.features?.enabled && (
         <ServicesClean
-          items={s.services.data.items}
-          title={s.services.data.title}
-          subtitle={s.services.data.subtitle}
+          items={s.features.data.items}
+          title={s.features.data.title}
+          subtitle={s.features.data.subtitle}
         />
       )}
-      {s.how_it_works.enabled && (
+      {s.steps?.enabled && (
         <StepsTimeline
-          steps={s.how_it_works.data.steps}
-          title={s.how_it_works.data.title}
-          subtitle={s.how_it_works.data.subtitle}
+          steps={s.steps.data.steps}
+          title={s.steps.data.title}
+          subtitle={s.steps.data.subtitle}
         />
       )}
-      {s.sold_homes.enabled && s.sold_homes.data.items.length > 0 && (
+      {s.gallery?.enabled && s.gallery.data.items.length > 0 && (
         <SoldMinimal
-          items={s.sold_homes.data.items}
-          title={s.sold_homes.data.title}
-          subtitle={s.sold_homes.data.subtitle}
+          items={s.gallery.data.items}
+          title={s.gallery.data.title}
+          subtitle={s.gallery.data.subtitle}
         />
       )}
-      {s.testimonials.enabled && s.testimonials.data.items.length > 0 && (
+      {s.testimonials?.enabled && s.testimonials.data.items.length > 0 && (
         <TestimonialsClean
           items={s.testimonials.data.items}
           title={s.testimonials.data.title}
         />
       )}
-      {s.cma_form.enabled && (
+      {s.contact_form?.enabled && (
         <CmaSection
-          agentId={agent.id}
-          agentName={agent.identity.name}
-          defaultState={agent.location.state}
-          tracking={agent.integrations?.tracking}
-          data={s.cma_form.data}
-          serviceAreas={agent.location.service_areas}
+          agentId={identity.id}
+          agentName={identity.name}
+          defaultState={account.location.state}
+          tracking={account.integrations?.tracking}
+          data={s.contact_form.data}
+          serviceAreas={account.location.service_areas}
         />
       )}
-      {s.about.enabled && <AboutMinimal agent={agent} data={s.about.data} />}
-      <Footer agent={agent} agentId={agent.id} />
+      {s.about?.enabled && <AboutMinimal agent={account} data={s.about.data} />}
+      <Footer agent={account} agentId={identity.id} />
       </div>
     </>
   );
