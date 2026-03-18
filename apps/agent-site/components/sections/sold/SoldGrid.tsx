@@ -4,7 +4,7 @@ import type { GalleryProps } from "@/components/sections/types";
 export function SoldGrid({ items, title, subtitle }: GalleryProps) {
   return (
     <section
-      id="sold"
+      id="gallery"
       style={{
         padding: "70px 40px",
         maxWidth: "1100px",

@@ -110,9 +110,9 @@ describe("CmaSection rendering", () => {
     expect(screen.getByLabelText(/^zip/i)).toBeInTheDocument();
   });
 
-  it("renders section with id cma-form", () => {
+  it("renders section with id contact_form", () => {
     const { container } = render(<CmaSection {...DEFAULT_PROPS} />);
-    expect(container.querySelector("#cma-form")).toBeInTheDocument();
+    expect(container.querySelector("#contact_form")).toBeInTheDocument();
   });
 
   it("renders submit button with seller label", () => {
@@ -339,7 +339,7 @@ describe("CmaSection form submission", () => {
     capturedOnError!(testError);
 
     expect(Sentry.captureException).toHaveBeenCalledWith(testError, {
-      tags: { agentId: "test-agent", feature: "cma-form" },
+      tags: { agentId: "test-agent", feature: "contact_form" },
     });
   });
 });

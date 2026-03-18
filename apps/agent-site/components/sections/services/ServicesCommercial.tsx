@@ -17,7 +17,7 @@ export function ServicesCommercial({ items, title, subtitle }: ServicesProps) {
 
   return (
     <section
-      id="services"
+      id="features"
       style={{
         background: "white",
         padding: "80px 40px",

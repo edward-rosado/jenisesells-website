@@ -43,8 +43,8 @@ describe("ServicesClean", () => {
     expect(screen.getByText("Full-service representation")).toBeInTheDocument();
   });
 
-  it("has services section id for anchor linking", () => {
+  it("has features section id for anchor linking", () => {
     const { container } = render(<ServicesClean items={ITEMS} />);
-    expect(container.querySelector("#services")).toBeInTheDocument();
+    expect(container.querySelector("#features")).toBeInTheDocument();
   });
 });

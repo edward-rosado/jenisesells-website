@@ -105,9 +105,9 @@ describe("SoldMetrics", () => {
     expect(screen.getByText("CLOSED")).toBeInTheDocument();
   });
 
-  it("uses id=sold for anchor linking", () => {
+  it("uses id=gallery for anchor linking", () => {
     const { container } = render(<SoldMetrics items={ITEMS} />);
-    expect(container.querySelector("#sold")).toBeInTheDocument();
+    expect(container.querySelector("#gallery")).toBeInTheDocument();
   });
 
   it("renders article elements for each property", () => {

@@ -76,7 +76,7 @@ export const accounts: Record<string, AccountConfig> = {
   },
   "test-broker-agent": {
     "handle": "test-broker-agent",
-    "template": "emerald-classic",
+    "template": "luxury-estate",
     "branding": {
       "primary_color": "#2c3e50",
       "accent_color": "#e67e22"
@@ -104,7 +104,7 @@ export const accounts: Record<string, AccountConfig> = {
   },
   "test-brokerage": {
     "handle": "test-brokerage",
-    "template": "emerald-classic",
+    "template": "commercial",
     "branding": {
       "primary_color": "#1a1a2e",
       "secondary_color": "#16213e",
@@ -115,12 +115,14 @@ export const accounts: Record<string, AccountConfig> = {
       "name": "Sterling & Associates Real Estate",
       "license_number": "NJ-2024-12345",
       "office_address": "100 Summit Ave, Summit, NJ 07901",
-      "office_phone": "(908) 555-0100"
+      "office_phone": "(908) 555-0100",
+      "logo_url": "https://picsum.photos/seed/sterling-logo/200/80"
     },
     "broker": {
       "name": "Victoria Sterling",
       "title": "Managing Broker",
-      "bio": "30 years of luxury real estate experience."
+      "bio": "30 years of luxury real estate experience.",
+      "headshot_url": "https://picsum.photos/seed/victoria-sterling/400/400"
     },
     "location": {
       "state": "NJ",
@@ -130,6 +132,152 @@ export const accounts: Record<string, AccountConfig> = {
         "Chatham"
       ]
     }
+  },
+  "test-coastal-living": {
+    "handle": "test-coastal-living",
+    "template": "coastal-living",
+    "branding": {
+      "primary_color": "#2c7a7b",
+      "secondary_color": "#b7791f",
+      "accent_color": "#e8d5b7",
+      "font_family": "Lora",
+      "logo_url": ""
+    },
+    "brokerage": {
+      "name": "Pacific Shores Realty",
+      "license_number": "PSR-CA-7701",
+      "office_phone": "(858) 555-0600",
+      "office_address": "7946 Ivanhoe Ave, Suite 201, La Jolla, CA 92037"
+    },
+    "agent": {
+      "enabled": true,
+      "id": "test-coastal-living",
+      "name": "Maya Santos",
+      "title": "Licensed Real Estate Agent",
+      "phone": "(858) 555-0601",
+      "email": "maya@pacificshoresrealty.com",
+      "headshot_url": "/agents/test-coastal-living/headshot.jpg",
+      "license_number": "DRE-02145678",
+      "languages": [
+        "English",
+        "Spanish"
+      ],
+      "tagline": "Coastal living, your way."
+    },
+    "location": {
+      "state": "CA",
+      "service_areas": [
+        "La Jolla",
+        "Pacific Beach",
+        "Encinitas",
+        "Del Mar"
+      ]
+    },
+    "integrations": {
+      "email_provider": "gmail"
+    },
+    "compliance": {
+      "state_form": "CA-TDS",
+      "licensing_body": "California Department of Real Estate",
+      "disclosure_requirements": [
+        "Transfer Disclosure Statement (TDS)",
+        "Natural Hazard Disclosure (NHD)",
+        "Lead-based paint disclosure (pre-1978)",
+        "Mello-Roos and special tax district disclosure"
+      ]
+    },
+    "contact_info": [
+      {
+        "type": "phone",
+        "value": "(858) 555-0601",
+        "label": "Cell Phone",
+        "is_preferred": true
+      },
+      {
+        "type": "phone",
+        "value": "(858) 555-0600",
+        "label": "Office",
+        "is_preferred": false
+      },
+      {
+        "type": "email",
+        "value": "maya@pacificshoresrealty.com",
+        "label": "Email",
+        "is_preferred": false
+      }
+    ]
+  },
+  "test-country-estate": {
+    "handle": "test-country-estate",
+    "template": "country-estate",
+    "branding": {
+      "primary_color": "#3e2723",
+      "secondary_color": "#4e342e",
+      "accent_color": "#6d4c2f",
+      "font_family": "Merriweather",
+      "logo_url": ""
+    },
+    "brokerage": {
+      "name": "Heritage Land & Home",
+      "license_number": "HLH-KY-6601",
+      "office_phone": "(859) 555-0500",
+      "office_address": "201 E Main St, Suite 100, Lexington, KY 40507"
+    },
+    "agent": {
+      "enabled": true,
+      "id": "test-country-estate",
+      "name": "Tom Whitfield",
+      "title": "Licensed Real Estate Broker",
+      "phone": "(859) 555-0501",
+      "email": "tom@heritagelandandhome.com",
+      "headshot_url": "/agents/test-country-estate/headshot.jpg",
+      "license_number": "KY-78234",
+      "languages": [
+        "English"
+      ],
+      "tagline": "Where heritage meets home."
+    },
+    "location": {
+      "state": "KY",
+      "service_areas": [
+        "Lexington",
+        "Versailles",
+        "Paris",
+        "Midway"
+      ]
+    },
+    "integrations": {
+      "email_provider": "gmail"
+    },
+    "compliance": {
+      "state_form": "KY-SDPD",
+      "licensing_body": "Kentucky Real Estate Commission",
+      "disclosure_requirements": [
+        "Seller's Disclosure of Property Condition",
+        "Lead-based paint disclosure (pre-1978)",
+        "Property valuation disclosure"
+      ]
+    },
+    "contact_info": [
+      {
+        "type": "phone",
+        "value": "(859) 555-0501",
+        "label": "Cell Phone",
+        "is_preferred": true
+      },
+      {
+        "type": "phone",
+        "value": "(859) 555-0500",
+        "label": "Office",
+        "is_preferred": false
+      },
+      {
+        "type": "email",
+        "value": "tom@heritagelandandhome.com",
+        "label": "Email",
+        "is_preferred": false
+      }
+    ]
   },
   "test-emerald": {
     "handle": "test-emerald",
@@ -202,6 +350,81 @@ export const accounts: Record<string, AccountConfig> = {
       }
     ]
   },
+  "test-light-luxury": {
+    "handle": "test-light-luxury",
+    "template": "light-luxury",
+    "branding": {
+      "primary_color": "#2c2c2c",
+      "secondary_color": "#8b7355",
+      "accent_color": "#c9a96e",
+      "font_family": "Playfair Display",
+      "logo_url": ""
+    },
+    "brokerage": {
+      "name": "Prestige Properties",
+      "license_number": "PP-FL-5520",
+      "office_phone": "(305) 555-0400",
+      "office_address": "900 Brickell Ave, Suite 1800, Miami, FL 33131"
+    },
+    "agent": {
+      "enabled": true,
+      "id": "test-light-luxury",
+      "name": "Sophie Laurent",
+      "title": "Licensed Real Estate Associate",
+      "phone": "(305) 555-0401",
+      "email": "sophie@prestigeproperties.com",
+      "headshot_url": "/agents/test-light-luxury/headshot.jpg",
+      "license_number": "SL3189742",
+      "languages": [
+        "English",
+        "French",
+        "Spanish"
+      ],
+      "tagline": "Understated elegance."
+    },
+    "location": {
+      "state": "FL",
+      "service_areas": [
+        "Miami Beach",
+        "Coral Gables",
+        "Coconut Grove",
+        "Key Biscayne"
+      ]
+    },
+    "integrations": {
+      "email_provider": "gmail"
+    },
+    "compliance": {
+      "state_form": "FL-FREC-SCDR",
+      "licensing_body": "Florida Department of Business and Professional Regulation",
+      "disclosure_requirements": [
+        "Seller's Property Disclosure",
+        "Lead-based paint disclosure (pre-1978)",
+        "HOA disclosure summary",
+        "Coastal construction control line disclosure"
+      ]
+    },
+    "contact_info": [
+      {
+        "type": "phone",
+        "value": "(305) 555-0401",
+        "label": "Cell Phone",
+        "is_preferred": true
+      },
+      {
+        "type": "phone",
+        "value": "(305) 555-0400",
+        "label": "Office",
+        "is_preferred": false
+      },
+      {
+        "type": "email",
+        "value": "sophie@prestigeproperties.com",
+        "label": "Email",
+        "is_preferred": false
+      }
+    ]
+  },
   "test-modern": {
     "handle": "test-modern",
     "template": "modern-minimal",
@@ -269,6 +492,152 @@ export const accounts: Record<string, AccountConfig> = {
       {
         "type": "email",
         "value": "alex@testrealty.com",
+        "label": "Email",
+        "is_preferred": false
+      }
+    ]
+  },
+  "test-new-beginnings": {
+    "handle": "test-new-beginnings",
+    "template": "new-beginnings",
+    "branding": {
+      "primary_color": "#2d4a3e",
+      "secondary_color": "#3a5f50",
+      "accent_color": "#5a9e7c",
+      "font_family": "Nunito",
+      "logo_url": ""
+    },
+    "brokerage": {
+      "name": "Heartland Homes",
+      "license_number": "HH-NC-3305",
+      "office_phone": "(704) 555-0300",
+      "office_address": "1400 South Blvd, Suite 200, Charlotte, NC 28203"
+    },
+    "agent": {
+      "enabled": true,
+      "id": "test-new-beginnings",
+      "name": "Rachel Kim",
+      "title": "Licensed Real Estate Broker",
+      "phone": "(704) 555-0301",
+      "email": "rachel@heartlandhomesclt.com",
+      "headshot_url": "/agents/test-new-beginnings/headshot.jpg",
+      "license_number": "NC-312847",
+      "languages": [
+        "English",
+        "Korean"
+      ],
+      "tagline": "Your new chapter starts here."
+    },
+    "location": {
+      "state": "NC",
+      "service_areas": [
+        "Charlotte",
+        "Dilworth",
+        "Myers Park",
+        "NoDa"
+      ]
+    },
+    "integrations": {
+      "email_provider": "gmail"
+    },
+    "compliance": {
+      "state_form": "NC-REC-RCSD",
+      "licensing_body": "North Carolina Real Estate Commission",
+      "disclosure_requirements": [
+        "Residential Property and Owners' Association Disclosure Statement",
+        "Lead-based paint disclosure (pre-1978)",
+        "Mineral and oil rights disclosure"
+      ]
+    },
+    "contact_info": [
+      {
+        "type": "phone",
+        "value": "(704) 555-0301",
+        "label": "Cell Phone",
+        "is_preferred": true
+      },
+      {
+        "type": "phone",
+        "value": "(704) 555-0300",
+        "label": "Office",
+        "is_preferred": false
+      },
+      {
+        "type": "email",
+        "value": "rachel@heartlandhomesclt.com",
+        "label": "Email",
+        "is_preferred": false
+      }
+    ]
+  },
+  "test-urban-loft": {
+    "handle": "test-urban-loft",
+    "template": "urban-loft",
+    "branding": {
+      "primary_color": "#1a1a2e",
+      "secondary_color": "#16213e",
+      "accent_color": "#ff6b35",
+      "font_family": "Inter",
+      "logo_url": ""
+    },
+    "brokerage": {
+      "name": "Urban Loft Realty",
+      "license_number": "ULR-IL-4410",
+      "office_phone": "(312) 555-0200",
+      "office_address": "1200 W Fullerton Ave, Suite 300, Chicago, IL 60614"
+    },
+    "agent": {
+      "enabled": true,
+      "id": "test-urban-loft",
+      "name": "Marcus Chen",
+      "title": "Licensed Real Estate Broker",
+      "phone": "(312) 555-0201",
+      "email": "marcus@urbanloftrealty.com",
+      "headshot_url": "/agents/test-urban-loft/headshot.jpg",
+      "license_number": "475190234",
+      "languages": [
+        "English",
+        "Mandarin"
+      ],
+      "tagline": "Loft living, redefined."
+    },
+    "location": {
+      "state": "IL",
+      "service_areas": [
+        "Logan Square",
+        "Wicker Park",
+        "Bucktown",
+        "West Loop"
+      ]
+    },
+    "integrations": {
+      "email_provider": "gmail"
+    },
+    "compliance": {
+      "state_form": "IL-RPD",
+      "licensing_body": "Illinois Department of Financial and Professional Regulation",
+      "disclosure_requirements": [
+        "Residential Real Property Disclosure Report",
+        "Lead-based paint disclosure (pre-1978)",
+        "Radon disclosure"
+      ]
+    },
+    "contact_info": [
+      {
+        "type": "phone",
+        "value": "(312) 555-0201",
+        "label": "Cell Phone",
+        "is_preferred": true
+      },
+      {
+        "type": "phone",
+        "value": "(312) 555-0200",
+        "label": "Office",
+        "is_preferred": false
+      },
+      {
+        "type": "email",
+        "value": "marcus@urbanloftrealty.com",
         "label": "Email",
         "is_preferred": false
       }
@@ -746,8 +1115,18 @@ export const accountContent: Record<string, ContentConfig> = {
           "enabled": true
         },
         {
+          "label": "Stats",
+          "href": "#stats",
+          "enabled": true
+        },
+        {
           "label": "Services",
           "href": "#features",
+          "enabled": true
+        },
+        {
+          "label": "How It Works",
+          "href": "#steps",
           "enabled": true
         },
         {
@@ -835,9 +1214,32 @@ export const accountContent: Record<string, ContentConfig> = {
             }
           },
           "steps": {
-            "enabled": false,
+            "enabled": true,
             "data": {
-              "steps": []
+              "title": "How We Work",
+              "subtitle": "A proven process for commercial and luxury real estate transactions.",
+              "steps": [
+                {
+                  "number": 1,
+                  "title": "Strategy Session",
+                  "description": "We begin with a confidential consultation to understand your investment goals, timeline, and target property profile."
+                },
+                {
+                  "number": 2,
+                  "title": "Market Intelligence",
+                  "description": "Our team delivers a comprehensive commercial market analysis — cap rates, comparables, and opportunity gaps in your target area."
+                },
+                {
+                  "number": 3,
+                  "title": "Deal Execution",
+                  "description": "We identify, negotiate, and structure the transaction — from LOI through due diligence and closing."
+                },
+                {
+                  "number": 4,
+                  "title": "Post-Closing Support",
+                  "description": "We stay engaged after closing — helping with asset management introductions, 1031 exchange planning, and future acquisitions."
+                }
+              ]
             }
           },
           "gallery": {
@@ -850,13 +1252,43 @@ export const accountContent: Record<string, ContentConfig> = {
                   "address": "100 Summit Ave",
                   "city": "Summit",
                   "state": "NJ",
-                  "price": "$2,100,000"
+                  "price": "$2,100,000",
+                  "image_url": "https://picsum.photos/seed/summit-ave/600/400"
                 },
                 {
                   "address": "55 Old Short Hills Rd",
                   "city": "Short Hills",
                   "state": "NJ",
-                  "price": "$1,850,000"
+                  "price": "$1,850,000",
+                  "image_url": "https://picsum.photos/seed/short-hills-rd/600/400"
+                },
+                {
+                  "address": "310 Elm St",
+                  "city": "Chatham",
+                  "state": "NJ",
+                  "price": "$1,650,000",
+                  "image_url": "https://picsum.photos/seed/chatham-elm/600/400"
+                },
+                {
+                  "address": "22 Hobart Ave",
+                  "city": "Summit",
+                  "state": "NJ",
+                  "price": "$2,450,000",
+                  "image_url": "https://picsum.photos/seed/summit-hobart/600/400"
+                },
+                {
+                  "address": "7 Knollwood Rd",
+                  "city": "Short Hills",
+                  "state": "NJ",
+                  "price": "$3,100,000",
+                  "image_url": "https://picsum.photos/seed/short-hills-knollwood/600/400"
+                },
+                {
+                  "address": "450 Fairmount Ave",
+                  "city": "Chatham",
+                  "state": "NJ",
+                  "price": "$1,975,000",
+                  "image_url": "https://picsum.photos/seed/chatham-fairmount/600/400"
                 }
               ]
             }
@@ -878,6 +1310,24 @@ export const accountContent: Record<string, ContentConfig> = {
                   "reviewer": "Mark & Lisa P.",
                   "rating": 5,
                   "source": "Zillow"
+                },
+                {
+                  "text": "Sarah negotiated $120K off our Short Hills purchase. Her strategy in a competitive bidding situation was brilliant — we never felt outmatched.",
+                  "reviewer": "The Okafor Family",
+                  "rating": 5,
+                  "source": "Google"
+                },
+                {
+                  "text": "Sterling & Associates handled our commercial property sale with complete discretion and professionalism. Closed in 45 days, well above our asking price.",
+                  "reviewer": "David K.",
+                  "rating": 5,
+                  "source": "Google"
+                },
+                {
+                  "text": "We relocated from London and Victoria's team made the entire process feel effortless. They understood exactly what we were looking for and delivered.",
+                  "reviewer": "The Ashworth-Williams Family",
+                  "rating": 5,
+                  "source": "Zillow"
                 }
               ]
             }
@@ -893,14 +1343,48 @@ export const accountContent: Record<string, ContentConfig> = {
                   "name": "James Whitfield",
                   "title": "Senior Associate",
                   "phone": "(908) 555-0101",
-                  "email": "james@sterling.com"
+                  "email": "james@sterling.com",
+                  "headshot_url": "https://picsum.photos/seed/james-whitfield/400/400"
                 },
                 {
                   "id": "agent-b",
                   "name": "Sarah Chen",
                   "title": "Luxury Specialist",
                   "phone": "(908) 555-0102",
-                  "email": "sarah@sterling.com"
+                  "email": "sarah@sterling.com",
+                  "headshot_url": "https://picsum.photos/seed/sarah-chen/400/400"
+                },
+                {
+                  "id": "agent-c",
+                  "name": "Robert Dalton",
+                  "title": "Commercial Director",
+                  "phone": "(908) 555-0103",
+                  "email": "robert@sterling.com",
+                  "headshot_url": "https://picsum.photos/seed/robert-dalton/400/400"
+                },
+                {
+                  "id": "agent-d",
+                  "name": "Priya Mehta",
+                  "title": "Buyer Specialist",
+                  "phone": "(908) 555-0104",
+                  "email": "priya@sterling.com",
+                  "headshot_url": "https://picsum.photos/seed/priya-mehta/400/400"
+                },
+                {
+                  "id": "agent-e",
+                  "name": "Thomas Reilly",
+                  "title": "Investment Advisor",
+                  "phone": "(908) 555-0105",
+                  "email": "thomas@sterling.com",
+                  "headshot_url": "https://picsum.photos/seed/thomas-reilly/400/400"
+                },
+                {
+                  "id": "agent-f",
+                  "name": "Angela Moreau",
+                  "title": "Listing Coordinator",
+                  "phone": "(908) 555-0106",
+                  "email": "angela@sterling.com",
+                  "headshot_url": "https://picsum.photos/seed/angela-moreau/400/400"
                 }
               ]
             }
@@ -940,9 +1424,463 @@ export const accountContent: Record<string, ContentConfig> = {
       }
     }
   },
+  "test-coastal-living": {
+    "navigation": {
+      "items": [
+        {
+          "label": "Stats",
+          "href": "#stats",
+          "enabled": true
+        },
+        {
+          "label": "Why Choose Me",
+          "href": "#features",
+          "enabled": true
+        },
+        {
+          "label": "How It Works",
+          "href": "#steps",
+          "enabled": true
+        },
+        {
+          "label": "Recent Sales",
+          "href": "#gallery",
+          "enabled": true
+        },
+        {
+          "label": "Testimonials",
+          "href": "#testimonials",
+          "enabled": true
+        },
+        {
+          "label": "Ready to Move?",
+          "href": "#contact_form",
+          "enabled": true
+        },
+        {
+          "label": "About",
+          "href": "#about",
+          "enabled": true
+        }
+      ]
+    },
+    "pages": {
+      "home": {
+        "sections": {
+          "hero": {
+            "enabled": true,
+            "data": {
+              "headline": "San Diego Coastal Homes",
+              "tagline": "Coastal living, your way.",
+              "body": "I'm Maya Santos — a licensed San Diego real estate agent specializing in coastal properties from La Jolla to Del Mar. Whether you're searching for an oceanfront bungalow, a hillside retreat with sunset views, or a beachside condo steps from the sand, I'll help you find your place along the coast.",
+              "cta_text": "Get Your Free Market Analysis",
+              "cta_link": "#cma-form"
+            }
+          },
+          "stats": {
+            "enabled": true,
+            "data": {
+              "items": [
+                {
+                  "value": "160+",
+                  "label": "Coastal Homes Sold"
+                },
+                {
+                  "value": "4.9 ★",
+                  "label": "Google Rating"
+                },
+                {
+                  "value": "11+",
+                  "label": "Years on the Coast"
+                },
+                {
+                  "value": "$85M+",
+                  "label": "Total Sales Volume"
+                }
+              ]
+            }
+          },
+          "features": {
+            "enabled": true,
+            "data": {
+              "title": "What I Offer",
+              "subtitle": "Dedicated expertise for San Diego's coastal market.",
+              "items": [
+                {
+                  "title": "Coastal Market Analysis",
+                  "description": "Precision pricing for beach and bluff properties using ocean proximity premiums, view assessments, and micro-neighborhood comparables."
+                },
+                {
+                  "title": "Buyer Representation",
+                  "description": "Exclusive access to off-market coastal listings, new developments, and pocket listings shared through my network of top agents."
+                },
+                {
+                  "title": "Seller Marketing",
+                  "description": "Lifestyle photography, twilight shoots, drone video, and targeted digital campaigns to showcase your property's coastal appeal."
+                },
+                {
+                  "title": "Coastal Regulations",
+                  "description": "Expert guidance on California Coastal Commission requirements, bluff setbacks, and environmental review processes."
+                },
+                {
+                  "title": "Investment Advisory",
+                  "description": "Vacation rental analysis, short-term rental regulations, and ROI projections for coastal investment properties."
+                }
+              ]
+            }
+          },
+          "steps": {
+            "enabled": true,
+            "data": {
+              "title": "How It Works",
+              "subtitle": "Three steps to your coastal home.",
+              "steps": [
+                {
+                  "number": 1,
+                  "title": "Describe Your Dream",
+                  "description": "Tell me what coastal living means to you — ocean views, walkability, surf breaks, or a quiet bluff-top retreat."
+                },
+                {
+                  "number": 2,
+                  "title": "Get Your Market Report",
+                  "description": "Receive a personalized analysis with comparable coastal sales, pricing trends, and my professional recommendation."
+                },
+                {
+                  "number": 3,
+                  "title": "Tour & Close",
+                  "description": "Schedule private showings at your pace, make your offer, and I'll guide you through every step to closing."
+                }
+              ]
+            }
+          },
+          "gallery": {
+            "enabled": true,
+            "data": {
+              "title": "Recent Sales",
+              "subtitle": "Closed deals along San Diego's coastline.",
+              "items": [
+                {
+                  "address": "7402 Hillside Dr",
+                  "city": "La Jolla",
+                  "state": "CA",
+                  "price": "$2,350,000",
+                  "image_url": "/agents/test-coastal-living/sold/7402-hillside-dr.jpg"
+                },
+                {
+                  "address": "1025 Ocean Blvd, Unit 3",
+                  "city": "Pacific Beach",
+                  "state": "CA",
+                  "price": "$895,000",
+                  "image_url": "/agents/test-coastal-living/sold/1025-ocean-blvd.jpg"
+                },
+                {
+                  "address": "456 Neptune Ave",
+                  "city": "Encinitas",
+                  "state": "CA",
+                  "price": "$1,575,000",
+                  "image_url": "/agents/test-coastal-living/sold/456-neptune-ave.jpg"
+                },
+                {
+                  "address": "2180 Carmel Valley Rd",
+                  "city": "Del Mar",
+                  "state": "CA",
+                  "price": "$1,890,000",
+                  "image_url": "/agents/test-coastal-living/sold/2180-carmel-valley-rd.jpg"
+                }
+              ]
+            }
+          },
+          "testimonials": {
+            "enabled": true,
+            "data": {
+              "title": "Client Reviews",
+              "subtitle": "What past clients say about working with me.",
+              "items": [
+                {
+                  "text": "Maya found us the perfect beach cottage in Encinitas after months of searching. She knew exactly which streets had the best sunset views and which properties would hold value. Her local knowledge is incredible.",
+                  "reviewer": "Lisa & Mark W.",
+                  "rating": 5,
+                  "source": "Google"
+                },
+                {
+                  "text": "We sold our La Jolla home for $80K over asking. Maya's marketing — especially the twilight photography and drone video — attracted buyers from across the country. She made the whole process seamless.",
+                  "reviewer": "The Nguyen Family",
+                  "rating": 5,
+                  "source": "Zillow"
+                },
+                {
+                  "text": "Bought a condo in Pacific Beach as an investment property. Maya walked me through the short-term rental regulations, projected ROI, and connected me with a property manager. Exactly what I needed.",
+                  "reviewer": "Derek S.",
+                  "rating": 4,
+                  "source": "Google"
+                }
+              ]
+            }
+          },
+          "contact_form": {
+            "enabled": true,
+            "data": {
+              "title": "What's Your Property Worth?",
+              "subtitle": "Get a free San Diego coastal market analysis.",
+              "description": "Enter your address below and I'll send you a detailed market analysis with comparable sales, price trends, and my professional valuation. **100% free, no strings.**"
+            }
+          },
+          "about": {
+            "enabled": true,
+            "data": {
+              "title": "About Maya",
+              "bio": [
+                "I'm Maya Santos — a licensed real estate agent with Pacific Shores Realty, specializing in San Diego's coastal communities. Over 11 years and 160+ transactions, I've helped buyers find their dream homes along the coast and sellers maximize the value of their oceanside properties.",
+                "Growing up in Imperial Beach and building my career from Pacific Beach to Del Mar, I know every break, every bluff, and every hidden gem along this coastline. My approach combines deep local knowledge with data-driven pricing to help clients make confident decisions in a competitive market.",
+                "When I'm not working, you'll find me surfing at Swami's, hiking Torrey Pines, or exploring the taco shops of North County with my family."
+              ],
+              "credentials": [
+                "Licensed CA Agent (DRE)",
+                "160+ Coastal Homes Sold",
+                "Top 10% San Diego Volume",
+                "Bilingual: EN / ES"
+              ]
+            }
+          },
+          "city_pages": {
+            "enabled": false,
+            "data": {
+              "cities": []
+            }
+          }
+        }
+      },
+      "thank_you": {
+        "heading": "Thank You!",
+        "subheading": "Your Market Analysis Is Being Prepared",
+        "body": "{firstName} will send your personalized San Diego coastal market report to your email shortly.",
+        "disclaimer": "This report is a Comparative Market Analysis (CMA) and is not an appraisal.",
+        "cta_call": "Call {firstName}: {phone}",
+        "cta_back": "Back to {firstName}'s Site"
+      }
+    }
+  },
+  "test-country-estate": {
+    "navigation": {
+      "items": [
+        {
+          "label": "Services",
+          "href": "#features",
+          "enabled": true
+        },
+        {
+          "label": "Process",
+          "href": "#steps",
+          "enabled": false
+        },
+        {
+          "label": "Sales",
+          "href": "#gallery",
+          "enabled": true
+        },
+        {
+          "label": "Reviews",
+          "href": "#testimonials",
+          "enabled": true
+        },
+        {
+          "label": "Get Started",
+          "href": "#contact_form",
+          "enabled": true
+        },
+        {
+          "label": "About",
+          "href": "#about",
+          "enabled": true
+        }
+      ]
+    },
+    "pages": {
+      "home": {
+        "sections": {
+          "hero": {
+            "enabled": true,
+            "data": {
+              "headline": "Kentucky Estates & Country Homes",
+              "tagline": "Where heritage meets home.",
+              "body": "I'm Tom Whitfield — a licensed Kentucky real estate broker specializing in horse farms, country estates, historic homes, and acreage properties across the Bluegrass Region. From Lexington's stately neighborhoods to the rolling pastures of Versailles and Midway, I help clients find land and homes with character.",
+              "cta_text": "Get Your Free Property Valuation",
+              "cta_link": "#cma-form"
+            }
+          },
+          "stats": {
+            "enabled": true,
+            "data": {
+              "items": [
+                {
+                  "value": "130+",
+                  "label": "Properties Sold"
+                },
+                {
+                  "value": "4.8 ★",
+                  "label": "Google Rating"
+                },
+                {
+                  "value": "20+",
+                  "label": "Years in the Bluegrass"
+                },
+                {
+                  "value": "$55M+",
+                  "label": "Total Sales Volume"
+                }
+              ]
+            }
+          },
+          "features": {
+            "enabled": true,
+            "data": {
+              "title": "What I Offer",
+              "subtitle": "Specialized expertise for country and estate properties.",
+              "items": [
+                {
+                  "title": "Farm & Land Valuation",
+                  "description": "Accurate pricing for acreage, horse farms, and rural estates using agricultural land comparables, soil assessments, and improvement values."
+                },
+                {
+                  "title": "Historic Home Expertise",
+                  "description": "Deep knowledge of historic preservation requirements, tax credits, and renovation considerations for pre-Civil War and antebellum properties."
+                },
+                {
+                  "title": "Equestrian Properties",
+                  "description": "Specialized in horse farms with barn evaluations, fencing assessments, paddock layouts, and proximity to training facilities."
+                },
+                {
+                  "title": "Estate Marketing",
+                  "description": "Drone photography, aerial videography, and targeted marketing to qualified buyers seeking Kentucky's signature lifestyle properties."
+                },
+                {
+                  "title": "Land Use & Zoning",
+                  "description": "Guidance on agricultural zoning, conservation easements, subdivision potential, and development rights for large parcels."
+                }
+              ]
+            }
+          },
+          "steps": {
+            "enabled": false,
+            "data": {
+              "steps": []
+            }
+          },
+          "gallery": {
+            "enabled": true,
+            "data": {
+              "title": "Recent Sales",
+              "subtitle": "Estates, farms, and homes across the Bluegrass.",
+              "items": [
+                {
+                  "address": "4500 Old Frankfort Pike",
+                  "city": "Versailles",
+                  "state": "KY",
+                  "price": "$875,000",
+                  "image_url": "/agents/test-country-estate/sold/4500-old-frankfort-pike.jpg"
+                },
+                {
+                  "address": "1200 Pisgah Pike",
+                  "city": "Lexington",
+                  "state": "KY",
+                  "price": "$1,250,000",
+                  "image_url": "/agents/test-country-estate/sold/1200-pisgah-pike.jpg"
+                },
+                {
+                  "address": "320 Main St",
+                  "city": "Midway",
+                  "state": "KY",
+                  "price": "$425,000",
+                  "image_url": "/agents/test-country-estate/sold/320-main-st.jpg"
+                },
+                {
+                  "address": "780 Cane Ridge Rd",
+                  "city": "Paris",
+                  "state": "KY",
+                  "price": "$695,000",
+                  "image_url": "/agents/test-country-estate/sold/780-cane-ridge-rd.jpg"
+                }
+              ]
+            }
+          },
+          "testimonials": {
+            "enabled": true,
+            "data": {
+              "title": "Client Reviews",
+              "subtitle": "What past clients say about working with me.",
+              "items": [
+                {
+                  "text": "Tom helped us find our dream horse farm outside Versailles. His knowledge of equestrian properties is unmatched — he knew exactly what to look for in barns, fencing, and water access. A true Bluegrass expert.",
+                  "reviewer": "Margaret & Bill H.",
+                  "rating": 5,
+                  "source": "Google"
+                },
+                {
+                  "text": "We bought a 1840s stone house in Midway through Tom. He guided us through the historic tax credit process and connected us with the best restoration contractors in the region. Could not have done it alone.",
+                  "reviewer": "The Caldwell Family",
+                  "rating": 5,
+                  "source": "Zillow"
+                },
+                {
+                  "text": "Sold our 50-acre property near Paris in under 60 days. Tom's drone photography and marketing brought in buyers from three states. Professional, honest, and deeply knowledgeable.",
+                  "reviewer": "Robert K.",
+                  "rating": 4,
+                  "source": "Google"
+                }
+              ]
+            }
+          },
+          "contact_form": {
+            "enabled": true,
+            "data": {
+              "title": "What's Your Property Worth?",
+              "subtitle": "Get a free Bluegrass property valuation.",
+              "description": "Enter your address below and I'll send you a detailed market analysis with comparable sales, land value assessment, and my professional valuation. **100% free, no strings.**"
+            }
+          },
+          "about": {
+            "enabled": true,
+            "data": {
+              "title": "About Tom",
+              "bio": [
+                "I'm Tom Whitfield — a licensed real estate broker with Heritage Land & Home, specializing in Kentucky's country estates, horse farms, historic homes, and acreage properties. Over 20 years and 130+ transactions, I've helped families find their place in the Bluegrass.",
+                "I grew up on a farm outside Paris, Kentucky, and I've spent my career learning every back road, creek crossing, and stone fence in Fayette, Woodford, and Bourbon counties. When you're buying land, local knowledge matters — I know the soil, the water, the zoning, and the neighbors.",
+                "When I'm not showing properties, you'll find me fly-fishing on Elkhorn Creek, volunteering at the Bluegrass Land Conservancy, or working on my own small farm in Woodford County."
+              ],
+              "credentials": [
+                "Licensed KY Broker",
+                "130+ Properties Sold",
+                "Accredited Land Consultant",
+                "Bluegrass Land Conservancy Board"
+              ]
+            }
+          },
+          "city_pages": {
+            "enabled": false,
+            "data": {
+              "cities": []
+            }
+          }
+        }
+      },
+      "thank_you": {
+        "heading": "Thank You!",
+        "subheading": "Your Property Valuation Is Being Prepared",
+        "body": "{firstName} will send your personalized Bluegrass market report to your email shortly.",
+        "disclaimer": "This report is a Comparative Market Analysis (CMA) and is not an appraisal.",
+        "cta_call": "Call {firstName}: {phone}",
+        "cta_back": "Back to {firstName}'s Site"
+      }
+    }
+  },
   "test-emerald": {
     "navigation": {
       "items": [
+        {
+          "label": "Stats",
+          "href": "#stats",
+          "enabled": true
+        },
         {
           "label": "Why Choose Me",
           "href": "#features",
@@ -1176,7 +2114,7 @@ export const accountContent: Record<string, ContentConfig> = {
       }
     }
   },
-  "test-modern": {
+  "test-light-luxury": {
     "navigation": {
       "items": [
         {
@@ -1201,6 +2139,275 @@ export const accountContent: Record<string, ContentConfig> = {
         },
         {
           "label": "Get Started",
+          "href": "#contact_form",
+          "enabled": true
+        },
+        {
+          "label": "About",
+          "href": "#about",
+          "enabled": true
+        }
+      ]
+    },
+    "pages": {
+      "home": {
+        "sections": {
+          "hero": {
+            "enabled": true,
+            "data": {
+              "headline": "Miami Luxury, Quietly Done",
+              "tagline": "Understated elegance.",
+              "body": "I'm Sophie Laurent — a licensed Miami real estate associate specializing in luxury waterfront estates, penthouse residences, and architectural homes across Miami Beach, Coral Gables, Coconut Grove, and Key Biscayne. My clients expect discretion, expertise, and results. I deliver all three.",
+              "cta_text": "Request a Private Valuation",
+              "cta_link": "#cma-form"
+            }
+          },
+          "stats": {
+            "enabled": true,
+            "data": {
+              "items": [
+                {
+                  "value": "95+",
+                  "label": "Luxury Homes Sold"
+                },
+                {
+                  "value": "5.0 ★",
+                  "label": "Client Rating"
+                },
+                {
+                  "value": "15+",
+                  "label": "Years in Miami"
+                },
+                {
+                  "value": "$120M+",
+                  "label": "Total Sales Volume"
+                }
+              ]
+            }
+          },
+          "features": {
+            "enabled": true,
+            "data": {
+              "title": "What I Offer",
+              "subtitle": "White-glove service for discerning buyers and sellers.",
+              "items": [
+                {
+                  "title": "Private Market Access",
+                  "description": "Off-market and pre-launch listings shared exclusively with qualified buyers — many of my finest properties never hit the MLS."
+                },
+                {
+                  "title": "Luxury Valuation",
+                  "description": "Precision pricing informed by waterfront premiums, architectural significance, and the nuances of Miami's ultra-luxury segment."
+                },
+                {
+                  "title": "Global Network",
+                  "description": "Connections to qualified international buyers through partnerships with luxury brokerages in Paris, London, Sao Paulo, and Dubai."
+                },
+                {
+                  "title": "Concierge Coordination",
+                  "description": "From interior staging to legal counsel, I coordinate a curated team of professionals so you only deal with one point of contact."
+                },
+                {
+                  "title": "Discretion & Privacy",
+                  "description": "Confidential transactions for high-profile clients. NDA-backed processes, unlisted showings, and controlled media exposure."
+                }
+              ]
+            }
+          },
+          "steps": {
+            "enabled": true,
+            "data": {
+              "title": "How It Works",
+              "subtitle": "A refined process from start to close.",
+              "steps": [
+                {
+                  "number": 1,
+                  "title": "Private Consultation",
+                  "description": "Share your goals and preferences in a confidential conversation — in person, by phone, or over video."
+                },
+                {
+                  "number": 2,
+                  "title": "Curated Selection",
+                  "description": "Receive a tailored portfolio of properties matching your criteria, including off-market opportunities and new developments."
+                },
+                {
+                  "number": 3,
+                  "title": "Seamless Close",
+                  "description": "From offer to keys, every detail is managed with precision — legal, financial, and logistical."
+                }
+              ]
+            }
+          },
+          "gallery": {
+            "enabled": true,
+            "data": {
+              "title": "Recent Sales",
+              "subtitle": "Select transactions from Miami's most prestigious addresses.",
+              "items": [
+                {
+                  "address": "5800 Collins Ave, PH-1",
+                  "city": "Miami Beach",
+                  "state": "FL",
+                  "price": "$4,250,000",
+                  "image_url": "/agents/test-light-luxury/sold/5800-collins-ave.jpg"
+                },
+                {
+                  "address": "1234 Alhambra Cir",
+                  "city": "Coral Gables",
+                  "state": "FL",
+                  "price": "$2,850,000",
+                  "image_url": "/agents/test-light-luxury/sold/1234-alhambra-cir.jpg"
+                },
+                {
+                  "address": "3401 Main Hwy",
+                  "city": "Coconut Grove",
+                  "state": "FL",
+                  "price": "$1,975,000",
+                  "image_url": "/agents/test-light-luxury/sold/3401-main-hwy.jpg"
+                },
+                {
+                  "address": "250 Crandon Blvd, Unit 1201",
+                  "city": "Key Biscayne",
+                  "state": "FL",
+                  "price": "$3,100,000",
+                  "image_url": "/agents/test-light-luxury/sold/250-crandon-blvd.jpg"
+                }
+              ]
+            }
+          },
+          "testimonials": {
+            "enabled": true,
+            "data": {
+              "title": "Client Reviews",
+              "subtitle": "What past clients say about working with me.",
+              "items": [
+                {
+                  "text": "Sophie handled the sale of our waterfront estate with absolute discretion. From staging to closing, every detail was managed flawlessly. She delivered a buyer within three weeks at our target price.",
+                  "reviewer": "The Moreau Family",
+                  "rating": 5,
+                  "source": "Google"
+                },
+                {
+                  "text": "Relocating from Paris, we needed someone who understood both the Miami market and international buyers' expectations. Sophie exceeded on both counts. Trilingual, professional, and incredibly well-connected.",
+                  "reviewer": "Jean-Pierre & Camille D.",
+                  "rating": 5,
+                  "source": "Google"
+                },
+                {
+                  "text": "We purchased a penthouse in Key Biscayne through Sophie. Her access to off-market listings gave us options we never would have found on our own. A truly elevated experience.",
+                  "reviewer": "Carlos R.",
+                  "rating": 5,
+                  "source": "Zillow"
+                }
+              ]
+            }
+          },
+          "profiles": {
+            "enabled": true,
+            "data": {
+              "title": "The Team",
+              "subtitle": "A curated group of specialists for every facet of luxury real estate.",
+              "items": [
+                {
+                  "id": "agent-a",
+                  "name": "Olivier Marchetti",
+                  "title": "International Sales Director",
+                  "phone": "(305) 555-0401",
+                  "email": "olivier@prestigeproperties.com",
+                  "headshot_url": "https://picsum.photos/seed/olivier-marchetti/400/400"
+                },
+                {
+                  "id": "agent-b",
+                  "name": "Natalia Voss",
+                  "title": "Waterfront Specialist",
+                  "phone": "(305) 555-0402",
+                  "email": "natalia@prestigeproperties.com",
+                  "headshot_url": "https://picsum.photos/seed/natalia-voss/400/400"
+                },
+                {
+                  "id": "agent-c",
+                  "name": "Rafael Andrade",
+                  "title": "Investment Advisor",
+                  "phone": "(305) 555-0403",
+                  "email": "rafael@prestigeproperties.com",
+                  "headshot_url": "https://picsum.photos/seed/rafael-andrade/400/400"
+                }
+              ]
+            }
+          },
+          "contact_form": {
+            "enabled": true,
+            "data": {
+              "title": "What's Your Property Worth?",
+              "subtitle": "Request a private Miami market valuation.",
+              "description": "Enter your address below and I'll prepare a confidential market analysis with comparable sales, price trends, and my professional valuation. **Complimentary and discreet.**"
+            }
+          },
+          "about": {
+            "enabled": true,
+            "data": {
+              "title": "About Sophie",
+              "bio": [
+                "I'm Sophie Laurent — a licensed real estate associate with Prestige Properties, specializing in Miami's luxury residential market. Over 15 years, I've closed 95+ transactions totaling more than $120M in sales, with a focus on waterfront estates, penthouse residences, and architecturally significant homes.",
+                "My background in international finance and my fluency in English, French, and Spanish allow me to serve a global clientele with the sophistication and discretion they expect. I don't believe in hard sells — I believe in finding the right match between exceptional properties and exceptional people.",
+                "When I'm not working, you'll find me sailing Biscayne Bay, exploring Miami's gallery scene, or hosting dinners in Coconut Grove."
+              ],
+              "credentials": [
+                "Licensed FL Associate",
+                "$120M+ Career Volume",
+                "Certified Luxury Home Specialist",
+                "Trilingual: EN / FR / ES"
+              ]
+            }
+          },
+          "city_pages": {
+            "enabled": false,
+            "data": {
+              "cities": []
+            }
+          }
+        }
+      },
+      "thank_you": {
+        "heading": "Thank You!",
+        "subheading": "Your Private Valuation Is Being Prepared",
+        "body": "{firstName} will send your personalized Miami market report to your email shortly.",
+        "disclaimer": "This report is a Comparative Market Analysis (CMA) and is not an appraisal.",
+        "cta_call": "Call {firstName}: {phone}",
+        "cta_back": "Back to {firstName}'s Site"
+      }
+    }
+  },
+  "test-modern": {
+    "navigation": {
+      "items": [
+        {
+          "label": "Stats",
+          "href": "#stats",
+          "enabled": true
+        },
+        {
+          "label": "Why Choose Me",
+          "href": "#features",
+          "enabled": true
+        },
+        {
+          "label": "How It Works",
+          "href": "#steps",
+          "enabled": true
+        },
+        {
+          "label": "Recent Sales",
+          "href": "#gallery",
+          "enabled": true
+        },
+        {
+          "label": "Testimonials",
+          "href": "#testimonials",
+          "enabled": true
+        },
+        {
+          "label": "Ready to Move?",
           "href": "#contact_form",
           "enabled": true
         },
@@ -1407,6 +2614,455 @@ export const accountContent: Record<string, ContentConfig> = {
       }
     }
   },
+  "test-new-beginnings": {
+    "navigation": {
+      "items": [
+        {
+          "label": "Services",
+          "href": "#features",
+          "enabled": true
+        },
+        {
+          "label": "Process",
+          "href": "#steps",
+          "enabled": false
+        },
+        {
+          "label": "Sales",
+          "href": "#gallery",
+          "enabled": true
+        },
+        {
+          "label": "Reviews",
+          "href": "#testimonials",
+          "enabled": true
+        },
+        {
+          "label": "Get Started",
+          "href": "#contact_form",
+          "enabled": true
+        },
+        {
+          "label": "About",
+          "href": "#about",
+          "enabled": true
+        }
+      ]
+    },
+    "pages": {
+      "home": {
+        "sections": {
+          "hero": {
+            "enabled": true,
+            "data": {
+              "headline": "Your New Chapter in Charlotte",
+              "tagline": "Your new chapter starts here.",
+              "body": "I'm Rachel Kim — a licensed Charlotte real estate broker who specializes in helping first-time buyers, relocating families, and anyone ready for a fresh start. From the tree-lined streets of Myers Park to the creative energy of NoDa, I'll help you find the neighborhood that feels like home.",
+              "cta_text": "Get Your Free Market Analysis",
+              "cta_link": "#cma-form"
+            }
+          },
+          "stats": {
+            "enabled": true,
+            "data": {
+              "items": [
+                {
+                  "value": "180+",
+                  "label": "Families Helped"
+                },
+                {
+                  "value": "4.9 ★",
+                  "label": "Google Rating"
+                },
+                {
+                  "value": "10+",
+                  "label": "Years in Charlotte"
+                },
+                {
+                  "value": "$38M+",
+                  "label": "Total Sales Volume"
+                }
+              ]
+            }
+          },
+          "features": {
+            "enabled": true,
+            "data": {
+              "title": "What I Offer",
+              "subtitle": "Personalized guidance for every step of your journey.",
+              "items": [
+                {
+                  "title": "First-Time Buyer Guidance",
+                  "description": "Step-by-step support from pre-approval through closing day, designed for buyers navigating the process for the first time."
+                },
+                {
+                  "title": "Relocation Support",
+                  "description": "Neighborhood tours, school district breakdowns, and commute analysis for families moving to the Charlotte area."
+                },
+                {
+                  "title": "Market Analysis",
+                  "description": "Detailed pricing reports using comparable sales, days-on-market trends, and neighborhood appreciation data."
+                },
+                {
+                  "title": "Seller Marketing",
+                  "description": "Professional photography, virtual tours, and a multi-channel marketing plan to get your home sold quickly and at the right price."
+                },
+                {
+                  "title": "Contract Negotiation",
+                  "description": "Skilled negotiation on price, repairs, and closing costs — I advocate for your best interests at every turn."
+                }
+              ]
+            }
+          },
+          "steps": {
+            "enabled": false,
+            "data": {
+              "steps": []
+            }
+          },
+          "gallery": {
+            "enabled": true,
+            "data": {
+              "title": "Recent Sales",
+              "subtitle": "Helping Charlotte families find their perfect fit.",
+              "items": [
+                {
+                  "address": "2145 Dilworth Rd E",
+                  "city": "Dilworth",
+                  "state": "NC",
+                  "price": "$525,000",
+                  "image_url": "/agents/test-new-beginnings/sold/2145-dilworth-rd-e.jpg"
+                },
+                {
+                  "address": "801 E 36th St",
+                  "city": "NoDa",
+                  "state": "NC",
+                  "price": "$385,000",
+                  "image_url": "/agents/test-new-beginnings/sold/801-e-36th-st.jpg"
+                },
+                {
+                  "address": "3420 Colony Rd",
+                  "city": "Myers Park",
+                  "state": "NC",
+                  "price": "$710,000",
+                  "image_url": "/agents/test-new-beginnings/sold/3420-colony-rd.jpg"
+                },
+                {
+                  "address": "1590 South Blvd, Unit 412",
+                  "city": "Charlotte",
+                  "state": "NC",
+                  "price": "$295,000",
+                  "image_url": "/agents/test-new-beginnings/sold/1590-south-blvd.jpg"
+                }
+              ]
+            }
+          },
+          "testimonials": {
+            "enabled": true,
+            "data": {
+              "title": "Client Reviews",
+              "subtitle": "What past clients say about working with me.",
+              "items": [
+                {
+                  "text": "Rachel made our first home purchase feel effortless. She explained every step, never rushed us, and found us a home we absolutely love in Dilworth. We couldn't have done it without her.",
+                  "reviewer": "Amanda & Chris L.",
+                  "rating": 5,
+                  "source": "Google"
+                },
+                {
+                  "text": "We relocated from Boston with two kids and zero knowledge of Charlotte. Rachel spent weeks showing us neighborhoods, schools, and parks. She genuinely cared about finding us the right fit.",
+                  "reviewer": "The Patel Family",
+                  "rating": 5,
+                  "source": "Zillow"
+                },
+                {
+                  "text": "Sold our NoDa townhome in under a week at $12K over asking. Rachel's marketing and pricing strategy were spot-on. Already recommending her to friends.",
+                  "reviewer": "Tyler R.",
+                  "rating": 4,
+                  "source": "Google"
+                }
+              ]
+            }
+          },
+          "contact_form": {
+            "enabled": true,
+            "data": {
+              "title": "What's Your Property Worth?",
+              "subtitle": "Get a free Charlotte market analysis in minutes.",
+              "description": "Enter your address below and I'll send you a detailed market analysis with comparable sales, price trends, and my professional valuation. **100% free, no strings.**"
+            }
+          },
+          "about": {
+            "enabled": true,
+            "data": {
+              "title": "About Rachel",
+              "bio": [
+                "I'm Rachel Kim — a licensed real estate broker with Heartland Homes, dedicated to helping Charlotte families find where they belong. Over 10 years and 180+ transactions, I've guided first-time buyers, growing families, and relocating professionals through the biggest decision of their lives.",
+                "I believe buying a home should feel exciting, not stressful. My approach is patient, thorough, and always centered on what matters most to you — whether that's a quiet cul-de-sac near top-rated schools or a walkable bungalow in the heart of the city.",
+                "Originally from Seoul, I moved to Charlotte in 2014 and fell in love with the city's warmth, diversity, and pace of growth. This is home, and I'd love to help you make it yours."
+              ],
+              "credentials": [
+                "Licensed NC Broker",
+                "180+ Families Helped",
+                "Certified Relocation Specialist",
+                "Fluent in Korean"
+              ]
+            }
+          },
+          "city_pages": {
+            "enabled": false,
+            "data": {
+              "cities": []
+            }
+          }
+        }
+      },
+      "thank_you": {
+        "heading": "Thank You!",
+        "subheading": "Your Market Analysis Is Being Prepared",
+        "body": "{firstName} will send your personalized Charlotte market report to your email shortly.",
+        "disclaimer": "This report is a Comparative Market Analysis (CMA) and is not an appraisal.",
+        "cta_call": "Call {firstName}: {phone}",
+        "cta_back": "Back to {firstName}'s Site"
+      }
+    }
+  },
+  "test-urban-loft": {
+    "navigation": {
+      "items": [
+        {
+          "label": "Stats",
+          "href": "#stats",
+          "enabled": true
+        },
+        {
+          "label": "Services",
+          "href": "#features",
+          "enabled": true
+        },
+        {
+          "label": "How It Works",
+          "href": "#steps",
+          "enabled": true
+        },
+        {
+          "label": "Recent Sales",
+          "href": "#gallery",
+          "enabled": true
+        },
+        {
+          "label": "Reviews",
+          "href": "#testimonials",
+          "enabled": true
+        },
+        {
+          "label": "Get Started",
+          "href": "#contact_form",
+          "enabled": true
+        },
+        {
+          "label": "About",
+          "href": "#about",
+          "enabled": true
+        }
+      ]
+    },
+    "pages": {
+      "home": {
+        "sections": {
+          "hero": {
+            "enabled": true,
+            "data": {
+              "headline": "Chicago Loft Living Starts Here",
+              "tagline": "Loft living, redefined.",
+              "body": "I'm Marcus Chen — a licensed Chicago real estate broker specializing in loft conversions, timber-frame units, and modern condos across Logan Square, Wicker Park, Bucktown, and the West Loop. I help buyers and sellers navigate Chicago's most sought-after neighborhoods with market expertise and a hands-on approach.",
+              "cta_text": "Get Your Free Market Analysis",
+              "cta_link": "#cma-form"
+            }
+          },
+          "stats": {
+            "enabled": true,
+            "data": {
+              "items": [
+                {
+                  "value": "200+",
+                  "label": "Lofts & Condos Sold"
+                },
+                {
+                  "value": "4.9 ★",
+                  "label": "Google Rating"
+                },
+                {
+                  "value": "12+",
+                  "label": "Years in Chicago"
+                },
+                {
+                  "value": "$62M+",
+                  "label": "Total Sales Volume"
+                }
+              ]
+            }
+          },
+          "features": {
+            "enabled": true,
+            "data": {
+              "title": "What I Offer",
+              "subtitle": "Specialized service for Chicago's loft and condo market.",
+              "items": [
+                {
+                  "title": "Loft Market Analysis",
+                  "description": "Detailed pricing reports using comparable loft sales, building assessments, and neighborhood-level appreciation trends."
+                },
+                {
+                  "title": "Building Due Diligence",
+                  "description": "Full HOA financials review, reserve fund analysis, and special assessment history before you commit."
+                },
+                {
+                  "title": "Negotiation Strategy",
+                  "description": "Proven tactics for winning in multi-offer situations — I've secured over 30 deals below asking this year."
+                },
+                {
+                  "title": "Seller Staging & Marketing",
+                  "description": "Professional photography, 3D tours, and targeted digital marketing to showcase your space to the right buyers."
+                },
+                {
+                  "title": "Investment Analysis",
+                  "description": "Rental yield projections, Airbnb potential assessments, and long-term appreciation forecasts for investor clients."
+                }
+              ]
+            }
+          },
+          "steps": {
+            "enabled": true,
+            "data": {
+              "title": "How It Works",
+              "subtitle": "Three steps to your next loft.",
+              "steps": [
+                {
+                  "number": 1,
+                  "title": "Share Your Vision",
+                  "description": "Tell me what you're looking for — loft style, neighborhood, budget, and must-haves."
+                },
+                {
+                  "number": 2,
+                  "title": "Get Your Market Report",
+                  "description": "Receive a personalized analysis with comparable sales, pricing trends, and my honest take on the market."
+                },
+                {
+                  "number": 3,
+                  "title": "Tour & Close",
+                  "description": "Schedule private showings, make your move, and I'll handle everything through closing day."
+                }
+              ]
+            }
+          },
+          "gallery": {
+            "enabled": true,
+            "data": {
+              "title": "Recent Sales",
+              "subtitle": "Closed deals across Chicago's hottest loft neighborhoods.",
+              "items": [
+                {
+                  "address": "1872 N Milwaukee Ave, Unit 3F",
+                  "city": "Logan Square",
+                  "state": "IL",
+                  "price": "$485,000",
+                  "image_url": "/agents/test-urban-loft/sold/1872-n-milwaukee-ave.jpg"
+                },
+                {
+                  "address": "1340 W Randolph St, Unit 5A",
+                  "city": "West Loop",
+                  "state": "IL",
+                  "price": "$620,000",
+                  "image_url": "/agents/test-urban-loft/sold/1340-w-randolph-st.jpg"
+                },
+                {
+                  "address": "2035 N Damen Ave, Unit 2R",
+                  "city": "Bucktown",
+                  "state": "IL",
+                  "price": "$415,000",
+                  "image_url": "/agents/test-urban-loft/sold/2035-n-damen-ave.jpg"
+                },
+                {
+                  "address": "1550 N Hoyne Ave, Unit 4W",
+                  "city": "Wicker Park",
+                  "state": "IL",
+                  "price": "$535,000",
+                  "image_url": "/agents/test-urban-loft/sold/1550-n-hoyne-ave.jpg"
+                }
+              ]
+            }
+          },
+          "testimonials": {
+            "enabled": true,
+            "data": {
+              "title": "Client Reviews",
+              "subtitle": "What past clients say about working with me.",
+              "items": [
+                {
+                  "text": "Marcus found us the perfect timber-loft in Logan Square within two weeks. His knowledge of the building's history and HOA financials gave us total confidence. Couldn't be happier.",
+                  "reviewer": "David & Lina P.",
+                  "rating": 5,
+                  "source": "Google"
+                },
+                {
+                  "text": "We were first-time buyers overwhelmed by the Chicago market. Marcus broke everything down, helped us negotiate $18K off asking, and made the whole process feel easy.",
+                  "reviewer": "Jordan T.",
+                  "rating": 5,
+                  "source": "Zillow"
+                },
+                {
+                  "text": "Sold our West Loop condo in 5 days at full asking price. Marcus's staging advice and marketing plan were next-level. Highly recommend for anyone in the loft market.",
+                  "reviewer": "Keiko & Ben S.",
+                  "rating": 4,
+                  "source": "Google"
+                }
+              ]
+            }
+          },
+          "contact_form": {
+            "enabled": true,
+            "data": {
+              "title": "What's Your Property Worth?",
+              "subtitle": "Get a free Chicago market analysis in minutes.",
+              "description": "Enter your address below and I'll send you a detailed market analysis with comparable sales, price trends, and my professional valuation. **100% free, no strings.**"
+            }
+          },
+          "about": {
+            "enabled": true,
+            "data": {
+              "title": "About Marcus",
+              "bio": [
+                "I'm Marcus Chen — a licensed real estate broker with Urban Loft Realty, focused exclusively on Chicago's loft, condo, and converted-space market. Over 12 years and 200+ transactions, I've built deep expertise in the neighborhoods where industrial meets modern.",
+                "My approach combines market data with genuine neighborhood knowledge. I grew up on the Northwest Side, went to school in Wicker Park, and have watched these neighborhoods evolve. That context matters when you're making the biggest purchase of your life.",
+                "When I'm not showing lofts, you'll find me at local coffee shops, cycling the 606 trail, or exploring Chicago's food scene."
+              ],
+              "credentials": [
+                "Licensed IL Broker",
+                "200+ Lofts & Condos Sold",
+                "Top 5% Chicago Volume",
+                "Fluent in Mandarin"
+              ]
+            }
+          },
+          "city_pages": {
+            "enabled": false,
+            "data": {
+              "cities": []
+            }
+          }
+        }
+      },
+      "thank_you": {
+        "heading": "Thank You!",
+        "subheading": "Your Market Analysis Is Being Prepared",
+        "body": "{firstName} will send your personalized Chicago market report to your email shortly.",
+        "disclaimer": "This report is a Comparative Market Analysis (CMA) and is not an appraisal.",
+        "cta_call": "Call {firstName}: {phone}",
+        "cta_back": "Back to {firstName}'s Site"
+      }
+    }
+  },
   "test-warm": {
     "navigation": {
       "items": [
@@ -1591,6 +3247,31 @@ export const accountContent: Record<string, ContentConfig> = {
                   "reviewer": "Carlos R.",
                   "rating": 5,
                   "source": "Zillow"
+                }
+              ]
+            }
+          },
+          "profiles": {
+            "enabled": true,
+            "data": {
+              "title": "Our Team",
+              "subtitle": "Local agents who know your neighborhood.",
+              "items": [
+                {
+                  "id": "agent-a",
+                  "name": "Miguel Torres",
+                  "title": "Buyer Specialist",
+                  "phone": "(512) 555-0201",
+                  "email": "miguel@santiago-realty.com",
+                  "headshot_url": "https://picsum.photos/seed/miguel-torres/400/400"
+                },
+                {
+                  "id": "agent-b",
+                  "name": "Ashley Brooks",
+                  "title": "Listing Coordinator",
+                  "phone": "(512) 555-0202",
+                  "email": "ashley@santiago-realty.com",
+                  "headshot_url": "https://picsum.photos/seed/ashley-brooks/400/400"
                 }
               ]
             }
@@ -1930,4 +3611,6 @@ export const legalContent: Record<string, Record<string, { above?: string; below
 
 export const customDomains: Record<string, string> = {};
 
-export const accountHandles: Set<string> = new Set(["jenise-buckalew","test-broker-agent","test-brokerage","test-emerald","test-modern","test-warm"]);
+export const accountHandles: Set<string> = new Set(["jenise-buckalew","test-broker-agent","test-brokerage","test-coastal-living","test-country-estate","test-emerald","test-light-luxury","test-modern","test-new-beginnings","test-urban-loft","test-warm"]);
+
+export const agentIds: Set<string> = accountHandles;

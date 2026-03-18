@@ -1,10 +1,86 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import type { GalleryProps } from "@/components/sections/types";
+import type { GalleryItem } from "@/lib/types";
+
+function SoldCardWarm({ item }: { item: GalleryItem }) {
+  const [hover, setHover] = useState(false);
+
+  return (
+    <article
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: "#FFF8F0",
+        borderRadius: "16px",
+        overflow: "hidden",
+        boxShadow: hover
+          ? "0 6px 20px rgba(0,0,0,0.12)"
+          : "0 2px 12px rgba(0,0,0,0.06)",
+        position: "relative",
+        transform: hover ? "translateY(-4px)" : "none",
+        transition: "transform 0.3s, box-shadow 0.3s",
+      }}
+    >
+      {item.image_url && (
+        <div style={{
+          position: "relative",
+          height: "200px",
+          borderRadius: "16px 16px 0 0",
+          overflow: "hidden",
+        }}>
+          <Image
+            src={item.image_url}
+            alt={`${item.address}, ${item.city}`}
+            fill
+            style={{
+              objectFit: "cover",
+              transition: "transform 0.3s",
+              transform: hover ? "scale(1.05)" : "none",
+            }}
+            sizes="(max-width: 768px) 100vw, 280px"
+          />
+        </div>
+      )}
+      <span style={{
+        position: "absolute",
+        top: "12px",
+        left: "12px",
+        background: "var(--color-accent)",
+        color: "white",
+        padding: "4px 12px",
+        borderRadius: "20px",
+        fontSize: "12px",
+        fontWeight: 700,
+      }}>
+        SOLD
+      </span>
+      <div style={{ padding: "20px" }}>
+        <div style={{
+          fontSize: "22px",
+          fontWeight: 700,
+          color: "#4A3728",
+          marginBottom: "4px",
+        }}>
+          {item.price}
+        </div>
+        <div style={{
+          fontSize: "14px",
+          color: "#8B7355",
+        }}>
+          {item.address}, {item.city}, {item.state}
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export function SoldCards({ items, title, subtitle }: GalleryProps) {
   return (
     <section
-      id="sold"
+      id="gallery"
       style={{
         padding: "70px 40px",
         background: "white",
@@ -36,62 +112,7 @@ export function SoldCards({ items, title, subtitle }: GalleryProps) {
           gap: "24px",
         }}>
           {items.map((item) => (
-            <article
-              key={`${item.address}-${item.city}`}
-              style={{
-                background: "#FFF8F0",
-                borderRadius: "16px",
-                overflow: "hidden",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                position: "relative",
-              }}
-            >
-              {item.image_url && (
-                <div style={{
-                  position: "relative",
-                  height: "200px",
-                  borderRadius: "16px 16px 0 0",
-                  overflow: "hidden",
-                }}>
-                  <Image
-                    src={item.image_url}
-                    alt={`${item.address}, ${item.city}`}
-                    fill
-                    style={{ objectFit: "cover" }}
-                    sizes="(max-width: 768px) 100vw, 280px"
-                  />
-                </div>
-              )}
-              <span style={{
-                position: "absolute",
-                top: "12px",
-                left: "12px",
-                background: "var(--color-accent)",
-                color: "white",
-                padding: "4px 12px",
-                borderRadius: "20px",
-                fontSize: "12px",
-                fontWeight: 700,
-              }}>
-                SOLD
-              </span>
-              <div style={{ padding: "20px" }}>
-                <div style={{
-                  fontSize: "22px",
-                  fontWeight: 700,
-                  color: "#4A3728",
-                  marginBottom: "4px",
-                }}>
-                  {item.price}
-                </div>
-                <div style={{
-                  fontSize: "14px",
-                  color: "#8B7355",
-                }}>
-                  {item.address}, {item.city}, {item.state}
-                </div>
-              </div>
-            </article>
+            <SoldCardWarm key={`${item.address}-${item.city}`} item={item} />
           ))}
         </div>
       </div>

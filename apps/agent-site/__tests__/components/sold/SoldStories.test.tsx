@@ -78,9 +78,9 @@ describe("SoldStories", () => {
     expect(quotes.length).toBe(2);
   });
 
-  it("uses id=sold for anchor linking", () => {
+  it("uses id=gallery for anchor linking", () => {
     const { container } = render(<SoldStories items={ITEMS} />);
-    expect(container.querySelector("#sold")).toBeInTheDocument();
+    expect(container.querySelector("#gallery")).toBeInTheDocument();
   });
 
   it("renders images for items with image_url", () => {

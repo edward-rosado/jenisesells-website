@@ -60,9 +60,9 @@ describe("ServicesEstate", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders section with id=services for anchor linking", () => {
+  it("renders section with id=features for anchor linking", () => {
     const { container } = render(<ServicesEstate items={ITEMS} />);
-    expect(container.querySelector("#services")).toBeInTheDocument();
+    expect(container.querySelector("#features")).toBeInTheDocument();
   });
 
   it("renders each service as an article element", () => {

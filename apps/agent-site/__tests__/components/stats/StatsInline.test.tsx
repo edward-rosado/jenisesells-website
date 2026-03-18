@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StatsInline } from "@/components/sections/stats/StatsInline";
 
 const ITEMS = [
@@ -49,5 +49,14 @@ describe("StatsInline", () => {
       (el) => (el as HTMLElement).style.borderRadius && (el as HTMLElement).style.boxShadow
     );
     expect(styledCards.length).toBeGreaterThan(0);
+  });
+
+  it("lifts card on hover", () => {
+    const { container } = render(<StatsInline items={ITEMS} />);
+    const card = container.querySelector("dd")!.closest("div[style]") as HTMLElement;
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 });

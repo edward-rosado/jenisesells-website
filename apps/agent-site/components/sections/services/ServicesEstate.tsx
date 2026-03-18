@@ -3,7 +3,7 @@ import type { ServicesProps } from "@/components/sections/types";
 export function ServicesEstate({ items, title, subtitle }: ServicesProps) {
   return (
     <section
-      id="services"
+      id="features"
       style={{
         background: "var(--color-bg, #faf6f0)",
         padding: "70px 40px",

@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsBubble } from "@/components/sections/testimonials/TestimonialsBubble";
 import type { TestimonialItem } from "@/lib/types";
 
@@ -66,5 +66,16 @@ describe("TestimonialsBubble", () => {
     render(<TestimonialsBubble items={ITEMS} />);
     expect(screen.getByText("A")).toBeInTheDocument();
     expect(screen.getByText("B")).toBeInTheDocument();
+  });
+
+  it("lifts bubble card on hover", () => {
+    const { container } = render(<TestimonialsBubble items={ITEMS} />);
+    // The outer wrapper div has the hover transform
+    const article = container.querySelector("article") as HTMLElement;
+    const wrapper = article.parentElement as HTMLElement;
+    fireEvent.mouseEnter(wrapper);
+    expect(wrapper.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(wrapper);
+    expect(wrapper.style.transform).toBe("none");
   });
 });

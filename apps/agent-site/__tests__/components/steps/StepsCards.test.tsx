@@ -13,9 +13,9 @@ const STEPS: StepItem[] = [
 ];
 
 describe("StepsCards", () => {
-  it("renders section with id=how-it-works", () => {
+  it("renders section with id=steps", () => {
     const { container } = render(<StepsCards steps={STEPS} />);
-    expect(container.querySelector("section#how-it-works")).toBeInTheDocument();
+    expect(container.querySelector("section#steps")).toBeInTheDocument();
   });
 
   it("renders the default heading when no title provided", () => {
@@ -72,6 +72,6 @@ describe("StepsCards", () => {
 
   it("renders empty section gracefully when steps is empty", () => {
     const { container } = render(<StepsCards steps={[]} />);
-    expect(container.querySelector("section#how-it-works")).toBeInTheDocument();
+    expect(container.querySelector("section#steps")).toBeInTheDocument();
   });
 });

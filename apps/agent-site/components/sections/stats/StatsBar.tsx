@@ -3,6 +3,7 @@ import type { StatsProps } from "@/components/sections/types";
 export function StatsBar({ items, sourceDisclaimer }: StatsProps) {
   return (
     <section
+      id="stats"
       aria-label="Agent statistics"
       style={{
         background: "var(--color-primary)",

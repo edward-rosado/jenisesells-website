@@ -14,9 +14,9 @@ const ITEMS: SoldHomeItem[] = [
 ];
 
 describe("SoldElegant", () => {
-  it("renders section with id=sold", () => {
+  it("renders section with id=gallery", () => {
     const { container } = render(<SoldElegant items={ITEMS} />);
-    expect(container.querySelector("section#sold")).toBeInTheDocument();
+    expect(container.querySelector("section#gallery")).toBeInTheDocument();
   });
 
   it("renders default heading 'Recent Sales'", () => {

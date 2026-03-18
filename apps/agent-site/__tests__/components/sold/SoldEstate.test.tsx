@@ -100,9 +100,9 @@ describe("SoldEstate", () => {
     expect(soldBadges.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("renders section with id=sold for anchor linking", () => {
+  it("renders section with id=gallery for anchor linking", () => {
     const { container } = render(<SoldEstate items={ITEMS} />);
-    expect(container.querySelector("#sold")).toBeInTheDocument();
+    expect(container.querySelector("#gallery")).toBeInTheDocument();
   });
 
   it("renders each property as an article", () => {

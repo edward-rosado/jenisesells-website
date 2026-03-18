@@ -72,9 +72,9 @@ describe("SoldCoastal", () => {
     expect(badges.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("has id=sold for anchor linking", () => {
+  it("has id=gallery for anchor linking", () => {
     const { container } = render(<SoldCoastal items={ITEMS} />);
-    expect(container.querySelector("#sold")).toBeInTheDocument();
+    expect(container.querySelector("#gallery")).toBeInTheDocument();
   });
 
   it("renders images with alt text when image_url provided", () => {

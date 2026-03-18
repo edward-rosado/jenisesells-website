@@ -42,9 +42,9 @@ describe("ServicesHeart", () => {
     expect(screen.getByText("Know your home's real value.")).toBeInTheDocument();
   });
 
-  it("uses id=services for anchor linking", () => {
+  it("uses id=features for anchor linking", () => {
     const { container } = render(<ServicesHeart items={ITEMS} />);
-    expect(container.querySelector("#services")).toBeInTheDocument();
+    expect(container.querySelector("#features")).toBeInTheDocument();
   });
 
   it("renders each card as an article element", () => {

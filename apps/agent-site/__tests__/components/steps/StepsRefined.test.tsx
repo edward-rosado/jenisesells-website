@@ -13,9 +13,9 @@ const STEPS: StepItem[] = [
 ];
 
 describe("StepsRefined", () => {
-  it("renders section with id=how-it-works", () => {
+  it("renders section with id=steps", () => {
     const { container } = render(<StepsRefined steps={STEPS} />);
-    expect(container.querySelector("section#how-it-works")).toBeInTheDocument();
+    expect(container.querySelector("section#steps")).toBeInTheDocument();
   });
 
   it("renders default heading 'The Process'", () => {

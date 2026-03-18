@@ -7,7 +7,7 @@ export function StepsTimeline({ steps, title, subtitle }: StepsProps) {
   const [focused, setFocused] = useState<number | null>(null);
   return (
     <section
-      id="how-it-works"
+      id="steps"
       style={{
         background: "white",
         padding: "80px 40px",

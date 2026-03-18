@@ -3,7 +3,7 @@ import type { FeaturesProps } from "@/components/sections/types";
 export function ServicesGrid({ items, title, subtitle }: FeaturesProps) {
   return (
     <section
-      id="services"
+      id="features"
       style={{
         padding: "70px 40px",
         maxWidth: "1100px",

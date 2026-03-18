@@ -1,13 +1,14 @@
 import { Nav } from "@/components/Nav";
-import { Hero, StatsBar, Services, HowItWorks, SoldHomes, Testimonials, CmaSection, About, Footer } from "@/components/sections";
-import type { TemplateProps } from "./types";
+import { Hero, StatsBar, Services, HowItWorks, SoldHomes, Testimonials, ProfilesGrid, CmaSection, About, Footer } from "@/components/sections";
+import { type TemplateProps, getEnabledSections } from "./types";
 
 export function EmeraldClassic({ account, content, agent }: TemplateProps) {
   const s = content.pages.home.sections;
   const identity = agent ?? account.agent ?? { id: account.handle, name: account.broker?.name ?? account.brokerage.name, title: account.broker?.title ?? "", phone: "", email: "" };
+  const enabledSections = getEnabledSections(s);
   return (
     <>
-      <Nav account={account} navigation={content.navigation} />
+      <Nav account={account} navigation={content.navigation} enabledSections={enabledSections} />
       <div style={{ paddingTop: "0" }}>
       {s.hero?.enabled && (
         <Hero
@@ -42,6 +43,13 @@ export function EmeraldClassic({ account, content, agent }: TemplateProps) {
         <Testimonials
           items={s.testimonials.data.items}
           title={s.testimonials.data.title}
+        />
+      )}
+      {s.profiles?.enabled && s.profiles.data.items.length > 0 && (
+        <ProfilesGrid
+          items={s.profiles.data.items}
+          title={s.profiles.data.title}
+          subtitle={s.profiles.data.subtitle}
         />
       )}
       {s.contact_form?.enabled && (

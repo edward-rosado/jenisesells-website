@@ -158,8 +158,27 @@ describe("Nav", () => {
     const { container } = render(<Nav account={ACCOUNT} />);
     const desktopLinks = container.querySelector(".nav-desktop-links") as HTMLElement;
     const links = desktopLinks.querySelectorAll("a");
-    expect(links).toHaveLength(DEFAULT_NAV_ITEMS.length);
-    expect(links[0].textContent).toBe(DEFAULT_NAV_ITEMS[0].label);
+    const enabledDefaults = DEFAULT_NAV_ITEMS.filter((i) => i.enabled);
+    expect(links).toHaveLength(enabledDefaults.length);
+    expect(links[0].textContent).toBe(enabledDefaults[0].label);
+  });
+
+  it("filters nav items by enabledSections when provided", () => {
+    const customNav = {
+      items: [
+        { label: "Features", href: "#features", enabled: true },
+        { label: "Stats", href: "#stats", enabled: true },
+        { label: "Gallery", href: "#gallery", enabled: true },
+      ],
+    };
+    // Only features and gallery are enabled sections — stats should be hidden
+    const enabledSections = new Set(["features", "gallery"]);
+    const { container } = render(<Nav account={ACCOUNT} navigation={customNav} enabledSections={enabledSections} />);
+    const desktopLinks = container.querySelector(".nav-desktop-links") as HTMLElement;
+    const links = desktopLinks.querySelectorAll("a");
+    expect(links).toHaveLength(2);
+    expect(links[0].textContent).toBe("Features");
+    expect(links[1].textContent).toBe("Gallery");
   });
 
   it("drawer also renders custom nav items from content", () => {

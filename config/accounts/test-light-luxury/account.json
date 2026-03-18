@@ -1,0 +1,75 @@
+{
+  "handle": "test-light-luxury",
+  "template": "light-luxury",
+  "branding": {
+    "primary_color": "#2c2c2c",
+    "secondary_color": "#8b7355",
+    "accent_color": "#c9a96e",
+    "font_family": "Playfair Display",
+    "logo_url": ""
+  },
+  "brokerage": {
+    "name": "Prestige Properties",
+    "license_number": "PP-FL-5520",
+    "office_phone": "(305) 555-0400",
+    "office_address": "900 Brickell Ave, Suite 1800, Miami, FL 33131"
+  },
+  "agent": {
+    "enabled": true,
+    "id": "test-light-luxury",
+    "name": "Sophie Laurent",
+    "title": "Licensed Real Estate Associate",
+    "phone": "(305) 555-0401",
+    "email": "sophie@prestigeproperties.com",
+    "headshot_url": "/agents/test-light-luxury/headshot.jpg",
+    "license_number": "SL3189742",
+    "languages": [
+      "English",
+      "French",
+      "Spanish"
+    ],
+    "tagline": "Understated elegance."
+  },
+  "location": {
+    "state": "FL",
+    "service_areas": [
+      "Miami Beach",
+      "Coral Gables",
+      "Coconut Grove",
+      "Key Biscayne"
+    ]
+  },
+  "integrations": {
+    "email_provider": "gmail"
+  },
+  "compliance": {
+    "state_form": "FL-FREC-SCDR",
+    "licensing_body": "Florida Department of Business and Professional Regulation",
+    "disclosure_requirements": [
+      "Seller's Property Disclosure",
+      "Lead-based paint disclosure (pre-1978)",
+      "HOA disclosure summary",
+      "Coastal construction control line disclosure"
+    ]
+  },
+  "contact_info": [
+    {
+      "type": "phone",
+      "value": "(305) 555-0401",
+      "label": "Cell Phone",
+      "is_preferred": true
+    },
+    {
+      "type": "phone",
+      "value": "(305) 555-0400",
+      "label": "Office",
+      "is_preferred": false
+    },
+    {
+      "type": "email",
+      "value": "sophie@prestigeproperties.com",
+      "label": "Email",
+      "is_preferred": false
+    }
+  ]
+}

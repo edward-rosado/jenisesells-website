@@ -3,7 +3,7 @@ import type { StepsProps } from "@/components/sections/types";
 export function StepsBreeze({ steps, title, subtitle }: StepsProps) {
   return (
     <section
-      id="how-it-works"
+      id="steps"
       style={{
         background: "#fefcf8",
         padding: "70px 40px",

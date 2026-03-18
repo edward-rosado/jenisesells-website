@@ -186,6 +186,31 @@
             ]
           }
         },
+        "profiles": {
+          "enabled": true,
+          "data": {
+            "title": "Our Team",
+            "subtitle": "Local agents who know your neighborhood.",
+            "items": [
+              {
+                "id": "agent-a",
+                "name": "Miguel Torres",
+                "title": "Buyer Specialist",
+                "phone": "(512) 555-0201",
+                "email": "miguel@santiago-realty.com",
+                "headshot_url": "https://picsum.photos/seed/miguel-torres/400/400"
+              },
+              {
+                "id": "agent-b",
+                "name": "Ashley Brooks",
+                "title": "Listing Coordinator",
+                "phone": "(512) 555-0202",
+                "email": "ashley@santiago-realty.com",
+                "headshot_url": "https://picsum.photos/seed/ashley-brooks/400/400"
+              }
+            ]
+          }
+        },
         "contact_form": {
           "enabled": true,
           "data": {

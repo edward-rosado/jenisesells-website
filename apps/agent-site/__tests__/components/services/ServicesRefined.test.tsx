@@ -15,9 +15,9 @@ const ITEMS: ServiceItem[] = [
 ];
 
 describe("ServicesRefined", () => {
-  it("renders section with id=services", () => {
+  it("renders section with id=features", () => {
     const { container } = render(<ServicesRefined items={ITEMS} />);
-    expect(container.querySelector("section#services")).toBeInTheDocument();
+    expect(container.querySelector("section#features")).toBeInTheDocument();
   });
 
   it("renders default heading 'Our Services'", () => {

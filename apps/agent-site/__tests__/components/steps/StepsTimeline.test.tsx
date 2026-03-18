@@ -36,9 +36,9 @@ describe("StepsTimeline", () => {
     expect(screen.getByText("Schedule walkthrough")).toBeInTheDocument();
   });
 
-  it("has how-it-works section id for anchor linking", () => {
+  it("has steps section id for anchor linking", () => {
     const { container } = render(<StepsTimeline steps={STEPS} />);
-    expect(container.querySelector("#how-it-works")).toBeInTheDocument();
+    expect(container.querySelector("#steps")).toBeInTheDocument();
   });
 
   it("renders subtitle when provided", () => {

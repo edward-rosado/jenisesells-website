@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesIcons, resolveServiceIcon } from "@/components/sections/services/ServicesIcons";
 import type { FeatureItem } from "@/lib/types";
 
@@ -36,9 +36,9 @@ describe("ServicesIcons", () => {
     expect(screen.getByText("Professional photos")).toBeInTheDocument();
   });
 
-  it("uses id=services for anchor linking", () => {
+  it("uses id=features for anchor linking", () => {
     const { container } = render(<ServicesIcons items={ITEMS} />);
-    expect(container.querySelector("#services")).toBeInTheDocument();
+    expect(container.querySelector("#features")).toBeInTheDocument();
   });
 
   it("renders SVG icons inside icon circles", () => {
@@ -62,6 +62,15 @@ describe("ServicesIcons", () => {
   it("renders subtitle when provided", () => {
     render(<ServicesIcons items={ITEMS} subtitle="We go the extra mile" />);
     expect(screen.getByText("We go the extra mile")).toBeInTheDocument();
+  });
+
+  it("lifts card on hover", () => {
+    const { container } = render(<ServicesIcons items={ITEMS} />);
+    const article = container.querySelector("article") as HTMLElement;
+    fireEvent.mouseEnter(article);
+    expect(article.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(article);
+    expect(article.style.transform).toBe("none");
   });
 });
 

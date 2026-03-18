@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StepsFriendly } from "@/components/sections/steps/StepsFriendly";
 import type { StepItem } from "@/lib/types";
 
@@ -36,9 +36,9 @@ describe("StepsFriendly", () => {
     expect(screen.getByText("We run the numbers")).toBeInTheDocument();
   });
 
-  it("uses id=how-it-works for anchor linking", () => {
+  it("uses id=steps for anchor linking", () => {
     const { container } = render(<StepsFriendly steps={STEPS} />);
-    expect(container.querySelector("#how-it-works")).toBeInTheDocument();
+    expect(container.querySelector("#steps")).toBeInTheDocument();
   });
 
   it("renders step numbers", () => {
@@ -50,7 +50,7 @@ describe("StepsFriendly", () => {
 
   it("uses warm soft rounded cards", () => {
     const { container } = render(<StepsFriendly steps={STEPS} />);
-    const section = container.querySelector("#how-it-works");
+    const section = container.querySelector("#steps");
     expect(section?.style.background).toBe("rgb(255, 248, 240)");
   });
 
@@ -65,5 +65,14 @@ describe("StepsFriendly", () => {
     expect(ol).toBeInTheDocument();
     const items = ol?.querySelectorAll("li");
     expect(items?.length).toBe(3);
+  });
+
+  it("lifts step card on hover", () => {
+    const { container } = render(<StepsFriendly steps={STEPS} />);
+    const li = container.querySelector("li") as HTMLElement;
+    fireEvent.mouseEnter(li);
+    expect(li.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(li);
+    expect(li.style.transform).toBe("none");
   });
 });

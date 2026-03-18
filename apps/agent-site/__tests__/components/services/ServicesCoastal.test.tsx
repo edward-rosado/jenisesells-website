@@ -37,9 +37,9 @@ describe("ServicesCoastal", () => {
     expect(screen.getByText("Know what your waterfront home is worth.")).toBeInTheDocument();
   });
 
-  it("has id=services for anchor linking", () => {
+  it("has id=features for anchor linking", () => {
     const { container } = render(<ServicesCoastal items={ITEMS} />);
-    expect(container.querySelector("#services")).toBeInTheDocument();
+    expect(container.querySelector("#features")).toBeInTheDocument();
   });
 
   it("renders each service as an article element", () => {

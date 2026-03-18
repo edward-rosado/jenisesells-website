@@ -31,7 +31,7 @@ export function CmaSection({
   const { state, submit } = useCmaSubmit(API_BASE_URL, {
     onError: (err) => {
       Sentry.captureException(err, {
-        tags: { agentId, feature: "cma-form" },
+        tags: { agentId, feature: "contact_form" },
       });
     },
   });
@@ -53,7 +53,7 @@ export function CmaSection({
 
   return (
     <section
-      id="cma-form"
+      id="contact_form"
       aria-label="Home Value Request Form"
       style={{
         background: "#f7f7f7",

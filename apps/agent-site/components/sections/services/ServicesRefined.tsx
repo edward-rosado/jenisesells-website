@@ -3,7 +3,7 @@ import type { ServicesProps } from "@/components/sections/types";
 export function ServicesRefined({ items, title, subtitle }: ServicesProps) {
   return (
     <section
-      id="services"
+      id="features"
       style={{
         padding: "80px 0",
       }}

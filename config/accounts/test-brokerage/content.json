@@ -2,7 +2,9 @@
   "navigation": {
     "items": [
       { "label": "Home", "href": "#hero", "enabled": true },
+      { "label": "Stats", "href": "#stats", "enabled": true },
       { "label": "Services", "href": "#features", "enabled": true },
+      { "label": "How It Works", "href": "#steps", "enabled": true },
       { "label": "Team", "href": "#profiles", "enabled": true },
       { "label": "Portfolio", "href": "#gallery", "enabled": true },
       { "label": "Reviews", "href": "#testimonials", "enabled": true },
@@ -47,9 +49,32 @@
           }
         },
         "steps": {
-          "enabled": false,
+          "enabled": true,
           "data": {
-            "steps": []
+            "title": "How We Work",
+            "subtitle": "A proven process for commercial and luxury real estate transactions.",
+            "steps": [
+              {
+                "number": 1,
+                "title": "Strategy Session",
+                "description": "We begin with a confidential consultation to understand your investment goals, timeline, and target property profile."
+              },
+              {
+                "number": 2,
+                "title": "Market Intelligence",
+                "description": "Our team delivers a comprehensive commercial market analysis — cap rates, comparables, and opportunity gaps in your target area."
+              },
+              {
+                "number": 3,
+                "title": "Deal Execution",
+                "description": "We identify, negotiate, and structure the transaction — from LOI through due diligence and closing."
+              },
+              {
+                "number": 4,
+                "title": "Post-Closing Support",
+                "description": "We stay engaged after closing — helping with asset management introductions, 1031 exchange planning, and future acquisitions."
+              }
+            ]
           }
         },
         "gallery": {
@@ -58,8 +83,48 @@
             "title": "Recent Sales",
             "subtitle": "A selection of properties sold by our team.",
             "items": [
-              { "address": "100 Summit Ave", "city": "Summit", "state": "NJ", "price": "$2,100,000" },
-              { "address": "55 Old Short Hills Rd", "city": "Short Hills", "state": "NJ", "price": "$1,850,000" }
+              {
+                "address": "100 Summit Ave",
+                "city": "Summit",
+                "state": "NJ",
+                "price": "$2,100,000",
+                "image_url": "https://picsum.photos/seed/summit-ave/600/400"
+              },
+              {
+                "address": "55 Old Short Hills Rd",
+                "city": "Short Hills",
+                "state": "NJ",
+                "price": "$1,850,000",
+                "image_url": "https://picsum.photos/seed/short-hills-rd/600/400"
+              },
+              {
+                "address": "310 Elm St",
+                "city": "Chatham",
+                "state": "NJ",
+                "price": "$1,650,000",
+                "image_url": "https://picsum.photos/seed/chatham-elm/600/400"
+              },
+              {
+                "address": "22 Hobart Ave",
+                "city": "Summit",
+                "state": "NJ",
+                "price": "$2,450,000",
+                "image_url": "https://picsum.photos/seed/summit-hobart/600/400"
+              },
+              {
+                "address": "7 Knollwood Rd",
+                "city": "Short Hills",
+                "state": "NJ",
+                "price": "$3,100,000",
+                "image_url": "https://picsum.photos/seed/short-hills-knollwood/600/400"
+              },
+              {
+                "address": "450 Fairmount Ave",
+                "city": "Chatham",
+                "state": "NJ",
+                "price": "$1,975,000",
+                "image_url": "https://picsum.photos/seed/chatham-fairmount/600/400"
+              }
             ]
           }
         },
@@ -70,7 +135,10 @@
             "subtitle": "What our clients say about working with Sterling & Associates.",
             "items": [
               { "text": "Victoria and her team made selling our home a seamless experience. Their market knowledge is unmatched.", "reviewer": "The Hendersons", "rating": 5, "source": "Google" },
-              { "text": "James found us the perfect property in Summit. Professional, knowledgeable, and always available.", "reviewer": "Mark & Lisa P.", "rating": 5, "source": "Zillow" }
+              { "text": "James found us the perfect property in Summit. Professional, knowledgeable, and always available.", "reviewer": "Mark & Lisa P.", "rating": 5, "source": "Zillow" },
+              { "text": "Sarah negotiated $120K off our Short Hills purchase. Her strategy in a competitive bidding situation was brilliant — we never felt outmatched.", "reviewer": "The Okafor Family", "rating": 5, "source": "Google" },
+              { "text": "Sterling & Associates handled our commercial property sale with complete discretion and professionalism. Closed in 45 days, well above our asking price.", "reviewer": "David K.", "rating": 5, "source": "Google" },
+              { "text": "We relocated from London and Victoria's team made the entire process feel effortless. They understood exactly what we were looking for and delivered.", "reviewer": "The Ashworth-Williams Family", "rating": 5, "source": "Zillow" }
             ]
           }
         },
@@ -80,8 +148,54 @@
             "title": "Meet Our Team",
             "subtitle": "Experienced agents dedicated to your success.",
             "items": [
-              { "id": "agent-a", "name": "James Whitfield", "title": "Senior Associate", "phone": "(908) 555-0101", "email": "james@sterling.com" },
-              { "id": "agent-b", "name": "Sarah Chen", "title": "Luxury Specialist", "phone": "(908) 555-0102", "email": "sarah@sterling.com" }
+              {
+                "id": "agent-a",
+                "name": "James Whitfield",
+                "title": "Senior Associate",
+                "phone": "(908) 555-0101",
+                "email": "james@sterling.com",
+                "headshot_url": "https://picsum.photos/seed/james-whitfield/400/400"
+              },
+              {
+                "id": "agent-b",
+                "name": "Sarah Chen",
+                "title": "Luxury Specialist",
+                "phone": "(908) 555-0102",
+                "email": "sarah@sterling.com",
+                "headshot_url": "https://picsum.photos/seed/sarah-chen/400/400"
+              },
+              {
+                "id": "agent-c",
+                "name": "Robert Dalton",
+                "title": "Commercial Director",
+                "phone": "(908) 555-0103",
+                "email": "robert@sterling.com",
+                "headshot_url": "https://picsum.photos/seed/robert-dalton/400/400"
+              },
+              {
+                "id": "agent-d",
+                "name": "Priya Mehta",
+                "title": "Buyer Specialist",
+                "phone": "(908) 555-0104",
+                "email": "priya@sterling.com",
+                "headshot_url": "https://picsum.photos/seed/priya-mehta/400/400"
+              },
+              {
+                "id": "agent-e",
+                "name": "Thomas Reilly",
+                "title": "Investment Advisor",
+                "phone": "(908) 555-0105",
+                "email": "thomas@sterling.com",
+                "headshot_url": "https://picsum.photos/seed/thomas-reilly/400/400"
+              },
+              {
+                "id": "agent-f",
+                "name": "Angela Moreau",
+                "title": "Listing Coordinator",
+                "phone": "(908) 555-0106",
+                "email": "angela@sterling.com",
+                "headshot_url": "https://picsum.photos/seed/angela-moreau/400/400"
+              }
             ]
           }
         },

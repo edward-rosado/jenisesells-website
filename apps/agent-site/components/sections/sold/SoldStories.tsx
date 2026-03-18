@@ -108,7 +108,7 @@ function StoryCard({ item }: { item: GalleryItem }) {
 export function SoldStories({ items, title, subtitle }: SoldHomesProps) {
   return (
     <section
-      id="sold"
+      id="gallery"
       style={{
         background: "white",
         padding: "70px 40px",

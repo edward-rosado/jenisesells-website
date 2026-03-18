@@ -9,6 +9,8 @@ import type { AccountConfig, NavigationConfig, ContactMethod } from "@/lib/types
 interface NavProps {
   account: AccountConfig;
   navigation?: NavigationConfig;
+  /** Set of enabled section IDs (e.g. "features", "testimonials") — nav items linking to disabled sections are hidden */
+  enabledSections?: Set<string>;
 }
 
 function OfficeIcon({ size = 14 }: { size?: number }) {
@@ -38,10 +40,12 @@ function EmailIcon({ size = 14 }: { size?: number }) {
 
 /** Default section nav links — used when content.navigation is not provided */
 export const DEFAULT_NAV_ITEMS = [
+  { label: "Stats", href: "#stats", enabled: false },
   { label: "Why Choose Me", href: "#features", enabled: true },
   { label: "How It Works", href: "#steps", enabled: true },
   { label: "Recent Sales", href: "#gallery", enabled: true },
   { label: "Testimonials", href: "#testimonials", enabled: true },
+  { label: "Profiles", href: "#profiles", enabled: false },
   { label: "Ready to Move?", href: "#contact_form", enabled: true },
   { label: "About", href: "#about", enabled: true },
 ];
@@ -57,7 +61,7 @@ function formatPhoneDisplay(value: string, ext?: string | null): string {
   return ext ? `${value} ext ${ext}` : value;
 }
 
-export function Nav({ account, navigation }: NavProps) {
+export function Nav({ account, navigation, enabledSections }: NavProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { branding } = account;
   const hamburgerRef = useRef<HTMLButtonElement>(null);
@@ -105,7 +109,15 @@ export function Nav({ account, navigation }: NavProps) {
   }, [drawerOpen]);
 
   const navItems = navigation?.items ?? DEFAULT_NAV_ITEMS;
-  const enabledItems = navItems.filter((item) => item.enabled);
+  const enabledItems = navItems.filter((item) => {
+    if (!item.enabled) return false;
+    // If enabledSections is provided, filter out hash links to missing sections
+    if (enabledSections && item.href.startsWith("#")) {
+      const sectionId = item.href.slice(1);
+      return enabledSections.has(sectionId);
+    }
+    return true;
+  });
   const prefix = isHome ? "" : "/";
   const qsSuffix = qs ? `?${qs}` : "";
   const sections = enabledItems.map((item) => ({

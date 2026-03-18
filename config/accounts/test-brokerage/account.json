@@ -1,6 +1,6 @@
 {
   "handle": "test-brokerage",
-  "template": "emerald-classic",
+  "template": "commercial",
   "branding": {
     "primary_color": "#1a1a2e",
     "secondary_color": "#16213e",
@@ -11,12 +11,14 @@
     "name": "Sterling & Associates Real Estate",
     "license_number": "NJ-2024-12345",
     "office_address": "100 Summit Ave, Summit, NJ 07901",
-    "office_phone": "(908) 555-0100"
+    "office_phone": "(908) 555-0100",
+    "logo_url": "https://picsum.photos/seed/sterling-logo/200/80"
   },
   "broker": {
     "name": "Victoria Sterling",
     "title": "Managing Broker",
-    "bio": "30 years of luxury real estate experience."
+    "bio": "30 years of luxury real estate experience.",
+    "headshot_url": "https://picsum.photos/seed/victoria-sterling/400/400"
   },
   "location": {
     "state": "NJ",

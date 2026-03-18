@@ -1,0 +1,73 @@
+{
+  "handle": "test-urban-loft",
+  "template": "urban-loft",
+  "branding": {
+    "primary_color": "#1a1a2e",
+    "secondary_color": "#16213e",
+    "accent_color": "#ff6b35",
+    "font_family": "Inter",
+    "logo_url": ""
+  },
+  "brokerage": {
+    "name": "Urban Loft Realty",
+    "license_number": "ULR-IL-4410",
+    "office_phone": "(312) 555-0200",
+    "office_address": "1200 W Fullerton Ave, Suite 300, Chicago, IL 60614"
+  },
+  "agent": {
+    "enabled": true,
+    "id": "test-urban-loft",
+    "name": "Marcus Chen",
+    "title": "Licensed Real Estate Broker",
+    "phone": "(312) 555-0201",
+    "email": "marcus@urbanloftrealty.com",
+    "headshot_url": "/agents/test-urban-loft/headshot.jpg",
+    "license_number": "475190234",
+    "languages": [
+      "English",
+      "Mandarin"
+    ],
+    "tagline": "Loft living, redefined."
+  },
+  "location": {
+    "state": "IL",
+    "service_areas": [
+      "Logan Square",
+      "Wicker Park",
+      "Bucktown",
+      "West Loop"
+    ]
+  },
+  "integrations": {
+    "email_provider": "gmail"
+  },
+  "compliance": {
+    "state_form": "IL-RPD",
+    "licensing_body": "Illinois Department of Financial and Professional Regulation",
+    "disclosure_requirements": [
+      "Residential Real Property Disclosure Report",
+      "Lead-based paint disclosure (pre-1978)",
+      "Radon disclosure"
+    ]
+  },
+  "contact_info": [
+    {
+      "type": "phone",
+      "value": "(312) 555-0201",
+      "label": "Cell Phone",
+      "is_preferred": true
+    },
+    {
+      "type": "phone",
+      "value": "(312) 555-0200",
+      "label": "Office",
+      "is_preferred": false
+    },
+    {
+      "type": "email",
+      "value": "marcus@urbanloftrealty.com",
+      "label": "Email",
+      "is_preferred": false
+    }
+  ]
+}

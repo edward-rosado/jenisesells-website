@@ -13,9 +13,9 @@ const ITEMS: SoldHomeItem[] = [
 ];
 
 describe("SoldCompact", () => {
-  it("renders section with id=sold", () => {
+  it("renders section with id=gallery", () => {
     const { container } = render(<SoldCompact items={ITEMS} />);
-    expect(container.querySelector("section#sold")).toBeInTheDocument();
+    expect(container.querySelector("section#gallery")).toBeInTheDocument();
   });
 
   it("renders the default heading when no title provided", () => {
@@ -64,7 +64,7 @@ describe("SoldCompact", () => {
 
   it("renders empty section gracefully when items is empty", () => {
     const { container } = render(<SoldCompact items={[]} />);
-    expect(container.querySelector("section#sold")).toBeInTheDocument();
+    expect(container.querySelector("section#gallery")).toBeInTheDocument();
   });
 
   it("renders subtitle when provided", () => {

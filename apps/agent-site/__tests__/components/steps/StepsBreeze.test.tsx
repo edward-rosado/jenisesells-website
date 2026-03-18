@@ -44,9 +44,9 @@ describe("StepsBreeze", () => {
     expect(screen.getByText("Sign the papers and pop the champagne.")).toBeInTheDocument();
   });
 
-  it("has id=how-it-works for anchor linking", () => {
+  it("has id=steps for anchor linking", () => {
     const { container } = render(<StepsBreeze steps={STEPS} />);
-    expect(container.querySelector("#how-it-works")).toBeInTheDocument();
+    expect(container.querySelector("#steps")).toBeInTheDocument();
   });
 
   it("step number circles have teal background", () => {

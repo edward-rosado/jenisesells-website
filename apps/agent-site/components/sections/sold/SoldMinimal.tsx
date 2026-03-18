@@ -4,7 +4,7 @@ import type { GalleryProps } from "@/components/sections/types";
 export function SoldMinimal({ items, title, subtitle }: GalleryProps) {
   return (
     <section
-      id="sold"
+      id="gallery"
       style={{
         padding: "80px 40px",
         maxWidth: "1000px",

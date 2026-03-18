@@ -45,9 +45,9 @@ describe("ServicesCommercial", () => {
     expect(screen.getByText("Secure the best lease terms.")).toBeInTheDocument();
   });
 
-  it("uses id=services for anchor linking", () => {
+  it("uses id=features for anchor linking", () => {
     const { container } = render(<ServicesCommercial items={ITEMS_FLAT} />);
-    expect(container.querySelector("#services")).toBeInTheDocument();
+    expect(container.querySelector("#features")).toBeInTheDocument();
   });
 
   it("renders article elements for each service item (flat)", () => {

@@ -4,7 +4,7 @@ import type { SoldHomesProps } from "@/components/sections/types";
 export function SoldEstate({ items, title, subtitle }: SoldHomesProps) {
   return (
     <section
-      id="sold"
+      id="gallery"
       style={{
         background: "var(--color-bg, #faf6f0)",
         padding: "70px 40px",

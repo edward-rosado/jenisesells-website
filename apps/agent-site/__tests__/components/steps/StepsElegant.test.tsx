@@ -13,9 +13,9 @@ const STEPS: StepItem[] = [
 ];
 
 describe("StepsElegant", () => {
-  it("renders section with id=how-it-works", () => {
+  it("renders section with id=steps", () => {
     const { container } = render(<StepsElegant steps={STEPS} />);
-    expect(container.querySelector("section#how-it-works")).toBeInTheDocument();
+    expect(container.querySelector("section#steps")).toBeInTheDocument();
   });
 
   it("renders default heading 'How It Works' when title is not provided", () => {
@@ -63,7 +63,7 @@ describe("StepsElegant", () => {
 
   it("uses dark background on section", () => {
     const { container } = render(<StepsElegant steps={STEPS} />);
-    const section = container.querySelector("section#how-it-works");
+    const section = container.querySelector("section#steps");
     expect(section!.style.background).toContain("color-primary");
   });
 

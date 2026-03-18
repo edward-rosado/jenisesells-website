@@ -3,6 +3,7 @@ import type { StatsProps } from "@/components/sections/types";
 export function StatsCards({ items, sourceDisclaimer }: StatsProps) {
   return (
     <section
+      id="stats"
       aria-label="Agent statistics"
       style={{
         padding: "50px 40px",

@@ -1,0 +1,73 @@
+{
+  "handle": "test-new-beginnings",
+  "template": "new-beginnings",
+  "branding": {
+    "primary_color": "#2d4a3e",
+    "secondary_color": "#3a5f50",
+    "accent_color": "#5a9e7c",
+    "font_family": "Nunito",
+    "logo_url": ""
+  },
+  "brokerage": {
+    "name": "Heartland Homes",
+    "license_number": "HH-NC-3305",
+    "office_phone": "(704) 555-0300",
+    "office_address": "1400 South Blvd, Suite 200, Charlotte, NC 28203"
+  },
+  "agent": {
+    "enabled": true,
+    "id": "test-new-beginnings",
+    "name": "Rachel Kim",
+    "title": "Licensed Real Estate Broker",
+    "phone": "(704) 555-0301",
+    "email": "rachel@heartlandhomesclt.com",
+    "headshot_url": "/agents/test-new-beginnings/headshot.jpg",
+    "license_number": "NC-312847",
+    "languages": [
+      "English",
+      "Korean"
+    ],
+    "tagline": "Your new chapter starts here."
+  },
+  "location": {
+    "state": "NC",
+    "service_areas": [
+      "Charlotte",
+      "Dilworth",
+      "Myers Park",
+      "NoDa"
+    ]
+  },
+  "integrations": {
+    "email_provider": "gmail"
+  },
+  "compliance": {
+    "state_form": "NC-REC-RCSD",
+    "licensing_body": "North Carolina Real Estate Commission",
+    "disclosure_requirements": [
+      "Residential Property and Owners' Association Disclosure Statement",
+      "Lead-based paint disclosure (pre-1978)",
+      "Mineral and oil rights disclosure"
+    ]
+  },
+  "contact_info": [
+    {
+      "type": "phone",
+      "value": "(704) 555-0301",
+      "label": "Cell Phone",
+      "is_preferred": true
+    },
+    {
+      "type": "phone",
+      "value": "(704) 555-0300",
+      "label": "Office",
+      "is_preferred": false
+    },
+    {
+      "type": "email",
+      "value": "rachel@heartlandhomesclt.com",
+      "label": "Email",
+      "is_preferred": false
+    }
+  ]
+}

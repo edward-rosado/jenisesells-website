@@ -91,6 +91,7 @@ export const CONTENT: ContentConfig = {
       { label: "How It Works", href: "#steps", enabled: true },
       { label: "Recent Sales", href: "#gallery", enabled: true },
       { label: "Testimonials", href: "#testimonials", enabled: true },
+      { label: "Team", href: "#profiles", enabled: true },
       { label: "Ready to Move?", href: "#contact_form", enabled: true },
       { label: "About", href: "#about", enabled: true },
     ],
@@ -155,6 +156,17 @@ export const CONTENT: ContentConfig = {
             ],
           },
         },
+        profiles: {
+          enabled: true,
+          data: {
+            title: "Our Team",
+            subtitle: "Meet the experts",
+            items: [
+              { id: "agent-1", name: "Jane Smith", title: "REALTOR", phone: "555-123-4567", email: "jane@example.com" },
+              { id: "agent-2", name: "John Doe", title: "Broker", phone: "555-987-6543", email: "john@example.com" },
+            ],
+          },
+        },
         contact_form: {
           enabled: true,
           data: {
@@ -189,6 +201,7 @@ export const CONTENT_ALL_DISABLED: ContentConfig = {
         steps: { enabled: false, data: { steps: [] } },
         gallery: { enabled: false, data: { items: [] } },
         testimonials: { enabled: false, data: { items: [] } },
+        profiles: { enabled: false, data: { items: [] } },
         contact_form: { enabled: false, data: { title: "", subtitle: "" } },
         about: { enabled: false, data: { bio: "", credentials: [] } },
         city_pages: { enabled: false, data: { cities: [] } },

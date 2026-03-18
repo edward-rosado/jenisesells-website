@@ -28,9 +28,9 @@ describe("SoldMinimal", () => {
     expect(screen.getByText(/456 Elm Ave/)).toBeInTheDocument();
   });
 
-  it("has sold section id for anchor linking", () => {
+  it("has gallery section id for anchor linking", () => {
     const { container } = render(<SoldMinimal items={ITEMS} />);
-    expect(container.querySelector("#sold")).toBeInTheDocument();
+    expect(container.querySelector("#gallery")).toBeInTheDocument();
   });
 
   it("renders custom title", () => {
@@ -61,7 +61,7 @@ describe("SoldMinimal", () => {
 
   it("does not render subtitle when omitted", () => {
     const { container } = render(<SoldMinimal items={ITEMS} />);
-    const section = container.querySelector("#sold");
+    const section = container.querySelector("#gallery");
     const paragraphs = section?.querySelectorAll("p");
     expect(paragraphs?.length ?? 0).toBe(0);
   });

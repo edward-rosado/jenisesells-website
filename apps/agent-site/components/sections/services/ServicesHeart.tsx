@@ -3,7 +3,7 @@ import type { ServicesProps } from "@/components/sections/types";
 export function ServicesHeart({ items, title, subtitle }: ServicesProps) {
   return (
     <section
-      id="services"
+      id="features"
       style={{
         background: "white",
         padding: "70px 40px",

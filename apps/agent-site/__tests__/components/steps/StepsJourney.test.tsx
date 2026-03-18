@@ -44,9 +44,9 @@ describe("StepsJourney", () => {
     expect(screen.getByText("You'll step into a place that feels right.")).toBeInTheDocument();
   });
 
-  it("uses id=how-it-works for anchor linking", () => {
+  it("uses id=steps for anchor linking", () => {
     const { container } = render(<StepsJourney steps={STEPS} />);
-    expect(container.querySelector("#how-it-works")).toBeInTheDocument();
+    expect(container.querySelector("#steps")).toBeInTheDocument();
   });
 
   it("renders subtitle when provided", () => {

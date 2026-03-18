@@ -1,0 +1,208 @@
+{
+  "navigation": {
+    "items": [
+      { "label": "Stats", "href": "#stats", "enabled": true },
+      { "label": "Services", "href": "#features", "enabled": true },
+      { "label": "How It Works", "href": "#steps", "enabled": true },
+      { "label": "Recent Sales", "href": "#gallery", "enabled": true },
+      { "label": "Reviews", "href": "#testimonials", "enabled": true },
+      { "label": "Get Started", "href": "#contact_form", "enabled": true },
+      { "label": "About", "href": "#about", "enabled": true }
+    ]
+  },
+  "pages": {
+    "home": {
+      "sections": {
+        "hero": {
+          "enabled": true,
+          "data": {
+            "headline": "Chicago Loft Living Starts Here",
+            "tagline": "Loft living, redefined.",
+            "body": "I'm Marcus Chen — a licensed Chicago real estate broker specializing in loft conversions, timber-frame units, and modern condos across Logan Square, Wicker Park, Bucktown, and the West Loop. I help buyers and sellers navigate Chicago's most sought-after neighborhoods with market expertise and a hands-on approach.",
+            "cta_text": "Get Your Free Market Analysis",
+            "cta_link": "#cma-form"
+          }
+        },
+        "stats": {
+          "enabled": true,
+          "data": {
+            "items": [
+              {
+                "value": "200+",
+                "label": "Lofts & Condos Sold"
+              },
+              {
+                "value": "4.9 ★",
+                "label": "Google Rating"
+              },
+              {
+                "value": "12+",
+                "label": "Years in Chicago"
+              },
+              {
+                "value": "$62M+",
+                "label": "Total Sales Volume"
+              }
+            ]
+          }
+        },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "What I Offer",
+            "subtitle": "Specialized service for Chicago's loft and condo market.",
+            "items": [
+              {
+                "title": "Loft Market Analysis",
+                "description": "Detailed pricing reports using comparable loft sales, building assessments, and neighborhood-level appreciation trends."
+              },
+              {
+                "title": "Building Due Diligence",
+                "description": "Full HOA financials review, reserve fund analysis, and special assessment history before you commit."
+              },
+              {
+                "title": "Negotiation Strategy",
+                "description": "Proven tactics for winning in multi-offer situations — I've secured over 30 deals below asking this year."
+              },
+              {
+                "title": "Seller Staging & Marketing",
+                "description": "Professional photography, 3D tours, and targeted digital marketing to showcase your space to the right buyers."
+              },
+              {
+                "title": "Investment Analysis",
+                "description": "Rental yield projections, Airbnb potential assessments, and long-term appreciation forecasts for investor clients."
+              }
+            ]
+          }
+        },
+        "steps": {
+          "enabled": true,
+          "data": {
+            "title": "How It Works",
+            "subtitle": "Three steps to your next loft.",
+            "steps": [
+              {
+                "number": 1,
+                "title": "Share Your Vision",
+                "description": "Tell me what you're looking for — loft style, neighborhood, budget, and must-haves."
+              },
+              {
+                "number": 2,
+                "title": "Get Your Market Report",
+                "description": "Receive a personalized analysis with comparable sales, pricing trends, and my honest take on the market."
+              },
+              {
+                "number": 3,
+                "title": "Tour & Close",
+                "description": "Schedule private showings, make your move, and I'll handle everything through closing day."
+              }
+            ]
+          }
+        },
+        "gallery": {
+          "enabled": true,
+          "data": {
+            "title": "Recent Sales",
+            "subtitle": "Closed deals across Chicago's hottest loft neighborhoods.",
+            "items": [
+              {
+                "address": "1872 N Milwaukee Ave, Unit 3F",
+                "city": "Logan Square",
+                "state": "IL",
+                "price": "$485,000",
+                "image_url": "/agents/test-urban-loft/sold/1872-n-milwaukee-ave.jpg"
+              },
+              {
+                "address": "1340 W Randolph St, Unit 5A",
+                "city": "West Loop",
+                "state": "IL",
+                "price": "$620,000",
+                "image_url": "/agents/test-urban-loft/sold/1340-w-randolph-st.jpg"
+              },
+              {
+                "address": "2035 N Damen Ave, Unit 2R",
+                "city": "Bucktown",
+                "state": "IL",
+                "price": "$415,000",
+                "image_url": "/agents/test-urban-loft/sold/2035-n-damen-ave.jpg"
+              },
+              {
+                "address": "1550 N Hoyne Ave, Unit 4W",
+                "city": "Wicker Park",
+                "state": "IL",
+                "price": "$535,000",
+                "image_url": "/agents/test-urban-loft/sold/1550-n-hoyne-ave.jpg"
+              }
+            ]
+          }
+        },
+        "testimonials": {
+          "enabled": true,
+          "data": {
+            "title": "Client Reviews",
+            "subtitle": "What past clients say about working with me.",
+            "items": [
+              {
+                "text": "Marcus found us the perfect timber-loft in Logan Square within two weeks. His knowledge of the building's history and HOA financials gave us total confidence. Couldn't be happier.",
+                "reviewer": "David & Lina P.",
+                "rating": 5,
+                "source": "Google"
+              },
+              {
+                "text": "We were first-time buyers overwhelmed by the Chicago market. Marcus broke everything down, helped us negotiate $18K off asking, and made the whole process feel easy.",
+                "reviewer": "Jordan T.",
+                "rating": 5,
+                "source": "Zillow"
+              },
+              {
+                "text": "Sold our West Loop condo in 5 days at full asking price. Marcus's staging advice and marketing plan were next-level. Highly recommend for anyone in the loft market.",
+                "reviewer": "Keiko & Ben S.",
+                "rating": 4,
+                "source": "Google"
+              }
+            ]
+          }
+        },
+        "contact_form": {
+          "enabled": true,
+          "data": {
+            "title": "What's Your Property Worth?",
+            "subtitle": "Get a free Chicago market analysis in minutes.",
+            "description": "Enter your address below and I'll send you a detailed market analysis with comparable sales, price trends, and my professional valuation. **100% free, no strings.**"
+          }
+        },
+        "about": {
+          "enabled": true,
+          "data": {
+            "title": "About Marcus",
+            "bio": [
+              "I'm Marcus Chen — a licensed real estate broker with Urban Loft Realty, focused exclusively on Chicago's loft, condo, and converted-space market. Over 12 years and 200+ transactions, I've built deep expertise in the neighborhoods where industrial meets modern.",
+              "My approach combines market data with genuine neighborhood knowledge. I grew up on the Northwest Side, went to school in Wicker Park, and have watched these neighborhoods evolve. That context matters when you're making the biggest purchase of your life.",
+              "When I'm not showing lofts, you'll find me at local coffee shops, cycling the 606 trail, or exploring Chicago's food scene."
+            ],
+            "credentials": [
+              "Licensed IL Broker",
+              "200+ Lofts & Condos Sold",
+              "Top 5% Chicago Volume",
+              "Fluent in Mandarin"
+            ]
+          }
+        },
+        "city_pages": {
+          "enabled": false,
+          "data": {
+            "cities": []
+          }
+        }
+      }
+    },
+    "thank_you": {
+      "heading": "Thank You!",
+      "subheading": "Your Market Analysis Is Being Prepared",
+      "body": "{firstName} will send your personalized Chicago market report to your email shortly.",
+      "disclaimer": "This report is a Comparative Market Analysis (CMA) and is not an appraisal.",
+      "cta_call": "Call {firstName}: {phone}",
+      "cta_back": "Back to {firstName}'s Site"
+    }
+  }
+}

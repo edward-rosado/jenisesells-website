@@ -6,18 +6,20 @@ import {
   StepsRefined,
   SoldElegant,
   TestimonialsQuote,
+  ProfilesClean,
   CmaSection,
   AboutGrace,
   Footer,
 } from "@/components/sections";
-import type { TemplateProps } from "./types";
+import { type TemplateProps, getEnabledSections } from "./types";
 
 export function LightLuxury({ account, content, agent }: TemplateProps) {
   const s = content.pages.home.sections;
   const identity = agent ?? account.agent ?? { id: account.handle, name: account.broker?.name ?? account.brokerage.name, title: account.broker?.title ?? "", phone: "", email: "" };
+  const enabledSections = getEnabledSections(s);
   return (
     <>
-      <Nav account={account} navigation={content.navigation} />
+      <Nav account={account} navigation={content.navigation} enabledSections={enabledSections} />
       <div style={{ paddingTop: "0" }}>
         {s.hero?.enabled && (
           <HeroAiry
@@ -54,6 +56,13 @@ export function LightLuxury({ account, content, agent }: TemplateProps) {
           <TestimonialsQuote
             items={s.testimonials.data.items}
             title={s.testimonials.data.title}
+          />
+        )}
+        {s.profiles?.enabled && s.profiles.data.items.length > 0 && (
+          <ProfilesClean
+            items={s.profiles.data.items}
+            title={s.profiles.data.title}
+            subtitle={s.profiles.data.subtitle}
           />
         )}
         {s.contact_form?.enabled && (

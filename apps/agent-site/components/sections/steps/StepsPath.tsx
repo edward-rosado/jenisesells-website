@@ -3,7 +3,7 @@ import type { StepsProps } from "@/components/sections/types";
 export function StepsPath({ steps, title, subtitle }: StepsProps) {
   return (
     <section
-      id="how-it-works"
+      id="steps"
       style={{
         background: "var(--color-stone, #e8e2d8)",
         padding: "80px 40px",

@@ -44,9 +44,9 @@ describe("StepsCorporate", () => {
     expect(screen.getByText("Close with confidence.")).toBeInTheDocument();
   });
 
-  it("uses id=how-it-works for anchor linking", () => {
+  it("uses id=steps for anchor linking", () => {
     const { container } = render(<StepsCorporate steps={STEPS} />);
-    expect(container.querySelector("#how-it-works")).toBeInTheDocument();
+    expect(container.querySelector("#steps")).toBeInTheDocument();
   });
 
   it("renders blue number circles", () => {

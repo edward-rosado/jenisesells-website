@@ -56,9 +56,9 @@ describe("StepsPath", () => {
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 
-  it("renders section with id=how-it-works", () => {
+  it("renders section with id=steps", () => {
     const { container } = render(<StepsPath steps={STEPS} />);
-    expect(container.querySelector("#how-it-works")).toBeInTheDocument();
+    expect(container.querySelector("#steps")).toBeInTheDocument();
   });
 
   it("renders a dotted/dashed connecting line between steps", () => {
