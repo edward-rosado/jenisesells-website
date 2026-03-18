@@ -116,6 +116,8 @@ export const legalContent: Record<string, Record<string, { above?: string; below
 export const customDomains: Record<string, string> = ${JSON.stringify(customDomains, null, 2)};
 
 export const accountHandles: Set<string> = new Set(${JSON.stringify(handles)});
+
+export const agentIds: Set<string> = accountHandles;
 `;
 
   fs.writeFileSync(OUTPUT, output, "utf-8");
