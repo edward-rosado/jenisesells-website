@@ -1,0 +1,208 @@
+{
+  "navigation": {
+    "items": [
+      { "label": "Stats", "href": "#stats", "enabled": true },
+      { "label": "Why Choose Me", "href": "#features", "enabled": true },
+      { "label": "How It Works", "href": "#steps", "enabled": true },
+      { "label": "Recent Sales", "href": "#gallery", "enabled": true },
+      { "label": "Testimonials", "href": "#testimonials", "enabled": true },
+      { "label": "Ready to Move?", "href": "#contact_form", "enabled": true },
+      { "label": "About", "href": "#about", "enabled": true }
+    ]
+  },
+  "pages": {
+    "home": {
+      "sections": {
+        "hero": {
+          "enabled": true,
+          "data": {
+            "headline": "Find Your Perfect NYC Home",
+            "tagline": "City Living. Simplified.",
+            "body": "I'm Alex Rivera — a licensed NYC real estate professional specializing in Manhattan condos, Brooklyn brownstones, and Queens co-ops. With deep neighborhood knowledge and a data-first approach, I help clients make confident decisions in the city's fastest-moving market.",
+            "cta_text": "Get Your Free Market Analysis",
+            "cta_link": "#cma-form"
+          }
+        },
+        "stats": {
+          "enabled": true,
+          "data": {
+            "items": [
+              {
+                "value": "150+",
+                "label": "Transactions Closed"
+              },
+              {
+                "value": "4.8 ★",
+                "label": "Google Rating"
+              },
+              {
+                "value": "8+",
+                "label": "Years in NYC"
+              },
+              {
+                "value": "$45M+",
+                "label": "Total Sales Volume"
+              }
+            ]
+          }
+        },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "What I Offer",
+            "subtitle": "Full-service real estate for the NYC market.",
+            "items": [
+              {
+                "title": "Market Analysis",
+                "description": "Data-driven pricing using recent comparable sales, market trends, and neighborhood-level analytics."
+              },
+              {
+                "title": "Expert Negotiation",
+                "description": "Experienced deal-making in competitive bidding situations — I've won offers in 10+ bid wars this year alone."
+              },
+              {
+                "title": "Full-Service Closing",
+                "description": "Coordinated from accepted offer through keys in hand — attorneys, inspections, and board packages handled."
+              },
+              {
+                "title": "Buyer Representation",
+                "description": "Exclusive buyer agency with access to off-market listings and new developments before public launch."
+              },
+              {
+                "title": "Investment Advisory",
+                "description": "ROI analysis, rental yield projections, and portfolio strategy for real estate investors."
+              }
+            ]
+          }
+        },
+        "steps": {
+          "enabled": true,
+          "data": {
+            "title": "How It Works",
+            "subtitle": "Three steps to your next move.",
+            "steps": [
+              {
+                "number": 1,
+                "title": "Tell Me What You Need",
+                "description": "Fill out the form with your details — buying, selling, or just exploring."
+              },
+              {
+                "number": 2,
+                "title": "Get Your Report",
+                "description": "Receive a personalized market analysis with comparable sales, pricing trends, and my professional recommendation."
+              },
+              {
+                "number": 3,
+                "title": "Let's Meet",
+                "description": "Schedule a walkthrough, virtual tour, or strategy session — whatever works for you."
+              }
+            ]
+          }
+        },
+        "gallery": {
+          "enabled": true,
+          "data": {
+            "title": "Recent Sales",
+            "subtitle": "Closed deals across New York City's most competitive neighborhoods.",
+            "items": [
+              {
+                "address": "350 Fifth Ave, Unit 42B",
+                "city": "Manhattan",
+                "state": "NY",
+                "price": "$1,250,000",
+                "image_url": "/agents/test-modern/sold/350-fifth-ave.jpg"
+              },
+              {
+                "address": "200 Park Ave, Unit 18A",
+                "city": "Manhattan",
+                "state": "NY",
+                "price": "$890,000",
+                "image_url": "/agents/test-modern/sold/200-park-ave.jpg"
+              },
+              {
+                "address": "88 Greenpoint Ave",
+                "city": "Brooklyn",
+                "state": "NY",
+                "price": "$725,000",
+                "image_url": "/agents/test-modern/sold/88-greenpoint.jpg"
+              },
+              {
+                "address": "45 Court St, Unit 6F",
+                "city": "Brooklyn",
+                "state": "NY",
+                "price": "$680,000",
+                "image_url": "/agents/test-modern/sold/45-court-st.jpg"
+              }
+            ]
+          }
+        },
+        "testimonials": {
+          "enabled": true,
+          "data": {
+            "title": "Client Reviews",
+            "subtitle": "What past clients say about working with me.",
+            "items": [
+              {
+                "text": "Alex found us the perfect condo in record time. Incredibly responsive and knows every neighborhood inside out. We never felt rushed or pressured.",
+                "reviewer": "Sarah M.",
+                "rating": 5,
+                "source": "Google"
+              },
+              {
+                "text": "Best experience buying in NYC. Alex's data-driven approach gave us confidence in a crazy market. Closed $30K under asking.",
+                "reviewer": "James & Priya",
+                "rating": 5,
+                "source": "Google"
+              },
+              {
+                "text": "We were relocating from Chicago and Alex made the entire process seamless. Virtual tours, neighborhood guides, school info — he covered everything.",
+                "reviewer": "The Chen Family",
+                "rating": 5,
+                "source": "Zillow"
+              }
+            ]
+          }
+        },
+        "contact_form": {
+          "enabled": true,
+          "data": {
+            "title": "What's Your Property Worth?",
+            "subtitle": "Get a free NYC market analysis in minutes.",
+            "description": "Enter your address below and I'll send you a detailed market analysis with comparable sales, price trends, and my professional valuation. **100% free, no strings.**"
+          }
+        },
+        "about": {
+          "enabled": true,
+          "data": {
+            "title": "About Alex",
+            "bio": [
+              "I'm Alex Rivera — a licensed real estate salesperson with Metro Realty Group, specializing in NYC residential real estate. From Manhattan condos to Brooklyn brownstones, I've closed over 150 transactions totaling $45M+ in sales volume.",
+              "My approach is data-first: I use market analytics, neighborhood trends, and pricing models to help clients make smart decisions. Whether you're a first-time buyer, seasoned investor, or ready to sell, I bring the same level of research and dedication to every deal.",
+              "Born in Queens, raised in the Bronx, and living in Brooklyn — I know this city inside and out."
+            ],
+            "credentials": [
+              "Licensed NY Salesperson",
+              "Top 10% NYC Volume",
+              "150+ Transactions",
+              "Fluent in Portuguese"
+            ]
+          }
+        },
+        "city_pages": {
+          "enabled": false,
+          "data": {
+            "cities": []
+          }
+        }
+      }
+    },
+    "thank_you": {
+      "heading": "Thank You!",
+      "subheading": "Your Market Analysis Is Being Prepared",
+      "body": "{firstName} will send your personalized NYC market report to your email shortly.",
+      "disclaimer": "This report is a Comparative Market Analysis (CMA) and is not an appraisal.",
+      "cta_call": "Call {firstName}: {phone}",
+      "cta_back": "Back to {firstName}'s Site"
+    }
+  }
+}

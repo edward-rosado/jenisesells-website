@@ -1,7 +1,11 @@
 import Image from "next/image";
 import type { AboutProps } from "@/components/sections/types";
+import { getDisplayName, getHeadshotUrl } from "@/components/sections/types";
 
 export function AboutProfessional({ agent, data }: AboutProps) {
+  const displayName = getDisplayName(agent);
+  const headshotUrl = getHeadshotUrl(agent);
+
   return (
     <section
       id="about"
@@ -22,7 +26,7 @@ export function AboutProfessional({ agent, data }: AboutProps) {
         }}
       >
         {/* Rectangular headshot — professional, not circular */}
-        {agent.identity.headshot_url && (
+        {headshotUrl && (
           <div
             data-testid="headshot-wrapper"
             style={{
@@ -36,8 +40,8 @@ export function AboutProfessional({ agent, data }: AboutProps) {
             }}
           >
             <Image
-              src={agent.identity.headshot_url}
-              alt={agent.identity.name}
+              src={headshotUrl}
+              alt={displayName}
               fill
               style={{ objectFit: "cover", objectPosition: "top" }}
               sizes="280px"
@@ -56,7 +60,7 @@ export function AboutProfessional({ agent, data }: AboutProps) {
               letterSpacing: "-0.3px",
             }}
           >
-            {data.title ?? `About ${agent.identity.name}`}
+            {data.title ?? `About ${displayName}`}
           </h2>
 
           {/* Bio */}

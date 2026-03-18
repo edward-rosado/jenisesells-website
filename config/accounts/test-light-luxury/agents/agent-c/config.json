@@ -1,0 +1,12 @@
+{
+  "id": "agent-c",
+  "name": "Rafael Andrade",
+  "title": "Investment Advisor",
+  "phone": "(305) 555-0403",
+  "email": "rafael@prestigeproperties.com",
+  "headshot_url": "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=300&h=300&fit=crop&crop=face",
+  "license_number": "FL-2024-33333",
+  "languages": ["English", "Portuguese", "Spanish"],
+  "tagline": "Strategic investments in Miami's luxury market.",
+  "credentials": ["REALTOR\u00ae", "CCIM"]
+}

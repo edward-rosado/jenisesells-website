@@ -1,4 +1,7 @@
-import type { ServicesProps } from "@/components/sections/types";
+"use client";
+
+import { useState } from "react";
+import type { FeaturesProps } from "@/components/sections/types";
 
 type SvgIcon = React.ReactNode;
 
@@ -136,10 +139,62 @@ export function resolveServiceIcon(title: string, icon?: string): SvgIcon {
   return ICON_REGISTRY.star;
 }
 
-export function ServicesIcons({ items, title, subtitle }: ServicesProps) {
+function ServiceCardIcon({ item }: { item: { title: string; description: string; icon?: string } }) {
+  const [hover, setHover] = useState(false);
+
+  return (
+    <article
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: "white",
+        borderRadius: "16px",
+        padding: "32px 24px",
+        textAlign: "center",
+        boxShadow: hover
+          ? "0 6px 20px rgba(0,0,0,0.12)"
+          : "0 2px 12px rgba(0,0,0,0.06)",
+        transform: hover ? "translateY(-4px)" : "none",
+        transition: "transform 0.3s, box-shadow 0.3s",
+      }}
+    >
+      <div style={{
+        width: "56px",
+        height: "56px",
+        borderRadius: "50%",
+        background: "var(--color-accent)",
+        margin: "0 auto 16px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: 0.85,
+        color: "white",
+      }}>
+        {resolveServiceIcon(item.title, item.icon)}
+      </div>
+      <h3 style={{
+        fontSize: "18px",
+        fontWeight: 700,
+        color: "#4A3728",
+        marginBottom: "8px",
+      }}>
+        {item.title}
+      </h3>
+      <p style={{
+        fontSize: "14px",
+        color: "#8B7355",
+        lineHeight: 1.6,
+      }}>
+        {item.description}
+      </p>
+    </article>
+  );
+}
+
+export function ServicesIcons({ items, title, subtitle }: FeaturesProps) {
   return (
     <section
-      id="services"
+      id="features"
       style={{
         padding: "70px 40px",
         background: "#FFF8F0",
@@ -171,46 +226,7 @@ export function ServicesIcons({ items, title, subtitle }: ServicesProps) {
           gap: "24px",
         }}>
           {items.map((item) => (
-            <article
-              key={item.title}
-              style={{
-                background: "white",
-                borderRadius: "16px",
-                padding: "32px 24px",
-                textAlign: "center",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-              }}
-            >
-              <div style={{
-                width: "56px",
-                height: "56px",
-                borderRadius: "50%",
-                background: "var(--color-accent)",
-                margin: "0 auto 16px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: 0.85,
-                color: "white",
-              }}>
-                {resolveServiceIcon(item.title, item.icon)}
-              </div>
-              <h3 style={{
-                fontSize: "18px",
-                fontWeight: 700,
-                color: "#4A3728",
-                marginBottom: "8px",
-              }}>
-                {item.title}
-              </h3>
-              <p style={{
-                fontSize: "14px",
-                color: "#8B7355",
-                lineHeight: 1.6,
-              }}>
-                {item.description}
-              </p>
-            </article>
+            <ServiceCardIcon key={item.title} item={item} />
           ))}
         </div>
       </div>

@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { buildCssVariableStyle } from "../branding";
-import type { AgentBranding } from "../types";
+import type { AccountBranding } from "../types";
 
 describe("buildCssVariableStyle", () => {
   it("should generate CSS variables from branding config", () => {
-    const branding: AgentBranding = {
+    const branding: AccountBranding = {
       primary_color: "#1B5E20",
       secondary_color: "#2E7D32",
       accent_color: "#C8A951",
@@ -24,7 +24,7 @@ describe("buildCssVariableStyle", () => {
   });
 
   it("should sanitize malicious color values", () => {
-    const branding: AgentBranding = {
+    const branding: AccountBranding = {
       primary_color: "red; background: url(evil)",
       accent_color: "#C8A951",
     };
@@ -34,7 +34,7 @@ describe("buildCssVariableStyle", () => {
   });
 
   it("should sanitize malicious font_family values", () => {
-    const branding: AgentBranding = {
+    const branding: AccountBranding = {
       font_family: "Segoe UI'; behavior:url(evil.htc); x: '",
     };
     const style = buildCssVariableStyle(branding);

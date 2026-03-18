@@ -4,12 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import type { AgentConfig, NavItem, ContactMethod } from "@/lib/types";
+import type { AccountConfig, NavigationConfig, ContactMethod } from "@/lib/types";
 
 interface NavProps {
-  agent: AgentConfig;
-  navigation?: { items: NavItem[] };
-  contactInfo?: ContactMethod[];
+  account: AccountConfig;
+  navigation?: NavigationConfig;
+  /** Set of enabled section IDs (e.g. "features", "testimonials") — nav items linking to disabled sections are hidden */
+  enabledSections?: Set<string>;
 }
 
 function OfficeIcon({ size = 14 }: { size?: number }) {
@@ -38,13 +39,15 @@ function EmailIcon({ size = 14 }: { size?: number }) {
 }
 
 /** Default section nav links — used when content.navigation is not provided */
-export const DEFAULT_NAV_ITEMS: NavItem[] = [
-  { label: "Why Choose Me", section: "services" },
-  { label: "How It Works", section: "how-it-works" },
-  { label: "Recent Sales", section: "sold" },
-  { label: "Testimonials", section: "testimonials" },
-  { label: "Ready to Move?", section: "cma-form" },
-  { label: "About", section: "about" },
+export const DEFAULT_NAV_ITEMS = [
+  { label: "Stats", href: "#stats", enabled: false },
+  { label: "Why Choose Me", href: "#features", enabled: true },
+  { label: "How It Works", href: "#steps", enabled: true },
+  { label: "Recent Sales", href: "#gallery", enabled: true },
+  { label: "Testimonials", href: "#testimonials", enabled: true },
+  { label: "Profiles", href: "#profiles", enabled: false },
+  { label: "Ready to Move?", href: "#contact_form", enabled: true },
+  { label: "About", href: "#about", enabled: true },
 ];
 
 /** Build a tel: href from a phone value and optional extension */
@@ -58,9 +61,9 @@ function formatPhoneDisplay(value: string, ext?: string | null): string {
   return ext ? `${value} ext ${ext}` : value;
 }
 
-export function Nav({ agent, navigation, contactInfo }: NavProps) {
+export function Nav({ account, navigation, enabledSections }: NavProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { identity, branding } = agent;
+  const { branding } = account;
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const contactBtnRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -68,6 +71,10 @@ export function Nav({ agent, navigation, contactInfo }: NavProps) {
   const searchParams = useSearchParams();
   const isHome = pathname === "/";
   const qs = searchParams?.toString() ?? "";
+
+  // Resolve identity for display
+  const displayName = account.agent?.name ?? account.broker?.name ?? account.brokerage.name;
+  const tagline = account.agent?.tagline;
 
   function toggleDrawer() {
     setDrawerOpen((prev) => !prev);
@@ -102,15 +109,23 @@ export function Nav({ agent, navigation, contactInfo }: NavProps) {
   }, [drawerOpen]);
 
   const navItems = navigation?.items ?? DEFAULT_NAV_ITEMS;
-  const prefix = isHome ? "" : "/";
+  const enabledItems = navItems.filter((item) => {
+    if (!item.enabled) return false;
+    // If enabledSections is provided, filter out hash links to missing sections
+    if (enabledSections && item.href.startsWith("#")) {
+      const sectionId = item.href.slice(1);
+      return enabledSections.has(sectionId);
+    }
+    return true;
+  });
   const qsSuffix = qs ? `?${qs}` : "";
-  const sections = navItems.map((item) => ({
+  const sections = enabledItems.map((item) => ({
     label: item.label,
-    href: `${prefix}${qsSuffix}#${item.section}`,
+    href: item.href,
   }));
 
-  // Resolve contact methods — prefer content-driven, fall back to agent.identity
-  const contacts = contactInfo ?? buildFallbackContacts(identity);
+  // Resolve contact methods from account.contact_info or fallback
+  const contacts = account.contact_info ?? buildFallbackContacts(account);
   const preferredPhone = contacts.find((c) => c.type === "phone" && c.is_preferred)
     ?? contacts.find((c) => c.type === "phone");
   const emails = contacts.filter((c) => c.type === "email");
@@ -164,12 +179,12 @@ export function Nav({ agent, navigation, contactInfo }: NavProps) {
           boxSizing: "border-box",
         }}
       >
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+        <Link href={isHome ? `${qsSuffix}#hero` : `/${qsSuffix}`} style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
           {branding.logo_url ? (
             <div style={{ background: "white", borderRadius: "6px", padding: "4px 8px", display: "flex", alignItems: "center" }}>
               <Image
                 src={branding.logo_url}
-                alt={identity.brokerage || "Brokerage logo"}
+                alt={account.brokerage.name || "Brokerage logo"}
                 width={240}
                 height={60}
                 className="nav-logo"
@@ -182,7 +197,7 @@ export function Nav({ agent, navigation, contactInfo }: NavProps) {
               className="nav-tagline"
               style={{ color: "var(--color-accent)", fontSize: "14px", fontWeight: 600, letterSpacing: "1px" }}
             >
-              {identity.tagline?.toUpperCase() || identity.name.toUpperCase()}
+              {tagline?.toUpperCase() || displayName.toUpperCase()}
             </span>
           )}
         </Link>
@@ -467,20 +482,20 @@ export function Nav({ agent, navigation, contactInfo }: NavProps) {
   );
 }
 
-/** Build fallback ContactMethod[] from agent.identity when content.contact_info is not provided */
-function buildFallbackContacts(identity: AgentConfig["identity"]): ContactMethod[] {
+/** Build fallback ContactMethod[] from account when contact_info is not provided */
+function buildFallbackContacts(account: AccountConfig): ContactMethod[] {
   const contacts: ContactMethod[] = [];
-  if (identity.phone) {
-    contacts.push({ type: "phone", value: identity.phone, label: "Cell Phone", is_preferred: true });
+  const agent = account.agent;
+  if (agent?.phone) {
+    contacts.push({ type: "phone", value: agent.phone, label: "Cell Phone", is_preferred: true });
   }
-  if (identity.office_phone) {
-    // Parse extension from formats like "(732) 251-2500 ext 714"
-    const extMatch = identity.office_phone.match(/ext\s*(\d+)/i);
-    const phoneValue = identity.office_phone.replace(/\s*ext\s*\d+/i, "").trim();
+  if (account.brokerage.office_phone) {
+    const extMatch = account.brokerage.office_phone.match(/ext\s*(\d+)/i);
+    const phoneValue = account.brokerage.office_phone.replace(/\s*ext\s*\d+/i, "").trim();
     contacts.push({ type: "phone", value: phoneValue, ext: extMatch?.[1] ?? null, label: "Office Phone", is_preferred: false });
   }
-  if (identity.email) {
-    contacts.push({ type: "email", value: identity.email, label: "Email", is_preferred: false });
+  if (agent?.email) {
+    contacts.push({ type: "email", value: agent.email, label: "Email", is_preferred: false });
   }
   return contacts;
 }

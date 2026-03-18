@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StatsCompact } from "@/components/sections/stats/StatsCompact";
 import type { StatItem } from "@/lib/types";
 
@@ -78,5 +78,15 @@ describe("StatsCompact", () => {
   it("renders empty section gracefully when items is empty", () => {
     const { container } = render(<StatsCompact items={[]} />);
     expect(container.querySelector("section#stats")).toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<StatsCompact items={ITEMS} />);
+    const item = container.querySelector("[data-stat-pill]") as HTMLElement;
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

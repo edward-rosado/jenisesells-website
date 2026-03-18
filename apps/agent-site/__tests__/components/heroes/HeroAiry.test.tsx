@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { HeroAiry } from "@/components/sections/heroes/HeroAiry";
 import type { HeroData } from "@/lib/types";
 
@@ -94,6 +94,15 @@ describe("HeroAiry", () => {
   it("renders a section element", () => {
     const { container } = render(<HeroAiry data={heroData} />);
     expect(container.querySelector("section")).toBeInTheDocument();
+  });
+
+  it("applies hover effect on CTA", () => {
+    render(<HeroAiry data={heroData} />);
+    const cta = screen.getByRole("link", { name: /Request a Consultation/i });
+    fireEvent.mouseEnter(cta);
+    expect(cta.style.transform).toBe("translateY(-2px)");
+    fireEvent.mouseLeave(cta);
+    expect(cta.style.transform).toBe("none");
   });
 
   it("renders agent photo with generic alt when agentName is not provided", () => {

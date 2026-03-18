@@ -52,7 +52,7 @@ export function SoldCarousel({ items, title, subtitle }: SoldHomesProps) {
     // Fallback: vertical stack for reduced motion
     return (
       <section
-        id="sold"
+        id="gallery"
         style={{ background: "var(--color-primary, #0a0a0a)", padding: "80px 40px" }}
       >
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
@@ -93,7 +93,7 @@ export function SoldCarousel({ items, title, subtitle }: SoldHomesProps) {
 
   return (
     <section
-      id="sold"
+      id="gallery"
       style={{ background: "var(--color-primary, #0a0a0a)", padding: "80px 0" }}
     >
       <div style={{ maxWidth: "900px", margin: "0 auto", paddingLeft: "40px", paddingRight: "40px" }}>

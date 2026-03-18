@@ -1,0 +1,72 @@
+{
+  "handle": "test-country-estate",
+  "template": "country-estate",
+  "branding": {
+    "primary_color": "#3e2723",
+    "secondary_color": "#4e342e",
+    "accent_color": "#6d4c2f",
+    "font_family": "Merriweather",
+    "logo_url": ""
+  },
+  "brokerage": {
+    "name": "Heritage Land & Home",
+    "license_number": "HLH-KY-6601",
+    "office_phone": "(859) 555-0500",
+    "office_address": "201 E Main St, Suite 100, Lexington, KY 40507"
+  },
+  "agent": {
+    "enabled": true,
+    "id": "test-country-estate",
+    "name": "Tom Whitfield",
+    "title": "Licensed Real Estate Broker",
+    "phone": "(859) 555-0501",
+    "email": "tom@heritagelandandhome.com",
+    "headshot_url": "/agents/test-country-estate/headshot.jpg",
+    "license_number": "KY-78234",
+    "languages": [
+      "English"
+    ],
+    "tagline": "Where heritage meets home."
+  },
+  "location": {
+    "state": "KY",
+    "service_areas": [
+      "Lexington",
+      "Versailles",
+      "Paris",
+      "Midway"
+    ]
+  },
+  "integrations": {
+    "email_provider": "gmail"
+  },
+  "compliance": {
+    "state_form": "KY-SDPD",
+    "licensing_body": "Kentucky Real Estate Commission",
+    "disclosure_requirements": [
+      "Seller's Disclosure of Property Condition",
+      "Lead-based paint disclosure (pre-1978)",
+      "Property valuation disclosure"
+    ]
+  },
+  "contact_info": [
+    {
+      "type": "phone",
+      "value": "(859) 555-0501",
+      "label": "Cell Phone",
+      "is_preferred": true
+    },
+    {
+      "type": "phone",
+      "value": "(859) 555-0500",
+      "label": "Office",
+      "is_preferred": false
+    },
+    {
+      "type": "email",
+      "value": "tom@heritagelandandhome.com",
+      "label": "Email",
+      "is_preferred": false
+    }
+  ]
+}

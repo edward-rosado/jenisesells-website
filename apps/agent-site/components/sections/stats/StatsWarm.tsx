@@ -1,4 +1,55 @@
+"use client";
+
+import { useState } from "react";
 import type { StatsProps } from "@/components/sections/types";
+
+function StatCard({ value, label }: { value: string; label: string }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: "white",
+        borderRadius: "16px",
+        padding: "28px 36px",
+        textAlign: "center",
+        boxShadow: hover
+          ? "0 8px 28px rgba(90,158,124,0.22)"
+          : "0 4px 16px rgba(90,158,124,0.1)",
+        minWidth: "160px",
+        transition: "transform 0.3s, box-shadow 0.3s",
+        transform: hover ? "translateY(-4px)" : "none",
+        cursor: "default",
+      }}
+    >
+      <dl style={{ margin: 0 }}>
+        <dd
+          style={{
+            fontSize: "36px",
+            fontWeight: 700,
+            color: "var(--color-accent, #5a9e7c)",
+            margin: 0,
+            fontFamily: "var(--font-family, Nunito), sans-serif",
+          }}
+        >
+          {value}
+        </dd>
+        <dt
+          style={{
+            fontSize: "13px",
+            color: "#4a6b5a",
+            marginTop: "6px",
+            fontWeight: 600,
+            letterSpacing: "0.5px",
+          }}
+        >
+          {label}
+        </dt>
+      </dl>
+    </div>
+  );
+}
 
 export function StatsWarm({ items, sourceDisclaimer }: StatsProps) {
   return (
@@ -20,42 +71,7 @@ export function StatsWarm({ items, sourceDisclaimer }: StatsProps) {
         }}
       >
         {items.map((item) => (
-          <div
-            key={item.label}
-            style={{
-              background: "white",
-              borderRadius: "16px",
-              padding: "28px 36px",
-              textAlign: "center",
-              boxShadow: "0 4px 16px rgba(90,158,124,0.1)",
-              minWidth: "160px",
-            }}
-          >
-            <dl style={{ margin: 0 }}>
-              <dd
-                style={{
-                  fontSize: "36px",
-                  fontWeight: 700,
-                  color: "var(--color-accent, #5a9e7c)",
-                  margin: 0,
-                  fontFamily: "var(--font-family, Nunito), sans-serif",
-                }}
-              >
-                {item.value}
-              </dd>
-              <dt
-                style={{
-                  fontSize: "13px",
-                  color: "#4a6b5a",
-                  marginTop: "6px",
-                  fontWeight: 600,
-                  letterSpacing: "0.5px",
-                }}
-              >
-                {item.label}
-              </dt>
-            </dl>
-          </div>
+          <StatCard key={item.label} value={item.value} label={item.label} />
         ))}
       </div>
       {sourceDisclaimer && (

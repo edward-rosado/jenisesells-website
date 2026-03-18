@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsStack } from "@/components/sections/testimonials/TestimonialsStack";
 import { FTC_DISCLAIMER } from "@/components/sections/types";
 import type { TestimonialItem } from "@/lib/types";
@@ -70,6 +70,16 @@ describe("TestimonialsStack", () => {
     const stack = container.querySelector("[data-testimonials-stack]") as HTMLElement;
     expect(stack).toBeInTheDocument();
     expect(stack.style.flexDirection).toBe("column");
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<TestimonialsStack items={ITEMS} />);
+    const avatar = container.querySelector("[data-avatar-initial]")!;
+    const card = avatar.parentElement as HTMLElement;
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 
   it("renders empty section gracefully when items is empty", () => {

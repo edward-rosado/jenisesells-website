@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesEstate } from "@/components/sections/services/ServicesEstate";
 import type { ServiceItem } from "@/lib/types";
 
@@ -60,9 +60,9 @@ describe("ServicesEstate", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders section with id=services for anchor linking", () => {
+  it("renders section with id=features for anchor linking", () => {
     const { container } = render(<ServicesEstate items={ITEMS} />);
-    expect(container.querySelector("#services")).toBeInTheDocument();
+    expect(container.querySelector("#features")).toBeInTheDocument();
   });
 
   it("renders each service as an article element", () => {
@@ -76,6 +76,15 @@ describe("ServicesEstate", () => {
     // Each article should have at least 2 children (icon area + text)
     const articles = container.querySelectorAll("article");
     expect(articles[0].children.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<ServicesEstate items={ITEMS} />);
+    const card = container.querySelectorAll("article")[0] as HTMLElement;
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 
   it("renders earthy card background on articles", () => {

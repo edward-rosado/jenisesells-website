@@ -1,7 +1,11 @@
 import Image from "next/image";
 import type { AboutProps } from "@/components/sections/types";
+import { getDisplayName, getHeadshotUrl } from "@/components/sections/types";
 
 export function AboutCompact({ agent, data }: AboutProps) {
+  const displayName = getDisplayName(agent);
+  const headshotUrl = getHeadshotUrl(agent);
+
   return (
     <section
       id="about"
@@ -20,7 +24,7 @@ export function AboutCompact({ agent, data }: AboutProps) {
             fontFamily: "var(--font-family, Inter), sans-serif",
           }}
         >
-          {data.title ?? `About ${agent.identity.name}`}
+          {data.title ?? `About ${displayName}`}
         </h2>
 
         <div
@@ -33,7 +37,7 @@ export function AboutCompact({ agent, data }: AboutProps) {
           }}
         >
           {/* Agent photo */}
-          {agent.identity.headshot_url && (
+          {headshotUrl && (
             <div
               data-photo-wrapper
               style={{
@@ -47,8 +51,8 @@ export function AboutCompact({ agent, data }: AboutProps) {
               }}
             >
               <Image
-                src={agent.identity.headshot_url}
-                alt={agent.identity.name}
+                src={headshotUrl}
+                alt={displayName}
                 fill
                 style={{ objectFit: "cover" }}
                 sizes="120px"
@@ -68,9 +72,9 @@ export function AboutCompact({ agent, data }: AboutProps) {
                   marginRight: "10px",
                 }}
               >
-                {agent.identity.name}
+                {displayName}
               </span>
-              {agent.identity.title && (
+              {("handle" in agent ? agent.agent?.title : agent.title) && (
                 <span
                   style={{
                     fontSize: "14px",
@@ -78,7 +82,7 @@ export function AboutCompact({ agent, data }: AboutProps) {
                     fontWeight: 600,
                   }}
                 >
-                  {agent.identity.title}
+                  {"handle" in agent ? agent.agent?.title : agent.title}
                 </span>
               )}
             </div>

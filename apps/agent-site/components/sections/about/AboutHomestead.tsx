@@ -1,7 +1,11 @@
 import Image from "next/image";
 import type { AboutProps } from "@/components/sections/types";
+import { getDisplayName, getHeadshotUrl } from "@/components/sections/types";
 
 export function AboutHomestead({ agent, data }: AboutProps) {
+  const displayName = getDisplayName(agent);
+  const headshotUrl = getHeadshotUrl(agent);
+
   return (
     <section
       id="about"
@@ -23,7 +27,7 @@ export function AboutHomestead({ agent, data }: AboutProps) {
         }}
       >
         {/* Landscape-oriented photo — prefer about-specific image, fall back to headshot */}
-        {(data.image_url || agent.identity.headshot_url) && (
+        {(data.image_url || headshotUrl) && (
           <div
             style={{
               width: "640px",
@@ -36,8 +40,8 @@ export function AboutHomestead({ agent, data }: AboutProps) {
             }}
           >
             <Image
-              src={data.image_url || agent.identity.headshot_url!}
-              alt={data.image_url ? `About ${agent.identity.name}` : agent.identity.name}
+              src={data.image_url || headshotUrl!}
+              alt={data.image_url ? `About ${displayName}` : displayName}
               fill
               style={{ objectFit: "cover" }}
               sizes="(max-width: 768px) 100vw, 640px"
@@ -56,7 +60,7 @@ export function AboutHomestead({ agent, data }: AboutProps) {
               textAlign: "center",
             }}
           >
-            {data.title || `About ${agent.identity.name}`}
+            {data.title || `About ${displayName}`}
           </h2>
 
           <div style={{ textAlign: "center" }}>

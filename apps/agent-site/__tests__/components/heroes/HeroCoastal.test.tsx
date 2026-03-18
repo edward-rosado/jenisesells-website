@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { HeroCoastal } from "@/components/sections/heroes/HeroCoastal";
 import type { HeroData } from "@/lib/types";
 
@@ -85,19 +85,28 @@ describe("HeroCoastal", () => {
     expect(screen.getByRole("link")).toHaveAttribute("href", "#");
   });
 
-  it("renders a section element without an id (heroes don't need anchor id)", () => {
+  it("renders a section element with id hero for nav anchor linking", () => {
     const { container } = render(<HeroCoastal data={heroData} />);
     const section = container.querySelector("section");
     expect(section).toBeInTheDocument();
-    expect(section!.id).toBe("");
+    expect(section!.id).toBe("hero");
   });
 
-  it("agent photo has circular shape (borderRadius 50%)", () => {
+  it("agent photo has rounded shape (borderRadius 20px)", () => {
     const { container } = render(
       <HeroCoastal data={heroData} agentPhotoUrl="/headshot.jpg" agentName="Maya" />
     );
-    const photoWrapper = container.querySelector("div[style*='border-radius: 50%']");
+    const photoWrapper = container.querySelector("div[style*='border-radius: 20px']");
     expect(photoWrapper).toBeInTheDocument();
+  });
+
+  it("applies hover effect on CTA", () => {
+    render(<HeroCoastal data={heroData} />);
+    const cta = screen.getByRole("link", { name: /Explore Beach Homes/i });
+    fireEvent.mouseEnter(cta);
+    expect(cta.style.transform).toBe("translateY(-2px)");
+    fireEvent.mouseLeave(cta);
+    expect(cta.style.transform).toBe("none");
   });
 
   it("renders agent photo with generic alt when agentName is not provided", () => {

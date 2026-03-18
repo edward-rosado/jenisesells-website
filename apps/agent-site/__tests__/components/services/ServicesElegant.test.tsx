@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesElegant } from "@/components/sections/services/ServicesElegant";
 import type { ServiceItem } from "@/lib/types";
 
@@ -13,9 +13,9 @@ const ITEMS: ServiceItem[] = [
 ];
 
 describe("ServicesElegant", () => {
-  it("renders section with id=services", () => {
+  it("renders section with id=features", () => {
     const { container } = render(<ServicesElegant items={ITEMS} />);
-    expect(container.querySelector("section#services")).toBeInTheDocument();
+    expect(container.querySelector("section#features")).toBeInTheDocument();
   });
 
   it("renders default heading 'Our Services' when title is not provided", () => {
@@ -54,7 +54,7 @@ describe("ServicesElegant", () => {
 
   it("uses dark background via CSS variable on section", () => {
     const { container } = render(<ServicesElegant items={ITEMS} />);
-    const section = container.querySelector("section#services");
+    const section = container.querySelector("section#features");
     expect(section!.style.background).toContain("color-primary");
   });
 
@@ -62,6 +62,15 @@ describe("ServicesElegant", () => {
     const { container } = render(<ServicesElegant items={ITEMS} />);
     const article = container.querySelector("article");
     expect(article!.style.borderLeft).toContain("color-accent");
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<ServicesElegant items={ITEMS} />);
+    const card = container.querySelectorAll("article")[0] as HTMLElement;
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 
   it("renders empty section gracefully when items is empty", () => {

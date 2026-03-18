@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesHeart } from "@/components/sections/services/ServicesHeart";
 import type { ServiceItem } from "@/lib/types";
 
@@ -42,15 +42,24 @@ describe("ServicesHeart", () => {
     expect(screen.getByText("Know your home's real value.")).toBeInTheDocument();
   });
 
-  it("uses id=services for anchor linking", () => {
+  it("uses id=features for anchor linking", () => {
     const { container } = render(<ServicesHeart items={ITEMS} />);
-    expect(container.querySelector("#services")).toBeInTheDocument();
+    expect(container.querySelector("#features")).toBeInTheDocument();
   });
 
   it("renders each card as an article element", () => {
     const { container } = render(<ServicesHeart items={ITEMS} />);
     const articles = container.querySelectorAll("article");
     expect(articles.length).toBe(3);
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<ServicesHeart items={ITEMS} />);
+    const card = container.querySelectorAll("article")[0] as HTMLElement;
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 
   it("cards have rounded corners", () => {

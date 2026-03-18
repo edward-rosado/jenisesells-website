@@ -1,0 +1,12 @@
+{
+  "id": "agent-a",
+  "name": "Olivier Marchetti",
+  "title": "International Sales Director",
+  "phone": "(305) 555-0401",
+  "email": "olivier@prestigeproperties.com",
+  "headshot_url": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&h=300&fit=crop&crop=face",
+  "license_number": "FL-2024-11111",
+  "languages": ["English", "French", "Italian"],
+  "tagline": "Connecting global buyers with Miami's finest properties.",
+  "credentials": ["REALTOR\u00ae", "CIPS"]
+}

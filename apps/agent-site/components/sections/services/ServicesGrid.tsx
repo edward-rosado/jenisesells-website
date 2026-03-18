@@ -1,9 +1,44 @@
-import type { ServicesProps } from "@/components/sections/types";
+"use client";
 
-export function ServicesGrid({ items, title, subtitle }: ServicesProps) {
+import { useState } from "react";
+import type { FeaturesProps } from "@/components/sections/types";
+import type { ServiceItem } from "@/lib/types";
+
+function ServicesGridCard({ item }: { item: ServiceItem }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: "#f9f9f9",
+        borderRadius: "12px",
+        padding: "30px",
+        borderLeft: "4px solid var(--color-secondary)",
+        transition: "transform 0.3s, box-shadow 0.3s",
+        transform: hover ? "translateY(-4px)" : "none",
+        boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
+        cursor: "default",
+      }}
+    >
+      <h3
+        style={{
+          color: "var(--color-primary)",
+          fontSize: "19px",
+          marginBottom: "10px",
+        }}
+      >
+        {item.title}
+      </h3>
+      <p style={{ color: "#555", fontSize: "15px" }}>{item.description}</p>
+    </div>
+  );
+}
+
+export function ServicesGrid({ items, title, subtitle }: FeaturesProps) {
   return (
     <section
-      id="services"
+      id="features"
       style={{
         padding: "70px 40px",
         maxWidth: "1100px",
@@ -41,27 +76,7 @@ export function ServicesGrid({ items, title, subtitle }: ServicesProps) {
         }}
       >
         {items.map((item) => (
-          <div
-            key={item.title}
-            style={{
-              background: "#f9f9f9",
-              borderRadius: "12px",
-              padding: "30px",
-              borderLeft: "4px solid var(--color-secondary)",
-              transition: "transform 0.3s, box-shadow 0.3s",
-            }}
-          >
-            <h3
-              style={{
-                color: "var(--color-primary)",
-                fontSize: "19px",
-                marginBottom: "10px",
-              }}
-            >
-              {item.title}
-            </h3>
-            <p style={{ color: "#555", fontSize: "15px" }}>{item.description}</p>
-          </div>
+          <ServicesGridCard key={item.title} item={item} />
         ))}
       </div>
     </section>

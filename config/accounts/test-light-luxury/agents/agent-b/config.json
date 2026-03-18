@@ -1,0 +1,12 @@
+{
+  "id": "agent-b",
+  "name": "Natalia Voss",
+  "title": "Waterfront Specialist",
+  "phone": "(305) 555-0402",
+  "email": "natalia@prestigeproperties.com",
+  "headshot_url": "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=300&h=300&fit=crop&crop=face",
+  "license_number": "FL-2024-22222",
+  "languages": ["English", "German"],
+  "tagline": "Your waterfront lifestyle starts here.",
+  "credentials": ["REALTOR\u00ae"]
+}

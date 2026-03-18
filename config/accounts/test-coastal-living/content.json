@@ -1,0 +1,209 @@
+{
+  "navigation": {
+    "items": [
+      { "label": "Home", "href": "#hero", "enabled": true },
+      { "label": "Stats", "href": "#stats", "enabled": true },
+      { "label": "Why Choose Me", "href": "#features", "enabled": true },
+      { "label": "How It Works", "href": "#steps", "enabled": true },
+      { "label": "Recent Sales", "href": "#gallery", "enabled": true },
+      { "label": "Testimonials", "href": "#testimonials", "enabled": true },
+      { "label": "Ready to Move?", "href": "#contact_form", "enabled": true },
+      { "label": "About", "href": "#about", "enabled": true }
+    ]
+  },
+  "pages": {
+    "home": {
+      "sections": {
+        "hero": {
+          "enabled": true,
+          "data": {
+            "headline": "San Diego Coastal Homes",
+            "tagline": "Coastal living, your way.",
+            "body": "I'm Maya Santos — a licensed San Diego real estate agent specializing in coastal properties from La Jolla to Del Mar. Whether you're searching for an oceanfront bungalow, a hillside retreat with sunset views, or a beachside condo steps from the sand, I'll help you find your place along the coast.",
+            "cta_text": "Get Your Free Market Analysis",
+            "cta_link": "#cma-form"
+          }
+        },
+        "stats": {
+          "enabled": true,
+          "data": {
+            "items": [
+              {
+                "value": "160+",
+                "label": "Coastal Homes Sold"
+              },
+              {
+                "value": "4.9 ★",
+                "label": "Google Rating"
+              },
+              {
+                "value": "11+",
+                "label": "Years on the Coast"
+              },
+              {
+                "value": "$85M+",
+                "label": "Total Sales Volume"
+              }
+            ]
+          }
+        },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "What I Offer",
+            "subtitle": "Dedicated expertise for San Diego's coastal market.",
+            "items": [
+              {
+                "title": "Coastal Market Analysis",
+                "description": "Precision pricing for beach and bluff properties using ocean proximity premiums, view assessments, and micro-neighborhood comparables."
+              },
+              {
+                "title": "Buyer Representation",
+                "description": "Exclusive access to off-market coastal listings, new developments, and pocket listings shared through my network of top agents."
+              },
+              {
+                "title": "Seller Marketing",
+                "description": "Lifestyle photography, twilight shoots, drone video, and targeted digital campaigns to showcase your property's coastal appeal."
+              },
+              {
+                "title": "Coastal Regulations",
+                "description": "Expert guidance on California Coastal Commission requirements, bluff setbacks, and environmental review processes."
+              },
+              {
+                "title": "Investment Advisory",
+                "description": "Vacation rental analysis, short-term rental regulations, and ROI projections for coastal investment properties."
+              }
+            ]
+          }
+        },
+        "steps": {
+          "enabled": true,
+          "data": {
+            "title": "How It Works",
+            "subtitle": "Three steps to your coastal home.",
+            "steps": [
+              {
+                "number": 1,
+                "title": "Describe Your Dream",
+                "description": "Tell me what coastal living means to you — ocean views, walkability, surf breaks, or a quiet bluff-top retreat."
+              },
+              {
+                "number": 2,
+                "title": "Get Your Market Report",
+                "description": "Receive a personalized analysis with comparable coastal sales, pricing trends, and my professional recommendation."
+              },
+              {
+                "number": 3,
+                "title": "Tour & Close",
+                "description": "Schedule private showings at your pace, make your offer, and I'll guide you through every step to closing."
+              }
+            ]
+          }
+        },
+        "gallery": {
+          "enabled": true,
+          "data": {
+            "title": "Recent Sales",
+            "subtitle": "Closed deals along San Diego's coastline.",
+            "items": [
+              {
+                "address": "7402 Hillside Dr",
+                "city": "La Jolla",
+                "state": "CA",
+                "price": "$2,350,000",
+                "image_url": "/agents/test-coastal-living/sold/1040.jpg"
+              },
+              {
+                "address": "1025 Ocean Blvd, Unit 3",
+                "city": "Pacific Beach",
+                "state": "CA",
+                "price": "$895,000",
+                "image_url": "/agents/test-coastal-living/sold/1041.jpg"
+              },
+              {
+                "address": "456 Neptune Ave",
+                "city": "Encinitas",
+                "state": "CA",
+                "price": "$1,575,000",
+                "image_url": "/agents/test-coastal-living/sold/1044.jpg"
+              },
+              {
+                "address": "2180 Carmel Valley Rd",
+                "city": "Del Mar",
+                "state": "CA",
+                "price": "$1,890,000",
+                "image_url": "/agents/test-coastal-living/sold/1050.jpg"
+              }
+            ]
+          }
+        },
+        "testimonials": {
+          "enabled": true,
+          "data": {
+            "title": "Client Reviews",
+            "subtitle": "What past clients say about working with me.",
+            "items": [
+              {
+                "text": "Maya found us the perfect beach cottage in Encinitas after months of searching. She knew exactly which streets had the best sunset views and which properties would hold value. Her local knowledge is incredible.",
+                "reviewer": "Lisa & Mark W.",
+                "rating": 5,
+                "source": "Google"
+              },
+              {
+                "text": "We sold our La Jolla home for $80K over asking. Maya's marketing — especially the twilight photography and drone video — attracted buyers from across the country. She made the whole process seamless.",
+                "reviewer": "The Nguyen Family",
+                "rating": 5,
+                "source": "Zillow"
+              },
+              {
+                "text": "Bought a condo in Pacific Beach as an investment property. Maya walked me through the short-term rental regulations, projected ROI, and connected me with a property manager. Exactly what I needed.",
+                "reviewer": "Derek S.",
+                "rating": 4,
+                "source": "Google"
+              }
+            ]
+          }
+        },
+        "contact_form": {
+          "enabled": true,
+          "data": {
+            "title": "What's Your Property Worth?",
+            "subtitle": "Get a free San Diego coastal market analysis.",
+            "description": "Enter your address below and I'll send you a detailed market analysis with comparable sales, price trends, and my professional valuation. **100% free, no strings.**"
+          }
+        },
+        "about": {
+          "enabled": true,
+          "data": {
+            "title": "About Maya",
+            "bio": [
+              "I'm Maya Santos — a licensed real estate agent with Pacific Shores Realty, specializing in San Diego's coastal communities. Over 11 years and 160+ transactions, I've helped buyers find their dream homes along the coast and sellers maximize the value of their oceanside properties.",
+              "Growing up in Imperial Beach and building my career from Pacific Beach to Del Mar, I know every break, every bluff, and every hidden gem along this coastline. My approach combines deep local knowledge with data-driven pricing to help clients make confident decisions in a competitive market.",
+              "When I'm not working, you'll find me surfing at Swami's, hiking Torrey Pines, or exploring the taco shops of North County with my family."
+            ],
+            "credentials": [
+              "Licensed CA Agent (DRE)",
+              "160+ Coastal Homes Sold",
+              "Top 10% San Diego Volume",
+              "Bilingual: EN / ES"
+            ]
+          }
+        },
+        "city_pages": {
+          "enabled": false,
+          "data": {
+            "cities": []
+          }
+        }
+      }
+    },
+    "thank_you": {
+      "heading": "Thank You!",
+      "subheading": "Your Market Analysis Is Being Prepared",
+      "body": "{firstName} will send your personalized San Diego coastal market report to your email shortly.",
+      "disclaimer": "This report is a Comparative Market Analysis (CMA) and is not an appraisal.",
+      "cta_call": "Call {firstName}: {phone}",
+      "cta_back": "Back to {firstName}'s Site"
+    }
+  }
+}

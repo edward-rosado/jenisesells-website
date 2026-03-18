@@ -10,6 +10,7 @@ export function HeroEstate({ data, agentPhotoUrl, agentName }: HeroProps) {
 
   return (
     <section
+      id="hero"
       style={{
         background: "var(--color-bg, #faf6f0)",
         color: "white",

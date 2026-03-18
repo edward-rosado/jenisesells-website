@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { SoldMinimal } from "@/components/sections/sold/SoldMinimal";
 
 const ITEMS = [
@@ -28,9 +28,9 @@ describe("SoldMinimal", () => {
     expect(screen.getByText(/456 Elm Ave/)).toBeInTheDocument();
   });
 
-  it("has sold section id for anchor linking", () => {
+  it("has gallery section id for anchor linking", () => {
     const { container } = render(<SoldMinimal items={ITEMS} />);
-    expect(container.querySelector("#sold")).toBeInTheDocument();
+    expect(container.querySelector("#gallery")).toBeInTheDocument();
   });
 
   it("renders custom title", () => {
@@ -61,8 +61,18 @@ describe("SoldMinimal", () => {
 
   it("does not render subtitle when omitted", () => {
     const { container } = render(<SoldMinimal items={ITEMS} />);
-    const section = container.querySelector("#sold");
+    const section = container.querySelector("#gallery");
     const paragraphs = section?.querySelectorAll("p");
     expect(paragraphs?.length ?? 0).toBe(0);
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<SoldMinimal items={ITEMS} />);
+    const card = screen.getAllByRole("article")[0];
+    expect(card.style.transform).toBe("none");
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 });

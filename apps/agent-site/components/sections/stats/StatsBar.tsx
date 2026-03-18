@@ -1,8 +1,56 @@
+"use client";
+
+import { useState } from "react";
 import type { StatsProps } from "@/components/sections/types";
+import type { StatItem } from "@/lib/types";
+
+function StatsBarItem({ item }: { item: StatItem }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      key={item.label}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        textAlign: "center",
+        color: "white",
+        boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
+        transform: hover ? "translateY(-4px)" : "none",
+        transition: "transform 0.3s, box-shadow 0.3s",
+        cursor: "default",
+        padding: "12px 16px",
+        borderRadius: "8px",
+      }}
+    >
+      <dt
+        style={{
+          fontSize: "13px",
+          textTransform: "uppercase",
+          letterSpacing: "1px",
+          marginTop: "4px",
+          order: 2,
+        }}
+      >
+        {item.label}
+      </dt>
+      <dd
+        style={{
+          fontSize: "32px",
+          fontWeight: 800,
+          color: "var(--color-accent)",
+          margin: 0,
+        }}
+      >
+        {item.value}
+      </dd>
+    </div>
+  );
+}
 
 export function StatsBar({ items, sourceDisclaimer }: StatsProps) {
   return (
     <section
+      id="stats"
       aria-label="Agent statistics"
       style={{
         background: "var(--color-primary)",
@@ -19,29 +67,7 @@ export function StatsBar({ items, sourceDisclaimer }: StatsProps) {
         }}
       >
         {items.map((item) => (
-          <div key={item.label} style={{ textAlign: "center", color: "white" }}>
-            <dt
-              style={{
-                fontSize: "13px",
-                textTransform: "uppercase",
-                letterSpacing: "1px",
-                marginTop: "4px",
-                order: 2,
-              }}
-            >
-              {item.label}
-            </dt>
-            <dd
-              style={{
-                fontSize: "32px",
-                fontWeight: 800,
-                color: "var(--color-accent)",
-                margin: 0,
-              }}
-            >
-              {item.value}
-            </dd>
-          </div>
+          <StatsBarItem key={item.label} item={item} />
         ))}
       </dl>
       {sourceDisclaimer && (

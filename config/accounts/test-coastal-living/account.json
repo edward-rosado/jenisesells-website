@@ -1,0 +1,74 @@
+{
+  "handle": "test-coastal-living",
+  "template": "coastal-living",
+  "branding": {
+    "primary_color": "#2c7a7b",
+    "secondary_color": "#b7791f",
+    "accent_color": "#e8d5b7",
+    "font_family": "Lora",
+    "logo_url": ""
+  },
+  "brokerage": {
+    "name": "Pacific Shores Realty",
+    "license_number": "PSR-CA-7701",
+    "office_phone": "(858) 555-0600",
+    "office_address": "7946 Ivanhoe Ave, Suite 201, La Jolla, CA 92037"
+  },
+  "agent": {
+    "enabled": true,
+    "id": "test-coastal-living",
+    "name": "Maya Santos",
+    "title": "Licensed Real Estate Agent",
+    "phone": "(858) 555-0601",
+    "email": "maya@pacificshoresrealty.com",
+    "headshot_url": "/agents/test-coastal-living/headshot.jpg",
+    "license_number": "DRE-02145678",
+    "languages": [
+      "English",
+      "Spanish"
+    ],
+    "tagline": "Coastal living, your way."
+  },
+  "location": {
+    "state": "CA",
+    "service_areas": [
+      "La Jolla",
+      "Pacific Beach",
+      "Encinitas",
+      "Del Mar"
+    ]
+  },
+  "integrations": {
+    "email_provider": "gmail"
+  },
+  "compliance": {
+    "state_form": "CA-TDS",
+    "licensing_body": "California Department of Real Estate",
+    "disclosure_requirements": [
+      "Transfer Disclosure Statement (TDS)",
+      "Natural Hazard Disclosure (NHD)",
+      "Lead-based paint disclosure (pre-1978)",
+      "Mello-Roos and special tax district disclosure"
+    ]
+  },
+  "contact_info": [
+    {
+      "type": "phone",
+      "value": "(858) 555-0601",
+      "label": "Cell Phone",
+      "is_preferred": true
+    },
+    {
+      "type": "phone",
+      "value": "(858) 555-0600",
+      "label": "Office",
+      "is_preferred": false
+    },
+    {
+      "type": "email",
+      "value": "maya@pacificshoresrealty.com",
+      "label": "Email",
+      "is_preferred": false
+    }
+  ]
+}

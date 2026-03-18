@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StepsElegant } from "@/components/sections/steps/StepsElegant";
 import type { StepItem } from "@/lib/types";
 
@@ -13,9 +13,9 @@ const STEPS: StepItem[] = [
 ];
 
 describe("StepsElegant", () => {
-  it("renders section with id=how-it-works", () => {
+  it("renders section with id=steps", () => {
     const { container } = render(<StepsElegant steps={STEPS} />);
-    expect(container.querySelector("section#how-it-works")).toBeInTheDocument();
+    expect(container.querySelector("section#steps")).toBeInTheDocument();
   });
 
   it("renders default heading 'How It Works' when title is not provided", () => {
@@ -63,12 +63,24 @@ describe("StepsElegant", () => {
 
   it("uses dark background on section", () => {
     const { container } = render(<StepsElegant steps={STEPS} />);
-    const section = container.querySelector("section#how-it-works");
+    const section = container.querySelector("section#steps");
     expect(section!.style.background).toContain("color-primary");
   });
 
   it("renders empty section gracefully when steps is empty", () => {
     render(<StepsElegant steps={[]} />);
     expect(screen.getByRole("heading", { level: 2 })).toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<StepsElegant steps={STEPS} />);
+    // The hoverable div contains the step title text
+    const stepTitle = screen.getByText("Consultation");
+    const item = stepTitle.parentElement as HTMLElement;
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

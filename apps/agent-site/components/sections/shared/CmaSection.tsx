@@ -2,7 +2,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { useCmaSubmit } from "@real-estate-star/ui";
-import type { CmaFormData, AgentTracking } from "@/lib/types";
+import type { ContactFormData, AccountTracking } from "@/lib/types";
 import { trackCmaConversion } from "@/components/Analytics";
 import { LeadForm } from "@real-estate-star/ui";
 import type { LeadFormData } from "@real-estate-star/shared-types";
@@ -12,16 +12,16 @@ import { Fragment } from "react";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5135";
 
 interface CmaSectionProps {
-  agentId: string;
+  accountId: string;
   agentName: string;
   defaultState: string;
-  tracking?: AgentTracking;
-  data: CmaFormData;
+  tracking?: AccountTracking;
+  data: ContactFormData;
   serviceAreas?: string[];
 }
 
 export function CmaSection({
-  agentId,
+  accountId,
   agentName,
   defaultState,
   tracking,
@@ -31,7 +31,7 @@ export function CmaSection({
   const { state, submit } = useCmaSubmit(API_BASE_URL, {
     onError: (err) => {
       Sentry.captureException(err, {
-        tags: { agentId, feature: "cma-form" },
+        tags: { accountId, feature: "contact_form" },
       });
     },
   });
@@ -42,18 +42,18 @@ export function CmaSection({
     const isSelling = leadData.leadTypes.includes("selling") && leadData.seller?.address;
 
     if (isSelling) {
-      const success = await submit(agentId, leadData);
+      const success = await submit(accountId, leadData);
       if (!success) return;
     }
 
     trackCmaConversion(tracking);
     const emailParam = leadData.email ? `&email=${encodeURIComponent(leadData.email)}` : "";
-    window.location.href = `/thank-you?agentId=${encodeURIComponent(agentId)}${emailParam}`;
+    window.location.href = `/thank-you?accountId=${encodeURIComponent(accountId)}${emailParam}`;
   }
 
   return (
     <section
-      id="cma-form"
+      id="contact_form"
       aria-label="Home Value Request Form"
       style={{
         background: "#f7f7f7",

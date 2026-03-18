@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StatsCards } from "@/components/sections/stats/StatsCards";
 
 const ITEMS = [
@@ -53,5 +53,15 @@ describe("StatsCards", () => {
     expect(container.querySelector("dl")).toBeInTheDocument();
     expect(container.querySelectorAll("dt").length).toBe(3);
     expect(container.querySelectorAll("dd").length).toBe(3);
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<StatsCards items={ITEMS} />);
+    const item = container.querySelector("dl")!.children[0] as HTMLElement;
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

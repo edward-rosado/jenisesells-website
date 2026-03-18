@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesPills } from "@/components/sections/services/ServicesPills";
 import type { ServiceItem } from "@/lib/types";
 
@@ -13,9 +13,9 @@ const ITEMS: ServiceItem[] = [
 ];
 
 describe("ServicesPills", () => {
-  it("renders section with id=services", () => {
+  it("renders section with id=features", () => {
     const { container } = render(<ServicesPills items={ITEMS} />);
-    expect(container.querySelector("section#services")).toBeInTheDocument();
+    expect(container.querySelector("section#features")).toBeInTheDocument();
   });
 
   it("renders the default heading when no title provided", () => {
@@ -64,8 +64,17 @@ describe("ServicesPills", () => {
     expect(articles.length).toBe(3);
   });
 
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<ServicesPills items={ITEMS} />);
+    const card = container.querySelectorAll("article")[0] as HTMLElement;
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
+  });
+
   it("renders empty section gracefully when items is empty", () => {
     const { container } = render(<ServicesPills items={[]} />);
-    expect(container.querySelector("section#services")).toBeInTheDocument();
+    expect(container.querySelector("section#features")).toBeInTheDocument();
   });
 });

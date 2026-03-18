@@ -1,0 +1,12 @@
+{
+  "id": "agent-b",
+  "name": "Ashley Brooks",
+  "title": "Listing Coordinator",
+  "phone": "(512) 555-0202",
+  "email": "ashley@santiago-realty.com",
+  "headshot_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&h=300&fit=crop&crop=face",
+  "license_number": "TX-2024-22222",
+  "languages": ["English"],
+  "tagline": "Every listing, every detail, handled with care.",
+  "credentials": ["REALTOR\u00ae"]
+}

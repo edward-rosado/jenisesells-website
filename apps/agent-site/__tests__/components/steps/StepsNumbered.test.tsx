@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StepsNumbered } from "@/components/sections/steps/StepsNumbered";
 import type { StepItem } from "@/lib/types";
 
@@ -66,5 +66,15 @@ describe("StepsNumbered", () => {
     render(<StepsNumbered steps={STEPS} />);
     // No subtitle — the only paragraphs are step descriptions
     expect(screen.queryByText("Three simple steps to sell your home")).not.toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<StepsNumbered steps={STEPS} />);
+    const item = screen.getAllByRole("listitem")[0];
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

@@ -5,14 +5,14 @@ on:
     branches: [main]
     paths:
       - 'apps/agent-site/**'
-      - 'config/agents/**'
+      - 'config/accounts/**'
       - 'packages/**'
       - '.github/workflows/agent-site.yml'
   pull_request:
     branches: [main]
     paths:
       - 'apps/agent-site/**'
-      - 'config/agents/**'
+      - 'config/accounts/**'
       - 'packages/**'
       - '.github/workflows/agent-site.yml'
 
@@ -178,28 +178,17 @@ jobs:
           AGENTS_JSON="["
           first=true
 
-          for dir in config/agents/*/; do
+          for dir in config/accounts/*/; do
             id=$(basename "$dir")
-            if [ -f "$dir/config.json" ]; then
-              template=$(jq -r '.template // "emerald-classic"' "$dir/content.json" 2>/dev/null || echo "emerald-classic")
-              primary=$(jq -r '.branding.primary_color // ""' "$dir/config.json" 2>/dev/null || echo "")
-              accent=$(jq -r '.branding.accent_color // ""' "$dir/config.json" 2>/dev/null || echo "")
-              font=$(jq -r '.branding.font_family // ""' "$dir/config.json" 2>/dev/null || echo "")
-              name=$(jq -r '.identity.name // ""' "$dir/config.json" 2>/dev/null || echo "")
+            if [ -f "$dir/account.json" ]; then
+              template=$(jq -r '.template // "emerald-classic"' "$dir/account.json" 2>/dev/null || echo "emerald-classic")
+              primary=$(jq -r '.branding.primary_color // ""' "$dir/account.json" 2>/dev/null || echo "")
+              accent=$(jq -r '.branding.accent_color // ""' "$dir/account.json" 2>/dev/null || echo "")
+              font=$(jq -r '.branding.font_family // ""' "$dir/account.json" 2>/dev/null || echo "")
+              name=$(jq -r '.agent.name // .broker.name // .brokerage.name // ""' "$dir/account.json" 2>/dev/null || echo "")
               [ "$first" = true ] && first=false || AGENTS_JSON="${AGENTS_JSON},"
               AGENTS_JSON="${AGENTS_JSON}{\"id\":\"${id}\",\"name\":\"${name}\",\"template\":\"${template}\",\"primary\":\"${primary}\",\"accent\":\"${accent}\",\"font\":\"${font}\"}"
             fi
-          done
-
-          for f in config/agents/*.json; do
-            id=$(basename "$f" .json)
-            case "$id" in bad-*|agent.schema) continue;; esac
-            # Skip if directory layout exists
-            [ -d "config/agents/$id" ] && continue
-            name=$(jq -r '.identity.name // ""' "$f" 2>/dev/null || echo "")
-            primary=$(jq -r '.branding.primary_color // ""' "$f" 2>/dev/null || echo "")
-            [ "$first" = true ] && first=false || AGENTS_JSON="${AGENTS_JSON},"
-            AGENTS_JSON="${AGENTS_JSON}{\"id\":\"${id}\",\"name\":\"${name}\",\"template\":\"emerald-classic\",\"primary\":\"${primary}\",\"accent\":\"\",\"font\":\"\"}"
           done
 
           AGENTS_JSON="${AGENTS_JSON}]"
@@ -217,7 +206,7 @@ jobs:
             const agents = JSON.parse(`${{ steps.agents.outputs.json }}`);
 
             const rows = agents.map(a => {
-              const link = `[${a.name || a.id}](${baseUrl}/?agentId=${a.id})`;
+              const link = `[${a.name || a.id}](${baseUrl}/?accountId=${a.id})`;
               const colors = [a.primary, a.accent].filter(Boolean).map(c => `\`${c}\``).join(' / ') || '—';
               return `| ${link} | ${a.template} | ${colors} | ${a.font || '—'} |`;
             }).join('\n');

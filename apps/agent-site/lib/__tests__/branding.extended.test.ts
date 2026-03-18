@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { buildCssVariableStyle } from "../branding";
-import type { AgentBranding } from "../types";
+import type { AccountBranding } from "../types";
 
 describe("buildCssVariableStyle", () => {
   it("returns a record with all four CSS variable keys", () => {
-    const branding: AgentBranding = {
+    const branding: AccountBranding = {
       primary_color: "#1B5E20",
       secondary_color: "#2E7D32",
       accent_color: "#C8A951",
@@ -26,7 +26,7 @@ describe("buildCssVariableStyle", () => {
   });
 
   it("sanitizes invalid hex colors and falls back to default", () => {
-    const branding: AgentBranding = {
+    const branding: AccountBranding = {
       primary_color: "expression(alert(1))",
       secondary_color: "#GGG111",
       accent_color: "#C8A951",
@@ -38,19 +38,19 @@ describe("buildCssVariableStyle", () => {
   });
 
   it("accepts uppercase hex colors", () => {
-    const branding: AgentBranding = { primary_color: "#ABCDEF" };
+    const branding: AccountBranding = { primary_color: "#ABCDEF" };
     const style = buildCssVariableStyle(branding);
     expect(style["--color-primary"]).toBe("#ABCDEF");
   });
 
   it("accepts lowercase hex colors", () => {
-    const branding: AgentBranding = { primary_color: "#abcdef" };
+    const branding: AccountBranding = { primary_color: "#abcdef" };
     const style = buildCssVariableStyle(branding);
     expect(style["--color-primary"]).toBe("#abcdef");
   });
 
   it("sanitizes font family with dangerous characters", () => {
-    const branding: AgentBranding = {
+    const branding: AccountBranding = {
       font_family: "Arial'; behavior:url(evil.htc)",
     };
     const style = buildCssVariableStyle(branding);
@@ -58,7 +58,7 @@ describe("buildCssVariableStyle", () => {
   });
 
   it("accepts font family with hyphens and commas", () => {
-    const branding: AgentBranding = {
+    const branding: AccountBranding = {
       font_family: "Helvetica Neue, Arial, sans-serif",
     };
     const style = buildCssVariableStyle(branding);

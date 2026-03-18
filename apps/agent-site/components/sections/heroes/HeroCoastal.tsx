@@ -1,12 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import type { HeroProps } from "@/components/sections/types";
 import { safeHref, renderHeadline } from "./hero-utils";
 
 export function HeroCoastal({ data, agentPhotoUrl, agentName }: HeroProps) {
+  const [ctaHover, setCtaHover] = useState(false);
   return (
     <section
+      id="hero"
       style={{
         background: "#fefcf8",
         color: "var(--color-primary, #2c7a7b)",
@@ -19,7 +22,7 @@ export function HeroCoastal({ data, agentPhotoUrl, agentName }: HeroProps) {
         justifyContent: "center",
         gap: "50px",
         flexWrap: "wrap",
-        minHeight: "440px",
+        minHeight: "520px",
       }}
     >
       <div style={{ maxWidth: "580px" }}>
@@ -60,6 +63,8 @@ export function HeroCoastal({ data, agentPhotoUrl, agentName }: HeroProps) {
         )}
         <a
           href={safeHref(data.cta_link)}
+          onMouseEnter={() => setCtaHover(true)}
+          onMouseLeave={() => setCtaHover(false)}
           style={{
             display: "inline-block",
             background: "var(--color-primary, #2c7a7b)",
@@ -70,6 +75,10 @@ export function HeroCoastal({ data, agentPhotoUrl, agentName }: HeroProps) {
             fontWeight: 600,
             textDecoration: "none",
             letterSpacing: "0.5px",
+            opacity: ctaHover ? 0.9 : 1,
+            transform: ctaHover ? "translateY(-2px)" : "none",
+            boxShadow: ctaHover ? "0 4px 15px rgba(0,0,0,0.2)" : "none",
+            transition: "opacity 0.3s, transform 0.3s, box-shadow 0.3s",
           }}
         >
           {data.cta_text}
@@ -79,13 +88,14 @@ export function HeroCoastal({ data, agentPhotoUrl, agentName }: HeroProps) {
       {agentPhotoUrl && (
         <div
           style={{
-            width: "120px",
-            height: "120px",
-            borderRadius: "50%",
+            width: "360px",
+            height: "420px",
+            borderRadius: "20px",
             overflow: "hidden",
-            border: "3px solid var(--color-primary, #2c7a7b)",
+            border: "4px solid var(--color-primary, #2c7a7b)",
             flexShrink: 0,
             position: "relative",
+            boxShadow: "0 12px 40px rgba(44,122,123,0.18)",
           }}
         >
           <Image
@@ -93,7 +103,7 @@ export function HeroCoastal({ data, agentPhotoUrl, agentName }: HeroProps) {
             alt={agentName ? `Photo of ${agentName}` : "Agent photo"}
             fill
             style={{ objectFit: "cover" }}
-            sizes="120px"
+            sizes="360px"
             priority
           />
         </div>

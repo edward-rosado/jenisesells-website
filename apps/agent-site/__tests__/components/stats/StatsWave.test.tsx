@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StatsWave } from "@/components/sections/stats/StatsWave";
 import type { StatItem } from "@/lib/types";
 
@@ -63,5 +63,15 @@ describe("StatsWave", () => {
     const dl = container.querySelector("dl");
     expect(dl).toBeInTheDocument();
     expect(dl!.style.display).toBe("flex");
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<StatsWave items={ITEMS} />);
+    const item = container.querySelector("dl")!.children[0] as HTMLElement;
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

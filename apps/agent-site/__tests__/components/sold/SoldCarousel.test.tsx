@@ -45,9 +45,9 @@ describe("SoldCarousel", () => {
     scrollToSpy.mockReset();
   });
 
-  it("renders section with id=sold", () => {
+  it("renders section with id=gallery", () => {
     const { container } = render(<SoldCarousel items={ITEMS} />);
-    expect(container.querySelector("section#sold")).toBeInTheDocument();
+    expect(container.querySelector("section#gallery")).toBeInTheDocument();
   });
 
   it("renders with role=region and aria-roledescription=carousel", () => {

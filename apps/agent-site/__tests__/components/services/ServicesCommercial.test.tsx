@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesCommercial } from "@/components/sections/services/ServicesCommercial";
 import type { ServiceItem } from "@/lib/types";
 
@@ -45,9 +45,9 @@ describe("ServicesCommercial", () => {
     expect(screen.getByText("Secure the best lease terms.")).toBeInTheDocument();
   });
 
-  it("uses id=services for anchor linking", () => {
+  it("uses id=features for anchor linking", () => {
     const { container } = render(<ServicesCommercial items={ITEMS_FLAT} />);
-    expect(container.querySelector("#services")).toBeInTheDocument();
+    expect(container.querySelector("#features")).toBeInTheDocument();
   });
 
   it("renders article elements for each service item (flat)", () => {
@@ -88,6 +88,15 @@ describe("ServicesCommercial", () => {
   it("renders subtitle when provided", () => {
     render(<ServicesCommercial items={ITEMS_FLAT} subtitle="Full-service commercial brokerage." />);
     expect(screen.getByText("Full-service commercial brokerage.")).toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<ServicesCommercial items={ITEMS_FLAT} />);
+    const card = container.querySelectorAll("article")[0] as HTMLElement;
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 
   it("renders items without category in categorized list (no category heading for that group)", () => {

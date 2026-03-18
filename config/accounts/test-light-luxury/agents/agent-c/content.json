@@ -1,0 +1,48 @@
+{
+  "pages": {
+    "home": {
+      "sections": {
+        "hero": {
+          "enabled": true,
+          "data": {
+            "headline": "Rafael Andrade — Investment Advisor",
+            "tagline": "Strategic investments in Miami's luxury market.",
+            "cta_text": "Work With Rafael",
+            "cta_link": "#contact_form"
+          }
+        },
+        "stats": { "enabled": false, "data": { "items": [] } },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "Investment Services",
+            "items": [
+              { "title": "Portfolio Development", "description": "Custom acquisition strategies for residential and commercial investment properties in the Miami metro area." },
+              { "title": "Market Intelligence", "description": "Cap rate analysis, rental yield projections, and neighborhood growth forecasts to inform your investment decisions." },
+              { "title": "Latin American Investor Services", "description": "Trilingual guidance for Brazilian and Latin American investors navigating the U.S. real estate market." }
+            ]
+          }
+        },
+        "steps": { "enabled": false, "data": { "steps": [] } },
+        "gallery": { "enabled": false, "data": { "items": [] } },
+        "testimonials": { "enabled": false, "data": { "items": [] } },
+        "profiles": { "enabled": false, "data": { "items": [] } },
+        "contact_form": {
+          "enabled": true,
+          "data": {
+            "title": "Explore Investment Opportunities",
+            "subtitle": "Let's discuss your Miami real estate investment strategy."
+          }
+        },
+        "about": {
+          "enabled": true,
+          "data": {
+            "bio": "Rafael Andrade advises investors on luxury residential and commercial real estate opportunities in South Florida. Trilingual in English, Portuguese, and Spanish, he serves a growing Latin American investor clientele. With a background in finance and 10 years in Miami real estate, Rafael identifies opportunities that deliver strong returns.",
+            "credentials": ["REALTOR\u00ae", "CCIM"]
+          }
+        },
+        "city_pages": { "enabled": false, "data": { "cities": [] } }
+      }
+    }
+  }
+}

@@ -12,7 +12,7 @@
     drops on Windows. Building inside Linux avoids this entirely.
 
     The config directory is mounted read-only so the prebuild script can read
-    agent profiles from config/agents/ at build time.
+    agent profiles from config/accounts/ at build time.
 
     First run creates the Pages project. Subsequent runs update it.
 

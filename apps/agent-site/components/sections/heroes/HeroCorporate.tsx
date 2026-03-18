@@ -9,6 +9,7 @@ export function HeroCorporate({ data }: HeroProps) {
 
   return (
     <section
+      id="hero"
       style={{
         background: "#f4f5f7",
         color: "#1e293b",

@@ -1,0 +1,12 @@
+{
+  "id": "agent-b",
+  "name": "Marcus Lee",
+  "title": "Senior Associate",
+  "phone": "(973) 555-0301",
+  "email": "marcus@brokerdirect.com",
+  "headshot_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&crop=face",
+  "license_number": "NJ-2024-77777",
+  "languages": ["English", "Korean"],
+  "tagline": "First-time buyers are my specialty.",
+  "credentials": ["REALTOR\u00ae", "ABR"]
+}

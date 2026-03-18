@@ -1,4 +1,81 @@
+"use client";
+
+import { useState } from "react";
 import { FTC_DISCLAIMER, type TestimonialsProps } from "@/components/sections/types";
+import type { TestimonialItem } from "@/lib/types";
+
+function TestimonialsQuoteCard({ item }: { item: TestimonialItem }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        textAlign: "center",
+        position: "relative",
+        boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
+        transform: hover ? "translateY(-4px)" : "none",
+        transition: "transform 0.3s, box-shadow 0.3s",
+        cursor: "default",
+        padding: "20px",
+        borderRadius: "8px",
+      }}
+    >
+      {/* Decorative quotation mark */}
+      <div
+        data-quotation-mark
+        aria-hidden="true"
+        style={{
+          fontSize: "80px",
+          lineHeight: 1,
+          color: "var(--color-accent, #b8926a)",
+          opacity: 0.2,
+          fontFamily: "var(--font-family, Georgia), serif",
+          marginBottom: "-24px",
+          userSelect: "none",
+        }}
+      >
+        &ldquo;
+      </div>
+      <p
+        role="paragraph"
+        style={{
+          fontStyle: "italic",
+          fontSize: "19px",
+          lineHeight: 1.8,
+          color: "var(--color-primary, #3d3028)",
+          fontFamily: "var(--font-family, Georgia), serif",
+          fontWeight: 300,
+          marginBottom: "20px",
+        }}
+      >
+        {item.text}
+      </p>
+      <div
+        style={{
+          fontSize: "12px",
+          letterSpacing: "2px",
+          textTransform: "uppercase" as const,
+          color: "var(--color-secondary, #5a4a3a)",
+          fontVariant: "small-caps",
+        }}
+      >
+        {item.reviewer}
+        {item.source && (
+          <span
+            style={{
+              color: "rgba(90,74,58,0.5)",
+              fontVariant: "normal",
+              textTransform: "none" as const,
+            }}
+          >
+            {" "}via {item.source}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function TestimonialsQuote({ items, title }: TestimonialsProps) {
   return (
@@ -32,66 +109,7 @@ export function TestimonialsQuote({ items, title }: TestimonialsProps) {
           }}
         >
           {items.map((item) => (
-            <div
-              key={item.reviewer}
-              style={{
-                textAlign: "center",
-                position: "relative",
-              }}
-            >
-              {/* Decorative quotation mark */}
-              <div
-                data-quotation-mark
-                aria-hidden="true"
-                style={{
-                  fontSize: "80px",
-                  lineHeight: 1,
-                  color: "var(--color-accent, #b8926a)",
-                  opacity: 0.2,
-                  fontFamily: "var(--font-family, Georgia), serif",
-                  marginBottom: "-24px",
-                  userSelect: "none",
-                }}
-              >
-                &ldquo;
-              </div>
-              <p
-                role="paragraph"
-                style={{
-                  fontStyle: "italic",
-                  fontSize: "19px",
-                  lineHeight: 1.8,
-                  color: "var(--color-primary, #3d3028)",
-                  fontFamily: "var(--font-family, Georgia), serif",
-                  fontWeight: 300,
-                  marginBottom: "20px",
-                }}
-              >
-                {item.text}
-              </p>
-              <div
-                style={{
-                  fontSize: "12px",
-                  letterSpacing: "2px",
-                  textTransform: "uppercase" as const,
-                  color: "var(--color-secondary, #5a4a3a)",
-                  fontVariant: "small-caps",
-                }}
-              >
-                {item.reviewer}
-                {item.source && (
-                  <span
-                    style={{
-                      color: "rgba(90,74,58,0.5)",
-                      fontVariant: "normal",
-                      textTransform: "none" as const,
-                    }}
-                  >
-                    {" "}via {item.source}
-                  </span>
-                )}
-              </div>
-            </div>
+            <TestimonialsQuoteCard key={item.reviewer} item={item} />
           ))}
         </div>
 

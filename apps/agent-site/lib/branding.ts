@@ -1,4 +1,4 @@
-import type { AgentBranding } from "./types";
+import type { AccountBranding } from "./types";
 
 const DEFAULTS = {
   primary_color: "#1B5E20",
@@ -18,7 +18,7 @@ function safeFontFamily(value: string | undefined, fallback: string): string {
   return value && SAFE_FONT_FAMILY.test(value) ? value : fallback;
 }
 
-export function buildCssVariableStyle(branding: AgentBranding): Record<string, string> {
+export function buildCssVariableStyle(branding: AccountBranding): Record<string, string> {
   const primary = safeColor(branding.primary_color, DEFAULTS.primary_color);
   const secondary = safeColor(branding.secondary_color, DEFAULTS.secondary_color);
   const accent = safeColor(branding.accent_color, DEFAULTS.accent_color);

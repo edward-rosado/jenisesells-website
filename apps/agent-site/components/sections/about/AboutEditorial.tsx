@@ -1,7 +1,11 @@
 import Image from "next/image";
 import type { AboutProps } from "@/components/sections/types";
+import { getDisplayName, getHeadshotUrl } from "@/components/sections/types";
 
 export function AboutEditorial({ agent, data }: AboutProps) {
+  const displayName = getDisplayName(agent);
+  const headshotUrl = getHeadshotUrl(agent);
+
   return (
     <section
       id="about"
@@ -21,7 +25,7 @@ export function AboutEditorial({ agent, data }: AboutProps) {
         }}
       >
         {/* Agent photo */}
-        {agent.identity.headshot_url && (
+        {headshotUrl && (
           <div
             data-photo-wrapper
             style={{
@@ -35,8 +39,8 @@ export function AboutEditorial({ agent, data }: AboutProps) {
             }}
           >
             <Image
-              src={agent.identity.headshot_url}
-              alt={agent.identity.name}
+              src={headshotUrl}
+              alt={displayName}
               fill
               style={{ objectFit: "cover" }}
               sizes="220px"
@@ -55,7 +59,7 @@ export function AboutEditorial({ agent, data }: AboutProps) {
               letterSpacing: "1px",
             }}
           >
-            {data.title ?? `About ${agent.identity.name}`}
+            {data.title ?? `About ${displayName}`}
           </h2>
 
           {/* Bio */}

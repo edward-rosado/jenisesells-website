@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StepsJourney } from "@/components/sections/steps/StepsJourney";
 import type { StepItem } from "@/lib/types";
 
@@ -44,13 +44,23 @@ describe("StepsJourney", () => {
     expect(screen.getByText("You'll step into a place that feels right.")).toBeInTheDocument();
   });
 
-  it("uses id=how-it-works for anchor linking", () => {
+  it("uses id=steps for anchor linking", () => {
     const { container } = render(<StepsJourney steps={STEPS} />);
-    expect(container.querySelector("#how-it-works")).toBeInTheDocument();
+    expect(container.querySelector("#steps")).toBeInTheDocument();
   });
 
   it("renders subtitle when provided", () => {
     render(<StepsJourney steps={STEPS} subtitle="Simple and warm" />);
     expect(screen.getByText("Simple and warm")).toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<StepsJourney steps={STEPS} />);
+    const item = screen.getAllByRole("listitem")[0];
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

@@ -2,11 +2,11 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { SoldGrid } from "@/components/sections/sold/SoldGrid";
-import type { SoldHomeItem } from "@/lib/types";
+import type { GalleryItem } from "@/lib/types";
 
-const ITEMS: SoldHomeItem[] = [
+const ITEMS: GalleryItem[] = [
   { address: "123 Main St", city: "Hoboken", state: "NJ", price: "$750,000" },
   { address: "456 Elm Ave", city: "Jersey City", state: "NJ", price: "$620,000", sold_date: "2024-01-15" },
 ];
@@ -42,7 +42,7 @@ describe("SoldGrid", () => {
   });
 
   it("renders a single item correctly", () => {
-    const single: SoldHomeItem[] = [
+    const single: GalleryItem[] = [
       { address: "1 Oak Ln", city: "Newark", state: "NJ", price: "$500,000" },
     ];
     render(<SoldGrid items={single} />);
@@ -52,7 +52,7 @@ describe("SoldGrid", () => {
   });
 
   it("handles items with special characters in address", () => {
-    const special: SoldHomeItem[] = [
+    const special: GalleryItem[] = [
       { address: "10 O'Brien Ct", city: "Trenton", state: "NJ", price: "$450,000" },
     ];
     render(<SoldGrid items={special} />);
@@ -70,7 +70,7 @@ describe("SoldGrid", () => {
   });
 
   it("renders property image when image_url is provided", () => {
-    const withImage: SoldHomeItem[] = [
+    const withImage: GalleryItem[] = [
       {
         address: "789 Oak Dr",
         city: "Princeton",
@@ -87,5 +87,15 @@ describe("SoldGrid", () => {
   it("does not render an image when image_url is absent", () => {
     render(<SoldGrid items={ITEMS} />);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<SoldGrid items={ITEMS} />);
+    const card = screen.getAllByRole("article")[0];
+    expect(card.style.transform).toBe("none");
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 });

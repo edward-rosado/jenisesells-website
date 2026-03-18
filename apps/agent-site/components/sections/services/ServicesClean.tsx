@@ -1,10 +1,10 @@
 // apps/agent-site/components/sections/services/ServicesClean.tsx
-import type { ServicesProps } from "@/components/sections/types";
+import type { FeaturesProps } from "@/components/sections/types";
 
-export function ServicesClean({ items, title, subtitle }: ServicesProps) {
+export function ServicesClean({ items, title, subtitle }: FeaturesProps) {
   return (
     <section
-      id="services"
+      id="features"
       style={{
         padding: "80px 40px",
         maxWidth: "1000px",

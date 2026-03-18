@@ -1,0 +1,72 @@
+{
+  "handle": "test-modern",
+  "template": "modern-minimal",
+  "branding": {
+    "primary_color": "#1A237E",
+    "secondary_color": "#283593",
+    "accent_color": "#FF6F61",
+    "font_family": "Inter",
+    "logo_url": ""
+  },
+  "brokerage": {
+    "name": "Metro Realty Group",
+    "license_number": "MRG-NYC-2201",
+    "office_phone": "(212) 555-0100",
+    "office_address": "350 Fifth Ave, Suite 4100, New York, NY 10118"
+  },
+  "agent": {
+    "enabled": true,
+    "id": "test-modern",
+    "name": "Alex Rivera",
+    "title": "Licensed Real Estate Salesperson",
+    "phone": "(212) 555-0101",
+    "email": "alex@testrealty.com",
+    "headshot_url": "/agents/test-modern/headshot.jpg",
+    "license_number": "10401098765",
+    "languages": [
+      "English",
+      "Portuguese"
+    ],
+    "tagline": "City Living. Simplified."
+  },
+  "location": {
+    "state": "NY",
+    "service_areas": [
+      "Manhattan",
+      "Brooklyn",
+      "Queens",
+      "Long Island City"
+    ]
+  },
+  "integrations": {
+    "email_provider": "gmail"
+  },
+  "compliance": {
+    "state_form": "NY-DOS-1736",
+    "licensing_body": "NY Department of State",
+    "disclosure_requirements": [
+      "Property condition disclosure (PCDS)",
+      "Lead-based paint disclosure (pre-1978)"
+    ]
+  },
+  "contact_info": [
+    {
+      "type": "phone",
+      "value": "(212) 555-0101",
+      "label": "Cell Phone",
+      "is_preferred": true
+    },
+    {
+      "type": "phone",
+      "value": "(212) 555-0100",
+      "label": "Office",
+      "is_preferred": false
+    },
+    {
+      "type": "email",
+      "value": "alex@testrealty.com",
+      "label": "Email",
+      "is_preferred": false
+    }
+  ]
+}

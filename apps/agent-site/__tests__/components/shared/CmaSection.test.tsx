@@ -4,7 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { CmaSection } from "@/components/sections/shared/CmaSection";
-import type { CmaFormData } from "@/lib/types";
+import type { ContactFormData } from "@/lib/types";
 
 // --- Mock useCmaSubmit from @real-estate-star/ui ---
 const mockSubmit = vi.fn();
@@ -47,13 +47,13 @@ vi.mock("@/components/Analytics", () => ({
   trackCmaConversion: vi.fn(),
 }));
 
-const FORM_DATA: CmaFormData = {
+const FORM_DATA: ContactFormData = {
   title: "What's Your Home Worth?",
   subtitle: "Get a free CMA today",
 };
 
 const DEFAULT_PROPS = {
-  agentId: "test-agent",
+  accountId: "test-agent",
   agentName: "Jane Smith",
   defaultState: "NJ",
   data: FORM_DATA,
@@ -110,9 +110,9 @@ describe("CmaSection rendering", () => {
     expect(screen.getByLabelText(/^zip/i)).toBeInTheDocument();
   });
 
-  it("renders section with id cma-form", () => {
+  it("renders section with id contact_form", () => {
     const { container } = render(<CmaSection {...DEFAULT_PROPS} />);
-    expect(container.querySelector("#cma-form")).toBeInTheDocument();
+    expect(container.querySelector("#contact_form")).toBeInTheDocument();
   });
 
   it("renders submit button with seller label", () => {
@@ -164,7 +164,7 @@ describe("CmaSection rendering", () => {
 });
 
 describe("CmaSection form submission", () => {
-  it("calls useCmaSubmit.submit with agentId and LeadFormData on submit", async () => {
+  it("calls useCmaSubmit.submit with accountId and LeadFormData on submit", async () => {
     mockSubmit.mockResolvedValueOnce(true);
 
     const locationMock = { href: "" };
@@ -323,7 +323,7 @@ describe("CmaSection form submission", () => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);
     });
 
-    expect(locationMock.href).toBe("/thank-you?agentId=test-agent");
+    expect(locationMock.href).toBe("/thank-you?accountId=test-agent");
     expect(locationMock.href).not.toContain("email=");
   });
 
@@ -339,7 +339,7 @@ describe("CmaSection form submission", () => {
     capturedOnError!(testError);
 
     expect(Sentry.captureException).toHaveBeenCalledWith(testError, {
-      tags: { agentId: "test-agent", feature: "cma-form" },
+      tags: { accountId: "test-agent", feature: "contact_form" },
     });
   });
 });

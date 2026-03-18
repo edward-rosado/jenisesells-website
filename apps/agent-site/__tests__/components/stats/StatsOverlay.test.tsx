@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StatsOverlay } from "@/components/sections/stats/StatsOverlay";
 import type { StatItem } from "@/lib/types";
 
@@ -67,5 +67,15 @@ describe("StatsOverlay", () => {
   it("renders empty section gracefully when items is empty", () => {
     const { container } = render(<StatsOverlay items={[]} />);
     expect(container.querySelector("section#stats")).toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<StatsOverlay items={ITEMS} />);
+    const item = container.querySelector("dl")!.children[0] as HTMLElement;
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

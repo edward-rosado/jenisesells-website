@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsRustic } from "@/components/sections/testimonials/TestimonialsRustic";
 import { FTC_DISCLAIMER } from "@/components/sections/types";
 import type { TestimonialItem } from "@/lib/types";
@@ -93,6 +93,15 @@ describe("TestimonialsRustic", () => {
     const articles = container.querySelectorAll("article");
     expect(articles.length).toBe(3);
     expect(articles[0].style.border).toContain("1px solid");
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<TestimonialsRustic items={ITEMS} />);
+    const card = container.querySelectorAll("article")[0] as HTMLElement;
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 
   it("renders clamped rating — 6 becomes 5 stars", () => {

@@ -1,9 +1,9 @@
-import type { AgentConfig } from "@/lib/types";
+import type { AccountConfig, AgentConfig } from "@/lib/types";
 import { EqualHousingNotice } from "@real-estate-star/ui";
 
 interface FooterProps {
-  agent: AgentConfig;
-  agentId?: string;
+  agent: AccountConfig | AgentConfig;
+  accountId?: string;
 }
 
 function formatServiceAreas(areas: string[], state: string): string {
@@ -15,9 +15,46 @@ function formatServiceAreas(areas: string[], state: string): string {
   return `Serving ${names.join(", ")} & ${last} Counties, ${state}`;
 }
 
-export function Footer({ agent, agentId }: FooterProps) {
-  const { identity, location } = agent;
-  const qs = agentId ? `?agentId=${encodeURIComponent(agentId)}` : "";
+export function Footer({ agent, accountId }: FooterProps) {
+  const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
+
+  let name: string;
+  let title: string | undefined;
+  let phone: string;
+  let email: string;
+  let brokerageName: string;
+  let licenseNumber: string | undefined;
+  let officePhone: string | undefined;
+  let officeAddress: string | undefined;
+  let state: string;
+  let serviceAreas: string[];
+
+  if ("handle" in agent) {
+    // AccountConfig
+    name = agent.agent?.name ?? agent.broker?.name ?? agent.brokerage.name;
+    title = agent.agent?.title ?? agent.broker?.title;
+    phone = agent.agent?.phone ?? agent.contact_info?.find((c) => c.type === "phone")?.value ?? "";
+    email = agent.agent?.email ?? agent.contact_info?.find((c) => c.type === "email")?.value ?? "";
+    brokerageName = agent.brokerage.name;
+    licenseNumber = agent.agent?.license_number;
+    officePhone = agent.brokerage.office_phone;
+    officeAddress = agent.brokerage.office_address;
+    state = agent.location.state;
+    serviceAreas = agent.location.service_areas;
+  } else {
+    // AgentConfig (flat)
+    name = agent.name;
+    title = agent.title;
+    phone = agent.phone;
+    email = agent.email;
+    brokerageName = "";
+    licenseNumber = agent.license_number;
+    officePhone = undefined;
+    officeAddress = undefined;
+    state = "";
+    serviceAreas = [];
+  }
+
   return (
     <footer
       style={{
@@ -35,18 +72,20 @@ export function Footer({ agent, agentId }: FooterProps) {
           marginBottom: "5px",
         }}
       >
-        {identity.name}{identity.title ? `, ${identity.title}` : ""}
+        {name}{title ? `, ${title}` : ""}
       </p>
-      <p
-        style={{
-          fontSize: "24px",
-          fontWeight: 700,
-          color: "white",
-          marginBottom: "3px",
-        }}
-      >
-        {identity.brokerage}
-      </p>
+      {brokerageName && (
+        <p
+          style={{
+            fontSize: "24px",
+            fontWeight: 700,
+            color: "white",
+            marginBottom: "3px",
+          }}
+        >
+          {brokerageName}
+        </p>
+      )}
       <p
         style={{
           fontSize: "14px",
@@ -54,46 +93,52 @@ export function Footer({ agent, agentId }: FooterProps) {
           marginBottom: "15px",
         }}
       >
-        {identity.title || "Licensed Real Estate Salesperson"}{identity.license_id && ` | NJ License #${identity.license_id}`}
+        {title || "Licensed Real Estate Salesperson"}{licenseNumber && ` | License #${licenseNumber}`}
       </p>
-      <p style={{ fontSize: "14px", color: "white", marginBottom: "3px" }}>
-        <a
-          href={`tel:${identity.phone.replace(/\D/g, "")}`}
-          aria-label={`Call ${identity.name}`}
-          style={{ color: "white", textDecoration: "none" }}
-        >
-          Cell: {identity.phone}
-        </a>
-        {identity.office_phone && (
-          <>
-            {"  |  "}
-            <a
-              href={`tel:${identity.office_phone.replace(/[^0-9]/g, "")}`}
-              aria-label="Call office"
-              style={{ color: "white", textDecoration: "none" }}
-            >
-              {identity.office_phone}
-            </a>
-          </>
-        )}
-      </p>
-      <p style={{ fontSize: "14px", color: "white", marginBottom: "5px" }}>
-        <a
-          href={`mailto:${identity.email}`}
-          aria-label={`Email ${identity.name}`}
-          style={{ color: "white", textDecoration: "none" }}
-        >
-          {identity.email}
-        </a>
-      </p>
-      {location.service_areas && location.service_areas.length > 0 && (
-        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)", marginTop: "15px" }}>
-          {formatServiceAreas(location.service_areas, location.state)}
+      {phone && (
+        <p style={{ fontSize: "14px", color: "white", marginBottom: "3px" }}>
+          <a
+            href={`tel:${phone.replace(/\D/g, "")}`}
+            aria-label={`Call ${name}`}
+            style={{ color: "white", textDecoration: "none" }}
+          >
+            Cell: {phone}
+          </a>
+          {officePhone && (
+            <>
+              {"  |  "}
+              <a
+                href={`tel:${officePhone.replace(/[^0-9]/g, "")}`}
+                aria-label="Call office"
+                style={{ color: "white", textDecoration: "none" }}
+              >
+                {officePhone}
+              </a>
+            </>
+          )}
         </p>
       )}
-      <div style={{ marginTop: "20px" }}>
-        <EqualHousingNotice agentState={location.state} />
-      </div>
+      {email && (
+        <p style={{ fontSize: "14px", color: "white", marginBottom: "5px" }}>
+          <a
+            href={`mailto:${email}`}
+            aria-label={`Email ${name}`}
+            style={{ color: "white", textDecoration: "none" }}
+          >
+            {email}
+          </a>
+        </p>
+      )}
+      {serviceAreas.length > 0 && state && (
+        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)", marginTop: "15px" }}>
+          {formatServiceAreas(serviceAreas, state)}
+        </p>
+      )}
+      {state && (
+        <div style={{ marginTop: "20px" }}>
+          <EqualHousingNotice agentState={state} />
+        </div>
+      )}
       <p
         style={{
           fontSize: "11px",
@@ -104,7 +149,7 @@ export function Footer({ agent, agentId }: FooterProps) {
           marginRight: "auto",
         }}
       >
-        The information on this website is for general informational purposes only. {identity.name}, Licensed Real Estate Salesperson{identity.license_id && ` (NJ License #${identity.license_id})`}, is affiliated with {identity.brokerage}{location.office_address && `, ${location.office_address}`}.{identity.office_phone && ` ${identity.office_phone}.`} All information deemed reliable but not guaranteed.
+        The information on this website is for general informational purposes only. {name}, {title || "Licensed Real Estate Salesperson"}{licenseNumber && ` (License #${licenseNumber})`}{brokerageName && `, is affiliated with ${brokerageName}`}{officeAddress && `, ${officeAddress}`}.{officePhone && ` ${officePhone}.`} All information deemed reliable but not guaranteed.
       </p>
       <nav
         aria-label="Legal links"
@@ -129,7 +174,7 @@ export function Footer({ agent, agentId }: FooterProps) {
           opacity: 0.6,
         }}
       >
-        &copy; {new Date().getFullYear()} {identity.name}. All rights reserved.
+        &copy; {new Date().getFullYear()} {name}. All rights reserved.
       </p>
     </footer>
   );

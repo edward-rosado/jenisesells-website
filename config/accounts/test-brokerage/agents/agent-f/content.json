@@ -1,0 +1,48 @@
+{
+  "pages": {
+    "home": {
+      "sections": {
+        "hero": {
+          "enabled": true,
+          "data": {
+            "headline": "Angela Moreau — Listing Coordinator",
+            "tagline": "Every listing, picture-perfect.",
+            "cta_text": "Work With Angela",
+            "cta_link": "#contact_form"
+          }
+        },
+        "stats": { "enabled": false, "data": { "items": [] } },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "Listing Services",
+            "items": [
+              { "title": "Staging & Design", "description": "Professional staging consultations that transform your home and attract premium offers." },
+              { "title": "Photography & Marketing", "description": "Magazine-quality photography, virtual tours, and targeted digital campaigns for maximum exposure." },
+              { "title": "Transaction Management", "description": "Seamless coordination from listing to closing — inspections, appraisals, and paperwork handled with care." }
+            ]
+          }
+        },
+        "steps": { "enabled": false, "data": { "steps": [] } },
+        "gallery": { "enabled": false, "data": { "items": [] } },
+        "testimonials": { "enabled": false, "data": { "items": [] } },
+        "profiles": { "enabled": false, "data": { "items": [] } },
+        "contact_form": {
+          "enabled": true,
+          "data": {
+            "title": "List Your Home",
+            "subtitle": "Let's get your property sold for top dollar."
+          }
+        },
+        "about": {
+          "enabled": true,
+          "data": {
+            "bio": "Angela manages the listing lifecycle from staging consultation through closing. Her background in interior design and marketing ensures every Sterling listing presents at its absolute best — averaging just 18 days on market.",
+            "credentials": ["REALTOR\u00ae"]
+          }
+        },
+        "city_pages": { "enabled": false, "data": { "cities": [] } }
+      }
+    }
+  }
+}

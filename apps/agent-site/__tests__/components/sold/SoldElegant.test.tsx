@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { SoldElegant } from "@/components/sections/sold/SoldElegant";
 import type { SoldHomeItem } from "@/lib/types";
 
@@ -14,9 +14,9 @@ const ITEMS: SoldHomeItem[] = [
 ];
 
 describe("SoldElegant", () => {
-  it("renders section with id=sold", () => {
+  it("renders section with id=gallery", () => {
     const { container } = render(<SoldElegant items={ITEMS} />);
-    expect(container.querySelector("section#sold")).toBeInTheDocument();
+    expect(container.querySelector("section#gallery")).toBeInTheDocument();
   });
 
   it("renders default heading 'Recent Sales'", () => {
@@ -66,5 +66,15 @@ describe("SoldElegant", () => {
   it("renders subtitle when provided", () => {
     render(<SoldElegant items={ITEMS} subtitle="Exceptional results." />);
     expect(screen.getByText("Exceptional results.")).toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<SoldElegant items={ITEMS} />);
+    const card = container.querySelector("[data-sold-grid]")!.children[0] as HTMLElement;
+    expect(card.style.transform).toBe("none");
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 });

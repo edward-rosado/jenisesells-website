@@ -7,7 +7,7 @@ export function ServicesCoastal({ items, title, subtitle }: ServicesProps) {
   const [hovered, setHovered] = useState<number | null>(null);
   return (
     <section
-      id="services"
+      id="features"
       style={{
         padding: "70px 40px",
         background: "var(--color-bg, #e8f4f8)",

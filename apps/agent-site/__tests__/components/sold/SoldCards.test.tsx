@@ -2,11 +2,11 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { SoldCards } from "@/components/sections/sold/SoldCards";
-import type { SoldHomeItem } from "@/lib/types";
+import type { GalleryItem } from "@/lib/types";
 
-const ITEMS: SoldHomeItem[] = [
+const ITEMS: GalleryItem[] = [
   {
     address: "123 Main St",
     city: "Springfield",
@@ -46,9 +46,9 @@ describe("SoldCards", () => {
     expect(screen.getByText(/456 Oak Ave/)).toBeInTheDocument();
   });
 
-  it("uses id=sold for anchor linking", () => {
+  it("uses id=gallery for anchor linking", () => {
     const { container } = render(<SoldCards items={ITEMS} />);
-    expect(container.querySelector("#sold")).toBeInTheDocument();
+    expect(container.querySelector("#gallery")).toBeInTheDocument();
   });
 
   it("renders SOLD badges", () => {
@@ -75,5 +75,14 @@ describe("SoldCards", () => {
   it("renders subtitle when provided", () => {
     render(<SoldCards items={ITEMS} subtitle="Homes I have helped sell" />);
     expect(screen.getByText("Homes I have helped sell")).toBeInTheDocument();
+  });
+
+  it("lifts card on hover", () => {
+    const { container } = render(<SoldCards items={ITEMS} />);
+    const article = container.querySelector("article") as HTMLElement;
+    fireEvent.mouseEnter(article);
+    expect(article.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(article);
+    expect(article.style.transform).toBe("none");
   });
 });

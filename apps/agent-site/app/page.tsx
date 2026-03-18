@@ -1,25 +1,25 @@
 import type { Metadata } from "next";
 import * as Sentry from "@sentry/nextjs";
 import { notFound } from "next/navigation";
-import { loadAgentConfig, loadAgentContent } from "@/lib/config";
+import { loadAccountConfig, loadAccountContent } from "@/lib/config";
 import { buildCssVariableStyle } from "@/lib/branding";
 import { getTemplate } from "@/templates";
 import { Analytics } from "@/components/Analytics";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 
 interface PageProps {
-  searchParams: Promise<{ agentId?: string; template?: string }>;
+  searchParams: Promise<{ accountId?: string; template?: string }>;
 }
 
 export const revalidate = 60; // ISR: revalidate every 60 seconds
 
-function resolveAgentId(agentId?: string): string {
-  // In production, always use the bound agent — never trust query params (tenant confusion)
-  // Preview deploys set PREVIEW=true so ?agentId works for QA
+function resolveHandle(accountId?: string): string {
+  // In production, always use the bound account — never trust query params (tenant confusion)
+  // Preview deploys set PREVIEW=true so ?accountId works for QA
   if (process.env.NODE_ENV === "production" && !process.env.PREVIEW) {
     return process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
   }
-  return agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+  return accountId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 }
 
 function resolveTemplateOverride(template?: string): string | undefined {
@@ -28,16 +28,18 @@ function resolveTemplateOverride(template?: string): string | undefined {
 }
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
-  const { agentId } = await searchParams;
-  const id = resolveAgentId(agentId);
+  const { accountId } = await searchParams;
+  const handle = resolveHandle(accountId);
   try {
-    const agent = loadAgentConfig(id);
+    const account = loadAccountConfig(handle);
+    const name = account.agent?.name ?? account.broker?.name ?? account.brokerage.name;
+    const title = account.agent?.title ?? "Real Estate";
     return {
-      title: `${agent.identity.name} | ${agent.identity.title ?? "Real Estate Agent"}`,
-      description: agent.identity.tagline ?? `${agent.identity.name} — serving ${agent.location.service_areas?.join(", ") ?? agent.location.state}`,
+      title: `${name} | ${title}`,
+      description: account.agent?.tagline ?? `${name} — serving ${account.location.service_areas?.join(", ") ?? account.location.state}`,
       openGraph: {
-        title: agent.identity.name,
-        description: agent.identity.tagline ?? "",
+        title: name,
+        description: account.agent?.tagline ?? "",
         type: "website",
       },
     };
@@ -47,41 +49,45 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 }
 
 export default async function AgentPage({ searchParams }: PageProps) {
-  const { agentId, template: templateOverride } = await searchParams;
-  const id = resolveAgentId(agentId);
+  const { accountId, template: templateOverride } = await searchParams;
+  const handle = resolveHandle(accountId);
 
   try {
-    const agent = loadAgentConfig(id);
-    const content = loadAgentContent(id, agent);
+    const account = loadAccountConfig(handle);
+    const content = loadAccountContent(handle, account);
 
-    const cssVars = buildCssVariableStyle(agent.branding);
-    const Template = getTemplate(resolveTemplateOverride(templateOverride) ?? content.template);
+    const cssVars = buildCssVariableStyle(account.branding);
+    const Template = getTemplate(resolveTemplateOverride(templateOverride) ?? account.template);
 
+    const agentName = account.agent?.name ?? account.broker?.name ?? account.brokerage.name;
     const jsonLd = {
       "@context": "https://schema.org",
       "@type": "RealEstateAgent",
-      name: agent.identity.name,
-      telephone: agent.identity.phone,
-      email: agent.identity.email,
-      ...(agent.identity.website && { url: agent.identity.website }),
-      ...(agent.location.office_address && { address: agent.location.office_address }),
-      ...(agent.location.service_areas && { areaServed: agent.location.service_areas }),
-      ...(agent.identity.headshot_url && { image: agent.identity.headshot_url }),
+      name: agentName,
+      ...(account.agent?.phone && { telephone: account.agent.phone }),
+      ...(account.agent?.email && { email: account.agent.email }),
+      ...(account.integrations?.hosting && { url: `https://${account.integrations.hosting}` }),
+      ...(account.brokerage.office_address && { address: account.brokerage.office_address }),
+      ...(account.location.service_areas && { areaServed: account.location.service_areas }),
+      ...(account.agent?.headshot_url && { image: account.agent.headshot_url }),
     };
+
+    // JSON-LD uses JSON.stringify on controlled data — safe, not user HTML
+    const jsonLdHtml = JSON.stringify(jsonLd).replace(/<\/script>/gi, "<\\/script>");
 
     return (
       <div style={cssVars as React.CSSProperties}>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/<\/script>/gi, "<\\/script>") }}
+          dangerouslySetInnerHTML={{ __html: jsonLdHtml }}
         />
-        <Analytics tracking={agent.integrations?.tracking} />
-        <Template agent={agent} content={content} />
-        <CookieConsentBanner agentId={id} />
+        <Analytics tracking={account.integrations?.tracking} />
+        <Template account={account} content={content} />
+        <CookieConsentBanner accountId={handle} />
       </div>
     );
   } catch (err) {
-    Sentry.captureException(err, { tags: { agentId: id } });
+    Sentry.captureException(err, { tags: { accountId: handle } });
     notFound();
   }
 }
