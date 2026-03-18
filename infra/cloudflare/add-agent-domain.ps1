@@ -4,7 +4,7 @@
     Add Cloudflare Workers custom domains for a Real Estate Star agent.
 
 .DESCRIPTION
-    Reads the agent config from config/agents/{slug}/ or config/agents/{slug}.json,
+    Reads the agent config from config/accounts/{slug}/ or config/accounts/{slug}.json,
     then registers the following custom domains on the Workers service:
 
       - {slug}.real-estate-star.com  (always)
@@ -20,7 +20,7 @@
 
 .PARAMETER Slug
     The agent slug (e.g. jenise-buckalew). Must match a file or directory under
-    config/agents/.
+    config/accounts/.
 
 .EXAMPLE
     .\add-agent-domain.ps1 -Slug jenise-buckalew
@@ -48,7 +48,7 @@ $CfApiBase           = "https://api.cloudflare.com/client/v4"
 $DefaultAccountId    = "7674efd9381763796f39ea67fe5e0505"
 $ScriptDir           = $PSScriptRoot
 $RepoRoot            = (Resolve-Path (Join-Path $ScriptDir "..\..")).Path
-$AgentsDir           = Join-Path $RepoRoot "config\agents"
+$AgentsDir           = Join-Path $RepoRoot "config\accounts"
 
 # --- Helpers ---
 function Write-Ok($Msg)   { Write-Host "    [OK]   $Msg" -ForegroundColor Green }
@@ -108,23 +108,17 @@ $ZoneId     = $env:CLOUDFLARE_ZONE_ID
 Write-Host ""
 Write-Host "=== Agent Config ===" -ForegroundColor White
 
-# Support both flat layout (config/agents/{slug}.json) and
-# directory layout (config/agents/{slug}/config.json)
+# Support both flat layout (config/accounts/{slug}.json) and
+# directory layout (config/accounts/{slug}/config.json)
 $configPath = $null
-$dirConfig  = Join-Path $AgentsDir "$Slug\config.json"
-$flatConfig = Join-Path $AgentsDir "$Slug.json"
+$accountConfig = Join-Path $AgentsDir "$Slug\account.json"
 
-if (Test-Path $dirConfig) {
-    $configPath = $dirConfig
-    Write-Ok "Found agent config at config/agents/$Slug/config.json"
-} elseif (Test-Path $flatConfig) {
-    $configPath = $flatConfig
-    Write-Ok "Found agent config at config/agents/$Slug.json"
+if (Test-Path $accountConfig) {
+    $configPath = $accountConfig
+    Write-Ok "Found account config at config/accounts/$Slug/account.json"
 } else {
     Write-Fail "No config found for slug '$Slug'"
-    Write-Info "Expected one of:"
-    Write-Info "  config/agents/$Slug/config.json"
-    Write-Info "  config/agents/$Slug.json"
+    Write-Info "Expected: config/accounts/$Slug/account.json"
     exit 1
 }
 
