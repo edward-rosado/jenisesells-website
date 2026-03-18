@@ -1,0 +1,12 @@
+{
+  "id": "agent-d",
+  "name": "Kevin Park",
+  "title": "Investment Advisor",
+  "phone": "(973) 555-0303",
+  "email": "kevin@brokerdirect.com",
+  "headshot_url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face",
+  "license_number": "NJ-2024-66666",
+  "languages": ["English"],
+  "tagline": "Smart investments, strong returns.",
+  "credentials": ["REALTOR\u00ae", "CCIM"]
+}

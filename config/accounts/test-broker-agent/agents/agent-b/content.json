@@ -1,0 +1,120 @@
+{
+  "pages": {
+    "home": {
+      "sections": {
+        "hero": {
+          "enabled": true,
+          "data": {
+            "headline": "Marcus Lee — Senior Associate",
+            "tagline": "First-time buyers are my specialty.",
+            "body": "Whether you're buying your first condo in downtown Newark or upgrading to a family home in Montclair, I'll guide you through every step with patience, market knowledge, and a relentless commitment to getting you the best deal.",
+            "cta_text": "Work With Marcus",
+            "cta_link": "#contact_form"
+          }
+        },
+        "stats": {
+          "enabled": true,
+          "data": {
+            "items": [
+              { "value": "85+", "label": "Homes Sold" },
+              { "value": "6", "label": "Years Experience" },
+              { "value": "$45M+", "label": "Sales Volume" },
+              { "value": "5.0", "label": "Client Rating" }
+            ]
+          }
+        },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "How I Help Buyers",
+            "items": [
+              { "title": "First-Time Buyer Guidance", "description": "Step-by-step support from pre-approval through closing — I explain everything so you never feel lost." },
+              { "title": "Neighborhood Expertise", "description": "I know Newark and Montclair block by block — commute times, school ratings, future development, and hidden gems." },
+              { "title": "Negotiation That Wins", "description": "Data-driven offers and creative deal structures that have saved my clients an average of $18K per transaction." }
+            ]
+          }
+        },
+        "steps": { "enabled": false, "data": { "steps": [] } },
+        "gallery": {
+          "enabled": true,
+          "data": {
+            "title": "Recent Sales",
+            "subtitle": "Homes I've helped clients buy and sell across Newark and Montclair.",
+            "items": [
+              {
+                "address": "88 Park Ave, Unit 4B",
+                "city": "Newark",
+                "state": "NJ",
+                "price": "$415,000",
+                "image_url": "/agents/test-broker-agent/sold/110-central-park.jpg"
+              },
+              {
+                "address": "22 Watchung Ave",
+                "city": "Montclair",
+                "state": "NJ",
+                "price": "$725,000",
+                "image_url": "/agents/test-broker-agent/sold/15-central-park.jpg"
+              },
+              {
+                "address": "310 Broad St, Unit 8A",
+                "city": "Newark",
+                "state": "NJ",
+                "price": "$380,000",
+                "image_url": "/agents/test-broker-agent/sold/1-john-st.jpg"
+              },
+              {
+                "address": "15 Valley Rd",
+                "city": "Montclair",
+                "state": "NJ",
+                "price": "$890,000",
+                "image_url": "/agents/test-broker-agent/sold/432-park-ave.jpg"
+              }
+            ]
+          }
+        },
+        "testimonials": {
+          "enabled": true,
+          "data": {
+            "title": "What My Clients Say",
+            "items": [
+              {
+                "text": "Marcus made buying our first home the most exciting experience instead of the stressful one everyone warned us about. He found us a condo in Newark that was $30K under our budget with better amenities than we expected.",
+                "reviewer": "Jason & Priya M.",
+                "rating": 5,
+                "source": "Zillow"
+              },
+              {
+                "text": "As a single mom, I was nervous about the buying process. Marcus walked me through every document, every decision, and never once made me feel rushed. We closed on a beautiful townhouse in Montclair and I couldn't be happier.",
+                "reviewer": "Tamara S.",
+                "rating": 5,
+                "source": "Google"
+              },
+              {
+                "text": "We were relocating from out of state and Marcus did virtual tours, neighborhood comparisons, and school district breakdowns before we ever visited. By the time we flew in, we knew exactly where we wanted to live.",
+                "reviewer": "The Chen Family",
+                "rating": 5,
+                "source": "Google"
+              }
+            ]
+          }
+        },
+        "profiles": { "enabled": false, "data": { "items": [] } },
+        "contact_form": {
+          "enabled": true,
+          "data": {
+            "title": "Ready to Find Your Home?",
+            "subtitle": "Tell me what you're looking for and let's get started."
+          }
+        },
+        "about": {
+          "enabled": true,
+          "data": {
+            "bio": "Marcus Lee is a Senior Associate at Broker Direct Realty with 6 years of experience and over 85 transactions closed. Bilingual in English and Korean, he specializes in helping first-time buyers navigate the Newark and Montclair markets. Before real estate, Marcus worked in urban planning, giving him a unique perspective on neighborhoods, development trends, and long-term property value.",
+            "credentials": ["REALTOR\u00ae", "ABR"]
+          }
+        },
+        "city_pages": { "enabled": false, "data": { "cities": [] } }
+      }
+    }
+  }
+}

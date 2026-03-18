@@ -178,28 +178,36 @@
                 "title": "Broker/Owner",
                 "phone": "(973) 555-0300",
                 "email": "diana@brokerdirect.com",
-                "headshot_url": "/agents/test-broker-agent/headshot.jpg"
+                "headshot_url": "/agents/test-broker-agent/headshot.jpg",
+                "bio": "Diana founded Broker Direct Realty in 2011 and has grown it into a trusted full-service brokerage with over 300 transactions and $180M+ in sales. She's passionate about mentoring the next generation of agents.",
+                "link": "#about"
               },
               {
                 "id": "agent-b",
                 "name": "Marcus Lee",
                 "title": "Senior Associate",
                 "phone": "(973) 555-0301",
-                "email": "marcus@brokerdirect.com"
+                "email": "marcus@brokerdirect.com",
+                "headshot_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&crop=face",
+                "bio": "Marcus specializes in helping first-time buyers navigate the Newark and Montclair markets. Bilingual in English and Korean, he's closed 85+ transactions with a perfect 5.0 client rating."
               },
               {
                 "id": "agent-c",
                 "name": "Elena Vasquez",
                 "title": "Relocation Specialist",
                 "phone": "(973) 555-0302",
-                "email": "elena@brokerdirect.com"
+                "email": "elena@brokerdirect.com",
+                "headshot_url": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&h=300&fit=crop&crop=face",
+                "bio": "Elena specializes in helping families relocate to northern New Jersey. Bilingual in English and Spanish, she provides end-to-end support from virtual tours to settlement assistance."
               },
               {
                 "id": "agent-d",
                 "name": "Kevin Park",
                 "title": "Investment Advisor",
                 "phone": "(973) 555-0303",
-                "email": "kevin@brokerdirect.com"
+                "email": "kevin@brokerdirect.com",
+                "headshot_url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face",
+                "bio": "Kevin advises investors on multi-family properties and commercial real estate in northern NJ. With a background in finance and 8 years in real estate, he specializes in rental yield analysis and 1031 exchanges."
               }
             ]
           }

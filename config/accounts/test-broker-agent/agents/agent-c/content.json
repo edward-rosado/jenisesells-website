@@ -5,14 +5,24 @@
         "hero": {
           "enabled": true,
           "data": {
-            "headline": "Marcus Lee — Associate Agent",
-            "tagline": "Dedicated to your success.",
-            "cta_text": "Work With Marcus",
+            "headline": "Elena Vasquez — Relocation Specialist",
+            "tagline": "Making your move seamless.",
+            "cta_text": "Work With Elena",
             "cta_link": "#contact_form"
           }
         },
         "stats": { "enabled": false, "data": { "items": [] } },
-        "features": { "enabled": false, "data": { "items": [] } },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "Relocation Services",
+            "items": [
+              { "title": "Virtual Home Tours", "description": "High-quality video walkthroughs and live virtual showings so you can explore homes before you arrive." },
+              { "title": "Neighborhood Guides", "description": "Detailed school district comparisons, commute maps, and lifestyle guides tailored to your family's priorities." },
+              { "title": "Settlement Support", "description": "Utility setup, contractor referrals, and local recommendations to help you settle in quickly." }
+            ]
+          }
+        },
         "steps": { "enabled": false, "data": { "steps": [] } },
         "gallery": { "enabled": false, "data": { "items": [] } },
         "testimonials": { "enabled": false, "data": { "items": [] } },
@@ -20,14 +30,15 @@
         "contact_form": {
           "enabled": true,
           "data": {
-            "title": "Work With Marcus",
-            "subtitle": "Let's find your next home."
+            "title": "Planning a Move?",
+            "subtitle": "Let me help make your relocation stress-free."
           }
         },
         "about": {
           "enabled": true,
           "data": {
-            "bio": "Marcus Lee is an associate agent at Broker Direct Realty, serving the Newark and Montclair communities."
+            "bio": "Elena Vasquez specializes in helping families relocate to the Newark and Montclair area. Bilingual in English and Spanish, she provides end-to-end relocation support — from virtual tours and school comparisons to settlement assistance after move-in. She's helped over 40 families make successful out-of-state moves.",
+            "credentials": ["REALTOR\u00ae"]
           }
         },
         "city_pages": { "enabled": false, "data": { "cities": [] } }

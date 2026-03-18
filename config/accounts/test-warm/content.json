@@ -22,13 +22,13 @@
         "enabled": true
       },
       {
-        "label": "Free Home Value",
-        "href": "#contact_form",
+        "label": "Team",
+        "href": "#profiles",
         "enabled": true
       },
       {
-        "label": "Team",
-        "href": "#profiles",
+        "label": "Free Home Value",
+        "href": "#contact_form",
         "enabled": true
       },
       {
