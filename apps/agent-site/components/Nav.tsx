@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { AgentConfig, NavItem, ContactMethod } from "@/lib/types";
@@ -65,7 +65,9 @@ export function Nav({ agent, navigation, contactInfo }: NavProps) {
   const contactBtnRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isHome = pathname === "/";
+  const qs = searchParams.toString();
 
   function toggleDrawer() {
     setDrawerOpen((prev) => !prev);
@@ -101,9 +103,10 @@ export function Nav({ agent, navigation, contactInfo }: NavProps) {
 
   const navItems = navigation?.items ?? DEFAULT_NAV_ITEMS;
   const prefix = isHome ? "" : "/";
+  const qsSuffix = qs ? `?${qs}` : "";
   const sections = navItems.map((item) => ({
     label: item.label,
-    href: `${prefix}#${item.section}`,
+    href: `${prefix}${qsSuffix}#${item.section}`,
   }));
 
   // Resolve contact methods — prefer content-driven, fall back to agent.identity
