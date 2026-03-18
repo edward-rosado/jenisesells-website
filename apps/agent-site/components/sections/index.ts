@@ -29,6 +29,11 @@ export { SoldCards } from "./sold/SoldCards";
 export { TestimonialsBubble } from "./testimonials/TestimonialsBubble";
 export { AboutCard } from "./about/AboutCard";
 
+// Profiles variants
+export { ProfilesGrid } from "./profiles/ProfilesGrid";
+export { ProfilesCards } from "./profiles/ProfilesCards";
+export { ProfilesClean } from "./profiles/ProfilesClean";
+
 // Backward-compatible aliases for EmeraldClassic template
 export { HeroGradient as Hero } from "./heroes/HeroGradient";
 export { ServicesGrid as Services } from "./services/ServicesGrid";
