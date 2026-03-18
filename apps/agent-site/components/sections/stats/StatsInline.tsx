@@ -21,6 +21,8 @@ export function StatsInline({ items, sourceDisclaimer }: StatsProps) {
           <div
             key={item.label}
             style={{
+              display: "flex",
+              flexDirection: "column",
               background: "#FFF8F0",
               borderRadius: "16px",
               padding: "24px 32px",
@@ -29,15 +31,8 @@ export function StatsInline({ items, sourceDisclaimer }: StatsProps) {
               boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
             }}
           >
-            <dd style={{
-              fontSize: "28px",
-              fontWeight: 700,
-              color: "#4A3728",
-              margin: 0,
-            }}>
-              {item.value}
-            </dd>
             <dt style={{
+              order: 2,
               fontSize: "12px",
               textTransform: "uppercase",
               letterSpacing: "1px",
@@ -46,13 +41,22 @@ export function StatsInline({ items, sourceDisclaimer }: StatsProps) {
             }}>
               {item.label}
             </dt>
+            <dd style={{
+              order: 1,
+              fontSize: "28px",
+              fontWeight: 700,
+              color: "#4A3728",
+              margin: 0,
+            }}>
+              {item.value}
+            </dd>
           </div>
         ))}
       </dl>
       {sourceDisclaimer && (
         <p style={{
           textAlign: "center",
-          color: "#B0A090",
+          color: "#8B7355",
           fontSize: "11px",
           marginTop: "16px",
         }}>

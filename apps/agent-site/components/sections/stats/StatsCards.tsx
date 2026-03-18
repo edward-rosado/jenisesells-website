@@ -21,6 +21,8 @@ export function StatsCards({ items, sourceDisclaimer }: StatsProps) {
           <div
             key={item.label}
             style={{
+              display: "flex",
+              flexDirection: "column",
               border: "1px solid #eee",
               borderRadius: "12px",
               padding: "24px 32px",
@@ -28,7 +30,18 @@ export function StatsCards({ items, sourceDisclaimer }: StatsProps) {
               minWidth: "140px",
             }}
           >
+            <dt style={{
+              order: 2,
+              fontSize: "12px",
+              textTransform: "uppercase",
+              letterSpacing: "1px",
+              marginTop: "4px",
+              color: "#767676",
+            }}>
+              {item.label}
+            </dt>
             <dd style={{
+              order: 1,
               fontSize: "28px",
               fontWeight: 700,
               color: "#1a1a1a",
@@ -36,22 +49,13 @@ export function StatsCards({ items, sourceDisclaimer }: StatsProps) {
             }}>
               {item.value}
             </dd>
-            <dt style={{
-              fontSize: "12px",
-              textTransform: "uppercase",
-              letterSpacing: "1px",
-              marginTop: "4px",
-              color: "#888",
-            }}>
-              {item.label}
-            </dt>
           </div>
         ))}
       </dl>
       {sourceDisclaimer && (
         <p style={{
           textAlign: "center",
-          color: "#aaa",
+          color: "#767676",
           fontSize: "11px",
           marginTop: "16px",
         }}>

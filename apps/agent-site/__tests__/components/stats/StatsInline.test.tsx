@@ -50,4 +50,17 @@ describe("StatsInline", () => {
     );
     expect(styledCards.length).toBeGreaterThan(0);
   });
+
+  it("renders dt before dd in DOM order within each stat card", () => {
+    const { container } = render(<StatsInline items={ITEMS} />);
+    const wrappers = container.querySelectorAll("dl > div");
+    wrappers.forEach((wrapper) => {
+      const children = Array.from(wrapper.children);
+      const dtIndex = children.findIndex((c) => c.tagName === "DT");
+      const ddIndex = children.findIndex((c) => c.tagName === "DD");
+      expect(dtIndex).not.toBe(-1);
+      expect(ddIndex).not.toBe(-1);
+      expect(dtIndex).toBeLessThan(ddIndex);
+    });
+  });
 });

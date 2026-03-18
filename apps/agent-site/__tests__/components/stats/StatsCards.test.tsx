@@ -54,4 +54,17 @@ describe("StatsCards", () => {
     expect(container.querySelectorAll("dt").length).toBe(3);
     expect(container.querySelectorAll("dd").length).toBe(3);
   });
+
+  it("renders dt before dd in DOM order within each stat card", () => {
+    const { container } = render(<StatsCards items={ITEMS} />);
+    const wrappers = container.querySelectorAll("dl > div");
+    wrappers.forEach((wrapper) => {
+      const children = Array.from(wrapper.children);
+      const dtIndex = children.findIndex((c) => c.tagName === "DT");
+      const ddIndex = children.findIndex((c) => c.tagName === "DD");
+      expect(dtIndex).not.toBe(-1);
+      expect(ddIndex).not.toBe(-1);
+      expect(dtIndex).toBeLessThan(ddIndex);
+    });
+  });
 });
