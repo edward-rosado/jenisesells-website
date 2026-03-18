@@ -96,7 +96,7 @@ describe("SoldCoastal", () => {
   });
 
   it("tag pills have teal styling", () => {
-    const { container } = render(<SoldCoastal items={ITEMS} />);
+    render(<SoldCoastal items={ITEMS} />);
     const tag = screen.getByText("Oceanfront");
     expect(tag.tagName.toLowerCase()).toBe("span");
     expect((tag as HTMLElement).style.background).toMatch(/var\(--color-primary|#2c7a7b/);

@@ -69,7 +69,7 @@ describe("AboutProfessional", () => {
   });
 
   it("renders agent photo as rectangular (not circular) when headshot_url provided", () => {
-    const { container } = render(
+    render(
       <AboutProfessional agent={AGENT_WITH_HEADSHOT} data={DATA_WITH_CREDENTIALS} />
     );
     const img = screen.getByRole("img");

@@ -45,7 +45,6 @@ describe("TestimonialsStack", () => {
 
   it("renders initial avatar with first letter of reviewer name", () => {
     render(<TestimonialsStack items={ITEMS} />);
-    const avatars = screen.getAllByRole("img", { hidden: true });
     // Avatars rendered as aria-hidden spans, use data attribute instead
     const { container } = render(<TestimonialsStack items={ITEMS} />);
     const avatarEls = container.querySelectorAll("[data-avatar-initial]");

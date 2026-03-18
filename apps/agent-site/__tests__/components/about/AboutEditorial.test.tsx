@@ -68,7 +68,7 @@ describe("AboutEditorial", () => {
   });
 
   it("credentials have accent border styling", () => {
-    const { container } = render(<AboutEditorial agent={AGENT} data={DATA_WITH_CREDENTIALS} />);
+    render(<AboutEditorial agent={AGENT} data={DATA_WITH_CREDENTIALS} />);
     const list = screen.getByRole("list", { name: "Credentials" });
     const firstItem = list.querySelector("li");
     expect(firstItem!.style.border).toContain("color-accent");

@@ -5,7 +5,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Nav, DEFAULT_NAV_ITEMS } from "@/components/Nav";
 import { AGENT, AGENT_MINIMAL, CONTENT } from "./fixtures";
-import type { ContactMethod, NavItem } from "@/lib/types";
+import type { ContactMethod } from "@/lib/types";
 
 const mockPathname = vi.fn(() => "/");
 vi.mock("next/navigation", () => ({ usePathname: () => mockPathname() }));
