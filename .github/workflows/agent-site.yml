@@ -206,7 +206,7 @@ jobs:
             const agents = JSON.parse(`${{ steps.agents.outputs.json }}`);
 
             const rows = agents.map(a => {
-              const link = `[${a.name || a.id}](${baseUrl}/?agentId=${a.id})`;
+              const link = `[${a.name || a.id}](${baseUrl}/?accountId=${a.id})`;
               const colors = [a.primary, a.accent].filter(Boolean).map(c => `\`${c}\``).join(' / ') || '—';
               return `| ${link} | ${a.template} | ${colors} | ${a.font || '—'} |`;
             }).join('\n');
