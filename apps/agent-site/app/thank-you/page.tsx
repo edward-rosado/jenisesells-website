@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { loadAgentConfig, loadAgentContent } from "@/lib/config";
+import { loadAccountConfig, loadAccountContent } from "@/lib/config";
 import { buildCssVariableStyle } from "@/lib/branding";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/sections";
@@ -27,25 +27,27 @@ function interpolate(template: string, vars: Record<string, string>): string {
 
 export default async function ThankYouPage({ searchParams }: PageProps) {
   const { agentId, email } = await searchParams;
-  const id = agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+  const handle = agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 
-  let agent: ReturnType<typeof loadAgentConfig>;
+  let account: ReturnType<typeof loadAccountConfig>;
   try {
-    agent = loadAgentConfig(id);
+    account = loadAccountConfig(handle);
   } catch (err) {
-    Sentry.captureException(err, { tags: { agentId: id } });
+    Sentry.captureException(err, { tags: { agentId: handle } });
     notFound();
   }
 
-  const content = loadAgentContent(id, agent);
+  const content = loadAccountContent(handle, account);
   const thankYou = content.pages?.thank_you ?? DEFAULT_THANK_YOU;
-  const cssVars = buildCssVariableStyle(agent.branding);
-  const firstName = agent.identity.name.split(" ")[0];
-  const vars = { firstName, phone: agent.identity.phone };
+  const cssVars = buildCssVariableStyle(account.branding);
+  const name = account.agent?.name ?? account.broker?.name ?? account.brokerage.name;
+  const phone = account.agent?.phone ?? account.contact_info?.find((c) => c.type === "phone")?.value ?? "";
+  const firstName = name.split(" ")[0];
+  const vars = { firstName, phone };
 
   return (
     <div style={cssVars as React.CSSProperties}>
-      <Nav agent={agent} navigation={content.navigation} contactInfo={content.contact_info} />
+      <Nav account={account} navigation={content.navigation} />
       <main className="pt-[74px] min-h-[70vh] flex items-center justify-center">
         <div className="text-center max-w-lg px-6">
           <div style={{
@@ -84,7 +86,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
           )}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
             <a
-              href={`tel:${agent.identity.phone.replace(/\D/g, "")}`}
+              href={`tel:${phone.replace(/\D/g, "")}`}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -120,8 +122,8 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
           </div>
         </div>
       </main>
-      <Footer agent={agent} agentId={id} />
-      <CookieConsentBanner agentId={id} />
+      <Footer agent={account} agentId={handle} />
+      <CookieConsentBanner agentId={handle} />
     </div>
   );
 }

@@ -173,7 +173,7 @@ export function Nav({ account, navigation }: NavProps) {
             <div style={{ background: "white", borderRadius: "6px", padding: "4px 8px", display: "flex", alignItems: "center" }}>
               <Image
                 src={branding.logo_url}
-                alt={account.brokerage.name}
+                alt={account.brokerage.name || "Brokerage logo"}
                 width={240}
                 height={60}
                 className="nav-logo"
