@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80">
+  <rect width="320" height="80" fill="transparent"/>
+  <!-- Gold diamond accent -->
+  <polygon points="24,40 36,28 48,40 36,52" fill="#d4af37"/>
+  <!-- Company name -->
+  <text x="58" y="36" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#0a0a0a" letter-spacing="1">STERLING</text>
+  <text x="58" y="56" font-family="Georgia, serif" font-size="13" fill="#666" letter-spacing="3">&amp; ASSOCIATES</text>
+  <!-- Thin gold line -->
+  <line x1="58" y1="42" x2="240" y2="42" stroke="#d4af37" stroke-width="0.5"/>
+</svg>

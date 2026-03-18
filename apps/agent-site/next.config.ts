@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@real-estate-star/ui", "@real-estate-star/shared-types"],
   images: {
     unoptimized: true,
+    dangerouslyAllowSVG: true,
   },
   async headers() {
     return [

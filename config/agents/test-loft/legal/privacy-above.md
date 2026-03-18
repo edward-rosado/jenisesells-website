@@ -1,0 +1,1 @@
+Your privacy matters. This site is run by Kai Nakamura at Loft & Key Realty — a real person, not a data factory. We collect only what we need to help you find or sell a home, and we never sell your information to third parties.

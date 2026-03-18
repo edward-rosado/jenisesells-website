@@ -1,0 +1,40 @@
+{
+  "id": "test-loft",
+  "identity": {
+    "name": "Kai Nakamura",
+    "title": "Licensed Real Estate Salesperson",
+    "license_id": "10401055432",
+    "brokerage": "Loft & Key Realty",
+    "brokerage_id": "LKR-NYC-1905",
+    "phone": "(347) 555-0188",
+    "office_phone": "(718) 555-0100",
+    "email": "kai@testrealty.com",
+    "website": "kainakamuranyc.com",
+    "languages": ["English", "Japanese"],
+    "tagline": "NYC Apartments. No Hassle.",
+    "headshot_url": "/agents/test-loft/headshot.jpg"
+  },
+  "location": {
+    "state": "NY",
+    "office_address": "100 N 3rd St, Suite 200, Brooklyn, NY 11249",
+    "service_areas": ["Williamsburg", "Greenpoint", "Bushwick", "Lower East Side"]
+  },
+  "branding": {
+    "primary_color": "#1a1a1a",
+    "secondary_color": "#2d2d2d",
+    "accent_color": "#ff6b6b",
+    "font_family": "Inter",
+    "logo_url": ""
+  },
+  "integrations": {
+    "email_provider": "gmail"
+  },
+  "compliance": {
+    "state_form": "NY-DOS-1736",
+    "licensing_body": "NY Department of State",
+    "disclosure_requirements": [
+      "Property condition disclosure (PCDS)",
+      "Lead-based paint disclosure (pre-1978)"
+    ]
+  }
+}

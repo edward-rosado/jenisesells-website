@@ -1,6 +1,10 @@
+"use client";
+
+import { useState } from "react";
 import type { StepsProps } from "@/components/sections/types";
 
 export function StepsTimeline({ steps, title, subtitle }: StepsProps) {
+  const [focused, setFocused] = useState<number | null>(null);
   return (
     <section
       id="how-it-works"
@@ -34,12 +38,27 @@ export function StepsTimeline({ steps, title, subtitle }: StepsProps) {
           {steps.map((step, i) => (
             <li
               key={step.number}
+              tabIndex={0}
+              role="listitem"
+              onMouseEnter={() => setFocused(i)}
+              onMouseLeave={() => setFocused(null)}
+              onFocus={() => setFocused(i)}
+              onBlur={() => setFocused(null)}
               style={{
                 display: "flex",
                 gap: "24px",
                 alignItems: "flex-start",
                 paddingBottom: i < steps.length - 1 ? "40px" : "0",
                 position: "relative",
+                padding: "16px",
+                marginBottom: i < steps.length - 1 ? "8px" : "0",
+                borderRadius: "12px",
+                background: focused === i ? "#f5f5f5" : "transparent",
+                boxShadow: focused === i ? "0 4px 16px rgba(0,0,0,0.06)" : "none",
+                transform: focused === i ? "translateX(4px)" : "translateX(0)",
+                transition: "background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease",
+                cursor: "pointer",
+                outline: "none",
               }}
             >
               {/* Timeline line */}

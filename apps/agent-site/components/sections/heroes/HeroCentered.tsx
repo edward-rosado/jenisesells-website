@@ -23,8 +23,8 @@ export function HeroCentered({ data, agentPhotoUrl, agentName }: HeroProps) {
     >
       {agentPhotoUrl && (
         <div style={{
-          width: "200px",
-          height: "200px",
+          width: "280px",
+          height: "280px",
           borderRadius: "50%",
           overflow: "hidden",
           border: "5px solid var(--color-accent)",
@@ -34,8 +34,8 @@ export function HeroCentered({ data, agentPhotoUrl, agentName }: HeroProps) {
           <Image
             src={agentPhotoUrl}
             alt={agentName ? `Photo of ${agentName}` : "Agent photo"}
-            width={200}
-            height={200}
+            width={280}
+            height={280}
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
             priority
           />

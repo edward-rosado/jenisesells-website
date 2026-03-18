@@ -5,10 +5,14 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Nav, DEFAULT_NAV_ITEMS } from "@/components/Nav";
 import { AGENT, AGENT_MINIMAL, CONTENT } from "./fixtures";
-import type { ContactMethod, NavItem } from "@/lib/types";
+import type { ContactMethod } from "@/lib/types";
 
 const mockPathname = vi.fn(() => "/");
-vi.mock("next/navigation", () => ({ usePathname: () => mockPathname() }));
+const mockSearchParams = vi.fn(() => new URLSearchParams());
+vi.mock("next/navigation", () => ({
+  usePathname: () => mockPathname(),
+  useSearchParams: () => mockSearchParams(),
+}));
 
 describe("Nav", () => {
   // --- Fallback behavior (no content props — legacy path) ---
@@ -333,6 +337,26 @@ describe("Nav", () => {
     const desktopLinks = container.querySelector(".nav-desktop-links") as HTMLElement;
     const link = desktopLinks.querySelector("a");
     expect(link).toHaveAttribute("href", "/#services");
+  });
+
+  it("preserves query parameters in section links", () => {
+    mockPathname.mockReturnValue("/");
+    mockSearchParams.mockReturnValue(new URLSearchParams("agent=test-luxury"));
+    const { container } = render(<Nav agent={AGENT} />);
+    const desktopLinks = container.querySelector(".nav-desktop-links") as HTMLElement;
+    const link = desktopLinks.querySelector("a");
+    expect(link).toHaveAttribute("href", "?agent=test-luxury#services");
+    mockSearchParams.mockReturnValue(new URLSearchParams());
+  });
+
+  it("preserves query parameters on non-homepage links", () => {
+    mockPathname.mockReturnValue("/terms");
+    mockSearchParams.mockReturnValue(new URLSearchParams("agent=test-coastal&foo=bar"));
+    const { container } = render(<Nav agent={AGENT} />);
+    const desktopLinks = container.querySelector(".nav-desktop-links") as HTMLElement;
+    const link = desktopLinks.querySelector("a");
+    expect(link).toHaveAttribute("href", "/?agent=test-coastal&foo=bar#services");
+    mockSearchParams.mockReturnValue(new URLSearchParams());
   });
 
   it("tagline links to homepage", () => {

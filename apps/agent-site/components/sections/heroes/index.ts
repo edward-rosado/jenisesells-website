@@ -1,4 +1,11 @@
 export { HeroGradient } from "./HeroGradient";
 export { HeroSplit } from "./HeroSplit";
 export { HeroCentered } from "./HeroCentered";
+export { HeroDark } from "./HeroDark";
+export { HeroBold } from "./HeroBold";
+export { HeroStory } from "./HeroStory";
+export { HeroAiry } from "./HeroAiry";
+export { HeroEstate } from "./HeroEstate";
+export { HeroCoastal } from "./HeroCoastal";
+export { HeroCorporate } from "./HeroCorporate";
 export { safeHref, renderHeadline } from "./hero-utils";

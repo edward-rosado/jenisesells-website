@@ -1,3 +1,10 @@
 export { StepsNumbered } from "./StepsNumbered";
 export { StepsTimeline } from "./StepsTimeline";
 export { StepsFriendly } from "./StepsFriendly";
+export { StepsElegant } from "./StepsElegant";
+export { StepsCards } from "./StepsCards";
+export { StepsJourney } from "./StepsJourney";
+export { StepsRefined } from "./StepsRefined";
+export { StepsPath } from "./StepsPath";
+export { StepsBreeze } from "./StepsBreeze";
+export { StepsCorporate } from "./StepsCorporate";

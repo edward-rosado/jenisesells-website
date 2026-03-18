@@ -1,0 +1,1 @@
+Chen Commercial Group is committed to ensuring this website is accessible to all users, including those with disabilities. We strive to conform to WCAG 2.1 Level AA standards. If you experience difficulty accessing any content on this site, please contact us at robert@testrealty.com or (214) 555-0122 and we will provide the information in an accessible format.

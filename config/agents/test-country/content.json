@@ -1,0 +1,225 @@
+{
+  "template": "country-estate",
+  "navigation": {
+    "items": [
+      { "label": "Services", "section": "services" },
+      { "label": "Process", "section": "how-it-works" },
+      { "label": "Estates Sold", "section": "sold" },
+      { "label": "Testimonials", "section": "testimonials" },
+      { "label": "Estate Valuation", "section": "cma-form" },
+      { "label": "About James", "section": "about" }
+    ]
+  },
+  "contact_info": [
+    { "type": "phone", "value": "(540) 555-0144", "label": "Cell Phone", "is_preferred": true },
+    { "type": "phone", "value": "(540) 555-0100", "label": "Office Phone", "is_preferred": false },
+    { "type": "email", "value": "james@testrealty.com", "label": "Email", "is_preferred": false }
+  ],
+  "sections": {
+    "hero": {
+      "enabled": true,
+      "data": {
+        "headline": "Find Your Estate in Virginia Horse Country",
+        "highlight_word": "Virginia Horse Country",
+        "tagline": "Est. 2005 — Serving Loudoun County & Beyond",
+        "body": "James Whitfield is a boutique estate and land specialist with 20 years of experience in Northern Virginia. Whether you're buying or selling an equestrian estate, farm, vineyard, or luxury country home, James delivers the expertise and personal attention that landmark transactions demand.",
+        "cta_text": "Schedule a Consultation",
+        "cta_link": "#cma-form"
+      }
+    },
+    "stats": {
+      "enabled": true,
+      "data": {
+        "items": [
+          { "value": "1,200+", "label": "Acres Sold" },
+          { "value": "85", "label": "Estates Closed" },
+          { "value": "20 Years", "label": "Experience" },
+          { "value": "$320M+", "label": "Volume" }
+        ]
+      }
+    },
+    "services": {
+      "enabled": true,
+      "data": {
+        "title": "Estate & Land Services",
+        "subtitle": "Boutique expertise for landmark properties.",
+        "items": [
+          {
+            "title": "Estate Valuation",
+            "description": "Comprehensive market analysis tailored to luxury estates, accounting for acreage, improvements, water rights, and comparable sales."
+          },
+          {
+            "title": "Land Assessment",
+            "description": "Expert evaluation of raw and improved land parcels — soil quality, development potential, conservation easements, and agricultural value."
+          },
+          {
+            "title": "Equestrian Properties",
+            "description": "Specializing in horse farms, riding facilities, and equestrian estates. James understands what matters to serious equestrians."
+          },
+          {
+            "title": "Farm & Ranch",
+            "description": "From working cattle farms to gentleman's retreats — full-service representation for agricultural and rural residential properties."
+          },
+          {
+            "title": "Vineyard Properties",
+            "description": "Northern Virginia wine country expertise. James has guided buyers and sellers through some of the region's most notable vineyard transactions."
+          }
+        ]
+      }
+    },
+    "how_it_works": {
+      "enabled": true,
+      "data": {
+        "title": "Your Path to an Estate",
+        "subtitle": "Three steps to finding or selling your property.",
+        "steps": [
+          {
+            "number": 1,
+            "title": "Consultation",
+            "description": "We start with a private conversation about your goals — whether you're buying, selling, or simply exploring your options. No pressure, just expertise."
+          },
+          {
+            "number": 2,
+            "title": "Property Tour",
+            "description": "James will personally guide you through a curated selection of properties that match your criteria, or help prepare your estate for the market."
+          },
+          {
+            "number": 3,
+            "title": "Closing",
+            "description": "From contract to keys, James coordinates every detail — inspections, title, financing, and closing — so you can focus on what comes next."
+          }
+        ]
+      }
+    },
+    "sold_homes": {
+      "enabled": true,
+      "data": {
+        "title": "Properties Sold",
+        "subtitle": "A selection of landmark estates and land transactions.",
+        "items": [
+          {
+            "address": "300 Old Dominion Rd",
+            "city": "Middleburg",
+            "state": "VA",
+            "price": "$2,400,000",
+            "image_url": "/agents/test-country/sold/300-old-dominion.jpg",
+            "features": [
+              { "label": "Acreage", "value": "45 acres" },
+              { "label": "Stables", "value": "12 stalls" },
+              { "label": "Type", "value": "Equestrian Estate" }
+            ]
+          },
+          {
+            "address": "18 Fox Chase Ln",
+            "city": "Upperville",
+            "state": "VA",
+            "price": "$1,850,000",
+            "image_url": "/agents/test-country/sold/18-fox-chase.jpg",
+            "features": [
+              { "label": "Acreage", "value": "22 acres" },
+              { "label": "Type", "value": "Hunt Country Estate" }
+            ]
+          },
+          {
+            "address": "72 Vineyard Hill Dr",
+            "city": "Bluemont",
+            "state": "VA",
+            "price": "$3,500,000",
+            "image_url": "/agents/test-country/sold/72-vineyard-hill.jpg",
+            "features": [
+              { "label": "Acreage", "value": "78 acres" },
+              { "label": "Vineyard", "value": "12 planted acres" },
+              { "label": "Type", "value": "Vineyard Estate" }
+            ]
+          },
+          {
+            "address": "155 Blue Ridge Mountain Rd",
+            "city": "Lovettsville",
+            "state": "VA",
+            "price": "$875,000",
+            "image_url": "/agents/test-country/sold/155-blue-ridge.jpg",
+            "features": [
+              { "label": "Acreage", "value": "18 acres" },
+              { "label": "Type", "value": "Country Home" }
+            ]
+          },
+          {
+            "address": "800 Clarke County Hwy",
+            "city": "Berryville",
+            "state": "VA",
+            "price": "$1,200,000",
+            "image_url": "/agents/test-country/sold/800-clarke-county.jpg",
+            "features": [
+              { "label": "Acreage", "value": "60 acres" },
+              { "label": "Type", "value": "Working Farm" },
+              { "label": "Improvements", "value": "4BR farmhouse + barns" }
+            ]
+          }
+        ]
+      }
+    },
+    "testimonials": {
+      "enabled": true,
+      "data": {
+        "title": "What Our Clients Say",
+        "items": [
+          {
+            "text": "James found us the perfect equestrian estate. His knowledge of the Loudoun County market is unmatched, and he guided us through every detail of the purchase.",
+            "reviewer": "The Reynolds Family",
+            "rating": 5,
+            "source": "Zillow"
+          },
+          {
+            "text": "We sold our 45-acre farm in under 60 days at full asking price. James marketed it beautifully and brought serious, qualified buyers. Couldn't be happier.",
+            "reviewer": "Margaret & Tom H.",
+            "rating": 5,
+            "source": "Google"
+          },
+          {
+            "text": "Professional, patient, and deeply knowledgeable about rural properties. James made the process of buying our vineyard estate seamless. We felt supported every step of the way.",
+            "reviewer": "Dr. Charles F.",
+            "rating": 5,
+            "source": "Google"
+          }
+        ]
+      }
+    },
+    "cma_form": {
+      "enabled": true,
+      "data": {
+        "title": "What's Your Property Worth?",
+        "subtitle": "Complimentary estate valuation.",
+        "description": "Estate and land values are driven by factors beyond the standard residential formula. James will personally evaluate your property and provide a detailed, no-obligation market analysis. **100% free, no commitment required.**"
+      }
+    },
+    "about": {
+      "enabled": true,
+      "data": {
+        "title": "About James",
+        "bio": [
+          "James Whitfield has spent 20 years as Northern Virginia's premier estate and land specialist. A lifelong Loudoun County resident, James brings unmatched local knowledge and a deep passion for the land to every transaction.",
+          "From equestrian estates in Middleburg to working farms in the Shenandoah Valley, James has guided buyers and sellers through some of the region's most significant land and country home transactions — totaling over 1,200 acres and $320 million in volume.",
+          "When he's not showing estates, James can be found fox hunting, restoring historic barns, and serving on the board of the Loudoun County Agricultural Advisory Board."
+        ],
+        "credentials": [
+          "VA Licensed Broker",
+          "1,200+ Acres Sold",
+          "LCAR Member",
+          "20 Years Experience"
+        ],
+        "image_url": "/agents/test-country/about.jpg"
+      }
+    },
+    "city_pages": { "enabled": false, "data": { "cities": [] } }
+  },
+  "pages": {
+    "thank_you": {
+      "heading": "Thank You!",
+      "subheading": "Your Estate Valuation Request Is Confirmed",
+      "body": "James will personally review your property details and reach out within one business day.",
+      "disclaimer": "This is a Comparative Market Analysis and is not a licensed appraisal.",
+      "cta_call": "Call James: (540) 555-0144",
+      "cta_back": "Back to Whitfield Land & Home"
+    }
+  }
+}

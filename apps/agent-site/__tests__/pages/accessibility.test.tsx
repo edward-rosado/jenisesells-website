@@ -14,7 +14,7 @@ vi.mock("@/lib/config", () => ({
   loadAgentConfig: (...args: unknown[]) => mockLoadAgentConfig(...args),
   loadLegalContent: (...args: unknown[]) => mockLoadLegalContent(...args),
 }));
-vi.mock("next/navigation", () => ({ notFound: () => mockNotFound(), usePathname: () => "/accessibility" }));
+vi.mock("next/navigation", () => ({ notFound: () => mockNotFound(), usePathname: () => "/accessibility", useSearchParams: () => new URLSearchParams() }));
 vi.mock("@sentry/nextjs", () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }));
 
 import AccessibilityPage, { generateMetadata } from "@/app/accessibility/page";

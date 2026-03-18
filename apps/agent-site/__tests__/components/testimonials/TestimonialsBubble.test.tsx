@@ -63,7 +63,7 @@ describe("TestimonialsBubble", () => {
   });
 
   it("renders avatar circles for reviewers", () => {
-    const { container } = render(<TestimonialsBubble items={ITEMS} />);
+    render(<TestimonialsBubble items={ITEMS} />);
     expect(screen.getByText("A")).toBeInTheDocument();
     expect(screen.getByText("B")).toBeInTheDocument();
   });

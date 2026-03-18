@@ -1,0 +1,180 @@
+{
+  "template": "new-beginnings",
+  "navigation": {
+    "items": [
+      { "label": "How We Help", "section": "services" },
+      { "label": "Your Journey", "section": "how-it-works" },
+      { "label": "Happy Homeowners", "section": "sold" },
+      { "label": "Kind Words", "section": "testimonials" },
+      { "label": "Home Value", "section": "cma-form" },
+      { "label": "About Us", "section": "about" }
+    ]
+  },
+  "contact_info": [
+    { "type": "phone", "value": "(704) 555-0177", "label": "Cell Phone", "is_preferred": true },
+    { "type": "phone", "value": "(704) 555-0100", "label": "Office Phone", "is_preferred": false },
+    { "type": "email", "value": "rachel@testrealty.com", "label": "Email", "is_preferred": false }
+  ],
+  "sections": {
+    "hero": {
+      "enabled": true,
+      "data": {
+        "headline": "Your New Chapter Starts Here",
+        "highlight_word": "New Chapter",
+        "tagline": "Finding Your Place to Call Home",
+        "body": "We're Rachel and David — a husband-and-wife team who believe buying or selling a home should feel exciting, not overwhelming. You'll tell us what matters most, and we'll find a home that fits your life.",
+        "cta_text": "Start Your Story",
+        "cta_link": "#cma-form"
+      }
+    },
+    "stats": {
+      "enabled": true,
+      "data": {
+        "items": [
+          { "value": "500+", "label": "Families Helped" },
+          { "value": "4.9★", "label": "Average Rating" },
+          { "value": "12 Yrs", "label": "Together in Real Estate" },
+          { "value": "$180M+", "label": "In Sales Volume" }
+        ]
+      }
+    },
+    "services": {
+      "enabled": true,
+      "data": {
+        "title": "How We Help",
+        "subtitle": "People-first service, every step of the way.",
+        "items": [
+          { "title": "First-Time Buyer Guidance", "description": "You'll never feel lost — we walk you through every step of the homebuying process with patience and clarity." },
+          { "title": "Home Staging Advice", "description": "We'll help you present your home at its best so it sells quickly and for the right price." },
+          { "title": "Free Market Analysis", "description": "Know exactly what your home is worth before you list — no pressure, no obligation." },
+          { "title": "Neighborhood Tours", "description": "You'll discover communities that match your lifestyle through personalized neighborhood walkthroughs." },
+          { "title": "Relocation Support", "description": "Moving to Charlotte? We'll help you find the neighborhood, schools, and community that feel like home." },
+          { "title": "Bilingual Service", "description": "We serve clients in both English and Korean, making the process clear and comfortable for every family." }
+        ]
+      }
+    },
+    "how_it_works": {
+      "enabled": true,
+      "data": {
+        "title": "Your Journey Home",
+        "subtitle": "Three warm, simple steps.",
+        "steps": [
+          { "number": 1, "title": "Share Your Story", "description": "You'll tell us what matters most — neighborhood, space, budget, lifestyle. We listen first." },
+          { "number": 2, "title": "Find Your Match", "description": "We'll search with intention, showing you homes that genuinely fit your life — not just your list." },
+          { "number": 3, "title": "Welcome Home", "description": "You'll step across the threshold of a place that feels like yours. We'll be there every step of the way." }
+        ]
+      }
+    },
+    "sold_homes": {
+      "enabled": true,
+      "data": {
+        "title": "Happy Homeowners",
+        "subtitle": "Families we've been honored to serve in Charlotte.",
+        "items": [
+          {
+            "address": "200 S Tryon St",
+            "city": "Charlotte",
+            "state": "NC",
+            "price": "$425,000",
+            "sold_date": "2025-01-15",
+            "image_url": "/agents/test-beginnings/sold/200-tryon.jpg",
+            "client_quote": "Rachel and David found us our dream home in two weeks. We felt so cared for throughout the whole process.",
+            "client_name": "The Nguyen Family"
+          },
+          {
+            "address": "45 Camden Ave",
+            "city": "Charlotte",
+            "state": "NC",
+            "price": "$310,000",
+            "sold_date": "2024-11-08",
+            "image_url": "/agents/test-beginnings/sold/45-camden.jpg",
+            "client_quote": "As first-time buyers we were nervous, but they made us feel so supported. Couldn't have done it without them.",
+            "client_name": "Marcus & Tia"
+          },
+          {
+            "address": "88 Park Rd",
+            "city": "Charlotte",
+            "state": "NC",
+            "price": "$580,000",
+            "sold_date": "2025-02-20",
+            "image_url": "/agents/test-beginnings/sold/88-park.jpg",
+            "client_quote": "They sold our home in 6 days over asking price. Absolutely incredible team.",
+            "client_name": "The Okafor Family"
+          },
+          {
+            "address": "120 Dilworth Rd",
+            "city": "Charlotte",
+            "state": "NC",
+            "price": "$255,000",
+            "sold_date": "2024-09-30",
+            "image_url": "/agents/test-beginnings/sold/120-dilworth.jpg",
+            "client_quote": "Patient, kind, and always available. They truly care about people, not just transactions.",
+            "client_name": "Priya S."
+          }
+        ]
+      }
+    },
+    "testimonials": {
+      "enabled": true,
+      "data": {
+        "title": "What Our Clients Say",
+        "items": [
+          {
+            "text": "Rachel and David treated us like family from day one. They found us a home that checked every box — including some we didn't know we had. The whole process felt warm and human.",
+            "reviewer": "The Park Family",
+            "rating": 5,
+            "source": "Zillow"
+          },
+          {
+            "text": "We relocated from Seoul and knew nobody in Charlotte. The Kim team made the entire transition feel manageable and even exciting. Having Korean-speaking agents was a huge comfort for my parents.",
+            "reviewer": "Ji-Young & Sung-Ho",
+            "rating": 5,
+            "source": "Google"
+          },
+          {
+            "text": "I've worked with agents before who felt like salespeople. Rachel and David felt like trusted advisors. They were honest when a home wasn't right for us, and that built so much trust.",
+            "reviewer": "Gabrielle T.",
+            "rating": 5,
+            "source": "Zillow"
+          }
+        ]
+      }
+    },
+    "cma_form": {
+      "enabled": true,
+      "data": {
+        "title": "What's Your Home Worth?",
+        "subtitle": "Find out in minutes — completely free.",
+        "description": "Enter your address below and we'll send you a personalized market analysis based on recent sales in your neighborhood. **100% free, no obligation, no pressure.**"
+      }
+    },
+    "about": {
+      "enabled": true,
+      "data": {
+        "title": "About Rachel & David",
+        "bio": [
+          "We're Rachel and David Kim — a husband-and-wife real estate team based in Charlotte, NC. Together, we've helped over 500 families buy and sell homes across the greater Charlotte area over the past 12 years.",
+          "We started in real estate because we believe every family deserves a home that truly fits their life. Not just the square footage on paper, but the feeling of walking through the front door and knowing you're home.",
+          "Outside of real estate, you'll find us hiking the trails around Lake Norman, cooking Korean recipes passed down from David's grandmother, or cheering on our kids at weekend soccer games. Charlotte isn't just where we work — it's where we live and love."
+        ],
+        "credentials": [
+          "Licensed NC Brokers",
+          "500+ Happy Families",
+          "CLT Magazine Top Agents",
+          "English & Korean"
+        ]
+      }
+    },
+    "city_pages": { "enabled": false, "data": { "cities": [] } }
+  },
+  "pages": {
+    "thank_you": {
+      "heading": "Thank You!",
+      "subheading": "Your Home Value Report Is On Its Way",
+      "body": "We're putting together a personalized market analysis just for you. You'll hear from us soon — usually within 24 hours.",
+      "disclaimer": "This report is a Comparative Market Analysis (CMA) and is not a licensed appraisal.",
+      "cta_call": "Call Us: (704) 555-0177",
+      "cta_back": "Back to the Kim Team"
+    }
+  }
+}

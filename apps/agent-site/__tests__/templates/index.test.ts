@@ -6,6 +6,7 @@ import { getTemplate, TEMPLATES } from "@/templates/index";
 import { EmeraldClassic } from "@/templates/emerald-classic";
 import { ModernMinimal } from "@/templates/modern-minimal";
 import { WarmCommunity } from "@/templates/warm-community";
+import { CoastalLiving } from "@/templates/coastal-living";
 
 describe("getTemplate", () => {
   it("returns EmeraldClassic for 'emerald-classic'", () => {
@@ -73,5 +74,18 @@ describe("getTemplate", () => {
 
   it("TEMPLATES registry maps warm-community to WarmCommunity component", () => {
     expect(TEMPLATES["warm-community"]).toBe(WarmCommunity);
+  });
+
+  it("returns CoastalLiving for 'coastal-living'", () => {
+    const Template = getTemplate("coastal-living");
+    expect(Template).toBe(CoastalLiving);
+  });
+
+  it("TEMPLATES registry contains coastal-living key", () => {
+    expect("coastal-living" in TEMPLATES).toBe(true);
+  });
+
+  it("TEMPLATES registry maps coastal-living to CoastalLiving component", () => {
+    expect(TEMPLATES["coastal-living"]).toBe(CoastalLiving);
   });
 });
