@@ -63,11 +63,12 @@ export function LightLuxury({ account, content, agent }: TemplateProps) {
             items={s.profiles.data.items}
             title={s.profiles.data.title}
             subtitle={s.profiles.data.subtitle}
+            accountId={account.handle}
           />
         )}
         {s.contact_form?.enabled && (
           <CmaSection
-            agentId={identity.id}
+            accountId={identity.id}
             agentName={identity.name}
             defaultState={account.location.state}
             tracking={account.integrations?.tracking}
@@ -76,7 +77,7 @@ export function LightLuxury({ account, content, agent }: TemplateProps) {
           />
         )}
         {s.about?.enabled && <AboutGrace agent={identity} data={s.about.data} />}
-        <Footer agent={account} agentId={identity.id} />
+        <Footer agent={account} accountId={identity.id} />
       </div>
     </>
   );

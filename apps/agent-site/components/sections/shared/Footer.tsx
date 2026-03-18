@@ -3,7 +3,7 @@ import { EqualHousingNotice } from "@real-estate-star/ui";
 
 interface FooterProps {
   agent: AccountConfig | AgentConfig;
-  agentId?: string;
+  accountId?: string;
 }
 
 function formatServiceAreas(areas: string[], state: string): string {
@@ -15,8 +15,8 @@ function formatServiceAreas(areas: string[], state: string): string {
   return `Serving ${names.join(", ")} & ${last} Counties, ${state}`;
 }
 
-export function Footer({ agent, agentId }: FooterProps) {
-  const qs = agentId ? `?agentId=${encodeURIComponent(agentId)}` : "";
+export function Footer({ agent, accountId }: FooterProps) {
+  const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
 
   let name: string;
   let title: string | undefined;

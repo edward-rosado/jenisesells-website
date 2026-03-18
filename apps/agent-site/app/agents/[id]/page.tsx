@@ -10,22 +10,22 @@ import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 
 interface PageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ agentId?: string }>;
+  searchParams: Promise<{ accountId?: string }>;
 }
 
 export const revalidate = 60; // ISR: revalidate every 60 seconds
 
-function resolveHandle(agentId?: string): string {
+function resolveHandle(accountId?: string): string {
   if (process.env.NODE_ENV === "production" && !process.env.PREVIEW) {
     return process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
   }
-  return agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+  return accountId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 }
 
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const { agentId } = await searchParams;
-  const handle = resolveHandle(agentId);
+  const { accountId } = await searchParams;
+  const handle = resolveHandle(accountId);
   try {
     const account = loadAccountConfig(handle);
     const agentConfig = loadAgentConfig(handle, id);
@@ -50,8 +50,8 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 
 export default async function AgentSubPage({ params, searchParams }: PageProps) {
   const { id } = await params;
-  const { agentId } = await searchParams;
-  const handle = resolveHandle(agentId);
+  const { accountId } = await searchParams;
+  const handle = resolveHandle(accountId);
 
   let account: ReturnType<typeof loadAccountConfig>;
   try {
@@ -108,7 +108,7 @@ export default async function AgentSubPage({ params, searchParams }: PageProps) 
       />
       <Analytics tracking={account.integrations?.tracking} />
       {createElement(TemplateComponent, { account, content: agentContent, agent: agentConfig })}
-      <CookieConsentBanner agentId={handle} />
+      <CookieConsentBanner accountId={handle} />
     </div>
   );
 }

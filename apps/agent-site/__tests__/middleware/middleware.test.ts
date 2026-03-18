@@ -123,12 +123,12 @@ describe("middleware", () => {
     expect(response.status).toBe(404);
   });
 
-  it("sets agentId search param when rewriting for known subdomain", () => {
+  it("sets accountId search param when rewriting for known subdomain", () => {
     mockExtractAgentId.mockReturnValue("jenise-buckalew");
     const req = makeRequest("jenise-buckalew.real-estate-star.com");
     const clonedUrl = req.nextUrl.clone();
     middleware(req as never);
-    expect(clonedUrl.searchParams.set).toHaveBeenCalledWith("agentId", "jenise-buckalew");
+    expect(clonedUrl.searchParams.set).toHaveBeenCalledWith("accountId", "jenise-buckalew");
   });
 
   // --- custom domain match ---
@@ -280,31 +280,31 @@ describe("middleware", () => {
   });
 
   // --- workers.dev preview ---
-  it("rewrites workers.dev host with ?agentId to the specified agent", () => {
+  it("rewrites workers.dev host with ?accountId to the specified agent", () => {
     mockExtractAgentId.mockReturnValue(null);
     mockResolveCustomDomain.mockReturnValue(null);
-    const req = makeRequest("real-estate-star-agents-pr-18.workers.dev", "/", { agentId: "test-agent" });
+    const req = makeRequest("real-estate-star-agents-pr-18.workers.dev", "/", { accountId: "test-agent" });
     middleware(req as never);
     expect(mockRewrite).toHaveBeenCalled();
     const clonedUrl = mockClone.mock.results[0].value;
-    expect(clonedUrl.searchParams.set).toHaveBeenCalledWith("agentId", "test-agent");
+    expect(clonedUrl.searchParams.set).toHaveBeenCalledWith("accountId", "test-agent");
   });
 
-  it("rewrites workers.dev host without ?agentId to default agent", () => {
+  it("rewrites workers.dev host without ?accountId to default agent", () => {
     mockExtractAgentId.mockReturnValue(null);
     mockResolveCustomDomain.mockReturnValue(null);
     const req = makeRequest("real-estate-star-agents-pr-18.workers.dev");
     middleware(req as never);
     expect(mockRewrite).toHaveBeenCalled();
     const clonedUrl = mockClone.mock.results[0].value;
-    expect(clonedUrl.searchParams.set).toHaveBeenCalledWith("agentId", "jenise-buckalew");
+    expect(clonedUrl.searchParams.set).toHaveBeenCalledWith("accountId", "jenise-buckalew");
   });
 
-  it("returns 404 on workers.dev when ?agentId is unknown and default is also unknown", () => {
+  it("returns 404 on workers.dev when ?accountId is unknown and default is also unknown", () => {
     mockExtractAgentId.mockReturnValue(null);
     mockResolveCustomDomain.mockReturnValue(null);
     mockGetAgentIds.mockReturnValue(new Set([]));
-    const req = makeRequest("real-estate-star-agents-pr-18.workers.dev", "/", { agentId: "unknown" });
+    const req = makeRequest("real-estate-star-agents-pr-18.workers.dev", "/", { accountId: "unknown" });
     const response = middleware(req as never);
     expect(mockRewrite).not.toHaveBeenCalled();
     expect(response.status).toBe(404);

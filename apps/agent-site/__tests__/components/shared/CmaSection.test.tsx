@@ -53,7 +53,7 @@ const FORM_DATA: ContactFormData = {
 };
 
 const DEFAULT_PROPS = {
-  agentId: "test-agent",
+  accountId: "test-agent",
   agentName: "Jane Smith",
   defaultState: "NJ",
   data: FORM_DATA,
@@ -164,7 +164,7 @@ describe("CmaSection rendering", () => {
 });
 
 describe("CmaSection form submission", () => {
-  it("calls useCmaSubmit.submit with agentId and LeadFormData on submit", async () => {
+  it("calls useCmaSubmit.submit with accountId and LeadFormData on submit", async () => {
     mockSubmit.mockResolvedValueOnce(true);
 
     const locationMock = { href: "" };
@@ -323,7 +323,7 @@ describe("CmaSection form submission", () => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);
     });
 
-    expect(locationMock.href).toBe("/thank-you?agentId=test-agent");
+    expect(locationMock.href).toBe("/thank-you?accountId=test-agent");
     expect(locationMock.href).not.toContain("email=");
   });
 
@@ -339,7 +339,7 @@ describe("CmaSection form submission", () => {
     capturedOnError!(testError);
 
     expect(Sentry.captureException).toHaveBeenCalledWith(testError, {
-      tags: { agentId: "test-agent", feature: "contact_form" },
+      tags: { accountId: "test-agent", feature: "contact_form" },
     });
   });
 });

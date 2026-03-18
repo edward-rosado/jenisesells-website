@@ -6,11 +6,11 @@ import Link from "next/link";
 import type { ProfilesProps } from "@/components/sections/types";
 import type { ProfileItem } from "@/lib/types";
 
-function ProfilesGridCard({ item }: { item: ProfileItem }) {
+function ProfilesGridCard({ item, accountId }: { item: ProfileItem; accountId?: string }) {
   const [hover, setHover] = useState(false);
   return (
     <Link
-      href={item.link ?? `/agents/${item.id}`}
+      href={item.link ?? `/agents/${item.id}${accountId ? `?accountId=${encodeURIComponent(accountId)}` : ""}`}
       style={{ textDecoration: "none", color: "inherit" }}
     >
       <div
@@ -86,7 +86,7 @@ function ProfilesGridCard({ item }: { item: ProfileItem }) {
   );
 }
 
-export function ProfilesGrid({ items, title, subtitle }: ProfilesProps) {
+export function ProfilesGrid({ items, title, subtitle, accountId }: ProfilesProps) {
   return (
     <section
       id="profiles"
@@ -131,7 +131,7 @@ export function ProfilesGrid({ items, title, subtitle }: ProfilesProps) {
           }}
         >
           {items.map((item) => (
-            <ProfilesGridCard key={item.id} item={item} />
+            <ProfilesGridCard key={item.id} item={item} accountId={accountId} />
           ))}
         </div>
       </div>

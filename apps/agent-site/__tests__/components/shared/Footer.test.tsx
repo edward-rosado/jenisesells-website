@@ -94,29 +94,29 @@ describe("Footer", () => {
     expect(screen.getByRole("navigation", { name: "Legal links" })).toBeInTheDocument();
   });
 
-  it("renders privacy link without agentId when not provided", () => {
+  it("renders privacy link without accountId when not provided", () => {
     render(<Footer agent={ACCOUNT} />);
     const link = screen.getByRole("link", { name: /privacy/i });
     expect(link).toHaveAttribute("href", "/privacy");
   });
 
-  it("renders terms link without agentId when not provided", () => {
+  it("renders terms link without accountId when not provided", () => {
     render(<Footer agent={ACCOUNT} />);
     const link = screen.getByRole("link", { name: /terms/i });
     expect(link).toHaveAttribute("href", "/terms");
   });
 
-  it("renders accessibility link without agentId when not provided", () => {
+  it("renders accessibility link without accountId when not provided", () => {
     render(<Footer agent={ACCOUNT} />);
     const link = screen.getByRole("link", { name: /accessibility/i });
     expect(link).toHaveAttribute("href", "/accessibility");
   });
 
-  it("appends agentId to legal links when provided", () => {
-    render(<Footer agent={ACCOUNT} agentId="test-agent" />);
-    expect(screen.getByRole("link", { name: /privacy/i })).toHaveAttribute("href", "/privacy?agentId=test-agent");
-    expect(screen.getByRole("link", { name: /terms/i })).toHaveAttribute("href", "/terms?agentId=test-agent");
-    expect(screen.getByRole("link", { name: /accessibility/i })).toHaveAttribute("href", "/accessibility?agentId=test-agent");
+  it("appends accountId to legal links when provided", () => {
+    render(<Footer agent={ACCOUNT} accountId="test-agent" />);
+    expect(screen.getByRole("link", { name: /privacy/i })).toHaveAttribute("href", "/privacy?accountId=test-agent");
+    expect(screen.getByRole("link", { name: /terms/i })).toHaveAttribute("href", "/terms?accountId=test-agent");
+    expect(screen.getByRole("link", { name: /accessibility/i })).toHaveAttribute("href", "/accessibility?accountId=test-agent");
   });
 
   it("formats 3+ service areas with comma-separated list and ampersand", () => {
@@ -188,7 +188,7 @@ describe("Footer", () => {
   });
 
   it("renders with AgentConfig (flat agent identity — no handle property)", () => {
-    render(<Footer agent={AGENT_PROP} agentId="explicit-agent" />);
+    render(<Footer agent={AGENT_PROP} accountId="explicit-agent" />);
     expect(screen.getAllByText(/Explicit Agent/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Senior REALTOR/).length).toBeGreaterThan(0);
     // Flat AgentConfig has no brokerage, service areas, or state
@@ -199,7 +199,7 @@ describe("Footer", () => {
     // Email renders
     const emailLink = screen.getByRole("link", { name: /email explicit agent/i });
     expect(emailLink).toHaveAttribute("href", "mailto:explicit@example.com");
-    // Legal links include agentId
-    expect(screen.getByRole("link", { name: /privacy/i })).toHaveAttribute("href", "/privacy?agentId=explicit-agent");
+    // Legal links include accountId
+    expect(screen.getByRole("link", { name: /privacy/i })).toHaveAttribute("href", "/privacy?accountId=explicit-agent");
   });
 });

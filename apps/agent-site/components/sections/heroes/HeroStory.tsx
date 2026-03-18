@@ -10,6 +10,7 @@ export function HeroStory({ data, agentPhotoUrl, agentName }: HeroProps) {
 
   return (
     <section
+      id="hero"
       style={{
         position: "relative",
         minHeight: "520px",

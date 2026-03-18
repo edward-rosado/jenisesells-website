@@ -8,18 +8,18 @@ import { Analytics } from "@/components/Analytics";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 
 interface PageProps {
-  searchParams: Promise<{ agentId?: string; template?: string }>;
+  searchParams: Promise<{ accountId?: string; template?: string }>;
 }
 
 export const revalidate = 60; // ISR: revalidate every 60 seconds
 
-function resolveHandle(agentId?: string): string {
+function resolveHandle(accountId?: string): string {
   // In production, always use the bound account — never trust query params (tenant confusion)
-  // Preview deploys set PREVIEW=true so ?agentId works for QA
+  // Preview deploys set PREVIEW=true so ?accountId works for QA
   if (process.env.NODE_ENV === "production" && !process.env.PREVIEW) {
     return process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
   }
-  return agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+  return accountId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 }
 
 function resolveTemplateOverride(template?: string): string | undefined {
@@ -28,8 +28,8 @@ function resolveTemplateOverride(template?: string): string | undefined {
 }
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
-  const { agentId } = await searchParams;
-  const handle = resolveHandle(agentId);
+  const { accountId } = await searchParams;
+  const handle = resolveHandle(accountId);
   try {
     const account = loadAccountConfig(handle);
     const name = account.agent?.name ?? account.broker?.name ?? account.brokerage.name;
@@ -49,8 +49,8 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 }
 
 export default async function AgentPage({ searchParams }: PageProps) {
-  const { agentId, template: templateOverride } = await searchParams;
-  const handle = resolveHandle(agentId);
+  const { accountId, template: templateOverride } = await searchParams;
+  const handle = resolveHandle(accountId);
 
   try {
     const account = loadAccountConfig(handle);
@@ -83,11 +83,11 @@ export default async function AgentPage({ searchParams }: PageProps) {
         />
         <Analytics tracking={account.integrations?.tracking} />
         <Template account={account} content={content} />
-        <CookieConsentBanner agentId={handle} />
+        <CookieConsentBanner accountId={handle} />
       </div>
     );
   } catch (err) {
-    Sentry.captureException(err, { tags: { agentId: handle } });
+    Sentry.captureException(err, { tags: { accountId: handle } });
     notFound();
   }
 }

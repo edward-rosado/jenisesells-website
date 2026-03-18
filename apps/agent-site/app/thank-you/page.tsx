@@ -9,7 +9,7 @@ import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import type { ThankYouData } from "@/lib/types";
 
 interface PageProps {
-  searchParams: Promise<{ agentId?: string; email?: string }>;
+  searchParams: Promise<{ accountId?: string; email?: string }>;
 }
 
 const DEFAULT_THANK_YOU: ThankYouData = {
@@ -26,14 +26,14 @@ function interpolate(template: string, vars: Record<string, string>): string {
 }
 
 export default async function ThankYouPage({ searchParams }: PageProps) {
-  const { agentId, email } = await searchParams;
-  const handle = agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+  const { accountId, email } = await searchParams;
+  const handle = accountId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 
   let account: ReturnType<typeof loadAccountConfig>;
   try {
     account = loadAccountConfig(handle);
   } catch (err) {
-    Sentry.captureException(err, { tags: { agentId: handle } });
+    Sentry.captureException(err, { tags: { accountId: handle } });
     notFound();
   }
 
@@ -122,8 +122,8 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
           </div>
         </div>
       </main>
-      <Footer agent={account} agentId={handle} />
-      <CookieConsentBanner agentId={handle} />
+      <Footer agent={account} accountId={handle} />
+      <CookieConsentBanner accountId={handle} />
     </div>
   );
 }

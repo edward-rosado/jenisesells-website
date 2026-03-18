@@ -12,7 +12,7 @@ import { Fragment } from "react";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5135";
 
 interface CmaSectionProps {
-  agentId: string;
+  accountId: string;
   agentName: string;
   defaultState: string;
   tracking?: AccountTracking;
@@ -21,7 +21,7 @@ interface CmaSectionProps {
 }
 
 export function CmaSection({
-  agentId,
+  accountId,
   agentName,
   defaultState,
   tracking,
@@ -31,7 +31,7 @@ export function CmaSection({
   const { state, submit } = useCmaSubmit(API_BASE_URL, {
     onError: (err) => {
       Sentry.captureException(err, {
-        tags: { agentId, feature: "contact_form" },
+        tags: { accountId, feature: "contact_form" },
       });
     },
   });
@@ -42,13 +42,13 @@ export function CmaSection({
     const isSelling = leadData.leadTypes.includes("selling") && leadData.seller?.address;
 
     if (isSelling) {
-      const success = await submit(agentId, leadData);
+      const success = await submit(accountId, leadData);
       if (!success) return;
     }
 
     trackCmaConversion(tracking);
     const emailParam = leadData.email ? `&email=${encodeURIComponent(leadData.email)}` : "";
-    window.location.href = `/thank-you?agentId=${encodeURIComponent(agentId)}${emailParam}`;
+    window.location.href = `/thank-you?accountId=${encodeURIComponent(accountId)}${emailParam}`;
   }
 
   return (

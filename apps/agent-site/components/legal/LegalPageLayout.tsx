@@ -7,14 +7,14 @@ import { MarkdownContent } from "./MarkdownContent";
 
 interface LegalPageLayoutProps {
   agent: AccountConfig;
-  agentId: string;
+  accountId: string;
   children: React.ReactNode;
   customAbove?: string;
   customBelow?: string;
 }
 
 export function LegalPageLayout({
-  agent, agentId, children, customAbove, customBelow,
+  agent, accountId, children, customAbove, customBelow,
 }: LegalPageLayoutProps) {
   const cssVars = buildCssVariableStyle(agent.branding);
   return (
@@ -27,8 +27,8 @@ export function LegalPageLayout({
           {customBelow && <div className="mt-8"><MarkdownContent content={customBelow} /></div>}
         </div>
       </main>
-      <Footer agent={agent} agentId={agentId} />
-      <CookieConsentBanner agentId={agentId} />
+      <Footer agent={agent} accountId={accountId} />
+      <CookieConsentBanner accountId={accountId} />
     </div>
   );
 }

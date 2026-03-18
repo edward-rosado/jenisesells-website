@@ -10,6 +10,7 @@ export function HeroCentered({ data, agentPhotoUrl, agentName }: HeroProps) {
 
   return (
     <section
+      id="hero"
       style={{
         background: "#FFF8F0",
         color: "#4A3728",

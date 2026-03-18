@@ -85,11 +85,11 @@ describe("HeroCoastal", () => {
     expect(screen.getByRole("link")).toHaveAttribute("href", "#");
   });
 
-  it("renders a section element without an id (heroes don't need anchor id)", () => {
+  it("renders a section element with id hero for nav anchor linking", () => {
     const { container } = render(<HeroCoastal data={heroData} />);
     const section = container.querySelector("section");
     expect(section).toBeInTheDocument();
-    expect(section!.id).toBe("");
+    expect(section!.id).toBe("hero");
   });
 
   it("agent photo has rounded shape (borderRadius 20px)", () => {

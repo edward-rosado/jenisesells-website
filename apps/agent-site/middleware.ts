@@ -41,7 +41,7 @@ export function middleware(request: NextRequest) {
       return notFoundResponse(nonce);
     }
     const url = request.nextUrl.clone();
-    url.searchParams.set("agentId", agentId);
+    url.searchParams.set("accountId", agentId);
     const response = NextResponse.rewrite(url);
     response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
     response.headers.set("x-nonce", nonce);
@@ -52,16 +52,16 @@ export function middleware(request: NextRequest) {
   const customAgentId = resolveAgentFromCustomDomain(hostname);
   if (customAgentId) {
     const url = request.nextUrl.clone();
-    url.searchParams.set("agentId", customAgentId);
+    url.searchParams.set("accountId", customAgentId);
     const response = NextResponse.rewrite(url);
     response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
     response.headers.set("x-nonce", nonce);
     return response;
   }
 
-  // 4. Preview/dev fallback: workers.dev or localhost with ?agentId= param
+  // 4. Preview/dev fallback: workers.dev or localhost with ?accountId= param
   const host = hostname.split(":")[0];
-  const queryAgentId = request.nextUrl.searchParams.get("agentId");
+  const queryAgentId = request.nextUrl.searchParams.get("accountId");
   const isPreviewHost = host.endsWith(".workers.dev");
   const isLocalhost = host === "localhost";
 
@@ -72,7 +72,7 @@ export function middleware(request: NextRequest) {
 
     if (getAgentIds().has(resolvedId)) {
       const url = request.nextUrl.clone();
-      url.searchParams.set("agentId", resolvedId);
+      url.searchParams.set("accountId", resolvedId);
       const response = NextResponse.rewrite(url);
       response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
       response.headers.set("x-nonce", nonce);

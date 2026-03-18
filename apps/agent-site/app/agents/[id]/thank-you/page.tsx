@@ -208,8 +208,8 @@ export default async function AgentThankYouPage({ params }: PageProps) {
           </div>
         </div>
       </main>
-      <Footer agent={account} agentId={identity.id} />
-      <CookieConsentBanner agentId={handle} />
+      <Footer agent={account} accountId={identity.id} />
+      <CookieConsentBanner accountId={handle} />
     </div>
   );
 }

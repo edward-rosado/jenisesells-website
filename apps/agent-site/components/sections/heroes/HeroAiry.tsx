@@ -9,6 +9,7 @@ export function HeroAiry({ data, agentPhotoUrl, agentName }: HeroProps) {
   const [ctaHover, setCtaHover] = useState(false);
   return (
     <section
+      id="hero"
       style={{
         background: "#ffffff",
         color: "var(--color-primary, #3d3028)",

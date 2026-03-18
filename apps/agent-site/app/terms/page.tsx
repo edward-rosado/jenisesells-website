@@ -7,16 +7,16 @@ import { MarkdownContent } from "@/components/legal/MarkdownContent";
 import { LEGAL_EFFECTIVE_DATE, getStateName } from "@/components/legal/constants";
 
 interface PageProps {
-  searchParams: Promise<{ agentId?: string }>;
+  searchParams: Promise<{ accountId?: string }>;
 }
 
-function resolveHandle(agentId?: string): string {
-  return agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+function resolveHandle(accountId?: string): string {
+  return accountId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 }
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
-  const { agentId } = await searchParams;
-  const handle = resolveHandle(agentId);
+  const { accountId } = await searchParams;
+  const handle = resolveHandle(accountId);
   try {
     const account = loadAccountConfig(handle);
     const name = account.agent?.name ?? account.broker?.name ?? account.brokerage.name;
@@ -43,14 +43,14 @@ ${stateName} real estate laws and regulations apply. Please consult your state r
 }
 
 export default async function TermsPage({ searchParams }: PageProps) {
-  const { agentId } = await searchParams;
-  const handle = resolveHandle(agentId);
+  const { accountId } = await searchParams;
+  const handle = resolveHandle(accountId);
 
   let account: ReturnType<typeof loadAccountConfig>;
   try {
     account = loadAccountConfig(handle);
   } catch (err) {
-    Sentry.captureException(err, { tags: { agentId: handle } });
+    Sentry.captureException(err, { tags: { accountId: handle } });
     notFound();
   }
 
@@ -119,7 +119,7 @@ For questions about these terms, contact us at:
 *Last updated: ${LEGAL_EFFECTIVE_DATE}*`;
 
   return (
-    <LegalPageLayout agent={account} agentId={handle} customAbove={above} customBelow={below}>
+    <LegalPageLayout agent={account} accountId={handle} customAbove={above} customBelow={below}>
       <MarkdownContent content={content} />
     </LegalPageLayout>
   );

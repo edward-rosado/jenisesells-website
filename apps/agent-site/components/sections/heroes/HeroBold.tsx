@@ -10,6 +10,7 @@ export function HeroBold({ data, agentPhotoUrl, agentName }: HeroProps) {
 
   return (
     <section
+      id="hero"
       style={{
         background: "#fafafa",
         color: "#1a1a1a",

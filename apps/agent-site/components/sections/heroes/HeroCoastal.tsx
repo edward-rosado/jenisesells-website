@@ -9,6 +9,7 @@ export function HeroCoastal({ data, agentPhotoUrl, agentName }: HeroProps) {
   const [ctaHover, setCtaHover] = useState(false);
   return (
     <section
+      id="hero"
       style={{
         background: "#fefcf8",
         color: "var(--color-primary, #2c7a7b)",

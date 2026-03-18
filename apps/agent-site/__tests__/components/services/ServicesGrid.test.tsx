@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesGrid } from "@/components/sections/services/ServicesGrid";
 import type { FeatureItem } from "@/lib/types";
 
@@ -59,5 +59,15 @@ describe("ServicesGrid", () => {
   it("does not render subtitle paragraph when subtitle is absent", () => {
     render(<ServicesGrid items={ITEMS} />);
     expect(screen.queryByText("Full-service real estate representation")).not.toBeInTheDocument();
+  });
+
+  it("applies hover animation on mouseEnter and removes on mouseLeave", () => {
+    render(<ServicesGrid items={ITEMS} />);
+    const card = screen.getByText("Deep market insights").parentElement!;
+    expect(card.style.transform).toBe("none");
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 });

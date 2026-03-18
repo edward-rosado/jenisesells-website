@@ -2,16 +2,16 @@
 
 import { useState, useSyncExternalStore } from "react";
 
-function getConsentKey(agentId: string) {
-  return `res-cookie-consent-${agentId}`;
+function getConsentKey(accountId: string) {
+  return `res-cookie-consent-${accountId}`;
 }
 
 function getServerSnapshot() {
   return "pending";
 }
 
-export function CookieConsentBanner({ agentId }: { agentId: string }) {
-  const key = getConsentKey(agentId);
+export function CookieConsentBanner({ accountId }: { accountId: string }) {
+  const key = getConsentKey(accountId);
 
   const consent = useSyncExternalStore(
     (callback) => {
@@ -50,7 +50,7 @@ export function CookieConsentBanner({ agentId }: { agentId: string }) {
           We use cookies and local storage to improve your experience. By
           continuing to use this site, you consent to our use of cookies. See
           our{" "}
-          <a href={`/privacy?agentId=${encodeURIComponent(agentId)}`} className="underline hover:text-white">
+          <a href={`/privacy?accountId=${encodeURIComponent(accountId)}`} className="underline hover:text-white">
             Privacy Policy
           </a>{" "}
           for details.

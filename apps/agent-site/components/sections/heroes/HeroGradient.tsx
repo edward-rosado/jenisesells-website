@@ -10,6 +10,7 @@ export function HeroGradient({ data, agentPhotoUrl, agentName }: HeroProps) {
 
   return (
     <section
+      id="hero"
       style={{
         background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 60%, #43A047 100%)",
         color: "white",

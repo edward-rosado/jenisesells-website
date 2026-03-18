@@ -49,6 +49,7 @@ export interface ProfilesProps {
   items: ProfileItem[];
   title?: string;
   subtitle?: string;
+  accountId?: string;
 }
 
 export interface AboutProps {

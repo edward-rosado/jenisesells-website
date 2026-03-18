@@ -6,11 +6,11 @@ import Link from "next/link";
 import type { ProfilesProps } from "@/components/sections/types";
 import type { ProfileItem } from "@/lib/types";
 
-function ProfilesCleanRow({ item, isFirst }: { item: ProfileItem; isFirst: boolean }) {
+function ProfilesCleanRow({ item, isFirst, accountId }: { item: ProfileItem; isFirst: boolean; accountId?: string }) {
   const [hover, setHover] = useState(false);
   return (
     <Link
-      href={item.link ?? `/agents/${item.id}`}
+      href={item.link ?? `/agents/${item.id}${accountId ? `?accountId=${encodeURIComponent(accountId)}` : ""}`}
       style={{ textDecoration: "none", color: "inherit" }}
     >
       <div
@@ -92,7 +92,7 @@ function ProfilesCleanRow({ item, isFirst }: { item: ProfileItem; isFirst: boole
   );
 }
 
-export function ProfilesClean({ items, title, subtitle }: ProfilesProps) {
+export function ProfilesClean({ items, title, subtitle, accountId }: ProfilesProps) {
   return (
     <section
       id="profiles"
@@ -136,7 +136,7 @@ export function ProfilesClean({ items, title, subtitle }: ProfilesProps) {
           }}
         >
           {items.map((item, index) => (
-            <ProfilesCleanRow key={item.id} item={item} isFirst={index === 0} />
+            <ProfilesCleanRow key={item.id} item={item} isFirst={index === 0} accountId={accountId} />
           ))}
         </div>
       </div>
