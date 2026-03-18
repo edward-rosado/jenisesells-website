@@ -4,9 +4,9 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ServicesIcons, resolveServiceIcon } from "@/components/sections/services/ServicesIcons";
-import type { ServiceItem } from "@/lib/types";
+import type { FeatureItem } from "@/lib/types";
 
-const ITEMS: ServiceItem[] = [
+const ITEMS: FeatureItem[] = [
   { title: "Market Analysis", description: "Deep market insights" },
   { title: "Photography", description: "Professional photos" },
   { title: "Negotiation", description: "Expert negotiation" },
@@ -92,7 +92,7 @@ describe("resolveServiceIcon", () => {
   });
 
   it("uses explicit icon override when provided", () => {
-    const items: ServiceItem[] = [
+    const items: FeatureItem[] = [
       { title: "Something Random", description: "Test", icon: "heart" },
     ];
     const { container } = render(<ServicesIcons items={items} />);
@@ -108,7 +108,7 @@ describe("resolveServiceIcon", () => {
 
   it("prefers explicit icon over keyword match", () => {
     // Title has "photo" keyword (would match camera) but icon says "heart"
-    const items: ServiceItem[] = [
+    const items: FeatureItem[] = [
       { title: "Photography", description: "Test", icon: "heart" },
     ];
     const { container } = render(<ServicesIcons items={items} />);

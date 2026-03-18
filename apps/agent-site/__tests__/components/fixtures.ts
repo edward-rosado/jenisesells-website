@@ -168,7 +168,3 @@ export const CONTENT_ALL_DISABLED: ContentConfig = {
     },
   },
 };
-
-// Backward-compatible aliases for gradual test migration
-export const AGENT = ACCOUNT;
-export const AGENT_MINIMAL = ACCOUNT_MINIMAL;

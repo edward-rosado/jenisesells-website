@@ -1,6 +1,6 @@
-import type { ServicesProps } from "@/components/sections/types";
+import type { FeaturesProps } from "@/components/sections/types";
 
-export function ServicesGrid({ items, title, subtitle }: ServicesProps) {
+export function ServicesGrid({ items, title, subtitle }: FeaturesProps) {
   return (
     <section
       id="services"

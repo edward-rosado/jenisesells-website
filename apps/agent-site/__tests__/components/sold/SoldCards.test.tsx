@@ -4,9 +4,9 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { SoldCards } from "@/components/sections/sold/SoldCards";
-import type { SoldHomeItem } from "@/lib/types";
+import type { GalleryItem } from "@/lib/types";
 
-const ITEMS: SoldHomeItem[] = [
+const ITEMS: GalleryItem[] = [
   {
     address: "123 Main St",
     city: "Springfield",

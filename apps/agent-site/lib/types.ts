@@ -152,7 +152,6 @@ export interface StatItem {
 }
 export type StatsData = { items: StatItem[] };
 
-// Renamed: ServiceItem -> FeatureItem
 export interface FeatureItem {
   title: string;
   description: string;
@@ -167,7 +166,6 @@ export interface StepItem {
 }
 export type StepsData = { title?: string; subtitle?: string; steps: StepItem[] };
 
-// Renamed: SoldHomeItem -> GalleryItem
 export interface GalleryItem {
   address: string;
   city: string;
@@ -202,7 +200,6 @@ export interface ProfilesData {
   items: ProfileItem[];
 }
 
-// Renamed: CmaFormData -> ContactFormData
 export interface ContactFormData {
   title: string;
   subtitle: string;
@@ -234,11 +231,3 @@ export interface CityPageData {
   market_snapshot: string;
 }
 export type CityPagesData = { cities: CityPageData[] };
-
-// --- Backward-compatible aliases (removed in Task 16 cleanup) ---
-/** @deprecated Use FeatureItem */
-export type ServiceItem = FeatureItem;
-/** @deprecated Use GalleryItem */
-export type SoldHomeItem = GalleryItem;
-/** @deprecated Use ContactFormData */
-export type CmaFormData = ContactFormData;

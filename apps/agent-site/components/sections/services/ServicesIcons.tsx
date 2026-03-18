@@ -1,4 +1,4 @@
-import type { ServicesProps } from "@/components/sections/types";
+import type { FeaturesProps } from "@/components/sections/types";
 
 type SvgIcon = React.ReactNode;
 
@@ -136,7 +136,7 @@ export function resolveServiceIcon(title: string, icon?: string): SvgIcon {
   return ICON_REGISTRY.star;
 }
 
-export function ServicesIcons({ items, title, subtitle }: ServicesProps) {
+export function ServicesIcons({ items, title, subtitle }: FeaturesProps) {
   return (
     <section
       id="services"

@@ -1,8 +1,8 @@
 import Script from "next/script";
-import type { AgentTracking } from "@/lib/types";
+import type { AccountTracking } from "@/lib/types";
 
 interface AnalyticsProps {
-  tracking?: AgentTracking;
+  tracking?: AccountTracking;
 }
 
 // Sanitize tracking IDs to prevent script injection via config
@@ -61,7 +61,7 @@ export function Analytics({ tracking }: AnalyticsProps) {
  * Fire a conversion event for the CMA form submission.
  * Call this from CmaSection after a successful submission.
  */
-export function trackCmaConversion(tracking?: AgentTracking) {
+export function trackCmaConversion(tracking?: AccountTracking) {
   if (!tracking || typeof window === "undefined") return;
 
   const w = window as unknown as Record<string, unknown>;

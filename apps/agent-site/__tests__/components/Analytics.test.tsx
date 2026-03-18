@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { Analytics, trackCmaConversion } from "@/components/Analytics";
-import type { AgentTracking } from "@/lib/types";
+import type { AccountTracking } from "@/lib/types";
 
 // Mock next/script to render a simple element we can query
 vi.mock("next/script", () => ({
@@ -17,21 +17,21 @@ describe("Analytics", () => {
   });
 
   it("renders GTM script when gtm_container_id is provided", () => {
-    const tracking: AgentTracking = { gtm_container_id: "GTM-ABC123" };
+    const tracking: AccountTracking = { gtm_container_id: "GTM-ABC123" };
     const { getByTestId } = render(<Analytics tracking={tracking} />);
     const script = getByTestId("gtm-script");
     expect(script.getAttribute("data-src")).toContain("GTM-ABC123");
   });
 
   it("renders GA4 scripts when google_analytics_id is provided without GTM", () => {
-    const tracking: AgentTracking = { google_analytics_id: "G-XYZ789" };
+    const tracking: AccountTracking = { google_analytics_id: "G-XYZ789" };
     const { getByTestId } = render(<Analytics tracking={tracking} />);
     const config = getByTestId("ga4-config");
     expect(config.getAttribute("data-src")).toContain("G-XYZ789");
   });
 
   it("does not render GA4 when GTM is also present", () => {
-    const tracking: AgentTracking = {
+    const tracking: AccountTracking = {
       google_analytics_id: "G-XYZ789",
       gtm_container_id: "GTM-ABC123",
     };
@@ -41,14 +41,14 @@ describe("Analytics", () => {
   });
 
   it("renders Meta Pixel script when meta_pixel_id is provided", () => {
-    const tracking: AgentTracking = { meta_pixel_id: "123456789" };
+    const tracking: AccountTracking = { meta_pixel_id: "123456789" };
     const { getByTestId } = render(<Analytics tracking={tracking} />);
     const script = getByTestId("meta-pixel");
     expect(script.getAttribute("data-src")).toContain("123456789");
   });
 
   it("renders all scripts when all tracking IDs are present (GTM takes precedence over GA4)", () => {
-    const tracking: AgentTracking = {
+    const tracking: AccountTracking = {
       gtm_container_id: "GTM-ABC123",
       google_analytics_id: "G-XYZ789",
       meta_pixel_id: "123456789",
@@ -60,7 +60,7 @@ describe("Analytics", () => {
   });
 
   it("rejects unsafe tracking IDs (script injection prevention)", () => {
-    const tracking: AgentTracking = {
+    const tracking: AccountTracking = {
       gtm_container_id: "<script>alert(1)</script>",
       google_analytics_id: "G-VALID",
     };
@@ -71,7 +71,7 @@ describe("Analytics", () => {
   });
 
   it("handles empty string tracking IDs gracefully", () => {
-    const tracking: AgentTracking = {
+    const tracking: AccountTracking = {
       gtm_container_id: "",
       google_analytics_id: "",
       meta_pixel_id: "",

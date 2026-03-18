@@ -1,7 +1,7 @@
 import Image from "next/image";
-import type { SoldHomesProps } from "@/components/sections/types";
+import type { GalleryProps } from "@/components/sections/types";
 
-export function SoldCards({ items, title, subtitle }: SoldHomesProps) {
+export function SoldCards({ items, title, subtitle }: GalleryProps) {
   return (
     <section
       id="sold"

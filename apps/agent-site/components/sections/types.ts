@@ -79,8 +79,3 @@ export function clampRating(rating: number): number {
 export const FTC_DISCLAIMER =
   "Real reviews from real clients. Unedited excerpts from verified reviews on Zillow. No compensation was provided. Individual results may vary.";
 
-// Backward-compatible aliases
-/** @deprecated Use FeaturesProps */
-export type ServicesProps = FeaturesProps;
-/** @deprecated Use GalleryProps */
-export type SoldHomesProps = GalleryProps;

@@ -2,7 +2,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { useCmaSubmit } from "@real-estate-star/ui";
-import type { CmaFormData, AgentTracking } from "@/lib/types";
+import type { ContactFormData, AccountTracking } from "@/lib/types";
 import { trackCmaConversion } from "@/components/Analytics";
 import { LeadForm } from "@real-estate-star/ui";
 import type { LeadFormData } from "@real-estate-star/shared-types";
@@ -15,8 +15,8 @@ interface CmaSectionProps {
   agentId: string;
   agentName: string;
   defaultState: string;
-  tracking?: AgentTracking;
-  data: CmaFormData;
+  tracking?: AccountTracking;
+  data: ContactFormData;
   serviceAreas?: string[];
 }
 

@@ -4,7 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { CmaSection } from "@/components/sections/shared/CmaSection";
-import type { CmaFormData } from "@/lib/types";
+import type { ContactFormData } from "@/lib/types";
 
 // --- Mock useCmaSubmit from @real-estate-star/ui ---
 const mockSubmit = vi.fn();
@@ -47,7 +47,7 @@ vi.mock("@/components/Analytics", () => ({
   trackCmaConversion: vi.fn(),
 }));
 
-const FORM_DATA: CmaFormData = {
+const FORM_DATA: ContactFormData = {
   title: "What's Your Home Worth?",
   subtitle: "Get a free CMA today",
 };

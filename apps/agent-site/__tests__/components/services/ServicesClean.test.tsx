@@ -5,9 +5,9 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ServicesClean } from "@/components/sections/services/ServicesClean";
-import type { ServiceItem } from "@/lib/types";
+import type { FeatureItem } from "@/lib/types";
 
-const ITEMS: ServiceItem[] = [
+const ITEMS: FeatureItem[] = [
   { title: "Market Analysis", description: "Deep market insights" },
   { title: "Photography", description: "Professional photos" },
   { title: "Negotiation", description: "Expert negotiation" },

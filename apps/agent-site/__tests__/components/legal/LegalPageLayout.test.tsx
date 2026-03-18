@@ -4,12 +4,12 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
-import { ACCOUNT as AGENT, ACCOUNT_MINIMAL as AGENT_MINIMAL } from "../fixtures";
+import { ACCOUNT, ACCOUNT_MINIMAL } from "../fixtures";
 
 describe("LegalPageLayout", () => {
   it("renders children (standard legal content)", () => {
     render(
-      <LegalPageLayout agent={AGENT} agentId="test-agent">
+      <LegalPageLayout agent={ACCOUNT} agentId="test-agent">
         <h1>Privacy Policy</h1>
       </LegalPageLayout>
     );
@@ -18,7 +18,7 @@ describe("LegalPageLayout", () => {
 
   it("renders customAbove markdown before standard content", () => {
     render(
-      <LegalPageLayout agent={AGENT} agentId="test-agent" customAbove="## Custom Above">
+      <LegalPageLayout agent={ACCOUNT} agentId="test-agent" customAbove="## Custom Above">
         <p>Standard content</p>
       </LegalPageLayout>
     );
@@ -30,7 +30,7 @@ describe("LegalPageLayout", () => {
 
   it("renders customBelow markdown after standard content", () => {
     render(
-      <LegalPageLayout agent={AGENT} agentId="test-agent" customBelow="## Custom Below">
+      <LegalPageLayout agent={ACCOUNT} agentId="test-agent" customBelow="## Custom Below">
         <p>Standard content</p>
       </LegalPageLayout>
     );
@@ -42,7 +42,7 @@ describe("LegalPageLayout", () => {
 
   it("does not render custom sections when not provided", () => {
     render(
-      <LegalPageLayout agent={AGENT} agentId="test-agent">
+      <LegalPageLayout agent={ACCOUNT} agentId="test-agent">
         <p>Only standard</p>
       </LegalPageLayout>
     );
@@ -51,7 +51,7 @@ describe("LegalPageLayout", () => {
 
   it("renders Footer with legal links", () => {
     render(
-      <LegalPageLayout agent={AGENT} agentId="test-agent">
+      <LegalPageLayout agent={ACCOUNT} agentId="test-agent">
         <p>Content</p>
       </LegalPageLayout>
     );
@@ -60,7 +60,7 @@ describe("LegalPageLayout", () => {
 
   it("renders CookieConsentBanner", () => {
     render(
-      <LegalPageLayout agent={AGENT} agentId="test-agent">
+      <LegalPageLayout agent={ACCOUNT} agentId="test-agent">
         <p>Content</p>
       </LegalPageLayout>
     );
@@ -69,7 +69,7 @@ describe("LegalPageLayout", () => {
 
   it("injects CSS variables from agent branding", () => {
     const { container } = render(
-      <LegalPageLayout agent={AGENT} agentId="test-agent">
+      <LegalPageLayout agent={ACCOUNT} agentId="test-agent">
         <p>Content</p>
       </LegalPageLayout>
     );
@@ -79,7 +79,7 @@ describe("LegalPageLayout", () => {
 
   it("works with minimal agent config (default branding)", () => {
     render(
-      <LegalPageLayout agent={AGENT_MINIMAL} agentId="minimal-agent">
+      <LegalPageLayout agent={ACCOUNT_MINIMAL} agentId="minimal-agent">
         <p>Content</p>
       </LegalPageLayout>
     );
