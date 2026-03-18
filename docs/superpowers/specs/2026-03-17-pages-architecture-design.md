@@ -86,14 +86,21 @@ config/accounts/
 ├── test-commercial/              ← test, solo (commercial)
 │   ├── account.json
 │   └── content.json
-└── test-brokerage/               ← NEW test, company with agents
-    ├── account.json
-    ├── content.json
+├── test-brokerage/               ← NEW test, company with agents (company mode)
+│   ├── account.json              ← agent.enabled: false, broker present
+│   ├── content.json              ← profiles section enabled
+│   └── agents/
+│       ├── agent-a/
+│       │   ├── config.json
+│       │   └── content.json
+│       └── agent-b/
+│           ├── config.json
+│           └── content.json
+└── test-broker-agent/            ← NEW test, broker with personal site + team (both mode)
+    ├── account.json              ← agent.enabled: true AND agents/ folder
+    ├── content.json              ← profiles section enabled
     └── agents/
-        ├── agent-a/
-        │   ├── config.json
-        │   └── content.json
-        └── agent-b/
+        └── agent-c/
             ├── config.json
             └── content.json
 ```
@@ -137,10 +144,6 @@ config/accounts/
     "languages": ["English", "Spanish"],
     "tagline": "Forward. Moving.",
     "credentials": ["REALTOR®"]
-  },
-  "location": {
-    "state": "NJ",
-    "service_areas": ["Middlesex County", "Monmouth County", "Ocean County"]
   },
   "location": {
     "state": "NJ",
@@ -693,7 +696,7 @@ Solo accounts with no `agents/` folder will have empty entries in `AGENT_CONFIGS
 | Section rename breaks existing content | Medium — wrong keys silently ignored | JSON Schema validation catches unknown keys. Build-time test enumerates all expected section keys. |
 | Agent page routing conflicts with existing routes | Low — `/agents/` is a new path | Test that existing routes (`/privacy`, `/terms`, `/thank-you`) still work. |
 | Nav links dead on agent pages | Low — UX annoyance | Config validation test catches nav-to-section mismatches at build time. |
-| Static asset paths break after folder rename | Medium — broken images | Update public asset paths from `/agents/{id}/` to `/accounts/{id}/` or keep existing paths and add redirects. |
+| Static asset paths after folder rename | Low — only config paths change | Public assets (`public/agents/`) are NOT renamed — only `config/agents/` moves to `config/accounts/`. The `public/agents/` directory serves headshots, logos, and sold home images at `/agents/{handle}/...` URLs and these paths remain unchanged. No URL rewrites needed. |
 
 ## Out of Scope
 
