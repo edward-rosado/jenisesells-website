@@ -1,6 +1,90 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ProfilesProps } from "@/components/sections/types";
+import type { ProfileItem } from "@/lib/types";
+
+function ProfilesGridCard({ item }: { item: ProfileItem }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <Link
+      href={item.link ?? `/agents/${item.id}`}
+      style={{ textDecoration: "none", color: "inherit" }}
+    >
+      <div
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{
+          background: "white",
+          borderRadius: "12px",
+          padding: "28px",
+          textAlign: "center",
+          boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.08)",
+          transform: hover ? "translateY(-4px)" : "none",
+          transition: "transform 0.3s, box-shadow 0.3s",
+          cursor: "default",
+        }}
+      >
+        <div
+          style={{
+            width: "120px",
+            height: "120px",
+            borderRadius: "50%",
+            overflow: "hidden",
+            margin: "0 auto 16px",
+            background: "#e0e0e0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            position: "relative",
+          }}
+        >
+          {item.headshot_url ? (
+            <Image
+              src={item.headshot_url}
+              alt={item.name}
+              fill
+              style={{ objectFit: "cover" }}
+              sizes="120px"
+            />
+          ) : (
+            <span
+              style={{
+                fontSize: "40px",
+                fontWeight: 700,
+                color: "#999",
+                lineHeight: 1,
+              }}
+            >
+              {item.name.charAt(0)}
+            </span>
+          )}
+        </div>
+        <p
+          style={{
+            fontSize: "18px",
+            fontWeight: 700,
+            color: "var(--color-primary)",
+            marginBottom: "4px",
+          }}
+        >
+          {item.name}
+        </p>
+        <p
+          style={{
+            fontSize: "14px",
+            color: "#666",
+          }}
+        >
+          {item.title}
+        </p>
+      </div>
+    </Link>
+  );
+}
 
 export function ProfilesGrid({ items, title, subtitle }: ProfilesProps) {
   return (
@@ -47,77 +131,7 @@ export function ProfilesGrid({ items, title, subtitle }: ProfilesProps) {
           }}
         >
           {items.map((item) => (
-            <Link
-              key={item.id}
-              href={item.link ?? `/agents/${item.id}`}
-              style={{ textDecoration: "none", color: "inherit" }}
-            >
-              <div
-                style={{
-                  background: "white",
-                  borderRadius: "12px",
-                  padding: "28px",
-                  textAlign: "center",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                  transition: "box-shadow 0.2s",
-                }}
-              >
-                <div
-                  style={{
-                    width: "120px",
-                    height: "120px",
-                    borderRadius: "50%",
-                    overflow: "hidden",
-                    margin: "0 auto 16px",
-                    background: "#e0e0e0",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    position: "relative",
-                  }}
-                >
-                  {item.headshot_url ? (
-                    <Image
-                      src={item.headshot_url}
-                      alt={item.name}
-                      fill
-                      style={{ objectFit: "cover" }}
-                      sizes="120px"
-                    />
-                  ) : (
-                    <span
-                      style={{
-                        fontSize: "40px",
-                        fontWeight: 700,
-                        color: "#999",
-                        lineHeight: 1,
-                      }}
-                    >
-                      {item.name.charAt(0)}
-                    </span>
-                  )}
-                </div>
-                <p
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: 700,
-                    color: "var(--color-primary)",
-                    marginBottom: "4px",
-                  }}
-                >
-                  {item.name}
-                </p>
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "#666",
-                  }}
-                >
-                  {item.title}
-                </p>
-              </div>
-            </Link>
+            <ProfilesGridCard key={item.id} item={item} />
           ))}
         </div>
       </div>

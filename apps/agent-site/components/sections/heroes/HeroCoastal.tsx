@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import type { HeroProps } from "@/components/sections/types";
 import { safeHref, renderHeadline } from "./hero-utils";
 
 export function HeroCoastal({ data, agentPhotoUrl, agentName }: HeroProps) {
+  const [ctaHover, setCtaHover] = useState(false);
   return (
     <section
       style={{
@@ -60,6 +62,8 @@ export function HeroCoastal({ data, agentPhotoUrl, agentName }: HeroProps) {
         )}
         <a
           href={safeHref(data.cta_link)}
+          onMouseEnter={() => setCtaHover(true)}
+          onMouseLeave={() => setCtaHover(false)}
           style={{
             display: "inline-block",
             background: "var(--color-primary, #2c7a7b)",
@@ -70,6 +74,10 @@ export function HeroCoastal({ data, agentPhotoUrl, agentName }: HeroProps) {
             fontWeight: 600,
             textDecoration: "none",
             letterSpacing: "0.5px",
+            opacity: ctaHover ? 0.9 : 1,
+            transform: ctaHover ? "translateY(-2px)" : "none",
+            boxShadow: ctaHover ? "0 4px 15px rgba(0,0,0,0.2)" : "none",
+            transition: "opacity 0.3s, transform 0.3s, box-shadow 0.3s",
           }}
         >
           {data.cta_text}

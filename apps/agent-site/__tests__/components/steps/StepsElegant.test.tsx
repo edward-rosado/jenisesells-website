@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StepsElegant } from "@/components/sections/steps/StepsElegant";
 import type { StepItem } from "@/lib/types";
 
@@ -70,5 +70,17 @@ describe("StepsElegant", () => {
   it("renders empty section gracefully when steps is empty", () => {
     render(<StepsElegant steps={[]} />);
     expect(screen.getByRole("heading", { level: 2 })).toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<StepsElegant steps={STEPS} />);
+    // The hoverable div contains the step title text
+    const stepTitle = screen.getByText("Consultation");
+    const item = stepTitle.parentElement as HTMLElement;
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

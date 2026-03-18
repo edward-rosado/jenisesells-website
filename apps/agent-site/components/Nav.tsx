@@ -180,7 +180,7 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
           boxSizing: "border-box",
         }}
       >
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+        <Link href={`/${qsSuffix}`} style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
           {branding.logo_url ? (
             <div style={{ background: "white", borderRadius: "6px", padding: "4px 8px", display: "flex", alignItems: "center" }}>
               <Image

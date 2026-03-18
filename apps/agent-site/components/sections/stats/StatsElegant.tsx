@@ -1,4 +1,69 @@
+"use client";
+
+import { useState } from "react";
 import type { StatsProps } from "@/components/sections/types";
+import type { StatItem } from "@/lib/types";
+
+function StatsElegantItem({ item, isLast }: { item: StatItem; isLast: boolean }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+      }}
+    >
+      <div
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{
+          textAlign: "center",
+          padding: "0 48px",
+          boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
+          transform: hover ? "translateY(-4px)" : "none",
+          transition: "transform 0.3s, box-shadow 0.3s",
+          cursor: "default",
+          borderRadius: "8px",
+        }}
+      >
+        <dd
+          style={{
+            fontSize: "36px",
+            fontWeight: 400,
+            color: "var(--color-accent, #b8926a)",
+            margin: 0,
+            fontFamily: "var(--font-family, Georgia), serif",
+            lineHeight: 1.2,
+          }}
+        >
+          {item.value}
+        </dd>
+        <dt
+          style={{
+            fontSize: "11px",
+            textTransform: "uppercase" as const,
+            letterSpacing: "2px",
+            marginTop: "6px",
+            color: "var(--color-secondary, #5a4a3a)",
+          }}
+        >
+          {item.label}
+        </dt>
+      </div>
+      {!isLast && (
+        <div
+          data-separator
+          style={{
+            width: "1px",
+            height: "48px",
+            background: "rgba(184,146,106,0.3)",
+            flexShrink: 0,
+          }}
+        />
+      )}
+    </div>
+  );
+}
 
 export function StatsElegant({ items, sourceDisclaimer }: StatsProps) {
   return (
@@ -21,55 +86,7 @@ export function StatsElegant({ items, sourceDisclaimer }: StatsProps) {
         }}
       >
         {items.map((item, index) => (
-          <div
-            key={item.label}
-            style={{
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <div
-              style={{
-                textAlign: "center",
-                padding: "0 48px",
-              }}
-            >
-              <dd
-                style={{
-                  fontSize: "36px",
-                  fontWeight: 400,
-                  color: "var(--color-accent, #b8926a)",
-                  margin: 0,
-                  fontFamily: "var(--font-family, Georgia), serif",
-                  lineHeight: 1.2,
-                }}
-              >
-                {item.value}
-              </dd>
-              <dt
-                style={{
-                  fontSize: "11px",
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "2px",
-                  marginTop: "6px",
-                  color: "var(--color-secondary, #5a4a3a)",
-                }}
-              >
-                {item.label}
-              </dt>
-            </div>
-            {index < items.length - 1 && (
-              <div
-                data-separator
-                style={{
-                  width: "1px",
-                  height: "48px",
-                  background: "rgba(184,146,106,0.3)",
-                  flexShrink: 0,
-                }}
-              />
-            )}
-          </div>
+          <StatsElegantItem key={item.label} item={item} isLast={index === items.length - 1} />
         ))}
       </dl>
       {sourceDisclaimer && (

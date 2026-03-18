@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StepsPath } from "@/components/sections/steps/StepsPath";
 import type { StepItem } from "@/lib/types";
 
@@ -86,5 +86,15 @@ describe("StepsPath", () => {
         (el as HTMLElement).style.background?.includes("#2d4a3e")
     );
     expect(hasGreenMarker).toBe(true);
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<StepsPath steps={STEPS} />);
+    const item = screen.getAllByRole("listitem")[0];
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StepsBreeze } from "@/components/sections/steps/StepsBreeze";
 import type { StepItem } from "@/lib/types";
 
@@ -78,5 +78,15 @@ describe("StepsBreeze", () => {
     const ol = container.querySelector("ol");
     expect(ol).toBeInTheDocument();
     expect(ol!.style.display).toBe("flex");
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<StepsBreeze steps={STEPS} />);
+    const item = screen.getAllByRole("listitem")[0];
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

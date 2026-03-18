@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { SoldEstate } from "@/components/sections/sold/SoldEstate";
 import type { SoldHomeItem } from "@/lib/types";
 
@@ -116,5 +116,15 @@ describe("SoldEstate", () => {
     const images = screen.getAllByRole("img");
     expect(images.length).toBe(3);
     expect(images[0]).toHaveAttribute("alt", "300 Old Dominion Rd, Middleburg");
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<SoldEstate items={ITEMS} />);
+    const card = screen.getAllByRole("article")[0];
+    expect(card.style.transform).toBe("none");
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 });

@@ -1,4 +1,66 @@
+"use client";
+
+import { useState } from "react";
 import { clampRating, FTC_DISCLAIMER, type TestimonialsProps } from "@/components/sections/types";
+import type { TestimonialItem } from "@/lib/types";
+
+function TestimonialsGridCard({ item }: { item: TestimonialItem }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <article
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: "#f9f9f9",
+        borderRadius: "12px",
+        padding: "28px",
+        position: "relative",
+        boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
+        transform: hover ? "translateY(-4px)" : "none",
+        transition: "transform 0.3s, box-shadow 0.3s",
+        cursor: "default",
+      }}
+    >
+      <span
+        role="img"
+        aria-label={`${clampRating(item.rating)} out of 5 stars`}
+        style={{
+          display: "block",
+          color: "var(--color-accent)",
+          fontSize: "18px",
+          marginBottom: "10px",
+        }}
+      >
+        {"★".repeat(clampRating(item.rating))}{"☆".repeat(5 - clampRating(item.rating))}
+      </span>
+      <p
+        style={{
+          fontStyle: "italic",
+          color: "#555",
+          fontSize: "14px",
+          lineHeight: 1.7,
+        }}
+      >
+        {item.text}
+      </p>
+      <div
+        style={{
+          marginTop: "15px",
+          fontWeight: 700,
+          color: "var(--color-primary)",
+          fontSize: "14px",
+        }}
+      >
+        — {item.reviewer}
+        {item.source && (
+          <span style={{ fontWeight: "normal", color: "#999" }}>
+            {" "}via {item.source}
+          </span>
+        )}
+      </div>
+    </article>
+  );
+}
 
 export function TestimonialsGrid({ items, title }: TestimonialsProps) {
   return (
@@ -40,53 +102,7 @@ export function TestimonialsGrid({ items, title }: TestimonialsProps) {
           }}
         >
           {items.map((item) => (
-            <article
-              key={item.reviewer}
-              style={{
-                background: "#f9f9f9",
-                borderRadius: "12px",
-                padding: "28px",
-                position: "relative",
-              }}
-            >
-              <span
-                role="img"
-                aria-label={`${clampRating(item.rating)} out of 5 stars`}
-                style={{
-                  display: "block",
-                  color: "var(--color-accent)",
-                  fontSize: "18px",
-                  marginBottom: "10px",
-                }}
-              >
-                {"★".repeat(clampRating(item.rating))}{"☆".repeat(5 - clampRating(item.rating))}
-              </span>
-              <p
-                style={{
-                  fontStyle: "italic",
-                  color: "#555",
-                  fontSize: "14px",
-                  lineHeight: 1.7,
-                }}
-              >
-                {item.text}
-              </p>
-              <div
-                style={{
-                  marginTop: "15px",
-                  fontWeight: 700,
-                  color: "var(--color-primary)",
-                  fontSize: "14px",
-                }}
-              >
-                — {item.reviewer}
-                {item.source && (
-                  <span style={{ fontWeight: "normal", color: "#999" }}>
-                    {" "}via {item.source}
-                  </span>
-                )}
-              </div>
-            </article>
+            <TestimonialsGridCard key={item.reviewer} item={item} />
           ))}
         </div>
       </div>

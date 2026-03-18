@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StepsCards } from "@/components/sections/steps/StepsCards";
 import type { StepItem } from "@/lib/types";
 
@@ -73,5 +73,15 @@ describe("StepsCards", () => {
   it("renders empty section gracefully when steps is empty", () => {
     const { container } = render(<StepsCards steps={[]} />);
     expect(container.querySelector("section#steps")).toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<StepsCards steps={STEPS} />);
+    const item = container.querySelector("[data-steps-row]")!.children[0] as HTMLElement;
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

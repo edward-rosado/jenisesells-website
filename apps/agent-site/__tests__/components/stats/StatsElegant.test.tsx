@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StatsElegant } from "@/components/sections/stats/StatsElegant";
 import type { StatItem } from "@/lib/types";
 
@@ -67,5 +67,16 @@ describe("StatsElegant", () => {
     render(<StatsElegant items={ITEMS} />);
     const value = screen.getByText("$850M+");
     expect(value.style.fontFamily).toContain("font-family");
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<StatsElegant items={ITEMS} />);
+    // The hoverable div is the inner child of the outer wrapper div in the dl
+    const item = container.querySelector("dl")!.children[0].children[0] as HTMLElement;
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

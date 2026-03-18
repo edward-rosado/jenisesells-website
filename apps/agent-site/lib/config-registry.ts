@@ -83,7 +83,8 @@ export const accounts: Record<string, AccountConfig> = {
     },
     "brokerage": {
       "name": "Broker Direct Realty",
-      "license_number": "NJ-2024-99999"
+      "license_number": "NJ-2024-99999",
+      "logo_url": "/agents/test-broker-agent/logo.svg"
     },
     "agent": {
       "enabled": true,
@@ -92,6 +93,7 @@ export const accounts: Record<string, AccountConfig> = {
       "title": "Broker/Owner",
       "phone": "(973) 555-0300",
       "email": "diana@brokerdirect.com",
+      "headshot_url": "/agents/test-broker-agent/headshot.jpg",
       "tagline": "Broker and mentor."
     },
     "location": {
@@ -116,13 +118,13 @@ export const accounts: Record<string, AccountConfig> = {
       "license_number": "NJ-2024-12345",
       "office_address": "100 Summit Ave, Summit, NJ 07901",
       "office_phone": "(908) 555-0100",
-      "logo_url": "https://picsum.photos/seed/sterling-logo/200/80"
+      "logo_url": "/agents/test-brokerage/logo.svg"
     },
     "broker": {
       "name": "Victoria Sterling",
       "title": "Managing Broker",
       "bio": "30 years of luxury real estate experience.",
-      "headshot_url": "https://picsum.photos/seed/victoria-sterling/400/400"
+      "headshot_url": "/agents/test-brokerage/headshot.jpg"
     },
     "location": {
       "state": "NJ",
@@ -981,8 +983,28 @@ export const accountContent: Record<string, ContentConfig> = {
           "enabled": true
         },
         {
+          "label": "Stats",
+          "href": "#stats",
+          "enabled": true
+        },
+        {
           "label": "Services",
           "href": "#features",
+          "enabled": true
+        },
+        {
+          "label": "Process",
+          "href": "#steps",
+          "enabled": true
+        },
+        {
+          "label": "Portfolio",
+          "href": "#gallery",
+          "enabled": true
+        },
+        {
+          "label": "Reviews",
+          "href": "#testimonials",
           "enabled": true
         },
         {
@@ -1009,65 +1031,199 @@ export const accountContent: Record<string, ContentConfig> = {
             "enabled": true,
             "data": {
               "headline": "Broker Direct Realty",
-              "tagline": "Broker and mentor.",
-              "body": "Diana Reyes leads Broker Direct Realty with hands-on expertise and a commitment to mentoring the next generation of agents.",
-              "cta_text": "Get Started",
+              "tagline": "Where expertise meets integrity.",
+              "body": "Led by Diana Reyes, Broker Direct Realty is a full-service brokerage serving Newark and Montclair with a commitment to excellence, mentorship, and results. From luxury condos to historic brownstones, our team delivers personalized service backed by deep market knowledge.",
+              "cta_text": "Schedule a Consultation",
               "cta_link": "#contact_form"
             }
           },
           "stats": {
-            "enabled": false,
+            "enabled": true,
             "data": {
-              "items": []
+              "items": [
+                {
+                  "value": "300+",
+                  "label": "Transactions Closed"
+                },
+                {
+                  "value": "15+",
+                  "label": "Years in Business"
+                },
+                {
+                  "value": "$180M+",
+                  "label": "Total Sales Volume"
+                },
+                {
+                  "value": "4.9 ★",
+                  "label": "Client Rating"
+                }
+              ]
             }
           },
           "features": {
             "enabled": true,
             "data": {
               "title": "Our Services",
-              "subtitle": "Full-service brokerage for buyers and sellers.",
+              "subtitle": "Comprehensive real estate solutions for every client.",
               "items": [
                 {
                   "title": "Buyer Representation",
-                  "description": "Expert guidance through every step of the home buying process."
+                  "description": "Expert guidance through every step of the home buying process, from pre-approval to closing day. We negotiate fiercely on your behalf."
                 },
                 {
                   "title": "Seller Services",
-                  "description": "Strategic pricing, professional marketing, and skilled negotiation."
+                  "description": "Strategic pricing, professional staging, magazine-quality photography, and multi-channel marketing to maximize your home's value."
+                },
+                {
+                  "title": "Luxury Properties",
+                  "description": "Discreet marketing, private showings, and a curated network of qualified buyers for high-end Newark and Montclair properties."
+                },
+                {
+                  "title": "Investment Advisory",
+                  "description": "Multi-family analysis, rental yield projections, and portfolio strategy for investors targeting the northern New Jersey market."
+                },
+                {
+                  "title": "Relocation Support",
+                  "description": "Neighborhood tours, school district analysis, and commute planning for families relocating to the Newark-Montclair corridor."
                 }
               ]
             }
           },
           "steps": {
-            "enabled": false,
+            "enabled": true,
             "data": {
-              "steps": []
+              "title": "Our Process",
+              "subtitle": "A proven approach to every transaction.",
+              "steps": [
+                {
+                  "number": 1,
+                  "title": "Discovery Call",
+                  "description": "We start with a confidential conversation to understand your goals, timeline, and priorities."
+                },
+                {
+                  "number": 2,
+                  "title": "Market Strategy",
+                  "description": "Our team prepares a detailed market analysis and customized strategy tailored to your situation."
+                },
+                {
+                  "number": 3,
+                  "title": "Execute & Close",
+                  "description": "From showings to negotiations to closing, we handle every detail so you can focus on what matters."
+                }
+              ]
             }
           },
           "gallery": {
-            "enabled": false,
+            "enabled": true,
             "data": {
-              "items": []
+              "title": "Recent Sales",
+              "subtitle": "A selection of properties sold by our team across Newark and Montclair.",
+              "items": [
+                {
+                  "address": "45 Park Ave, Unit 12A",
+                  "city": "Newark",
+                  "state": "NJ",
+                  "price": "$625,000",
+                  "image_url": "/agents/test-broker-agent/sold/110-central-park.jpg"
+                },
+                {
+                  "address": "210 Upper Mountain Ave",
+                  "city": "Montclair",
+                  "state": "NJ",
+                  "price": "$1,150,000",
+                  "image_url": "/agents/test-broker-agent/sold/15-central-park.jpg"
+                },
+                {
+                  "address": "88 Broad St, PH-2",
+                  "city": "Newark",
+                  "state": "NJ",
+                  "price": "$780,000",
+                  "image_url": "/agents/test-broker-agent/sold/1-john-st.jpg"
+                },
+                {
+                  "address": "15 Claremont Ave",
+                  "city": "Montclair",
+                  "state": "NJ",
+                  "price": "$925,000",
+                  "image_url": "/agents/test-broker-agent/sold/432-park-ave.jpg"
+                },
+                {
+                  "address": "320 Washington St",
+                  "city": "Newark",
+                  "state": "NJ",
+                  "price": "$540,000",
+                  "image_url": "/agents/test-broker-agent/sold/56-leonard.jpg"
+                }
+              ]
             }
           },
           "testimonials": {
-            "enabled": false,
+            "enabled": true,
             "data": {
-              "items": []
+              "title": "Client Reviews",
+              "subtitle": "What our clients say about working with Broker Direct Realty.",
+              "items": [
+                {
+                  "text": "Diana and her team sold our Montclair home in under a week for $40K over asking. Their staging and marketing were incredible — we had 12 showings in the first weekend alone.",
+                  "reviewer": "The Ramirez Family",
+                  "rating": 5,
+                  "source": "Google"
+                },
+                {
+                  "text": "Marcus helped us find the perfect condo in downtown Newark. As first-time buyers, we had a million questions and he answered every single one with patience and expertise. Could not recommend more highly.",
+                  "reviewer": "Jason & Priya M.",
+                  "rating": 5,
+                  "source": "Zillow"
+                },
+                {
+                  "text": "We relocated from California and Elena made the entire process seamless. Virtual tours, neighborhood guides, school comparisons — she covered everything before we even set foot in New Jersey.",
+                  "reviewer": "The Tanaka Family",
+                  "rating": 5,
+                  "source": "Google"
+                },
+                {
+                  "text": "Diana personally handled our investment property purchase. Her knowledge of the Newark market and rental yield analysis helped us make a confident decision. Already planning our next acquisition with her team.",
+                  "reviewer": "Robert & Angela K.",
+                  "rating": 5,
+                  "source": "Google"
+                }
+              ]
             }
           },
           "profiles": {
             "enabled": true,
             "data": {
               "title": "Our Team",
-              "subtitle": "Meet the agents of Broker Direct Realty.",
+              "subtitle": "Experienced agents dedicated to your success.",
               "items": [
                 {
-                  "id": "agent-c",
+                  "id": "agent-a",
+                  "name": "Diana Reyes",
+                  "title": "Broker/Owner",
+                  "phone": "(973) 555-0300",
+                  "email": "diana@brokerdirect.com",
+                  "headshot_url": "/agents/test-broker-agent/headshot.jpg"
+                },
+                {
+                  "id": "agent-b",
                   "name": "Marcus Lee",
-                  "title": "Associate Agent",
+                  "title": "Senior Associate",
                   "phone": "(973) 555-0301",
                   "email": "marcus@brokerdirect.com"
+                },
+                {
+                  "id": "agent-c",
+                  "name": "Elena Vasquez",
+                  "title": "Relocation Specialist",
+                  "phone": "(973) 555-0302",
+                  "email": "elena@brokerdirect.com"
+                },
+                {
+                  "id": "agent-d",
+                  "name": "Kevin Park",
+                  "title": "Investment Advisor",
+                  "phone": "(973) 555-0303",
+                  "email": "kevin@brokerdirect.com"
                 }
               ]
             }
@@ -1076,17 +1232,24 @@ export const accountContent: Record<string, ContentConfig> = {
             "enabled": true,
             "data": {
               "title": "Contact Us",
-              "subtitle": "Reach out to Broker Direct Realty."
+              "subtitle": "Reach out to Broker Direct Realty for a complimentary consultation.",
+              "description": "Whether you're buying, selling, or investing, our team is ready to help. Fill out the form below and we'll get back to you within 24 hours."
             }
           },
           "about": {
             "enabled": true,
             "data": {
               "title": "About Broker Direct Realty",
-              "bio": "Founded by Diana Reyes, Broker Direct Realty serves the Newark and Montclair communities with integrity and expertise.",
+              "bio": [
+                "Founded by Diana Reyes in 2011, Broker Direct Realty has grown from a one-woman operation into a trusted full-service brokerage serving the Newark and Montclair communities. With over 300 transactions and $180M+ in sales volume, we bring deep local expertise to every deal.",
+                "Diana built this firm on a simple principle: treat every client like family. Our agents are hand-picked for their integrity, market knowledge, and commitment to going above and beyond. We don't just close deals — we build lasting relationships.",
+                "Beyond real estate, Diana is passionate about mentoring the next generation of agents and giving back to the communities we serve through partnerships with local nonprofits and youth programs."
+              ],
               "credentials": [
                 "Licensed NJ Broker",
-                "10+ Years Experience"
+                "300+ Transactions",
+                "$180M+ Sales Volume",
+                "15+ Years Experience"
               ]
             }
           },
@@ -1130,11 +1293,6 @@ export const accountContent: Record<string, ContentConfig> = {
           "enabled": true
         },
         {
-          "label": "Team",
-          "href": "#profiles",
-          "enabled": true
-        },
-        {
           "label": "Portfolio",
           "href": "#gallery",
           "enabled": true
@@ -1142,6 +1300,11 @@ export const accountContent: Record<string, ContentConfig> = {
         {
           "label": "Reviews",
           "href": "#testimonials",
+          "enabled": true
+        },
+        {
+          "label": "Team",
+          "href": "#profiles",
           "enabled": true
         },
         {
@@ -1253,42 +1416,35 @@ export const accountContent: Record<string, ContentConfig> = {
                   "city": "Summit",
                   "state": "NJ",
                   "price": "$2,100,000",
-                  "image_url": "https://picsum.photos/seed/summit-ave/600/400"
+                  "image_url": "/agents/test-brokerage/sold/1048.jpg"
                 },
                 {
                   "address": "55 Old Short Hills Rd",
                   "city": "Short Hills",
                   "state": "NJ",
                   "price": "$1,850,000",
-                  "image_url": "https://picsum.photos/seed/short-hills-rd/600/400"
+                  "image_url": "/agents/test-brokerage/sold/260.jpg"
                 },
                 {
                   "address": "310 Elm St",
                   "city": "Chatham",
                   "state": "NJ",
                   "price": "$1,650,000",
-                  "image_url": "https://picsum.photos/seed/chatham-elm/600/400"
+                  "image_url": "/agents/test-brokerage/sold/336.jpg"
                 },
                 {
                   "address": "22 Hobart Ave",
                   "city": "Summit",
                   "state": "NJ",
                   "price": "$2,450,000",
-                  "image_url": "https://picsum.photos/seed/summit-hobart/600/400"
+                  "image_url": "/agents/test-brokerage/sold/374.jpg"
                 },
                 {
                   "address": "7 Knollwood Rd",
                   "city": "Short Hills",
                   "state": "NJ",
                   "price": "$3,100,000",
-                  "image_url": "https://picsum.photos/seed/short-hills-knollwood/600/400"
-                },
-                {
-                  "address": "450 Fairmount Ave",
-                  "city": "Chatham",
-                  "state": "NJ",
-                  "price": "$1,975,000",
-                  "image_url": "https://picsum.photos/seed/chatham-fairmount/600/400"
+                  "image_url": "/agents/test-brokerage/sold/439.jpg"
                 }
               ]
             }
@@ -1343,48 +1499,42 @@ export const accountContent: Record<string, ContentConfig> = {
                   "name": "James Whitfield",
                   "title": "Senior Associate",
                   "phone": "(908) 555-0101",
-                  "email": "james@sterling.com",
-                  "headshot_url": "https://picsum.photos/seed/james-whitfield/400/400"
+                  "email": "james@sterling.com"
                 },
                 {
                   "id": "agent-b",
                   "name": "Sarah Chen",
                   "title": "Luxury Specialist",
                   "phone": "(908) 555-0102",
-                  "email": "sarah@sterling.com",
-                  "headshot_url": "https://picsum.photos/seed/sarah-chen/400/400"
+                  "email": "sarah@sterling.com"
                 },
                 {
                   "id": "agent-c",
                   "name": "Robert Dalton",
                   "title": "Commercial Director",
                   "phone": "(908) 555-0103",
-                  "email": "robert@sterling.com",
-                  "headshot_url": "https://picsum.photos/seed/robert-dalton/400/400"
+                  "email": "robert@sterling.com"
                 },
                 {
                   "id": "agent-d",
                   "name": "Priya Mehta",
                   "title": "Buyer Specialist",
                   "phone": "(908) 555-0104",
-                  "email": "priya@sterling.com",
-                  "headshot_url": "https://picsum.photos/seed/priya-mehta/400/400"
+                  "email": "priya@sterling.com"
                 },
                 {
                   "id": "agent-e",
                   "name": "Thomas Reilly",
                   "title": "Investment Advisor",
                   "phone": "(908) 555-0105",
-                  "email": "thomas@sterling.com",
-                  "headshot_url": "https://picsum.photos/seed/thomas-reilly/400/400"
+                  "email": "thomas@sterling.com"
                 },
                 {
                   "id": "agent-f",
                   "name": "Angela Moreau",
                   "title": "Listing Coordinator",
                   "phone": "(908) 555-0106",
-                  "email": "angela@sterling.com",
-                  "headshot_url": "https://picsum.photos/seed/angela-moreau/400/400"
+                  "email": "angela@sterling.com"
                 }
               ]
             }
@@ -1427,6 +1577,11 @@ export const accountContent: Record<string, ContentConfig> = {
   "test-coastal-living": {
     "navigation": {
       "items": [
+        {
+          "label": "Home",
+          "href": "#hero",
+          "enabled": true
+        },
         {
           "label": "Stats",
           "href": "#stats",
@@ -1564,28 +1719,28 @@ export const accountContent: Record<string, ContentConfig> = {
                   "city": "La Jolla",
                   "state": "CA",
                   "price": "$2,350,000",
-                  "image_url": "/agents/test-coastal-living/sold/7402-hillside-dr.jpg"
+                  "image_url": "/agents/test-coastal-living/sold/1040.jpg"
                 },
                 {
                   "address": "1025 Ocean Blvd, Unit 3",
                   "city": "Pacific Beach",
                   "state": "CA",
                   "price": "$895,000",
-                  "image_url": "/agents/test-coastal-living/sold/1025-ocean-blvd.jpg"
+                  "image_url": "/agents/test-coastal-living/sold/1041.jpg"
                 },
                 {
                   "address": "456 Neptune Ave",
                   "city": "Encinitas",
                   "state": "CA",
                   "price": "$1,575,000",
-                  "image_url": "/agents/test-coastal-living/sold/456-neptune-ave.jpg"
+                  "image_url": "/agents/test-coastal-living/sold/1044.jpg"
                 },
                 {
                   "address": "2180 Carmel Valley Rd",
                   "city": "Del Mar",
                   "state": "CA",
                   "price": "$1,890,000",
-                  "image_url": "/agents/test-coastal-living/sold/2180-carmel-valley-rd.jpg"
+                  "image_url": "/agents/test-coastal-living/sold/1050.jpg"
                 }
               ]
             }
@@ -1777,28 +1932,28 @@ export const accountContent: Record<string, ContentConfig> = {
                   "city": "Versailles",
                   "state": "KY",
                   "price": "$875,000",
-                  "image_url": "/agents/test-country-estate/sold/4500-old-frankfort-pike.jpg"
+                  "image_url": "/agents/test-country-estate/sold/155-blue-ridge.jpg"
                 },
                 {
                   "address": "1200 Pisgah Pike",
                   "city": "Lexington",
                   "state": "KY",
                   "price": "$1,250,000",
-                  "image_url": "/agents/test-country-estate/sold/1200-pisgah-pike.jpg"
+                  "image_url": "/agents/test-country-estate/sold/18-fox-chase.jpg"
                 },
                 {
                   "address": "320 Main St",
                   "city": "Midway",
                   "state": "KY",
                   "price": "$425,000",
-                  "image_url": "/agents/test-country-estate/sold/320-main-st.jpg"
+                  "image_url": "/agents/test-country-estate/sold/300-old-dominion.jpg"
                 },
                 {
                   "address": "780 Cane Ridge Rd",
                   "city": "Paris",
                   "state": "KY",
                   "price": "$695,000",
-                  "image_url": "/agents/test-country-estate/sold/780-cane-ridge-rd.jpg"
+                  "image_url": "/agents/test-country-estate/sold/72-vineyard-hill.jpg"
                 }
               ]
             }
@@ -2249,28 +2404,28 @@ export const accountContent: Record<string, ContentConfig> = {
                   "city": "Miami Beach",
                   "state": "FL",
                   "price": "$4,250,000",
-                  "image_url": "/agents/test-light-luxury/sold/5800-collins-ave.jpg"
+                  "image_url": "/agents/test-light-luxury/sold/100-greenwich.jpg"
                 },
                 {
                   "address": "1234 Alhambra Cir",
                   "city": "Coral Gables",
                   "state": "FL",
                   "price": "$2,850,000",
-                  "image_url": "/agents/test-light-luxury/sold/1234-alhambra-cir.jpg"
+                  "image_url": "/agents/test-light-luxury/sold/200-main.jpg"
                 },
                 {
                   "address": "3401 Main Hwy",
                   "city": "Coconut Grove",
                   "state": "FL",
                   "price": "$1,975,000",
-                  "image_url": "/agents/test-light-luxury/sold/3401-main-hwy.jpg"
+                  "image_url": "/agents/test-light-luxury/sold/45-elm.jpg"
                 },
                 {
                   "address": "250 Crandon Blvd, Unit 1201",
                   "city": "Key Biscayne",
                   "state": "FL",
                   "price": "$3,100,000",
-                  "image_url": "/agents/test-light-luxury/sold/250-crandon-blvd.jpg"
+                  "image_url": "/agents/test-light-luxury/sold/88-post.jpg"
                 }
               ]
             }
@@ -2313,24 +2468,21 @@ export const accountContent: Record<string, ContentConfig> = {
                   "name": "Olivier Marchetti",
                   "title": "International Sales Director",
                   "phone": "(305) 555-0401",
-                  "email": "olivier@prestigeproperties.com",
-                  "headshot_url": "https://picsum.photos/seed/olivier-marchetti/400/400"
+                  "email": "olivier@prestigeproperties.com"
                 },
                 {
                   "id": "agent-b",
                   "name": "Natalia Voss",
                   "title": "Waterfront Specialist",
                   "phone": "(305) 555-0402",
-                  "email": "natalia@prestigeproperties.com",
-                  "headshot_url": "https://picsum.photos/seed/natalia-voss/400/400"
+                  "email": "natalia@prestigeproperties.com"
                 },
                 {
                   "id": "agent-c",
                   "name": "Rafael Andrade",
                   "title": "Investment Advisor",
                   "phone": "(305) 555-0403",
-                  "email": "rafael@prestigeproperties.com",
-                  "headshot_url": "https://picsum.photos/seed/rafael-andrade/400/400"
+                  "email": "rafael@prestigeproperties.com"
                 }
               ]
             }
@@ -2731,28 +2883,28 @@ export const accountContent: Record<string, ContentConfig> = {
                   "city": "Dilworth",
                   "state": "NC",
                   "price": "$525,000",
-                  "image_url": "/agents/test-new-beginnings/sold/2145-dilworth-rd-e.jpg"
+                  "image_url": "/agents/test-new-beginnings/sold/120-dilworth.jpg"
                 },
                 {
                   "address": "801 E 36th St",
                   "city": "NoDa",
                   "state": "NC",
                   "price": "$385,000",
-                  "image_url": "/agents/test-new-beginnings/sold/801-e-36th-st.jpg"
+                  "image_url": "/agents/test-new-beginnings/sold/200-tryon.jpg"
                 },
                 {
                   "address": "3420 Colony Rd",
                   "city": "Myers Park",
                   "state": "NC",
                   "price": "$710,000",
-                  "image_url": "/agents/test-new-beginnings/sold/3420-colony-rd.jpg"
+                  "image_url": "/agents/test-new-beginnings/sold/45-camden.jpg"
                 },
                 {
                   "address": "1590 South Blvd, Unit 412",
                   "city": "Charlotte",
                   "state": "NC",
                   "price": "$295,000",
-                  "image_url": "/agents/test-new-beginnings/sold/1590-south-blvd.jpg"
+                  "image_url": "/agents/test-new-beginnings/sold/88-park.jpg"
                 }
               ]
             }
@@ -2967,28 +3119,28 @@ export const accountContent: Record<string, ContentConfig> = {
                   "city": "Logan Square",
                   "state": "IL",
                   "price": "$485,000",
-                  "image_url": "/agents/test-urban-loft/sold/1872-n-milwaukee-ave.jpg"
+                  "image_url": "/agents/test-urban-loft/sold/100-n3rd.jpg"
                 },
                 {
                   "address": "1340 W Randolph St, Unit 5A",
                   "city": "West Loop",
                   "state": "IL",
                   "price": "$620,000",
-                  "image_url": "/agents/test-urban-loft/sold/1340-w-randolph-st.jpg"
+                  "image_url": "/agents/test-urban-loft/sold/12-rivington.jpg"
                 },
                 {
                   "address": "2035 N Damen Ave, Unit 2R",
                   "city": "Bucktown",
                   "state": "IL",
                   "price": "$415,000",
-                  "image_url": "/agents/test-urban-loft/sold/2035-n-damen-ave.jpg"
+                  "image_url": "/agents/test-urban-loft/sold/200-kent.jpg"
                 },
                 {
                   "address": "1550 N Hoyne Ave, Unit 4W",
                   "city": "Wicker Park",
                   "state": "IL",
                   "price": "$535,000",
-                  "image_url": "/agents/test-urban-loft/sold/1550-n-hoyne-ave.jpg"
+                  "image_url": "/agents/test-urban-loft/sold/45-grand.jpg"
                 }
               ]
             }
@@ -3089,6 +3241,11 @@ export const accountContent: Record<string, ContentConfig> = {
         {
           "label": "Free Home Value",
           "href": "#contact_form",
+          "enabled": true
+        },
+        {
+          "label": "Team",
+          "href": "#profiles",
           "enabled": true
         },
         {
@@ -3262,16 +3419,14 @@ export const accountContent: Record<string, ContentConfig> = {
                   "name": "Miguel Torres",
                   "title": "Buyer Specialist",
                   "phone": "(512) 555-0201",
-                  "email": "miguel@santiago-realty.com",
-                  "headshot_url": "https://picsum.photos/seed/miguel-torres/400/400"
+                  "email": "miguel@santiago-realty.com"
                 },
                 {
                   "id": "agent-b",
                   "name": "Ashley Brooks",
                   "title": "Listing Coordinator",
                   "phone": "(512) 555-0202",
-                  "email": "ashley@santiago-realty.com",
-                  "headshot_url": "https://picsum.photos/seed/ashley-brooks/400/400"
+                  "email": "ashley@santiago-realty.com"
                 }
               ]
             }
@@ -3338,7 +3493,7 @@ export const agentConfigs: Record<string, Record<string, AgentConfig>> = {
       "title": "Senior Associate",
       "phone": "(908) 555-0101",
       "email": "james@sterling.com",
-      "headshot_url": "/agents/test-brokerage/agents/james-whitfield/headshot.jpg",
+      "headshot_url": "",
       "license_number": "NJ-2024-67890",
       "languages": [
         "English"
@@ -3356,7 +3511,7 @@ export const agentConfigs: Record<string, Record<string, AgentConfig>> = {
       "title": "Luxury Specialist",
       "phone": "(908) 555-0102",
       "email": "sarah@sterling.com",
-      "headshot_url": "/agents/test-brokerage/agents/sarah-chen/headshot.jpg",
+      "headshot_url": "",
       "license_number": "NJ-2024-11111",
       "languages": [
         "English",

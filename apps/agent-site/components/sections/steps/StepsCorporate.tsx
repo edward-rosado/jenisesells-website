@@ -1,4 +1,83 @@
+"use client";
+
+import { useState } from "react";
 import type { StepsProps } from "@/components/sections/types";
+import type { StepItem } from "@/lib/types";
+
+function StepsCorporateItem({ step, isLast }: { step: StepItem; isLast: boolean }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <li
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: "24px",
+        paddingBottom: !isLast ? "40px" : "0",
+        position: "relative",
+        boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
+        transform: hover ? "translateY(-4px)" : "none",
+        transition: "transform 0.3s, box-shadow 0.3s",
+        cursor: "default",
+        borderRadius: "8px",
+        padding: !isLast ? "16px 16px 40px" : "16px",
+      }}
+    >
+      {/* Vertical timeline line (not after last item) */}
+      {!isLast && (
+        <div
+          style={{
+            position: "absolute",
+            left: "39px",
+            top: "64px",
+            width: "2px",
+            bottom: "0",
+            background: "#cbd5e1",
+          }}
+        />
+      )}
+
+      {/* Blue circle with step number */}
+      <div
+        data-testid="step-number"
+        style={{
+          width: "48px",
+          height: "48px",
+          borderRadius: "50%",
+          background: "#2563eb",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "18px",
+          fontWeight: 800,
+          flexShrink: 0,
+          zIndex: 1,
+          position: "relative",
+        }}
+      >
+        {step.number}
+      </div>
+
+      <div style={{ paddingTop: "10px" }}>
+        <h3
+          style={{
+            fontSize: "18px",
+            fontWeight: 700,
+            color: "#0f172a",
+            marginBottom: "6px",
+          }}
+        >
+          {step.title}
+        </h3>
+        <p style={{ color: "#64748b", fontSize: "15px", lineHeight: 1.6 }}>
+          {step.description}
+        </p>
+      </div>
+    </li>
+  );
+}
 
 export function StepsCorporate({ steps, title, subtitle }: StepsProps) {
   return (
@@ -47,68 +126,7 @@ export function StepsCorporate({ steps, title, subtitle }: StepsProps) {
           }}
         >
           {steps.map((step, idx) => (
-            <li
-              key={step.number}
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "24px",
-                paddingBottom: idx < steps.length - 1 ? "40px" : "0",
-                position: "relative",
-              }}
-            >
-              {/* Vertical timeline line (not after last item) */}
-              {idx < steps.length - 1 && (
-                <div
-                  style={{
-                    position: "absolute",
-                    left: "23px",
-                    top: "48px",
-                    width: "2px",
-                    bottom: "0",
-                    background: "#cbd5e1",
-                  }}
-                />
-              )}
-
-              {/* Blue circle with step number */}
-              <div
-                data-testid="step-number"
-                style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "50%",
-                  background: "#2563eb",
-                  color: "white",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "18px",
-                  fontWeight: 800,
-                  flexShrink: 0,
-                  zIndex: 1,
-                  position: "relative",
-                }}
-              >
-                {step.number}
-              </div>
-
-              <div style={{ paddingTop: "10px" }}>
-                <h3
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: 700,
-                    color: "#0f172a",
-                    marginBottom: "6px",
-                  }}
-                >
-                  {step.title}
-                </h3>
-                <p style={{ color: "#64748b", fontSize: "15px", lineHeight: 1.6 }}>
-                  {step.description}
-                </p>
-              </div>
-            </li>
+            <StepsCorporateItem key={step.number} step={step} isLast={idx === steps.length - 1} />
           ))}
         </ol>
       </div>

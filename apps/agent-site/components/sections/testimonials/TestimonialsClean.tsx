@@ -1,5 +1,62 @@
-// apps/agent-site/components/sections/testimonials/TestimonialsClean.tsx
+"use client";
+
+import { useState } from "react";
 import { clampRating, FTC_DISCLAIMER, type TestimonialsProps } from "@/components/sections/types";
+import type { TestimonialItem } from "@/lib/types";
+
+function TestimonialsCleanCard({ item }: { item: TestimonialItem }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <article
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: "white",
+        borderRadius: "8px",
+        padding: "24px",
+        border: "1px solid #eee",
+        boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
+        transform: hover ? "translateY(-4px)" : "none",
+        transition: "transform 0.3s, box-shadow 0.3s",
+        cursor: "default",
+      }}
+    >
+      <span
+        role="img"
+        aria-label={`${clampRating(item.rating)} out of 5 stars`}
+        style={{
+          display: "block",
+          color: "var(--color-accent)",
+          fontSize: "16px",
+          marginBottom: "12px",
+        }}
+      >
+        {"★".repeat(clampRating(item.rating))}{"☆".repeat(5 - clampRating(item.rating))}
+      </span>
+      <p style={{
+        color: "#555",
+        fontSize: "14px",
+        lineHeight: 1.7,
+        fontStyle: "italic",
+      }}>
+        {item.text}
+      </p>
+      <div style={{
+        marginTop: "16px",
+        fontWeight: 600,
+        color: "#1a1a1a",
+        fontSize: "14px",
+      }}>
+        — {item.reviewer}
+        {item.source && (
+          <span style={{ fontWeight: "normal", color: "#aaa" }}>
+            {" "}via {item.source}
+          </span>
+        )}
+      </div>
+    </article>
+  );
+}
 
 export function TestimonialsClean({ items, title }: TestimonialsProps) {
   return (
@@ -35,49 +92,7 @@ export function TestimonialsClean({ items, title }: TestimonialsProps) {
           gap: "24px",
         }}>
           {items.map((item) => (
-            <article
-              key={item.reviewer}
-              style={{
-                background: "white",
-                borderRadius: "8px",
-                padding: "24px",
-                border: "1px solid #eee",
-              }}
-            >
-              <span
-                role="img"
-                aria-label={`${clampRating(item.rating)} out of 5 stars`}
-                style={{
-                  display: "block",
-                  color: "var(--color-accent)",
-                  fontSize: "16px",
-                  marginBottom: "12px",
-                }}
-              >
-                {"★".repeat(clampRating(item.rating))}{"☆".repeat(5 - clampRating(item.rating))}
-              </span>
-              <p style={{
-                color: "#555",
-                fontSize: "14px",
-                lineHeight: 1.7,
-                fontStyle: "italic",
-              }}>
-                {item.text}
-              </p>
-              <div style={{
-                marginTop: "16px",
-                fontWeight: 600,
-                color: "#1a1a1a",
-                fontSize: "14px",
-              }}>
-                — {item.reviewer}
-                {item.source && (
-                  <span style={{ fontWeight: "normal", color: "#aaa" }}>
-                    {" "}via {item.source}
-                  </span>
-                )}
-              </div>
-            </article>
+            <TestimonialsCleanCard key={item.reviewer} item={item} />
           ))}
         </div>
       </div>

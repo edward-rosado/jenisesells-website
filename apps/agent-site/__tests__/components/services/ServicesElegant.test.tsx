@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesElegant } from "@/components/sections/services/ServicesElegant";
 import type { ServiceItem } from "@/lib/types";
 
@@ -62,6 +62,15 @@ describe("ServicesElegant", () => {
     const { container } = render(<ServicesElegant items={ITEMS} />);
     const article = container.querySelector("article");
     expect(article!.style.borderLeft).toContain("color-accent");
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<ServicesElegant items={ITEMS} />);
+    const card = container.querySelectorAll("article")[0] as HTMLElement;
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 
   it("renders empty section gracefully when items is empty", () => {

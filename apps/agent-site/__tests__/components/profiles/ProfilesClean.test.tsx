@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ProfilesClean } from "@/components/sections/profiles/ProfilesClean";
 
 const ITEMS = [
@@ -67,6 +67,16 @@ describe("ProfilesClean", () => {
     render(<ProfilesClean items={ITEMS} />);
     expect(screen.getByText("Senior Associate")).toBeInTheDocument();
     expect(screen.getByText("Associate")).toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<ProfilesClean items={ITEMS} />);
+    const link = screen.getAllByRole("link")[0];
+    const card = link.firstElementChild as HTMLElement;
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 
   it("renders empty section when items is empty", () => {

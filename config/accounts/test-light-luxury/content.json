@@ -133,28 +133,28 @@
                 "city": "Miami Beach",
                 "state": "FL",
                 "price": "$4,250,000",
-                "image_url": "/agents/test-light-luxury/sold/5800-collins-ave.jpg"
+                "image_url": "/agents/test-light-luxury/sold/100-greenwich.jpg"
               },
               {
                 "address": "1234 Alhambra Cir",
                 "city": "Coral Gables",
                 "state": "FL",
                 "price": "$2,850,000",
-                "image_url": "/agents/test-light-luxury/sold/1234-alhambra-cir.jpg"
+                "image_url": "/agents/test-light-luxury/sold/200-main.jpg"
               },
               {
                 "address": "3401 Main Hwy",
                 "city": "Coconut Grove",
                 "state": "FL",
                 "price": "$1,975,000",
-                "image_url": "/agents/test-light-luxury/sold/3401-main-hwy.jpg"
+                "image_url": "/agents/test-light-luxury/sold/45-elm.jpg"
               },
               {
                 "address": "250 Crandon Blvd, Unit 1201",
                 "city": "Key Biscayne",
                 "state": "FL",
                 "price": "$3,100,000",
-                "image_url": "/agents/test-light-luxury/sold/250-crandon-blvd.jpg"
+                "image_url": "/agents/test-light-luxury/sold/88-post.jpg"
               }
             ]
           }
@@ -197,24 +197,21 @@
                 "name": "Olivier Marchetti",
                 "title": "International Sales Director",
                 "phone": "(305) 555-0401",
-                "email": "olivier@prestigeproperties.com",
-                "headshot_url": "https://picsum.photos/seed/olivier-marchetti/400/400"
+                "email": "olivier@prestigeproperties.com"
               },
               {
                 "id": "agent-b",
                 "name": "Natalia Voss",
                 "title": "Waterfront Specialist",
                 "phone": "(305) 555-0402",
-                "email": "natalia@prestigeproperties.com",
-                "headshot_url": "https://picsum.photos/seed/natalia-voss/400/400"
+                "email": "natalia@prestigeproperties.com"
               },
               {
                 "id": "agent-c",
                 "name": "Rafael Andrade",
                 "title": "Investment Advisor",
                 "phone": "(305) 555-0403",
-                "email": "rafael@prestigeproperties.com",
-                "headshot_url": "https://picsum.photos/seed/rafael-andrade/400/400"
+                "email": "rafael@prestigeproperties.com"
               }
             ]
           }

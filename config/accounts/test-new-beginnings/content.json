@@ -115,28 +115,28 @@
                 "city": "Dilworth",
                 "state": "NC",
                 "price": "$525,000",
-                "image_url": "/agents/test-new-beginnings/sold/2145-dilworth-rd-e.jpg"
+                "image_url": "/agents/test-new-beginnings/sold/120-dilworth.jpg"
               },
               {
                 "address": "801 E 36th St",
                 "city": "NoDa",
                 "state": "NC",
                 "price": "$385,000",
-                "image_url": "/agents/test-new-beginnings/sold/801-e-36th-st.jpg"
+                "image_url": "/agents/test-new-beginnings/sold/200-tryon.jpg"
               },
               {
                 "address": "3420 Colony Rd",
                 "city": "Myers Park",
                 "state": "NC",
                 "price": "$710,000",
-                "image_url": "/agents/test-new-beginnings/sold/3420-colony-rd.jpg"
+                "image_url": "/agents/test-new-beginnings/sold/45-camden.jpg"
               },
               {
                 "address": "1590 South Blvd, Unit 412",
                 "city": "Charlotte",
                 "state": "NC",
                 "price": "$295,000",
-                "image_url": "/agents/test-new-beginnings/sold/1590-south-blvd.jpg"
+                "image_url": "/agents/test-new-beginnings/sold/88-park.jpg"
               }
             ]
           }

@@ -115,28 +115,28 @@
                 "city": "Versailles",
                 "state": "KY",
                 "price": "$875,000",
-                "image_url": "/agents/test-country-estate/sold/4500-old-frankfort-pike.jpg"
+                "image_url": "/agents/test-country-estate/sold/155-blue-ridge.jpg"
               },
               {
                 "address": "1200 Pisgah Pike",
                 "city": "Lexington",
                 "state": "KY",
                 "price": "$1,250,000",
-                "image_url": "/agents/test-country-estate/sold/1200-pisgah-pike.jpg"
+                "image_url": "/agents/test-country-estate/sold/18-fox-chase.jpg"
               },
               {
                 "address": "320 Main St",
                 "city": "Midway",
                 "state": "KY",
                 "price": "$425,000",
-                "image_url": "/agents/test-country-estate/sold/320-main-st.jpg"
+                "image_url": "/agents/test-country-estate/sold/300-old-dominion.jpg"
               },
               {
                 "address": "780 Cane Ridge Rd",
                 "city": "Paris",
                 "state": "KY",
                 "price": "$695,000",
-                "image_url": "/agents/test-country-estate/sold/780-cane-ridge-rd.jpg"
+                "image_url": "/agents/test-country-estate/sold/72-vineyard-hill.jpg"
               }
             ]
           }

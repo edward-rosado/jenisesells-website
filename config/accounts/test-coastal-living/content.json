@@ -1,6 +1,7 @@
 {
   "navigation": {
     "items": [
+      { "label": "Home", "href": "#hero", "enabled": true },
       { "label": "Stats", "href": "#stats", "enabled": true },
       { "label": "Why Choose Me", "href": "#features", "enabled": true },
       { "label": "How It Works", "href": "#steps", "enabled": true },
@@ -110,28 +111,28 @@
                 "city": "La Jolla",
                 "state": "CA",
                 "price": "$2,350,000",
-                "image_url": "/agents/test-coastal-living/sold/7402-hillside-dr.jpg"
+                "image_url": "/agents/test-coastal-living/sold/1040.jpg"
               },
               {
                 "address": "1025 Ocean Blvd, Unit 3",
                 "city": "Pacific Beach",
                 "state": "CA",
                 "price": "$895,000",
-                "image_url": "/agents/test-coastal-living/sold/1025-ocean-blvd.jpg"
+                "image_url": "/agents/test-coastal-living/sold/1041.jpg"
               },
               {
                 "address": "456 Neptune Ave",
                 "city": "Encinitas",
                 "state": "CA",
                 "price": "$1,575,000",
-                "image_url": "/agents/test-coastal-living/sold/456-neptune-ave.jpg"
+                "image_url": "/agents/test-coastal-living/sold/1044.jpg"
               },
               {
                 "address": "2180 Carmel Valley Rd",
                 "city": "Del Mar",
                 "state": "CA",
                 "price": "$1,890,000",
-                "image_url": "/agents/test-coastal-living/sold/2180-carmel-valley-rd.jpg"
+                "image_url": "/agents/test-coastal-living/sold/1050.jpg"
               }
             ]
           }

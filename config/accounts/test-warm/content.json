@@ -27,6 +27,11 @@
         "enabled": true
       },
       {
+        "label": "Team",
+        "href": "#profiles",
+        "enabled": true
+      },
+      {
         "label": "Meet Maria",
         "href": "#about",
         "enabled": true
@@ -197,16 +202,14 @@
                 "name": "Miguel Torres",
                 "title": "Buyer Specialist",
                 "phone": "(512) 555-0201",
-                "email": "miguel@santiago-realty.com",
-                "headshot_url": "https://picsum.photos/seed/miguel-torres/400/400"
+                "email": "miguel@santiago-realty.com"
               },
               {
                 "id": "agent-b",
                 "name": "Ashley Brooks",
                 "title": "Listing Coordinator",
                 "phone": "(512) 555-0202",
-                "email": "ashley@santiago-realty.com",
-                "headshot_url": "https://picsum.photos/seed/ashley-brooks/400/400"
+                "email": "ashley@santiago-realty.com"
               }
             ]
           }

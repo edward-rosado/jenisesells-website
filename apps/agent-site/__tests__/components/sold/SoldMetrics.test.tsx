@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { SoldMetrics } from "@/components/sections/sold/SoldMetrics";
 import type { SoldHomeItem } from "@/lib/types";
 
@@ -119,5 +119,15 @@ describe("SoldMetrics", () => {
   it("renders subtitle when provided", () => {
     render(<SoldMetrics items={ITEMS} subtitle="Selected from 450+ closed transactions." />);
     expect(screen.getByText("Selected from 450+ closed transactions.")).toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<SoldMetrics items={ITEMS} />);
+    const card = screen.getAllByRole("article")[0];
+    expect(card.style.transform).toBe("none");
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 });

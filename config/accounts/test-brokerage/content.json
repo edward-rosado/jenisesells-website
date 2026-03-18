@@ -5,9 +5,9 @@
       { "label": "Stats", "href": "#stats", "enabled": true },
       { "label": "Services", "href": "#features", "enabled": true },
       { "label": "How It Works", "href": "#steps", "enabled": true },
-      { "label": "Team", "href": "#profiles", "enabled": true },
       { "label": "Portfolio", "href": "#gallery", "enabled": true },
       { "label": "Reviews", "href": "#testimonials", "enabled": true },
+      { "label": "Team", "href": "#profiles", "enabled": true },
       { "label": "Contact", "href": "#contact_form", "enabled": true },
       { "label": "About", "href": "#about", "enabled": true }
     ]
@@ -88,42 +88,35 @@
                 "city": "Summit",
                 "state": "NJ",
                 "price": "$2,100,000",
-                "image_url": "https://picsum.photos/seed/summit-ave/600/400"
+                "image_url": "/agents/test-brokerage/sold/1048.jpg"
               },
               {
                 "address": "55 Old Short Hills Rd",
                 "city": "Short Hills",
                 "state": "NJ",
                 "price": "$1,850,000",
-                "image_url": "https://picsum.photos/seed/short-hills-rd/600/400"
+                "image_url": "/agents/test-brokerage/sold/260.jpg"
               },
               {
                 "address": "310 Elm St",
                 "city": "Chatham",
                 "state": "NJ",
                 "price": "$1,650,000",
-                "image_url": "https://picsum.photos/seed/chatham-elm/600/400"
+                "image_url": "/agents/test-brokerage/sold/336.jpg"
               },
               {
                 "address": "22 Hobart Ave",
                 "city": "Summit",
                 "state": "NJ",
                 "price": "$2,450,000",
-                "image_url": "https://picsum.photos/seed/summit-hobart/600/400"
+                "image_url": "/agents/test-brokerage/sold/374.jpg"
               },
               {
                 "address": "7 Knollwood Rd",
                 "city": "Short Hills",
                 "state": "NJ",
                 "price": "$3,100,000",
-                "image_url": "https://picsum.photos/seed/short-hills-knollwood/600/400"
-              },
-              {
-                "address": "450 Fairmount Ave",
-                "city": "Chatham",
-                "state": "NJ",
-                "price": "$1,975,000",
-                "image_url": "https://picsum.photos/seed/chatham-fairmount/600/400"
+                "image_url": "/agents/test-brokerage/sold/439.jpg"
               }
             ]
           }
@@ -153,48 +146,42 @@
                 "name": "James Whitfield",
                 "title": "Senior Associate",
                 "phone": "(908) 555-0101",
-                "email": "james@sterling.com",
-                "headshot_url": "https://picsum.photos/seed/james-whitfield/400/400"
+                "email": "james@sterling.com"
               },
               {
                 "id": "agent-b",
                 "name": "Sarah Chen",
                 "title": "Luxury Specialist",
                 "phone": "(908) 555-0102",
-                "email": "sarah@sterling.com",
-                "headshot_url": "https://picsum.photos/seed/sarah-chen/400/400"
+                "email": "sarah@sterling.com"
               },
               {
                 "id": "agent-c",
                 "name": "Robert Dalton",
                 "title": "Commercial Director",
                 "phone": "(908) 555-0103",
-                "email": "robert@sterling.com",
-                "headshot_url": "https://picsum.photos/seed/robert-dalton/400/400"
+                "email": "robert@sterling.com"
               },
               {
                 "id": "agent-d",
                 "name": "Priya Mehta",
                 "title": "Buyer Specialist",
                 "phone": "(908) 555-0104",
-                "email": "priya@sterling.com",
-                "headshot_url": "https://picsum.photos/seed/priya-mehta/400/400"
+                "email": "priya@sterling.com"
               },
               {
                 "id": "agent-e",
                 "name": "Thomas Reilly",
                 "title": "Investment Advisor",
                 "phone": "(908) 555-0105",
-                "email": "thomas@sterling.com",
-                "headshot_url": "https://picsum.photos/seed/thomas-reilly/400/400"
+                "email": "thomas@sterling.com"
               },
               {
                 "id": "agent-f",
                 "name": "Angela Moreau",
                 "title": "Listing Coordinator",
                 "phone": "(908) 555-0106",
-                "email": "angela@sterling.com",
-                "headshot_url": "https://picsum.photos/seed/angela-moreau/400/400"
+                "email": "angela@sterling.com"
               }
             ]
           }

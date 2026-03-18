@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { HeroCoastal } from "@/components/sections/heroes/HeroCoastal";
 import type { HeroData } from "@/lib/types";
 
@@ -98,6 +98,15 @@ describe("HeroCoastal", () => {
     );
     const photoWrapper = container.querySelector("div[style*='border-radius: 20px']");
     expect(photoWrapper).toBeInTheDocument();
+  });
+
+  it("applies hover effect on CTA", () => {
+    render(<HeroCoastal data={heroData} />);
+    const cta = screen.getByRole("link", { name: /Explore Beach Homes/i });
+    fireEvent.mouseEnter(cta);
+    expect(cta.style.transform).toBe("translateY(-2px)");
+    fireEvent.mouseLeave(cta);
+    expect(cta.style.transform).toBe("none");
   });
 
   it("renders agent photo with generic alt when agentName is not provided", () => {

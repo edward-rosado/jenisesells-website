@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsQuote } from "@/components/sections/testimonials/TestimonialsQuote";
 import type { TestimonialItem } from "@/lib/types";
 
@@ -52,6 +52,16 @@ describe("TestimonialsQuote", () => {
     const quotationMarks = container.querySelectorAll("[data-quotation-mark]");
     expect(quotationMarks.length).toBeGreaterThan(0);
     expect((quotationMarks[0] as HTMLElement).style.color).toContain("color-accent");
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<TestimonialsQuote items={ITEMS} />);
+    const quoteMark = container.querySelector("[data-quotation-mark]")!;
+    const card = quoteMark.parentElement as HTMLElement;
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 
   it("renders quotes in italic style", () => {

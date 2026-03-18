@@ -110,28 +110,28 @@
                 "city": "Logan Square",
                 "state": "IL",
                 "price": "$485,000",
-                "image_url": "/agents/test-urban-loft/sold/1872-n-milwaukee-ave.jpg"
+                "image_url": "/agents/test-urban-loft/sold/100-n3rd.jpg"
               },
               {
                 "address": "1340 W Randolph St, Unit 5A",
                 "city": "West Loop",
                 "state": "IL",
                 "price": "$620,000",
-                "image_url": "/agents/test-urban-loft/sold/1340-w-randolph-st.jpg"
+                "image_url": "/agents/test-urban-loft/sold/12-rivington.jpg"
               },
               {
                 "address": "2035 N Damen Ave, Unit 2R",
                 "city": "Bucktown",
                 "state": "IL",
                 "price": "$415,000",
-                "image_url": "/agents/test-urban-loft/sold/2035-n-damen-ave.jpg"
+                "image_url": "/agents/test-urban-loft/sold/200-kent.jpg"
               },
               {
                 "address": "1550 N Hoyne Ave, Unit 4W",
                 "city": "Wicker Park",
                 "state": "IL",
                 "price": "$535,000",
-                "image_url": "/agents/test-urban-loft/sold/1550-n-hoyne-ave.jpg"
+                "image_url": "/agents/test-urban-loft/sold/45-grand.jpg"
               }
             ]
           }

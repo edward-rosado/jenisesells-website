@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StepsRefined } from "@/components/sections/steps/StepsRefined";
 import type { StepItem } from "@/lib/types";
 
@@ -67,5 +67,17 @@ describe("StepsRefined", () => {
   it("renders subtitle when provided", () => {
     render(<StepsRefined steps={STEPS} subtitle="A refined approach to real estate." />);
     expect(screen.getByText("A refined approach to real estate.")).toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<StepsRefined steps={STEPS} />);
+    // The hoverable div contains the step title text
+    const stepTitle = screen.getByText("Consultation");
+    const item = stepTitle.parentElement!.parentElement as HTMLElement;
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StatsMetrics } from "@/components/sections/stats/StatsMetrics";
 import type { StatItem } from "@/lib/types";
 
@@ -63,5 +63,15 @@ describe("StatsMetrics", () => {
     const { container } = render(<StatsMetrics items={ITEMS} />);
     const valueEls = container.querySelectorAll("[data-testid='stat-value']");
     expect(valueEls.length).toBe(4);
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<StatsMetrics items={ITEMS} />);
+    const item = container.querySelector("[data-testid='stat-card']") as HTMLElement;
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

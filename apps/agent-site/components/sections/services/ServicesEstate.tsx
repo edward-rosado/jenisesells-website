@@ -1,4 +1,74 @@
+"use client";
+
+import { useState } from "react";
 import type { ServicesProps } from "@/components/sections/types";
+import type { ServiceItem } from "@/lib/types";
+
+function ServicesEstateCard({ item }: { item: ServiceItem }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <article
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: "#f5f0e8",
+        borderRadius: "8px",
+        padding: "24px 28px",
+        display: "flex",
+        gap: "24px",
+        alignItems: "flex-start",
+        boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
+        transform: hover ? "translateY(-4px)" : "none",
+        transition: "transform 0.3s, box-shadow 0.3s",
+        cursor: "default",
+      }}
+    >
+      {/* Icon placeholder area */}
+      <div
+        aria-hidden="true"
+        style={{
+          width: "44px",
+          height: "44px",
+          borderRadius: "50%",
+          background: "var(--color-accent, #4a6741)",
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "white",
+          fontSize: "20px",
+        }}
+      >
+        ◆
+      </div>
+
+      {/* Text content */}
+      <div>
+        <h3
+          style={{
+            color: "var(--color-primary, #2d4a3e)",
+            fontSize: "18px",
+            fontWeight: 700,
+            marginBottom: "6px",
+            fontFamily: "Georgia, serif",
+          }}
+        >
+          {item.title}
+        </h3>
+        <p
+          style={{
+            color: "#5a5040",
+            fontSize: "15px",
+            lineHeight: 1.6,
+            fontFamily: "sans-serif",
+          }}
+        >
+          {item.description}
+        </p>
+      </div>
+    </article>
+  );
+}
 
 export function ServicesEstate({ items, title, subtitle }: ServicesProps) {
   return (
@@ -44,61 +114,7 @@ export function ServicesEstate({ items, title, subtitle }: ServicesProps) {
           }}
         >
           {items.map((item) => (
-            <article
-              key={item.title}
-              style={{
-                background: "#f5f0e8",
-                borderRadius: "8px",
-                padding: "24px 28px",
-                display: "flex",
-                gap: "24px",
-                alignItems: "flex-start",
-              }}
-            >
-              {/* Icon placeholder area */}
-              <div
-                aria-hidden="true"
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "50%",
-                  background: "var(--color-accent, #4a6741)",
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontSize: "20px",
-                }}
-              >
-                ◆
-              </div>
-
-              {/* Text content */}
-              <div>
-                <h3
-                  style={{
-                    color: "var(--color-primary, #2d4a3e)",
-                    fontSize: "18px",
-                    fontWeight: 700,
-                    marginBottom: "6px",
-                    fontFamily: "Georgia, serif",
-                  }}
-                >
-                  {item.title}
-                </h3>
-                <p
-                  style={{
-                    color: "#5a5040",
-                    fontSize: "15px",
-                    lineHeight: 1.6,
-                    fontFamily: "sans-serif",
-                  }}
-                >
-                  {item.description}
-                </p>
-              </div>
-            </article>
+            <ServicesEstateCard key={item.title} item={item} />
           ))}
         </div>
       </div>

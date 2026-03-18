@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsGrid } from "@/components/sections/testimonials/TestimonialsGrid";
 import type { TestimonialItem } from "@/lib/types";
 
@@ -75,6 +75,15 @@ describe("TestimonialsGrid", () => {
     render(<TestimonialsGrid items={ITEMS} />);
     // Each card has the testimonial text
     expect(screen.getAllByText(/Amazing service!|Would recommend|Very professional/)).toHaveLength(3);
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<TestimonialsGrid items={ITEMS} />);
+    const card = container.querySelectorAll("article")[0] as HTMLElement;
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 
   it("renders consolidated FTC endorsement disclosure", () => {

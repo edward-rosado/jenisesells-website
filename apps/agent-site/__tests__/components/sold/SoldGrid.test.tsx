@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { SoldGrid } from "@/components/sections/sold/SoldGrid";
 import type { GalleryItem } from "@/lib/types";
 
@@ -87,5 +87,15 @@ describe("SoldGrid", () => {
   it("does not render an image when image_url is absent", () => {
     render(<SoldGrid items={ITEMS} />);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<SoldGrid items={ITEMS} />);
+    const card = screen.getAllByRole("article")[0];
+    expect(card.style.transform).toBe("none");
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 });

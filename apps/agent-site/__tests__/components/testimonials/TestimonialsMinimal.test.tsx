@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsMinimal } from "@/components/sections/testimonials/TestimonialsMinimal";
 import type { TestimonialItem } from "@/lib/types";
 
@@ -82,6 +82,16 @@ describe("TestimonialsMinimal", () => {
   it("clamps rating to 5 for values over 5", () => {
     render(<TestimonialsMinimal items={[{ text: "Test", reviewer: "X", rating: 10 }]} />);
     expect(screen.getByText("★★★★★")).toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<TestimonialsMinimal items={ITEMS} />);
+    const starEl = screen.getAllByRole("img")[0];
+    const card = starEl.parentElement as HTMLElement;
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 
   it("clamps rating to 0 for negative values", () => {

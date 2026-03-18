@@ -7,7 +7,8 @@
   },
   "brokerage": {
     "name": "Broker Direct Realty",
-    "license_number": "NJ-2024-99999"
+    "license_number": "NJ-2024-99999",
+    "logo_url": "/agents/test-broker-agent/logo.svg"
   },
   "agent": {
     "enabled": true,
@@ -16,6 +17,7 @@
     "title": "Broker/Owner",
     "phone": "(973) 555-0300",
     "email": "diana@brokerdirect.com",
+    "headshot_url": "/agents/test-broker-agent/headshot.jpg",
     "tagline": "Broker and mentor."
   },
   "location": {

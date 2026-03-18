@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { ServicesProps } from "@/components/sections/types";
 import type { ServiceItem } from "@/lib/types";
 
@@ -9,6 +12,41 @@ function groupByCategory(items: ServiceItem[]): Map<string | undefined, ServiceI
     map.get(key)!.push(item);
   }
   return map;
+}
+
+function ServicesCommercialCard({ item, headingLevel }: { item: ServiceItem; headingLevel: "h3" | "h4" }) {
+  const [hover, setHover] = useState(false);
+  const Heading = headingLevel;
+  return (
+    <article
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: "#f8fafc",
+        border: "1px solid #e2e8f0",
+        borderRadius: "6px",
+        padding: "24px",
+        boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
+        transform: hover ? "translateY(-4px)" : "none",
+        transition: "transform 0.3s, box-shadow 0.3s",
+        cursor: "default",
+      }}
+    >
+      <Heading
+        style={{
+          fontSize: "16px",
+          fontWeight: 700,
+          color: "#0f172a",
+          marginBottom: "8px",
+        }}
+      >
+        {item.title}
+      </Heading>
+      <p style={{ color: "#64748b", fontSize: "14px", lineHeight: 1.6 }}>
+        {item.description}
+      </p>
+    </article>
+  );
 }
 
 export function ServicesCommercial({ items, title, subtitle }: ServicesProps) {
@@ -78,29 +116,7 @@ export function ServicesCommercial({ items, title, subtitle }: ServicesProps) {
                   }}
                 >
                   {categoryItems.map((item) => (
-                    <article
-                      key={item.title}
-                      style={{
-                        background: "#f8fafc",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "6px",
-                        padding: "24px",
-                      }}
-                    >
-                      <h4
-                        style={{
-                          fontSize: "16px",
-                          fontWeight: 700,
-                          color: "#0f172a",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        {item.title}
-                      </h4>
-                      <p style={{ color: "#64748b", fontSize: "14px", lineHeight: 1.6 }}>
-                        {item.description}
-                      </p>
-                    </article>
+                    <ServicesCommercialCard key={item.title} item={item} headingLevel="h4" />
                   ))}
                 </div>
               </div>
@@ -116,29 +132,7 @@ export function ServicesCommercial({ items, title, subtitle }: ServicesProps) {
             }}
           >
             {items.map((item) => (
-              <article
-                key={item.title}
-                style={{
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "6px",
-                  padding: "24px",
-                }}
-              >
-                <h3
-                  style={{
-                    fontSize: "16px",
-                    fontWeight: 700,
-                    color: "#0f172a",
-                    marginBottom: "8px",
-                  }}
-                >
-                  {item.title}
-                </h3>
-                <p style={{ color: "#64748b", fontSize: "14px", lineHeight: 1.6 }}>
-                  {item.description}
-                </p>
-              </article>
+              <ServicesCommercialCard key={item.title} item={item} headingLevel="h3" />
             ))}
           </div>
         )}

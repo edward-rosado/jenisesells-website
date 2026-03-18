@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { StepsCorporate } from "@/components/sections/steps/StepsCorporate";
 import type { StepItem } from "@/lib/types";
 
@@ -63,5 +63,15 @@ describe("StepsCorporate", () => {
   it("renders subtitle when provided", () => {
     render(<StepsCorporate steps={STEPS} subtitle="A proven three-step process." />);
     expect(screen.getByText("A proven three-step process.")).toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<StepsCorporate steps={STEPS} />);
+    const item = screen.getAllByRole("listitem")[0];
+    expect(item.style.transform).toBe("none");
+    fireEvent.mouseEnter(item);
+    expect(item.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(item);
+    expect(item.style.transform).toBe("none");
   });
 });

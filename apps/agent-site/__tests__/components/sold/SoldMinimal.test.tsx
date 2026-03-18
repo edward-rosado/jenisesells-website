@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { SoldMinimal } from "@/components/sections/sold/SoldMinimal";
 
 const ITEMS = [
@@ -64,5 +64,15 @@ describe("SoldMinimal", () => {
     const section = container.querySelector("#gallery");
     const paragraphs = section?.querySelectorAll("p");
     expect(paragraphs?.length ?? 0).toBe(0);
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    render(<SoldMinimal items={ITEMS} />);
+    const card = screen.getAllByRole("article")[0];
+    expect(card.style.transform).toBe("none");
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 });

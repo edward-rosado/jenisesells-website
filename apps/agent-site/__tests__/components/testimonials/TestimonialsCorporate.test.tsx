@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsCorporate } from "@/components/sections/testimonials/TestimonialsCorporate";
 import type { TestimonialItem } from "@/lib/types";
 
@@ -90,6 +90,15 @@ describe("TestimonialsCorporate", () => {
   it("includes FTC disclaimer text", () => {
     render(<TestimonialsCorporate items={ITEMS} />);
     expect(screen.getByText(/No compensation was provided/)).toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<TestimonialsCorporate items={ITEMS} />);
+    const card = container.querySelectorAll("article")[0] as HTMLElement;
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 
   it("renders clean bordered cards (no star rating area)", () => {

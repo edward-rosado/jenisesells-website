@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { SoldCompact } from "@/components/sections/sold/SoldCompact";
 import type { SoldHomeItem } from "@/lib/types";
 
@@ -75,5 +75,15 @@ describe("SoldCompact", () => {
   it("does not render subtitle element when subtitle is absent", () => {
     render(<SoldCompact items={ITEMS} />);
     expect(screen.queryByText("Our top deals this year")).not.toBeInTheDocument();
+  });
+
+  it("applies hover lift on mouse enter", () => {
+    const { container } = render(<SoldCompact items={ITEMS} />);
+    const card = container.querySelector("[data-sold-grid]")!.children[0] as HTMLElement;
+    expect(card.style.transform).toBe("none");
+    fireEvent.mouseEnter(card);
+    expect(card.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(card);
+    expect(card.style.transform).toBe("none");
   });
 });
