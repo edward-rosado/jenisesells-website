@@ -225,7 +225,7 @@ describe("Nav", () => {
     expect(img).toHaveAttribute("alt", "Brokerage logo");
   });
 
-  it("logo links to homepage", () => {
+  it("logo links to #hero on home page", () => {
     const accountWithLogo = {
       ...ACCOUNT,
       branding: { ...ACCOUNT.branding, logo_url: "/images/logo.png" },
@@ -233,7 +233,7 @@ describe("Nav", () => {
     render(<Nav account={accountWithLogo} />);
     const img = screen.getByRole("img");
     const homeLink = img.closest("a");
-    expect(homeLink).toHaveAttribute("href", "/");
+    expect(homeLink).toHaveAttribute("href", "#hero");
   });
 
   it("does not render brokerage name in nav (logo is sufficient)", () => {
@@ -402,11 +402,25 @@ describe("Nav", () => {
     mockSearchParams.mockReturnValue(new URLSearchParams());
   });
 
-  it("tagline links to homepage", () => {
+  it("tagline links to #hero on home page", () => {
+    mockPathname.mockReturnValue("/");
     render(<Nav account={ACCOUNT} />);
     const tagline = screen.getByText("YOUR DREAM HOME AWAITS");
     const homeLink = tagline.closest("a");
+    expect(homeLink).toHaveAttribute("href", "#hero");
+  });
+
+  it("logo links to homepage from sub-page", () => {
+    mockPathname.mockReturnValue("/agents/agent-a");
+    const accountWithLogo = {
+      ...ACCOUNT,
+      branding: { ...ACCOUNT.branding, logo_url: "/images/logo.png" },
+    };
+    render(<Nav account={accountWithLogo} />);
+    const img = screen.getByRole("img");
+    const homeLink = img.closest("a");
     expect(homeLink).toHaveAttribute("href", "/");
+    mockPathname.mockReturnValue("/");
   });
 
   // --- Desktop links ---
