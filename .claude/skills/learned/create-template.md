@@ -302,6 +302,56 @@ When given a URL to base a template on:
 - **Footer is shared** — never create a template-specific footer. Always use `Footer` from shared components.
 - **Nav is shared** — never create a template-specific nav. Always use `Nav` component.
 
+## Lint Rules to Watch
+
+These are CI-enforced rules that will break the build if violated:
+
+### `react-hooks/set-state-in-effect` (ERROR — blocks CI)
+**Never call `setState()` synchronously inside a `useEffect` body.** This triggers cascading renders. Use `useSyncExternalStore` for subscribing to external state like media queries.
+
+```tsx
+// BAD — lint error, CI will fail
+const [reducedMotion, setReducedMotion] = useState(false);
+useEffect(() => {
+  const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+  setReducedMotion(mq.matches); // ← ERROR: setState in effect
+  const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+  mq.addEventListener("change", handler);
+  return () => mq.removeEventListener("change", handler);
+}, []);
+
+// GOOD — useSyncExternalStore subscribes to external state correctly
+const reducedMotion = useSyncExternalStore(
+  (cb) => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    mq.addEventListener("change", cb);
+    return () => mq.removeEventListener("change", cb);
+  },
+  () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  () => false, // server snapshot
+);
+```
+
+This applies to ANY media query subscription, scroll position tracking, or external store subscription. The pattern: `useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)`.
+
+### `@typescript-eslint/no-unused-vars` (WARNING — but CI treats warnings as errors)
+**Remove unused destructured variables in tests.** Common offender: destructuring `{ container }` from `render()` but only using `screen` queries.
+
+```tsx
+// BAD — container is unused
+const { container } = render(<MyComponent />);
+const text = screen.getByText("Hello");
+
+// GOOD — don't destructure what you don't use
+render(<MyComponent />);
+const text = screen.getByText("Hello");
+```
+
+Also watch for unused type imports when refactoring tests.
+
+### Legal content files
+**Always create both `-above.md` and `-below.md`** for each legal page (privacy, terms, accessibility) in test agents. The `-below.md` files render after the auto-generated legal text and typically contain supplementary examples or additional disclosures.
+
 ## When to Use
 
 - Creating a brand new template for the agent site

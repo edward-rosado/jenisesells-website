@@ -66,4 +66,14 @@ describe("SoldCompact", () => {
     const { container } = render(<SoldCompact items={[]} />);
     expect(container.querySelector("section#sold")).toBeInTheDocument();
   });
+
+  it("renders subtitle when provided", () => {
+    render(<SoldCompact items={ITEMS} subtitle="Our top deals this year" />);
+    expect(screen.getByText("Our top deals this year")).toBeInTheDocument();
+  });
+
+  it("does not render subtitle element when subtitle is absent", () => {
+    render(<SoldCompact items={ITEMS} />);
+    expect(screen.queryByText("Our top deals this year")).not.toBeInTheDocument();
+  });
 });

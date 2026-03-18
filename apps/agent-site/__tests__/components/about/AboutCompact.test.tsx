@@ -73,4 +73,32 @@ describe("AboutCompact", () => {
     render(<AboutCompact agent={AGENT} data={{ bio: "Some bio.", credentials: [] }} />);
     expect(screen.getByRole("heading", { level: 2 })).toBeInTheDocument();
   });
+
+  it("renders each paragraph when bio is an array", () => {
+    const arrayBioData = {
+      bio: ["First paragraph about the agent.", "Second paragraph with more detail."],
+      credentials: [],
+    };
+    render(<AboutCompact agent={AGENT} data={arrayBioData} />);
+    expect(screen.getByText("First paragraph about the agent.")).toBeInTheDocument();
+    expect(screen.getByText("Second paragraph with more detail.")).toBeInTheDocument();
+  });
+
+  it("renders single paragraph when bio is a string", () => {
+    const stringBioData = {
+      bio: "Single string bio paragraph.",
+      credentials: [],
+    };
+    render(<AboutCompact agent={AGENT} data={stringBioData} />);
+    expect(screen.getByText("Single string bio paragraph.")).toBeInTheDocument();
+  });
+
+  it("does not render title span when agent title is absent", () => {
+    const agentNoTitle = {
+      ...AGENT,
+      identity: { ...AGENT.identity, title: undefined },
+    };
+    render(<AboutCompact agent={agentNoTitle} data={DATA} />);
+    expect(screen.queryByText("REALTOR")).not.toBeInTheDocument();
+  });
 });

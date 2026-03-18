@@ -29,9 +29,7 @@ export function SoldCarousel({ items, title, subtitle }: SoldHomesProps) {
   useEffect(() => {
     if (paused || reducedMotion || items.length <= 1) return;
     intervalRef.current = setInterval(goNext, 5000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => { clearInterval(intervalRef.current!); };
   }, [paused, reducedMotion, goNext, items.length]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

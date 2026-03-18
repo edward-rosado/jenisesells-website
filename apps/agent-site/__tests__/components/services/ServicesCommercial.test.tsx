@@ -89,4 +89,16 @@ describe("ServicesCommercial", () => {
     render(<ServicesCommercial items={ITEMS_FLAT} subtitle="Full-service commercial brokerage." />);
     expect(screen.getByText("Full-service commercial brokerage.")).toBeInTheDocument();
   });
+
+  it("renders items without category in categorized list (no category heading for that group)", () => {
+    const mixed: ServiceItem[] = [
+      { title: "Tenant Rep", description: "Lease terms.", category: "Leasing" },
+      { title: "Consulting", description: "General advice." },
+    ];
+    render(<ServicesCommercial items={mixed} />);
+    expect(screen.getByRole("heading", { name: "Leasing" })).toBeInTheDocument();
+    expect(screen.getByText("Consulting")).toBeInTheDocument();
+    // The uncategorized item should NOT produce a category heading
+    expect(screen.queryByRole("heading", { name: "uncategorized" })).not.toBeInTheDocument();
+  });
 });

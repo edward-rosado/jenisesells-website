@@ -99,4 +99,10 @@ describe("HeroCoastal", () => {
     const photoWrapper = container.querySelector("div[style*='border-radius: 50%']");
     expect(photoWrapper).toBeInTheDocument();
   });
+
+  it("renders agent photo with generic alt when agentName is not provided", () => {
+    render(<HeroCoastal data={heroData} agentPhotoUrl="/agents/test/headshot.jpg" />);
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("alt", "Agent photo");
+  });
 });

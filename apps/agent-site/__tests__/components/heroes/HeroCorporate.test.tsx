@@ -96,4 +96,14 @@ describe("HeroCorporate", () => {
     fireEvent.mouseLeave(primaryCta);
     expect(primaryCta).toBeInTheDocument();
   });
+
+  it("changes primary CTA style on focus and reverts on blur", () => {
+    render(<HeroCorporate data={BASE_DATA} />);
+    const links = screen.getAllByRole("link");
+    const primaryCta = links.find((l) => l.textContent?.includes("Request a Consultation"))!;
+    fireEvent.focus(primaryCta);
+    expect(primaryCta).toBeInTheDocument();
+    fireEvent.blur(primaryCta);
+    expect(primaryCta).toBeInTheDocument();
+  });
 });

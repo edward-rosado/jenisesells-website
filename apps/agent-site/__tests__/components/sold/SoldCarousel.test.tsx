@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import * as React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { SoldCarousel } from "@/components/sections/sold/SoldCarousel";
 import type { SoldHomeItem } from "@/lib/types";
@@ -179,5 +180,142 @@ describe("SoldCarousel", () => {
   it("renders subtitle when provided", () => {
     render(<SoldCarousel items={ITEMS} subtitle="Our finest closings" />);
     expect(screen.getByText("Our finest closings")).toBeInTheDocument();
+  });
+
+  it("pauses auto-advance on mouseEnter and resumes on mouseLeave", () => {
+    render(<SoldCarousel items={ITEMS} />);
+    const region = screen.getByRole("region");
+    fireEvent.mouseEnter(region);
+    act(() => { vi.advanceTimersByTime(5000); });
+    // While paused, should still be on slide 0
+    let dots = screen.getAllByRole("tab");
+    expect(dots[0]).toHaveAttribute("aria-selected", "true");
+    fireEvent.mouseLeave(region);
+    act(() => { vi.advanceTimersByTime(5000); });
+    // After resuming, should advance
+    dots = screen.getAllByRole("tab");
+    expect(dots[1]).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("pauses auto-advance on focus and resumes on blur", () => {
+    render(<SoldCarousel items={ITEMS} />);
+    const region = screen.getByRole("region");
+    fireEvent.focus(region);
+    act(() => { vi.advanceTimersByTime(5000); });
+    // While paused, should still be on slide 0
+    let dots = screen.getAllByRole("tab");
+    expect(dots[0]).toHaveAttribute("aria-selected", "true");
+    fireEvent.blur(region);
+    act(() => { vi.advanceTimersByTime(5000); });
+    // After resuming, should advance
+    dots = screen.getAllByRole("tab");
+    expect(dots[1]).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("renders reduced-motion vertical stack when prefers-reduced-motion is set", () => {
+    mockMatchMedia(true);
+    const { container } = render(<SoldCarousel items={ITEMS} title="Our Sales" subtitle="Top closings" />);
+    // Should NOT render carousel region
+    expect(container.querySelector("[role='region']")).not.toBeInTheDocument();
+    // Should render all items as articles in a vertical stack
+    const articles = container.querySelectorAll("article");
+    expect(articles.length).toBe(3);
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Our Sales");
+    expect(screen.getByText("Top closings")).toBeInTheDocument();
+  });
+
+  it("reduced-motion stack renders without subtitle when subtitle is absent", () => {
+    mockMatchMedia(true);
+    render(<SoldCarousel items={ITEMS} title="Portfolio" />);
+    const heading = screen.getByRole("heading", { level: 2 });
+    expect(heading).toHaveTextContent("Portfolio");
+    // Subtitle element should not be present
+    expect(screen.queryByText("Top closings")).not.toBeInTheDocument();
+  });
+
+  it("reduced-motion stack renders default title 'Portfolio' when title is absent", () => {
+    mockMatchMedia(true);
+    render(<SoldCarousel items={ITEMS} />);
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Portfolio");
+  });
+
+  it("renders item info panel as absolute overlay when image_url is present", () => {
+    const itemsWithImg: SoldHomeItem[] = [
+      { address: "100 Park Ave", city: "New York", state: "NY", price: "$5,000,000", image_url: "/sold/100-park.jpg" },
+    ];
+    const { container } = render(<SoldCarousel items={itemsWithImg} />);
+    // The info div should be positioned absolutely over the image
+    const infoDivs = container.querySelectorAll("[aria-label='Sold for $5,000,000']");
+    expect(infoDivs.length).toBeGreaterThanOrEqual(1);
+    // Find the slide's positioning wrapper
+    const slides = container.querySelectorAll("[role='group']");
+    const slideEl = slides[0] as HTMLElement;
+    // The inner content div should have position:absolute when image_url is present
+    const innerDiv = slideEl.querySelector("div > div:last-child") as HTMLElement;
+    expect(innerDiv.style.position).toBe("absolute");
+  });
+
+  it("renders item info panel as relative block when image_url is absent", () => {
+    const itemsNoImg: SoldHomeItem[] = [
+      { address: "200 Elm St", city: "Newark", state: "NJ", price: "$300,000" },
+    ];
+    const { container } = render(<SoldCarousel items={itemsNoImg} />);
+    const slides = container.querySelectorAll("[role='group']");
+    const slideEl = slides[0] as HTMLElement;
+    // The inner content div should have position:relative when no image_url
+    const innerDiv = slideEl.querySelector("div > div:last-child") as HTMLElement;
+    expect(innerDiv.style.position).toBe("relative");
+  });
+
+  it("unsubscribes matchMedia listener on unmount", () => {
+    const removeEventListenerSpy = vi.fn();
+    const addEventListenerSpy = vi.fn();
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: addEventListenerSpy,
+        removeEventListener: removeEventListenerSpy,
+        dispatchEvent: vi.fn(),
+      })),
+    });
+    const { unmount } = render(<SoldCarousel items={ITEMS} />);
+    unmount();
+    expect(removeEventListenerSpy).toHaveBeenCalledWith("change", expect.any(Function));
+  });
+
+  it("does not auto-advance when items.length is 1", () => {
+    const singleItem: SoldHomeItem[] = [
+      { address: "100 Park Ave", city: "New York", state: "NY", price: "$5,000,000" },
+    ];
+    render(<SoldCarousel items={singleItem} />);
+    act(() => { vi.advanceTimersByTime(10000); });
+    // Only one dot, always selected
+    const dots = screen.getAllByRole("tab");
+    expect(dots).toHaveLength(1);
+    expect(dots[0]).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("clears interval on unmount", () => {
+    const clearIntervalSpy = vi.spyOn(globalThis, "clearInterval");
+    const { unmount } = render(<SoldCarousel items={ITEMS} />);
+    act(() => { vi.advanceTimersByTime(100); });
+    unmount();
+    expect(clearIntervalSpy).toHaveBeenCalled();
+    clearIntervalSpy.mockRestore();
+  });
+
+  it("server snapshot returns false (useSyncExternalStore third argument)", () => {
+    // renderToString exercises the server snapshot (third arg to useSyncExternalStore).
+    // The server snapshot `() => false` means reducedMotion=false on SSR, so the
+    // carousel markup (not the reduced-motion stack) should be rendered.
+    const { renderToString } = require("react-dom/server");
+    const html = renderToString(<SoldCarousel items={ITEMS} />);
+    // Carousel region should be present (server snapshot returned false = no reduced motion)
+    expect(html).toContain("aria-roledescription=\"carousel\"");
   });
 });

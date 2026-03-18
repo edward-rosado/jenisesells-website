@@ -101,4 +101,21 @@ describe("SoldStories", () => {
     render(<SoldStories items={ITEMS} subtitle="People we've helped" />);
     expect(screen.getByText("People we've helped")).toBeInTheDocument();
   });
+
+  it("renders quote paragraph with zero bottom margin when client_name is absent", () => {
+    const itemsWithQuoteNoName: SoldHomeItem[] = [
+      {
+        address: "10 Maple Dr",
+        city: "Raleigh",
+        state: "NC",
+        price: "$275,000",
+        client_quote: "Fantastic experience from start to finish.",
+      },
+    ];
+    const { container } = render(<SoldStories items={itemsWithQuoteNoName} />);
+    expect(screen.getByText("Fantastic experience from start to finish.")).toBeInTheDocument();
+    // client_name footer should not be rendered
+    const footers = container.querySelectorAll("footer");
+    expect(footers.length).toBe(0);
+  });
 });

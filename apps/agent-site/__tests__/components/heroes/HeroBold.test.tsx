@@ -89,4 +89,23 @@ describe("HeroBold", () => {
     fireEvent.mouseLeave(cta);
     expect(cta).toBeInTheDocument();
   });
+
+  it("CTA changes style on focus and reverts on blur", () => {
+    render(<HeroBold data={heroData} />);
+    const cta = screen.getByRole("link", { name: /Get Started/i });
+    // Before focus — accent background
+    expect(cta.style.background).toContain("color-accent");
+    fireEvent.focus(cta);
+    // After focus — primary background
+    expect(cta.style.background).toContain("color-primary");
+    fireEvent.blur(cta);
+    // After blur — accent background restored
+    expect(cta.style.background).toContain("color-accent");
+  });
+
+  it("renders agent photo with generic alt when agentName is not provided", () => {
+    render(<HeroBold data={heroData} agentPhotoUrl="/agents/test/headshot.jpg" />);
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("alt", "Agent photo");
+  });
 });

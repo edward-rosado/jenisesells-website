@@ -99,4 +99,23 @@ describe("HeroDark", () => {
     const { container } = render(<HeroDark data={heroData} />);
     expect(container.querySelector("section")).toBeInTheDocument();
   });
+
+  it("CTA changes style on focus and reverts on blur", () => {
+    render(<HeroDark data={heroData} />);
+    const cta = screen.getByRole("link");
+    // Before focus — transparent background
+    expect(cta.style.background).toBe("transparent");
+    fireEvent.focus(cta);
+    // After focus — accent fills
+    expect(cta.style.background).toContain("color-accent");
+    fireEvent.blur(cta);
+    // After blur — transparent restored
+    expect(cta.style.background).toBe("transparent");
+  });
+
+  it("renders agent photo with generic alt when agentName is not provided", () => {
+    render(<HeroDark data={heroData} agentPhotoUrl="/agents/test/headshot.jpg" />);
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("alt", "Agent photo");
+  });
 });
