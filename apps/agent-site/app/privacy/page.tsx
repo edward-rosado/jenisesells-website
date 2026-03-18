@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { loadAgentConfig, loadLegalContent } from "@/lib/config";
+import { loadAccountConfig, loadLegalContent } from "@/lib/config";
 import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
 import { MarkdownContent } from "@/components/legal/MarkdownContent";
 import { LEGAL_EFFECTIVE_DATE, getStateName } from "@/components/legal/constants";
@@ -10,16 +10,17 @@ interface PageProps {
   searchParams: Promise<{ agentId?: string }>;
 }
 
-function resolveAgentId(agentId?: string): string {
+function resolveHandle(agentId?: string): string {
   return agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 }
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
   const { agentId } = await searchParams;
-  const id = resolveAgentId(agentId);
+  const handle = resolveHandle(agentId);
   try {
-    const agent = loadAgentConfig(id);
-    return { title: `Privacy Policy | ${agent.identity.name}` };
+    const account = loadAccountConfig(handle);
+    const name = account.agent?.name ?? account.broker?.name ?? account.brokerage.name;
+    return { title: `Privacy Policy | ${name}` };
   } catch {
     return { title: "Privacy Policy" };
   }
@@ -39,18 +40,21 @@ ${stateName} real estate laws and regulations apply. Please consult your state r
 
 export default async function PrivacyPage({ searchParams }: PageProps) {
   const { agentId } = await searchParams;
-  const id = resolveAgentId(agentId);
+  const handle = resolveHandle(agentId);
 
-  let agent: ReturnType<typeof loadAgentConfig>;
+  let account: ReturnType<typeof loadAccountConfig>;
   try {
-    agent = loadAgentConfig(id);
+    account = loadAccountConfig(handle);
   } catch (err) {
-    Sentry.captureException(err, { tags: { agentId: id } });
+    Sentry.captureException(err, { tags: { agentId: handle } });
     notFound();
   }
 
-  const { above, below } = loadLegalContent(id, "privacy");
-  const { identity, location } = agent;
+  const { above, below } = loadLegalContent(handle, "privacy");
+  const name = account.agent?.name ?? account.broker?.name ?? account.brokerage.name;
+  const email = account.agent?.email ?? account.contact_info?.find((c) => c.type === "email")?.value ?? "";
+  const brokerageName = account.brokerage.name;
+  const { location } = account;
   const stateName = getStateName(location.state);
 
   const statePrivacyContent = location.state === "NJ"
@@ -61,7 +65,7 @@ export default async function PrivacyPage({ searchParams }: PageProps) {
 
 **Effective Date:** ${LEGAL_EFFECTIVE_DATE}
 
-This privacy policy describes how ${identity.name}${identity.brokerage ? ` of ${identity.brokerage}` : ""} ("we", "us", "our") collects, uses, and protects your personal information when you use this website.
+This privacy policy describes how ${name}${brokerageName ? ` of ${brokerageName}` : ""} ("we", "us", "our") collects, uses, and protects your personal information when you use this website.
 
 ## Information We Collect
 
@@ -70,7 +74,7 @@ When you use our website, we may collect the following information:
 - **Contact information** you provide through forms: name, email address, phone number, and property address
 - **Property details** submitted for Comparative Market Analysis (CMA) requests
 - **Usage data** including pages visited, time spent, and interactions with site features
-- **Cookies and local storage** data used to remember your preferences${location.service_areas ? `
+- **Cookies and local storage** data used to remember your preferences${location.service_areas?.length ? `
 
 We serve the following areas: ${location.service_areas.join(", ")}.` : ""}
 
@@ -98,7 +102,7 @@ You can control cookies through your browser settings. Declining cookies may lim
 
 We may share your information with:
 
-- ${identity.brokerage ? `**${identity.brokerage}**` : "Our affiliated brokerage"} for real estate transaction purposes
+- ${brokerageName ? `**${brokerageName}**` : "Our affiliated brokerage"} for real estate transaction purposes
 - Service providers who assist in operating our website
 - Legal authorities when required by law
 
@@ -137,12 +141,12 @@ If you are a California resident, you have the right to:
 
 If you have questions about this privacy policy, contact us at:
 
-**Email:** [${identity.email}](mailto:${identity.email})
+**Email:** [${email}](mailto:${email})
 
 *Last updated: ${LEGAL_EFFECTIVE_DATE}*`;
 
   return (
-    <LegalPageLayout agent={agent} agentId={id} customAbove={above} customBelow={below}>
+    <LegalPageLayout agent={account} agentId={handle} customAbove={above} customBelow={below}>
       <MarkdownContent content={content} />
     </LegalPageLayout>
   );

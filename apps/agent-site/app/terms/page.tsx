@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { loadAgentConfig, loadLegalContent } from "@/lib/config";
+import { loadAccountConfig, loadLegalContent } from "@/lib/config";
 import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
 import { MarkdownContent } from "@/components/legal/MarkdownContent";
 import { LEGAL_EFFECTIVE_DATE, getStateName } from "@/components/legal/constants";
@@ -10,16 +10,17 @@ interface PageProps {
   searchParams: Promise<{ agentId?: string }>;
 }
 
-function resolveAgentId(agentId?: string): string {
+function resolveHandle(agentId?: string): string {
   return agentId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 }
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
   const { agentId } = await searchParams;
-  const id = resolveAgentId(agentId);
+  const handle = resolveHandle(agentId);
   try {
-    const agent = loadAgentConfig(id);
-    return { title: `Terms of Use | ${agent.identity.name}` };
+    const account = loadAccountConfig(handle);
+    const name = account.agent?.name ?? account.broker?.name ?? account.brokerage.name;
+    return { title: `Terms of Use | ${name}` };
   } catch {
     return { title: "Terms of Use" };
   }
@@ -43,19 +44,31 @@ ${stateName} real estate laws and regulations apply. Please consult your state r
 
 export default async function TermsPage({ searchParams }: PageProps) {
   const { agentId } = await searchParams;
-  const id = resolveAgentId(agentId);
+  const handle = resolveHandle(agentId);
 
-  let agent: ReturnType<typeof loadAgentConfig>;
+  let account: ReturnType<typeof loadAccountConfig>;
   try {
-    agent = loadAgentConfig(id);
+    account = loadAccountConfig(handle);
   } catch (err) {
-    Sentry.captureException(err, { tags: { agentId: id } });
+    Sentry.captureException(err, { tags: { agentId: handle } });
     notFound();
   }
 
-  const { above, below } = loadLegalContent(id, "terms");
-  const { identity, location } = agent;
+  const { above, below } = loadLegalContent(handle, "terms");
+  const name = account.agent?.name ?? account.broker?.name ?? account.brokerage.name;
+  const email = account.agent?.email ?? account.contact_info?.find((c) => c.type === "email")?.value ?? "";
+  const brokerageName = account.brokerage.name;
+  const licenseNumber = account.agent?.license_number;
+  const brokerageLicenseNumber = account.brokerage.license_number;
+  const { location } = account;
   const stateName = getStateName(location.state);
+
+  const identity = {
+    name,
+    brokerage: brokerageName || undefined,
+    brokerage_id: brokerageLicenseNumber || undefined,
+    license_id: licenseNumber || undefined,
+  };
 
   const stateContent = location.state === "NJ"
     ? buildNjTermsContent(identity)
@@ -65,11 +78,11 @@ export default async function TermsPage({ searchParams }: PageProps) {
 
 **Effective Date:** ${LEGAL_EFFECTIVE_DATE}
 
-By accessing and using this website operated by ${identity.name}${identity.brokerage ? ` of ${identity.brokerage}` : ""}, you agree to the following terms and conditions.${identity.license_id ? ` Licensed as #${identity.license_id}.` : ""}
+By accessing and using this website operated by ${name}${brokerageName ? ` of ${brokerageName}` : ""}, you agree to the following terms and conditions.${licenseNumber ? ` Licensed as #${licenseNumber}.` : ""}
 
 ## Real Estate Services
 
-${identity.name} is a licensed real estate professional in the state of ${stateName}. All real estate services are subject to applicable state and federal regulations.
+${name} is a licensed real estate professional in the state of ${stateName}. All real estate services are subject to applicable state and federal regulations.
 
 ## CMA Disclaimer
 
@@ -83,11 +96,11 @@ ${stateContent}
 
 ## Intellectual Property
 
-All content on this website, including text, images, logos, and design, is the property of ${identity.name} or used with permission. You may not reproduce, distribute, or create derivative works without prior written consent.
+All content on this website, including text, images, logos, and design, is the property of ${name} or used with permission. You may not reproduce, distribute, or create derivative works without prior written consent.
 
 ## Limitation of Liability
 
-${identity.name} makes no warranties about the accuracy or completeness of information on this website. We are not liable for any damages arising from your use of this site or reliance on its content, including but not limited to CMA estimates, property information, or market data.
+${name} makes no warranties about the accuracy or completeness of information on this website. We are not liable for any damages arising from your use of this site or reliance on its content, including but not limited to CMA estimates, property information, or market data.
 
 ## Third-Party Links
 
@@ -101,12 +114,12 @@ These terms are governed by the laws of the state of ${stateName}. Any disputes 
 
 For questions about these terms, contact us at:
 
-**Email:** [${identity.email}](mailto:${identity.email})
+**Email:** [${email}](mailto:${email})
 
 *Last updated: ${LEGAL_EFFECTIVE_DATE}*`;
 
   return (
-    <LegalPageLayout agent={agent} agentId={id} customAbove={above} customBelow={below}>
+    <LegalPageLayout agent={account} agentId={handle} customAbove={above} customBelow={below}>
       <MarkdownContent content={content} />
     </LegalPageLayout>
   );

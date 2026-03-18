@@ -3,15 +3,15 @@
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { AGENT, AGENT_MINIMAL } from "../components/fixtures";
+import { ACCOUNT, ACCOUNT_MINIMAL } from "../components/fixtures";
 
-const mockLoadAgentConfig = vi.fn();
+const mockLoadAccountConfig = vi.fn();
 const mockLoadLegalContent = vi.fn();
 const mockNotFound = vi.fn(() => { throw new Error("NOT_FOUND"); });
 const mockCaptureException = vi.fn();
 
 vi.mock("@/lib/config", () => ({
-  loadAgentConfig: (...args: unknown[]) => mockLoadAgentConfig(...args),
+  loadAccountConfig: (...args: unknown[]) => mockLoadAccountConfig(...args),
   loadLegalContent: (...args: unknown[]) => mockLoadLegalContent(...args),
 }));
 vi.mock("next/navigation", () => ({ notFound: () => mockNotFound(), usePathname: () => "/terms", useSearchParams: () => new URLSearchParams() }));
@@ -21,7 +21,7 @@ import TermsPage, { generateMetadata } from "@/app/terms/page";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockLoadAgentConfig.mockReturnValue(AGENT);
+  mockLoadAccountConfig.mockReturnValue(ACCOUNT);
   mockLoadLegalContent.mockReturnValue({ above: undefined, below: undefined });
 });
 
@@ -32,7 +32,7 @@ describe("generateMetadata (terms)", () => {
   });
 
   it("returns fallback title when config fails", async () => {
-    mockLoadAgentConfig.mockImplementation(() => { throw new Error("fail"); });
+    mockLoadAccountConfig.mockImplementation(() => { throw new Error("fail"); });
     const meta = await generateMetadata({ searchParams: Promise.resolve({ agentId: "bad" }) });
     expect(meta.title).toBe("Terms of Use");
   });
@@ -40,14 +40,14 @@ describe("generateMetadata (terms)", () => {
   it("uses DEFAULT_AGENT_ID env var when agentId is absent", async () => {
     process.env.DEFAULT_AGENT_ID = "env-agent";
     await generateMetadata({ searchParams: Promise.resolve({}) });
-    expect(mockLoadAgentConfig).toHaveBeenCalledWith("env-agent");
+    expect(mockLoadAccountConfig).toHaveBeenCalledWith("env-agent");
     delete process.env.DEFAULT_AGENT_ID;
   });
 
   it("falls back to jenise-buckalew when no agentId or env var", async () => {
     delete process.env.DEFAULT_AGENT_ID;
     await generateMetadata({ searchParams: Promise.resolve({}) });
-    expect(mockLoadAgentConfig).toHaveBeenCalledWith("jenise-buckalew");
+    expect(mockLoadAccountConfig).toHaveBeenCalledWith("jenise-buckalew");
   });
 });
 
@@ -126,7 +126,7 @@ describe("TermsPage", () => {
   });
 
   it("calls notFound() when agent config fails", async () => {
-    mockLoadAgentConfig.mockImplementation(() => { throw new Error("Config not found"); });
+    mockLoadAccountConfig.mockImplementation(() => { throw new Error("Config not found"); });
     await expect(
       TermsPage({ searchParams: Promise.resolve({ agentId: "bad-agent" }) })
     ).rejects.toThrow("NOT_FOUND");
@@ -134,8 +134,8 @@ describe("TermsPage", () => {
     expect(mockNotFound).toHaveBeenCalled();
   });
 
-  it("renders with AGENT_MINIMAL — covers absent license_id and brokerage branches", async () => {
-    mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+  it("renders with ACCOUNT_MINIMAL — covers absent license_id and brokerage branches", async () => {
+    mockLoadAccountConfig.mockReturnValue(ACCOUNT_MINIMAL);
     const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
     render(page);
     expect(screen.getByRole("heading", { level: 1, name: /Terms of Use/i })).toBeInTheDocument();
@@ -145,10 +145,10 @@ describe("TermsPage", () => {
 
   it("displays license_id when present", async () => {
     const agentWithLicense = {
-      ...AGENT,
-      identity: { ...AGENT.identity, license_id: "12345" },
+      ...ACCOUNT,
+      agent: { ...ACCOUNT.agent!, license_number: "12345" },
     };
-    mockLoadAgentConfig.mockReturnValue(agentWithLicense);
+    mockLoadAccountConfig.mockReturnValue(agentWithLicense);
     const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
     render(page);
     const matches = screen.getAllByText(/12345/);
@@ -157,10 +157,10 @@ describe("TermsPage", () => {
 
   it("renders NJ content without brokerage when absent", async () => {
     const njNoBrokerage = {
-      ...AGENT,
-      identity: { ...AGENT.identity, brokerage: undefined },
+      ...ACCOUNT,
+      brokerage: { ...ACCOUNT.brokerage, name: "" },
     };
-    mockLoadAgentConfig.mockReturnValue(njNoBrokerage);
+    mockLoadAccountConfig.mockReturnValue(njNoBrokerage);
     const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
     render(page);
     expect(screen.getByText(/New Jersey Real Estate Commission/)).toBeInTheDocument();
@@ -169,10 +169,10 @@ describe("TermsPage", () => {
 
   it("displays brokerage_id when present", async () => {
     const agentWithBrokerageId = {
-      ...AGENT,
-      identity: { ...AGENT.identity, brokerage_id: "BRK-99999" },
+      ...ACCOUNT,
+      brokerage: { ...ACCOUNT.brokerage, license_number: "BRK-99999" },
     };
-    mockLoadAgentConfig.mockReturnValue(agentWithBrokerageId);
+    mockLoadAccountConfig.mockReturnValue(agentWithBrokerageId);
     const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "test" }) });
     render(page);
     const matches = screen.getAllByText(/BRK-99999/);
@@ -181,35 +181,35 @@ describe("TermsPage", () => {
 
   describe("non-NJ state (dynamic state content)", () => {
     it("shows generic state-specific notice for non-NJ agents", async () => {
-      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_MINIMAL);
       const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
       render(page);
       expect(screen.getByRole("heading", { name: /State-Specific Notices \(Texas\)/i })).toBeInTheDocument();
     });
 
     it("shows generic placeholder text for non-NJ agents", async () => {
-      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_MINIMAL);
       const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
       render(page);
       expect(screen.getByText(/Texas real estate laws and regulations apply/)).toBeInTheDocument();
     });
 
     it("does not show NJ Fair Housing section for non-NJ agents", async () => {
-      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_MINIMAL);
       const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
       render(page);
       expect(screen.queryByRole("heading", { name: /New Jersey Fair Housing/i })).not.toBeInTheDocument();
     });
 
     it("does not show NJ Real Estate Commission section for non-NJ agents", async () => {
-      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_MINIMAL);
       const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
       render(page);
       expect(screen.queryByRole("heading", { name: /NJ Real Estate Commission/i })).not.toBeInTheDocument();
     });
 
     it("does not include NJ LAD reference for non-NJ agents", async () => {
-      mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+      mockLoadAccountConfig.mockReturnValue(ACCOUNT_MINIMAL);
       const page = await TermsPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
       render(page);
       expect(screen.queryByText(/New Jersey Law Against Discrimination/)).not.toBeInTheDocument();

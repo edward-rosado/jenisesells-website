@@ -3,15 +3,15 @@
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { AGENT, AGENT_MINIMAL } from "../components/fixtures";
+import { ACCOUNT, ACCOUNT_MINIMAL } from "../components/fixtures";
 
-const mockLoadAgentConfig = vi.fn();
+const mockLoadAccountConfig = vi.fn();
 const mockLoadLegalContent = vi.fn();
 const mockNotFound = vi.fn(() => { throw new Error("NOT_FOUND"); });
 const mockCaptureException = vi.fn();
 
 vi.mock("@/lib/config", () => ({
-  loadAgentConfig: (...args: unknown[]) => mockLoadAgentConfig(...args),
+  loadAccountConfig: (...args: unknown[]) => mockLoadAccountConfig(...args),
   loadLegalContent: (...args: unknown[]) => mockLoadLegalContent(...args),
 }));
 vi.mock("next/navigation", () => ({ notFound: () => mockNotFound(), usePathname: () => "/accessibility", useSearchParams: () => new URLSearchParams() }));
@@ -22,7 +22,7 @@ import AccessibilityPage, { generateMetadata } from "@/app/accessibility/page";
 describe("generateMetadata (accessibility)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockLoadAgentConfig.mockReturnValue(AGENT);
+    mockLoadAccountConfig.mockReturnValue(ACCOUNT);
   });
 
   it("returns title with agent name when config loads", async () => {
@@ -31,7 +31,7 @@ describe("generateMetadata (accessibility)", () => {
   });
 
   it("returns fallback title when config fails", async () => {
-    mockLoadAgentConfig.mockImplementation(() => { throw new Error("fail"); });
+    mockLoadAccountConfig.mockImplementation(() => { throw new Error("fail"); });
     const meta = await generateMetadata({ searchParams: Promise.resolve({ agentId: "bad" }) });
     expect(meta.title).toBe("Accessibility");
   });
@@ -39,21 +39,21 @@ describe("generateMetadata (accessibility)", () => {
   it("uses DEFAULT_AGENT_ID env var when agentId is absent", async () => {
     process.env.DEFAULT_AGENT_ID = "env-agent";
     await generateMetadata({ searchParams: Promise.resolve({}) });
-    expect(mockLoadAgentConfig).toHaveBeenCalledWith("env-agent");
+    expect(mockLoadAccountConfig).toHaveBeenCalledWith("env-agent");
     delete process.env.DEFAULT_AGENT_ID;
   });
 
   it("falls back to jenise-buckalew when no agentId or env var", async () => {
     delete process.env.DEFAULT_AGENT_ID;
     await generateMetadata({ searchParams: Promise.resolve({}) });
-    expect(mockLoadAgentConfig).toHaveBeenCalledWith("jenise-buckalew");
+    expect(mockLoadAccountConfig).toHaveBeenCalledWith("jenise-buckalew");
   });
 });
 
 describe("AccessibilityPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockLoadAgentConfig.mockReturnValue(AGENT);
+    mockLoadAccountConfig.mockReturnValue(ACCOUNT);
     mockLoadLegalContent.mockReturnValue({ above: undefined, below: undefined });
   });
 
@@ -92,7 +92,7 @@ describe("AccessibilityPage", () => {
   });
 
   it("calls notFound() when agent config fails", async () => {
-    mockLoadAgentConfig.mockImplementation(() => { throw new Error("not found"); });
+    mockLoadAccountConfig.mockImplementation(() => { throw new Error("not found"); });
     await expect(
       AccessibilityPage({ searchParams: Promise.resolve({ agentId: "bad" }) })
     ).rejects.toThrow("NOT_FOUND");
@@ -100,8 +100,8 @@ describe("AccessibilityPage", () => {
     expect(mockNotFound).toHaveBeenCalled();
   });
 
-  it("renders with AGENT_MINIMAL", async () => {
-    mockLoadAgentConfig.mockReturnValue(AGENT_MINIMAL);
+  it("renders with ACCOUNT_MINIMAL", async () => {
+    mockLoadAccountConfig.mockReturnValue(ACCOUNT_MINIMAL);
     const page = await AccessibilityPage({ searchParams: Promise.resolve({ agentId: "minimal" }) });
     render(page);
     expect(screen.getByRole("heading", { level: 1, name: /Accessibility Statement/i })).toBeInTheDocument();
