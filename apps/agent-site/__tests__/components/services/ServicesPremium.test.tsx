@@ -188,4 +188,53 @@ describe("ServicesPremium", () => {
     expect(scaledDiv).toBeTruthy();
     mockUseScrollReveal.mockReturnValue(true);
   });
+
+  it("marks visual area with data-feature-visual attribute", () => {
+    const { container } = render(<ServicesPremium items={ITEMS} />);
+    const visuals = container.querySelectorAll("[data-feature-visual]");
+    expect(visuals.length).toBe(3);
+  });
+
+  it("marks image container with data-feature-image attribute", () => {
+    const itemsWithImage: FeatureItem[] = [
+      { title: "With Image", description: "Has photo", image_url: "/test/photo.jpg" },
+    ];
+    const { container } = render(<ServicesPremium items={itemsWithImage} />);
+    const imageContainer = container.querySelector("[data-feature-image]");
+    expect(imageContainer).toBeTruthy();
+  });
+
+  it("injects responsive CSS for mobile layout", () => {
+    const { container } = render(<ServicesPremium items={ITEMS} />);
+    const styleTag = container.querySelector("style");
+    expect(styleTag?.textContent).toContain("data-feature-visual");
+    expect(styleTag?.textContent).toContain("data-feature-image");
+  });
+
+  it("renders visual-shape className on placeholder (no image)", () => {
+    const itemsNoImage: FeatureItem[] = [
+      { title: "Shape", description: "placeholder" },
+    ];
+    const { container } = render(<ServicesPremium items={itemsNoImage} />);
+    const shape = container.querySelector(".visual-shape");
+    expect(shape).toBeTruthy();
+  });
+
+  it("uses smaller font size when icon is provided", () => {
+    const itemsWithIcon: FeatureItem[] = [
+      { title: "With Icon", description: "desc", icon: "🏠" },
+    ];
+    const { container } = render(<ServicesPremium items={itemsWithIcon} />);
+    const shape = container.querySelector(".visual-shape") as HTMLElement;
+    expect(shape.style.fontSize).toBe("72px");
+  });
+
+  it("uses default font size when no icon", () => {
+    const itemsNoIcon: FeatureItem[] = [
+      { title: "No Icon", description: "desc" },
+    ];
+    const { container } = render(<ServicesPremium items={itemsNoIcon} />);
+    const shape = container.querySelector(".visual-shape") as HTMLElement;
+    expect(shape.style.fontSize).toBe("80px");
+  });
 });

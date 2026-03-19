@@ -94,12 +94,12 @@
               {
                 "title": "Global Network",
                 "description": "Connections to qualified international buyers through partnerships with luxury brokerages in Paris, London, Sao Paulo, and Dubai.",
-                "image_url": "/agents/test-light-luxury/sold/45-elm.jpg"
+                "icon": "🌍"
               },
               {
                 "title": "Concierge Coordination",
                 "description": "From interior staging to legal counsel, I coordinate a curated team of professionals so you only deal with one point of contact.",
-                "image_url": "/agents/test-light-luxury/sold/88-post.jpg"
+                "icon": "🤝"
               },
               {
                 "title": "Discretion & Privacy",

@@ -30,11 +30,11 @@ describe("MarqueeBanner", () => {
     expect(getByText("As Featured In")).toBeTruthy();
   });
 
-  it("renders all item texts (duplicated for seamless loop)", () => {
+  it("renders all item texts duplicated for seamless loop (set-a + set-b)", () => {
     const { container } = render(<MarqueeBanner items={ITEMS} />);
-    // Each item appears twice (original + duplicate for infinite scroll)
+    // Each item appears twice (set-a + set-b)
     const texts = container.querySelectorAll("[data-marquee-item]");
-    expect(texts.length).toBe(6); // 3 items x 2
+    expect(texts.length).toBe(6); // 3 items x 2 sets
   });
 
   it("has aria-hidden on the banner container", () => {
@@ -46,6 +46,7 @@ describe("MarqueeBanner", () => {
   it("renders links with tabindex=-1 and aria-hidden", () => {
     const { container } = render(<MarqueeBanner items={ITEMS} />);
     const links = container.querySelectorAll("a");
+    expect(links.length).toBeGreaterThanOrEqual(1);
     links.forEach((link) => {
       expect(link.getAttribute("tabindex")).toBe("-1");
       expect(link.getAttribute("aria-hidden")).toBe("true");
@@ -84,5 +85,29 @@ describe("MarqueeBanner", () => {
     const track = container.querySelector("[data-marquee-track]") as HTMLElement;
     // 3 items * 8 = 24s, but min is 20, so 24s
     expect(track.style.animation).toContain("24s");
+  });
+
+  it("includes trailing separators for seamless seam between sets", () => {
+    const { container } = render(<MarqueeBanner items={ITEMS} />);
+    // Each item in each set has a trailing separator (◆)
+    // 3 items × 2 sets = 6 separators
+    const separators = container.querySelectorAll("span");
+    const diamonds = Array.from(separators).filter(s => s.textContent === "◆");
+    expect(diamonds.length).toBe(6);
+  });
+
+  it("does not inject keyframes style for static display", () => {
+    mockUseReducedMotion.mockReturnValue(true);
+    const { container } = render(<MarqueeBanner items={ITEMS} />);
+    const styleTag = container.querySelector("style");
+    expect(styleTag).toBeNull();
+  });
+
+  it("renders static items without separators in static mode", () => {
+    mockUseReducedMotion.mockReturnValue(true);
+    const { container } = render(<MarqueeBanner items={ITEMS} />);
+    const track = container.querySelector("[data-marquee-track]") as HTMLElement;
+    expect(track.style.justifyContent).toBe("center");
+    expect(track.style.gap).toBe("24px");
   });
 });

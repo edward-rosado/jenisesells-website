@@ -23,6 +23,14 @@ export function ServicesPremium({ items, title, subtitle }: FeaturesProps) {
           }
           [data-feature-block] h3 { font-size: 28px !important; }
           [data-feature-block] .visual-shape { width: 240px !important; height: 240px !important; }
+          [data-feature-visual] {
+            width: 100% !important;
+            max-width: 100% !important;
+            justify-content: center !important;
+          }
+          [data-feature-image] {
+            max-width: 100% !important;
+          }
         }
       `}</style>
       {(title || subtitle) && (
@@ -118,25 +126,31 @@ function FeatureBlock({ item, index }: FeatureBlockProps) {
         </p>
       </div>
 
-      <div style={{
-        flex: 1,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        opacity: isVisible ? 1 : 0,
-        transform: isVisible ? "scale(1)" : "scale(0.92)",
-        transition: "opacity 1s ease 0.2s, transform 1s ease 0.2s",
-      }}>
+      <div
+        data-feature-visual
+        style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: isVisible ? 1 : 0,
+          transform: isVisible ? "scale(1)" : "scale(0.92)",
+          transition: "opacity 1s ease 0.2s, transform 1s ease 0.2s",
+        }}
+      >
         {item.image_url ? (
-          <div style={{
-            position: "relative" as const,
-            width: "100%",
-            maxWidth: "480px",
-            aspectRatio: "4/3",
-            borderRadius: "16px",
-            overflow: "hidden",
-            boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.4)" : "0 8px 32px rgba(0,0,0,0.1)",
-          }}>
+          <div
+            data-feature-image
+            style={{
+              position: "relative" as const,
+              width: "100%",
+              maxWidth: "480px",
+              aspectRatio: "4/3",
+              borderRadius: "16px",
+              overflow: "hidden",
+              boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.4)" : "0 8px 32px rgba(0,0,0,0.1)",
+            }}
+          >
             <Image
               src={item.image_url}
               alt={item.title}
@@ -146,19 +160,22 @@ function FeatureBlock({ item, index }: FeatureBlockProps) {
             />
           </div>
         ) : (
-          <div style={{
-            width: "320px",
-            height: "320px",
-            borderRadius: "24px",
-            background: isDark
-              ? "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))"
-              : `linear-gradient(135deg, ${bg === "#f0f7ff" ? "#e3f2fd, #bbdefb" : "#e8f5e9, #c8e6c9"})`,
-            border: isDark ? "1px solid rgba(255,255,255,0.08)" : undefined,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "80px",
-          }}>
+          <div
+            className="visual-shape"
+            style={{
+              width: "320px",
+              height: "320px",
+              borderRadius: "24px",
+              background: isDark
+                ? "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))"
+                : `linear-gradient(135deg, ${bg === "#f0f7ff" ? "#e3f2fd, #bbdefb" : "#e8f5e9, #c8e6c9"})`,
+              border: isDark ? "1px solid rgba(255,255,255,0.08)" : undefined,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: item.icon ? "72px" : "80px",
+            }}
+          >
             {item.icon ?? ""}
           </div>
         )}

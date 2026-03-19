@@ -9,31 +9,38 @@ export function MarqueeBanner({ items, title }: MarqueeProps) {
   if (items.length === 0) return null;
 
   const isStatic = reducedMotion || items.length === 1;
-  const displayItems = isStatic ? items : [...items, ...items];
   const duration = Math.max(20, items.length * 8);
 
-  const renderItem = (item: (typeof items)[number], index: number) => {
-    const content = (
-      <span
-        data-marquee-item
-        key={index}
-        style={{
-          color: "rgba(0,0,0,0.35)",
-          fontSize: "14px",
-          fontWeight: 600,
-          letterSpacing: "3px",
-          textTransform: "uppercase" as const,
-          whiteSpace: "nowrap" as const,
-        }}
-      >
-        {item.text}
-      </span>
-    );
+  const itemStyle = {
+    color: "rgba(0,0,0,0.35)",
+    fontSize: "14px",
+    fontWeight: 600,
+    letterSpacing: "3px",
+    textTransform: "uppercase" as const,
+    whiteSpace: "nowrap" as const,
+  };
 
-    if (item.link) {
-      return (
+  const separatorStyle = {
+    color: "rgba(0,0,0,0.15)",
+    fontSize: "8px",
+    margin: "0 24px",
+  };
+
+  /* Build one complete set: item ◆ item ◆ item ◆ (trailing separator
+     ensures the seam between clone A and clone B is identical spacing) */
+  const buildSet = (keyPrefix: string) =>
+    items.map((item, i) => {
+      const sep = (
+        <span key={`${keyPrefix}-sep-${i}`} style={separatorStyle}>◆</span>
+      );
+      const content = (
+        <span data-marquee-item key={`${keyPrefix}-${i}`} style={itemStyle}>
+          {item.text}
+        </span>
+      );
+      const wrapped = item.link ? (
         <a
-          key={index}
+          key={`${keyPrefix}-${i}`}
           href={item.link}
           tabIndex={-1}
           aria-hidden="true"
@@ -41,23 +48,12 @@ export function MarqueeBanner({ items, title }: MarqueeProps) {
         >
           {content}
         </a>
-      );
-    }
+      ) : content;
 
-    return content;
-  };
-
-  const separator = (key: string) => (
-    <span key={key} style={{ color: "rgba(0,0,0,0.15)", fontSize: "8px", margin: "0 24px" }}>
-      ◆
-    </span>
-  );
-
-  const interleaved: React.ReactNode[] = [];
-  displayItems.forEach((item, i) => {
-    if (i > 0) interleaved.push(separator(`sep-${i}`));
-    interleaved.push(renderItem(item, i));
-  });
+      // Every item gets a trailing separator (including last) so the
+      // seam between set-a end and set-b start is seamless
+      return <span key={`${keyPrefix}-g-${i}`} style={{ display: "contents" }}>{wrapped}{sep}</span>;
+    });
 
   return (
     <div
@@ -95,17 +91,20 @@ export function MarqueeBanner({ items, title }: MarqueeProps) {
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: isStatic ? "center" : undefined,
-          gap: isStatic ? "24px" : undefined,
           ...(isStatic
-            ? { flexWrap: "wrap" as const }
+            ? { justifyContent: "center", gap: "24px", flexWrap: "wrap" as const }
             : {
                 animation: `marquee-scroll ${duration}s linear infinite`,
                 width: "max-content",
               }),
         }}
       >
-        {interleaved}
+        {isStatic
+          ? items.map((item, i) => (
+              <span data-marquee-item key={i} style={itemStyle}>{item.text}</span>
+            ))
+          : <>{buildSet("a")}{buildSet("b")}</>
+        }
       </div>
     </div>
   );
