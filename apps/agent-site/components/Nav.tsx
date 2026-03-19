@@ -67,7 +67,7 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
   const { branding } = account;
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const contactBtnRef = useRef<HTMLButtonElement>(null);
-  const drawerRef = useRef<HTMLDivElement>(null);
+  // drawerRef removed — useFocusTrap handles drawer focus management
   const focusTrapRef = useFocusTrap(drawerOpen);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -96,19 +96,7 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [drawerOpen]);
 
-  // Focus management: focus first link on open, return to trigger on close
-  useEffect(() => {
-    if (drawerOpen) {
-      const firstFocusable = drawerRef.current?.querySelector<HTMLElement>(
-        'a, button, [tabindex]:not([tabindex="-1"])'
-      );
-      firstFocusable?.focus();
-    } else {
-      // Return focus to whichever trigger is visible
-      hamburgerRef.current?.focus();
-      contactBtnRef.current?.focus();
-    }
-  }, [drawerOpen]);
+  // useFocusTrap handles initial focus and return-focus on close
 
   const navItems = navigation?.items ?? DEFAULT_NAV_ITEMS;
   const enabledItems = navItems.filter((item) => {
@@ -388,10 +376,7 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
 
       {/* Drawer — on mobile: nav links + contact; on tablet: contact only */}
       <div
-        ref={(node) => {
-          (drawerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-          (focusTrapRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-        }}
+        ref={focusTrapRef}
         id="nav-drawer"
         className="nav-drawer"
         role="dialog"
