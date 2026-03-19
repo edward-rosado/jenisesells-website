@@ -118,7 +118,7 @@ describe("TestimonialsSpotlight", () => {
 
     const section = container.querySelector("section") as HTMLElement;
     const propsKey = Object.keys(section).find(k => k.startsWith("__reactProps"))!;
-    const props = (section as any)[propsKey];
+    const props = (section as unknown as Record<string, Record<string, (...args: unknown[]) => void>>)[propsKey];
 
     // Pause via onFocus
     act(() => { props.onFocus(); });
@@ -143,7 +143,7 @@ describe("TestimonialsSpotlight", () => {
     // Now access React internals to invoke focus/blur directly
     const section = container.querySelector("section") as HTMLElement;
     const propsKey = Object.keys(section).find(k => k.startsWith("__reactProps"))!;
-    const props = (section as any)[propsKey];
+    const props = (section as unknown as Record<string, Record<string, (...args: unknown[]) => void>>)[propsKey];
 
     // Pause via direct onFocus call
     act(() => { props.onFocus(); });
