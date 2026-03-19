@@ -10,6 +10,7 @@ import {
   CmaSection,
   AboutMinimal,
   Footer,
+  ScrollRevealSection,
 } from "@/components/sections";
 import { type TemplateProps, getEnabledSections } from "./types";
 
@@ -29,54 +30,72 @@ export function ModernMinimal({ account, content, agent }: TemplateProps) {
         />
       )}
       {s.stats?.enabled && s.stats.data.items.length > 0 && (
-        <StatsCards items={s.stats.data.items} sourceDisclaimer="Based on data from Zillow. Individual results may vary." />
+        <ScrollRevealSection>
+          <StatsCards items={s.stats.data.items} sourceDisclaimer="Based on data from Zillow. Individual results may vary." />
+        </ScrollRevealSection>
       )}
       {s.features?.enabled && (
-        <ServicesClean
-          items={s.features.data.items}
-          title={s.features.data.title}
-          subtitle={s.features.data.subtitle}
-        />
+        <ScrollRevealSection>
+          <ServicesClean
+            items={s.features.data.items}
+            title={s.features.data.title}
+            subtitle={s.features.data.subtitle}
+          />
+        </ScrollRevealSection>
       )}
       {s.steps?.enabled && (
-        <StepsTimeline
-          steps={s.steps.data.steps}
-          title={s.steps.data.title}
-          subtitle={s.steps.data.subtitle}
-        />
+        <ScrollRevealSection>
+          <StepsTimeline
+            steps={s.steps.data.steps}
+            title={s.steps.data.title}
+            subtitle={s.steps.data.subtitle}
+          />
+        </ScrollRevealSection>
       )}
       {s.gallery?.enabled && s.gallery.data.items.length > 0 && (
-        <SoldMinimal
-          items={s.gallery.data.items}
-          title={s.gallery.data.title}
-          subtitle={s.gallery.data.subtitle}
-        />
+        <ScrollRevealSection>
+          <SoldMinimal
+            items={s.gallery.data.items}
+            title={s.gallery.data.title}
+            subtitle={s.gallery.data.subtitle}
+          />
+        </ScrollRevealSection>
       )}
       {s.testimonials?.enabled && s.testimonials.data.items.length > 0 && (
-        <TestimonialsClean
-          items={s.testimonials.data.items}
-          title={s.testimonials.data.title}
-        />
+        <ScrollRevealSection>
+          <TestimonialsClean
+            items={s.testimonials.data.items}
+            title={s.testimonials.data.title}
+          />
+        </ScrollRevealSection>
       )}
       {s.profiles?.enabled && s.profiles.data.items.length > 0 && (
-        <ProfilesClean
-          items={s.profiles.data.items}
-          title={s.profiles.data.title}
-          subtitle={s.profiles.data.subtitle}
-          accountId={account.handle}
-        />
+        <ScrollRevealSection>
+          <ProfilesClean
+            items={s.profiles.data.items}
+            title={s.profiles.data.title}
+            subtitle={s.profiles.data.subtitle}
+            accountId={account.handle}
+          />
+        </ScrollRevealSection>
       )}
       {s.contact_form?.enabled && (
-        <CmaSection
-          accountId={identity.id}
-          agentName={identity.name}
-          defaultState={account.location.state}
-          tracking={account.integrations?.tracking}
-          data={s.contact_form.data}
-          serviceAreas={account.location.service_areas}
-        />
+        <ScrollRevealSection>
+          <CmaSection
+            accountId={identity.id}
+            agentName={identity.name}
+            defaultState={account.location.state}
+            tracking={account.integrations?.tracking}
+            data={s.contact_form.data}
+            serviceAreas={account.location.service_areas}
+          />
+        </ScrollRevealSection>
       )}
-      {s.about?.enabled && <AboutMinimal agent={identity} data={s.about.data} />}
+      {s.about?.enabled && (
+        <ScrollRevealSection>
+          <AboutMinimal agent={identity} data={s.about.data} />
+        </ScrollRevealSection>
+      )}
       <Footer agent={account} accountId={identity.id} />
       </div>
     </>
