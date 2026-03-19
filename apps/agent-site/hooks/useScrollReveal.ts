@@ -14,13 +14,10 @@ export function useScrollReveal(
 ): boolean {
   const { threshold = 0.15, once = true } = options ?? {};
   const reducedMotion = useReducedMotion();
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(reducedMotion);
 
   useEffect(() => {
-    if (reducedMotion) {
-      setIsVisible(true);
-      return;
-    }
+    if (reducedMotion) return;
 
     const el = ref.current;
     if (!el) return;
