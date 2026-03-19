@@ -13,6 +13,10 @@ vi.mock("next/script", () => ({
   ),
 }));
 
+vi.mock("@/hooks/useParallax", () => ({ useParallax: vi.fn() }));
+vi.mock("@/hooks/useScrollReveal", () => ({ useScrollReveal: vi.fn(() => true) }));
+vi.mock("@/hooks/useReducedMotion", () => ({ useReducedMotion: vi.fn(() => false) }));
+
 describe("Commercial template", () => {
   it("always renders the Nav", () => {
     render(<Commercial account={ACCOUNT} content={CONTENT} />);

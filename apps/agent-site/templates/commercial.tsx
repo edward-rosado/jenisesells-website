@@ -1,11 +1,12 @@
 import { Nav } from "@/components/Nav";
 import {
   HeroCorporate,
+  MarqueeBanner,
   StatsMetrics,
-  ServicesCommercial,
+  ServicesPremium,
   StepsCorporate,
   SoldMetrics,
-  TestimonialsCorporate,
+  TestimonialsSpotlight,
   ProfilesGrid,
   CmaSection,
   AboutProfessional,
@@ -28,6 +29,12 @@ export function Commercial({ account, content, agent }: TemplateProps) {
             agentName={identity.name}
           />
         )}
+        {s.marquee?.enabled && s.marquee.data.items.length > 0 && (
+          <MarqueeBanner
+            items={s.marquee.data.items}
+            title={s.marquee.data.title}
+          />
+        )}
         {s.stats?.enabled && s.stats.data.items.length > 0 && (
           <StatsMetrics
             items={s.stats.data.items}
@@ -35,7 +42,7 @@ export function Commercial({ account, content, agent }: TemplateProps) {
           />
         )}
         {s.features?.enabled && (
-          <ServicesCommercial
+          <ServicesPremium
             items={s.features.data.items}
             title={s.features.data.title}
             subtitle={s.features.data.subtitle}
@@ -56,7 +63,7 @@ export function Commercial({ account, content, agent }: TemplateProps) {
           />
         )}
         {s.testimonials?.enabled && s.testimonials.data.items.length > 0 && (
-          <TestimonialsCorporate
+          <TestimonialsSpotlight
             items={s.testimonials.data.items}
             title={s.testimonials.data.title}
           />
