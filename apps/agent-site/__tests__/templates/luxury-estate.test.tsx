@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { LuxuryEstate } from "@/templates/luxury-estate";
-import { ACCOUNT, CONTENT, CONTENT_ALL_DISABLED, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY, AGENT_PROP } from "../components/fixtures";
+import { ACCOUNT, CONTENT, CONTENT_ALL_DISABLED, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY, AGENT_PROP, CONTENT_WITH_MARQUEE } from "../components/fixtures";
 
 vi.mock("next/script", () => ({
   __esModule: true,
@@ -83,5 +83,10 @@ describe("LuxuryEstate template", () => {
   it("falls back to brokerage name when no agent or broker", () => {
     render(<LuxuryEstate account={ACCOUNT_BROKERAGE_ONLY} content={CONTENT} />);
     expect(screen.getByRole("heading", { level: 2, name: "Brokerage LLC" })).toBeInTheDocument();
+  });
+
+  it("renders MarqueeBanner when marquee is enabled with items", () => {
+    render(<LuxuryEstate account={ACCOUNT} content={CONTENT_WITH_MARQUEE} />);
+    expect(screen.getAllByText("LUXURY HOMES MAGAZINE").length).toBeGreaterThanOrEqual(1);
   });
 });

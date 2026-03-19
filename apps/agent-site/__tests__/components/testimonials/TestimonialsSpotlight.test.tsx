@@ -107,4 +107,55 @@ describe("TestimonialsSpotlight", () => {
     act(() => { vi.advanceTimersByTime(15000); });
     expect(getByText("Amazing service!")).toBeTruthy(); // still on first
   });
+
+  it("stays paused on blur when relatedTarget is inside section", () => {
+    mockUseReducedMotion.mockReturnValue(false);
+    const { container, getByText } = render(<TestimonialsSpotlight items={ITEMS} />);
+
+    // Auto-rotate to second item
+    act(() => { vi.advanceTimersByTime(5000); });
+    expect(getByText("Would recommend.")).toBeTruthy();
+
+    const section = container.querySelector("section") as HTMLElement;
+    const propsKey = Object.keys(section).find(k => k.startsWith("__reactProps"))!;
+    const props = (section as any)[propsKey];
+
+    // Pause via onFocus
+    act(() => { props.onFocus(); });
+    act(() => { vi.advanceTimersByTime(10000); });
+    expect(getByText("Would recommend.")).toBeTruthy(); // paused
+
+    // Blur with relatedTarget INSIDE the section — should stay paused
+    const innerTab = container.querySelector("[role='tab']") as HTMLElement;
+    act(() => { props.onBlur({ relatedTarget: innerTab }); });
+    act(() => { vi.advanceTimersByTime(10000); });
+    expect(getByText("Would recommend.")).toBeTruthy(); // still paused
+  });
+
+  it("unpauses on blur when relatedTarget is outside section", () => {
+    mockUseReducedMotion.mockReturnValue(false);
+    const { container, getByText } = render(<TestimonialsSpotlight items={ITEMS} />);
+
+    // Auto-rotate to second item
+    act(() => { vi.advanceTimersByTime(5000); });
+    expect(getByText("Would recommend.")).toBeTruthy();
+
+    // Now access React internals to invoke focus/blur directly
+    const section = container.querySelector("section") as HTMLElement;
+    const propsKey = Object.keys(section).find(k => k.startsWith("__reactProps"))!;
+    const props = (section as any)[propsKey];
+
+    // Pause via direct onFocus call
+    act(() => { props.onFocus(); });
+    act(() => { vi.advanceTimersByTime(10000); });
+    expect(getByText("Would recommend.")).toBeTruthy(); // still paused
+
+    // Unpause via onBlur with relatedTarget outside section
+    const outsideEl = document.createElement("button");
+    document.body.appendChild(outsideEl);
+    act(() => { props.onBlur({ relatedTarget: outsideEl }); });
+    act(() => { vi.advanceTimersByTime(5000); });
+    expect(getByText("Smooth process.")).toBeTruthy();
+    document.body.removeChild(outsideEl);
+  });
 });
