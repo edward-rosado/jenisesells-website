@@ -5,8 +5,8 @@ import type { AccountTracking } from "@/lib/types";
 // Mock next/script to render a simple element we can query
 vi.mock("next/script", () => ({
   __esModule: true,
-  default: ({ id, src }: { id?: string; src: string }) => (
-    <script data-testid={id} data-src={src} />
+  default: ({ id, src, children }: { id?: string; src?: string; children?: string }) => (
+    <script data-testid={id} data-src={src ?? ""} data-children={children ?? ""} />
   ),
 }));
 
@@ -27,7 +27,7 @@ describe("Analytics", () => {
     const tracking: AccountTracking = { google_analytics_id: "G-XYZ789" };
     const { getByTestId } = render(<Analytics tracking={tracking} />);
     const config = getByTestId("ga4-config");
-    expect(config.getAttribute("data-src")).toContain("G-XYZ789");
+    expect(config.getAttribute("data-children")).toContain("G-XYZ789");
   });
 
   it("does not render GA4 when GTM is also present", () => {
@@ -44,7 +44,7 @@ describe("Analytics", () => {
     const tracking: AccountTracking = { meta_pixel_id: "123456789" };
     const { getByTestId } = render(<Analytics tracking={tracking} />);
     const script = getByTestId("meta-pixel");
-    expect(script.getAttribute("data-src")).toContain("123456789");
+    expect(script.getAttribute("data-children")).toContain("123456789");
   });
 
   it("renders all scripts when all tracking IDs are present (GTM takes precedence over GA4)", () => {
