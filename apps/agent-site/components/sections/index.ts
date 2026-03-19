@@ -104,6 +104,9 @@ export { ProfilesGrid } from "./profiles/ProfilesGrid";
 export { ProfilesCards } from "./profiles/ProfilesCards";
 export { ProfilesClean } from "./profiles/ProfilesClean";
 
+// Scroll reveal wrapper
+export { ScrollRevealSection } from "./shared/ScrollRevealSection";
+
 // Backward-compatible aliases for EmeraldClassic template
 export { HeroGradient as Hero } from "./heroes/HeroGradient";
 export { ServicesGrid as Services } from "./services/ServicesGrid";
