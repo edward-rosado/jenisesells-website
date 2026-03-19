@@ -53,6 +53,19 @@ describe("generateMetadata (privacy)", () => {
     await generateMetadata({ searchParams: Promise.resolve({}) });
     expect(mockLoadAccountConfig).toHaveBeenCalledWith("jenise-buckalew");
   });
+
+  it("falls back to DEFAULT_AGENT_ID when accountId contains unsafe characters", async () => {
+    process.env.DEFAULT_AGENT_ID = "env-agent";
+    await generateMetadata({ searchParams: Promise.resolve({ accountId: "../../etc/passwd" }) });
+    expect(mockLoadAccountConfig).toHaveBeenCalledWith("env-agent");
+    delete process.env.DEFAULT_AGENT_ID;
+  });
+
+  it("falls back to jenise-buckalew when accountId is unsafe and no DEFAULT_AGENT_ID", async () => {
+    delete process.env.DEFAULT_AGENT_ID;
+    await generateMetadata({ searchParams: Promise.resolve({ accountId: "../../etc/passwd" }) });
+    expect(mockLoadAccountConfig).toHaveBeenCalledWith("jenise-buckalew");
+  });
 });
 
 describe("PrivacyPage", () => {

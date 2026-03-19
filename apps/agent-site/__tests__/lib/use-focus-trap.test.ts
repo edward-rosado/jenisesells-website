@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderHook, render, act } from "@testing-library/react";
+import React from "react";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
 describe("useFocusTrap", () => {
@@ -46,5 +47,130 @@ describe("useFocusTrap", () => {
     // Cleanup should not throw
     expect(true).toBe(true);
     removeSpy.mockRestore();
+  });
+
+  describe("Tab key handling with a real component render", () => {
+    /**
+     * A test component that attaches the focus-trap ref to a div containing
+     * the provided children, so containerRef.current is set when useEffect fires.
+     */
+    function FocusTrapFixture({ active, children }: { active: boolean; children: React.ReactNode }) {
+      const ref = useFocusTrap(active);
+      return React.createElement("div", { ref, "data-testid": "trap" }, children);
+    }
+
+    it("wraps focus from first to last on Shift+Tab", () => {
+      const { getByTestId } = render(
+        React.createElement(FocusTrapFixture, { active: true },
+          React.createElement("button", { "data-testid": "first" }, "First"),
+          React.createElement("button", { "data-testid": "last" }, "Last"),
+        )
+      );
+
+      const first = getByTestId("first") as HTMLButtonElement;
+      const last = getByTestId("last") as HTMLButtonElement;
+      const trap = getByTestId("trap");
+
+      // Verify the trap container is in the DOM
+      expect(trap).toBeInTheDocument();
+
+      // Focus first button, then fire Shift+Tab
+      act(() => { first.focus(); });
+      expect(document.activeElement).toBe(first);
+
+      let prevented = false;
+      act(() => {
+        const event = new KeyboardEvent("keydown", { key: "Tab", shiftKey: true, bubbles: true, cancelable: true });
+        Object.defineProperty(event, "preventDefault", { value: () => { prevented = true; } });
+        document.dispatchEvent(event);
+      });
+
+      expect(prevented).toBe(true);
+      expect(document.activeElement).toBe(last);
+    });
+
+    it("wraps focus from last to first on Tab (forward)", () => {
+      const { getByTestId } = render(
+        React.createElement(FocusTrapFixture, { active: true },
+          React.createElement("button", { "data-testid": "first" }, "First"),
+          React.createElement("button", { "data-testid": "last" }, "Last"),
+        )
+      );
+
+      const first = getByTestId("first") as HTMLButtonElement;
+      const last = getByTestId("last") as HTMLButtonElement;
+
+      // Focus last button, then fire forward Tab
+      act(() => { last.focus(); });
+      expect(document.activeElement).toBe(last);
+
+      let prevented = false;
+      act(() => {
+        const event = new KeyboardEvent("keydown", { key: "Tab", shiftKey: false, bubbles: true, cancelable: true });
+        Object.defineProperty(event, "preventDefault", { value: () => { prevented = true; } });
+        document.dispatchEvent(event);
+      });
+
+      expect(prevented).toBe(true);
+      expect(document.activeElement).toBe(first);
+    });
+
+    it("does not intercept Tab when focus is not at a boundary", () => {
+      const { getByTestId } = render(
+        React.createElement(FocusTrapFixture, { active: true },
+          React.createElement("button", { "data-testid": "first" }, "First"),
+          React.createElement("button", { "data-testid": "last" }, "Last"),
+        )
+      );
+
+      const first = getByTestId("first") as HTMLButtonElement;
+
+      // Focus first button, forward Tab — not at last boundary, should not prevent
+      act(() => { first.focus(); });
+
+      let prevented = false;
+      act(() => {
+        const event = new KeyboardEvent("keydown", { key: "Tab", shiftKey: false, bubbles: true, cancelable: true });
+        Object.defineProperty(event, "preventDefault", { value: () => { prevented = true; } });
+        document.dispatchEvent(event);
+      });
+
+      expect(prevented).toBe(false);
+    });
+
+    it("does not intercept non-Tab keys", () => {
+      render(
+        React.createElement(FocusTrapFixture, { active: true },
+          React.createElement("button", null, "Only"),
+        )
+      );
+
+      let prevented = false;
+      act(() => {
+        const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+        Object.defineProperty(event, "preventDefault", { value: () => { prevented = true; } });
+        document.dispatchEvent(event);
+      });
+
+      expect(prevented).toBe(false);
+    });
+
+    it("does nothing when container has no focusable elements", () => {
+      render(
+        React.createElement(FocusTrapFixture, { active: true },
+          // No focusable children
+          React.createElement("span", null, "Non-focusable"),
+        )
+      );
+
+      let prevented = false;
+      act(() => {
+        const event = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+        Object.defineProperty(event, "preventDefault", { value: () => { prevented = true; } });
+        document.dispatchEvent(event);
+      });
+
+      expect(prevented).toBe(false);
+    });
   });
 });
