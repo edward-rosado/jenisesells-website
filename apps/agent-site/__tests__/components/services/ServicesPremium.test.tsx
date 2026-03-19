@@ -156,6 +156,17 @@ describe("ServicesPremium", () => {
     expect(img?.getAttribute("alt")).toBe("With Image");
   });
 
+  it("renders image with dark shadow on odd-index block", () => {
+    const itemsWithDarkImage: FeatureItem[] = [
+      { title: "First", description: "light block" },
+      { title: "Dark With Image", description: "dark block", image_url: "/test/dark-photo.jpg" },
+    ];
+    const { container } = render(<ServicesPremium items={itemsWithDarkImage} />);
+    const imgs = container.querySelectorAll("img");
+    expect(imgs.length).toBe(1);
+    expect(imgs[0].getAttribute("alt")).toBe("Dark With Image");
+  });
+
   it("renders placeholder shape when no image_url", () => {
     const itemsNoImage: FeatureItem[] = [
       { title: "No Image", description: "No photo" },
