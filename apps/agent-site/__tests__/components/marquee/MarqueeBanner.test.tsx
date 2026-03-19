@@ -17,6 +17,11 @@ const ITEMS: MarqueeItem[] = [
   { text: "ARCHITECTURAL DIGEST" },
 ];
 
+// Helper: compute how many times items are repeated to fill the viewport
+function expectedRepeats(count: number): number {
+  return Math.max(1, Math.ceil(2000 / (count * 200)));
+}
+
 describe("MarqueeBanner", () => {
   afterEach(() => { vi.resetAllMocks(); });
 
@@ -30,11 +35,12 @@ describe("MarqueeBanner", () => {
     expect(getByText("As Featured In")).toBeTruthy();
   });
 
-  it("renders all item texts duplicated for seamless loop (set-a + set-b)", () => {
+  it("repeats items to fill viewport width, doubled for seamless loop", () => {
     const { container } = render(<MarqueeBanner items={ITEMS} />);
-    // Each item appears twice (set-a + set-b)
     const texts = container.querySelectorAll("[data-marquee-item]");
-    expect(texts.length).toBe(6); // 3 items x 2 sets
+    const reps = expectedRepeats(ITEMS.length);
+    // Each set has reps * items.length items, and there are 2 sets
+    expect(texts.length).toBe(reps * ITEMS.length * 2);
   });
 
   it("has aria-hidden on the banner container", () => {
@@ -56,9 +62,9 @@ describe("MarqueeBanner", () => {
   it("renders static row when reduced motion is enabled", () => {
     mockUseReducedMotion.mockReturnValue(true);
     const { container } = render(<MarqueeBanner items={ITEMS} />);
-    // Should NOT have duplicated items
+    // Should NOT have duplicated items — static shows original items only
     const texts = container.querySelectorAll("[data-marquee-item]");
-    expect(texts.length).toBe(3); // No duplication
+    expect(texts.length).toBe(3);
   });
 
   it("renders single item as static display", () => {
@@ -80,20 +86,22 @@ describe("MarqueeBanner", () => {
     expect(track.style.animation).toContain("linear infinite");
   });
 
-  it("uses slower duration based on item count", () => {
+  it("calculates duration from filled item count", () => {
     const { container } = render(<MarqueeBanner items={ITEMS} />);
     const track = container.querySelector("[data-marquee-track]") as HTMLElement;
-    // 3 items * 8 = 24s, but min is 20, so 24s
-    expect(track.style.animation).toContain("24s");
+    const reps = expectedRepeats(ITEMS.length);
+    const filledCount = reps * ITEMS.length;
+    const expectedDuration = Math.max(20, filledCount * 4);
+    expect(track.style.animation).toContain(`${expectedDuration}s`);
   });
 
   it("includes trailing separators for seamless seam between sets", () => {
     const { container } = render(<MarqueeBanner items={ITEMS} />);
-    // Each item in each set has a trailing separator (◆)
-    // 3 items × 2 sets = 6 separators
     const separators = container.querySelectorAll("span");
     const diamonds = Array.from(separators).filter(s => s.textContent === "◆");
-    expect(diamonds.length).toBe(6);
+    const reps = expectedRepeats(ITEMS.length);
+    // Each filled item in each set has one trailing separator
+    expect(diamonds.length).toBe(reps * ITEMS.length * 2);
   });
 
   it("does not inject keyframes style for static display", () => {
@@ -109,5 +117,16 @@ describe("MarqueeBanner", () => {
     const track = container.querySelector("[data-marquee-track]") as HTMLElement;
     expect(track.style.justifyContent).toBe("center");
     expect(track.style.gap).toBe("24px");
+  });
+
+  it("uses minimum 1 repeat even for many items", () => {
+    // 20 items → repeats = ceil(2000/4000) = 1
+    const manyItems: MarqueeItem[] = Array.from({ length: 20 }, (_, i) => ({
+      text: `ITEM ${i}`,
+    }));
+    const { container } = render(<MarqueeBanner items={manyItems} />);
+    const texts = container.querySelectorAll("[data-marquee-item]");
+    // 1 repeat × 20 items × 2 sets = 40
+    expect(texts.length).toBe(40);
   });
 });

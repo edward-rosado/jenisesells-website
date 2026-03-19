@@ -9,7 +9,17 @@ export function MarqueeBanner({ items, title }: MarqueeProps) {
   if (items.length === 0) return null;
 
   const isStatic = reducedMotion || items.length === 1;
-  const duration = Math.max(20, items.length * 8);
+
+  /* Repeat items enough times so one "half" of the track is wider than
+     any viewport (~2000px). Each item+separator is roughly 150-250px,
+     so we need at least ceil(2000 / (count * 200)) repeats. */
+  const repeats = Math.max(1, Math.ceil(2000 / (items.length * 200)));
+  const filledItems: typeof items = [];
+  for (let r = 0; r < repeats; r++) {
+    filledItems.push(...items);
+  }
+
+  const duration = Math.max(20, filledItems.length * 4);
 
   const itemStyle = {
     color: "rgba(0,0,0,0.35)",
@@ -29,7 +39,7 @@ export function MarqueeBanner({ items, title }: MarqueeProps) {
   /* Build one complete set: item ◆ item ◆ item ◆ (trailing separator
      ensures the seam between clone A and clone B is identical spacing) */
   const buildSet = (keyPrefix: string) =>
-    items.map((item, i) => {
+    filledItems.map((item, i) => {
       const sep = (
         <span key={`${keyPrefix}-sep-${i}`} style={separatorStyle}>◆</span>
       );
