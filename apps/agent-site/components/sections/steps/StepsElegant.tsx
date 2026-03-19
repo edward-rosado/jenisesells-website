@@ -42,6 +42,7 @@ function StepsElegantItem({ step, isLast }: { step: StepItem; isLast: boolean })
       {/* Number circle */}
       <div
         data-step-circle
+        aria-hidden="true"
         style={{
           width: "60px",
           height: "60px",

@@ -1,5 +1,6 @@
 import type { AccountConfig, AgentConfig } from "@/lib/types";
 import { EqualHousingNotice } from "@real-estate-star/ui";
+import { safeTelHref, safeMailtoHref } from "@/lib/safe-contact";
 
 interface FooterProps {
   agent: AccountConfig | AgentConfig;
@@ -98,7 +99,7 @@ export function Footer({ agent, accountId }: FooterProps) {
       {phone && (
         <p style={{ fontSize: "14px", color: "white", marginBottom: "3px" }}>
           <a
-            href={`tel:${phone.replace(/\D/g, "")}`}
+            href={safeTelHref(phone)}
             aria-label={`Call ${name}`}
             style={{ color: "white", textDecoration: "none" }}
           >
@@ -108,7 +109,7 @@ export function Footer({ agent, accountId }: FooterProps) {
             <>
               {"  |  "}
               <a
-                href={`tel:${officePhone.replace(/[^0-9]/g, "")}`}
+                href={safeTelHref(officePhone)}
                 aria-label="Call office"
                 style={{ color: "white", textDecoration: "none" }}
               >
@@ -121,7 +122,7 @@ export function Footer({ agent, accountId }: FooterProps) {
       {email && (
         <p style={{ fontSize: "14px", color: "white", marginBottom: "5px" }}>
           <a
-            href={`mailto:${email}`}
+            href={safeMailtoHref(email)}
             aria-label={`Email ${name}`}
             style={{ color: "white", textDecoration: "none" }}
           >
@@ -130,7 +131,7 @@ export function Footer({ agent, accountId }: FooterProps) {
         </p>
       )}
       {serviceAreas.length > 0 && state && (
-        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)", marginTop: "15px" }}>
+        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.85)", marginTop: "15px" }}>
           {formatServiceAreas(serviceAreas, state)}
         </p>
       )}
@@ -141,8 +142,8 @@ export function Footer({ agent, accountId }: FooterProps) {
       )}
       <p
         style={{
-          fontSize: "11px",
-          color: "rgba(255,255,255,0.7)",
+          fontSize: "12px",
+          color: "rgba(255,255,255,0.85)",
           marginTop: "20px",
           maxWidth: "700px",
           marginLeft: "auto",
@@ -158,20 +159,19 @@ export function Footer({ agent, accountId }: FooterProps) {
           display: "flex",
           justifyContent: "center",
           gap: "16px",
-          fontSize: "11px",
-          color: "rgba(255,255,255,0.7)",
+          fontSize: "12px",
+          color: "rgba(255,255,255,0.85)",
         }}
       >
-        <a href={`/privacy${qs}`} style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Privacy Policy</a>
-        <a href={`/terms${qs}`} style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Terms of Use</a>
-        <a href={`/accessibility${qs}`} style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline" }}>Accessibility</a>
+        <a href={`/privacy${qs}`} style={{ color: "rgba(255,255,255,0.85)", textDecoration: "underline" }}>Privacy Policy</a>
+        <a href={`/terms${qs}`} style={{ color: "rgba(255,255,255,0.85)", textDecoration: "underline" }}>Terms of Use</a>
+        <a href={`/accessibility${qs}`} style={{ color: "rgba(255,255,255,0.85)", textDecoration: "underline" }}>Accessibility</a>
       </nav>
       <p
         style={{
           marginTop: "8px",
-          fontSize: "11px",
-          color: "rgba(255,255,255,0.7)",
-          opacity: 0.6,
+          fontSize: "12px",
+          color: "rgba(255,255,255,0.85)",
         }}
       >
         &copy; {new Date().getFullYear()} {name}. All rights reserved.

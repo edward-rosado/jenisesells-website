@@ -13,6 +13,8 @@ function StatsOverlayItem({ item }: { item: StatItem }) {
       style={{
         textAlign: "center",
         color: "white",
+        display: "flex",
+        flexDirection: "column",
         boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
         transform: hover ? "translateY(-4px)" : "none",
         transition: "transform 0.3s, box-shadow 0.3s",
@@ -21,6 +23,18 @@ function StatsOverlayItem({ item }: { item: StatItem }) {
         borderRadius: "8px",
       }}
     >
+      <dt
+        style={{
+          fontSize: "11px",
+          textTransform: "uppercase",
+          letterSpacing: "2px",
+          marginTop: "6px",
+          color: "rgba(255,255,255,0.85)",
+          order: 2,
+        }}
+      >
+        {item.label}
+      </dt>
       <dd
         style={{
           fontSize: "36px",
@@ -28,21 +42,11 @@ function StatsOverlayItem({ item }: { item: StatItem }) {
           color: "var(--color-accent, #d4af37)",
           margin: 0,
           fontFamily: "var(--font-family, Georgia), serif",
+          order: 1,
         }}
       >
         {item.value}
       </dd>
-      <dt
-        style={{
-          fontSize: "11px",
-          textTransform: "uppercase",
-          letterSpacing: "2px",
-          marginTop: "6px",
-          color: "rgba(255,255,255,0.6)",
-        }}
-      >
-        {item.label}
-      </dt>
     </div>
   );
 }
@@ -74,7 +78,7 @@ export function StatsOverlay({ items, sourceDisclaimer }: StatsProps) {
         <p
           style={{
             textAlign: "center",
-            color: "rgba(255,255,255,0.4)",
+            color: "rgba(255,255,255,0.85)",
             fontSize: "11px",
             marginTop: "16px",
           }}

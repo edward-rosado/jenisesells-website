@@ -59,7 +59,7 @@ function ProfilesCleanRow({ item, isFirst, accountId }: { item: ProfileItem; isF
               style={{
                 fontSize: "28px",
                 fontWeight: 700,
-                color: "#999",
+                color: "#767676",
                 lineHeight: 1,
               }}
             >
@@ -81,7 +81,7 @@ function ProfilesCleanRow({ item, isFirst, accountId }: { item: ProfileItem; isF
           <p
             style={{
               fontSize: "14px",
-              color: "#888",
+              color: "#555",
             }}
           >
             {item.title}
@@ -121,7 +121,7 @@ export function ProfilesClean({ items, title, subtitle, accountId }: ProfilesPro
           <p
             style={{
               textAlign: "center",
-              color: "#aaa",
+              color: "#767676",
               fontSize: "14px",
               marginBottom: "50px",
             }}

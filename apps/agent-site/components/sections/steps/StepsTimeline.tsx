@@ -27,14 +27,14 @@ export function StepsTimeline({ steps, title, subtitle }: StepsProps) {
         {subtitle && (
           <p style={{
             textAlign: "center",
-            color: "#888",
+            color: "#555",
             fontSize: "16px",
             marginBottom: "50px",
           }}>
             {subtitle}
           </p>
         )}
-        <ol style={{ listStyle: "none", padding: 0, margin: 0 }}>
+        <ol role="list" style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {steps.map((step, i) => (
             <li
               key={step.number}
@@ -107,7 +107,7 @@ export function StepsTimeline({ steps, title, subtitle }: StepsProps) {
                 }}>
                   {step.title}
                 </h3>
-                <p style={{ color: "#888", fontSize: "14px", lineHeight: 1.6 }}>
+                <p style={{ color: "#555", fontSize: "14px", lineHeight: 1.6 }}>
                   {step.description}
                 </p>
               </div>

@@ -57,7 +57,7 @@ function TestimonialsMinimalCard({ item }: { item: TestimonialItem }) {
       >
         {item.reviewer}
         {item.source && (
-          <span style={{ color: "rgba(255,255,255,0.4)", fontVariant: "normal", textTransform: "none" as const }}>
+          <span style={{ color: "rgba(255,255,255,0.85)", fontVariant: "normal", textTransform: "none" as const }}>
             {" "}via {item.source}
           </span>
         )}
@@ -105,7 +105,7 @@ export function TestimonialsMinimal({ items, title }: TestimonialsProps) {
         <p
           style={{
             textAlign: "center",
-            color: "rgba(255,255,255,0.3)",
+            color: "rgba(255,255,255,0.85)",
             fontSize: "11px",
             marginTop: "60px",
             lineHeight: 1.6,

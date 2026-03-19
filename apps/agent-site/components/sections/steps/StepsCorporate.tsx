@@ -41,6 +41,7 @@ function StepsCorporateItem({ step, isLast }: { step: StepItem; isLast: boolean 
       {/* Blue circle with step number */}
       <div
         data-testid="step-number"
+        aria-hidden="true"
         style={{
           width: "48px",
           height: "48px",
@@ -115,6 +116,7 @@ export function StepsCorporate({ steps, title, subtitle }: StepsProps) {
         )}
 
         <ol
+          role="list"
           style={{
             listStyle: "none",
             padding: 0,

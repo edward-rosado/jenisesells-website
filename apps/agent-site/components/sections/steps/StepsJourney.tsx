@@ -35,6 +35,7 @@ function StepsJourneyItem({ step, isLast }: { step: StepItem; isLast: boolean })
       >
         {/* Circle number */}
         <div
+          aria-hidden="true"
           style={{
             width: "48px",
             height: "48px",
@@ -138,6 +139,7 @@ export function StepsJourney({ steps, title, subtitle }: StepsProps) {
           </p>
         )}
         <ol
+          role="list"
           style={{
             listStyle: "none",
             padding: 0,

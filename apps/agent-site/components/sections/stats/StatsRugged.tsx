@@ -12,6 +12,8 @@ function StatsRuggedItem({ item }: { item: StatItem }) {
       onMouseLeave={() => setHover(false)}
       style={{
         textAlign: "center",
+        display: "flex",
+        flexDirection: "column",
         boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
         transform: hover ? "translateY(-4px)" : "none",
         transition: "transform 0.3s, box-shadow 0.3s",
@@ -20,6 +22,19 @@ function StatsRuggedItem({ item }: { item: StatItem }) {
         borderRadius: "8px",
       }}
     >
+      <dt
+        style={{
+          fontSize: "12px",
+          textTransform: "uppercase",
+          letterSpacing: "1.5px",
+          color: "rgba(255,255,255,0.85)",
+          marginTop: "6px",
+          fontFamily: "sans-serif",
+          order: 2,
+        }}
+      >
+        {item.label}
+      </dt>
       <dd
         style={{
           fontSize: "36px",
@@ -27,22 +42,11 @@ function StatsRuggedItem({ item }: { item: StatItem }) {
           color: "var(--color-accent, #c8a84b)",
           margin: 0,
           fontFamily: "Georgia, serif",
+          order: 1,
         }}
       >
         {item.value}
       </dd>
-      <dt
-        style={{
-          fontSize: "12px",
-          textTransform: "uppercase",
-          letterSpacing: "1.5px",
-          color: "rgba(255,255,255,0.80)",
-          marginTop: "6px",
-          fontFamily: "sans-serif",
-        }}
-      >
-        {item.label}
-      </dt>
     </div>
   );
 }
@@ -74,7 +78,7 @@ export function StatsRugged({ items, sourceDisclaimer }: StatsProps) {
         <p
           style={{
             textAlign: "center",
-            color: "rgba(255,255,255,0.55)",
+            color: "rgba(255,255,255,0.85)",
             fontSize: "11px",
             marginTop: "14px",
             fontFamily: "sans-serif",

@@ -116,7 +116,7 @@ export function TestimonialsQuote({ items, title }: TestimonialsProps) {
         <p
           style={{
             textAlign: "center",
-            color: "rgba(61,48,40,0.35)",
+            color: "#8B7355",
             fontSize: "11px",
             marginTop: "60px",
             lineHeight: 1.6,

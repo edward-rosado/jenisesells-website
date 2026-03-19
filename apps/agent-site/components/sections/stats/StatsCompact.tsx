@@ -80,7 +80,7 @@ export function StatsCompact({ items, sourceDisclaimer }: StatsProps) {
         <p
           style={{
             textAlign: "center",
-            color: "#999",
+            color: "#767676",
             fontSize: "11px",
             marginTop: "16px",
           }}

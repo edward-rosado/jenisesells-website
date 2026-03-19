@@ -23,18 +23,7 @@ function StatCard({ value, label }: { value: string; label: string }) {
         cursor: "default",
       }}
     >
-      <dl style={{ margin: 0 }}>
-        <dd
-          style={{
-            fontSize: "36px",
-            fontWeight: 700,
-            color: "var(--color-accent, #5a9e7c)",
-            margin: 0,
-            fontFamily: "var(--font-family, Nunito), sans-serif",
-          }}
-        >
-          {value}
-        </dd>
+      <dl style={{ margin: 0, display: "flex", flexDirection: "column" }}>
         <dt
           style={{
             fontSize: "13px",
@@ -42,10 +31,23 @@ function StatCard({ value, label }: { value: string; label: string }) {
             marginTop: "6px",
             fontWeight: 600,
             letterSpacing: "0.5px",
+            order: 2,
           }}
         >
           {label}
         </dt>
+        <dd
+          style={{
+            fontSize: "36px",
+            fontWeight: 700,
+            color: "var(--color-accent, #5a9e7c)",
+            margin: 0,
+            fontFamily: "var(--font-family, Nunito), sans-serif",
+            order: 1,
+          }}
+        >
+          {value}
+        </dd>
       </dl>
     </div>
   );

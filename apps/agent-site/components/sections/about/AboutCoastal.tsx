@@ -83,16 +83,19 @@ export function AboutCoastal({ agent, data }: AboutProps) {
             </p>
           )}
           {data.credentials && data.credentials.length > 0 && (
-            <div
+            <ul
+              aria-label="Credentials"
               style={{
                 display: "flex",
                 flexWrap: "wrap",
+                listStyle: "none",
+                padding: 0,
                 gap: "8px",
                 marginTop: "20px",
               }}
             >
               {data.credentials.map((cred) => (
-                <span
+                <li
                   key={cred}
                   style={{
                     background: "var(--color-primary, #2c7a7b)",
@@ -104,9 +107,9 @@ export function AboutCoastal({ agent, data }: AboutProps) {
                   }}
                 >
                   {cred}
-                </span>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       </div>

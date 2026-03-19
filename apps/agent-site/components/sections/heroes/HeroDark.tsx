@@ -67,7 +67,7 @@ export function HeroDark({ data, agentPhotoUrl, agentName }: HeroProps) {
           <p
             style={{
               fontSize: "17px",
-              color: "rgba(255,255,255,0.6)",
+              color: "rgba(255,255,255,0.85)",
               marginBottom: "35px",
               lineHeight: 1.7,
             }}

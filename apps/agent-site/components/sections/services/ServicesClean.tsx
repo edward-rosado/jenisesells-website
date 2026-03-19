@@ -24,7 +24,7 @@ export function ServicesClean({ items, title, subtitle }: FeaturesProps) {
       {subtitle && (
         <p style={{
           textAlign: "center",
-          color: "#888",
+          color: "#555",
           fontSize: "16px",
           marginBottom: "50px",
         }}>

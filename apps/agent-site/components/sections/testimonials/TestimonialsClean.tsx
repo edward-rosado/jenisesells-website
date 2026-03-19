@@ -49,7 +49,7 @@ function TestimonialsCleanCard({ item }: { item: TestimonialItem }) {
       }}>
         — {item.reviewer}
         {item.source && (
-          <span style={{ fontWeight: "normal", color: "#aaa" }}>
+          <span style={{ fontWeight: "normal", color: "#767676" }}>
             {" "}via {item.source}
           </span>
         )}
@@ -80,7 +80,7 @@ export function TestimonialsClean({ items, title }: TestimonialsProps) {
         </h2>
         <p style={{
           textAlign: "center",
-          color: "#aaa",
+          color: "#767676",
           fontSize: "12px",
           marginBottom: "50px",
         }}>
