@@ -6,13 +6,18 @@ import { loadNavConfig } from "@/lib/nav-config";
 import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
 import { MarkdownContent } from "@/components/legal/MarkdownContent";
 import { LEGAL_EFFECTIVE_DATE, getStateName } from "@/components/legal/constants";
+import { safeMailtoHref } from "@/lib/safe-contact";
 
 interface PageProps {
   searchParams: Promise<{ accountId?: string }>;
 }
 
+const SAFE_HANDLE = /^[a-z0-9-]+$/;
+
 function resolveHandle(accountId?: string): string {
-  return accountId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+  const raw = accountId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
+  // Strip query-string artifacts (e.g. "?agentId=foo") — only accept slug characters
+  return SAFE_HANDLE.test(raw) ? raw : (process.env.DEFAULT_AGENT_ID || "jenise-buckalew");
 }
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
@@ -142,7 +147,7 @@ If you are a California resident, you have the right to:
 
 If you have questions about this privacy policy, contact us at:
 
-**Email:** [${email}](mailto:${email})
+**Email:** [${email}](${safeMailtoHref(email)})
 
 *Last updated: ${LEGAL_EFFECTIVE_DATE}*`;
 
