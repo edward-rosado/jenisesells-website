@@ -8,6 +8,7 @@ function StatsElegantItem({ item, isLast }: { item: StatItem; isLast: boolean })
   const [hover, setHover] = useState(false);
   return (
     <div
+      data-stat-item
       style={{
         display: "flex",
         alignItems: "center",
@@ -18,12 +19,13 @@ function StatsElegantItem({ item, isLast }: { item: StatItem; isLast: boolean })
         onMouseLeave={() => setHover(false)}
         style={{
           textAlign: "center",
-          padding: "0 48px",
+          padding: "16px 32px",
           boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
           transform: hover ? "translateY(-4px)" : "none",
           transition: "transform 0.3s, box-shadow 0.3s",
           cursor: "default",
           borderRadius: "8px",
+          background: "#f8f6f3",
         }}
       >
         <dd
@@ -72,10 +74,30 @@ export function StatsElegant({ items, sourceDisclaimer }: StatsProps) {
       aria-label="Agent statistics"
       style={{
         background: "#f8f6f3",
-        padding: "50px 40px",
+        padding: "50px 24px",
       }}
     >
+      <style>{`
+        @media (max-width: 768px) {
+          [data-stats-grid] {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 16px !important;
+          }
+          [data-stat-item] { justify-content: center; }
+          [data-separator] { display: none !important; }
+        }
+        @media (max-width: 480px) {
+          [data-stats-grid] {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 12px !important;
+          }
+          [data-stat-item] dd { font-size: 28px !important; }
+          [data-stat-item] dt { font-size: 10px !important; }
+        }
+      `}</style>
       <dl
+        data-stats-grid
         style={{
           display: "flex",
           justifyContent: "center",

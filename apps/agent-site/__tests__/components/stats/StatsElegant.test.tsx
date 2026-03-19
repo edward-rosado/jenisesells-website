@@ -71,12 +71,26 @@ describe("StatsElegant", () => {
 
   it("applies hover lift on mouse enter", () => {
     const { container } = render(<StatsElegant items={ITEMS} />);
-    // The hoverable div is the inner child of the outer wrapper div in the dl
-    const item = container.querySelector("dl")!.children[0].children[0] as HTMLElement;
-    expect(item.style.transform).toBe("none");
-    fireEvent.mouseEnter(item);
-    expect(item.style.transform).toBe("translateY(-4px)");
-    fireEvent.mouseLeave(item);
-    expect(item.style.transform).toBe("none");
+    // The hoverable div is the inner child of the data-stat-item wrapper
+    const statItem = container.querySelector("[data-stat-item]") as HTMLElement;
+    const hoverDiv = statItem.children[0] as HTMLElement;
+    expect(hoverDiv.style.transform).toBe("none");
+    fireEvent.mouseEnter(hoverDiv);
+    expect(hoverDiv.style.transform).toBe("translateY(-4px)");
+    fireEvent.mouseLeave(hoverDiv);
+    expect(hoverDiv.style.transform).toBe("none");
+  });
+
+  it("injects responsive styles for mobile grid layout", () => {
+    const { container } = render(<StatsElegant items={ITEMS} />);
+    const styleTag = container.querySelector("style");
+    expect(styleTag?.textContent).toContain("data-stats-grid");
+    expect(styleTag?.textContent).toContain("grid-template-columns");
+  });
+
+  it("marks stat items with data-stat-item attribute", () => {
+    const { container } = render(<StatsElegant items={ITEMS} />);
+    const statItems = container.querySelectorAll("[data-stat-item]");
+    expect(statItems.length).toBe(4);
   });
 });

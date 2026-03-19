@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Commercial } from "@/templates/commercial";
-import { ACCOUNT, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY, AGENT_PROP, CONTENT, CONTENT_ALL_DISABLED } from "../components/fixtures";
+import { ACCOUNT, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY, AGENT_PROP, CONTENT, CONTENT_ALL_DISABLED, CONTENT_WITH_MARQUEE } from "../components/fixtures";
 
 vi.mock("next/script", () => ({
   __esModule: true,
@@ -12,6 +12,10 @@ vi.mock("next/script", () => ({
     <script data-testid={id} data-src={src} />
   ),
 }));
+
+vi.mock("@/hooks/useParallax", () => ({ useParallax: vi.fn() }));
+vi.mock("@/hooks/useScrollReveal", () => ({ useScrollReveal: vi.fn(() => true) }));
+vi.mock("@/hooks/useReducedMotion", () => ({ useReducedMotion: vi.fn(() => false) }));
 
 describe("Commercial template", () => {
   it("always renders the Nav", () => {
@@ -64,5 +68,10 @@ describe("Commercial template", () => {
   it("falls back to brokerage name when no agent or broker", () => {
     render(<Commercial account={ACCOUNT_BROKERAGE_ONLY} content={CONTENT} />);
     expect(screen.getByRole("heading", { name: /About Brokerage LLC/ })).toBeInTheDocument();
+  });
+
+  it("renders MarqueeBanner when marquee is enabled with items", () => {
+    render(<Commercial account={ACCOUNT} content={CONTENT_WITH_MARQUEE} />);
+    expect(screen.getAllByText("LUXURY HOMES MAGAZINE").length).toBeGreaterThanOrEqual(1);
   });
 });
