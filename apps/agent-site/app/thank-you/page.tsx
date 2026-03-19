@@ -7,7 +7,10 @@ import { buildCssVariableStyle } from "@/lib/branding";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/sections";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
+import { safeTelHref } from "@/lib/safe-contact";
 import type { ThankYouData } from "@/lib/types";
+
+const EMAIL_RE = /^[^\s@:]+@[^\s@:]+\.[^\s@:]+$/;
 
 interface PageProps {
   searchParams: Promise<{ accountId?: string; email?: string }>;
@@ -50,7 +53,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
   return (
     <div style={cssVars as React.CSSProperties}>
       <Nav account={account} navigation={navConfig.navigation} enabledSections={navConfig.enabledSections} />
-      <main className="pt-[74px] min-h-[70vh] flex items-center justify-center">
+      <main id="main-content" tabIndex={-1} className="pt-[74px] min-h-[70vh] flex items-center justify-center">
         <div className="text-center max-w-lg px-6">
           <div style={{
             width: "80px",
@@ -70,7 +73,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
           <p className="text-lg font-semibold mb-4" style={{ color: "var(--color-accent)" }}>
             {interpolate(thankYou.subheading, vars)}
           </p>
-          {email && (
+          {email && EMAIL_RE.test(email) && (
             <p className="text-gray-700 mb-4 text-base">
               We&apos;ll send your personalized report to{" "}
               <strong>{email}</strong>. Keep an eye on your inbox!
@@ -88,7 +91,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
           )}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
             <a
-              href={`tel:${phone.replace(/\D/g, "")}`}
+              href={safeTelHref(phone)}
               style={{
                 display: "inline-flex",
                 alignItems: "center",

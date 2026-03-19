@@ -14,14 +14,14 @@ export default function RootLayout({
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/<\/script>/gi, "<\\/script>") }}
         />
       </head>
       <body>
         <a href="#main-content" className="skip-nav">
           Skip to main content
         </a>
-        <main id="main-content" tabIndex={-1}>
+        <main>
           {children}
         </main>
       </body>
