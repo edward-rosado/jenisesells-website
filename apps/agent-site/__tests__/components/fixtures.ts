@@ -186,6 +186,17 @@ export const CONTENT: ContentConfig = {
           enabled: false,
           data: { cities: [] },
         },
+        marquee: {
+          enabled: false,
+          data: {
+            title: "As Featured In",
+            items: [
+              { text: "LUXURY HOMES MAGAZINE" },
+              { text: "WALL STREET JOURNAL", link: "https://example.com" },
+              { text: "ARCHITECTURAL DIGEST" },
+            ],
+          },
+        },
       },
     },
   },
@@ -205,6 +216,7 @@ export const CONTENT_ALL_DISABLED: ContentConfig = {
         contact_form: { enabled: false, data: { title: "", subtitle: "" } },
         about: { enabled: false, data: { bio: "", credentials: [] } },
         city_pages: { enabled: false, data: { cities: [] } },
+        marquee: { enabled: false, data: { items: [] } },
       },
     },
   },

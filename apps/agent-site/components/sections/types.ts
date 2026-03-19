@@ -9,6 +9,7 @@ import type {
   AgentConfig,
   AboutData,
   ProfileItem,
+  MarqueeItem,
 } from "@/lib/types";
 
 export interface HeroProps {
@@ -55,6 +56,11 @@ export interface ProfilesProps {
 export interface AboutProps {
   agent: AccountConfig | AgentConfig;
   data: AboutData;
+}
+
+export interface MarqueeProps {
+  title?: string;
+  items: MarqueeItem[];
 }
 
 /** @deprecated Use FeaturesProps */
