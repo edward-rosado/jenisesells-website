@@ -68,7 +68,7 @@ function BubbleCard({ item }: { item: TestimonialItem }) {
         gap: "12px",
         paddingLeft: "12px",
       }}>
-        <div style={{
+        <div aria-hidden="true" style={{
           width: "36px",
           height: "36px",
           borderRadius: "50%",
@@ -91,7 +91,7 @@ function BubbleCard({ item }: { item: TestimonialItem }) {
             {item.reviewer}
           </div>
           {item.source && (
-            <div style={{ color: "#B0A090", fontSize: "12px" }}>
+            <div style={{ color: "#8B7355", fontSize: "12px" }}>
               via {item.source}
             </div>
           )}
@@ -122,7 +122,7 @@ export function TestimonialsBubble({ items, title }: TestimonialsProps) {
         </h2>
         <p style={{
           textAlign: "center",
-          color: "#B0A090",
+          color: "#8B7355",
           fontSize: "12px",
           marginBottom: "45px",
         }}>

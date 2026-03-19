@@ -126,7 +126,7 @@ export function HeroStory({ data, agentPhotoUrl, agentName }: HeroProps) {
               fontFamily: "var(--font-family, Nunito), sans-serif",
             }}
           >
-            {data.cta_text} &rarr;
+            {data.cta_text} <span aria-hidden="true">&rarr;</span>
           </a>
         </div>
       </div>

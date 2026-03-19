@@ -77,7 +77,7 @@ export function StatsMetrics({ items, sourceDisclaimer }: StatsProps) {
         <p
           style={{
             textAlign: "center",
-            color: "#94a3b8",
+            color: "#767676",
             fontSize: "11px",
             marginTop: "20px",
             maxWidth: "1100px",

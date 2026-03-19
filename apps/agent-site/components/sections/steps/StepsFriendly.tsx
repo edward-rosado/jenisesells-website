@@ -24,7 +24,7 @@ function StepCardFriendly({ step }: { step: { number: number; title: string; des
         transition: "transform 0.3s, box-shadow 0.3s",
       }}
     >
-      <div style={{
+      <div aria-hidden="true" style={{
         width: "44px",
         height: "44px",
         borderRadius: "12px",
@@ -90,7 +90,7 @@ export function StepsFriendly({ steps, title, subtitle }: StepsProps) {
             {subtitle}
           </p>
         )}
-        <ol style={{
+        <ol role="list" style={{
           display: "flex",
           flexDirection: "column",
           gap: "20px",

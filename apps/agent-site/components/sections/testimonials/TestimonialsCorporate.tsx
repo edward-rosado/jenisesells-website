@@ -96,7 +96,7 @@ export function TestimonialsCorporate({ items, title }: TestimonialsProps) {
         <p
           style={{
             textAlign: "center",
-            color: "#94a3b8",
+            color: "#767676",
             fontSize: "11px",
             marginBottom: "48px",
           }}

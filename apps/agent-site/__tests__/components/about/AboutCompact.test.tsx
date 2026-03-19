@@ -43,7 +43,7 @@ describe("AboutCompact", () => {
     render(<AboutCompact agent={agentWithPhoto} data={DATA} />);
     const img = screen.getByRole("img");
     expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute("alt", ACCOUNT.agent!.name);
+    expect(img).toHaveAttribute("alt", `Photo of ${ACCOUNT.agent!.name}`);
   });
 
   it("omits agent photo when headshot_url is not provided", () => {

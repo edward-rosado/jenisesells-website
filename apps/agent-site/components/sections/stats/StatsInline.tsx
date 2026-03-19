@@ -15,6 +15,8 @@ function StatCardInline({ item }: { item: { value: string; label: string } }) {
         borderRadius: "16px",
         padding: "24px 32px",
         textAlign: "center",
+        display: "flex",
+        flexDirection: "column",
         minWidth: "140px",
         boxShadow: hover
           ? "0 6px 20px rgba(0,0,0,0.12)"
@@ -24,23 +26,25 @@ function StatCardInline({ item }: { item: { value: string; label: string } }) {
         cursor: "default",
       }}
     >
-      <dd style={{
-        fontSize: "28px",
-        fontWeight: 700,
-        color: "#4A3728",
-        margin: 0,
-      }}>
-        {item.value}
-      </dd>
       <dt style={{
         fontSize: "12px",
         textTransform: "uppercase",
         letterSpacing: "1px",
         marginTop: "4px",
         color: "#8B7355",
+        order: 2,
       }}>
         {item.label}
       </dt>
+      <dd style={{
+        fontSize: "28px",
+        fontWeight: 700,
+        color: "#4A3728",
+        margin: 0,
+        order: 1,
+      }}>
+        {item.value}
+      </dd>
     </div>
   );
 }
@@ -70,7 +74,7 @@ export function StatsInline({ items, sourceDisclaimer }: StatsProps) {
       {sourceDisclaimer && (
         <p style={{
           textAlign: "center",
-          color: "#B0A090",
+          color: "#8B7355",
           fontSize: "11px",
           marginTop: "16px",
         }}>

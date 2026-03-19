@@ -12,6 +12,8 @@ function StatsWaveItem({ item }: { item: StatItem }) {
       onMouseLeave={() => setHover(false)}
       style={{
         textAlign: "center",
+        display: "flex",
+        flexDirection: "column",
         boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
         transform: hover ? "translateY(-4px)" : "none",
         transition: "transform 0.3s, box-shadow 0.3s",
@@ -20,6 +22,17 @@ function StatsWaveItem({ item }: { item: StatItem }) {
         borderRadius: "8px",
       }}
     >
+      <dt
+        style={{
+          fontSize: "13px",
+          textTransform: "uppercase",
+          letterSpacing: "1.5px",
+          color: "rgba(255,255,255,0.85)",
+          order: 2,
+        }}
+      >
+        {item.label}
+      </dt>
       <dd
         style={{
           fontSize: "34px",
@@ -27,20 +40,11 @@ function StatsWaveItem({ item }: { item: StatItem }) {
           color: "var(--color-accent, #e8f4f8)",
           margin: 0,
           marginBottom: "6px",
+          order: 1,
         }}
       >
         {item.value}
       </dd>
-      <dt
-        style={{
-          fontSize: "13px",
-          textTransform: "uppercase",
-          letterSpacing: "1.5px",
-          color: "rgba(255,255,255,0.85)",
-        }}
-      >
-        {item.label}
-      </dt>
     </div>
   );
 }
@@ -73,7 +77,7 @@ export function StatsWave({ items, sourceDisclaimer }: StatsProps) {
         <p
           style={{
             textAlign: "center",
-            color: "rgba(255,255,255,0.6)",
+            color: "rgba(255,255,255,0.85)",
             fontSize: "11px",
             marginTop: "16px",
             marginBottom: 0,

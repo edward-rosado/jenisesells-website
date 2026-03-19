@@ -48,7 +48,7 @@ export function HeroSplit({ data, agentPhotoUrl, agentName }: HeroProps) {
         {data.body && (
           <p style={{
             fontSize: "16px",
-            color: "#888",
+            color: "#767676",
             marginBottom: "28px",
             lineHeight: 1.6,
           }}>
@@ -74,7 +74,7 @@ export function HeroSplit({ data, agentPhotoUrl, agentName }: HeroProps) {
             transform: ctaHover ? "translateY(-2px)" : "none",
           }}
         >
-          {data.cta_text} →
+          {data.cta_text} <span aria-hidden="true">&rarr;</span>
         </a>
       </div>
       {agentPhotoUrl && (

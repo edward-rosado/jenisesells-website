@@ -55,7 +55,7 @@ function ProfilesGridCard({ item, accountId }: { item: ProfileItem; accountId?: 
               style={{
                 fontSize: "40px",
                 fontWeight: 700,
-                color: "#999",
+                color: "#767676",
                 lineHeight: 1,
               }}
             >

@@ -53,7 +53,7 @@ function TestimonialsGridCard({ item }: { item: TestimonialItem }) {
       >
         — {item.reviewer}
         {item.source && (
-          <span style={{ fontWeight: "normal", color: "#999" }}>
+          <span style={{ fontWeight: "normal", color: "#767676" }}>
             {" "}via {item.source}
           </span>
         )}
@@ -87,7 +87,7 @@ export function TestimonialsGrid({ items, title }: TestimonialsProps) {
         <p
           style={{
             textAlign: "center",
-            color: "#999",
+            color: "#767676",
             fontSize: "13px",
             marginBottom: "45px",
           }}

@@ -45,7 +45,7 @@ describe("AboutCoastal", () => {
   it("credential pills have teal styling", () => {
     render(<AboutCoastal agent={ACCOUNT} data={ABOUT_DATA} />);
     const pill = screen.getByText("NC Licensed Broker");
-    expect(pill.tagName.toLowerCase()).toBe("span");
+    expect(pill.tagName.toLowerCase()).toBe("li");
     expect((pill as HTMLElement).style.background).toMatch(/var\(--color-primary|#2c7a7b/);
   });
 

@@ -20,6 +20,8 @@ function StatsElegantItem({ item, isLast }: { item: StatItem; isLast: boolean })
         style={{
           textAlign: "center",
           padding: "16px 32px",
+          display: "flex",
+          flexDirection: "column" as const,
           boxShadow: hover ? "0 6px 20px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
           transform: hover ? "translateY(-4px)" : "none",
           transition: "transform 0.3s, box-shadow 0.3s",
@@ -28,6 +30,18 @@ function StatsElegantItem({ item, isLast }: { item: StatItem; isLast: boolean })
           background: "#f8f6f3",
         }}
       >
+        <dt
+          style={{
+            fontSize: "11px",
+            textTransform: "uppercase" as const,
+            letterSpacing: "2px",
+            marginTop: "6px",
+            color: "var(--color-secondary, #5a4a3a)",
+            order: 2,
+          }}
+        >
+          {item.label}
+        </dt>
         <dd
           style={{
             fontSize: "36px",
@@ -36,21 +50,11 @@ function StatsElegantItem({ item, isLast }: { item: StatItem; isLast: boolean })
             margin: 0,
             fontFamily: "var(--font-family, Georgia), serif",
             lineHeight: 1.2,
+            order: 1,
           }}
         >
           {item.value}
         </dd>
-        <dt
-          style={{
-            fontSize: "11px",
-            textTransform: "uppercase" as const,
-            letterSpacing: "2px",
-            marginTop: "6px",
-            color: "var(--color-secondary, #5a4a3a)",
-          }}
-        >
-          {item.label}
-        </dt>
       </div>
       {!isLast && (
         <div
@@ -115,7 +119,7 @@ export function StatsElegant({ items, sourceDisclaimer }: StatsProps) {
         <p
           style={{
             textAlign: "center",
-            color: "rgba(61,48,40,0.4)",
+            color: "#8B7355",
             fontSize: "11px",
             marginTop: "16px",
           }}

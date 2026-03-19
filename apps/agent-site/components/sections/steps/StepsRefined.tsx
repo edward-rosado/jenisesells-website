@@ -33,6 +33,7 @@ function StepsRefinedItem({ step, isLast }: { step: StepItem; isLast: boolean })
       >
         <div
           data-step-circle
+          aria-hidden="true"
           style={{
             width: "52px",
             height: "52px",

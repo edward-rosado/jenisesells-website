@@ -70,7 +70,7 @@ export function SoldCarousel({ items, title, subtitle }: SoldHomesProps) {
             {title ?? "Portfolio"}
           </h2>
           {subtitle && (
-            <p style={{ textAlign: "center", color: "rgba(255,255,255,0.6)", fontSize: "16px", marginBottom: "50px" }}>
+            <p style={{ textAlign: "center", color: "rgba(255,255,255,0.85)", fontSize: "16px", marginBottom: "50px" }}>
               {subtitle}
             </p>
           )}
@@ -82,7 +82,7 @@ export function SoldCarousel({ items, title, subtitle }: SoldHomesProps) {
               >
                 <span style={{ background: "var(--color-accent, #d4af37)", color: "#0a0a0a", padding: "3px 10px", fontSize: "11px", fontWeight: 700 }}>SOLD</span>
                 <div style={{ color: "white", fontSize: "22px", fontWeight: 300, marginTop: "10px" }}>{item.price}</div>
-                <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "13px" }}>{item.address}, {item.city}, {item.state}</div>
+                <div style={{ color: "rgba(255,255,255,0.85)", fontSize: "13px" }}>{item.address}, {item.city}, {item.state}</div>
               </article>
             ))}
           </div>
@@ -111,7 +111,7 @@ export function SoldCarousel({ items, title, subtitle }: SoldHomesProps) {
           {title ?? "Portfolio"}
         </h2>
         {subtitle && (
-          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.6)", fontSize: "16px", marginBottom: "50px" }}>
+          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.85)", fontSize: "16px", marginBottom: "50px" }}>
             {subtitle}
           </p>
         )}

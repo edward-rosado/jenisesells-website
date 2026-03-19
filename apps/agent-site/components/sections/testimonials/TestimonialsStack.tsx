@@ -155,7 +155,7 @@ export function TestimonialsStack({ items, title }: TestimonialsProps) {
         <p
           style={{
             textAlign: "center",
-            color: "#aaa",
+            color: "#767676",
             fontSize: "11px",
             marginTop: "50px",
             lineHeight: 1.6,

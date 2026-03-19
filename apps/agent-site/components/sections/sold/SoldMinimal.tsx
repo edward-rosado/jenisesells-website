@@ -60,7 +60,7 @@ function SoldMinimalCard({ item }: { item: GalleryItem }) {
         </div>
         <div style={{
           fontSize: "13px",
-          color: "#888",
+          color: "#555",
         }}>
           {item.address}, {item.city}, {item.state}
         </div>
@@ -92,7 +92,7 @@ export function SoldMinimal({ items, title, subtitle }: GalleryProps) {
       {subtitle && (
         <p style={{
           textAlign: "center",
-          color: "#888",
+          color: "#555",
           fontSize: "16px",
           marginBottom: "50px",
         }}>

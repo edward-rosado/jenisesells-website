@@ -22,7 +22,7 @@ export function LightLuxury({ account, content, agent }: TemplateProps) {
   return (
     <>
       <Nav account={account} navigation={content.navigation} enabledSections={enabledSections} />
-      <div style={{ paddingTop: "0" }}>
+      <div id="main-content" tabIndex={-1} style={{ paddingTop: "0" }}>
         {s.hero?.enabled && (
           <HeroParallax
             data={s.hero.data}

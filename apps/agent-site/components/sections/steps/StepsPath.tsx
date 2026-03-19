@@ -126,7 +126,7 @@ export function StepsPath({ steps, title, subtitle }: StepsProps) {
           </p>
         )}
 
-        <ol style={{ listStyle: "none", padding: 0, margin: 0 }}>
+        <ol role="list" style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {steps.map((step, i) => (
             <StepsPathItem key={step.number} step={step} isLast={i === steps.length - 1} />
           ))}

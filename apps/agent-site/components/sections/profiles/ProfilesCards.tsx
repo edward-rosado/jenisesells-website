@@ -90,7 +90,7 @@ export function ProfilesCards({ items, title, subtitle, accountId }: ProfilesPro
                       style={{
                         fontSize: "48px",
                         fontWeight: 700,
-                        color: "#999",
+                        color: "#767676",
                         lineHeight: 1,
                       }}
                     >

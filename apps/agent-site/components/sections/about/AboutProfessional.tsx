@@ -41,7 +41,7 @@ export function AboutProfessional({ agent, data }: AboutProps) {
           >
             <Image
               src={headshotUrl}
-              alt={displayName}
+              alt={`Photo of ${displayName}`}
               fill
               style={{ objectFit: "cover", objectPosition: "top" }}
               sizes="280px"

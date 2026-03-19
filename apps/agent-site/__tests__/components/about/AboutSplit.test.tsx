@@ -87,7 +87,7 @@ describe("AboutSplit", () => {
     };
     render(<AboutSplit agent={accountWithHeadshot} data={DATA_WITH_CREDENTIALS} />);
     const img = screen.getByRole("img");
-    expect(img).toHaveAttribute("alt", "Jane Smith");
+    expect(img).toHaveAttribute("alt", "Photo of Jane Smith");
   });
 
   it("does not render headshot image when headshot_url is absent", () => {

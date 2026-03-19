@@ -6,6 +6,7 @@ import type { FeaturesProps } from "@/components/sections/types";
 type SvgIcon = React.ReactNode;
 
 const SVG_PROPS = {
+  "aria-hidden": "true" as const,
   width: "28",
   height: "28",
   viewBox: "0 0 24 24",

@@ -52,7 +52,7 @@ export function AboutCompact({ agent, data }: AboutProps) {
             >
               <Image
                 src={headshotUrl}
-                alt={displayName}
+                alt={`Photo of ${displayName}`}
                 fill
                 style={{ objectFit: "cover" }}
                 sizes="120px"
