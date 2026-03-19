@@ -1,14 +1,15 @@
 import { Nav } from "@/components/Nav";
 import {
-  HeroAiry,
+  HeroParallax,
+  MarqueeBanner,
   StatsElegant,
-  ServicesRefined,
+  ServicesPremium,
   StepsRefined,
   SoldElegant,
-  TestimonialsQuote,
+  TestimonialsSpotlight,
   ProfilesClean,
   CmaSection,
-  AboutGrace,
+  AboutParallax,
   Footer,
 } from "@/components/sections";
 import { type TemplateProps, getEnabledSections } from "./types";
@@ -22,17 +23,23 @@ export function LightLuxury({ account, content, agent }: TemplateProps) {
       <Nav account={account} navigation={content.navigation} enabledSections={enabledSections} />
       <div style={{ paddingTop: "0" }}>
         {s.hero?.enabled && (
-          <HeroAiry
+          <HeroParallax
             data={s.hero.data}
             agentPhotoUrl={identity.headshot_url ?? account.agent?.headshot_url}
             agentName={identity.name}
+          />
+        )}
+        {s.marquee?.enabled && s.marquee.data.items.length > 0 && (
+          <MarqueeBanner
+            items={s.marquee.data.items}
+            title={s.marquee.data.title}
           />
         )}
         {s.stats?.enabled && s.stats.data.items.length > 0 && (
           <StatsElegant items={s.stats.data.items} sourceDisclaimer="Based on MLS data. Individual results may vary." />
         )}
         {s.features?.enabled && (
-          <ServicesRefined
+          <ServicesPremium
             items={s.features.data.items}
             title={s.features.data.title}
             subtitle={s.features.data.subtitle}
@@ -53,7 +60,7 @@ export function LightLuxury({ account, content, agent }: TemplateProps) {
           />
         )}
         {s.testimonials?.enabled && s.testimonials.data.items.length > 0 && (
-          <TestimonialsQuote
+          <TestimonialsSpotlight
             items={s.testimonials.data.items}
             title={s.testimonials.data.title}
           />
@@ -76,7 +83,7 @@ export function LightLuxury({ account, content, agent }: TemplateProps) {
             serviceAreas={account.location.service_areas}
           />
         )}
-        {s.about?.enabled && <AboutGrace agent={identity} data={s.about.data} />}
+        {s.about?.enabled && <AboutParallax agent={identity} data={s.about.data} />}
         <Footer agent={account} accountId={identity.id} />
       </div>
     </>

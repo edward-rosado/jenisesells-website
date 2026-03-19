@@ -13,6 +13,10 @@ vi.mock("next/script", () => ({
   ),
 }));
 
+vi.mock("@/hooks/useParallax", () => ({ useParallax: vi.fn() }));
+vi.mock("@/hooks/useScrollReveal", () => ({ useScrollReveal: vi.fn(() => true) }));
+vi.mock("@/hooks/useReducedMotion", () => ({ useReducedMotion: vi.fn(() => false) }));
+
 describe("LightLuxury template", () => {
   it("always renders the Nav", () => {
     render(<LightLuxury account={ACCOUNT} content={CONTENT} />);
@@ -42,7 +46,7 @@ describe("LightLuxury template", () => {
     expect(screen.getByText("Submit Info")).toBeInTheDocument();
     expect(screen.getByText("$750,000")).toBeInTheDocument();
     expect(screen.getByText("Amazing service!")).toBeInTheDocument();
-    expect(screen.getByText(/About Jane Smith/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Jane Smith" })).toBeInTheDocument();
   });
 
   it("does not render disabled sections", () => {
@@ -53,16 +57,16 @@ describe("LightLuxury template", () => {
 
   it("uses agent prop identity when provided", () => {
     render(<LightLuxury account={ACCOUNT} content={CONTENT} agent={AGENT_PROP} />);
-    expect(screen.getByRole("heading", { name: /About Explicit Agent/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Explicit Agent" })).toBeInTheDocument();
   });
 
   it("falls back to broker name when no agent", () => {
     render(<LightLuxury account={ACCOUNT_BROKER_ONLY} content={CONTENT} />);
-    expect(screen.getByRole("heading", { name: /About Sam Broker/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Sam Broker" })).toBeInTheDocument();
   });
 
   it("falls back to brokerage name when no agent or broker", () => {
     render(<LightLuxury account={ACCOUNT_BROKERAGE_ONLY} content={CONTENT} />);
-    expect(screen.getByRole("heading", { name: /About Brokerage LLC/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Brokerage LLC" })).toBeInTheDocument();
   });
 });
