@@ -5,6 +5,8 @@ import { usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { AccountConfig, NavigationConfig, ContactMethod } from "@/lib/types";
+import { useFocusTrap } from "@/lib/use-focus-trap";
+import { safeMailtoHref, safeTelHref } from "@/lib/safe-contact";
 
 interface NavProps {
   account: AccountConfig;
@@ -52,8 +54,7 @@ export const DEFAULT_NAV_ITEMS = [
 
 /** Build a tel: href from a phone value and optional extension */
 function buildTelHref(value: string, ext?: string | null): string {
-  const digits = value.replace(/\D/g, "");
-  return ext ? `tel:${digits},${ext.replace(/\D/g, "")}` : `tel:${digits}`;
+  return safeTelHref(value, ext ?? undefined);
 }
 
 /** Format a phone number with its extension for display */
@@ -67,6 +68,7 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const contactBtnRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
+  const focusTrapRef = useFocusTrap(drawerOpen);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isHome = pathname === "/";
@@ -231,7 +233,8 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
           <div className="nav-contact" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {emails[0] && (
               <a
-                href={`mailto:${emails[0].value}`}
+                href={safeMailtoHref(emails[0].value)}
+                aria-label={`Email ${emails[0].value}`}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -255,6 +258,7 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
             {preferredPhone && (
               <a
                 href={buildTelHref(preferredPhone.value, preferredPhone.ext)}
+                aria-label={`Call ${formatPhoneDisplay(preferredPhone.value, preferredPhone.ext)}`}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -307,6 +311,7 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
           {preferredPhone && (
             <a
               href={buildTelHref(preferredPhone.value, preferredPhone.ext)}
+              aria-label={`Call ${formatPhoneDisplay(preferredPhone.value, preferredPhone.ext)}`}
               className="nav-mobile-call"
               style={{
                 display: "none",
@@ -331,7 +336,7 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
             ref={hamburgerRef}
             className="nav-hamburger"
             onClick={toggleDrawer}
-            aria-label="Menu"
+            aria-label={drawerOpen ? "Close menu" : "Open menu"}
             aria-expanded={drawerOpen}
             aria-controls="nav-drawer"
             style={{
@@ -383,7 +388,10 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
 
       {/* Drawer — on mobile: nav links + contact; on tablet: contact only */}
       <div
-        ref={drawerRef}
+        ref={(node) => {
+          (drawerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          (focusTrapRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+        }}
         id="nav-drawer"
         className="nav-drawer"
         role="dialog"
@@ -431,6 +439,7 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
             <a
               key={`phone-${i}`}
               href={buildTelHref(phone.value, phone.ext)}
+              aria-label={`Call ${formatPhoneDisplay(phone.value, phone.ext)}`}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -455,7 +464,8 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
           {emails.map((email, i) => (
             <a
               key={`email-${i}`}
-              href={`mailto:${email.value}`}
+              href={safeMailtoHref(email.value)}
+              aria-label={`Email ${email.value}`}
               style={{
                 display: "flex",
                 alignItems: "center",
