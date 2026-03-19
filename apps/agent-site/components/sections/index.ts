@@ -92,6 +92,13 @@ export { SoldMetrics } from "./sold/SoldMetrics";
 export { TestimonialsCorporate } from "./testimonials/TestimonialsCorporate";
 export { AboutProfessional } from "./about/AboutProfessional";
 
+// Premium variants (shared across upgraded templates)
+export { MarqueeBanner } from "./marquee/MarqueeBanner";
+export { TestimonialsSpotlight } from "./testimonials/TestimonialsSpotlight";
+export { ServicesPremium } from "./services/ServicesPremium";
+export { HeroParallax } from "./heroes/HeroParallax";
+export { AboutParallax } from "./about/AboutParallax";
+
 // Profiles variants
 export { ProfilesGrid } from "./profiles/ProfilesGrid";
 export { ProfilesCards } from "./profiles/ProfilesCards";
