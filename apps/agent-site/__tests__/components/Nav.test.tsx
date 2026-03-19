@@ -263,7 +263,7 @@ describe("Nav", () => {
 
   it("sets aria-expanded on hamburger button", () => {
     render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
 
     expect(hamburger).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(hamburger);
@@ -276,7 +276,7 @@ describe("Nav", () => {
 
   it("renders hamburger menu button (hidden on desktop via CSS)", () => {
     render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
     expect(hamburger).toBeInTheDocument();
     expect(hamburger.tagName).toBe("BUTTON");
   });
@@ -289,7 +289,7 @@ describe("Nav", () => {
 
   it("toggles drawer open and closed on hamburger click", () => {
     const { container } = render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
     const drawer = container.querySelector(".nav-drawer") as HTMLElement;
 
     fireEvent.click(hamburger);
@@ -301,7 +301,7 @@ describe("Nav", () => {
 
   it("closes drawer when a section link is clicked", () => {
     const { container } = render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
 
     fireEvent.click(hamburger);
 
@@ -316,7 +316,7 @@ describe("Nav", () => {
 
   it("closes drawer when overlay is clicked", () => {
     const { container } = render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
 
     fireEvent.click(hamburger);
 
@@ -332,7 +332,7 @@ describe("Nav", () => {
 
   it("closes drawer when Escape key is pressed", () => {
     const { container } = render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
 
     fireEvent.click(hamburger);
     const drawer = container.querySelector(".nav-drawer") as HTMLElement;
@@ -344,7 +344,7 @@ describe("Nav", () => {
 
   it("does not close drawer on non-Escape keys", () => {
     const { container } = render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
 
     fireEvent.click(hamburger);
     const drawer = container.querySelector(".nav-drawer") as HTMLElement;
@@ -356,7 +356,7 @@ describe("Nav", () => {
 
   it("focuses first link when drawer opens", () => {
     const { container } = render(<Nav account={ACCOUNT} />);
-    const hamburger = screen.getByLabelText("Menu");
+    const hamburger = screen.getByLabelText("Open menu");
 
     fireEvent.click(hamburger);
     const drawer = container.querySelector(".nav-drawer") as HTMLElement;

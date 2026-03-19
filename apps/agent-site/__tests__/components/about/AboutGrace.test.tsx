@@ -73,7 +73,7 @@ describe("AboutGrace", () => {
     render(<AboutGrace agent={agentWithHeadshot} data={DATA_WITH_CREDENTIALS} />);
     const img = screen.getByRole("img");
     expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute("alt", "Jane Smith");
+    expect(img).toHaveAttribute("alt", "Photo of Jane Smith");
   });
 
   it("does not render headshot when headshot_url is absent", () => {
