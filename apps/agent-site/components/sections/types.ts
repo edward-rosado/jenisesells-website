@@ -59,6 +59,11 @@ export interface AboutProps {
 }
 
 export interface MarqueeProps {
+  items: MarqueeItem[];
+  title?: string;
+}
+
+export interface MarqueeProps {
   title?: string;
   items: MarqueeItem[];
 }
