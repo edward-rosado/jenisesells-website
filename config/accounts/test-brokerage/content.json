@@ -218,6 +218,17 @@
           "data": {
             "cities": []
           }
+        },
+        "marquee": {
+          "enabled": true,
+          "data": {
+            "title": "Certifications",
+            "items": [
+              { "text": "CCIM" },
+              { "text": "SIOR" },
+              { "text": "CPM" }
+            ]
+          }
         }
       }
     },

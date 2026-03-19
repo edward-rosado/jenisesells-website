@@ -257,6 +257,17 @@
           "data": {
             "cities": []
           }
+        },
+        "marquee": {
+          "enabled": true,
+          "data": {
+            "title": "As Featured In",
+            "items": [
+              { "text": "LUXURY HOMES MAGAZINE" },
+              { "text": "NATIONAL ASSOCIATION OF REALTORS" },
+              { "text": "WALL STREET JOURNAL" }
+            ]
+          }
         }
       }
     },
