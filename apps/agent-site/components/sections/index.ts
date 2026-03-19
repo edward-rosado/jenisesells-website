@@ -92,15 +92,17 @@ export { SoldMetrics } from "./sold/SoldMetrics";
 export { TestimonialsCorporate } from "./testimonials/TestimonialsCorporate";
 export { AboutProfessional } from "./about/AboutProfessional";
 
+// Premium variants (shared across upgraded templates)
+export { MarqueeBanner } from "./marquee/MarqueeBanner";
+export { TestimonialsSpotlight } from "./testimonials/TestimonialsSpotlight";
+export { ServicesPremium } from "./services/ServicesPremium";
+export { HeroParallax } from "./heroes/HeroParallax";
+export { AboutParallax } from "./about/AboutParallax";
+
 // Profiles variants
 export { ProfilesGrid } from "./profiles/ProfilesGrid";
 export { ProfilesCards } from "./profiles/ProfilesCards";
 export { ProfilesClean } from "./profiles/ProfilesClean";
 
-// Backward-compatible aliases for EmeraldClassic template
-export { HeroGradient as Hero } from "./heroes/HeroGradient";
-export { ServicesGrid as Services } from "./services/ServicesGrid";
-export { StepsNumbered as HowItWorks } from "./steps/StepsNumbered";
-export { SoldGrid as SoldHomes } from "./sold/SoldGrid";
-export { TestimonialsGrid as Testimonials } from "./testimonials/TestimonialsGrid";
-export { AboutSplit as About } from "./about/AboutSplit";
+// Scroll reveal wrapper
+export { ScrollRevealSection } from "./shared/ScrollRevealSection";

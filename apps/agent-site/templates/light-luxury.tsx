@@ -1,15 +1,17 @@
 import { Nav } from "@/components/Nav";
 import {
-  HeroAiry,
+  HeroParallax,
+  MarqueeBanner,
   StatsElegant,
-  ServicesRefined,
+  ServicesPremium,
   StepsRefined,
   SoldElegant,
-  TestimonialsQuote,
+  TestimonialsSpotlight,
   ProfilesClean,
   CmaSection,
-  AboutGrace,
+  AboutParallax,
   Footer,
+  ScrollRevealSection,
 } from "@/components/sections";
 import { type TemplateProps, getEnabledSections } from "./types";
 
@@ -22,61 +24,83 @@ export function LightLuxury({ account, content, agent }: TemplateProps) {
       <Nav account={account} navigation={content.navigation} enabledSections={enabledSections} />
       <div id="main-content" tabIndex={-1} style={{ paddingTop: "0" }}>
         {s.hero?.enabled && (
-          <HeroAiry
+          <HeroParallax
             data={s.hero.data}
             agentPhotoUrl={identity.headshot_url ?? account.agent?.headshot_url}
             agentName={identity.name}
           />
         )}
+        {s.marquee?.enabled && s.marquee.data.items.length > 0 && (
+          <MarqueeBanner
+            items={s.marquee.data.items}
+            title={s.marquee.data.title}
+          />
+        )}
         {s.stats?.enabled && s.stats.data.items.length > 0 && (
-          <StatsElegant items={s.stats.data.items} sourceDisclaimer="Based on MLS data. Individual results may vary." />
+          <ScrollRevealSection>
+            <StatsElegant items={s.stats.data.items} sourceDisclaimer="Based on MLS data. Individual results may vary." />
+          </ScrollRevealSection>
         )}
         {s.features?.enabled && (
-          <ServicesRefined
+          <ServicesPremium
             items={s.features.data.items}
             title={s.features.data.title}
             subtitle={s.features.data.subtitle}
           />
         )}
         {s.steps?.enabled && (
-          <StepsRefined
-            steps={s.steps.data.steps}
-            title={s.steps.data.title}
-            subtitle={s.steps.data.subtitle}
-          />
+          <ScrollRevealSection>
+            <StepsRefined
+              steps={s.steps.data.steps}
+              title={s.steps.data.title}
+              subtitle={s.steps.data.subtitle}
+            />
+          </ScrollRevealSection>
         )}
         {s.gallery?.enabled && s.gallery.data.items.length > 0 && (
-          <SoldElegant
-            items={s.gallery.data.items}
-            title={s.gallery.data.title}
-            subtitle={s.gallery.data.subtitle}
-          />
+          <ScrollRevealSection>
+            <SoldElegant
+              items={s.gallery.data.items}
+              title={s.gallery.data.title}
+              subtitle={s.gallery.data.subtitle}
+            />
+          </ScrollRevealSection>
         )}
         {s.testimonials?.enabled && s.testimonials.data.items.length > 0 && (
-          <TestimonialsQuote
-            items={s.testimonials.data.items}
-            title={s.testimonials.data.title}
-          />
+          <ScrollRevealSection>
+            <TestimonialsSpotlight
+              items={s.testimonials.data.items}
+              title={s.testimonials.data.title}
+            />
+          </ScrollRevealSection>
         )}
         {s.profiles?.enabled && s.profiles.data.items.length > 0 && (
-          <ProfilesClean
-            items={s.profiles.data.items}
-            title={s.profiles.data.title}
-            subtitle={s.profiles.data.subtitle}
-            accountId={account.handle}
-          />
+          <ScrollRevealSection>
+            <ProfilesClean
+              items={s.profiles.data.items}
+              title={s.profiles.data.title}
+              subtitle={s.profiles.data.subtitle}
+              accountId={account.handle}
+            />
+          </ScrollRevealSection>
         )}
         {s.contact_form?.enabled && (
-          <CmaSection
-            accountId={identity.id}
-            agentName={identity.name}
-            defaultState={account.location.state}
-            tracking={account.integrations?.tracking}
-            data={s.contact_form.data}
-            serviceAreas={account.location.service_areas}
-          />
+          <ScrollRevealSection>
+            <CmaSection
+              accountId={identity.id}
+              agentName={identity.name}
+              defaultState={account.location.state}
+              tracking={account.integrations?.tracking}
+              data={s.contact_form.data}
+              serviceAreas={account.location.service_areas}
+            />
+          </ScrollRevealSection>
         )}
-        {s.about?.enabled && <AboutGrace agent={identity} data={s.about.data} />}
+        {s.about?.enabled && (
+          <ScrollRevealSection>
+            <AboutParallax agent={identity} data={s.about.data} />
+          </ScrollRevealSection>
+        )}
         <Footer agent={account} accountId={identity.id} />
       </div>
     </>

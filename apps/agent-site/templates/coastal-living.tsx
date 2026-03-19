@@ -10,6 +10,7 @@ import {
   CmaSection,
   AboutCoastal,
   Footer,
+  ScrollRevealSection,
 } from "@/components/sections";
 import { type TemplateProps, getEnabledSections } from "./types";
 
@@ -29,57 +30,75 @@ export function CoastalLiving({ account, content, agent }: TemplateProps) {
           />
         )}
         {s.stats?.enabled && s.stats.data.items.length > 0 && (
-          <StatsWave
-            items={s.stats.data.items}
-            sourceDisclaimer="Based on MLS data. Individual results may vary."
-          />
+          <ScrollRevealSection>
+            <StatsWave
+              items={s.stats.data.items}
+              sourceDisclaimer="Based on MLS data. Individual results may vary."
+            />
+          </ScrollRevealSection>
         )}
         {s.features?.enabled && (
-          <ServicesCoastal
-            items={s.features.data.items}
-            title={s.features.data.title}
-            subtitle={s.features.data.subtitle}
-          />
+          <ScrollRevealSection>
+            <ServicesCoastal
+              items={s.features.data.items}
+              title={s.features.data.title}
+              subtitle={s.features.data.subtitle}
+            />
+          </ScrollRevealSection>
         )}
         {s.steps?.enabled && (
-          <StepsBreeze
-            steps={s.steps.data.steps}
-            title={s.steps.data.title}
-            subtitle={s.steps.data.subtitle}
-          />
+          <ScrollRevealSection>
+            <StepsBreeze
+              steps={s.steps.data.steps}
+              title={s.steps.data.title}
+              subtitle={s.steps.data.subtitle}
+            />
+          </ScrollRevealSection>
         )}
         {s.gallery?.enabled && s.gallery.data.items.length > 0 && (
-          <SoldCarousel
-            items={s.gallery.data.items}
-            title={s.gallery.data.title}
-            subtitle={s.gallery.data.subtitle}
-          />
+          <ScrollRevealSection>
+            <SoldCarousel
+              items={s.gallery.data.items}
+              title={s.gallery.data.title}
+              subtitle={s.gallery.data.subtitle}
+            />
+          </ScrollRevealSection>
         )}
         {s.testimonials?.enabled && s.testimonials.data.items.length > 0 && (
-          <TestimonialsBeach
-            items={s.testimonials.data.items}
-            title={s.testimonials.data.title}
-          />
+          <ScrollRevealSection>
+            <TestimonialsBeach
+              items={s.testimonials.data.items}
+              title={s.testimonials.data.title}
+            />
+          </ScrollRevealSection>
         )}
         {s.profiles?.enabled && s.profiles.data.items.length > 0 && (
-          <ProfilesGrid
-            items={s.profiles.data.items}
-            title={s.profiles.data.title}
-            subtitle={s.profiles.data.subtitle}
-            accountId={account.handle}
-          />
+          <ScrollRevealSection>
+            <ProfilesGrid
+              items={s.profiles.data.items}
+              title={s.profiles.data.title}
+              subtitle={s.profiles.data.subtitle}
+              accountId={account.handle}
+            />
+          </ScrollRevealSection>
         )}
         {s.contact_form?.enabled && (
-          <CmaSection
-            accountId={identity.id}
-            agentName={identity.name}
-            defaultState={account.location.state}
-            tracking={account.integrations?.tracking}
-            data={s.contact_form.data}
-            serviceAreas={account.location.service_areas}
-          />
+          <ScrollRevealSection>
+            <CmaSection
+              accountId={identity.id}
+              agentName={identity.name}
+              defaultState={account.location.state}
+              tracking={account.integrations?.tracking}
+              data={s.contact_form.data}
+              serviceAreas={account.location.service_areas}
+            />
+          </ScrollRevealSection>
         )}
-        {s.about?.enabled && <AboutCoastal agent={identity} data={s.about.data} />}
+        {s.about?.enabled && (
+          <ScrollRevealSection>
+            <AboutCoastal agent={identity} data={s.about.data} />
+          </ScrollRevealSection>
+        )}
         <Footer agent={account} accountId={identity.id} />
       </div>
     </>

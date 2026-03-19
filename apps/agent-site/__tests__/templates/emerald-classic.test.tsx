@@ -7,6 +7,9 @@ import { EmeraldClassic } from "@/templates/emerald-classic";
 import { ACCOUNT, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY, AGENT_PROP, CONTENT, CONTENT_ALL_DISABLED } from "../components/fixtures";
 import type { ContentConfig } from "@/lib/types";
 
+vi.mock("@/hooks/useScrollReveal", () => ({ useScrollReveal: vi.fn(() => true) }));
+vi.mock("@/hooks/useReducedMotion", () => ({ useReducedMotion: vi.fn(() => false) }));
+
 describe("EmeraldClassic template", () => {
   it("always renders the Nav", () => {
     render(<EmeraldClassic account={ACCOUNT} content={CONTENT} />);

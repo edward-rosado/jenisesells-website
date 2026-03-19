@@ -22,7 +22,8 @@
             "tagline": "Where expertise meets integrity.",
             "body": "Led by Diana Reyes, Broker Direct Realty is a full-service brokerage serving Newark and Montclair with a commitment to excellence, mentorship, and results. From luxury condos to historic brownstones, our team delivers personalized service backed by deep market knowledge.",
             "cta_text": "Schedule a Consultation",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/test-broker-agent/sold/15-central-park.jpg"
           }
         },
         "stats": {
@@ -44,23 +45,28 @@
             "items": [
               {
                 "title": "Buyer Representation",
-                "description": "Expert guidance through every step of the home buying process, from pre-approval to closing day. We negotiate fiercely on your behalf."
+                "description": "Expert guidance through every step of the home buying process, from pre-approval to closing day. We negotiate fiercely on your behalf.",
+                "image_url": "/agents/test-broker-agent/sold/15-central-park.jpg"
               },
               {
                 "title": "Seller Services",
-                "description": "Strategic pricing, professional staging, magazine-quality photography, and multi-channel marketing to maximize your home's value."
+                "description": "Strategic pricing, professional staging, magazine-quality photography, and multi-channel marketing to maximize your home's value.",
+                "image_url": "/agents/test-broker-agent/sold/432-park-ave.jpg"
               },
               {
                 "title": "Luxury Properties",
-                "description": "Discreet marketing, private showings, and a curated network of qualified buyers for high-end Newark and Montclair properties."
+                "description": "Discreet marketing, private showings, and a curated network of qualified buyers for high-end Newark and Montclair properties.",
+                "image_url": "/agents/test-broker-agent/sold/56-leonard.jpg"
               },
               {
                 "title": "Investment Advisory",
-                "description": "Multi-family analysis, rental yield projections, and portfolio strategy for investors targeting the northern New Jersey market."
+                "description": "Multi-family analysis, rental yield projections, and portfolio strategy for investors targeting the northern New Jersey market.",
+                "image_url": "/agents/test-broker-agent/sold/110-central-park.jpg"
               },
               {
                 "title": "Relocation Support",
-                "description": "Neighborhood tours, school district analysis, and commute planning for families relocating to the Newark-Montclair corridor."
+                "description": "Neighborhood tours, school district analysis, and commute planning for families relocating to the Newark-Montclair corridor.",
+                "image_url": "/agents/test-broker-agent/sold/1-john-st.jpg"
               }
             ]
           }
@@ -241,6 +247,17 @@
           "enabled": false,
           "data": {
             "cities": []
+          }
+        },
+        "marquee": {
+          "enabled": true,
+          "data": {
+            "title": "As Featured In",
+            "items": [
+              { "text": "LUXURY HOMES MAGAZINE" },
+              { "text": "NATIONAL ASSOCIATION OF REALTORS" },
+              { "text": "WALL STREET JOURNAL" }
+            ]
           }
         }
       }

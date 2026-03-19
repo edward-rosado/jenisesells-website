@@ -133,6 +133,7 @@ export interface PageSections {
   contact_form?: SectionConfig<ContactFormData>;
   about?: SectionConfig<AboutData>;
   city_pages?: SectionConfig<CityPagesData>;
+  marquee?: SectionConfig<MarqueeData>;
 }
 
 // --- Section Data Types ---
@@ -144,6 +145,7 @@ export interface HeroData {
   body?: string;
   cta_text: string;
   cta_link: string;
+  background_image?: string;
 }
 
 export interface StatItem {
@@ -157,6 +159,8 @@ export interface FeatureItem {
   description: string;
   icon?: string;
   category?: string;
+  background_color?: string;
+  image_url?: string;
 }
 export type FeaturesData = { title?: string; subtitle?: string; items: FeatureItem[] };
 
@@ -241,6 +245,14 @@ export interface CityPageData {
   market_snapshot: string;
 }
 export type CityPagesData = { cities: CityPageData[] };
+
+// Marquee section
+export interface MarqueeItem {
+  text: string;
+  logo_url?: string;
+  link?: string;
+}
+export type MarqueeData = { title?: string; items: MarqueeItem[] };
 
 /** @deprecated Use FeatureItem */
 export type ServiceItem = FeatureItem;

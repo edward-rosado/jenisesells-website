@@ -12,6 +12,8 @@ vi.mock("next/script", () => ({
     <script data-testid={id} data-src={src} />
   ),
 }));
+vi.mock("@/hooks/useScrollReveal", () => ({ useScrollReveal: vi.fn(() => true) }));
+vi.mock("@/hooks/useReducedMotion", () => ({ useReducedMotion: vi.fn(() => false) }));
 
 describe("WarmCommunity template", () => {
   it("always renders the Nav", () => {

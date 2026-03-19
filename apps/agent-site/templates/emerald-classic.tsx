@@ -1,5 +1,5 @@
 import { Nav } from "@/components/Nav";
-import { Hero, StatsBar, Services, HowItWorks, SoldHomes, Testimonials, ProfilesGrid, CmaSection, About, Footer } from "@/components/sections";
+import { HeroGradient, StatsBar, ServicesGrid, StepsNumbered, SoldGrid, TestimonialsGrid, ProfilesGrid, CmaSection, AboutSplit, Footer, ScrollRevealSection } from "@/components/sections";
 import { type TemplateProps, getEnabledSections } from "./types";
 
 export function EmeraldClassic({ account, content, agent }: TemplateProps) {
@@ -11,59 +11,79 @@ export function EmeraldClassic({ account, content, agent }: TemplateProps) {
       <Nav account={account} navigation={content.navigation} enabledSections={enabledSections} />
       <div id="main-content" tabIndex={-1} style={{ paddingTop: "0" }}>
       {s.hero?.enabled && (
-        <Hero
+        <HeroGradient
           data={s.hero.data}
           agentPhotoUrl={identity.headshot_url ?? account.agent?.headshot_url}
           agentName={identity.name}
         />
       )}
-      {s.stats?.enabled && s.stats.data.items.length > 0 && <StatsBar items={s.stats.data.items} sourceDisclaimer="Based on data from Zillow. Individual results may vary." />}
+      {s.stats?.enabled && s.stats.data.items.length > 0 && (
+        <ScrollRevealSection>
+          <StatsBar items={s.stats.data.items} sourceDisclaimer="Based on data from Zillow. Individual results may vary." />
+        </ScrollRevealSection>
+      )}
       {s.features?.enabled && (
-        <Services
-          items={s.features.data.items}
-          title={s.features.data.title}
-          subtitle={s.features.data.subtitle}
-        />
+        <ScrollRevealSection>
+          <ServicesGrid
+            items={s.features.data.items}
+            title={s.features.data.title}
+            subtitle={s.features.data.subtitle}
+          />
+        </ScrollRevealSection>
       )}
       {s.steps?.enabled && (
-        <HowItWorks
-          steps={s.steps.data.steps}
-          title={s.steps.data.title}
-          subtitle={s.steps.data.subtitle}
-        />
+        <ScrollRevealSection>
+          <StepsNumbered
+            steps={s.steps.data.steps}
+            title={s.steps.data.title}
+            subtitle={s.steps.data.subtitle}
+          />
+        </ScrollRevealSection>
       )}
       {s.gallery?.enabled && s.gallery.data.items.length > 0 && (
-        <SoldHomes
-          items={s.gallery.data.items}
-          title={s.gallery.data.title}
-          subtitle={s.gallery.data.subtitle}
-        />
+        <ScrollRevealSection>
+          <SoldGrid
+            items={s.gallery.data.items}
+            title={s.gallery.data.title}
+            subtitle={s.gallery.data.subtitle}
+          />
+        </ScrollRevealSection>
       )}
       {s.testimonials?.enabled && s.testimonials.data.items.length > 0 && (
-        <Testimonials
-          items={s.testimonials.data.items}
-          title={s.testimonials.data.title}
-        />
+        <ScrollRevealSection>
+          <TestimonialsGrid
+            items={s.testimonials.data.items}
+            title={s.testimonials.data.title}
+          />
+        </ScrollRevealSection>
       )}
       {s.profiles?.enabled && s.profiles.data.items.length > 0 && (
-        <ProfilesGrid
-          items={s.profiles.data.items}
-          title={s.profiles.data.title}
-          subtitle={s.profiles.data.subtitle}
-          accountId={account.handle}
-        />
+        <ScrollRevealSection>
+          <ProfilesGrid
+            items={s.profiles.data.items}
+            title={s.profiles.data.title}
+            subtitle={s.profiles.data.subtitle}
+            accountId={account.handle}
+          />
+        </ScrollRevealSection>
       )}
       {s.contact_form?.enabled && (
-        <CmaSection
-          accountId={identity.id}
-          agentName={identity.name}
-          defaultState={account.location.state}
-          tracking={account.integrations?.tracking}
-          data={s.contact_form.data}
-          serviceAreas={account.location.service_areas}
-        />
+        <ScrollRevealSection>
+          <CmaSection
+            accountId={identity.id}
+            agentName={identity.name}
+            defaultState={account.location.state}
+            tracking={account.integrations?.tracking}
+            data={s.contact_form.data}
+            serviceAreas={account.location.service_areas}
+          />
+        </ScrollRevealSection>
       )}
-      {s.about?.enabled && <About agent={identity} data={s.about.data} />}
+      {s.about?.enabled && (
+        <ScrollRevealSection>
+          <AboutSplit agent={identity} data={s.about.data} />
+        </ScrollRevealSection>
+      )}
       <Footer agent={account} accountId={identity.id} />
       </div>
     </>

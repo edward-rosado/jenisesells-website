@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { LuxuryEstate } from "@/templates/luxury-estate";
-import { ACCOUNT, CONTENT, CONTENT_ALL_DISABLED, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY, AGENT_PROP } from "../components/fixtures";
+import { ACCOUNT, CONTENT, CONTENT_ALL_DISABLED, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY, AGENT_PROP, CONTENT_WITH_MARQUEE } from "../components/fixtures";
 
 vi.mock("next/script", () => ({
   __esModule: true,
@@ -12,6 +12,10 @@ vi.mock("next/script", () => ({
     <script data-testid={id} data-src={src} />
   ),
 }));
+
+vi.mock("@/hooks/useParallax", () => ({ useParallax: vi.fn() }));
+vi.mock("@/hooks/useScrollReveal", () => ({ useScrollReveal: vi.fn(() => true) }));
+vi.mock("@/hooks/useReducedMotion", () => ({ useReducedMotion: vi.fn(() => false) }));
 
 // Mock matchMedia for SoldCarousel's useSyncExternalStore
 Object.defineProperty(window, "matchMedia", {
@@ -57,7 +61,7 @@ describe("LuxuryEstate template", () => {
     expect(screen.getByText("Submit Info")).toBeInTheDocument();
     expect(screen.getByText("$750,000")).toBeInTheDocument();
     expect(screen.getByText(/Amazing service!/)).toBeInTheDocument();
-    expect(screen.getByText(/About Jane Smith/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Jane Smith" })).toBeInTheDocument();
   });
 
   it("does not render disabled sections", () => {
@@ -68,16 +72,21 @@ describe("LuxuryEstate template", () => {
 
   it("uses agent prop identity when provided", () => {
     render(<LuxuryEstate account={ACCOUNT} content={CONTENT} agent={AGENT_PROP} />);
-    expect(screen.getByRole("heading", { name: /About Explicit Agent/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Explicit Agent" })).toBeInTheDocument();
   });
 
   it("falls back to broker name when no agent", () => {
     render(<LuxuryEstate account={ACCOUNT_BROKER_ONLY} content={CONTENT} />);
-    expect(screen.getByRole("heading", { name: /About Sam Broker/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Sam Broker" })).toBeInTheDocument();
   });
 
   it("falls back to brokerage name when no agent or broker", () => {
     render(<LuxuryEstate account={ACCOUNT_BROKERAGE_ONLY} content={CONTENT} />);
-    expect(screen.getByRole("heading", { name: /About Brokerage LLC/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Brokerage LLC" })).toBeInTheDocument();
+  });
+
+  it("renders MarqueeBanner when marquee is enabled with items", () => {
+    render(<LuxuryEstate account={ACCOUNT} content={CONTENT_WITH_MARQUEE} />);
+    expect(screen.getAllByText("LUXURY HOMES MAGAZINE").length).toBeGreaterThanOrEqual(1);
   });
 });

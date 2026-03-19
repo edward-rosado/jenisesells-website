@@ -13,6 +13,9 @@ vi.mock("next/script", () => ({
   ),
 }));
 
+vi.mock("@/hooks/useScrollReveal", () => ({ useScrollReveal: vi.fn(() => true) }));
+vi.mock("@/hooks/useReducedMotion", () => ({ useReducedMotion: vi.fn(() => false) }));
+
 // Mock matchMedia for SoldCarousel's useSyncExternalStore
 Object.defineProperty(window, "matchMedia", {
   writable: true,
