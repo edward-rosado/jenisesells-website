@@ -204,11 +204,20 @@ describe("ServicesPremium", () => {
     expect(imageContainer).toBeTruthy();
   });
 
-  it("injects responsive CSS for mobile layout", () => {
+  it("injects responsive CSS for mobile and tablet layouts", () => {
     const { container } = render(<ServicesPremium items={ITEMS} />);
     const styleTag = container.querySelector("style");
     expect(styleTag?.textContent).toContain("data-feature-visual");
     expect(styleTag?.textContent).toContain("data-feature-image");
+    expect(styleTag?.textContent).toContain("data-feature-text");
+    // Tablet breakpoint
+    expect(styleTag?.textContent).toContain("1024px");
+  });
+
+  it("marks text area with data-feature-text attribute", () => {
+    const { container } = render(<ServicesPremium items={ITEMS} />);
+    const textAreas = container.querySelectorAll("[data-feature-text]");
+    expect(textAreas.length).toBe(3);
   });
 
   it("renders visual-shape className on placeholder (no image)", () => {

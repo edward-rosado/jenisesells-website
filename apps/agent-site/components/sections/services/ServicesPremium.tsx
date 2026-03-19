@@ -14,6 +14,13 @@ export function ServicesPremium({ items, title, subtitle }: FeaturesProps) {
   return (
     <section id="features" style={{ overflow: "hidden" }}>
       <style>{`
+        @media (max-width: 1024px) {
+          [data-feature-block] {
+            padding: 60px 32px !important;
+            gap: 32px !important;
+          }
+          [data-feature-text] { max-width: 100% !important; }
+        }
         @media (max-width: 768px) {
           [data-feature-block] {
             flex-direction: column !important;
@@ -25,7 +32,7 @@ export function ServicesPremium({ items, title, subtitle }: FeaturesProps) {
           [data-feature-block] .visual-shape { width: 240px !important; height: 240px !important; }
           [data-feature-visual] {
             width: 100% !important;
-            max-width: 100% !important;
+            flex: none !important;
             justify-content: center !important;
           }
           [data-feature-image] {
@@ -89,12 +96,17 @@ function FeatureBlock({ item, index }: FeatureBlockProps) {
         overflow: "hidden",
       }}
     >
-      <div style={{
-        maxWidth: "560px",
-        opacity: isVisible ? 1 : 0,
-        transform: isVisible ? "translateY(0)" : "translateY(40px)",
-        transition: "opacity 0.8s ease, transform 0.8s ease",
-      }}>
+      <div
+        data-feature-text
+        style={{
+          flex: 1,
+          maxWidth: "560px",
+          minWidth: 0,
+          opacity: isVisible ? 1 : 0,
+          transform: isVisible ? "translateY(0)" : "translateY(40px)",
+          transition: "opacity 0.8s ease, transform 0.8s ease",
+        }}
+      >
         {item.category && (
           <div style={{
             fontSize: "12px",
