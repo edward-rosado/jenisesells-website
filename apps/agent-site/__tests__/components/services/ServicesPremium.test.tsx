@@ -145,6 +145,26 @@ describe("ServicesPremium", () => {
     expect(shapeStyles).toMatch(/rgba\(255,\s*255,\s*255,\s*0\.06\)/);
   });
 
+  it("renders image when image_url is provided", () => {
+    const itemsWithImage: FeatureItem[] = [
+      { title: "With Image", description: "Has photo", image_url: "/test/photo.jpg" },
+    ];
+    const { container } = render(<ServicesPremium items={itemsWithImage} />);
+    const img = container.querySelector("img");
+    expect(img).toBeTruthy();
+    expect(img?.getAttribute("src")).toContain("photo.jpg");
+    expect(img?.getAttribute("alt")).toBe("With Image");
+  });
+
+  it("renders placeholder shape when no image_url", () => {
+    const itemsNoImage: FeatureItem[] = [
+      { title: "No Image", description: "No photo" },
+    ];
+    const { container } = render(<ServicesPremium items={itemsNoImage} />);
+    const img = container.querySelector("img");
+    expect(img).toBeNull();
+  });
+
   it("renders with opacity 0 and scale(0.92) when not visible", () => {
     mockUseScrollReveal.mockReturnValue(false);
     const { container } = render(<ServicesPremium items={[ITEMS[0]]} />);

@@ -36,6 +36,8 @@ export function AboutParallax({ agent, data }: AboutProps) {
           alignItems: "center",
           justifyContent: "center",
           padding: "80px 24px",
+          width: "100%",
+          maxWidth: "100vw",
         }}
       >
         {/* Parallax background */}

@@ -1,18 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import type { MarqueeProps } from "@/components/sections/types";
 
 export function MarqueeBanner({ items, title }: MarqueeProps) {
   const reducedMotion = useReducedMotion();
-  const [hovered, setHovered] = useState(false);
 
   if (items.length === 0) return null;
 
   const isStatic = reducedMotion || items.length === 1;
   const displayItems = isStatic ? items : [...items, ...items];
-  const duration = items.length * 3;
+  const duration = Math.max(20, items.length * 8);
 
   const renderItem = (item: (typeof items)[number], index: number) => {
     const content = (
@@ -94,8 +92,6 @@ export function MarqueeBanner({ items, title }: MarqueeProps) {
       )}
       <div
         data-marquee-track
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
         style={{
           display: "flex",
           alignItems: "center",
@@ -105,7 +101,6 @@ export function MarqueeBanner({ items, title }: MarqueeProps) {
             ? { flexWrap: "wrap" as const }
             : {
                 animation: `marquee-scroll ${duration}s linear infinite`,
-                animationPlayState: hovered ? "paused" : "running",
                 width: "max-content",
               }),
         }}

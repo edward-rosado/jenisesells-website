@@ -48,7 +48,8 @@
             "tagline": "Understated elegance.",
             "body": "I'm Sophie Laurent — a licensed Miami real estate associate specializing in luxury waterfront estates, penthouse residences, and architectural homes across Miami Beach, Coral Gables, Coconut Grove, and Key Biscayne. My clients expect discretion, expertise, and results. I deliver all three.",
             "cta_text": "Request a Private Valuation",
-            "cta_link": "#cma-form"
+            "cta_link": "#cma-form",
+            "background_image": "/agents/test-light-luxury/sold/100-greenwich.jpg"
           }
         },
         "stats": {
@@ -82,23 +83,28 @@
             "items": [
               {
                 "title": "Private Market Access",
-                "description": "Off-market and pre-launch listings shared exclusively with qualified buyers — many of my finest properties never hit the MLS."
+                "description": "Off-market and pre-launch listings shared exclusively with qualified buyers — many of my finest properties never hit the MLS.",
+                "image_url": "/agents/test-light-luxury/sold/100-greenwich.jpg"
               },
               {
                 "title": "Luxury Valuation",
-                "description": "Precision pricing informed by waterfront premiums, architectural significance, and the nuances of Miami's ultra-luxury segment."
+                "description": "Precision pricing informed by waterfront premiums, architectural significance, and the nuances of Miami's ultra-luxury segment.",
+                "image_url": "/agents/test-light-luxury/sold/200-main.jpg"
               },
               {
                 "title": "Global Network",
-                "description": "Connections to qualified international buyers through partnerships with luxury brokerages in Paris, London, Sao Paulo, and Dubai."
+                "description": "Connections to qualified international buyers through partnerships with luxury brokerages in Paris, London, Sao Paulo, and Dubai.",
+                "image_url": "/agents/test-light-luxury/sold/45-elm.jpg"
               },
               {
                 "title": "Concierge Coordination",
-                "description": "From interior staging to legal counsel, I coordinate a curated team of professionals so you only deal with one point of contact."
+                "description": "From interior staging to legal counsel, I coordinate a curated team of professionals so you only deal with one point of contact.",
+                "image_url": "/agents/test-light-luxury/sold/88-post.jpg"
               },
               {
                 "title": "Discretion & Privacy",
-                "description": "Confidential transactions for high-profile clients. NDA-backed processes, unlisted showings, and controlled media exposure."
+                "description": "Confidential transactions for high-profile clients. NDA-backed processes, unlisted showings, and controlled media exposure.",
+                "image_url": "/agents/test-light-luxury/sold/100-greenwich.jpg"
               }
             ]
           }

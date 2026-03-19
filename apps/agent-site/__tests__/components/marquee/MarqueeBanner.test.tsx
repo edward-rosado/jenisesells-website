@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, fireEvent } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import { MarqueeBanner } from "@/components/sections/marquee/MarqueeBanner";
 import type { MarqueeItem } from "@/lib/types";
 
@@ -72,13 +72,17 @@ describe("MarqueeBanner", () => {
     expect(styleTag?.textContent).toContain("@keyframes");
   });
 
-  it("pauses animation on hover", () => {
+  it("runs animation continuously without pause", () => {
     const { container } = render(<MarqueeBanner items={ITEMS} />);
     const track = container.querySelector("[data-marquee-track]") as HTMLElement;
-    expect(track.style.animationPlayState).not.toBe("paused");
-    fireEvent.mouseEnter(track);
-    expect(track.style.animationPlayState).toBe("paused");
-    fireEvent.mouseLeave(track);
-    expect(track.style.animationPlayState).not.toBe("paused");
+    expect(track.style.animation).toContain("marquee-scroll");
+    expect(track.style.animation).toContain("linear infinite");
+  });
+
+  it("uses slower duration based on item count", () => {
+    const { container } = render(<MarqueeBanner items={ITEMS} />);
+    const track = container.querySelector("[data-marquee-track]") as HTMLElement;
+    // 3 items * 8 = 24s, but min is 20, so 24s
+    expect(track.style.animation).toContain("24s");
   });
 });

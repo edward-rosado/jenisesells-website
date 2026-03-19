@@ -36,6 +36,8 @@ export function HeroParallax({ data, agentPhotoUrl, agentName }: HeroProps) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        width: "100%",
+        maxWidth: "100vw",
       }}
     >
       {/* Parallax background */}

@@ -13,7 +13,7 @@ export function useParallax(
   bgRef: RefObject<HTMLElement | null>,
   options?: ParallaxOptions,
 ): void {
-  const { maxScale = 1.15, maxTranslateY = -20 } = options ?? {};
+  const { maxScale = 1.25, maxTranslateY = -40 } = options ?? {};
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -30,10 +30,8 @@ export function useParallax(
       ticking = true;
       requestAnimationFrame(() => {
         const rect = el!.getBoundingClientRect();
-        const windowHeight = window.innerHeight;
-        const progress = Math.max(0, Math.min(1,
-          (windowHeight - rect.top) / (windowHeight + rect.height),
-        ));
+        // Progress: 0 when element top is at viewport top, 1 when element is fully scrolled out
+        const progress = Math.max(0, Math.min(1, -rect.top / rect.height));
         const scale = 1 + progress * (maxScale - 1);
         const translateY = progress * maxTranslateY;
         bg!.style.transform = `scale(${scale}) translateY(${translateY}px)`;

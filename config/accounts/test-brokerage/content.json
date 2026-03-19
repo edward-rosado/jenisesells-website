@@ -22,7 +22,8 @@
             "tagline": "Luxury real estate, personal service.",
             "body": "With over 30 years of experience in northern New Jersey's luxury market, Sterling & Associates delivers unmatched expertise and white-glove service for discerning buyers and sellers.",
             "cta_text": "Meet Our Team",
-            "cta_link": "#profiles"
+            "cta_link": "#profiles",
+            "background_image": "/agents/test-brokerage/sold/1048.jpg"
           }
         },
         "stats": {
@@ -42,9 +43,9 @@
             "title": "Our Services",
             "subtitle": "Full-service luxury real estate for buyers and sellers.",
             "items": [
-              { "title": "Luxury Listings", "description": "Expert marketing and staging for high-end properties in Summit, Short Hills, and Chatham." },
-              { "title": "Buyer Representation", "description": "Exclusive access to off-market properties and new developments." },
-              { "title": "Market Analysis", "description": "Data-driven pricing strategies backed by decades of local market knowledge." }
+              { "title": "Luxury Listings", "description": "Expert marketing and staging for high-end properties in Summit, Short Hills, and Chatham.", "image_url": "/agents/test-brokerage/sold/1048.jpg" },
+              { "title": "Buyer Representation", "description": "Exclusive access to off-market properties and new developments.", "image_url": "/agents/test-brokerage/sold/260.jpg" },
+              { "title": "Market Analysis", "description": "Data-driven pricing strategies backed by decades of local market knowledge.", "image_url": "/agents/test-brokerage/sold/336.jpg" }
             ]
           }
         },

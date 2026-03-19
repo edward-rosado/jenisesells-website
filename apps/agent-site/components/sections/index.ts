@@ -106,11 +106,3 @@ export { ProfilesClean } from "./profiles/ProfilesClean";
 
 // Scroll reveal wrapper
 export { ScrollRevealSection } from "./shared/ScrollRevealSection";
-
-// Backward-compatible aliases for EmeraldClassic template
-export { HeroGradient as Hero } from "./heroes/HeroGradient";
-export { ServicesGrid as Services } from "./services/ServicesGrid";
-export { StepsNumbered as HowItWorks } from "./steps/StepsNumbered";
-export { SoldGrid as SoldHomes } from "./sold/SoldGrid";
-export { TestimonialsGrid as Testimonials } from "./testimonials/TestimonialsGrid";
-export { AboutSplit as About } from "./about/AboutSplit";

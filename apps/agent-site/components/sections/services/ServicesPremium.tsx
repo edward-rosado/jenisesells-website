@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Image from "next/image";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import type { FeaturesProps } from "@/components/sections/types";
 
@@ -11,7 +12,7 @@ export function ServicesPremium({ items, title, subtitle }: FeaturesProps) {
   if (items.length === 0) return null;
 
   return (
-    <section id="features">
+    <section id="features" style={{ overflow: "hidden" }}>
       <style>{`
         @media (max-width: 768px) {
           [data-feature-block] {
@@ -126,21 +127,41 @@ function FeatureBlock({ item, index }: FeatureBlockProps) {
         transform: isVisible ? "scale(1)" : "scale(0.92)",
         transition: "opacity 1s ease 0.2s, transform 1s ease 0.2s",
       }}>
-        <div style={{
-          width: "320px",
-          height: "320px",
-          borderRadius: "24px",
-          background: isDark
-            ? "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))"
-            : `linear-gradient(135deg, ${bg === "#f0f7ff" ? "#e3f2fd, #bbdefb" : "#e8f5e9, #c8e6c9"})`,
-          border: isDark ? "1px solid rgba(255,255,255,0.08)" : undefined,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "80px",
-        }}>
-          {item.icon ?? ""}
-        </div>
+        {item.image_url ? (
+          <div style={{
+            position: "relative" as const,
+            width: "100%",
+            maxWidth: "480px",
+            aspectRatio: "4/3",
+            borderRadius: "16px",
+            overflow: "hidden",
+            boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.4)" : "0 8px 32px rgba(0,0,0,0.1)",
+          }}>
+            <Image
+              src={item.image_url}
+              alt={item.title}
+              fill
+              sizes="(max-width: 768px) 100vw, 480px"
+              style={{ objectFit: "cover" }}
+            />
+          </div>
+        ) : (
+          <div style={{
+            width: "320px",
+            height: "320px",
+            borderRadius: "24px",
+            background: isDark
+              ? "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))"
+              : `linear-gradient(135deg, ${bg === "#f0f7ff" ? "#e3f2fd, #bbdefb" : "#e8f5e9, #c8e6c9"})`,
+            border: isDark ? "1px solid rgba(255,255,255,0.08)" : undefined,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "80px",
+          }}>
+            {item.icon ?? ""}
+          </div>
+        )}
       </div>
     </div>
   );
