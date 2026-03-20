@@ -22,6 +22,8 @@ export interface LeadFormProps {
   serviceAreas?: string[];
   showCmaDisclaimer?: boolean;
   agentFirstName?: string;
+  turnstileSiteKey?: string;
+  onTurnstileSuccess?: (token: string) => void;
 }
 
 function parseOptionalNumber(value: string): number | undefined {
@@ -65,6 +67,8 @@ export function LeadForm({
   serviceAreas = [],
   showCmaDisclaimer = false,
   agentFirstName,
+  turnstileSiteKey: _turnstileSiteKey,
+  onTurnstileSuccess: _onTurnstileSuccess,
 }: LeadFormProps) {
   const [isBuying, setIsBuying] = useState(initialMode.includes("buying"));
   const [isSelling, setIsSelling] = useState(initialMode.includes("selling"));
@@ -75,6 +79,7 @@ export function LeadForm({
   const [submitting, setSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [tcpaConsent, setTcpaConsent] = useState(false);
+  const [honeypot, setHoneypot] = useState("");
   const [fields, setFields] = useState<FormFields>({
     firstName: "",
     lastName: "",
@@ -311,6 +316,18 @@ export function LeadForm({
         margin: "0 auto",
       }}
     >
+      {/* SECURITY: Honeypot field — hidden from real users, catches bots that fill all fields */}
+      <input
+        type="text"
+        name="website"
+        aria-hidden="true"
+        tabIndex={-1}
+        autoComplete="off"
+        value={honeypot}
+        onChange={(e) => setHoneypot(e.target.value)}
+        style={{ position: "absolute", left: -9999, width: 1, height: 1, overflow: "hidden" }}
+      />
+
       {/* SECURITY: Static CSS only. Never interpolate dynamic values here. */}
       <style>{`
         .res-lead-form-row { display: flex; gap: 16px; }

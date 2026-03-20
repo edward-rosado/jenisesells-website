@@ -759,6 +759,38 @@ describe("LeadForm", () => {
     expect(screen.getByRole("button", { name: /get my free cma/i })).toBeInTheDocument();
   });
 
+  // Test 43 — Honeypot field
+  it("honeypot field is aria-hidden", () => {
+    render(<LeadForm {...defaultProps} />);
+    const honeypot = document.querySelector('input[name="website"]') as HTMLInputElement;
+    expect(honeypot).not.toBeNull();
+    expect(honeypot.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  // Test 44
+  it("honeypot field has tabIndex of -1", () => {
+    render(<LeadForm {...defaultProps} />);
+    const honeypot = document.querySelector('input[name="website"]') as HTMLInputElement;
+    expect(honeypot).not.toBeNull();
+    expect(honeypot.tabIndex).toBe(-1);
+  });
+
+  // Test 45 — marketing consent checkbox (TCPA)
+  it("marketing consent checkbox is present", () => {
+    render(<LeadForm {...defaultProps} />);
+    const checkbox = screen.getByRole("checkbox", { name: /consent to receive/i });
+    expect(checkbox).toBeInTheDocument();
+  });
+
+  // Test 46
+  it("honeypot field is positioned off-screen", () => {
+    render(<LeadForm {...defaultProps} />);
+    const honeypot = document.querySelector('input[name="website"]') as HTMLInputElement;
+    expect(honeypot).not.toBeNull();
+    expect(honeypot.style.position).toBe("absolute");
+    expect(honeypot.style.left).toBe("-9999px");
+  });
+
   // Test 42
   it("allows submit when TCPA consent is checked", async () => {
     const onSubmit = vi.fn();
