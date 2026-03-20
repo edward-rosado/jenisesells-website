@@ -26,15 +26,9 @@ describe("StatusPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("includes StatusDashboard component (shows loading or success)", () => {
+  it("includes StatusDashboard component in loading state", () => {
     render(<StatusPage />);
-    // The dashboard renders either loading indicator or status content
-    const loading = screen.queryByTestId("status-loading");
-    const error = screen.queryByTestId("status-error");
-    const heading = screen.queryByRole("heading", { name: /system status/i });
-    // At minimum the page heading is present
-    expect(heading).toBeInTheDocument();
-    // And exactly one of: loading, error, or neither (success) is shown
-    expect(loading !== null || error !== null || true).toBe(true);
+    // Dashboard starts in loading state before fetch resolves
+    expect(screen.getByTestId("status-loading")).toBeInTheDocument();
   });
 });

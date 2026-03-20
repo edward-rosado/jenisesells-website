@@ -45,7 +45,8 @@ export function StatusDashboard() {
   if (state.kind === "error") {
     return (
       <div data-testid="status-error" className="text-red-400">
-        Unable to reach API
+        <p>Unable to reach API</p>
+        <p className="text-sm text-gray-500">{state.message}</p>
       </div>
     );
   }
