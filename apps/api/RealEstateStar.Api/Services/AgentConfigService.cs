@@ -13,6 +13,12 @@ public partial class AgentConfigService(string configDirectory, ILogger<AgentCon
         PropertyNameCaseInsensitive = false
     };
 
+    private static readonly JsonSerializerOptions WriteOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        WriteIndented = true
+    };
+
     [GeneratedRegex(@"^[a-z0-9-]+$")]
     private static partial Regex AgentIdPattern();
 
@@ -43,6 +49,62 @@ public partial class AgentConfigService(string configDirectory, ILogger<AgentCon
 
         await using var stream = File.OpenRead(resolvedPath);
         return await JsonSerializer.DeserializeAsync<AgentConfig>(stream, JsonOptions, ct);
+    }
+
+    public async Task UpdateAgentAsync(string agentId, AgentConfig config, CancellationToken ct)
+    {
+        ValidateAgentId(agentId);
+
+        var resolvedConfigDir = Path.GetFullPath(configDirectory);
+
+        var directoryPath = Path.GetFullPath(Path.Combine(configDirectory, agentId, "config.json"));
+        var flatPath = Path.GetFullPath(Path.Combine(configDirectory, $"{agentId}.json"));
+        var resolvedPath = File.Exists(directoryPath) ? directoryPath : flatPath;
+
+        if (!resolvedPath.StartsWith(resolvedConfigDir, StringComparison.OrdinalIgnoreCase))
+        {
+            logger?.LogWarning("Path traversal attempt detected for agent id {AgentId}", agentId);
+            throw new ArgumentException($"Invalid agent id: {agentId}", nameof(agentId));
+        }
+
+        var tempPath = resolvedPath + ".tmp";
+        await using (var stream = File.OpenWrite(tempPath))
+        {
+            await JsonSerializer.SerializeAsync(stream, config, WriteOptions, ct);
+        }
+
+        File.Move(tempPath, resolvedPath, overwrite: true);
+        logger?.LogInformation("Updated agent config for {AgentId}", agentId);
+    }
+
+    public Task<List<string>> GetAllAgentIdsAsync(CancellationToken ct)
+    {
+        var resolvedConfigDir = Path.GetFullPath(configDirectory);
+        var ids = new List<string>();
+
+        if (!Directory.Exists(resolvedConfigDir))
+            return Task.FromResult(ids);
+
+        // Flat format: {id}.json
+        foreach (var file in Directory.EnumerateFiles(resolvedConfigDir, "*.json"))
+        {
+            var id = Path.GetFileNameWithoutExtension(file);
+            if (AgentIdPattern().IsMatch(id))
+                ids.Add(id);
+        }
+
+        // Directory format: {id}/config.json
+        foreach (var dir in Directory.EnumerateDirectories(resolvedConfigDir))
+        {
+            var id = Path.GetFileName(dir);
+            if (AgentIdPattern().IsMatch(id) && File.Exists(Path.Combine(dir, "config.json")))
+            {
+                if (!ids.Contains(id))
+                    ids.Add(id);
+            }
+        }
+
+        return Task.FromResult(ids);
     }
 
     private static void ValidateAgentId(string agentId)
