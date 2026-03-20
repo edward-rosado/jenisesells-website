@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Api.Features.Leads;
 using RealEstateStar.Api.Features.Leads.Services;
@@ -13,7 +14,7 @@ public class GDriveLeadStoreTests
 
     public GDriveLeadStoreTests()
     {
-        _sut = new GDriveLeadStore(_storage.Object);
+        _sut = new GDriveLeadStore(_storage.Object, NullLogger<GDriveLeadStore>.Instance);
     }
 
     // ── Test data ─────────────────────────────────────────────────────────────

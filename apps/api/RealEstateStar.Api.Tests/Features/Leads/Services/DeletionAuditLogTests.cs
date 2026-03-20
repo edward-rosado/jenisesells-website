@@ -1,5 +1,6 @@
 namespace RealEstateStar.Api.Tests.Features.Leads.Services;
 
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Api.Features.Leads.Services;
 using RealEstateStar.Api.Services.Storage;
@@ -11,7 +12,7 @@ public class DeletionAuditLogTests
 
     public DeletionAuditLogTests()
     {
-        _sut = new DeletionAuditLog(_storage.Object);
+        _sut = new DeletionAuditLog(_storage.Object, NullLogger<DeletionAuditLog>.Instance);
     }
 
     [Fact]

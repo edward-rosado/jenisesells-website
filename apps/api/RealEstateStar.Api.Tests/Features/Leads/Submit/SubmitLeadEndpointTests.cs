@@ -310,9 +310,7 @@ public class SubmitLeadEndpointUnitTests
         Mock<IAccountConfigService> AccountConfig,
         Mock<ILeadStore> LeadStore,
         Mock<IMarketingConsentLog> ConsentLog,
-        Mock<ILeadEnricher> Enricher,
-        Mock<ILeadNotifier> Notifier,
-        Mock<IHomeSearchProvider> HomeSearch,
+        LeadProcessingChannel ProcessingChannel,
         Mock<ILogger<SubmitLeadEndpoint>> Logger);
 
     private static Mocks CreateMocks(AccountConfig? agent = null)
@@ -332,27 +330,10 @@ public class SubmitLeadEndpointUnitTests
             .Setup(s => s.RecordConsentAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var enricher = new Mock<ILeadEnricher>();
-        enricher
-            .Setup(e => e.EnrichAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((LeadEnrichment.Empty(), LeadScore.Default("test")));
-
-        var notifier = new Mock<ILeadNotifier>();
-        notifier
-            .Setup(n => n.NotifyAgentAsync(
-                It.IsAny<string>(), It.IsAny<Lead>(),
-                It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var homeSearch = new Mock<IHomeSearchProvider>();
-        homeSearch
-            .Setup(h => h.SearchAsync(It.IsAny<HomeSearchCriteria>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
-
+        var channel = new LeadProcessingChannel();
         var logger = new Mock<ILogger<SubmitLeadEndpoint>>();
 
-        return new Mocks(accountConfig, leadStore, consentLog, enricher, notifier, homeSearch, logger);
+        return new Mocks(accountConfig, leadStore, consentLog, channel, logger);
     }
 
     private static HttpContext MakeHttpContext(
@@ -376,9 +357,7 @@ public class SubmitLeadEndpointUnitTests
             m.AccountConfig.Object,
             m.LeadStore.Object,
             m.ConsentLog.Object,
-            m.Enricher.Object,
-            m.Notifier.Object,
-            m.HomeSearch.Object,
+            m.ProcessingChannel,
             httpContext ?? MakeHttpContext(),
             m.Logger.Object,
             CancellationToken.None);
@@ -586,44 +565,30 @@ public class SubmitLeadEndpointUnitTests
     }
 
     [Fact]
-    public async Task Handle_FiresEnrichmentInBackground()
+    public async Task Handle_EnqueuesProcessingRequest_ToChannel()
     {
         var m = CreateMocks();
 
         await CallHandle(m);
-        await Task.Delay(300); // allow background task to complete
 
-        m.Enricher.Verify(e => e.EnrichAsync(It.IsAny<Lead>(), CancellationToken.None), Times.Once);
+        // The channel should have exactly one item
+        m.ProcessingChannel.Reader.TryRead(out var processingRequest).Should().BeTrue();
+        processingRequest.Should().NotBeNull();
+        processingRequest!.AgentId.Should().Be("test-agent");
+        processingRequest.Lead.Email.Should().Be("jane@example.com");
+        processingRequest.CorrelationId.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
-    public async Task Handle_FiresNotificationInBackground()
-    {
-        var m = CreateMocks();
-
-        await CallHandle(m);
-        await Task.Delay(300);
-
-        m.Notifier.Verify(
-            n => n.NotifyAgentAsync(
-                It.IsAny<string>(), It.IsAny<Lead>(),
-                It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(),
-                CancellationToken.None),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_DoesNotTriggerHomeSearch_ForSellerOnlyLead()
+    public async Task Handle_EnqueuesProcessingRequest_WithCorrectLeadType()
     {
         var m = CreateMocks();
         var request = MakeValidRequest(leadType: LeadType.Seller, seller: MakeSeller());
 
         await CallHandle(m, request);
-        await Task.Delay(300);
 
-        m.HomeSearch.Verify(
-            h => h.SearchAsync(It.IsAny<HomeSearchCriteria>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+        m.ProcessingChannel.Reader.TryRead(out var processingRequest).Should().BeTrue();
+        processingRequest!.Lead.LeadType.Should().Be(LeadType.Seller);
     }
 
     // -------------------------------------------------------------------------
@@ -657,60 +622,13 @@ public class SubmitLeadEndpointUnitTests
     }
 
     [Fact]
-    public async Task Handle_LogsError_WhenEnrichmentFails_AndNotificationStillFires()
+    public async Task Handle_Returns202_EvenIfChannelIsNearCapacity()
     {
         var m = CreateMocks();
-        m.Enricher
-            .Setup(e => e.EnrichAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("scraper unavailable"));
 
-        await CallHandle(m);
-        await Task.Delay(300);
-
-        // Enrichment failed but notification should still have fired
-        m.Notifier.Verify(
-            n => n.NotifyAgentAsync(
-                It.IsAny<string>(), It.IsAny<Lead>(),
-                It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(),
-                CancellationToken.None),
-            Times.Once);
-
-        // Error was logged
-        m.Logger.Verify(
-            l => l.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("LEAD-007")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_LogsError_WhenNotificationFails_DoesNotThrow()
-    {
-        var m = CreateMocks();
-        m.Notifier
-            .Setup(n => n.NotifyAgentAsync(
-                It.IsAny<string>(), It.IsAny<Lead>(),
-                It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(),
-                It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("smtp unreachable"));
-
-        // Should still return 202 — background failure should not propagate
+        // Submit should return 202 — background processing is decoupled
         var result = await CallHandle(m);
-        await Task.Delay(300);
-
         result.Should().BeOfType<Accepted<SubmitLeadResponse>>();
-
-        m.Logger.Verify(
-            l => l.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("LEAD-005")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
     }
 
     // -------------------------------------------------------------------------

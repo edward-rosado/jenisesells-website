@@ -116,11 +116,11 @@ public class PollyPolicyTests
     }
 
     // ---------------------------------------------------------------------------
-    // Claude API — Retry log [LEAD-035]
+    // Claude API — Retry log [CLAUDE-001]
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task ClaudeApi_Retry_Logs_LEAD035()
+    public async Task ClaudeApi_Retry_Logs_CLAUDE001()
     {
         var handler = new CountingHandler(HttpStatusCode.InternalServerError);
         var loggerMock = new Mock<ILogger>();
@@ -130,12 +130,11 @@ public class PollyPolicyTests
 
         await client.GetAsync("http://localhost/test");
 
-        // Verify at least one log call contained [LEAD-035]
         loggerMock.Verify(
             l => l.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[LEAD-035]")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[CLAUDE-001]")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
@@ -146,7 +145,7 @@ public class PollyPolicyTests
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task ClaudeApi_CircuitBreaker_Opens_AfterFiveFailures_Logs_LEAD036()
+    public async Task ClaudeApi_CircuitBreaker_Opens_AfterFiveFailures_Logs_CLAUDE002()
     {
         var handler = new CountingHandler(HttpStatusCode.InternalServerError);
         var loggerMock = new Mock<ILogger>();
@@ -154,9 +153,6 @@ public class PollyPolicyTests
         var client = BuildClient("claude-cb", handler, loggerMock.Object,
             (b, l) => b.AddClaudeApiResilience(l));
 
-        // Fire enough requests to trip the circuit breaker.
-        // Each request does 1 + 3 retries = 4 attempts against the handler.
-        // MinimumThroughput=5 failures; after that the breaker opens.
         for (var i = 0; i < 6; i++)
         {
             try { await client.GetAsync("http://localhost/test"); } catch { /* breaker throws */ }
@@ -166,14 +162,14 @@ public class PollyPolicyTests
             l => l.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[LEAD-036]")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[CLAUDE-002]")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
     }
 
     [Fact]
-    public async Task ClaudeApi_CircuitBreaker_Close_Logs_LEAD037()
+    public async Task ClaudeApi_CircuitBreaker_Close_Logs_CLAUDE003()
     {
         var callCount = 0;
         // Handler that fails first N times, then succeeds — allows the circuit to close (half-open → closed)
@@ -218,7 +214,7 @@ public class PollyPolicyTests
                     OnOpened = _ => ValueTask.CompletedTask,
                     OnClosed = _ =>
                     {
-                        loggerMock.Object.LogInformation("[LEAD-037] Claude API circuit breaker closed.");
+                        loggerMock.Object.LogInformation("[CLAUDE-003] Claude API circuit breaker closed.");
                         return ValueTask.CompletedTask;
                     }
                 });
@@ -237,14 +233,14 @@ public class PollyPolicyTests
         // Wait for the break duration to expire so the circuit transitions to half-open
         await Task.Delay(700);
 
-        // This call should succeed (handler returns 200 after callCount > 25) → closed → [LEAD-037]
+        // This call should succeed (handler returns 200 after callCount > 25) → closed → [CLAUDE-003]
         await client.GetAsync("http://localhost/test");
 
         loggerMock.Verify(
             l => l.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[LEAD-037]")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[CLAUDE-003]")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
@@ -270,7 +266,7 @@ public class PollyPolicyTests
     }
 
     [Fact]
-    public async Task ScraperApi_CircuitBreaker_Opens_AfterTenFailures_Logs_LEAD036()
+    public async Task ScraperApi_CircuitBreaker_Opens_AfterTenFailures_Logs_SCRAPER002()
     {
         var handler = new CountingHandler(HttpStatusCode.InternalServerError);
         var loggerMock = new Mock<ILogger>();
@@ -278,7 +274,6 @@ public class PollyPolicyTests
         var client = BuildClient("scraper-cb", handler, loggerMock.Object,
             (b, l) => b.AddScraperApiResilience(l));
 
-        // MinimumThroughput=10; fire enough requests to reach that threshold.
         for (var i = 0; i < 12; i++)
         {
             try { await client.GetAsync("http://localhost/test"); } catch { }
@@ -288,7 +283,7 @@ public class PollyPolicyTests
             l => l.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[LEAD-036]")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[SCRAPER-002]")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);

@@ -300,19 +300,21 @@ public class FileLeadStoreTests : IDisposable
     // ── ParseLead roundtrip — optional fields ─────────────────────────────────
 
     [Fact]
-    public async Task UpdateMarketingOptInAsync_WritesMarketingOptedInField()
+    public async Task UpdateMarketingOptInAsync_WritesAndRoundTrips()
     {
-        // Verify that the write operation persists the value into the profile file.
-        // NOTE: FileLeadStore writes the key "marketingOptedIn" (camelCase) but ParseLead
-        // reads "marketing_opted_in" (snake_case). The round-trip value comes back as null
-        // due to this key mismatch. The write still succeeds without error.
         var lead = MakeLead();
         await _sut.SaveAsync(lead, CancellationToken.None);
         await _sut.UpdateMarketingOptInAsync(AgentId, lead.Id, true, CancellationToken.None);
 
+        // Verify the YAML key is snake_case (consistent with GDriveLeadStore and ParseLead)
         var profilePath = Path.Combine(_basePath, LeadPaths.LeadFolder(lead.FullName), "Lead Profile.md");
         var content = await File.ReadAllTextAsync(profilePath);
-        Assert.Contains("marketingOptedIn: true", content);
+        Assert.Contains("marketing_opted_in: true", content);
+
+        // Round-trip: ParseLead reads marketing_opted_in and returns the value
+        var result = await _sut.GetAsync(AgentId, lead.Id, CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.True(result.MarketingOptedIn);
     }
 
     [Fact]

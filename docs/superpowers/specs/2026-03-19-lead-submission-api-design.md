@@ -1,6 +1,8 @@
 # Lead Submission API — Design Spec
 
 > **Updated 2026-03-20:** CMA feature removed entirely. LeadType is now an enum (`Buyer`, `Seller`, `Both`) instead of `List<string>`. Config migrated from `config/agents/` to `config/accounts/`. Services restructured: endpoint-specific services colocated in endpoint folders (e.g., `Submit/`), shared services remain in `Services/`. Dead code removed (BuyerListingEmailRenderer, DomainService, DriveFolderInitializer). Polly resilience policies wired to all HttpClient registrations. GWS CLI calls wrapped in Polly retry pipeline. Some diagrams and sections below still reference CMA — treat those as historical context.
+>
+> **Updated 2026-03-20 (Staff-Level Cleanup):** Major architectural improvements applied — see [Addendum: Staff-Level Cleanup](#addendum-staff-level-cleanup-2026-03-20) at the bottom of this document. Key changes: (1) `Task.Run` fire-and-forget replaced with `Channel<T>` + `BackgroundService` worker, (2) unified Polly v8 resilience with unique log codes per policy, (3) structured logging with `[PREFIX-NNN]` codes on every service, (4) HMAC middleware wired in pipeline with dev passthrough, (5) YAML frontmatter key mismatch fix, (6) folder structure simplified — all shared services in `Features/Leads/Services/`. References to `Task.Run` in sections below are superseded by the addendum.
 
 ## Goal
 
@@ -4540,3 +4542,457 @@ After implementation, the following documentation and READMEs must be updated to
 | **`.claude/rules/security-checklists.md`** | Add HMAC signature checklist (triggered when `X-Signature`, `HMAC`, or `ApiKeyHmac` code is present). Add Lead Enrichment PII checklist (no PII in spans/logs). |
 | **`.claude/rules/code-quality.md`** | Add check: "Every `Task.Run` captures `Activity.Current?.Context` before handoff" to post-build smoke check. |
 | **Memory (`MEMORY.md`)** | Update project state: lead submission API added, Google Drive storage for leads/searches/audit logs, Grafana Faro for browser tracing, HMAC + API Key auth pattern. |
+
+---
+
+## Addendum: Staff-Level Cleanup (2026-03-20)
+
+This addendum documents architectural improvements made after the initial implementation. All changes below **supersede** corresponding sections in the original spec.
+
+### Change 1: Channel + BackgroundService Replaces Task.Run
+
+**Problem:** The original design used `Task.Run` fire-and-forget in `SubmitLeadEndpoint` for enrichment, notification, and home search. This pattern:
+- Lost correlation IDs (new thread pool context)
+- Ignored graceful shutdown (no `CancellationToken` propagation)
+- Swallowed exceptions silently
+- Made `Activity.Current` null (broken distributed tracing)
+
+**Solution:** Bounded `Channel<LeadProcessingRequest>` + `LeadProcessingWorker` (BackgroundService).
+
+```
+POST /agents/{agentId}/leads
+  │
+  ├── 1. Validate request
+  ├── 2. Save lead to ILeadStore
+  ├── 3. Record marketing consent
+  ├── 4. Write to Channel<LeadProcessingRequest>  ◄── bounded(100), Wait mode
+  └── 5. Return 202 Accepted
+          │
+          ▼
+  ┌─────────────────────────────────────────┐
+  │  LeadProcessingWorker (BackgroundService) │
+  │  ── reads from channel, single reader ──  │
+  │                                           │
+  │  for each LeadProcessingRequest:          │
+  │    1. Start OTel activity "lead.process"  │
+  │    2. Enrich lead (ScraperAPI + Claude)   │
+  │    3. Update enrichment in ILeadStore     │
+  │    4. Notify agent (multi-channel)        │
+  │    5. Home search (if buyer)              │
+  │    6. Record metrics + durations          │
+  │                                           │
+  │  Each step: try/catch with [PREFIX-NNN]   │
+  │  Failure in one step doesn't block others │
+  └─────────────────────────────────────────┘
+```
+
+**Key files:**
+- `Features/Leads/Services/LeadProcessingChannel.cs` — bounded channel (capacity 100, `SingleReader=true`)
+- `Features/Leads/Services/LeadProcessingWorker.cs` — BackgroundService consumer
+- `Features/Leads/Submit/SubmitLeadEndpoint.cs` — now writes to channel instead of `Task.Run`
+
+**DI registration in Program.cs:**
+```csharp
+builder.Services.AddSingleton<LeadProcessingChannel>();
+builder.Services.AddHostedService<LeadProcessingWorker>();
+```
+
+### Change 2: Unified Polly v8 Resilience Policies
+
+**Problem:** All 3 HTTP policies shared duplicate `[LEAD-035/036/037]` log codes, and jitter was disabled (thundering herd risk). GWS CLI had no circuit breaker.
+
+**Solution:** Each policy gets its own prefix and tuned parameters:
+
+| Policy | Retry | Backoff | Circuit Breaker | Log Prefix |
+|--------|-------|---------|-----------------|------------|
+| Claude API | 3x exponential (2s base) | jitter ✅ | 5 failures / 60s → 1 min break | `[CLAUDE-001/002/003]` |
+| ScraperAPI | 2x linear (1s) | jitter ✅ | 10 failures / 120s → 2 min break | `[SCRAPER-001/002/003]` |
+| Google Chat | 1x constant (500ms) | jitter ✅ | 5 failures / 60s → 30s break | `[GCHAT-001/002/003]` |
+| GWS CLI | 3x exponential (2s base) | jitter ✅ | 5 failures / 60s → 2 min break | `[GWS-020/022/023]` |
+
+**Key file:** `Infrastructure/PollyPolicies.cs`
+
+### Change 3: Structured Logging with Unique Log Codes
+
+Every service now has structured logging with unique `[PREFIX-NNN]` codes for Grafana filtering:
+
+| Prefix | Service | Codes |
+|--------|---------|-------|
+| `[LEAD-001/002]` | SubmitLeadEndpoint | Received, saved+enqueued |
+| `[WORKER-001..042]` | LeadProcessingWorker | Started, processing, enrichment, notification, home search |
+| `[LDS-010..015]` | GDriveLeadStore | Save, enrichment update, delete |
+| `[CONSENT-001]` | MarketingConsentLog | Consent recorded |
+| `[DELETE-001/002]` | DeletionAuditLog | Initiation, completion |
+| `[HMAC-010]` | ApiKeyHmacMiddleware | Auth skipped (dev mode) |
+| `[CLAUDE-001..003]` | PollyPolicies (Claude) | Retry, CB open, CB close |
+| `[SCRAPER-001..003]` | PollyPolicies (Scraper) | Retry, CB open, CB close |
+| `[GCHAT-001..003]` | PollyPolicies (Chat) | Retry, CB open, CB close |
+| `[GWS-020..023]` | GwsService | Retry, CB open, CB close |
+
+### Change 4: HMAC Middleware Wired with Dev Passthrough
+
+**Problem:** `ApiKeyHmacMiddleware` existed with tests but was never called via `app.UseMiddleware<>()`.
+
+**Solution:**
+- Wired in `Program.cs`: `app.UseMiddleware<ApiKeyHmacMiddleware>()` after rate limiter
+- Added dev/test passthrough: skips auth when `ApiKeys.Count == 0 || HmacSecret is empty`
+- Log code `[HMAC-010]` emitted at Debug level when skipped
+
+### Change 5: YAML Frontmatter Key Fix
+
+**Bug:** `FileLeadStore.UpdateMarketingOptInAsync` wrote key `marketingOptedIn` (camelCase) but `GDriveLeadStore.ParseLead()` reads `marketing_opted_in` (snake_case). Result: marketing opt-in state was silently lost on every update.
+
+**Fix:** Standardized on `marketing_opted_in` in all stores.
+
+### Change 6: Folder Structure Simplified
+
+All shared lead services moved from `Features/Leads/Submit/` to `Features/Leads/Services/`:
+
+```
+Features/Leads/
+  ├── Lead.cs, LeadType.cs, LeadStatus.cs, ...     # Domain types
+  ├── LeadMappers.cs, LeadMarkdownRenderer.cs       # Feature-level utilities
+  ├── LeadPaths.cs, YamlFrontmatterParser.cs        # Shared constants + parsing
+  │
+  ├── Submit/                                        # POST /agents/{agentId}/leads
+  │   ├── SubmitLeadEndpoint.cs
+  │   ├── SubmitLeadRequest.cs
+  │   └── SubmitLeadResponse.cs
+  │
+  ├── DeleteData/                                    # DELETE /agents/{agentId}/leads/data
+  ├── RequestDeletion/                               # POST /agents/{agentId}/leads/request-deletion
+  ├── OptOut/                                        # POST /agents/{agentId}/leads/opt-out
+  ├── Subscribe/                                     # POST /agents/{agentId}/leads/subscribe
+  │
+  └── Services/                                      # All shared services
+      ├── ILeadStore.cs, GDriveLeadStore.cs, FileLeadStore.cs
+      ├── ILeadEnricher.cs, ScraperLeadEnricher.cs
+      ├── ILeadNotifier.cs, MultiChannelLeadNotifier.cs
+      ├── IHomeSearchProvider.cs, ScraperHomeSearchProvider.cs
+      ├── ILeadDataDeletion.cs, GDriveLeadDataDeletion.cs
+      ├── IMarketingConsentLog.cs, MarketingConsentLog.cs
+      ├── IDeletionAuditLog.cs, DeletionAuditLog.cs
+      ├── LeadProcessingChannel.cs                   # Bounded Channel<T>
+      ├── LeadProcessingWorker.cs                    # BackgroundService consumer
+      ├── LeadChatCardRenderer.cs
+      └── DriveChangeMonitor.cs, DriveActivityParser.cs
+```
+
+### Change 7: Correlation ID Propagation
+
+**Problem:** Correlation IDs from HTTP requests were lost in background processing.
+
+**Solution:** `CorrelationIdMiddleware` now stores the ID in `HttpContext.Items[CorrelationIdKey]`. The endpoint reads it and includes it in `LeadProcessingRequest`. The worker logs it on every step.
+
+### System Architecture Diagram
+
+#### Request Flow — Browser to API
+
+```mermaid
+flowchart TB
+    subgraph Browser["Browser (untrusted)"]
+        LeadForm["LeadForm + Turnstile + Honeypot"]
+    end
+
+    subgraph CF["Cloudflare Worker (agent-site)"]
+        SA["Next.js Server Action"]
+        SA1["1. Validate Turnstile token"]
+        SA2["2. Check honeypot field"]
+        SA3["3. HMAC-sign request body"]
+        SA4["4. Forward to .NET API"]
+        SA --> SA1 --> SA2 --> SA3 --> SA4
+    end
+
+    subgraph API[".NET API (Azure Container Apps)"]
+        MW["Middleware Pipeline"]
+        CorrId["CorrelationIdMiddleware"]
+        RL["RateLimiter"]
+        HMAC["ApiKeyHmacMiddleware"]
+        CorrId --> RL --> HMAC
+
+        EP["SubmitLeadEndpoint"]
+        V1["1. Validate request"]
+        V2["2. Verify agent exists"]
+        V3["3. Save lead → ILeadStore"]
+        V4["4. Record consent → IMarketingConsentLog"]
+        V5["5. Write to Channel‹T›"]
+        V6["6. Return 202 Accepted"]
+        EP --> V1 --> V2 --> V3 --> V4 --> V5 --> V6
+    end
+
+    LeadForm -->|"POST /api/leads"| SA
+    SA4 -->|"POST /agents/{agentId}/leads\nX-Api-Key + X-Signature + X-Timestamp"| MW
+    MW --> EP
+```
+
+#### Async Processing — Fan-Out Background Worker Pipeline
+
+The lead processing pipeline uses a **fan-out architecture** with three independent `BackgroundService` workers, each with its own bounded `Channel<T>`. The `LeadProcessingWorker` handles enrichment and agent notification, then dispatches to dedicated CMA and Home Search workers based on lead type. Each worker has full OpenTelemetry tracing via correlation IDs propagated through the channels.
+
+```mermaid
+flowchart TB
+    EP["SubmitLeadEndpoint\n[LEAD-001] writes to channel"] --> Q
+
+    subgraph LeadChannel["LeadProcessingChannel (bounded=100)"]
+        Q["Channel‹LeadProcessingRequest›"]
+    end
+
+    subgraph LeadWorker["LeadProcessingWorker (BackgroundService)"]
+        direction TB
+        Start["[WORKER-010] Read from channel"]
+
+        subgraph S1["Step 1: Enrich (all leads)"]
+            Scrape["ScraperLeadEnricher\n8 parallel scrapes"]
+            ScraperAPI["ScraperAPI\n+ Polly 2x linear, CB 10/120s"]
+            Claude1["Claude API\n+ Polly 3x exp, CB 5/60s"]
+            SaveEnrich["ILeadStore.UpdateEnrichmentAsync"]
+            Scrape --> ScraperAPI --> Claude1 --> SaveEnrich
+        end
+
+        subgraph S2["Step 2: Notify Agent (all leads)"]
+            MCN["MultiChannelLeadNotifier"]
+            Chat["Google Chat webhook\n+ Polly 1x, CB 5/60s"]
+            Gmail["Gmail via gws CLI\n+ Polly 3x exp, CB 5/60s"]
+            WA["WhatsApp Business API\n(Phase 2)"]
+            MCN --> Chat
+            MCN --> Gmail
+            MCN -.-> WA
+        end
+
+        Dispatch["[WORKER-040/050] Dispatch\nbased on LeadType"]
+
+        Start --> S1 --> S2 --> Dispatch
+    end
+
+    Dispatch -->|"Seller/Both\n+ SellerDetails"| CmaQ
+    Dispatch -->|"Buyer/Both\n+ BuyerDetails"| HsQ
+
+    subgraph CmaChannel["CmaProcessingChannel (bounded=50)"]
+        CmaQ["Channel‹CmaProcessingRequest›\n(includes enrichment + score)"]
+    end
+
+    subgraph CmaWorker["CmaProcessingWorker (BackgroundService)"]
+        direction TB
+        CmaStart["[CMA-WORKER-010] Start pipeline"]
+
+        subgraph CS1["Step 1: Fetch Comps"]
+            Agg["CompAggregator"]
+            ZillowSrc["Zillow via ScraperAPI"]
+            RedfinSrc["Redfin via ScraperAPI"]
+            RealtorSrc["Realtor.com via ScraperAPI"]
+            ClaudeExtract["Claude → extract comps\nfrom HTML"]
+            Agg --> ZillowSrc & RedfinSrc & RealtorSrc
+            ZillowSrc & RedfinSrc & RealtorSrc --> ClaudeExtract
+        end
+
+        subgraph CS2["Step 2: Analyze"]
+            CmaAnalyze["ClaudeCmaAnalyzer\nValue range + narrative + trend"]
+        end
+
+        subgraph CS3["Step 3: Generate PDF"]
+            PdfGen["CmaPdfGenerator (QuestPDF)\nCover → Comps → Analysis → Value → Agent"]
+        end
+
+        subgraph CS4["Step 4: Notify Seller + Store"]
+            CmaEmail["Email CMA PDF to seller\nvia gws CLI"]
+            CmaDrive["Upload PDF to GDrive\n{Name}/{Address}/CMA Report.pdf"]
+            CmaRecord["Store email record in GDrive"]
+            CmaEmail --> CmaDrive --> CmaRecord
+        end
+
+        CmaStart --> CS1 --> CS2 --> CS3 --> CS4
+    end
+
+    subgraph HsChannel["HomeSearchProcessingChannel (bounded=50)"]
+        HsQ["Channel‹HomeSearchProcessingRequest›"]
+    end
+
+    subgraph HsWorker["HomeSearchProcessingWorker (BackgroundService)"]
+        direction TB
+        HsStart["[HS-WORKER-010] Start pipeline"]
+
+        subgraph HS1["Step 1: Fetch & Curate Listings"]
+            HSProvider["ScraperHomeSearchProvider"]
+            HSZillow["Zillow + Redfin + MLS\nvia ScraperAPI (parallel)"]
+            HSClaude["Claude → curate top 5-10\nwith 'Why this fits' notes"]
+            HSProvider --> HSZillow --> HSClaude
+        end
+
+        subgraph HS2["Step 2: Notify Buyer + Store"]
+            HsEmail["Email branded listings\nto buyer via gws CLI"]
+            HsDrive["Store results in GDrive\n{Name}/Home Search/{date}-Results.md"]
+            HsSave["ILeadStore.UpdateHomeSearchIdAsync"]
+            HsEmail --> HsDrive --> HsSave
+        end
+
+        HsStart --> HS1 --> HS2
+    end
+
+    CmaQ --> CmaStart
+    HsQ --> HsStart
+
+    Q --> Start
+```
+
+#### Storage Architecture — IFileStorageProvider Abstraction
+
+```mermaid
+flowchart TB
+    subgraph Services["Lead Services"]
+        LS["ILeadStore"]
+        CL["IMarketingConsentLog"]
+        DA["IDeletionAuditLog"]
+        DD["ILeadDataDeletion"]
+    end
+
+    subgraph Abstraction["IFileStorageProvider"]
+        WD["WriteDocumentAsync"]
+        RD["ReadDocumentAsync"]
+        AR["AppendRowAsync (sheets)"]
+        RR["RedactRowsAsync (sheets)"]
+        EF["EnsureFolderExistsAsync"]
+    end
+
+    subgraph Prod["GDriveStorageProvider (production)"]
+        GWS["IGwsService (gws CLI)"]
+        subgraph GDrive["Google Drive — Agent's Drive"]
+            direction TB
+            Root["Real Estate Star/"]
+            Leads["1 - Leads/"]
+            LeadDir["{Lead Name}/"]
+            LP["Lead Profile.md\n(YAML frontmatter + markdown)"]
+            RI["Research & Insights.md\n(enrichment + score)"]
+            HSDir["Home Search/"]
+            HSFile["{date}-Home Search Results.md"]
+            CMADir["{Address}/"]
+            CMAFile["CMA Report.pdf"]
+            CMARecord["CMA Email Record.md\n(sent-at, subject, body)"]
+
+            Root --> Leads --> LeadDir
+            LeadDir --> LP
+            LeadDir --> RI
+            LeadDir --> HSDir --> HSFile
+            LeadDir --> CMADir --> CMAFile
+            CMADir --> CMARecord
+        end
+        subgraph GSheets["Google Sheets — Audit Logs"]
+            ConsentSheet["Marketing Consent Log\n(opt-in / opt-out / re-subscribe)"]
+            DeletionSheet["Deletion Audit Log\n(initiation / completion)"]
+        end
+        GWS --> GDrive
+        GWS --> GSheets
+    end
+
+    subgraph Dev["LocalStorageProvider (development)"]
+        LocalFS["data/leads/{agentId}/"]
+        LocalLeads["{Lead Name}/Lead Profile.md"]
+        LocalEnrich["{Lead Name}/Research & Insights.md"]
+        LocalHS["{Lead Name}/Home Search/..."]
+        LocalCMA["{Lead Name}/{Address}/CMA Report.pdf"]
+        LocalFS --> LocalLeads
+        LocalFS --> LocalEnrich
+        LocalFS --> LocalHS
+        LocalFS --> LocalCMA
+    end
+
+    Services --> Abstraction
+    Abstraction -->|"Storage:UseLocal = false"| Prod
+    Abstraction -->|"Storage:UseLocal = true"| Dev
+```
+
+#### External Dependencies and Resilience
+
+```mermaid
+flowchart LR
+    subgraph API[".NET API — 3 BackgroundService Workers"]
+        LeadWorker["LeadProcessingWorker\n(enrichment + agent notify)"]
+        CmaWorker["CmaProcessingWorker\n(comps + analysis + PDF + email)"]
+        HsWorker["HomeSearchProcessingWorker\n(listings + email + Drive)"]
+    end
+
+    subgraph External["External Services"]
+        ScraperAPI["ScraperAPI\n(web scraping)"]
+        ClaudeAPI["Claude API\n(enrichment + analysis + curation)"]
+        GChat["Google Chat\n(webhook notification)"]
+        GWS["gws CLI\n(Drive + Sheets + Gmail)"]
+    end
+
+    subgraph Polly["Polly v8 Resilience"]
+        P1["CLAUDE: 3x exp 2s + CB 5/60s→1m\n[CLAUDE-001/002/003]"]
+        P2["SCRAPER: 2x linear 1s + CB 10/120s→2m\n[SCRAPER-001/002/003]"]
+        P3["GCHAT: 1x const 500ms + CB 5/60s→30s\n[GCHAT-001/002/003]"]
+        P4["GWS: 3x exp 1s + CB 5/120s→2m\n[GWS-001/002/003]"]
+    end
+
+    subgraph OTel["Observability (Grafana Cloud)"]
+        Traces["Tempo\n(distributed traces via correlation ID)"]
+        Metrics["Mimir\n(counters + histograms)"]
+        Logs["Loki\n(structured [PREFIX-NNN] logs)"]
+    end
+
+    LeadWorker --> P1 --> ClaudeAPI
+    LeadWorker --> P2 --> ScraperAPI
+    LeadWorker --> P3 --> GChat
+    CmaWorker --> P1
+    CmaWorker --> P2
+    CmaWorker --> P4 --> GWS
+    HsWorker --> P1
+    HsWorker --> P2
+    HsWorker --> P4
+
+    API -->|"OTLP gRPC"| Traces
+    API -->|"OTLP gRPC"| Metrics
+    API -->|"Serilog"| Logs
+```
+
+### OTel Metrics Summary
+
+| Metric | Type | Unit | Description |
+|--------|------|------|-------------|
+| `leads.received` | Counter | count | Leads accepted by the endpoint |
+| `leads.enriched` | Counter | count | Leads successfully enriched |
+| `leads.enrichment_failed` | Counter | count | Enrichment failures |
+| `leads.notification_sent` | Counter | count | Notifications delivered |
+| `leads.notification_failed` | Counter | count | Notification failures |
+| `leads.deleted` | Counter | count | Leads deleted (GDPR/CCPA) |
+| `leads.enrichment_duration_ms` | Histogram | ms | Enrichment step duration |
+| `leads.notification_duration_ms` | Histogram | ms | Notification step duration |
+| `leads.home_search_duration_ms` | Histogram | ms | Home search step duration |
+| `leads.total_pipeline_duration_ms` | Histogram | ms | Full pipeline wall time |
+| `leads.llm_tokens.input` | Counter | tokens | Claude input tokens |
+| `leads.llm_tokens.output` | Counter | tokens | Claude output tokens |
+| `leads.llm_cost_usd` | Counter | USD | Estimated Claude cost |
+| **CMA Pipeline** | | | |
+| `cma.generated` | Counter | count | CMA reports generated |
+| `cma.failed` | Counter | count | CMA pipeline failures |
+| `cma.comps_duration_ms` | Histogram | ms | Comp fetch duration |
+| `cma.analysis_duration_ms` | Histogram | ms | Claude analysis duration |
+| `cma.pdf_duration_ms` | Histogram | ms | QuestPDF generation duration |
+| `cma.drive_duration_ms` | Histogram | ms | GDrive upload duration |
+| `cma.email_duration_ms` | Histogram | ms | CMA email delivery duration |
+| `cma.total_duration_ms` | Histogram | ms | Full CMA pipeline wall time |
+| `cma.comps_found` | Histogram | count | Comps per CMA report |
+| **Home Search Pipeline** | | | |
+| `home_search.completed` | Counter | count | Home searches completed |
+| `home_search.failed` | Counter | count | Home search failures |
+| `home_search.fetch_duration_ms` | Histogram | ms | Listing fetch duration |
+| `home_search.curation_duration_ms` | Histogram | ms | Claude curation duration |
+| `home_search.drive_duration_ms` | Histogram | ms | GDrive save duration |
+| `home_search.email_duration_ms` | Histogram | ms | Buyer email duration |
+| `home_search.total_duration_ms` | Histogram | ms | Full home search pipeline wall time |
+| `home_search.listings_found` | Histogram | count | Listings per search |
+
+### Superseded Sections
+
+The following sections in the original spec are superseded by this addendum:
+
+| Original Section | What Changed |
+|------------------|-------------|
+| "Data Flow" step 3 (line ~260) | No longer "fire-and-forget async" — now Channel + Worker |
+| "Submit Lead Implementation" (lines ~1783-1870) | `Task.Run` block replaced with `processingChannel.Writer.WriteAsync()` |
+| "Note on CancellationToken.None" (line ~1869) | No longer applicable — worker uses `stoppingToken` |
+| "Home Search Pipeline" trigger (lines ~1993-1996) | Runs inside worker, not inside `Task.Run` |
+| OTel tracing section (lines ~3647-3695) | Worker has native `Activity.Current` — no manual capture needed |
+| Log codes table (lines ~3949-3955) | Replaced with new `[WORKER-*]` / `[CLAUDE-*]` / `[SCRAPER-*]` / `[GCHAT-*]` codes |
+| Folder structure (lines ~2721-2728) | Services moved from `Submit/` to `Services/` |
+| code-quality.md update (line ~4541) | No longer need `Task.Run` + ActivityContext check — worker handles this natively |

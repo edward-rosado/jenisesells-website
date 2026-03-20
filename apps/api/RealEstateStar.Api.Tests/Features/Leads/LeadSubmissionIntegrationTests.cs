@@ -201,6 +201,7 @@ public class LeadSubmission_FullSubmissionFlowTests
     public async Task SubmitSellerLead_CallsEnricherAndNotifier_InBackground()
     {
         var mocks = new LeadSubmissionMocks();
+        var notifierCalled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         mocks.Enricher
             .Setup(e => e.EnrichAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
@@ -211,18 +212,19 @@ public class LeadSubmission_FullSubmissionFlowTests
                 It.IsAny<string>(), It.IsAny<Lead>(),
                 It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(),
                 It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .Returns(Task.CompletedTask)
+            .Callback(() => notifierCalled.TrySetResult());
 
         await using var factory = new LeadSubmissionMockFactory(mocks);
         var client = factory.CreateClient();
 
         await client.PostAsJsonAsync($"/agents/{AgentId}/leads", LeadRequests.SellerPayload());
 
-        // Allow background pipeline to complete
-        await Task.Delay(500);
+        // Wait for background worker to finish (with timeout to avoid hanging)
+        await notifierCalled.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         mocks.Enricher.Verify(
-            e => e.EnrichAsync(It.IsAny<Lead>(), CancellationToken.None),
+            e => e.EnrichAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()),
             Times.Once);
 
         mocks.Notifier.Verify(
@@ -231,7 +233,7 @@ public class LeadSubmission_FullSubmissionFlowTests
                 It.IsAny<Lead>(),
                 It.IsAny<LeadEnrichment>(),
                 It.IsAny<LeadScore>(),
-                CancellationToken.None),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -239,6 +241,7 @@ public class LeadSubmission_FullSubmissionFlowTests
     public async Task SubmitBuyerLead_TriggersHomeSearch_NotCma()
     {
         var mocks = new LeadSubmissionMocks();
+        var homeSearchDone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         mocks.Enricher
             .Setup(e => e.EnrichAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
@@ -251,18 +254,25 @@ public class LeadSubmission_FullSubmissionFlowTests
                 new Listing("1 Oak Ave", "Springfield", "NJ", "07081", 350_000m, 3, 2m, 1500, null, null)
             ]);
 
+        mocks.LeadStore
+            .Setup(s => s.UpdateHomeSearchIdAsync(
+                It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .Callback(() => homeSearchDone.TrySetResult());
+
         await using var factory = new LeadSubmissionMockFactory(mocks);
         var client = factory.CreateClient();
 
         await client.PostAsJsonAsync($"/agents/{AgentId}/leads", LeadRequests.BuyerPayload());
 
-        await Task.Delay(500);
+        // Wait for background worker to finish home search (with timeout)
+        await homeSearchDone.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         // Home search triggered
         mocks.HomeSearch.Verify(
             h => h.SearchAsync(
                 It.Is<HomeSearchCriteria>(c => c.MinBeds == 3),
-                CancellationToken.None),
+                It.IsAny<CancellationToken>()),
             Times.Once);
 
         // Lead store updated with a search ID (because results were returned)
@@ -271,7 +281,7 @@ public class LeadSubmission_FullSubmissionFlowTests
                 AgentId,
                 It.IsAny<Guid>(),
                 It.Is<string>(id => id.StartsWith("search-")),
-                CancellationToken.None),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

@@ -51,7 +51,7 @@ public class FileLeadStore(LocalStorageProvider storage, string basePath) : ILea
     public async Task UpdateMarketingOptInAsync(string agentId, Guid leadId, bool optedIn, CancellationToken ct)
     {
         var (folder, doc) = await ReadLeadDocAsync(agentId, leadId, ct);
-        var updated = YamlFrontmatterParser.UpdateField(doc, "marketingOptedIn", optedIn.ToString().ToLowerInvariant());
+        var updated = YamlFrontmatterParser.UpdateField(doc, "marketing_opted_in", optedIn.ToString().ToLowerInvariant());
         await storage.UpdateDocumentAsync(folder, LeadProfileFile, updated, ct);
     }
 

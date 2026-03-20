@@ -1,8 +1,9 @@
+using Microsoft.Extensions.Logging;
 using RealEstateStar.Api.Services.Storage;
 
 namespace RealEstateStar.Api.Features.Leads.Services;
 
-public class GDriveLeadStore(IFileStorageProvider storage) : ILeadStore
+public class GDriveLeadStore(IFileStorageProvider storage, ILogger<GDriveLeadStore> logger) : ILeadStore
 {
     private const string LeadProfileFile = "Lead Profile.md";
     private const string ResearchInsightsFile = "Research & Insights.md";
@@ -12,13 +13,16 @@ public class GDriveLeadStore(IFileStorageProvider storage) : ILeadStore
     public async Task SaveAsync(Lead lead, CancellationToken ct)
     {
         var folder = LeadPaths.LeadFolder(lead.FullName);
+        logger.LogInformation("[LDS-010] Saving lead {LeadId} to {Folder}", lead.Id, folder);
         await storage.EnsureFolderExistsAsync(folder, ct);
         var content = LeadMarkdownRenderer.RenderLeadProfile(lead);
         await storage.WriteDocumentAsync(folder, LeadProfileFile, content, ct);
+        logger.LogInformation("[LDS-011] Lead {LeadId} saved successfully.", lead.Id);
     }
 
     public async Task UpdateEnrichmentAsync(string agentId, Guid leadId, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
     {
+        logger.LogInformation("[LDS-012] Updating enrichment for lead {LeadId}. Score: {Score}", leadId, score.OverallScore);
         var lead = await GetAsync(agentId, leadId, ct)
             ?? throw new InvalidOperationException($"[LDS-001] Lead {leadId} not found for agent {agentId}.");
 
@@ -28,6 +32,7 @@ public class GDriveLeadStore(IFileStorageProvider storage) : ILeadStore
         var folder = LeadPaths.LeadFolder(lead.FullName);
         var content = LeadMarkdownRenderer.RenderResearchInsights(lead);
         await storage.WriteDocumentAsync(folder, ResearchInsightsFile, content, ct);
+        logger.LogInformation("[LDS-013] Enrichment saved for lead {LeadId}.", leadId);
     }
 
     public async Task UpdateHomeSearchIdAsync(string agentId, Guid leadId, string homeSearchId, CancellationToken ct)
@@ -129,10 +134,15 @@ public class GDriveLeadStore(IFileStorageProvider storage) : ILeadStore
     public async Task DeleteAsync(string agentId, Guid leadId, CancellationToken ct)
     {
         var lead = await GetAsync(agentId, leadId, ct);
-        if (lead is null) return;
+        if (lead is null)
+        {
+            logger.LogWarning("[LDS-014] Delete requested for lead {LeadId} but not found.", leadId);
+            return;
+        }
 
         var folder = LeadPaths.LeadFolder(lead.FullName);
         await storage.DeleteDocumentAsync(folder, LeadProfileFile, ct);
+        logger.LogInformation("[LDS-015] Lead {LeadId} deleted from {Folder}.", leadId, folder);
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────

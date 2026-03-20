@@ -1,4 +1,4 @@
-namespace RealEstateStar.Api.Features.Leads.Submit;
+namespace RealEstateStar.Api.Features.Leads.Services;
 
 public interface ILeadNotifier
 {

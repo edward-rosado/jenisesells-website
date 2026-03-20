@@ -5,6 +5,7 @@ namespace RealEstateStar.Api.Middleware;
 public class CorrelationIdMiddleware(RequestDelegate next)
 {
     private const string HeaderName = "X-Correlation-ID";
+    public const string CorrelationIdKey = "CorrelationId";
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -12,6 +13,7 @@ public class CorrelationIdMiddleware(RequestDelegate next)
         var correlationId = IsValidCorrelationId(rawId) ? rawId! : Guid.NewGuid().ToString("N");
 
         context.Response.Headers[HeaderName] = correlationId;
+        context.Items[CorrelationIdKey] = correlationId;
 
         using (LogContext.PushProperty("CorrelationId", correlationId))
         {

@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.DataProtection;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Tools;
 using RealEstateStar.Api.Health;
+using RealEstateStar.Api.Features.Leads.Cma;
 using RealEstateStar.Api.Features.Leads.Services;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Api.Services.Storage;
@@ -46,6 +47,9 @@ if (!builder.Environment.IsDevelopment())
             .ProtectKeysWithAzureKeyVault(new Uri(kvUri + "/keys/dataprotection"), new Azure.Identity.DefaultAzureCredential());
     }
 }
+
+// HMAC authentication for lead endpoints (server-to-server from CF Worker)
+builder.Services.Configure<ApiKeyHmacOptions>(builder.Configuration.GetSection("Hmac"));
 
 // Onboarding (session store registered early, services after config keys below)
 builder.Services.AddSingleton<JsonFileSessionStore>();
@@ -161,6 +165,14 @@ builder.Services.AddSingleton<ILeadDataDeletion, GDriveLeadDataDeletion>();
 builder.Services.AddSingleton<IDeletionAuditLog, DeletionAuditLog>();
 builder.Services.AddSingleton<ILeadNotifier, MultiChannelLeadNotifier>();
 
+// Background lead processing (replaces fire-and-forget Task.Run)
+builder.Services.AddSingleton<LeadProcessingChannel>();
+builder.Services.AddSingleton<CmaProcessingChannel>();
+builder.Services.AddSingleton<HomeSearchProcessingChannel>();
+builder.Services.AddHostedService<LeadProcessingWorker>();
+builder.Services.AddHostedService<CmaProcessingWorker>();
+builder.Services.AddHostedService<HomeSearchProcessingWorker>();
+
 // Lead enrichment — typed HttpClient with Polly resilience
 builder.Services.AddHttpClient(nameof(ScraperLeadEnricher))
     .AddClaudeApiResilience(pollyLogger);
@@ -181,6 +193,42 @@ builder.Services.AddSingleton<IHomeSearchProvider>(sp =>
         anthropicKey,
         sp.GetRequiredService<ILogger<ScraperHomeSearchProvider>>()));
 
+// CMA pipeline services
+builder.Services.AddHttpClient(nameof(ScraperCompSource))
+    .AddClaudeApiResilience(pollyLogger);
+builder.Services.AddHttpClient(nameof(ClaudeCmaAnalyzer))
+    .AddClaudeApiResilience(pollyLogger);
+builder.Services.AddSingleton<ICompAggregator>(sp =>
+    new CompAggregator(
+        sp.GetServices<ICompSource>(),
+        sp.GetRequiredService<ILogger<CompAggregator>>()));
+builder.Services.AddSingleton<ICompSource>(sp =>
+    new ScraperCompSource(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        scraperApiKey ?? "", anthropicKey,
+        CompSource.Zillow, "https://www.zillow.com/homedetails/{slug}",
+        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
+builder.Services.AddSingleton<ICompSource>(sp =>
+    new ScraperCompSource(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        scraperApiKey ?? "", anthropicKey,
+        CompSource.Redfin, "https://www.redfin.com/homes/{slug}",
+        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
+builder.Services.AddSingleton<ICompSource>(sp =>
+    new ScraperCompSource(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        scraperApiKey ?? "", anthropicKey,
+        CompSource.RealtorCom, "https://www.realtor.com/realestateandhomes-detail/{slug}",
+        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
+builder.Services.AddSingleton<ICmaAnalyzer>(sp =>
+    new ClaudeCmaAnalyzer(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        anthropicKey,
+        sp.GetRequiredService<ILogger<ClaudeCmaAnalyzer>>()));
+builder.Services.AddSingleton<ICmaPdfGenerator, CmaPdfGenerator>();
+builder.Services.AddSingleton<ICmaNotifier, CmaSellerNotifier>();
+builder.Services.AddSingleton<IHomeSearchNotifier, HomeSearchBuyerNotifier>();
+
 // Named HttpClients used by services with hardcoded client names
 builder.Services.AddHttpClient("ScraperAPI")
     .AddScraperApiResilience(pollyLogger);
@@ -200,11 +248,13 @@ builder.Services.AddProblemDetails();
 builder.Services.AddSignalR();
 
 // Health checks
+builder.Services.AddSingleton<BackgroundServiceHealthTracker>();
 builder.Services.AddHealthChecks()
     .AddCheck<ClaudeApiHealthCheck>("claude_api", tags: ["ready"])
     .AddCheck<GoogleDriveHealthCheck>("google_drive", tags: ["ready"])
     .AddCheck<ScraperApiHealthCheck>("scraper_api", tags: ["ready"])
-    .AddCheck<TurnstileHealthCheck>("turnstile", tags: ["ready"]);
+    .AddCheck<TurnstileHealthCheck>("turnstile", tags: ["ready"])
+    .AddCheck<BackgroundServiceHealthCheck>("background_workers", tags: ["ready", "workers"]);
 
 // CORS
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -216,10 +266,23 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(allowedOrigins)
             .SetIsOriginAllowed(origin =>
             {
+                if (allowedOrigins.Contains(origin)) return true;
+
                 // Allow *.localhost:{port} subdomains in development (e.g. jenise-buckalew.localhost:3000)
-                if (!builder.Environment.IsDevelopment()) return allowedOrigins.Contains(origin);
-                var uri = new Uri(origin);
-                return uri.Host == "localhost" || uri.Host.EndsWith(".localhost");
+                if (builder.Environment.IsDevelopment())
+                {
+                    var uri = new Uri(origin);
+                    return uri.Host == "localhost" || uri.Host.EndsWith(".localhost");
+                }
+
+                // Allow Cloudflare Pages preview deploys (*.pages.dev)
+                if (Uri.TryCreate(origin, UriKind.Absolute, out var originUri) &&
+                    originUri.Host.EndsWith(".pages.dev", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                return false;
             })
             .AllowAnyHeader()
             .AllowAnyMethod()
@@ -355,6 +418,7 @@ app.UseSerilogRequestLogging(options =>
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseRateLimiter();
+app.UseMiddleware<ApiKeyHmacMiddleware>();
 
 // Liveness probe — no dependency checks, just "am I running?"
 app.MapHealthChecks("/health/live", new HealthCheckOptions
@@ -366,6 +430,13 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = WriteHealthResponse
+});
+
+// Worker health — checks background service activity
+app.MapHealthChecks("/health/workers", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("workers"),
     ResponseWriter = WriteHealthResponse
 });
 
@@ -383,13 +454,14 @@ static async Task WriteHealthResponse(HttpContext context, HealthReport report)
     var result = new
     {
         status = report.Status.ToString(),
-        checks = report.Entries.Select(e => new
-        {
-            name = e.Key,
-            status = e.Value.Status.ToString(),
-            description = e.Value.Description,
-            duration = e.Value.Duration.TotalMilliseconds
-        })
+        entries = report.Entries.ToDictionary(
+            e => e.Key,
+            e => new
+            {
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                duration = e.Value.Duration.ToString()
+            })
     };
     await context.Response.WriteAsJsonAsync(result);
 }
