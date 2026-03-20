@@ -122,6 +122,47 @@ describe("DeletePage", () => {
     });
   });
 
+  it("shows fallback error message when result.error is undefined", async () => {
+    mockRequestDeletion.mockResolvedValue({ ok: false });
+    const page = await DeletePage({
+      params: Promise.resolve({ handle: "test-agent" }),
+      searchParams: Promise.resolve({ email: "user@example.com" }),
+    });
+    render(page);
+
+    fireEvent.click(screen.getByRole("button", { name: /Submit Deletion Request/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+      expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
+    });
+  });
+
+  it("does not call requestDeletion when email is whitespace", async () => {
+    const page = await DeletePage({
+      params: Promise.resolve({ handle: "test-agent" }),
+      searchParams: Promise.resolve({ email: "" }),
+    });
+    render(page);
+    const form = screen.getByRole("button", { name: /Submit Deletion Request/i }).closest("form")!;
+    fireEvent.submit(form);
+    expect(mockRequestDeletion).not.toHaveBeenCalled();
+  });
+
+  it("trims email before submitting", async () => {
+    const page = await DeletePage({
+      params: Promise.resolve({ handle: "test-agent" }),
+      searchParams: Promise.resolve({ email: "  user@example.com  " }),
+    });
+    render(page);
+
+    fireEvent.click(screen.getByRole("button", { name: /Submit Deletion Request/i }));
+
+    await waitFor(() => {
+      expect(mockRequestDeletion).toHaveBeenCalledWith("test-agent", "user@example.com");
+    });
+  });
+
   it("displays agent name in description", async () => {
     const page = await DeletePage({
       params: Promise.resolve({ handle: "test-agent" }),
