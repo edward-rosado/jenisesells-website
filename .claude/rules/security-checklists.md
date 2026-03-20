@@ -44,3 +44,15 @@ Triggered when: HTTP requests made with user-supplied URLs (scraping, webhooks).
 - [ ] Only HTTPS scheme allowed (no http://, file://, ftp://)
 - [ ] Internal/private IP ranges blocked (127.0.0.1, 169.254.x.x, 10.x.x.x, 172.16-31.x.x, 192.168.x.x)
 - [ ] DNS rebinding prevention — resolve hostname, check IP, then fetch
+
+## HMAC Security Checklist
+Triggered when: HMAC authentication, webhook verification, request signing code is present.
+
+- [ ] Constant-time comparison via `CryptographicOperations.FixedTimeEquals()` (never `==` or `.Equals()`)
+- [ ] Timestamp validation enforced (request timestamp within 5-minute window, prevents replay)
+- [ ] Request body buffering enabled so body can be read multiple times (for signature verification + handler logic)
+- [ ] Every failure mode has a unique error log code (e.g., [HMAC-001] invalid signature, [HMAC-002] expired timestamp)
+- [ ] HMAC secret stored securely (environment variable or config secret, never hardcoded)
+- [ ] HMAC secret not exposed in client code or frontend (signature verified on server only)
+- [ ] Per-agent API key mapping validated before processing (agent lookup by API key, then signature verification)
+- [ ] Tests cover: valid signature, invalid signature, missing signature, missing timestamp, expired timestamp, future timestamp

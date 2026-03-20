@@ -110,3 +110,117 @@ For full details on each step, see the rules in `.claude/rules/`.
 | **Claude Code** | AI pair programmer -- used for planning, coding, reviewing, and committing |
 | **GitHub CLI (`gh`)** | Issues, PRs, searches, and CI interaction from the terminal |
 | **PM Skills** | Optional product management skills for Claude Code (see [PM Skills Setup](pm-skills-setup.md)) |
+
+## Configuring a New Agent for Lead Submission
+
+When adding a new agent, configure the following for the lead submission feature:
+
+### 1. Google Drive Folder Structure
+
+Create a folder hierarchy in the agent's Google Drive:
+
+```
+{Agent's Shared Drive or My Drive}/
+├── 1_leads/                    # Lead submissions (auto-saved by API)
+├── 2_cma/                      # Comparative Market Analysis reports
+└── 3_contracts/                # Generated state-specific contracts
+```
+
+Copy the folder IDs into the agent profile:
+
+```json
+{
+  "integrations": {
+    "google_drive": {
+      "folder_id_leads": "0ADxxxxxxxxxxx_1-0",
+      "folder_id_cma": "0ADxxxxxxxxxxx_2-0",
+      "folder_id_contracts": "0ADxxxxxxxxxxx_3-0"
+    }
+  }
+}
+```
+
+### 2. API Key and HMAC Secret Generation
+
+Generate credentials for the agent's white-label website to submit leads:
+
+```bash
+# Generate a 32-byte API key (base64-encoded)
+openssl rand -base64 32
+
+# Example output:
+# AbCdEfGhIjKlMnOpQrStUvWxYzAbCdEfGhIjKl=
+
+# Generate a 64-byte HMAC secret (base64-encoded)
+openssl rand -base64 64
+
+# Example output:
+# AbCdEfGhIjKlMnOpQrStUvWxYzAbCdEfGhIjKlMnOpQrStUvWxYzAbCdEfGhIjKl=
+```
+
+Store in the agent profile:
+
+```json
+{
+  "integrations": {
+    "lead_submission": {
+      "api_key": "AbCdEfGhIjKlMnOpQrStUvWxYzAbCdEfGhIjKl=",
+      "hmac_secret": "AbCdEfGhIjKlMnOpQrStUvWxYzAbCdEfGhIjKlMnOpQrStUvWxYzAbCdEfGhIjKl="
+    }
+  }
+}
+```
+
+**Security Note:** These credentials are stored per-agent in the config file. In production, move to Azure Key Vault or equivalent secret manager.
+
+### 3. Google Chat Webhook URL (Optional)
+
+To receive notifications when leads arrive, configure a Google Chat webhook:
+
+1. Go to the agent's Google Chat space
+2. Create an incoming webhook at **Space settings > Apps & integrations > Manage webhooks**
+3. Copy the webhook URL and add to agent profile:
+
+```json
+{
+  "integrations": {
+    "notifications": {
+      "google_chat_webhook_url": "https://chat.googleapis.com/v1/spaces/SPACE_ID/messages?key=KEY&token=TOKEN"
+    }
+  }
+}
+```
+
+The API will POST lead summaries to this webhook when submissions arrive.
+
+### 4. Turnstile Site Key Configuration
+
+Real Estate Star uses Cloudflare Turnstile to prevent bot lead submissions:
+
+1. Go to Cloudflare dashboard > Turnstile
+2. Create a site for `{agent-handle}.real-estate-star.com`
+3. Copy the site key (public) and secret key (private)
+4. Add to agent profile:
+
+```json
+{
+  "branding": {
+    "turnstile_site_key": "1x00000000000000000000BB"
+  },
+  "integrations": {
+    "turnstile_secret_key": "2x0000000000000000000000000000000AA"
+  }
+}
+```
+
+The `turnstile_site_key` is public and embedded in the agent site; the `turnstile_secret_key` is kept private on the API and used during lead submission validation.
+
+### 5. Validate the Agent Profile
+
+After configuring all fields, validate the profile against the schema:
+
+```bash
+npx ajv validate -s config/agent.schema.json -d config/agents/{agent-id}.json
+```
+
+All required fields should pass. Missing folder IDs or API keys will cause lead submission to fail silently, so double-check before going live.
