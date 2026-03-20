@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { CmaSection } from "@/components/sections/shared/CmaSection";
 import type { ContactFormData } from "@/lib/types";
@@ -26,6 +26,13 @@ vi.mock("@sentry/nextjs", () => ({
 // Mock Analytics
 vi.mock("@/components/Analytics", () => ({
   trackCmaConversion: vi.fn(),
+}));
+
+// Mock Turnstile
+vi.mock("@marsidev/react-turnstile", () => ({
+  Turnstile: (props: { siteKey: string; onSuccess: (token: string) => void }) => (
+    <div data-testid="turnstile-widget" data-site-key={props.siteKey} />
+  ),
 }));
 
 const FORM_DATA: ContactFormData = {
@@ -325,5 +332,74 @@ describe("CmaSection form submission", () => {
 
     expect(locationMock.href).toBe("/thank-you?accountId=test-agent");
     expect(locationMock.href).not.toContain("email=");
+  });
+});
+
+describe("CmaSection Turnstile integration", () => {
+  const ORIGINAL_ENV = process.env;
+
+  beforeEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+  });
+
+  afterEach(() => {
+    process.env = ORIGINAL_ENV;
+  });
+
+  it("renders Turnstile widget when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set", () => {
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "test-site-key";
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    expect(screen.getByTestId("turnstile-widget")).toBeInTheDocument();
+    expect(screen.getByTestId("turnstile-widget")).toHaveAttribute("data-site-key", "test-site-key");
+  });
+
+  it("does not render Turnstile widget when NEXT_PUBLIC_TURNSTILE_SITE_KEY is absent", () => {
+    delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    expect(screen.queryByTestId("turnstile-widget")).not.toBeInTheDocument();
+  });
+
+  it("does not gate submit when NEXT_PUBLIC_TURNSTILE_SITE_KEY is absent", () => {
+    delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    // When no Turnstile key, turnstileToken is passed as undefined so submit is not gated
+    const submitButton = screen.getByRole("button", { name: /Get My Free Home Value Report/ });
+    expect(submitButton).not.toBeDisabled();
+  });
+
+  it("gates submit when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set but token not yet received", () => {
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "test-site-key";
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    // Token starts as null — submit should be disabled until Turnstile resolves
+    const submitButton = screen.getByRole("button", { name: /Get My Free Home Value Report/ });
+    expect(submitButton).toBeDisabled();
+  });
+});
+
+describe("CmaSection marketing consent", () => {
+  it("includes marketingConsent in submitted data", async () => {
+    mockSubmitLead.mockResolvedValueOnce({ leadId: "lead-789", status: "received" });
+
+    const locationMock = { href: "" };
+    Object.defineProperty(window, "location", { value: locationMock, writable: true });
+
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    fillForm();
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    expect(mockSubmitLead).toHaveBeenCalledWith(
+      "test-agent",
+      expect.objectContaining({
+        marketingConsent: {
+          optedIn: true,
+          consentText: expect.stringContaining("consent to receive"),
+          channels: ["calls", "texts"],
+        },
+      }),
+      expect.any(String),
+    );
   });
 });

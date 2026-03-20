@@ -11,6 +11,12 @@ import type {
 } from "@real-estate-star/shared-types";
 import { useGoogleMapsAutocomplete } from "./useGoogleMapsAutocomplete";
 
+const TCPA_CONSENT_TEXT =
+  "By checking this box, you consent to receive calls and text messages from the agent " +
+  "at the phone number you provided, including automated calls. Message and data rates " +
+  "may apply. Reply STOP to opt out. Consent is not a condition of purchasing any " +
+  "property or service.";
+
 export interface LeadFormProps {
   defaultState: string;
   googleMapsApiKey?: string;
@@ -231,6 +237,11 @@ export function LeadForm({
       seller,
       timeline: fields.timeline as Timeline,
       notes: fields.notes || undefined,
+      marketingConsent: {
+        optedIn: tcpaConsent,
+        consentText: TCPA_CONSENT_TEXT,
+        channels: ["calls", "texts"],
+      },
     };
 
     setSubmitting(true);
@@ -589,12 +600,7 @@ export function LeadForm({
           onChange={(e) => setTcpaConsent(e.target.checked)}
           style={{ marginTop: "2px", flexShrink: 0 }}
         />
-        <span>
-          By checking this box, you consent to receive calls and text messages from the agent
-          at the phone number you provided, including automated calls. Message and data rates
-          may apply. Reply STOP to opt out. Consent is not a condition of purchasing any
-          property or service.
-        </span>
+        <span>{TCPA_CONSENT_TEXT}</span>
       </label>
 
       {/* CAPTCHA slot — Turnstile widget or other challenge rendered by parent */}

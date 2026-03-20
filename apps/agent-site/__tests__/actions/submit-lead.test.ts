@@ -21,7 +21,7 @@ describe("submitLead", () => {
 
     const result = await submitLead(
       "agent-123",
-      { email: "bot@spam.com", website: "http://spam.com" },
+      { email: "bot@spam.com", website: "http://spam.com" } as any,
       "some-token",
     );
 
@@ -39,7 +39,7 @@ describe("submitLead", () => {
 
     const result = await submitLead(
       "agent-123",
-      { email: "test@example.com" },
+      { email: "test@example.com" } as any,
       "bad-token",
     );
 
@@ -60,7 +60,7 @@ describe("submitLead", () => {
 
     const result = await submitLead(
       "agent-123",
-      { email: "buyer@example.com", firstName: "Jane" },
+      { email: "buyer@example.com", firstName: "Jane" } as any,
       "valid-token",
     );
 
@@ -85,7 +85,7 @@ describe("submitLead", () => {
 
     const result = await submitLead(
       "agent-123",
-      { email: "test@example.com" },
+      { email: "test@example.com" } as any,
       "valid-token",
     );
 

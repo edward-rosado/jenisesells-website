@@ -852,4 +852,26 @@ describe("LeadForm", () => {
       expect(onSubmit).toHaveBeenCalled();
     });
   });
+
+  // Test 52 — marketingConsent included in submitted data
+  it("includes marketingConsent with optedIn, consentText, and channels in submitted data", async () => {
+    const onSubmit = vi.fn();
+    render(<LeadForm {...defaultProps} onSubmit={onSubmit} initialMode={["buying"]} />);
+
+    fillContactFields();
+    fillBuyerFields();
+    selectTimeline();
+    checkTcpaConsent();
+    submitForm();
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    const data: LeadFormData = onSubmit.mock.calls[0][0];
+    expect(data.marketingConsent).toBeDefined();
+    expect(data.marketingConsent!.optedIn).toBe(true);
+    expect(data.marketingConsent!.consentText).toContain("consent to receive");
+    expect(data.marketingConsent!.channels).toEqual(["calls", "texts"]);
+  });
 });

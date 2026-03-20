@@ -5,6 +5,7 @@ import type { ContactFormData, AccountTracking } from "@/lib/types";
 import { trackCmaConversion } from "@/components/Analytics";
 import { LeadForm } from "@real-estate-star/ui";
 import type { LeadFormData } from "@real-estate-star/shared-types";
+import { Turnstile } from "@marsidev/react-turnstile";
 import type { ReactNode } from "react";
 import { Fragment, useState } from "react";
 import { submitLead } from "@/actions/submit-lead";
@@ -28,14 +29,14 @@ export function CmaSection({
 }: CmaSectionProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [turnstileToken] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   async function handleSubmit(leadData: LeadFormData) {
     setIsProcessing(true);
     setErrorMessage(null);
 
     try {
-      const result = await submitLead(accountId, leadData, turnstileToken);
+      const result = await submitLead(accountId, leadData, turnstileToken ?? "");
 
       if (result.error) {
         setErrorMessage(result.error);
@@ -121,6 +122,15 @@ export function CmaSection({
           error={errorMessage ?? undefined}
           serviceAreas={serviceAreas}
           showCmaDisclaimer
+          turnstileToken={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? turnstileToken : undefined}
+          captchaSlot={
+            process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
+              <Turnstile
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                onSuccess={setTurnstileToken}
+              />
+            ) : undefined
+          }
         />
       </div>
     </section>
