@@ -1,9 +1,14 @@
+using System.Globalization;
 using System.Text;
 
 namespace RealEstateStar.Api.Features.Leads.Services;
 
 public static class HomeSearchMarkdownRenderer
 {
+    private static readonly CultureInfo UsFormat = new("en-US");
+
+    private static string FormatUsd(decimal value) =>
+        $"${value.ToString("N0", UsFormat)}";
     public static string RenderListings(Lead lead, List<Listing> listings, string agentName)
     {
         var sb = new StringBuilder();
@@ -21,8 +26,8 @@ public static class HomeSearchMarkdownRenderer
 
         if (lead.BuyerDetails?.MinBudget.HasValue == true || lead.BuyerDetails?.MaxBudget.HasValue == true)
         {
-            var min = lead.BuyerDetails.MinBudget?.ToString("C0") ?? "any";
-            var max = lead.BuyerDetails.MaxBudget?.ToString("C0") ?? "any";
+            var min = lead.BuyerDetails.MinBudget.HasValue ? FormatUsd(lead.BuyerDetails.MinBudget.Value) : "any";
+            var max = lead.BuyerDetails.MaxBudget.HasValue ? FormatUsd(lead.BuyerDetails.MaxBudget.Value) : "any";
             sb.AppendLine($"**Price range:** {min} – {max}");
         }
 
@@ -40,7 +45,7 @@ public static class HomeSearchMarkdownRenderer
         {
             sb.AppendLine($"## {i + 1}. {listing.Address}, {listing.City}, {listing.State} {listing.Zip}");
             sb.AppendLine();
-            sb.AppendLine($"- **Price:** {listing.Price:C0}");
+            sb.AppendLine($"- **Price:** {FormatUsd(listing.Price)}");
             sb.AppendLine($"- **Beds/Baths:** {listing.Beds} / {listing.Baths}");
 
             if (listing.Sqft.HasValue)
@@ -71,7 +76,7 @@ public static class HomeSearchMarkdownRenderer
             sb.AppendLine($"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             sb.AppendLine();
             sb.AppendLine($"📍 {listing.Address}, {listing.City}, {listing.State} {listing.Zip}");
-            sb.AppendLine($"   {listing.Price:C0} | {listing.Beds} bed | {listing.Baths} bath{(listing.Sqft.HasValue ? $" | {listing.Sqft:N0} sqft" : "")}");
+            sb.AppendLine($"   {FormatUsd(listing.Price)} | {listing.Beds} bed | {listing.Baths} bath{(listing.Sqft.HasValue ? $" | {listing.Sqft.Value.ToString("N0", UsFormat)} sqft" : "")}");
 
             if (listing.WhyThisFits is not null)
                 sb.AppendLine($"   → \"{listing.WhyThisFits}\"");

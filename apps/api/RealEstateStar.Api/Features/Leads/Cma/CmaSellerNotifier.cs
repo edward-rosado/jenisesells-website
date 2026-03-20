@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using RealEstateStar.Api.Common;
@@ -114,9 +115,9 @@ public class CmaSellerNotifier(
         sb.AppendLine();
         sb.AppendLine("Based on recent comparable sales in your area, here is the estimated value range:");
         sb.AppendLine();
-        sb.AppendLine($"  Low:  {analysis.ValueLow:C0}");
-        sb.AppendLine($"  Mid:  {analysis.ValueMid:C0}");
-        sb.AppendLine($"  High: {analysis.ValueHigh:C0}");
+        sb.AppendLine($"  Low:  {FormatUsd(analysis.ValueLow)}");
+        sb.AppendLine($"  Mid:  {FormatUsd(analysis.ValueMid)}");
+        sb.AppendLine($"  High: {FormatUsd(analysis.ValueHigh)}");
         sb.AppendLine();
         sb.AppendLine($"Market trend: {analysis.MarketTrend}");
         sb.AppendLine($"Median days on market: {analysis.MedianDaysOnMarket} days");
@@ -156,4 +157,9 @@ public class CmaSellerNotifier(
 
     private static string EscapeYaml(string value)
         => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+    private static readonly CultureInfo UsFormat = new("en-US");
+
+    private static string FormatUsd(decimal value) =>
+        $"${value.ToString("N0", UsFormat)}";
 }
