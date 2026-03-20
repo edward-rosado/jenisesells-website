@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 
 interface HealthEntry {
   status: "Healthy" | "Degraded" | "Unhealthy";
@@ -20,28 +20,35 @@ const REFRESH_INTERVAL = 30_000;
 export function useHealthCheck(apiUrl: string): FetchState {
   const [state, setState] = useState<FetchState>({ kind: "loading" });
 
-  const fetchHealth = useCallback(async () => {
-    try {
-      const res = await fetch(`${apiUrl}/health/ready`, { cache: "no-store" });
-      if (!res.ok) {
-        setState({ kind: "error", message: `API returned ${res.status}` });
-        return;
-      }
-      const data: HealthResponse = await res.json();
-      setState({ kind: "success", data });
-    } catch (err) {
-      setState({
-        kind: "error",
-        message: err instanceof Error ? err.message : "Unknown error",
-      });
-    }
-  }, [apiUrl]);
-
   useEffect(() => {
-    fetchHealth();
-    const id = setInterval(fetchHealth, REFRESH_INTERVAL);
-    return () => clearInterval(id);
-  }, [fetchHealth]);
+    let cancelled = false;
+
+    const doFetch = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/health/ready`, { cache: "no-store" });
+        if (cancelled) return;
+        if (!res.ok) {
+          setState({ kind: "error", message: `API returned ${res.status}` });
+          return;
+        }
+        const data: HealthResponse = await res.json();
+        if (!cancelled) setState({ kind: "success", data });
+      } catch (err) {
+        if (!cancelled)
+          setState({
+            kind: "error",
+            message: err instanceof Error ? err.message : "Unknown error",
+          });
+      }
+    };
+
+    doFetch();
+    const id = setInterval(doFetch, REFRESH_INTERVAL);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [apiUrl]);
 
   return state;
 }

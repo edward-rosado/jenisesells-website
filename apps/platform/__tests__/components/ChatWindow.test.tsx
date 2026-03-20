@@ -854,7 +854,6 @@ describe("ChatWindow", () => {
   it("handles response with null content-type header (fallback to empty string)", async () => {
     // This covers the `?? ""` branch on line 145
     // Create a mock response where headers.get("content-type") returns null
-    const mockHeaders = new Headers();
     // Create response manually to avoid auto content-type
     fetchSpy.mockResolvedValueOnce({
       ok: true,

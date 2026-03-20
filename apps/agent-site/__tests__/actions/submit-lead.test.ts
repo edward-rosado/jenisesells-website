@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { LeadFormData } from "@real-estate-star/shared-types";
 
 vi.mock("@/lib/turnstile", () => ({
   validateTurnstile: vi.fn(),
@@ -21,7 +22,7 @@ describe("submitLead", () => {
 
     const result = await submitLead(
       "agent-123",
-      { email: "bot@spam.com", website: "http://spam.com" } as any,
+      { email: "bot@spam.com", website: "http://spam.com" } as LeadFormData,
       "some-token",
     );
 
@@ -39,7 +40,7 @@ describe("submitLead", () => {
 
     const result = await submitLead(
       "agent-123",
-      { email: "test@example.com" } as any,
+      { email: "test@example.com" } as LeadFormData,
       "bad-token",
     );
 
@@ -60,7 +61,7 @@ describe("submitLead", () => {
 
     const result = await submitLead(
       "agent-123",
-      { email: "buyer@example.com", firstName: "Jane" } as any,
+      { email: "buyer@example.com", firstName: "Jane" } as LeadFormData,
       "valid-token",
     );
 
@@ -85,7 +86,7 @@ describe("submitLead", () => {
 
     const result = await submitLead(
       "agent-123",
-      { email: "test@example.com" } as any,
+      { email: "test@example.com" } as LeadFormData,
       "valid-token",
     );
 

@@ -10,7 +10,7 @@ public class AgentConfigServiceTests
     private static string FindRepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "config", "agent.schema.json")))
+        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "config", "agents")))
             dir = dir.Parent;
 
         return dir?.FullName ?? throw new InvalidOperationException("Could not find repo root");
