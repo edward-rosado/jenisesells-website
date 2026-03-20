@@ -8,7 +8,7 @@ public record ScoreFactor
     public required string Explanation { get; init; }
 }
 
-public class LeadScore
+public record LeadScore
 {
     public required int OverallScore { get; init; }
     public required List<ScoreFactor> Factors { get; init; }

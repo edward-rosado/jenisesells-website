@@ -1,6 +1,6 @@
 namespace RealEstateStar.Api.Features.Leads;
 
-public class LeadEnrichment
+public record LeadEnrichment
 {
     public required string MotivationCategory { get; init; }
     public required string MotivationAnalysis { get; init; }
