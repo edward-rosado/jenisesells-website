@@ -11,12 +11,15 @@ using RealEstateStar.Api.Hubs;
 using RealEstateStar.Api.Logging;
 using RealEstateStar.Api.Middleware;
 using RealEstateStar.Api.Services;
+using RealEstateStar.Api.Services.Storage;
 using RealEstateStar.Api.Features.Cma.Services;
 using RealEstateStar.Api.Features.Cma.Services.Analysis;
 using RealEstateStar.Api.Features.Cma.Services.Comps;
 using RealEstateStar.Api.Features.Cma.Services.Gws;
 using RealEstateStar.Api.Features.Cma.Services.Pdf;
 using RealEstateStar.Api.Features.Cma.Services.Research;
+using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.Api.Features.WhatsApp.Services;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RealEstateStar.Api.Features.Onboarding.Services;
@@ -121,6 +124,89 @@ builder.Services.AddSingleton(sp =>
         sp.GetRequiredService<ToolDispatcher>(),
         sp.GetRequiredService<ILogger<OnboardingChatService>>()));
 builder.Services.AddHostedService<TrialExpiryService>();
+
+// ------------------------------------------------------------------
+// WhatsApp config validation
+// ------------------------------------------------------------------
+var whatsAppPhoneNumberId = builder.Configuration["WhatsApp:PhoneNumberId"];
+var whatsAppAccessToken = builder.Configuration["WhatsApp:AccessToken"];
+var whatsAppAppSecret = builder.Configuration["WhatsApp:AppSecret"];
+var whatsAppVerifyToken = builder.Configuration["WhatsApp:VerifyToken"];
+var whatsAppWabaId = builder.Configuration["WhatsApp:WabaId"];
+
+if (string.IsNullOrEmpty(whatsAppPhoneNumberId))
+    Log.Warning("WhatsApp:PhoneNumberId not configured — WhatsApp notifications disabled");
+
+// ------------------------------------------------------------------
+// Storage provider (Drive integration — noop until wired up)
+// ------------------------------------------------------------------
+builder.Services.AddSingleton<IFileStorageProvider, NoopFileStorageProvider>();
+
+// ------------------------------------------------------------------
+// Lead notification channel stubs (email — noop until email channel built)
+// ------------------------------------------------------------------
+builder.Services.AddSingleton<IEmailNotifier, NoopEmailNotifier>();
+
+// ------------------------------------------------------------------
+// WhatsApp services — always register intent/response stubs so
+// ConversationHandler can be resolved even without WhatsApp config.
+// Azure queue/table services are conditional on PhoneNumberId being set.
+// ------------------------------------------------------------------
+builder.Services.AddSingleton<IIntentClassifier, NoopIntentClassifier>();
+builder.Services.AddSingleton<IResponseGenerator, NoopResponseGenerator>();
+builder.Services.AddSingleton<IConversationLogger, ConversationLogger>();
+builder.Services.AddSingleton<IConversationHandler, ConversationHandler>();
+
+builder.Services.AddHttpClient("WhatsApp", client =>
+{
+    client.BaseAddress = new Uri("https://graph.facebook.com/v20.0/");
+});
+
+if (!string.IsNullOrEmpty(whatsAppPhoneNumberId))
+{
+    builder.Services.AddSingleton<IWhatsAppClient>(sp =>
+        new WhatsAppClient(
+            sp.GetRequiredService<IHttpClientFactory>(),
+            whatsAppPhoneNumberId,
+            whatsAppAccessToken!,
+            sp.GetRequiredService<ILogger<WhatsAppClient>>()));
+    builder.Services.AddSingleton<WhatsAppIdempotencyStore>();
+    builder.Services.AddSingleton<IWhatsAppNotifier, WhatsAppNotifier>();
+
+    // Azure Storage — required when WhatsApp is enabled
+    var storageConnectionString = builder.Configuration["AzureStorage:ConnectionString"]
+        ?? throw new InvalidOperationException(
+            "AzureStorage:ConnectionString required when WhatsApp is enabled");
+
+    builder.Services.AddSingleton(new Azure.Storage.Queues.QueueClient(
+        storageConnectionString,
+        "whatsapp-webhooks",
+        new Azure.Storage.Queues.QueueClientOptions
+        {
+            MessageEncoding = Azure.Storage.Queues.QueueMessageEncoding.Base64
+        }));
+    builder.Services.AddSingleton<IWebhookQueueService, AzureWebhookQueueService>();
+
+    builder.Services.AddSingleton(new Azure.Data.Tables.TableClient(
+        storageConnectionString, "whatsappaudit"));
+    builder.Services.AddSingleton<IWhatsAppAuditService, AzureWhatsAppAuditService>();
+
+    builder.Services.AddHostedService<WebhookProcessorWorker>();
+    builder.Services.AddHostedService<WhatsAppRetryJob>();
+}
+else
+{
+    // Register null-object implementations so any endpoint that resolves
+    // IWhatsAppNotifier / IWhatsAppAuditService still compiles and
+    // fails gracefully at runtime with a clear log rather than a DI exception.
+    builder.Services.AddSingleton<IWhatsAppNotifier, DisabledWhatsAppNotifier>();
+    builder.Services.AddSingleton<IWhatsAppAuditService, DisabledWhatsAppAuditService>();
+}
+
+// ------------------------------------------------------------------
+// Lead notification orchestrator
+// ------------------------------------------------------------------
+builder.Services.AddSingleton<MultiChannelLeadNotifier>();
 
 // Comp sources — typed HttpClient registrations
 builder.Services.AddHttpClient<ZillowCompSource>();
