@@ -316,6 +316,7 @@ export function LeadForm({
   return (
     <form
       onSubmit={handleSubmit}
+      aria-describedby="lf-error"
       style={{
         background: "#fff",
         borderRadius: 14,
@@ -539,7 +540,7 @@ export function LeadForm({
                 <input {...field("sqft", { type: "number" })} />
               </div>
             </div>
-            <p style={{ fontSize: 11, color: "#999", marginTop: 4, marginBottom: 0 }}>
+            <p style={{ fontSize: 11, color: "#767676", marginTop: 4, marginBottom: 0 }}>
               Address autocomplete powered by Google Maps.
             </p>
           </>
@@ -570,7 +571,7 @@ export function LeadForm({
       </div>
 
       {/* Errors */}
-      <div aria-live="polite" role="alert">
+      <div id="lf-error" aria-live="polite" role="alert">
         {validationError && (
           <p style={{ color: "red", fontSize: 14, marginBottom: 12 }}>{validationError}</p>
         )}
@@ -580,7 +581,7 @@ export function LeadForm({
       </div>
 
       {/* TCPA Consent */}
-      <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: 11, color: "#999", textAlign: "left", marginTop: "16px" }}>
+      <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: 11, color: "#767676", textAlign: "left", marginTop: "16px" }}>
         <input
           type="checkbox"
           data-testid="tcpa-consent"
@@ -627,7 +628,7 @@ export function LeadForm({
           style={{
             display: "block",
             fontSize: 11,
-            color: "#999",
+            color: "#767676",
             marginTop: 16,
             textAlign: "center",
             lineHeight: 1.5,

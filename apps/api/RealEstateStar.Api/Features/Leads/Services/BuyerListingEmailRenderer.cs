@@ -92,7 +92,7 @@ public static class BuyerListingEmailRenderer
 
         // CAN-SPAM compliant footer
         sb.AppendLine("You are receiving this email because you inquired about homes in the area.");
-        sb.AppendLine("To opt out of future home search emails, reply with UNSUBSCRIBE.");
+        sb.AppendLine($"To manage your email preferences, visit: https://{config.Id}.real-estate-star.com/privacy/opt-out");
         if (!string.IsNullOrWhiteSpace(officeAddress))
         {
             sb.AppendLine();
