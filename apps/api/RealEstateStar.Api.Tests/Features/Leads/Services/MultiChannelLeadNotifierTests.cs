@@ -329,4 +329,88 @@ public class MultiChannelLeadNotifierTests
         body.Should().Contain("Enrichment Summary");
         body.Should().Contain("Relocating for a new job opportunity.");
     }
+
+    // ─── BuildEmailBody — optional seller fields ──────────────────────────────
+
+    [Fact]
+    public void BuildEmailBody_SellerWithOptionalFields_IncludesPropertyTypeConditionAndAskingPrice()
+    {
+        var lead = new Lead
+        {
+            Id = Guid.NewGuid(),
+            AgentId = "jenise-buckalew",
+            LeadTypes = ["selling"],
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@example.com",
+            Phone = "5551234567",
+            Timeline = "ASAP",
+            ReceivedAt = DateTime.UtcNow,
+            Status = LeadStatus.Received,
+            SellerDetails = new SellerDetails
+            {
+                Address = "123 Main St",
+                City = "Springfield",
+                State = "NJ",
+                Zip = "07081",
+                PropertyType = "Single Family",
+                Condition = "Good",
+                AskingPrice = 450_000m
+            }
+        };
+
+        var body = MultiChannelLeadNotifier.BuildEmailBody(lead, MakeEnrichment(), MakeScore());
+
+        body.Should().Contain("Single Family");
+        body.Should().Contain("Good");
+        body.Should().Contain("450,000");
+    }
+
+    // ─── BuildEmailBody — optional buyer fields ───────────────────────────────
+
+    [Fact]
+    public void BuildEmailBody_BuyerWithOptionalFields_IncludesMaxBudgetBedroomsBathroomsPropertyTypesAndMustHaves()
+    {
+        var lead = new Lead
+        {
+            Id = Guid.NewGuid(),
+            AgentId = "jenise-buckalew",
+            LeadTypes = ["buying"],
+            FirstName = "Bob",
+            LastName = "Smith",
+            Email = "bob@example.com",
+            Phone = "5559876543",
+            Timeline = "1-3 months",
+            ReceivedAt = DateTime.UtcNow,
+            Status = LeadStatus.Received,
+            BuyerDetails = new BuyerDetails
+            {
+                City = "Springfield",
+                State = "NJ",
+                MaxBudget = 500_000m,
+                Bedrooms = 3,
+                Bathrooms = 2,
+                PropertyTypes = ["Single Family", "Condo"],
+                MustHaves = ["Garage", "Backyard"]
+            }
+        };
+
+        var body = MultiChannelLeadNotifier.BuildEmailBody(lead, MakeEnrichment(), MakeScore());
+
+        body.Should().Contain("500,000");
+        body.Should().Contain("3");        // bedrooms
+        body.Should().Contain("2");        // bathrooms
+        body.Should().Contain("Single Family");
+        body.Should().Contain("Garage");
+    }
+
+    [Fact]
+    public void BuildEmailBody_WhenNoColdCallOpeners_OmitsColdCallOpenersSection()
+    {
+        var enrichment = MakeEnrichment() with { ColdCallOpeners = [] };
+
+        var body = MultiChannelLeadNotifier.BuildEmailBody(MakeLead(), enrichment, MakeScore());
+
+        body.Should().NotContain("Cold Call Openers");
+    }
 }

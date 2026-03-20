@@ -287,4 +287,18 @@ public class BuyerListingEmailRendererTests
 
         act.Should().NotThrow();
     }
+
+    [Fact]
+    public void Render_Body_OmitsSqftSuffix_WhenSqftIsNull()
+    {
+        // Listing with Sqft = null exercises the false branch of l.Sqft.HasValue
+        var listing = new Listing("45 Park Ave", "Princeton", "NJ", "08540", 390_000m, 3, 2m, null, null, null);
+
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAgentConfig());
+
+        // Should not contain "sqft" since the value is absent
+        body.Should().NotContain("sqft");
+        // But the price / bed / bath line should still appear
+        body.Should().Contain("390,000");
+    }
 }

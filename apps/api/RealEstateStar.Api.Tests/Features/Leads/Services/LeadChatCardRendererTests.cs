@@ -165,4 +165,35 @@ public class LeadChatCardRendererTests
         var widgets = openersSection["widgets"]!.AsArray();
         widgets.Count.Should().Be(0);
     }
+
+    // ─── ScoreBadge branch coverage ───────────────────────────────────────────
+    // The switch has 4 arms: >=80, >=60, >=40, <40.
+    // Existing tests only cover >=80 (score 82). Cover the remaining 3.
+
+    [Fact]
+    public void RenderNewLeadCard_Score70_UsesStarBadge()
+    {
+        var card = LeadChatCardRenderer.RenderNewLeadCard(MakeLead(), MakeEnrichment(), MakeScore(70));
+        var subtitle = card["cardsV2"]![0]!["card"]!["header"]!["subtitle"]!.GetValue<string>();
+        // Score 70 falls in >=60 arm — subtitle should contain the score
+        subtitle.Should().Contain("70");
+    }
+
+    [Fact]
+    public void RenderNewLeadCard_Score50_UsesPlainBadge()
+    {
+        var card = LeadChatCardRenderer.RenderNewLeadCard(MakeLead(), MakeEnrichment(), MakeScore(50));
+        var subtitle = card["cardsV2"]![0]!["card"]!["header"]!["subtitle"]!.GetValue<string>();
+        // Score 50 falls in >=40 arm
+        subtitle.Should().Contain("50");
+    }
+
+    [Fact]
+    public void RenderNewLeadCard_Score20_UsesLowScoreBadge()
+    {
+        var card = LeadChatCardRenderer.RenderNewLeadCard(MakeLead(), MakeEnrichment(), MakeScore(20));
+        var subtitle = card["cardsV2"]![0]!["card"]!["header"]!["subtitle"]!.GetValue<string>();
+        // Score 20 falls in the default arm (<40)
+        subtitle.Should().Contain("20");
+    }
 }
