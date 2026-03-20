@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import * as Sentry from "@sentry/nextjs";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadAccountConfig, loadAccountContent, loadAgentConfig, loadAgentContent } from "@/lib/config";
@@ -87,7 +86,7 @@ export default async function AgentThankYouPage({ params }: PageProps) {
   try {
     account = loadAccountConfig(handle);
   } catch (err) {
-    Sentry.captureException(err, { tags: { handle } });
+    console.error("[agent-site] Failed to load account:", handle, err);
     notFound();
   }
 
@@ -95,7 +94,7 @@ export default async function AgentThankYouPage({ params }: PageProps) {
   try {
     agentConfig = loadAgentConfig(handle, id);
   } catch (err) {
-    Sentry.captureException(err, { tags: { handle, agentId: id } });
+    console.error("[agent-site] Failed to load agent:", handle, id, err);
     notFound();
   }
 

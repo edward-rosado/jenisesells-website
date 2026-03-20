@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { withSentryConfig } from "@sentry/nextjs";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 initOpenNextCloudflareForDev();
@@ -25,15 +24,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  // Suppress Sentry logs during build
-  silent: true,
-
-  // Source maps: upload to Sentry but don't expose to end users
-  sourcemaps: {
-    deleteSourcemapsAfterUpload: true,
-  },
-
-  // Tree-shake Sentry logger for smaller bundles
-  disableLogger: true,
-});
+export default nextConfig;

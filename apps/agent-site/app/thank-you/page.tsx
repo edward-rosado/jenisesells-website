@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/nextjs";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadAccountConfig, loadAccountContent } from "@/lib/config";
@@ -37,7 +36,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
   try {
     account = loadAccountConfig(handle);
   } catch (err) {
-    Sentry.captureException(err, { tags: { accountId: handle } });
+    console.error("[agent-site] Failed to load account:", handle, err);
     notFound();
   }
 
