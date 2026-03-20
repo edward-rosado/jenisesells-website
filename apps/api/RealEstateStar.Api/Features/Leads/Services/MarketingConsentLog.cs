@@ -22,4 +22,12 @@ public class MarketingConsentLog(IFileStorageProvider fileStorageProvider) : IMa
 
         await fileStorageProvider.AppendRowAsync(LeadPaths.ConsentLogSheet, row, ct);
     }
+
+    public Task RedactAsync(string agentId, string email, CancellationToken ct) =>
+        fileStorageProvider.RedactRowsAsync(
+            LeadPaths.ConsentLogSheet,
+            email,
+            email,
+            "[REDACTED]",
+            ct);
 }

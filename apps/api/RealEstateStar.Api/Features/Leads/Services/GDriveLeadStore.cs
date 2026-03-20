@@ -51,6 +51,13 @@ public class GDriveLeadStore(IFileStorageProvider storage) : ILeadStore
         await storage.UpdateDocumentAsync(folder, LeadProfileFile, updated, ct);
     }
 
+    public async Task UpdateMarketingOptInAsync(string agentId, Guid leadId, bool optedIn, CancellationToken ct)
+    {
+        var (folder, doc) = await ReadLeadDocAsync(agentId, leadId, ct);
+        var updated = YamlFrontmatterParser.UpdateField(doc, "marketing_opted_in", optedIn.ToString().ToLowerInvariant());
+        await storage.UpdateDocumentAsync(folder, LeadProfileFile, updated, ct);
+    }
+
     // ── Read operations ────────────────────────────────────────────────────────
 
     public async Task<Lead?> GetAsync(string agentId, Guid leadId, CancellationToken ct)
@@ -81,6 +88,25 @@ public class GDriveLeadStore(IFileStorageProvider storage) : ILeadStore
 
         var fm = YamlFrontmatterParser.Parse(doc);
         return ParseLead(agentId, fm);
+    }
+
+    public async Task<Lead?> GetByEmailAsync(string agentId, string email, CancellationToken ct)
+    {
+        var leadNames = await storage.ListDocumentsAsync(LeadPaths.LeadsFolder, ct);
+        foreach (var name in leadNames)
+        {
+            var folder = LeadPaths.LeadFolder(name);
+            var doc = await storage.ReadDocumentAsync(folder, LeadProfileFile, ct);
+            if (doc is null) continue;
+
+            var fm = YamlFrontmatterParser.Parse(doc);
+            if (fm.TryGetValue("email", out var storedEmail) &&
+                string.Equals(storedEmail, email, StringComparison.OrdinalIgnoreCase))
+            {
+                return ParseLead(agentId, fm);
+            }
+        }
+        return null;
     }
 
     public async Task<List<Lead>> ListByStatusAsync(string agentId, LeadStatus status, CancellationToken ct)
@@ -158,6 +184,8 @@ public class GDriveLeadStore(IFileStorageProvider storage) : ILeadStore
         fm.TryGetValue("leadTypes", out var leadTypesRaw);
         fm.TryGetValue("city", out var city);
         fm.TryGetValue("state", out var state);
+        fm.TryGetValue("consentToken", out var consentToken);
+        fm.TryGetValue("marketing_opted_in", out var marketingOptedInStr);
 
         Guid.TryParse(leadIdStr, out var leadId);
         Enum.TryParse<LeadStatus>(statusStr, ignoreCase: true, out var status);
@@ -165,6 +193,7 @@ public class GDriveLeadStore(IFileStorageProvider storage) : ILeadStore
 
         Guid? cmaJobId = !string.IsNullOrWhiteSpace(cmaJobIdStr) && Guid.TryParse(cmaJobIdStr, out var cj) ? cj : null;
         Guid? homeSearchId = !string.IsNullOrWhiteSpace(homeSearchIdStr) && Guid.TryParse(homeSearchIdStr, out var hs) ? hs : null;
+        bool? marketingOptedIn = marketingOptedInStr is not null && bool.TryParse(marketingOptedInStr, out var moi) ? moi : null;
 
         var leadTypes = ParseYamlList(leadTypesRaw ?? "");
 
@@ -182,6 +211,8 @@ public class GDriveLeadStore(IFileStorageProvider storage) : ILeadStore
             ReceivedAt = receivedAt,
             CmaJobId = cmaJobId,
             HomeSearchId = homeSearchId,
+            ConsentToken = string.IsNullOrWhiteSpace(consentToken) ? null : consentToken,
+            MarketingOptedIn = marketingOptedIn,
         };
     }
 

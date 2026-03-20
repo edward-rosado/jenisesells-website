@@ -24,4 +24,7 @@ public static class LeadPaths
 
     public static string DeletionAuditLogSheet(string agentId)
         => $"{Root}/{agentId}/Deletion Audit Log";
+
+    public static string DeletionTokensFolder(string agentId)
+        => $"{Root}/{agentId}/Deletion Tokens";
 }
