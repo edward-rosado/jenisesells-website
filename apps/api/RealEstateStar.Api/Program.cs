@@ -22,6 +22,9 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Tools;
 using RealEstateStar.Api.Health;
+using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.Api.Features.Leads.Services.Enrichment;
+using RealEstateStar.Api.Services.Storage;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -161,6 +164,36 @@ builder.Services.AddSingleton<IAnalysisService>(sp =>
 // Pipeline orchestrator
 builder.Services.AddSingleton<ICmaPipeline, CmaPipeline>();
 
+// --- Lead Feature Services ---
+
+// Storage provider — local by default, GDrive requires per-request agentEmail (scoped)
+// GDriveStorageProvider needs agentEmail from route, so it's resolved per-request via endpoint logic.
+// For DI container, register LocalStorageProvider as the default singleton.
+builder.Services.AddSingleton<IFileStorageProvider>(sp =>
+    new LocalStorageProvider(
+        builder.Configuration["Storage:BasePath"] ?? Path.Combine(builder.Environment.ContentRootPath, "data")));
+
+// Lead feature services
+builder.Services.AddSingleton<ILeadStore, GDriveLeadStore>();
+builder.Services.AddSingleton<IMarketingConsentLog, MarketingConsentLog>();
+builder.Services.AddSingleton<ILeadDataDeletion, GDriveLeadDataDeletion>();
+builder.Services.AddSingleton<IDeletionAuditLog, DeletionAuditLog>();
+builder.Services.AddSingleton<ILeadNotifier, MultiChannelLeadNotifier>();
+
+// Lead enrichment — typed HttpClient with Polly resilience
+builder.Services.AddHttpClient<ScraperLeadEnricher>();
+builder.Services.AddSingleton<ILeadEnricher>(sp => sp.GetRequiredService<ScraperLeadEnricher>());
+
+// Home search — scraper-based
+builder.Services.AddHttpClient<ScraperHomeSearchProvider>();
+builder.Services.AddSingleton<IHomeSearchProvider>(sp => sp.GetRequiredService<ScraperHomeSearchProvider>());
+
+// Drive change monitor
+builder.Services.AddSingleton<DriveChangeMonitor>();
+
+// OpenAPI
+builder.Services.AddOpenApi();
+
 // Problem details for validation errors
 builder.Services.AddProblemDetails();
 
@@ -173,7 +206,10 @@ builder.Services.AddSignalR();
 
 // Health checks
 builder.Services.AddHealthChecks()
-    .AddCheck<ClaudeApiHealthCheck>("claude_api", tags: ["ready"]);
+    .AddCheck<ClaudeApiHealthCheck>("claude_api", tags: ["ready"])
+    .AddCheck<GoogleDriveHealthCheck>("google_drive", tags: ["ready"])
+    .AddCheck<ScraperApiHealthCheck>("scraper_api", tags: ["ready"])
+    .AddCheck<TurnstileHealthCheck>("turnstile", tags: ["ready"]);
 
 // CORS
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -347,7 +383,10 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 // SignalR hub
 app.MapHub<CmaProgressHub>("/hubs/cma-progress");
 
-// --- CMA Endpoints ---
+// OpenAPI spec
+app.MapOpenApi();
+
+// --- All Endpoints (CMA + Leads) ---
 app.MapEndpoints();
 
 app.Run();

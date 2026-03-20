@@ -13,5 +13,9 @@ public enum LeadStatus
     NotificationFailed,
     CmaComplete,
     SearchComplete,
-    Complete
+    Complete,
+    ActiveClient,
+    UnderContract,
+    Closed,
+    Inactive
 }

@@ -1,5 +1,9 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using RealEstateStar.Api.Features.Leads;
+using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.Api.Features.Leads.Services.Enrichment;
 
 namespace RealEstateStar.Api.Tests.Integration;
 
@@ -7,6 +11,8 @@ namespace RealEstateStar.Api.Tests.Integration;
 /// Custom WebApplicationFactory that injects test configuration values
 /// so Program.cs startup validation doesn't throw in CI.
 /// Uses UseSetting which adds to the host configuration before builder.Build().
+/// Also registers no-op stubs for all lead services that require external storage
+/// so integration tests can run without real GDrive/GWS credentials.
 /// </summary>
 public class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
@@ -22,5 +28,76 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseSetting("Stripe:PriceId", "price_test_placeholder");
         builder.UseSetting("Stripe:WebhookSecret", "whsec_test_placeholder");
         builder.UseSetting("Platform:BaseUrl", "http://localhost:3000");
+
+        // Register no-op stubs for lead services (require external GDrive/GWS credentials in production).
+        // Subclasses may override these with more specific implementations.
+        builder.ConfigureServices(services =>
+        {
+            services.AddSingleton<ILeadStore, NoOpLeadStore>();
+            services.AddSingleton<IMarketingConsentLog, NoOpMarketingConsentLog>();
+            services.AddSingleton<ILeadEnricher, NoOpLeadEnricher>();
+            services.AddSingleton<ILeadNotifier, NoOpLeadNotifier>();
+            services.AddSingleton<IHomeSearchProvider, NoOpHomeSearchProvider>();
+            services.AddSingleton<ILeadDataDeletion, NoOpLeadDataDeletion>();
+            services.AddSingleton<IDeletionAuditLog, NoOpDeletionAuditLog>();
+        });
     }
+}
+
+// ---------------------------------------------------------------------------
+// No-op stubs — used in all integration tests as default lead service stubs.
+// Subclasses override with configured mocks for behaviour-specific tests.
+// ---------------------------------------------------------------------------
+
+file sealed class NoOpLeadStore : ILeadStore
+{
+    public Task SaveAsync(Lead lead, CancellationToken ct) => Task.CompletedTask;
+    public Task UpdateEnrichmentAsync(string a, Guid i, LeadEnrichment e, LeadScore s, CancellationToken ct) => Task.CompletedTask;
+    public Task UpdateCmaJobIdAsync(string a, Guid i, string c, CancellationToken ct) => Task.CompletedTask;
+    public Task UpdateHomeSearchIdAsync(string a, Guid i, string h, CancellationToken ct) => Task.CompletedTask;
+    public Task UpdateStatusAsync(string a, Guid i, LeadStatus s, CancellationToken ct) => Task.CompletedTask;
+    public Task UpdateMarketingOptInAsync(string a, Guid i, bool o, CancellationToken ct) => Task.CompletedTask;
+    public Task<Lead?> GetAsync(string a, Guid i, CancellationToken ct) => Task.FromResult<Lead?>(null);
+    public Task<Lead?> GetByNameAsync(string a, string n, CancellationToken ct) => Task.FromResult<Lead?>(null);
+    public Task<Lead?> GetByEmailAsync(string a, string e, CancellationToken ct) => Task.FromResult<Lead?>(null);
+    public Task<List<Lead>> ListByStatusAsync(string a, LeadStatus s, CancellationToken ct) => Task.FromResult(new List<Lead>());
+    public Task DeleteAsync(string a, Guid i, CancellationToken ct) => Task.CompletedTask;
+}
+
+file sealed class NoOpMarketingConsentLog : IMarketingConsentLog
+{
+    public Task RecordConsentAsync(string agentId, MarketingConsent consent, CancellationToken ct) => Task.CompletedTask;
+    public Task RedactAsync(string agentId, string email, CancellationToken ct) => Task.CompletedTask;
+}
+
+file sealed class NoOpLeadEnricher : ILeadEnricher
+{
+    public Task<(LeadEnrichment Enrichment, LeadScore Score)> EnrichAsync(Lead lead, CancellationToken ct) =>
+        Task.FromResult((LeadEnrichment.Empty(), LeadScore.Default("no-op")));
+}
+
+file sealed class NoOpLeadNotifier : ILeadNotifier
+{
+    public Task NotifyAgentAsync(string agentId, Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct) =>
+        Task.CompletedTask;
+}
+
+file sealed class NoOpHomeSearchProvider : IHomeSearchProvider
+{
+    public Task<List<Listing>> SearchAsync(HomeSearchCriteria criteria, CancellationToken ct) =>
+        Task.FromResult(new List<Listing>());
+}
+
+file sealed class NoOpLeadDataDeletion : ILeadDataDeletion
+{
+    public Task<string> InitiateDeletionRequestAsync(string agentId, string email, CancellationToken ct) =>
+        Task.FromResult("no-op-token");
+    public Task<DeleteResult> ExecuteDeletionAsync(string agentId, string email, string token, string reason, CancellationToken ct) =>
+        Task.FromResult(new DeleteResult(true, []));
+}
+
+file sealed class NoOpDeletionAuditLog : IDeletionAuditLog
+{
+    public Task RecordInitiationAsync(string agentId, Guid leadId, string email, CancellationToken ct) => Task.CompletedTask;
+    public Task RecordCompletionAsync(string agentId, Guid leadId, CancellationToken ct) => Task.CompletedTask;
 }
