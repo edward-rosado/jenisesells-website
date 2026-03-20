@@ -1,0 +1,25 @@
+name: Lead Pipeline Smoke Test
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check API health
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.real-estate-star.com/health/ready)
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::API health check failed with status $STATUS"
+            exit 1
+          fi
+
+      - name: Verify Turnstile on agent site
+        run: |
+          BODY=$(curl -s https://jenise-buckalew.real-estate-star.com)
+          if ! echo "$BODY" | grep -q "challenges.cloudflare.com"; then
+            echo "::warning::Turnstile script not found on agent site"
+          fi
