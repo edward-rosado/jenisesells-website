@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 
-namespace RealEstateStar.Api.Features.Onboarding.Services;
+namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
 /// <summary>
 /// Abstracts DNS resolution to allow testing of DNS rebinding prevention.

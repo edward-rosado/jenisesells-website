@@ -2,11 +2,38 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.Retry;
 
 namespace RealEstateStar.Api.Services.Gws;
 
 public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
 {
+    /// <summary>
+    /// Retry pipeline for gws CLI process calls.
+    /// 3 retries with exponential backoff (1s, 2s, 4s) + jitter.
+    /// Retries on InvalidOperationException (non-zero exit code from gws).
+    /// </summary>
+    private readonly ResiliencePipeline _retryPipeline = new ResiliencePipelineBuilder()
+        .AddRetry(new RetryStrategyOptions
+        {
+            MaxRetryAttempts = 3,
+            BackoffType = DelayBackoffType.Exponential,
+            Delay = TimeSpan.FromSeconds(1),
+            UseJitter = true,
+            ShouldHandle = new PredicateBuilder().Handle<InvalidOperationException>(),
+            OnRetry = args =>
+            {
+                logger?.LogWarning(
+                    "[GWS-020] GDrive retry attempt {Attempt} after {Delay}ms. Error: {Error}",
+                    args.AttemptNumber + 1,
+                    args.RetryDelay.TotalMilliseconds,
+                    args.Outcome.Exception?.Message);
+                return ValueTask.CompletedTask;
+            }
+        })
+        .Build();
+
     public async Task<string> CreateDriveFolderAsync(string agentEmail, string folderPath, CancellationToken ct)
     {
         logger?.LogInformation("Creating Drive folder {FolderPath} for {AgentEmail}", folderPath, HashEmail(agentEmail));
@@ -77,6 +104,11 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
 
     private async Task<string> RunGwsAsync(CancellationToken ct, params string[] args)
     {
+        return await _retryPipeline.ExecuteAsync(async token => await RunGwsCoreAsync(token, args), ct);
+    }
+
+    private async Task<string> RunGwsCoreAsync(CancellationToken ct, string[] args)
+    {
         logger?.LogDebug("Running: gws {Args}", string.Join(" ", args));
 
         var psi = new ProcessStartInfo("gws")
@@ -103,7 +135,7 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
 
         if (process.ExitCode != 0)
         {
-            logger?.LogError("gws process failed with exit code {ExitCode}: {Stderr}", process.ExitCode, stderr);
+            logger?.LogError("[GWS-021] gws process failed with exit code {ExitCode}: {Stderr}", process.ExitCode, stderr);
             throw new InvalidOperationException($"Google Workspace operation failed (exit code {process.ExitCode})");
         }
 

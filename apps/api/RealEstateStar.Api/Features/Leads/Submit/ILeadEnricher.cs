@@ -1,4 +1,4 @@
-namespace RealEstateStar.Api.Features.Leads.Services.Enrichment;
+namespace RealEstateStar.Api.Features.Leads.Submit;
 
 public interface ILeadEnricher
 {

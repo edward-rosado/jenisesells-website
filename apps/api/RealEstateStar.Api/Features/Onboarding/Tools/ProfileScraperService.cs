@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.Extensions.Logging;
 
-namespace RealEstateStar.Api.Features.Onboarding.Services;
+namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
 public partial class ProfileScraperService(
     IHttpClientFactory httpClientFactory,

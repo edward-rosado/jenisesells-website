@@ -1,4 +1,4 @@
-namespace RealEstateStar.Api.Features.Onboarding.Services;
+namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
 public interface ISiteDeployService
 {

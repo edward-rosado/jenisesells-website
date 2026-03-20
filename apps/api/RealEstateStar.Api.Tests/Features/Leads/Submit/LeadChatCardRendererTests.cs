@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using FluentAssertions;
 using RealEstateStar.Api.Features.Leads;
 using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.Api.Features.Leads.Submit;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Services;
 

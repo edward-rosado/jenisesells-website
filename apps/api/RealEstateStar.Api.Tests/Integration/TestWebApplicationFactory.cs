@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using RealEstateStar.Api.Features.Leads;
 using RealEstateStar.Api.Features.Leads.Services;
-using RealEstateStar.Api.Features.Leads.Services.Enrichment;
+using RealEstateStar.Api.Features.Leads.Submit;
 
 namespace RealEstateStar.Api.Tests.Integration;
 

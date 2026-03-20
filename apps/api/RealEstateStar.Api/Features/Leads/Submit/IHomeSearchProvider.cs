@@ -1,4 +1,4 @@
-namespace RealEstateStar.Api.Features.Leads.Services;
+namespace RealEstateStar.Api.Features.Leads.Submit;
 
 public interface IHomeSearchProvider
 {

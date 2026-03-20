@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace RealEstateStar.Api.Features.Onboarding.Services;
+namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
 public record ProcessResult(int ExitCode, string Stdout, string Stderr);
 

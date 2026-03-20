@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace RealEstateStar.Api.Features.Leads.Services;
+namespace RealEstateStar.Api.Features.Leads.Submit;
 
 public static class LeadChatCardRenderer
 {

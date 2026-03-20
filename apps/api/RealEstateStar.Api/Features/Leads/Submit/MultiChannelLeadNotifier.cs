@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Api.Services;
 using RealEstateStar.Api.Services.Gws;
 
-namespace RealEstateStar.Api.Features.Leads.Services;
+namespace RealEstateStar.Api.Features.Leads.Submit;
 
 public class MultiChannelLeadNotifier(
     IHttpClientFactory httpClientFactory,

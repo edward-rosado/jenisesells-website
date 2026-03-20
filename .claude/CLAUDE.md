@@ -20,8 +20,8 @@ skills/
   email/           # Multi-provider email sending
   deploy/          # Website deployment
 config/
+  accounts/{handle}/         # Per-tenant account config (account.json, content.json, legal/)
   agent.schema.json          # JSON Schema for agent profiles
-  agents/{agent-id}.json     # Per-tenant agent configurations
 prototype/         # Original jenisesellsnj.com static site
 infra/             # Infrastructure and hosting config
 docs/              # Design docs, onboarding, plans
@@ -29,7 +29,7 @@ docs/              # Design docs, onboarding, plans
 
 ## Multi-Tenant Architecture
 
-Every agent (tenant) has a JSON config file at `config/agents/{agent-id}.json` validated against `config/agent.schema.json`.
+Every agent (tenant) has a config directory at `config/accounts/{handle}/` containing `account.json`, `content.json`, and `legal/` files.
 
 **All skills read from agent config — never hardcode agent-specific data.**
 
@@ -38,7 +38,7 @@ Every agent (tenant) has a JSON config file at `config/agents/{agent-id}.json` v
 When working on a skill, load the agent profile first:
 
 ```
-1. Read config/agents/{agent-id}.json
+1. Read config/accounts/{handle}/account.json
 2. Use {agent.identity.*} for name, phone, email, brokerage, etc.
 3. Use {agent.location.*} for state, service areas, office address
 4. Use {agent.branding.*} for colors, fonts
@@ -77,8 +77,6 @@ All lead files are markdown with YAML frontmatter. Frontmatter keys are validate
 ## Docs
 
 - Design: `docs/plans/2026-03-09-repo-restructure-design.md`
-- CMA Pipeline Design: `docs/plans/2026-03-09-cma-pipeline-design.md`
-- CMA Pipeline Plan: `docs/plans/2026-03-09-cma-pipeline-plan.md`
 - Lead Submission Design: `docs/superpowers/specs/2026-03-19-lead-submission-api-design.md`
 - Onboarding: `docs/onboarding.md`
 - PM Skills: `docs/pm-skills-setup.md`

@@ -18,7 +18,7 @@ using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Tools;
 using RealEstateStar.Api.Health;
 using RealEstateStar.Api.Features.Leads.Services;
-using RealEstateStar.Api.Features.Leads.Services.Enrichment;
+using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Api.Services.Storage;
 using Serilog;
 
@@ -92,7 +92,13 @@ var scraperApiKey = builder.Configuration["ScraperApi:ApiKey"];
 if (string.IsNullOrEmpty(scraperApiKey))
     Log.Warning("ScraperApi:ApiKey not configured — profile scraping will use direct HTTP (may be blocked by Zillow/Realtor)");
 
-builder.Services.AddHttpClient(nameof(ProfileScraperService));
+// Polly resilience logger — resolved early so AddResilienceHandler callbacks can log
+var pollyLoggerFactory = LoggerFactory.Create(lb => lb.AddSerilog(Log.Logger));
+var pollyLogger = pollyLoggerFactory.CreateLogger("Polly");
+
+builder.Services.AddHttpClient(nameof(ProfileScraperService))
+    .AddClaudeApiResilience(pollyLogger)
+    .AddScraperApiResilience(pollyLogger);
 builder.Services.AddSingleton<IDnsResolver, SystemDnsResolver>();
 builder.Services.AddSingleton<IProfileScraper>(sp =>
     new ProfileScraperService(
@@ -118,7 +124,6 @@ builder.Services.AddSingleton<ISiteDeployService>(sp =>
         sp.GetRequiredService<IProcessRunner>(),
         sp.GetRequiredService<CloudflareOptions>(),
         configPath));
-builder.Services.AddSingleton<IDriveFolderInitializer, DriveFolderInitializer>();
 builder.Services.AddSingleton<IOnboardingTool, ScrapeUrlTool>();
 builder.Services.AddSingleton<IOnboardingTool, UpdateProfileTool>();
 builder.Services.AddSingleton<IOnboardingTool, SetBrandingTool>();
@@ -126,8 +131,8 @@ builder.Services.AddSingleton<IOnboardingTool, DeploySiteTool>();
 builder.Services.AddSingleton<IOnboardingTool, CreateStripeSessionTool>();
 builder.Services.AddSingleton<ToolDispatcher>();
 builder.Services.AddSingleton<IStripeService, StripeService>();
-builder.Services.AddSingleton<DomainService>();
-builder.Services.AddHttpClient(nameof(OnboardingChatService));
+builder.Services.AddHttpClient(nameof(OnboardingChatService))
+    .AddClaudeApiResilience(pollyLogger);
 builder.Services.AddSingleton(sp =>
     new OnboardingChatService(
         sp.GetRequiredService<IHttpClientFactory>(),
@@ -157,7 +162,8 @@ builder.Services.AddSingleton<IDeletionAuditLog, DeletionAuditLog>();
 builder.Services.AddSingleton<ILeadNotifier, MultiChannelLeadNotifier>();
 
 // Lead enrichment — typed HttpClient with Polly resilience
-builder.Services.AddHttpClient(nameof(ScraperLeadEnricher));
+builder.Services.AddHttpClient(nameof(ScraperLeadEnricher))
+    .AddClaudeApiResilience(pollyLogger);
 builder.Services.AddSingleton<ILeadEnricher>(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();
@@ -165,9 +171,21 @@ builder.Services.AddSingleton<ILeadEnricher>(sp =>
     return new ScraperLeadEnricher(factory, anthropicKey, scraperApiKey ?? "", logger);
 });
 
-// Home search — scraper-based
-builder.Services.AddHttpClient<ScraperHomeSearchProvider>();
-builder.Services.AddSingleton<IHomeSearchProvider>(sp => sp.GetRequiredService<ScraperHomeSearchProvider>());
+// Home search — scraper-based (uses both nameof and "ScraperAPI" named clients)
+builder.Services.AddHttpClient(nameof(ScraperHomeSearchProvider))
+    .AddClaudeApiResilience(pollyLogger);
+builder.Services.AddSingleton<IHomeSearchProvider>(sp =>
+    new ScraperHomeSearchProvider(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        scraperApiKey ?? "",
+        anthropicKey,
+        sp.GetRequiredService<ILogger<ScraperHomeSearchProvider>>()));
+
+// Named HttpClients used by services with hardcoded client names
+builder.Services.AddHttpClient("ScraperAPI")
+    .AddScraperApiResilience(pollyLogger);
+builder.Services.AddHttpClient("GoogleChat")
+    .AddGoogleChatResilience(pollyLogger);
 
 // Drive change monitor
 builder.Services.AddSingleton<DriveChangeMonitor>();

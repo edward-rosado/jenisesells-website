@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
-namespace RealEstateStar.Api.Features.Leads.Services;
+namespace RealEstateStar.Api.Features.Leads.Submit;
 
 public class ScraperHomeSearchProvider(
     IHttpClientFactory httpClientFactory,

@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using RealEstateStar.Api.Features.Leads;
 using RealEstateStar.Api.Features.Leads.Services;
-using RealEstateStar.Api.Features.Leads.Services.Enrichment;
+using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Api.Tests.Integration;
 
 namespace RealEstateStar.Api.Tests.Features.Leads;

@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
-namespace RealEstateStar.Api.Features.Onboarding.Services;
+namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
 public partial class SiteDeployService(
     ILogger<SiteDeployService> logger,
