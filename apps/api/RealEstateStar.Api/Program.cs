@@ -19,6 +19,7 @@ using RealEstateStar.Api.Features.Cma.Services.Pdf;
 using RealEstateStar.Api.Features.Cma.Services.Research;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.DataProtection;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Tools;
 using RealEstateStar.Api.Health;
@@ -36,8 +37,29 @@ var configPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "
 builder.Services.AddSingleton<IAgentConfigService>(sp =>
     new AgentConfigService(configPath, sp.GetRequiredService<ILogger<AgentConfigService>>()));
 
+// Data Protection — encrypt OAuth tokens at rest
+var dpBuilder = builder.Services.AddDataProtection()
+    .SetApplicationName("RealEstateStar");
+
+if (!builder.Environment.IsDevelopment())
+{
+    var kvUri = builder.Configuration["AzureKeyVault:VaultUri"];
+    var blobUri = builder.Configuration["DataProtection:BlobUri"];
+    if (!string.IsNullOrEmpty(kvUri) && !string.IsNullOrEmpty(blobUri))
+    {
+        dpBuilder
+            .PersistKeysToAzureBlobStorage(new Uri(blobUri), new Azure.Identity.DefaultAzureCredential())
+            .ProtectKeysWithAzureKeyVault(new Uri(kvUri + "/keys/dataprotection"), new Azure.Identity.DefaultAzureCredential());
+    }
+}
+
 // Onboarding (session store registered early, services after config keys below)
-builder.Services.AddSingleton<ISessionStore, JsonFileSessionStore>();
+builder.Services.AddSingleton<JsonFileSessionStore>();
+builder.Services.AddSingleton<ISessionStore>(sp =>
+    new EncryptingSessionStoreDecorator(
+        sp.GetRequiredService<JsonFileSessionStore>(),
+        sp.GetRequiredService<IDataProtectionProvider>(),
+        sp.GetRequiredService<ILogger<EncryptingSessionStoreDecorator>>()));
 builder.Services.AddSingleton<OnboardingStateMachine>();
 
 // Configuration keys
