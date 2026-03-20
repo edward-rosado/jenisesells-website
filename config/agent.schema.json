@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://real-estate-star.com/agent.schema.json",
+  "title": "Agent Profile",
+  "description": "Configuration for a Real Estate Star tenant agent",
+  "type": "object",
+  "required": ["id", "identity", "location", "branding"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "URL-safe slug identifier for the agent"
+    },
+    "identity": {
+      "type": "object",
+      "required": ["name", "email", "phone"],
+      "properties": {
+        "name": { "type": "string" },
+        "title": { "type": "string", "default": "REALTOR\u00ae" },
+        "license_id": { "type": "string" },
+        "brokerage": { "type": "string" },
+        "brokerage_id": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "website": { "type": "string" },
+        "languages": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["English"]
+        },
+        "tagline": { "type": "string" }
+      }
+    },
+    "location": {
+      "type": "object",
+      "required": ["state"],
+      "properties": {
+        "state": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$",
+          "description": "Two-letter US state code"
+        },
+        "office_address": { "type": "string" },
+        "service_areas": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "branding": {
+      "type": "object",
+      "properties": {
+        "primary_color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "secondary_color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "accent_color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "font_family": { "type": "string", "default": "Segoe UI" }
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "properties": {
+        "email_provider": {
+          "type": "string",
+          "enum": ["gmail", "outlook", "smtp"]
+        },
+        "hosting": {
+          "type": "string",
+          "description": "Hosting provider (TBD — analysis pending)"
+        },
+        "whatsapp": {
+          "type": "object",
+          "properties": {
+            "phone_number": {
+              "type": "string",
+              "pattern": "^\\+[1-9]\\d{1,14}$",
+              "description": "Agent's WhatsApp number in E.164 format"
+            },
+            "opted_in": {
+              "type": "boolean",
+              "default": false
+            },
+            "notification_preferences": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["new_lead", "cma_ready", "follow_up_reminder", "listing_alert", "data_deletion"]
+              },
+              "default": ["new_lead", "cma_ready", "data_deletion"]
+            },
+            "status": {
+              "type": "string",
+              "enum": ["active", "not_registered", "error"],
+              "default": "not_registered"
+            },
+            "welcome_sent": {
+              "type": "boolean",
+              "default": false
+            },
+            "retry_after": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "required": ["phone_number", "opted_in"]
+        }
+      }
+    },
+    "compliance": {
+      "type": "object",
+      "properties": {
+        "state_form": {
+          "type": "string",
+          "description": "Template key for state-specific contract form"
+        },
+        "licensing_body": { "type": "string" },
+        "disclosure_requirements": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

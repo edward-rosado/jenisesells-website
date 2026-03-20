@@ -96,6 +96,30 @@ public class AgentIntegrations
 
     [JsonPropertyName("form_handler_id")]
     public string? FormHandlerId { get; init; }
+
+    [JsonPropertyName("whatsapp")]
+    public AgentWhatsApp? WhatsApp { get; init; }
+}
+
+public class AgentWhatsApp
+{
+    [JsonPropertyName("phone_number")]
+    public string PhoneNumber { get; init; } = "";
+
+    [JsonPropertyName("opted_in")]
+    public bool OptedIn { get; init; }
+
+    [JsonPropertyName("notification_preferences")]
+    public List<string> NotificationPreferences { get; init; } = ["new_lead", "cma_ready", "data_deletion"];
+
+    [JsonPropertyName("status")]
+    public string Status { get; set; } = "not_registered";
+
+    [JsonPropertyName("welcome_sent")]
+    public bool WelcomeSent { get; set; }
+
+    [JsonPropertyName("retry_after")]
+    public DateTime? RetryAfter { get; set; }
 }
 
 public class AgentCompliance
