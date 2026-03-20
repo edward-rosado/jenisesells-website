@@ -9,22 +9,23 @@ namespace RealEstateStar.Api.Tests.Features.WhatsApp.Services;
 
 public class WhatsAppRetryJobTests
 {
-    private readonly Mock<IAgentConfigService> _configService = new();
+    private readonly Mock<IAccountConfigService> _configService = new();
     private readonly Mock<IWhatsAppClient> _whatsAppClient = new();
     private readonly Mock<ILogger<WhatsAppRetryJob>> _logger = new();
 
     private WhatsAppRetryJob CreateSut() =>
         new(_configService.Object, _whatsAppClient.Object, _logger.Object);
 
-    private static AgentConfig MakeConfig(
+    private static AccountConfig MakeConfig(
         bool optedIn = true,
         bool welcomeSent = false,
         string status = "not_registered",
         DateTime? retryAfter = null,
         string phone = "+12015551234",
-        string name = "Jenise Buckalew")
+        string name = "Jenise Buckalew",
+        string handle = "test-agent")
     {
-        var wa = new AgentWhatsApp
+        var wa = new AccountWhatsApp
         {
             PhoneNumber = phone,
             OptedIn = optedIn,
@@ -33,11 +34,11 @@ public class WhatsAppRetryJobTests
             RetryAfter = retryAfter
         };
 
-        return new AgentConfig
+        return new AccountConfig
         {
-            Id = "test-agent",
-            Identity = new AgentIdentity { Name = name, Phone = phone, Email = "jenise@example.com" },
-            Integrations = new AgentIntegrations { WhatsApp = wa }
+            Handle = handle,
+            Agent = new AccountAgent { Name = name, Phone = phone, Email = "jenise@example.com" },
+            Integrations = new AccountIntegrations { WhatsApp = wa }
         };
     }
 
@@ -45,10 +46,8 @@ public class WhatsAppRetryJobTests
     public async Task ProcessRetries_SendsWelcome_WhenRetryAfterInPast()
     {
         var config = MakeConfig(retryAfter: DateTime.UtcNow.AddMinutes(-5));
-        _configService.Setup(s => s.GetAllAgentIdsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(["test-agent"]);
-        _configService.Setup(s => s.GetAgentAsync("test-agent", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(config);
+        _configService.Setup(s => s.ListAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([config]);
         _whatsAppClient.Setup(c => c.SendTemplateAsync(
                 "+12015551234", "welcome_onboarding",
                 It.IsAny<List<(string, string)>>(),
@@ -68,10 +67,8 @@ public class WhatsAppRetryJobTests
     public async Task ProcessRetries_SkipsAgent_WhenRetryAfterInFuture()
     {
         var config = MakeConfig(retryAfter: DateTime.UtcNow.AddHours(2));
-        _configService.Setup(s => s.GetAllAgentIdsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(["test-agent"]);
-        _configService.Setup(s => s.GetAgentAsync("test-agent", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(config);
+        _configService.Setup(s => s.ListAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([config]);
 
         var sut = CreateSut();
         await sut.ProcessRetries(CancellationToken.None);
@@ -86,10 +83,8 @@ public class WhatsAppRetryJobTests
     public async Task ProcessRetries_SkipsAgent_WhenNotOptedIn()
     {
         var config = MakeConfig(optedIn: false, retryAfter: DateTime.UtcNow.AddMinutes(-1));
-        _configService.Setup(s => s.GetAllAgentIdsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(["test-agent"]);
-        _configService.Setup(s => s.GetAgentAsync("test-agent", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(config);
+        _configService.Setup(s => s.ListAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([config]);
 
         var sut = CreateSut();
         await sut.ProcessRetries(CancellationToken.None);
@@ -104,10 +99,8 @@ public class WhatsAppRetryJobTests
     public async Task ProcessRetries_SkipsAgent_WhenWelcomeSent()
     {
         var config = MakeConfig(welcomeSent: true, retryAfter: DateTime.UtcNow.AddMinutes(-1));
-        _configService.Setup(s => s.GetAllAgentIdsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(["test-agent"]);
-        _configService.Setup(s => s.GetAgentAsync("test-agent", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(config);
+        _configService.Setup(s => s.ListAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([config]);
 
         var sut = CreateSut();
         await sut.ProcessRetries(CancellationToken.None);
@@ -122,10 +115,8 @@ public class WhatsAppRetryJobTests
     public async Task ProcessRetries_OnSuccess_SetsActiveAndWelcomeSent()
     {
         var config = MakeConfig(retryAfter: DateTime.UtcNow.AddMinutes(-5));
-        _configService.Setup(s => s.GetAllAgentIdsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(["test-agent"]);
-        _configService.Setup(s => s.GetAgentAsync("test-agent", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(config);
+        _configService.Setup(s => s.ListAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([config]);
         _whatsAppClient.Setup(c => c.SendTemplateAsync(
                 It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(),
@@ -135,9 +126,9 @@ public class WhatsAppRetryJobTests
         var sut = CreateSut();
         await sut.ProcessRetries(CancellationToken.None);
 
-        _configService.Verify(s => s.UpdateAgentAsync(
+        _configService.Verify(s => s.UpdateAccountAsync(
             "test-agent",
-            It.Is<AgentConfig>(c =>
+            It.Is<AccountConfig>(c =>
                 c.Integrations!.WhatsApp!.Status == "active" &&
                 c.Integrations.WhatsApp.WelcomeSent == true &&
                 c.Integrations.WhatsApp.RetryAfter == null),
@@ -148,10 +139,8 @@ public class WhatsAppRetryJobTests
     public async Task ProcessRetries_OnFailure_ClearsRetryAfter()
     {
         var config = MakeConfig(retryAfter: DateTime.UtcNow.AddMinutes(-5));
-        _configService.Setup(s => s.GetAllAgentIdsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(["test-agent"]);
-        _configService.Setup(s => s.GetAgentAsync("test-agent", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(config);
+        _configService.Setup(s => s.ListAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([config]);
         _whatsAppClient.Setup(c => c.SendTemplateAsync(
                 It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(),
@@ -161,24 +150,20 @@ public class WhatsAppRetryJobTests
         var sut = CreateSut();
         await sut.ProcessRetries(CancellationToken.None);
 
-        _configService.Verify(s => s.UpdateAgentAsync(
+        _configService.Verify(s => s.UpdateAccountAsync(
             "test-agent",
-            It.Is<AgentConfig>(c => c.Integrations!.WhatsApp!.RetryAfter == null),
+            It.Is<AccountConfig>(c => c.Integrations!.WhatsApp!.RetryAfter == null),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task ProcessRetries_ProcessesMultipleAgents_Independently()
     {
-        var configA = MakeConfig(retryAfter: DateTime.UtcNow.AddMinutes(-5), phone: "+12015551234", name: "Jenise Buckalew");
-        var configB = MakeConfig(retryAfter: DateTime.UtcNow.AddMinutes(-10), phone: "+15555550001", name: "Bob Smith");
+        var configA = MakeConfig(retryAfter: DateTime.UtcNow.AddMinutes(-5), phone: "+12015551234", name: "Jenise Buckalew", handle: "agent-a");
+        var configB = MakeConfig(retryAfter: DateTime.UtcNow.AddMinutes(-10), phone: "+15555550001", name: "Bob Smith", handle: "agent-b");
 
-        _configService.Setup(s => s.GetAllAgentIdsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(["agent-a", "agent-b"]);
-        _configService.Setup(s => s.GetAgentAsync("agent-a", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(configA);
-        _configService.Setup(s => s.GetAgentAsync("agent-b", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(configB);
+        _configService.Setup(s => s.ListAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([configA, configB]);
 
         // agent-a fails, agent-b succeeds
         _whatsAppClient.Setup(c => c.SendTemplateAsync(
@@ -196,16 +181,16 @@ public class WhatsAppRetryJobTests
         await sut.ProcessRetries(CancellationToken.None);
 
         // agent-a: retry_after cleared (failure path)
-        _configService.Verify(s => s.UpdateAgentAsync(
+        _configService.Verify(s => s.UpdateAccountAsync(
             "agent-a",
-            It.Is<AgentConfig>(c => c.Integrations!.WhatsApp!.RetryAfter == null &&
+            It.Is<AccountConfig>(c => c.Integrations!.WhatsApp!.RetryAfter == null &&
                                     c.Integrations.WhatsApp.WelcomeSent == false),
             It.IsAny<CancellationToken>()), Times.Once);
 
         // agent-b: active + welcome sent
-        _configService.Verify(s => s.UpdateAgentAsync(
+        _configService.Verify(s => s.UpdateAccountAsync(
             "agent-b",
-            It.Is<AgentConfig>(c => c.Integrations!.WhatsApp!.Status == "active" &&
+            It.Is<AccountConfig>(c => c.Integrations!.WhatsApp!.Status == "active" &&
                                     c.Integrations.WhatsApp.WelcomeSent == true),
             It.IsAny<CancellationToken>()), Times.Once);
     }

@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 interface ProfileCardProps {
   name: string;
   brokerage?: string;
@@ -21,9 +23,11 @@ export function ProfileCard({
     <div className="bg-gray-800 rounded-xl p-5 max-w-sm space-y-3">
       <div className="flex items-center gap-3">
         {photoUrl && (
-          <img
+          <Image
             src={photoUrl}
             alt={name}
+            width={48}
+            height={48}
             className="h-12 w-12 rounded-full object-cover"
           />
         )}

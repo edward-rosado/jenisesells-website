@@ -8,7 +8,7 @@ namespace RealEstateStar.Api.Features.WhatsApp.Services;
 public class WhatsAppNotifier(
     IWhatsAppClient client,
     IConversationLogger conversationLogger,
-    IAgentConfigService configService,
+    IAccountConfigService configService,
     IMemoryCache cache,
     ILogger<WhatsAppNotifier> logger) : IWhatsAppNotifier
 {
@@ -38,10 +38,10 @@ public class WhatsAppNotifier(
         string? leadName, Dictionary<string, string> templateParams,
         CancellationToken ct)
     {
-        AgentConfig? config;
+        AccountConfig? config;
         try
         {
-            config = await configService.GetAgentAsync(agentId, ct);
+            config = await configService.GetAccountAsync(agentId, ct);
         }
         catch (Exception ex)
         {
@@ -68,11 +68,11 @@ public class WhatsAppNotifier(
         {
             try
             {
-                var firstName = config!.Identity?.Name.Split(' ').FirstOrDefault() ?? "there";
+                var firstName = config!.Agent?.Name.Split(' ').FirstOrDefault() ?? "there";
                 var welcomeParams = WhatsAppMappers.ToWelcomeParams(firstName);
                 await client.SendTemplateAsync(agentPhone, "welcome", welcomeParams, ct);
 
-                var updatedWhatsApp = new AgentWhatsApp
+                var updatedWhatsApp = new AccountWhatsApp
                 {
                     PhoneNumber        = whatsApp.PhoneNumber,
                     OptedIn            = whatsApp.OptedIn,
@@ -81,14 +81,14 @@ public class WhatsAppNotifier(
                     Status             = whatsApp.Status,
                     RetryAfter         = whatsApp.RetryAfter
                 };
-                var updatedConfig = new AgentConfig
+                var updatedConfig = new AccountConfig
                 {
-                    Id           = config!.Id,
-                    Identity     = config.Identity,
+                    Handle       = config!.Handle,
+                    Agent        = config.Agent,
                     Location     = config.Location,
                     Branding     = config.Branding,
                     Compliance   = config.Compliance,
-                    Integrations = new AgentIntegrations
+                    Integrations = new AccountIntegrations
                     {
                         EmailProvider = config.Integrations!.EmailProvider,
                         Hosting       = config.Integrations.Hosting,
@@ -98,7 +98,7 @@ public class WhatsAppNotifier(
                     }
                 };
 
-                await configService.UpdateAgentAsync(agentId, updatedConfig, ct);
+                await configService.UpdateAccountAsync(agentId, updatedConfig, ct);
 
                 await conversationLogger.LogMessagesAsync(agentId, leadName,
                     [(DateTime.UtcNow, "system", "welcome", "welcome")], ct);

@@ -16,13 +16,13 @@ public class SendWhatsAppWelcomeToolTests
 
     private static SendWhatsAppWelcomeTool CreateTool(
         out Mock<IWhatsAppClient> whatsAppClient,
-        out Mock<IAgentConfigService> agentConfigService)
+        out Mock<IAccountConfigService> accountConfigService)
     {
         whatsAppClient = new Mock<IWhatsAppClient>();
-        agentConfigService = new Mock<IAgentConfigService>();
+        accountConfigService = new Mock<IAccountConfigService>();
         return new SendWhatsAppWelcomeTool(
             whatsAppClient.Object,
-            agentConfigService.Object,
+            accountConfigService.Object,
             NullLogger<SendWhatsAppWelcomeTool>.Instance);
     }
 
@@ -33,16 +33,16 @@ public class SendWhatsAppWelcomeToolTests
         return session;
     }
 
-    private static AgentConfig MakeAgentConfig(
+    private static AccountConfig MakeAccountConfig(
         string phoneNumber = "+15551234567",
         bool optedIn = true,
         string firstName = "Jenise") => new()
     {
-        Id = "agent-001",
-        Identity = new AgentIdentity { Name = firstName + " Buckalew", Phone = "555-000-0000", Email = "jenise@example.com" },
-        Integrations = new AgentIntegrations
+        Handle = "agent-001",
+        Agent = new AccountAgent { Name = firstName + " Buckalew", Phone = "555-000-0000", Email = "jenise@example.com" },
+        Integrations = new AccountIntegrations
         {
-            WhatsApp = new AgentWhatsApp
+            WhatsApp = new AccountWhatsApp
             {
                 PhoneNumber = phoneNumber,
                 OptedIn = optedIn,
@@ -68,11 +68,11 @@ public class SendWhatsAppWelcomeToolTests
     [Fact]
     public async Task ExecuteAsync_SendsWelcome_WhenOptedIn()
     {
-        var tool = CreateTool(out var whatsAppClient, out var agentConfigService);
+        var tool = CreateTool(out var whatsAppClient, out var accountConfigService);
         var session = MakeSession();
-        var config = MakeAgentConfig();
+        var config = MakeAccountConfig();
 
-        agentConfigService.Setup(s => s.GetAgentAsync("agent-001", It.IsAny<CancellationToken>()))
+        accountConfigService.Setup(s => s.GetAccountAsync("agent-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         whatsAppClient.Setup(c => c.SendTemplateAsync(
                 "+15551234567",
@@ -96,25 +96,25 @@ public class SendWhatsAppWelcomeToolTests
     [Fact]
     public async Task ExecuteAsync_SetsActiveAndWelcomeSent_OnSuccess()
     {
-        var tool = CreateTool(out var whatsAppClient, out var agentConfigService);
+        var tool = CreateTool(out var whatsAppClient, out var accountConfigService);
         var session = MakeSession();
-        var config = MakeAgentConfig();
+        var config = MakeAccountConfig();
 
-        agentConfigService.Setup(s => s.GetAgentAsync("agent-001", It.IsAny<CancellationToken>()))
+        accountConfigService.Setup(s => s.GetAccountAsync("agent-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         whatsAppClient.Setup(c => c.SendTemplateAsync(
                 It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("wamid.ok");
 
-        AgentConfig? savedConfig = null;
-        agentConfigService.Setup(s => s.UpdateAgentAsync(
-                It.IsAny<string>(), It.IsAny<AgentConfig>(), It.IsAny<CancellationToken>()))
-            .Callback<string, AgentConfig, CancellationToken>((_, cfg, _) => savedConfig = cfg);
+        AccountConfig? savedConfig = null;
+        accountConfigService.Setup(s => s.UpdateAccountAsync(
+                It.IsAny<string>(), It.IsAny<AccountConfig>(), It.IsAny<CancellationToken>()))
+            .Callback<string, AccountConfig, CancellationToken>((_, cfg, _) => savedConfig = cfg);
 
         await tool.ExecuteAsync(EmptyParameters, session, CancellationToken.None);
 
-        agentConfigService.Verify(s => s.UpdateAgentAsync("agent-001", It.IsAny<AgentConfig>(), CancellationToken.None), Times.Once);
+        accountConfigService.Verify(s => s.UpdateAccountAsync("agent-001", It.IsAny<AccountConfig>(), CancellationToken.None), Times.Once);
         Assert.NotNull(savedConfig);
         Assert.Equal("active", savedConfig!.Integrations!.WhatsApp!.Status);
         Assert.True(savedConfig.Integrations.WhatsApp.WelcomeSent);
@@ -127,11 +127,11 @@ public class SendWhatsAppWelcomeToolTests
     [InlineData(true, "")]              // empty phone
     public async Task ExecuteAsync_ReturnsEmailFallback_WhenNotConfigured(bool optedIn, string phone)
     {
-        var tool = CreateTool(out var whatsAppClient, out var agentConfigService);
+        var tool = CreateTool(out var whatsAppClient, out var accountConfigService);
         var session = MakeSession();
-        var config = MakeAgentConfig(phoneNumber: phone, optedIn: optedIn);
+        var config = MakeAccountConfig(phoneNumber: phone, optedIn: optedIn);
 
-        agentConfigService.Setup(s => s.GetAgentAsync("agent-001", It.IsAny<CancellationToken>()))
+        accountConfigService.Setup(s => s.GetAccountAsync("agent-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
 
         var result = await tool.ExecuteAsync(EmptyParameters, session, CancellationToken.None);
@@ -145,16 +145,16 @@ public class SendWhatsAppWelcomeToolTests
     [Fact]
     public async Task ExecuteAsync_ReturnsEmailFallback_WhenWhatsAppIsNull()
     {
-        var tool = CreateTool(out var whatsAppClient, out var agentConfigService);
+        var tool = CreateTool(out var whatsAppClient, out var accountConfigService);
         var session = MakeSession();
-        var config = new AgentConfig
+        var config = new AccountConfig
         {
-            Id = "agent-001",
-            Identity = new AgentIdentity { Name = "Jenise B", Phone = "555-0000", Email = "j@example.com" },
-            Integrations = new AgentIntegrations { WhatsApp = null }
+            Handle = "agent-001",
+            Agent = new AccountAgent { Name = "Jenise B", Phone = "555-0000", Email = "j@example.com" },
+            Integrations = new AccountIntegrations { WhatsApp = null }
         };
 
-        agentConfigService.Setup(s => s.GetAgentAsync("agent-001", It.IsAny<CancellationToken>()))
+        accountConfigService.Setup(s => s.GetAccountAsync("agent-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
 
         var result = await tool.ExecuteAsync(EmptyParameters, session, CancellationToken.None);
@@ -170,22 +170,22 @@ public class SendWhatsAppWelcomeToolTests
     [Fact]
     public async Task ExecuteAsync_SetsNotRegistered_OnWhatsAppNotRegistered()
     {
-        var tool = CreateTool(out var whatsAppClient, out var agentConfigService);
+        var tool = CreateTool(out var whatsAppClient, out var accountConfigService);
         var session = MakeSession();
-        var config = MakeAgentConfig();
+        var config = MakeAccountConfig();
         var before = DateTime.UtcNow;
 
-        agentConfigService.Setup(s => s.GetAgentAsync("agent-001", It.IsAny<CancellationToken>()))
+        accountConfigService.Setup(s => s.GetAccountAsync("agent-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         whatsAppClient.Setup(c => c.SendTemplateAsync(
                 It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new WhatsAppNotRegisteredException("+15551234567"));
 
-        AgentConfig? savedConfig = null;
-        agentConfigService.Setup(s => s.UpdateAgentAsync(
-                It.IsAny<string>(), It.IsAny<AgentConfig>(), It.IsAny<CancellationToken>()))
-            .Callback<string, AgentConfig, CancellationToken>((_, cfg, _) => savedConfig = cfg);
+        AccountConfig? savedConfig = null;
+        accountConfigService.Setup(s => s.UpdateAccountAsync(
+                It.IsAny<string>(), It.IsAny<AccountConfig>(), It.IsAny<CancellationToken>()))
+            .Callback<string, AccountConfig, CancellationToken>((_, cfg, _) => savedConfig = cfg);
 
         await tool.ExecuteAsync(EmptyParameters, session, CancellationToken.None);
 
@@ -193,7 +193,7 @@ public class SendWhatsAppWelcomeToolTests
         Assert.Equal("not_registered", savedConfig!.Integrations!.WhatsApp!.Status);
         Assert.NotNull(savedConfig.Integrations.WhatsApp.RetryAfter);
         Assert.True(savedConfig.Integrations.WhatsApp.RetryAfter >= before.AddHours(4));
-        agentConfigService.Verify(s => s.UpdateAgentAsync("agent-001", It.IsAny<AgentConfig>(), CancellationToken.None), Times.Once);
+        accountConfigService.Verify(s => s.UpdateAccountAsync("agent-001", It.IsAny<AccountConfig>(), CancellationToken.None), Times.Once);
     }
 
     // ── Test 5: Returns retry message on WhatsAppNotRegisteredException ────────
@@ -201,11 +201,11 @@ public class SendWhatsAppWelcomeToolTests
     [Fact]
     public async Task ExecuteAsync_ReturnsRetryMessage_OnNotRegistered()
     {
-        var tool = CreateTool(out var whatsAppClient, out var agentConfigService);
+        var tool = CreateTool(out var whatsAppClient, out var accountConfigService);
         var session = MakeSession();
-        var config = MakeAgentConfig();
+        var config = MakeAccountConfig();
 
-        agentConfigService.Setup(s => s.GetAgentAsync("agent-001", It.IsAny<CancellationToken>()))
+        accountConfigService.Setup(s => s.GetAccountAsync("agent-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         whatsAppClient.Setup(c => c.SendTemplateAsync(
                 It.IsAny<string>(), It.IsAny<string>(),
@@ -223,27 +223,27 @@ public class SendWhatsAppWelcomeToolTests
     [Fact]
     public async Task ExecuteAsync_SetsError_OnOtherException()
     {
-        var tool = CreateTool(out var whatsAppClient, out var agentConfigService);
+        var tool = CreateTool(out var whatsAppClient, out var accountConfigService);
         var session = MakeSession();
-        var config = MakeAgentConfig();
+        var config = MakeAccountConfig();
 
-        agentConfigService.Setup(s => s.GetAgentAsync("agent-001", It.IsAny<CancellationToken>()))
+        accountConfigService.Setup(s => s.GetAccountAsync("agent-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         whatsAppClient.Setup(c => c.SendTemplateAsync(
                 It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new WhatsAppApiException(131026, "Too many messages"));
 
-        AgentConfig? savedConfig = null;
-        agentConfigService.Setup(s => s.UpdateAgentAsync(
-                It.IsAny<string>(), It.IsAny<AgentConfig>(), It.IsAny<CancellationToken>()))
-            .Callback<string, AgentConfig, CancellationToken>((_, cfg, _) => savedConfig = cfg);
+        AccountConfig? savedConfig = null;
+        accountConfigService.Setup(s => s.UpdateAccountAsync(
+                It.IsAny<string>(), It.IsAny<AccountConfig>(), It.IsAny<CancellationToken>()))
+            .Callback<string, AccountConfig, CancellationToken>((_, cfg, _) => savedConfig = cfg);
 
         await tool.ExecuteAsync(EmptyParameters, session, CancellationToken.None);
 
         Assert.NotNull(savedConfig);
         Assert.Equal("error", savedConfig!.Integrations!.WhatsApp!.Status);
-        agentConfigService.Verify(s => s.UpdateAgentAsync("agent-001", It.IsAny<AgentConfig>(), CancellationToken.None), Times.Once);
+        accountConfigService.Verify(s => s.UpdateAccountAsync("agent-001", It.IsAny<AccountConfig>(), CancellationToken.None), Times.Once);
     }
 
     // ── Test 7: Returns email fallback message on other exceptions ─────────────
@@ -251,11 +251,11 @@ public class SendWhatsAppWelcomeToolTests
     [Fact]
     public async Task ExecuteAsync_ReturnsEmailFallback_OnError()
     {
-        var tool = CreateTool(out var whatsAppClient, out var agentConfigService);
+        var tool = CreateTool(out var whatsAppClient, out var accountConfigService);
         var session = MakeSession();
-        var config = MakeAgentConfig();
+        var config = MakeAccountConfig();
 
-        agentConfigService.Setup(s => s.GetAgentAsync("agent-001", It.IsAny<CancellationToken>()))
+        accountConfigService.Setup(s => s.GetAccountAsync("agent-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         whatsAppClient.Setup(c => c.SendTemplateAsync(
                 It.IsAny<string>(), It.IsAny<string>(),
@@ -270,13 +270,13 @@ public class SendWhatsAppWelcomeToolTests
     // ── Edge cases ────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task ExecuteAsync_ReturnsEmailFallback_WhenAgentConfigIsNull()
+    public async Task ExecuteAsync_ReturnsEmailFallback_WhenAccountConfigIsNull()
     {
-        var tool = CreateTool(out _, out var agentConfigService);
+        var tool = CreateTool(out _, out var accountConfigService);
         var session = MakeSession();
 
-        agentConfigService.Setup(s => s.GetAgentAsync("agent-001", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((AgentConfig?)null);
+        accountConfigService.Setup(s => s.GetAccountAsync("agent-001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((AccountConfig?)null);
 
         var result = await tool.ExecuteAsync(EmptyParameters, session, CancellationToken.None);
 
@@ -286,12 +286,12 @@ public class SendWhatsAppWelcomeToolTests
     [Fact]
     public async Task ExecuteAsync_PassesCancellationToken_ToSendTemplate()
     {
-        var tool = CreateTool(out var whatsAppClient, out var agentConfigService);
+        var tool = CreateTool(out var whatsAppClient, out var accountConfigService);
         var session = MakeSession();
-        var config = MakeAgentConfig();
+        var config = MakeAccountConfig();
         using var cts = new CancellationTokenSource();
 
-        agentConfigService.Setup(s => s.GetAgentAsync("agent-001", It.IsAny<CancellationToken>()))
+        accountConfigService.Setup(s => s.GetAccountAsync("agent-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         whatsAppClient.Setup(c => c.SendTemplateAsync(
                 It.IsAny<string>(), It.IsAny<string>(),

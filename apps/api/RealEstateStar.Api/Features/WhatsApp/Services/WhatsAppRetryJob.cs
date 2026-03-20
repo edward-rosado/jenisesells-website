@@ -5,7 +5,7 @@ using RealEstateStar.Api.Services;
 namespace RealEstateStar.Api.Features.WhatsApp.Services;
 
 public class WhatsAppRetryJob(
-    IAgentConfigService agentConfigService,
+    IAccountConfigService accountConfigService,
     IWhatsAppClient whatsAppClient,
     ILogger<WhatsAppRetryJob> logger) : BackgroundService
 {
@@ -30,12 +30,11 @@ public class WhatsAppRetryJob(
 
     internal async Task ProcessRetries(CancellationToken ct)
     {
-        var agentIds = await agentConfigService.GetAllAgentIdsAsync(ct);
+        var accounts = await accountConfigService.ListAllAsync(ct);
 
-        foreach (var agentId in agentIds)
+        foreach (var config in accounts)
         {
-            var config = await agentConfigService.GetAgentAsync(agentId, ct);
-            var wa = config?.Integrations?.WhatsApp;
+            var wa = config.Integrations?.WhatsApp;
 
             if (wa is null || !wa.OptedIn || wa.WelcomeSent)
                 continue;
@@ -45,7 +44,7 @@ public class WhatsAppRetryJob(
 
             try
             {
-                var firstName = config!.Identity?.Name.Split(' ').FirstOrDefault() ?? config.Identity?.Name ?? agentId;
+                var firstName = config.Agent?.Name.Split(' ').FirstOrDefault() ?? config.Agent?.Name ?? config.Handle;
 
                 await whatsAppClient.SendTemplateAsync(
                     wa.PhoneNumber,
@@ -57,15 +56,15 @@ public class WhatsAppRetryJob(
                 wa.WelcomeSent = true;
                 wa.RetryAfter = null;
 
-                await agentConfigService.UpdateAgentAsync(agentId, config!, ct);
-                logger.LogInformation("[WA-013] Welcome retry succeeded for {AgentId}", agentId);
+                await accountConfigService.UpdateAccountAsync(config.Handle, config, ct);
+                logger.LogInformation("[WA-013] Welcome retry succeeded for {Handle}", config.Handle);
             }
             catch (Exception)
             {
                 // Single retry only — clear retry_after to prevent loops
                 wa.RetryAfter = null;
-                await agentConfigService.UpdateAgentAsync(agentId, config!, ct);
-                logger.LogWarning("[WA-014] Welcome retry failed for {AgentId}, no further retries", agentId);
+                await accountConfigService.UpdateAccountAsync(config.Handle, config, ct);
+                logger.LogWarning("[WA-014] Welcome retry failed for {Handle}, no further retries", config.Handle);
             }
         }
     }

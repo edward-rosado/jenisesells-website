@@ -13,7 +13,7 @@ public class WhatsAppNotifierTests : IDisposable
 {
     private readonly Mock<IWhatsAppClient> _client = new();
     private readonly Mock<IConversationLogger> _logger = new();
-    private readonly Mock<IAgentConfigService> _configService = new();
+    private readonly Mock<IAccountConfigService> _configService = new();
     private readonly Mock<ILogger<WhatsAppNotifier>> _log = new();
     private readonly IMemoryCache _cache;
     private readonly WhatsAppNotifier _sut;
@@ -30,17 +30,17 @@ public class WhatsAppNotifierTests : IDisposable
 
     public void Dispose() => _cache.Dispose();
 
-    private AgentConfig MakeConfig(
+    private AccountConfig MakeConfig(
         bool optedIn = true,
         bool welcomeSent = true,
         List<string>? preferences = null) =>
         new()
         {
-            Id = AgentId,
-            Identity = new AgentIdentity { Name = "Jenise Buckalew", Phone = AgentPhone },
-            Integrations = new AgentIntegrations
+            Handle = AgentId,
+            Agent = new AccountAgent { Name = "Jenise Buckalew", Phone = AgentPhone },
+            Integrations = new AccountIntegrations
             {
-                WhatsApp = new AgentWhatsApp
+                WhatsApp = new AccountWhatsApp
                 {
                     PhoneNumber = AgentPhone,
                     OptedIn = optedIn,
@@ -57,7 +57,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_SendsTemplate_WhenAgentOptedIn()
     {
         var config = MakeConfig();
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -77,7 +77,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_Skips_WhenNotOptedIn()
     {
         var config = MakeConfig(optedIn: false);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
 
         var @params = new Dictionary<string, string>();
@@ -97,7 +97,7 @@ public class WhatsAppNotifierTests : IDisposable
     {
         // FollowUpReminder not in default preferences ["new_lead", "cma_ready", "data_deletion"]
         var config = MakeConfig();
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
 
         var @params = new Dictionary<string, string>();
@@ -114,7 +114,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_SendsWelcome_WhenWelcomeSentIsFalse()
     {
         var config = MakeConfig(welcomeSent: false);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -138,7 +138,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_UpdatesWelcomeSentOnSuccess()
     {
         var config = MakeConfig(welcomeSent: false);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -147,9 +147,9 @@ public class WhatsAppNotifierTests : IDisposable
         var @params = new Dictionary<string, string>();
         await _sut.NotifyAsync(AgentId, NotificationType.NewLead, null, @params, CancellationToken.None);
 
-        _configService.Verify(s => s.UpdateAgentAsync(
+        _configService.Verify(s => s.UpdateAccountAsync(
             AgentId,
-            It.Is<AgentConfig>(c => c.Integrations!.WhatsApp!.WelcomeSent),
+            It.Is<AccountConfig>(c => c.Integrations!.WhatsApp!.WelcomeSent),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -160,7 +160,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_FallsGracefully_OnNotRegistered()
     {
         var config = MakeConfig();
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -185,7 +185,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_LogsConversation_AfterSending()
     {
         var config = MakeConfig();
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -209,7 +209,7 @@ public class WhatsAppNotifierTests : IDisposable
     {
         // Preferences explicitly excluding data_deletion
         var config = MakeConfig(preferences: ["new_lead"]);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -251,7 +251,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_SendsFreeform_WhenWindowOpen()
     {
         var config = MakeConfig();
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendFreeformAsync(AgentPhone, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("wamid.4");
@@ -274,7 +274,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_SendsTemplate_WhenWindowClosed()
     {
         var config = MakeConfig();
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -297,7 +297,7 @@ public class WhatsAppNotifierTests : IDisposable
     [Fact]
     public async Task NotifyAsync_Skips_WhenConfigLoadThrows()
     {
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("config service unavailable"));
 
         var act = () => _sut.NotifyAsync(AgentId, NotificationType.NewLead, null,
@@ -320,13 +320,13 @@ public class WhatsAppNotifierTests : IDisposable
     [Fact]
     public async Task NotifyAsync_Skips_WhenWhatsAppIntegrationAbsent()
     {
-        var config = new AgentConfig
+        var config = new AccountConfig
         {
-            Id = AgentId,
-            Identity = new AgentIdentity { Name = "Jenise Buckalew" },
-            Integrations = new AgentIntegrations { WhatsApp = null }
+            Handle = AgentId,
+            Agent = new AccountAgent { Name = "Jenise Buckalew" },
+            Integrations = new AccountIntegrations { WhatsApp = null }
         };
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
 
         var act = () => _sut.NotifyAsync(AgentId, NotificationType.NewLead, null,
@@ -343,13 +343,13 @@ public class WhatsAppNotifierTests : IDisposable
     [Fact]
     public async Task NotifyAsync_Skips_WhenIntegrationsNull()
     {
-        var config = new AgentConfig
+        var config = new AccountConfig
         {
-            Id = AgentId,
-            Identity = new AgentIdentity { Name = "Jenise Buckalew" },
+            Handle = AgentId,
+            Agent = new AccountAgent { Name = "Jenise Buckalew" },
             Integrations = null
         };
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
 
         var act = () => _sut.NotifyAsync(AgentId, NotificationType.NewLead, null,
@@ -367,7 +367,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_WelcomeFlow_GeneralException_LogsErrorAndReturns()
     {
         var config = MakeConfig(welcomeSent: false);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, "welcome",
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -395,7 +395,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_WelcomeFlow_NotRegistered_LogsWarningAndReturns()
     {
         var config = MakeConfig(welcomeSent: false);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, "welcome",
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -420,7 +420,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_FreeformSend_GeneralException_LogsError()
     {
         var config = MakeConfig();
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendFreeformAsync(AgentPhone, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("timeout"));
@@ -446,7 +446,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_TemplateSend_NotRegistered_LogsWarning()
     {
         var config = MakeConfig();
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -471,7 +471,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_SendsTemplate_ForCmaReady()
     {
         var config = MakeConfig(preferences: ["cma_ready"]);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, "cma_ready",
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -495,7 +495,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_SendsTemplate_ForFollowUpReminder()
     {
         var config = MakeConfig(preferences: ["follow_up_reminder"]);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, "follow_up_reminder",
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -515,7 +515,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_FollowUpReminder_InvalidDays_DefaultsToZero()
     {
         var config = MakeConfig(preferences: ["follow_up_reminder"]);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, "follow_up_reminder",
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -535,7 +535,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_DataDeletion_WithValidDeadline_SendsTemplate()
     {
         var config = MakeConfig(preferences: ["new_lead"]);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, "data_deletion_notice",
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -558,7 +558,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_ListingAlert_FallsToDefaultTemplateParams()
     {
         var config = MakeConfig(preferences: ["listing_alert"]);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, "listing_alert",
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -580,7 +580,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_Freeform_CmaReady_BuildsCorrectBody()
     {
         var config = MakeConfig(preferences: ["cma_ready"]);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendFreeformAsync(AgentPhone, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("wamid.fcma");
@@ -606,7 +606,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_Freeform_FollowUpReminder_BuildsCorrectBody()
     {
         var config = MakeConfig(preferences: ["follow_up_reminder"]);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendFreeformAsync(AgentPhone, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("wamid.ffu");
@@ -629,7 +629,7 @@ public class WhatsAppNotifierTests : IDisposable
     {
         // DataDeletion bypasses preference check
         var config = MakeConfig(preferences: ["new_lead"]);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendFreeformAsync(AgentPhone, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("wamid.fdel");
@@ -651,7 +651,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_Freeform_ListingAlert_UsesDefaultFreeformBody()
     {
         var config = MakeConfig(preferences: ["listing_alert"]);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendFreeformAsync(AgentPhone, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("wamid.fla");
@@ -673,7 +673,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_Freeform_NullLeadName_FallsBackToParamOrSomeone()
     {
         var config = MakeConfig();
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendFreeformAsync(AgentPhone, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("wamid.fnull");
@@ -695,8 +695,8 @@ public class WhatsAppNotifierTests : IDisposable
     [Fact]
     public async Task NotifyAsync_Skips_WhenConfigIsNull()
     {
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((AgentConfig?)null);
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((AccountConfig?)null);
 
         var act = () => _sut.NotifyAsync(AgentId, NotificationType.NewLead, null,
             new Dictionary<string, string>(), CancellationToken.None);
@@ -712,12 +712,8 @@ public class WhatsAppNotifierTests : IDisposable
     [Fact]
     public async Task NotifyAsync_Skips_WhenTypeNotInPreferenceKeysDictionary()
     {
-        // NotificationType.Welcome is not in PreferenceKeys dictionary,
-        // so TryGetValue returns false → the notification is not suppressed by prefs
-        // but Welcome also isn't in NotificationPreferences so it would proceed...
-        // Actually: TryGetValue false → condition short-circuits to false → no skip → proceeds to send
         var config = MakeConfig(preferences: ["new_lead"]);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -737,7 +733,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_CmaReady_NullLeadName_UsesParamFallback()
     {
         var config = MakeConfig(preferences: ["cma_ready"]);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, "cma_ready",
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -763,7 +759,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_FollowUpReminder_NullLeadName_UsesParamFallback()
     {
         var config = MakeConfig(preferences: ["follow_up_reminder"]);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, "follow_up_reminder",
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -787,7 +783,7 @@ public class WhatsAppNotifierTests : IDisposable
     public async Task NotifyAsync_DataDeletion_InvalidDeadline_UsesDefault()
     {
         var config = MakeConfig(preferences: ["new_lead"]);
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, "data_deletion_notice",
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
@@ -803,18 +799,18 @@ public class WhatsAppNotifierTests : IDisposable
     }
 
     // -------------------------------------------------------------------------
-    // Test 30: Welcome flow — Identity is null → firstName defaults to "there"
+    // Test 30: Welcome flow — Agent is null → firstName defaults to "there"
     // -------------------------------------------------------------------------
     [Fact]
-    public async Task NotifyAsync_WelcomeFlow_NullIdentity_UsesThereAsFirstName()
+    public async Task NotifyAsync_WelcomeFlow_NullAgent_UsesThereAsFirstName()
     {
-        var config = new AgentConfig
+        var config = new AccountConfig
         {
-            Id = AgentId,
-            Identity = null,
-            Integrations = new AgentIntegrations
+            Handle = AgentId,
+            Agent = null,
+            Integrations = new AccountIntegrations
             {
-                WhatsApp = new AgentWhatsApp
+                WhatsApp = new AccountWhatsApp
                 {
                     PhoneNumber = AgentPhone,
                     OptedIn = true,
@@ -823,7 +819,7 @@ public class WhatsAppNotifierTests : IDisposable
                 }
             }
         };
-        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+        _configService.Setup(s => s.GetAccountAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
         _client.Setup(c => c.SendTemplateAsync(AgentPhone, It.IsAny<string>(),
                 It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, render, act } from "@testing-library/react";
 import React from "react";
 import { useFocusTrap } from "@/lib/use-focus-trap";

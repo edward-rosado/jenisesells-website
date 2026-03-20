@@ -1,1 +1,0 @@
-Fontaine & Partners is dedicated to ensuring that our website is accessible to all visitors. We strive to conform to the Web Content Accessibility Guidelines (WCAG) 2.1 at Level AA. If you experience any difficulty accessing information on this site, please contact us directly and we will be pleased to assist you.

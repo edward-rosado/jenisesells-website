@@ -1,0 +1,17 @@
+**🏠 Agent Site Preview**
+
+Default: https://real-estate-star-agents-pr-24.misteredr.workers.dev
+
+| Agent | Template | Colors | Font |
+|-------|----------|--------|------|
+| [Jenise Buckalew](https://real-estate-star-agents-pr-24.misteredr.workers.dev/?agentId=jenise-buckalew) | emerald-classic | `#1B5E20` / `#C8A951` | Segoe UI |
+| [Diana Reyes](https://real-estate-star-agents-pr-24.misteredr.workers.dev/?agentId=test-broker-agent) | luxury-estate | `#2c3e50` / `#e67e22` | — |
+| [Victoria Sterling](https://real-estate-star-agents-pr-24.misteredr.workers.dev/?agentId=test-brokerage) | commercial | `#1a1a2e` / `#d4af37` | Georgia |
+| [Maya Santos](https://real-estate-star-agents-pr-24.misteredr.workers.dev/?agentId=test-coastal-living) | coastal-living | `#2c7a7b` / `#e8d5b7` | Lora |
+| [Tom Whitfield](https://real-estate-star-agents-pr-24.misteredr.workers.dev/?agentId=test-country-estate) | country-estate | `#3e2723` / `#6d4c2f` | Merriweather |
+| [Patricia Collins](https://real-estate-star-agents-pr-24.misteredr.workers.dev/?agentId=test-emerald) | emerald-classic | `#1B5E20` / `#C8A951` | Segoe UI |
+| [Sophie Laurent](https://real-estate-star-agents-pr-24.misteredr.workers.dev/?agentId=test-light-luxury) | light-luxury | `#2c2c2c` / `#c9a96e` | Playfair Display |
+| [Alex Rivera](https://real-estate-star-agents-pr-24.misteredr.workers.dev/?agentId=test-modern) | modern-minimal | `#1A237E` / `#FF6F61` | Inter |
+| [Rachel Kim](https://real-estate-star-agents-pr-24.misteredr.workers.dev/?agentId=test-new-beginnings) | new-beginnings | `#2d4a3e` / `#5a9e7c` | Nunito |
+| [Marcus Chen](https://real-estate-star-agents-pr-24.misteredr.workers.dev/?agentId=test-urban-loft) | urban-loft | `#1a1a2e` / `#ff6b35` | Inter |
+| [Maria Santiago](https://real-estate-star-agents-pr-24.misteredr.workers.dev/?agentId=test-warm) | warm-community | `#5D1A1A` / `#D4A843` | Georgia |

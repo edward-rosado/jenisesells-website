@@ -7,7 +7,7 @@ namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
 public class SendWhatsAppWelcomeTool(
     IWhatsAppClient whatsAppClient,
-    IAgentConfigService agentConfigService,
+    IAccountConfigService accountConfigService,
     ILogger<SendWhatsAppWelcomeTool> logger) : IOnboardingTool
 {
     public string Name => "send_whatsapp_welcome";
@@ -15,13 +15,13 @@ public class SendWhatsAppWelcomeTool(
     public async Task<string> ExecuteAsync(JsonElement parameters,
         OnboardingSession session, CancellationToken ct)
     {
-        var agentConfig = await agentConfigService.GetAgentAsync(session.AgentConfigId!, ct);
-        var whatsApp = agentConfig?.Integrations?.WhatsApp;
+        var accountConfig = await accountConfigService.GetAccountAsync(session.AgentConfigId!, ct);
+        var whatsApp = accountConfig?.Integrations?.WhatsApp;
 
         if (whatsApp is null || !whatsApp.OptedIn || string.IsNullOrEmpty(whatsApp.PhoneNumber))
             return "WhatsApp not configured — I'll send everything via email instead.";
 
-        var firstName = agentConfig!.Identity?.Name?.Split(' ')[0] ?? "there";
+        var firstName = accountConfig!.Agent?.Name?.Split(' ')[0] ?? "there";
 
         try
         {
@@ -33,7 +33,7 @@ public class SendWhatsAppWelcomeTool(
 
             whatsApp.Status = "active";
             whatsApp.WelcomeSent = true;
-            await agentConfigService.UpdateAgentAsync(session.AgentConfigId!, agentConfig, ct);
+            await accountConfigService.UpdateAccountAsync(session.AgentConfigId!, accountConfig, ct);
 
             return $"Welcome message sent to WhatsApp! Check your phone at {whatsApp.PhoneNumber}.";
         }
@@ -41,7 +41,7 @@ public class SendWhatsAppWelcomeTool(
         {
             whatsApp.Status = "not_registered";
             whatsApp.RetryAfter = DateTime.UtcNow.AddHours(4);
-            await agentConfigService.UpdateAgentAsync(session.AgentConfigId!, agentConfig, ct);
+            await accountConfigService.UpdateAccountAsync(session.AgentConfigId!, accountConfig, ct);
 
             logger.LogInformation("[WA-014] Agent {AgentId} not on WhatsApp, retry scheduled",
                 session.AgentConfigId);
@@ -50,7 +50,7 @@ public class SendWhatsAppWelcomeTool(
         catch (Exception ex)
         {
             whatsApp.Status = "error";
-            await agentConfigService.UpdateAgentAsync(session.AgentConfigId!, agentConfig, ct);
+            await accountConfigService.UpdateAccountAsync(session.AgentConfigId!, accountConfig, ct);
             logger.LogError(ex, "[WA-014] WhatsApp welcome failed for {AgentId}", session.AgentConfigId);
             return "WhatsApp setup hit a snag. I'll send everything via email for now.";
         }

@@ -1,0 +1,17 @@
+{
+  "name": "@real-estate-star/api-client",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "generate": "openapi-typescript http://localhost:5135/openapi/v1.json -o generated/types.ts",
+    "generate:ci": "openapi-typescript openapi.json -o generated/types.ts"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.13.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.0.0",
+    "typescript": "^5.7.0"
+  }
+}

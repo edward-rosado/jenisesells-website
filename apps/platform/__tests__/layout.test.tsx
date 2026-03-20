@@ -106,6 +106,7 @@ describe("RootLayout", () => {
     expect(hrefs).toContain("/terms");
     expect(hrefs).toContain("/dmca");
     expect(hrefs).toContain("/accessibility");
+    expect(hrefs).toContain("/status");
   });
 
   it("renders the Equal Housing Opportunity statement in footer", () => {

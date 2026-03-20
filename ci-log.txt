@@ -1,0 +1,1304 @@
+Agent Site — lint, test, coverage	Set up job	﻿2026-03-18T17:48:41.9943234Z Current runner version: '2.332.0'
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9969825Z ##[group]Runner Image Provisioner
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9970750Z Hosted Compute Agent
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9971311Z Version: 20260213.493
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9971934Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9973069Z Build Date: 2026-02-13T00:28:41Z
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9973739Z Worker ID: {f5621862-8dd1-4147-8ca0-b9ec78a1df70}
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9974417Z Azure Region: eastus2
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9974994Z ##[endgroup]
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9976475Z ##[group]Operating System
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9977146Z Ubuntu
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9977703Z 24.04.3
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9978208Z LTS
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9978648Z ##[endgroup]
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9979209Z ##[group]Runner Image
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9979869Z Image: ubuntu-24.04
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9980392Z Version: 20260309.50.1
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9981460Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260309.50/images/ubuntu/Ubuntu2404-Readme.md
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9983488Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260309.50
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9984522Z ##[endgroup]
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9987195Z ##[group]GITHUB_TOKEN Permissions
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9989832Z Actions: write
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9990465Z ArtifactMetadata: write
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9991125Z Attestations: write
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9991706Z Checks: write
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9992412Z Contents: write
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9993155Z Deployments: write
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9993750Z Discussions: write
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9994242Z Issues: write
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9994782Z Metadata: read
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9995335Z Models: read
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9995840Z Packages: write
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9996413Z Pages: write
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9997105Z PullRequests: write
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9997655Z RepositoryProjects: write
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9998454Z SecurityEvents: write
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9999068Z Statuses: write
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:41.9999619Z ##[endgroup]
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:42.0001872Z Secret source: Actions
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:42.0002851Z Prepare workflow directory
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:42.0334256Z Prepare all required actions
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:42.0372592Z Getting action download info
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:42.4021951Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:42.5318115Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:42.6224275Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+Agent Site — lint, test, coverage	Set up job	2026-03-18T17:48:42.8413894Z Complete job name: Agent Site — lint, test, coverage
+Agent Site — lint, test, coverage	Run actions/checkout@v4	﻿2026-03-18T17:48:42.9183188Z ##[group]Run actions/checkout@v4
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9184154Z with:
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9184662Z   repository: edward-rosado/jenisesells-website
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9185465Z   token: ***
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9185887Z   ssh-strict: true
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9186310Z   ssh-user: git
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9186749Z   persist-credentials: true
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9187275Z   clean: true
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9187714Z   sparse-checkout-cone-mode: true
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9188237Z   fetch-depth: 1
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9188662Z   fetch-tags: false
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9189113Z   show-progress: true
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9189558Z   lfs: false
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9189953Z   submodules: false
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9190386Z   set-safe-directory: true
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:42.9191114Z ##[endgroup]
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0337752Z Syncing repository: edward-rosado/jenisesells-website
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0340303Z ##[group]Getting Git version info
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0341734Z Working directory is '/home/runner/work/jenisesells-website/jenisesells-website'
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0344040Z [command]/usr/bin/git version
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0442807Z git version 2.53.0
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0469542Z ##[endgroup]
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0483817Z Temporarily overriding HOME='/home/runner/work/_temp/3d1f666f-ec5d-4ee4-a6d7-a6c0c4fccd47' before making global git config changes
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0488673Z Adding repository directory to the temporary git global config as a safe directory
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0490976Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/jenisesells-website/jenisesells-website
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0531554Z Deleting the contents of '/home/runner/work/jenisesells-website/jenisesells-website'
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0535189Z ##[group]Initializing the repository
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0539737Z [command]/usr/bin/git init /home/runner/work/jenisesells-website/jenisesells-website
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0660156Z hint: Using 'master' as the name for the initial branch. This default branch name
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0661387Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0663035Z hint: to use in all of your new repositories, which will suppress this warning,
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0663966Z hint: call:
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0664739Z hint:
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0665551Z hint: 	git config --global init.defaultBranch <name>
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0666307Z hint:
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0667401Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0669319Z hint: 'development'. The just-created branch can be renamed via this command:
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0670820Z hint:
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0671631Z hint: 	git branch -m <name>
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0672798Z hint:
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0674044Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0676209Z Initialized empty Git repository in /home/runner/work/jenisesells-website/jenisesells-website/.git/
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0680543Z [command]/usr/bin/git remote add origin https://github.com/edward-rosado/jenisesells-website
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0718646Z ##[endgroup]
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0720048Z ##[group]Disabling automatic garbage collection
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0723756Z [command]/usr/bin/git config --local gc.auto 0
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0754452Z ##[endgroup]
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0755928Z ##[group]Setting up auth
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0762764Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.0795365Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.1176609Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.1206459Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.1451390Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.1483349Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.1722138Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.1757593Z ##[endgroup]
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.1758838Z ##[group]Fetching the repository
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.1766433Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +aa905ee2be0a32cb9853eff57e0ba57a0244a6c6:refs/remotes/pull/24/merge
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.7328859Z From https://github.com/edward-rosado/jenisesells-website
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.7331700Z  * [new ref]         aa905ee2be0a32cb9853eff57e0ba57a0244a6c6 -> pull/24/merge
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.7363357Z ##[endgroup]
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.7365097Z ##[group]Determining the checkout info
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.7367126Z ##[endgroup]
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.7369584Z [command]/usr/bin/git sparse-checkout disable
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.7412552Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.7439323Z ##[group]Checking out the ref
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.7443143Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/24/merge
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8261530Z Note: switching to 'refs/remotes/pull/24/merge'.
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8263314Z 
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8264512Z You are in 'detached HEAD' state. You can look around, make experimental
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8266383Z changes and commit them, and you can discard any commits you make in this
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8269078Z state without impacting any branches by switching back to a branch.
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8270661Z 
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8271803Z If you want to create a new branch to retain commits you create, you may
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8274328Z do so (now or later) by using -c with the switch command. Example:
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8275831Z 
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8276410Z   git switch -c <new-branch-name>
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8277346Z 
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8277877Z Or undo this operation with:
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8278831Z 
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8279371Z   git switch -
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8280114Z 
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8281294Z Turn off this advice by setting config variable advice.detachedHead to false
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8283270Z 
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8285258Z HEAD is now at aa905ee Merge 072ebd4cf98a31fa35329ba540899e38a034350a into 93ed8121d0abfedad8e8d2d067c4c585dd5a25cd
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8290839Z ##[endgroup]
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8317691Z [command]/usr/bin/git log -1 --format=%H
+Agent Site — lint, test, coverage	Run actions/checkout@v4	2026-03-18T17:48:43.8341547Z aa905ee2be0a32cb9853eff57e0ba57a0244a6c6
+Agent Site — lint, test, coverage	Check if agent-site exists	﻿2026-03-18T17:48:43.8582719Z ##[group]Run if [ -f "apps/agent-site/package.json" ]; then
+Agent Site — lint, test, coverage	Check if agent-site exists	2026-03-18T17:48:43.8584558Z [36;1mif [ -f "apps/agent-site/package.json" ]; then[0m
+Agent Site — lint, test, coverage	Check if agent-site exists	2026-03-18T17:48:43.8586095Z [36;1m  echo "exists=true" >> $GITHUB_OUTPUT[0m
+Agent Site — lint, test, coverage	Check if agent-site exists	2026-03-18T17:48:43.8587441Z [36;1melse[0m
+Agent Site — lint, test, coverage	Check if agent-site exists	2026-03-18T17:48:43.8588452Z [36;1m  echo "exists=false" >> $GITHUB_OUTPUT[0m
+Agent Site — lint, test, coverage	Check if agent-site exists	2026-03-18T17:48:43.8590150Z [36;1m  echo "No apps/agent-site/package.json found -- skipping."[0m
+Agent Site — lint, test, coverage	Check if agent-site exists	2026-03-18T17:48:43.8591699Z [36;1mfi[0m
+Agent Site — lint, test, coverage	Check if agent-site exists	2026-03-18T17:48:43.8648970Z shell: /usr/bin/bash -e {0}
+Agent Site — lint, test, coverage	Check if agent-site exists	2026-03-18T17:48:43.8650128Z ##[endgroup]
+Agent Site — lint, test, coverage	Setup Node.js	﻿2026-03-18T17:48:43.9041534Z ##[group]Run actions/setup-node@v4
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:43.9042831Z with:
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:43.9043595Z   node-version: 22
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:43.9044434Z   cache: npm
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:43.9045356Z   cache-dependency-path: package-lock.json
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:43.9046544Z   always-auth: false
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:43.9047431Z   check-latest: false
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:43.9048627Z   token: ***
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:43.9049427Z ##[endgroup]
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:44.0909685Z Found in cache @ /opt/hostedtoolcache/node/22.22.1/x64
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:44.0913077Z ##[group]Environment details
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:44.4519313Z node: v22.22.1
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:44.4520833Z npm: 10.9.4
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:44.4522115Z yarn: 1.22.22
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:44.4524785Z ##[endgroup]
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:44.4548134Z [command]/opt/hostedtoolcache/node/22.22.1/x64/bin/npm config get cache
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:44.5623745Z /home/runner/.npm
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:44.6648069Z Cache hit for: node-cache-Linux-x64-npm-4cbe340e1275bdd3e48b75890f97f7550cce69a6185b66ad275ea9db42259827
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:45.6987288Z Received 201326592 of 379252458 (53.1%), 191.4 MBs/sec
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:46.6659857Z Received 379252458 of 379252458 (100.0%), 183.6 MBs/sec
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:46.6661535Z Cache Size: ~362 MB (379252458 B)
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:46.6781865Z [command]/usr/bin/tar -xf /home/runner/work/_temp/c24143da-dae7-4686-a329-09303b169cc2/cache.tzst -P -C /home/runner/work/jenisesells-website/jenisesells-website --use-compress-program unzstd
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:47.7362596Z Cache restored successfully
+Agent Site — lint, test, coverage	Setup Node.js	2026-03-18T17:48:47.8117351Z Cache restored from key: node-cache-Linux-x64-npm-4cbe340e1275bdd3e48b75890f97f7550cce69a6185b66ad275ea9db42259827
+Agent Site — lint, test, coverage	Install dependencies	﻿2026-03-18T17:48:47.8319026Z ##[group]Run npm ci
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:48:47.8319342Z [36;1mnpm ci[0m
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:48:47.8378927Z shell: /usr/bin/bash -e {0}
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:48:47.8379227Z ##[endgroup]
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.1394192Z 
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.1401190Z added 1675 packages, and audited 1680 packages in 38s
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.1401878Z 
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.1402094Z 295 packages are looking for funding
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.1402816Z   run `npm fund` for details
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.3250049Z 
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.3250821Z 30 vulnerabilities (1 moderate, 29 high)
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.3251205Z 
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.3251560Z To address issues that do not require attention, run:
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.3252061Z   npm audit fix
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.3252466Z 
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.3252818Z To address all issues (including breaking changes), run:
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.3253346Z   npm audit fix --force
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.3253584Z 
+Agent Site — lint, test, coverage	Install dependencies	2026-03-18T17:49:26.3253765Z Run `npm audit` for details.
+Agent Site — lint, test, coverage	Generate config registry	﻿2026-03-18T17:49:26.4861789Z ##[group]Run node apps/agent-site/scripts/generate-config-registry.mjs
+Agent Site — lint, test, coverage	Generate config registry	2026-03-18T17:49:26.4862623Z [36;1mnode apps/agent-site/scripts/generate-config-registry.mjs[0m
+Agent Site — lint, test, coverage	Generate config registry	2026-03-18T17:49:26.4917062Z shell: /usr/bin/bash -e {0}
+Agent Site — lint, test, coverage	Generate config registry	2026-03-18T17:49:26.4917353Z ##[endgroup]
+Agent Site — lint, test, coverage	Generate config registry	2026-03-18T17:49:26.5244462Z [prebuild] Found 11 account(s): jenise-buckalew, test-broker-agent, test-brokerage, test-coastal-living, test-country-estate, test-emerald, test-light-luxury, test-modern, test-new-beginnings, test-urban-loft, test-warm
+Agent Site — lint, test, coverage	Generate config registry	2026-03-18T17:49:26.5257735Z   test-broker-agent: 1 agent(s): agent-c
+Agent Site — lint, test, coverage	Generate config registry	2026-03-18T17:49:26.5263604Z   test-brokerage: 2 agent(s): agent-a, agent-b
+Agent Site — lint, test, coverage	Generate config registry	2026-03-18T17:49:26.5273896Z   test-light-luxury: 3 agent(s): agent-a, agent-b, agent-c
+Agent Site — lint, test, coverage	Generate config registry	2026-03-18T17:49:26.5288398Z   test-warm: 2 agent(s): agent-a, agent-b
+Agent Site — lint, test, coverage	Generate config registry	2026-03-18T17:49:26.5303403Z [prebuild] Wrote /home/runner/work/jenisesells-website/jenisesells-website/apps/agent-site/lib/config-registry.ts
+Agent Site — lint, test, coverage	Lint	﻿2026-03-18T17:49:26.5370675Z ##[group]Run npm run lint --prefix apps/agent-site
+Agent Site — lint, test, coverage	Lint	2026-03-18T17:49:26.5371125Z [36;1mnpm run lint --prefix apps/agent-site[0m
+Agent Site — lint, test, coverage	Lint	2026-03-18T17:49:26.5420090Z shell: /usr/bin/bash -e {0}
+Agent Site — lint, test, coverage	Lint	2026-03-18T17:49:26.5420348Z ##[endgroup]
+Agent Site — lint, test, coverage	Lint	2026-03-18T17:49:26.6406593Z 
+Agent Site — lint, test, coverage	Lint	2026-03-18T17:49:26.6407215Z > agent-site@0.1.0 lint
+Agent Site — lint, test, coverage	Lint	2026-03-18T17:49:26.6407864Z > eslint
+Agent Site — lint, test, coverage	Lint	2026-03-18T17:49:26.6408109Z 
+Agent Site — lint, test, coverage	Test with coverage	﻿2026-03-18T17:49:36.9954185Z ##[group]Run npm run test:coverage --prefix apps/agent-site
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:36.9955075Z [36;1mnpm run test:coverage --prefix apps/agent-site[0m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:37.0025491Z shell: /usr/bin/bash -e {0}
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:37.0025945Z ##[endgroup]
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:37.1032802Z 
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:37.1033583Z > agent-site@0.1.0 test:coverage
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:37.1034124Z > vitest run --coverage
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:37.1034385Z 
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:37.5123392Z 
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:37.5128593Z [1m[46m RUN [49m[22m [36mv4.1.0 [39m[90m/home/runner/work/jenisesells-website/jenisesells-website/apps/agent-site[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:37.5130318Z       [2mCoverage enabled with [22m[33mv8[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:37.5130838Z 
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:43.5260307Z  [32m✓[39m __tests__/components/sold/SoldCarousel.test.tsx [2m([22m[2m32 tests[22m[2m)[22m[33m 4284[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:43.5262460Z      [33m[2m✓[22m[39m renders default heading 'Portfolio' when title is not provided [33m 404[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:43.5264125Z      [33m[2m✓[22m[39m renders dot indicators (role=tab) for each item [33m 304[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:43.5265669Z      [33m[2m✓[22m[39m pauses auto-advance on mouseEnter and resumes on mouseLeave [33m 364[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:43.5267192Z      [33m[2m✓[22m[39m pauses auto-advance on focus and resumes on blur [33m 329[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:43.7954787Z  [32m✓[39m __tests__/components/Nav.test.tsx [2m([22m[2m52 tests[22m[2m)[22m[33m 4497[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:43.7956897Z      [33m[2m✓[22m[39m renders email link from fallback identity [33m 1045[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:43.8003402Z      [33m[2m✓[22m[39m renders phone links from fallback identity [33m 502[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:43.8005138Z      [33m[2m✓[22m[39m does not render email link when email is absent [33m 320[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:43.8006426Z      [33m[2m✓[22m[39m does not render phone link when phone is absent [33m 383[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:43.8008251Z      [33m[2m✓[22m[39m does not render office phone link when office_phone is absent [33m 326[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:43.9784106Z  [32m✓[39m __tests__/middleware/middleware.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:44.4141120Z  [32m✓[39m __tests__/components/shared/CmaSection.test.tsx [2m([22m[2m20 tests[22m[2m)[22m[33m 5159[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:44.4150430Z      [33m[2m✓[22m[39m renders the form title and subtitle [33m 567[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:44.4153900Z      [33m[2m✓[22m[39m shows buyer-specific submit label when only buying is selected [33m 632[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:44.4155829Z      [33m[2m✓[22m[39m does NOT redirect on failed submission [33m 324[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:44.4159888Z      [33m[2m✓[22m[39m skips CMA API and redirects directly for buyer-only leads [33m 580[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:44.4161511Z      [33m[2m✓[22m[39m passes numeric beds, baths, and sqft when provided [33m 333[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:44.4163188Z      [33m[2m✓[22m[39m does NOT call fetch directly — uses shared hook [33m 307[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:44.4164606Z      [33m[2m✓[22m[39m omits email param from redirect URL when email is empty [33m 608[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:45.6925490Z  [32m✓[39m lib/__tests__/config.test.ts [2m([22m[2m28 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:48.8620908Z  [32m✓[39m __tests__/components/shared/Footer.test.tsx [2m([22m[2m29 tests[22m[2m)[22m[33m 1640[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:49.1633982Z  [32m✓[39m __tests__/pages/terms.test.tsx [2m([22m[2m30 tests[22m[2m)[22m[33m 3566[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:49.1635285Z      [33m[2m✓[22m[39m renders Terms of Use heading [33m 739[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:49.1636337Z      [33m[2m✓[22m[39m includes fair housing commitment [33m 302[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:49.2499543Z  [32m✓[39m __tests__/pages/privacy.test.tsx [2m([22m[2m25 tests[22m[2m)[22m[33m 3540[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:49.2501461Z      [33m[2m✓[22m[39m renders Privacy Policy heading [33m 706[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:49.2502679Z      [33m[2m✓[22m[39m includes CCPA section [33m 348[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:49.2504021Z      [33m[2m✓[22m[39m renders custom_above markdown when loadLegalContent returns above content [33m 338[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:50.6860018Z  [32m✓[39m __tests__/components/Analytics.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[32m 87[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:52.4215086Z  [32m✓[39m __tests__/pages/accessibility.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1647[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:52.4221328Z      [33m[2m✓[22m[39m renders Accessibility Statement heading [33m 528[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:53.5915532Z  [32m✓[39m __tests__/components/heroes/HeroGradient.test.tsx [2m([22m[2m20 tests[22m[2m)[22m[33m 1353[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:53.5920873Z      [33m[2m✓[22m[39m renders the headline [33m 350[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:55.5663739Z  [32m✓[39m __tests__/components/services/ServicesCommercial.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1728[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:55.5669972Z      [33m[2m✓[22m[39m renders the default section heading [33m 399[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:55.5676231Z      [33m[2m✓[22m[39m groups services by category when category is provided [33m 644[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:55.8729487Z  [32m✓[39m __tests__/components/about/AboutEditorial.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 880[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:55.8738493Z      [33m[2m✓[22m[39m renders default heading using agent name when title is absent [33m 345[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:57.6803815Z  [32m✓[39m __tests__/components/services/ServicesIcons.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 716[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:57.6813377Z      [33m[2m✓[22m[39m renders the section heading with default title [33m 445[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.1435012Z  [32m✓[39m __tests__/components/about/AboutHomestead.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 960[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.1439776Z      [33m[2m✓[22m[39m renders the heading using data.title when provided [33m 374[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.6546185Z  [32m✓[39m __tests__/templates/emerald-classic.test.tsx [2m([22m[2m25 tests[22m[2m)[22m[33m 7274[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.6552584Z      [33m[2m✓[22m[39m always renders the Nav [33m 796[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.6558064Z      [33m[2m✓[22m[39m renders Services section when enabled [33m 441[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.6563869Z      [33m[2m✓[22m[39m renders HowItWorks when enabled [33m 452[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.6569108Z      [33m[2m✓[22m[39m renders SoldHomes when enabled and items exist [33m 372[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.6574598Z      [33m[2m✓[22m[39m does not render SoldHomes when enabled but items is empty [33m 489[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.6579719Z      [33m[2m✓[22m[39m renders Testimonials when enabled and items exist [33m 310[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.6585225Z      [33m[2m✓[22m[39m does not render Testimonials when enabled but items is empty [33m 475[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.6590315Z      [33m[2m✓[22m[39m renders CmaSection when enabled [33m 344[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.6595254Z      [33m[2m✓[22m[39m renders About when enabled [33m 356[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.6600052Z      [33m[2m✓[22m[39m renders all sections when all enabled [33m 634[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.6605677Z      [33m[2m✓[22m[39m uses agent prop identity when provided [33m 518[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.6609256Z      [33m[2m✓[22m[39m falls back to broker name when no agent [33m 526[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:49:58.6613340Z      [33m[2m✓[22m[39m falls back to brokerage name when no agent or broker [33m 485[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:00.0373708Z  [32m✓[39m __tests__/components/heroes/HeroDark.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1020[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:00.0379837Z      [33m[2m✓[22m[39m renders the headline in an h1 [33m 402[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:00.4811221Z  [32m✓[39m __tests__/components/sold/SoldStories.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 957[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:00.4815923Z      [33m[2m✓[22m[39m renders the default heading [33m 374[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:01.0749301Z  [32m✓[39m __tests__/components/heroes/HeroCoastal.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 892[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:01.0764168Z      [33m[2m✓[22m[39m renders the headline in an h1 [33m 360[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:02.2524817Z  [32m✓[39m __tests__/components/about/AboutCard.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 769[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:02.2550574Z      [33m[2m✓[22m[39m renders the agent name in heading [33m 408[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:03.0189251Z  [32m✓[39m __tests__/components/heroes/HeroAiry.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1095[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:03.0192700Z      [33m[2m✓[22m[39m renders the headline in an h1 [33m 411[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:03.5310908Z  [32m✓[39m __tests__/components/heroes/HeroBold.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1002[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:03.5408747Z      [33m[2m✓[22m[39m renders the headline in an h1 [33m 402[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:04.5199930Z  [32m✓[39m __tests__/components/about/AboutCompact.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 793[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:05.2988867Z  [32m✓[39m __tests__/components/testimonials/TestimonialsMinimal.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 906[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:06.1720751Z  [32m✓[39m __tests__/components/sold/SoldEstate.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 1152[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:06.1724083Z      [33m[2m✓[22m[39m renders the section heading with default title [33m 436[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:06.7201308Z  [32m✓[39m __tests__/components/testimonials/TestimonialsCorporate.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 709[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:06.7203417Z      [33m[2m✓[22m[39m renders the default section heading [33m 398[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:07.8158360Z  [32m✓[39m __tests__/components/sold/SoldMetrics.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 1031[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:07.8160992Z      [33m[2m✓[22m[39m renders the default section heading [33m 458[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:08.8319992Z  [32m✓[39m __tests__/components/heroes/HeroEstate.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1240[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:08.8321527Z      [33m[2m✓[22m[39m renders the headline in an h1 [33m 448[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:09.2384887Z  [32m✓[39m __tests__/components/testimonials/TestimonialsRustic.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 1080[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:09.2388232Z      [33m[2m✓[22m[39m renders the section heading with default title [33m 423[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:09.9778167Z  [32m✓[39m __tests__/components/about/AboutGrace.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 656[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:11.5580726Z  [32m✓[39m __tests__/components/heroes/HeroCentered.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 899[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:11.5586907Z      [33m[2m✓[22m[39m renders the headline [33m 304[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:11.7269142Z  [32m✓[39m __tests__/components/heroes/HeroCorporate.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 1516[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:11.7277569Z      [33m[2m✓[22m[39m renders the h1 headline [33m 453[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:12.1863191Z  [32m✓[39m __tests__/components/about/AboutCoastal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 681[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:12.1873859Z      [33m[2m✓[22m[39m renders the section heading using data.title [33m 387[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:13.5779238Z  [32m✓[39m __tests__/components/testimonials/TestimonialsGrid.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 669[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:13.5781330Z      [33m[2m✓[22m[39m renders the section heading [33m 417[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:13.8723986Z  [32m✓[39m __tests__/components/steps/StepsPath.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 771[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:13.8731290Z      [33m[2m✓[22m[39m renders the section heading with default title [33m 383[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:14.2621866Z  [32m✓[39m __tests__/components/testimonials/TestimonialsStack.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 645[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:15.5376149Z  [32m✓[39m __tests__/components/services/ServicesCoastal.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 624[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:15.5380881Z      [33m[2m✓[22m[39m renders the default heading 'Our Services' [33m 400[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:16.1722366Z  [32m✓[39m __tests__/components/steps/StepsBreeze.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 877[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:16.1729249Z      [33m[2m✓[22m[39m renders the default heading 'How It Works' [33m 444[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:16.3375086Z  [32m✓[39m __tests__/components/about/AboutSplit.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 705[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:16.3379150Z      [33m[2m✓[22m[39m renders the heading with agent name [33m 389[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:17.6367332Z  [32m✓[39m __tests__/components/about/AboutProfessional.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 760[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:17.6373662Z      [33m[2m✓[22m[39m renders the section heading with custom title [33m 400[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:18.6426620Z  [32m✓[39m __tests__/components/testimonials/TestimonialsBeach.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 809[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:18.6428375Z      [33m[2m✓[22m[39m renders the default heading 'What Our Clients Say' [33m 409[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:18.7747325Z  [32m✓[39m __tests__/components/heroes/HeroStory.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1223[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:18.7749435Z      [33m[2m✓[22m[39m renders the h1 headline [33m 489[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:20.0953294Z  [32m✓[39m __tests__/components/sold/SoldGrid.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 959[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:20.0954635Z      [33m[2m✓[22m[39m renders the section heading [33m 368[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:21.0456520Z  [32m✓[39m __tests__/components/sold/SoldCoastal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 900[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:21.0463873Z      [33m[2m✓[22m[39m renders the default heading 'Recent Sales' [33m 431[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:21.2444499Z  [32m✓[39m __tests__/components/heroes/HeroSplit.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1011[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:21.2455020Z      [33m[2m✓[22m[39m renders the headline [33m 422[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:21.3607201Z  [32m✓[39m lib/__tests__/routing.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:22.8298280Z  [32m✓[39m __tests__/components/stats/StatsCompact.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[32m 275[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:23.0874443Z  [32m✓[39m __tests__/components/steps/StepsCards.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 701[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:23.0903650Z      [33m[2m✓[22m[39m renders the default heading when no title provided [33m 362[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:23.7770168Z  [32m✓[39m __tests__/components/sold/SoldCompact.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 886[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:23.7772563Z      [33m[2m✓[22m[39m renders the default heading when no title provided [33m 327[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:25.1030198Z  [32m✓[39m __tests__/components/about/AboutMinimal.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 823[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:25.1043305Z      [33m[2m✓[22m[39m renders the agent name in heading [33m 413[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:25.2394395Z  [32m✓[39m __tests__/components/steps/StepsElegant.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 758[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:25.7514400Z  [32m✓[39m __tests__/components/steps/StepsRefined.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 681[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:25.7516306Z      [33m[2m✓[22m[39m renders default heading 'The Process' [33m 311[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:27.2098565Z  [32m✓[39m __tests__/components/about/AboutWarm.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 687[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:27.2100138Z      [33m[2m✓[22m[39m renders the default heading About [33m 357[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:27.2930032Z  [32m✓[39m __tests__/components/services/ServicesRefined.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 658[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:27.2935583Z      [33m[2m✓[22m[39m renders default heading 'Our Services' [33m 324[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:27.8195734Z  [32m✓[39m __tests__/components/services/ServicesElegant.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 622[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:27.8197879Z      [33m[2m✓[22m[39m renders default heading 'Our Services' when title is not provided [32m 300[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:29.2797735Z  [32m✓[39m __tests__/components/services/ServicesEstate.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 649[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:29.2804115Z      [33m[2m✓[22m[39m renders the section heading with default title [33m 427[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:29.7970628Z  [32m✓[39m __tests__/components/steps/StepsNumbered.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 1136[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:29.7977560Z      [33m[2m✓[22m[39m renders the section heading [33m 415[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:29.8718476Z  [32m✓[39m __tests__/components/services/ServicesPills.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 669[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:29.8720627Z      [33m[2m✓[22m[39m renders the default heading when no title provided [33m 340[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:32.0594371Z  [32m✓[39m __tests__/components/sold/SoldElegant.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 883[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:32.0623787Z      [33m[2m✓[22m[39m renders default heading 'Recent Sales' [33m 334[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:32.1810408Z  [32m✓[39m __tests__/components/profiles/ProfilesClean.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 860[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:32.1812109Z      [33m[2m✓[22m[39m links each profile to /agents/{id} [33m 351[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:34.4770705Z  [32m✓[39m __tests__/components/profiles/ProfilesGrid.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 819[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:34.4778008Z      [33m[2m✓[22m[39m links each profile to /agents/{id} [33m 332[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:35.1528175Z  [32m✓[39m __tests__/templates/country-estate.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3786[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:35.1535660Z      [33m[2m✓[22m[39m always renders the Nav [33m 833[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:35.1542438Z      [33m[2m✓[22m[39m renders all sections when all enabled [33m 312[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:35.1548562Z      [33m[2m✓[22m[39m uses agent prop identity when provided [33m 728[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:35.1549634Z      [33m[2m✓[22m[39m falls back to broker name when no agent [33m 617[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:35.1550757Z      [33m[2m✓[22m[39m falls back to brokerage name when no agent or broker [33m 700[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:36.7618084Z  [32m✓[39m __tests__/components/testimonials/TestimonialsQuote.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 849[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:37.5489288Z  [32m✓[39m __tests__/templates/coastal-living.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3317[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:37.5495113Z      [33m[2m✓[22m[39m always renders the Nav [33m 708[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:37.5501344Z      [33m[2m✓[22m[39m renders all sections when all enabled [33m 367[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:37.5502771Z      [33m[2m✓[22m[39m uses agent prop identity when provided [33m 671[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:37.5505376Z      [33m[2m✓[22m[39m falls back to broker name when no agent [33m 507[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:37.5506664Z      [33m[2m✓[22m[39m falls back to brokerage name when no agent or broker [33m 476[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:39.6759736Z  [32m✓[39m __tests__/components/testimonials/TestimonialsBubble.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 745[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:39.6763846Z      [33m[2m✓[22m[39m renders the default title [33m 442[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:40.7110424Z  [32m✓[39m __tests__/templates/luxury-estate.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3545[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:40.7117226Z      [33m[2m✓[22m[39m always renders the Nav [33m 772[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:40.7122522Z      [33m[2m✓[22m[39m renders Hero section when enabled [33m 306[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:40.7126572Z      [33m[2m✓[22m[39m renders all sections when all enabled [33m 369[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:40.7129368Z      [33m[2m✓[22m[39m uses agent prop identity when provided [33m 619[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:40.7130486Z      [33m[2m✓[22m[39m falls back to broker name when no agent [33m 567[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:40.7131602Z      [33m[2m✓[22m[39m falls back to brokerage name when no agent or broker [33m 564[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:41.2042579Z  [32m✓[39m __tests__/components/stats/StatsRugged.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[32m 224[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:42.2545358Z  [32m✓[39m __tests__/templates/urban-loft.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3471[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:42.2548489Z      [33m[2m✓[22m[39m always renders the Nav [33m 857[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:42.2553973Z      [33m[2m✓[22m[39m uses agent prop identity when provided [33m 639[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:42.2564123Z      [33m[2m✓[22m[39m falls back to broker name when no agent [33m 508[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:42.2565394Z      [33m[2m✓[22m[39m falls back to brokerage name when no agent or broker [33m 565[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:42.4053363Z  [32m✓[39m __tests__/components/stats/StatsElegant.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[32m 236[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:43.2315916Z  [32m✓[39m __tests__/components/testimonials/TestimonialsHeart.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 652[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:43.2317977Z      [33m[2m✓[22m[39m renders the default heading [33m 409[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:44.3964834Z  [32m✓[39m __tests__/components/steps/StepsCorporate.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 786[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:44.3966651Z      [33m[2m✓[22m[39m renders the default heading [33m 461[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:44.7991068Z  [32m✓[39m __tests__/components/services/ServicesGrid.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 969[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:44.8000461Z      [33m[2m✓[22m[39m renders the section heading [33m 343[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:46.3746861Z  [32m✓[39m __tests__/components/stats/StatsOverlay.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[32m 234[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:46.4288863Z  [32m✓[39m __tests__/components/legal/LegalPageLayout.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 1474[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:46.4297824Z      [33m[2m✓[22m[39m renders children (standard legal content) [33m 577[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:46.5918027Z  [32m✓[39m __tests__/components/testimonials/TestimonialsClean.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 734[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:46.5924357Z      [33m[2m✓[22m[39m renders the default title [33m 495[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:48.0509136Z  [32m✓[39m __tests__/components/stats/StatsWarm.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[32m 298[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:48.2334573Z  [32m✓[39m __tests__/templates/index.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:50.2200678Z  [32m✓[39m __tests__/components/steps/StepsFriendly.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 720[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:50.2205088Z      [33m[2m✓[22m[39m renders the section heading with default title [33m 477[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:50.4011777Z  [32m✓[39m __tests__/components/steps/StepsTimeline.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 739[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:50.4014873Z      [33m[2m✓[22m[39m renders the section heading with default title [33m 455[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:52.0838440Z  [32m✓[39m __tests__/components/stats/StatsMetrics.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 335[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:52.1884819Z  [32m✓[39m __tests__/templates/new-beginnings.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3708[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:52.1894371Z      [33m[2m✓[22m[39m always renders the Nav [33m 705[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:52.1895415Z      [33m[2m✓[22m[39m always renders the Footer [33m 442[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:52.1896516Z      [33m[2m✓[22m[39m renders all sections when all enabled [33m 331[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:52.1897691Z      [33m[2m✓[22m[39m uses agent prop identity when provided [33m 591[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:52.1899250Z      [33m[2m✓[22m[39m falls back to broker name when no agent [33m 646[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:52.1900563Z      [33m[2m✓[22m[39m falls back to brokerage name when no agent or broker [33m 639[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:52.2519899Z  [32m✓[39m __tests__/components/profiles/ProfilesCards.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 688[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:52.2522030Z      [33m[2m✓[22m[39m links each profile to /agents/{id} [33m 308[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:53.6388635Z  [32m✓[39m __tests__/components/stats/StatsWave.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[32m 248[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:55.8670053Z  [32m✓[39m __tests__/components/sold/SoldCards.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 836[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:55.8678090Z      [33m[2m✓[22m[39m renders the section heading with default title [33m 417[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:57.7737710Z  [32m✓[39m __tests__/components/services/ServicesHeart.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 586[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:57.7739241Z      [33m[2m✓[22m[39m renders the default heading [33m 415[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:57.9916719Z  [32m✓[39m __tests__/templates/modern-minimal.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3840[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:57.9922846Z      [33m[2m✓[22m[39m always renders the Nav [33m 761[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:57.9928783Z      [33m[2m✓[22m[39m renders Hero section when enabled [33m 313[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:57.9937473Z      [33m[2m✓[22m[39m renders all sections when all enabled [33m 312[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:57.9946601Z      [33m[2m✓[22m[39m uses agent prop identity when provided [33m 725[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:57.9947755Z      [33m[2m✓[22m[39m falls back to broker name when no agent [33m 677[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:57.9948951Z      [33m[2m✓[22m[39m falls back to brokerage name when no agent or broker [33m 688[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:58.0015420Z  [32m✓[39m __tests__/templates/warm-community.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3640[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:58.0019666Z      [33m[2m✓[22m[39m always renders the Nav [33m 799[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:58.0020986Z      [33m[2m✓[22m[39m renders all sections when all enabled [33m 314[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:58.0022486Z      [33m[2m✓[22m[39m uses agent prop identity when provided [33m 731[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:58.0023792Z      [33m[2m✓[22m[39m falls back to broker name when no agent [33m 600[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:50:58.0025100Z      [33m[2m✓[22m[39m falls back to brokerage name when no agent or broker [33m 589[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:00.0494380Z  [32m✓[39m __tests__/components/legal/CookieConsentBanner.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 656[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:02.4082615Z  [32m✓[39m __tests__/components/sold/SoldMinimal.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 856[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:02.4133800Z      [33m[2m✓[22m[39m renders the section heading with default title [33m 401[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:03.1952898Z  [32m✓[39m __tests__/templates/light-luxury.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3396[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:03.1959765Z      [33m[2m✓[22m[39m always renders the Nav [33m 720[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:03.1966396Z      [33m[2m✓[22m[39m renders all sections when all enabled [33m 335[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:03.1972700Z      [33m[2m✓[22m[39m uses agent prop identity when provided [33m 655[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:03.1979063Z      [33m[2m✓[22m[39m falls back to broker name when no agent [33m 576[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:03.1983452Z      [33m[2m✓[22m[39m falls back to brokerage name when no agent or broker [33m 565[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:03.5289888Z  [32m✓[39m __tests__/lib/types.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:04.0674333Z  [32m✓[39m __tests__/templates/commercial.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 4024[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:04.0675948Z      [33m[2m✓[22m[39m always renders the Nav [33m 846[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:04.0677347Z      [33m[2m✓[22m[39m renders all sections when all enabled [33m 408[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:04.0678510Z      [33m[2m✓[22m[39m uses agent prop identity when provided [33m 883[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:04.0679777Z      [33m[2m✓[22m[39m falls back to broker name when no agent [33m 692[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:04.0681109Z      [33m[2m✓[22m[39m falls back to brokerage name when no agent or broker [33m 594[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:05.0945192Z  [32m✓[39m __tests__/components/stats/StatsBar.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[32m 173[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:05.3864529Z  [32m✓[39m __tests__/components/steps/StepsJourney.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 803[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:05.3870497Z      [33m[2m✓[22m[39m renders the default heading [33m 431[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:05.4523470Z  [32m✓[39m lib/__tests__/branding.extended.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:06.7336219Z  [32m✓[39m __tests__/components/stats/StatsCards.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 311[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:07.0849577Z  [32m✓[39m __tests__/components/stats/StatsInline.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 239[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:07.2443578Z  [32m✓[39m __tests__/components/services/ServicesClean.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 522[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:07.2447978Z      [33m[2m✓[22m[39m renders the section heading with default title [33m 369[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:08.0794986Z  [32m✓[39m __tests__/components/heroes/hero-utils.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 66[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:08.4848827Z  [32m✓[39m __tests__/components/sections/types.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:08.6162544Z  [32m✓[39m __tests__/config/validation.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:09.0047632Z  [32m✓[39m __tests__/components/legal/MarkdownContent.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 441[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:09.0055376Z      [33m[2m✓[22m[39m renders markdown headings [33m 318[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:09.7144532Z  [32m✓[39m lib/__tests__/types.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:09.8168851Z  [32m✓[39m lib/__tests__/branding.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:10.2114588Z  [32m✓[39m __tests__/lib/types-extensions.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:10.8637327Z  [32m✓[39m __tests__/components/legal/constants.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:10.9293949Z  [32m✓[39m __tests__/layout.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 50[2mms[22m[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9054162Z 
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9065893Z [2m Test Files [22m [1m[32m107 passed[39m[22m[90m (107)[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9072453Z [2m      Tests [22m [1m[32m1323 passed[39m[22m[90m (1323)[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9073811Z [2m   Start at [22m 17:49:37
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9075702Z [2m   Duration [22m 94.37s[2m (transform 4.24s, setup 10.86s, import 26.83s, tests 123.13s, environment 87.29s)[22m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9079059Z 
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9130243Z [34m % [39m[2mCoverage report from [22m[33mv8[39m
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9181299Z -------------------|---------|----------|---------|---------|-------------------
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9184467Z File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9188560Z -------------------|---------|----------|---------|---------|-------------------
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9195130Z All files          |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9197820Z  agent-site        |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9201528Z   middleware.ts    |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9202678Z  .../accessibility |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9203510Z   page.tsx         |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9204256Z  ...te/app/privacy |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9205009Z   page.tsx         |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9205793Z  ...site/app/terms |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9206598Z   page.tsx         |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9207329Z  ...ite/components |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9208055Z   Analytics.tsx    |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9211120Z   Nav.tsx          |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9212009Z  ...mponents/legal |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9213078Z   ...entBanner.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9213977Z   ...ageLayout.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9214853Z   ...wnContent.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9215720Z   constants.ts     |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9216571Z  ...nents/sections |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9217728Z   types.ts         |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9218556Z  ...sections/about |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9219427Z   AboutCard.tsx    |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9220323Z   AboutCoastal.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9221221Z   AboutCompact.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9222092Z   ...Editorial.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9223180Z   AboutGrace.tsx   |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9224065Z   ...Homestead.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9224932Z   AboutMinimal.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9225798Z   ...fessional.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9226657Z   AboutSplit.tsx   |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9227660Z   AboutWarm.tsx    |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9228547Z  ...ections/heroes |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9229423Z   HeroAiry.tsx     |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9230263Z   HeroBold.tsx     |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9231147Z   HeroCentered.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9232038Z   HeroCoastal.tsx  |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9233097Z   ...Corporate.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9234257Z   HeroDark.tsx     |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9235133Z   HeroEstate.tsx   |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9236071Z   HeroGradient.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9236950Z   HeroSplit.tsx    |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9237866Z   HeroStory.tsx    |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9238724Z   hero-utils.tsx   |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9239602Z  ...tions/profiles |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9240473Z   ...ilesCards.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9241337Z   ...ilesClean.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9242399Z   ProfilesGrid.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9243348Z  ...tions/services |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9244231Z   ...icesClean.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9245082Z   ...esCoastal.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9245933Z   ...ommercial.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9246793Z   ...esElegant.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9247641Z   ...cesEstate.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9248535Z   ServicesGrid.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9249418Z   ...icesHeart.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9250261Z   ...icesIcons.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9251384Z   ...icesPills.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9252414Z   ...esRefined.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9253437Z  ...ections/shared |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9254328Z   CmaSection.tsx   |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9255146Z   Footer.tsx       |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9255994Z  .../sections/sold |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9256852Z   SoldCards.tsx    |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9257733Z   SoldCarousel.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9258641Z   SoldCoastal.tsx  |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9259544Z   SoldCompact.tsx  |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9260456Z   SoldElegant.tsx  |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9261335Z   SoldEstate.tsx   |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9262400Z   SoldGrid.tsx     |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9263297Z   SoldMetrics.tsx  |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9264171Z   SoldMinimal.tsx  |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9265048Z   SoldStories.tsx  |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9265949Z  ...sections/stats |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9268753Z   StatsBar.tsx     |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9269644Z   StatsCards.tsx   |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9270804Z   StatsCompact.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9271721Z   StatsElegant.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9272881Z   StatsInline.tsx  |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9273796Z   StatsMetrics.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9274681Z   StatsOverlay.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9275582Z   StatsRugged.tsx  |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9276436Z   StatsWarm.tsx    |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9277279Z   StatsWave.tsx    |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9278174Z  ...sections/steps |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9279112Z   StepsBreeze.tsx  |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9280000Z   StepsCards.tsx   |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9280952Z   ...Corporate.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9281904Z   StepsElegant.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9283065Z   ...sFriendly.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9284012Z   StepsJourney.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9285034Z   ...sNumbered.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9285918Z   StepsPath.tsx    |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9286751Z   StepsRefined.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9287663Z   ...sTimeline.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9288825Z  ...s/testimonials |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9289699Z   ...ialsBeach.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9290538Z   ...alsBubble.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9291385Z   ...ialsClean.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9292422Z   ...Corporate.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9293290Z   ...nialsGrid.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9294152Z   ...ialsHeart.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9295012Z   ...lsMinimal.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9295885Z   ...ialsQuote.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9296764Z   ...alsRustic.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9297620Z   ...ialsStack.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9298480Z  agent-site/lib    |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9299342Z   branding.ts      |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9300167Z   config.ts        |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9300996Z   routing.ts       |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9301837Z  ...site/templates |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9302964Z   ...al-living.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9303843Z   commercial.tsx   |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9305040Z   ...ry-estate.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9305911Z   ...d-classic.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9306757Z   index.ts         |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9307601Z   light-luxury.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9308463Z   ...ry-estate.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9309327Z   ...n-minimal.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9310210Z   ...eginnings.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9311081Z   urban-loft.tsx   |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9311955Z   ...community.tsx |     100 |      100 |     100 |     100 |                   
+Agent Site — lint, test, coverage	Test with coverage	2026-03-18T17:51:11.9313143Z -------------------|---------|----------|---------|---------|-------------------
+Agent Site — lint, test, coverage	Build Next.js	﻿2026-03-18T17:51:12.0899793Z ##[group]Run npm run build --prefix apps/agent-site
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.0900221Z [36;1mnpm run build --prefix apps/agent-site[0m
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.0948602Z shell: /usr/bin/bash -e {0}
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.0948844Z env:
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.0949382Z   NEXT_PUBLIC_API_URL: ***
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.0949760Z   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ***
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.0950019Z ##[endgroup]
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.1913685Z 
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.1914205Z > agent-site@0.1.0 prebuild
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.1914922Z > node scripts/generate-config-registry.mjs
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.1915330Z 
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.2206701Z [prebuild] Found 11 account(s): jenise-buckalew, test-broker-agent, test-brokerage, test-coastal-living, test-country-estate, test-emerald, test-light-luxury, test-modern, test-new-beginnings, test-urban-loft, test-warm
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.2223478Z   test-broker-agent: 1 agent(s): agent-c
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.2230007Z   test-brokerage: 2 agent(s): agent-a, agent-b
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.2245315Z   test-light-luxury: 3 agent(s): agent-a, agent-b, agent-c
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.2259578Z   test-warm: 2 agent(s): agent-a, agent-b
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.2275021Z [prebuild] Wrote /home/runner/work/jenisesells-website/jenisesells-website/apps/agent-site/lib/config-registry.ts
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.2317294Z 
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.2317552Z > agent-site@0.1.0 build
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.2317975Z > next build
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:12.2318171Z 
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:13.2474236Z [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead. (Not supported with Turbopack.)
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:14.0481356Z ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:14.0538332Z Attention: Next.js now collects completely anonymous telemetry regarding usage.
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:14.0540440Z This information is used to shape Next.js' roadmap and prioritize features.
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:14.0542060Z You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:14.0543460Z https://nextjs.org/telemetry
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:14.0543798Z 
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:14.0695064Z ▲ Next.js 16.1.6 (Turbopack)
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:14.0696224Z - Environments: .env.production
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:14.0698674Z - Experiments (use with caution):
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:14.0699364Z   · clientTraceMetadata
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:14.0700676Z 
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:14.0905059Z ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:14.1081118Z   Creating an optimized production build ...
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:14.9014217Z [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead. (Not supported with Turbopack.)
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:25.2184213Z ✓ Compiled successfully in 9.6s
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:25.2185341Z   Running next.config.js provided runAfterProductionCompile ...
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:25.4768869Z ✓ Completed runAfterProductionCompile in 259ms
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:25.4776150Z   Running TypeScript ...
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:32.9521832Z   Collecting page data using 3 workers ...
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.6161370Z   Generating static pages using 3 workers (0/10) ...
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8160395Z   Generating static pages using 3 workers (2/10) 
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8322993Z   Generating static pages using 3 workers (4/10) 
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8351619Z   Generating static pages using 3 workers (7/10) 
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8655378Z ✓ Generating static pages using 3 workers (10/10) in 249.3ms
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8708438Z   Finalizing page optimization ...
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8789590Z 
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8809448Z Route (app)
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8810020Z ┌ ƒ /
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8810404Z ├ ○ /_not-found
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8810826Z ├ ƒ /accessibility
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8811213Z ├ ƒ /agents/[id]
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8812012Z ├ ƒ /agents/[id]/thank-you
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8812661Z ├ ƒ /privacy
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8813019Z ├ ○ /robots.txt
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8813379Z ├ ○ /sitemap.xml
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8814109Z ├ ƒ /terms
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8814444Z └ ƒ /thank-you
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8814574Z 
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8814583Z 
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8814716Z ƒ Proxy (Middleware)
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8814872Z 
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8815073Z ○  (Static)   prerendered as static content
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8815455Z ƒ  (Dynamic)  server-rendered on demand
+Agent Site — lint, test, coverage	Build Next.js	2026-03-18T17:51:33.8815644Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	﻿2026-03-18T17:51:34.0625163Z ##[group]Run npx opennextjs-cloudflare build
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:34.0625538Z [36;1mnpx opennextjs-cloudflare build[0m
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:34.0674874Z shell: /usr/bin/bash -e {0}
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:34.0675129Z ##[endgroup]
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6143621Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6144532Z ┌─────────────────────────────┐
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6145364Z │ OpenNext — Cloudflare build │
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6146039Z └─────────────────────────────┘
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6146349Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6888176Z Monorepo detected at /home/runner/work/jenisesells-website/jenisesells-website
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6959545Z App directory: /home/runner/work/jenisesells-website/jenisesells-website/apps/agent-site
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6960171Z Next.js version : 16.1.6
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6970531Z @opennextjs/cloudflare version: 1.17.1
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6971054Z @opennextjs/aws version: 3.9.16
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6980078Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6980623Z ┌─────────────────────────────────┐
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6981187Z │ OpenNext — Building Next.js app │
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6981663Z └─────────────────────────────────┘
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.6981850Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.8170216Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.8170820Z > agent-site@0.1.0 prebuild
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.8171487Z > node scripts/generate-config-registry.mjs
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.8171865Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.8462793Z [prebuild] Found 11 account(s): jenise-buckalew, test-broker-agent, test-brokerage, test-coastal-living, test-country-estate, test-emerald, test-light-luxury, test-modern, test-new-beginnings, test-urban-loft, test-warm
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.8477382Z   test-broker-agent: 1 agent(s): agent-c
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.8482466Z   test-brokerage: 2 agent(s): agent-a, agent-b
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.8493007Z   test-light-luxury: 3 agent(s): agent-a, agent-b, agent-c
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.8506563Z   test-warm: 2 agent(s): agent-a, agent-b
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.8522104Z [prebuild] Wrote /home/runner/work/jenisesells-website/jenisesells-website/apps/agent-site/lib/config-registry.ts
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.8561663Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.8573171Z > agent-site@0.1.0 build
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.8573636Z > next build
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:35.8573835Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:36.8461160Z [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead. (Not supported with Turbopack.)
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:37.6851812Z ▲ Next.js 16.1.6 (Turbopack)
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:37.6853260Z - Environments: .env.production
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:37.6858837Z - Experiments (use with caution):
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:37.6859686Z   · clientTraceMetadata
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:37.6860114Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:37.7044029Z ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:37.7222935Z   Creating an optimized production build ...
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:38.4863316Z [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead. (Not supported with Turbopack.)
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:51.2613943Z ✓ Compiled successfully in 12.1s
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:51.2673708Z   Running next.config.js provided runAfterProductionCompile ...
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:51.4997352Z ✓ Completed runAfterProductionCompile in 238ms
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:51.5006500Z   Running TypeScript ...
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:59.2136365Z   Collecting page data using 3 workers ...
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:51:59.8846035Z   Generating static pages using 3 workers (0/10) ...
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.1205527Z   Generating static pages using 3 workers (2/10) 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.1375410Z   Generating static pages using 3 workers (4/10) 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.1395733Z   Generating static pages using 3 workers (7/10) 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.1574599Z ✓ Generating static pages using 3 workers (10/10) in 272.8ms
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.1628569Z   Finalizing page optimization ...
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4232498Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4250950Z Route (app)
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4251542Z ┌ ƒ /
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4251925Z ├ ○ /_not-found
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4252880Z ├ ƒ /accessibility
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4253240Z ├ ƒ /agents/[id]
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4253501Z ├ ƒ /agents/[id]/thank-you
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4253766Z ├ ƒ /privacy
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4253981Z ├ ○ /robots.txt
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4254195Z ├ ○ /sitemap.xml
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4254422Z ├ ƒ /terms
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4254619Z └ ƒ /thank-you
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4254731Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4254738Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4254871Z ƒ Proxy (Middleware)
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4255012Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4255226Z ○  (Static)   prerendered as static content
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4255666Z ƒ  (Dynamic)  server-rendered on demand
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.4255970Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.5000191Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.5001097Z ┌──────────────────────────────┐
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.5001835Z │ OpenNext — Generating bundle │
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.5002686Z └──────────────────────────────┘
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.5002987Z 
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.5207110Z (node:3703) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.5209847Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.5573467Z Bundling middleware function...
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.6178984Z Bundling static assets...
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.6268051Z Bundling cache assets...
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:00.6372346Z Building server function: default...
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:03.3857860Z Applying code patches: 2.484s
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:03.5494459Z # copyPackageTemplateFiles
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:03.5508004Z [35m⚙️ Bundling the OpenNext server...
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:03.5508555Z [0m
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:04.9353635Z [35mWorker saved in `.open-next/worker.js` 🚀
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:04.9354320Z [0m
+Agent Site — lint, test, coverage	Build for Cloudflare (OpenNext)	2026-03-18T17:52:04.9354713Z OpenNext build complete.
+Agent Site — lint, test, coverage	Upload coverage	﻿2026-03-18T17:52:05.0217839Z ##[group]Run actions/upload-artifact@v4
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.0218213Z with:
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.0218402Z   name: agent-site-coverage
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.0218652Z   path: apps/agent-site/coverage/
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.0218916Z   retention-days: 7
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.0219126Z   if-no-files-found: warn
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.0219351Z   compression-level: 6
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.0219562Z   overwrite: false
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.0219765Z   include-hidden-files: false
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.0219999Z ##[endgroup]
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.3039523Z With the provided path, there will be 255 files uploaded
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.3045928Z Artifact name is valid!
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.3046980Z Root directory input is valid!
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.4333101Z Beginning upload of artifact content to blob storage
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.8944610Z Uploaded bytes 765553
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.9159003Z Finished uploading artifact content to blob storage!
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.9162896Z SHA256 digest of uploaded artifact zip is c69b79c4a5fe4c2513e0cbd12cd8e23a89a62c674f346e99b8d51d167008356f
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:05.9164359Z Finalizing artifact upload
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:06.0009958Z Artifact agent-site-coverage.zip successfully finalized. Artifact ID 5991435287
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:06.0011411Z Artifact agent-site-coverage has been successfully uploaded! Final size is 765553 bytes. Artifact ID is 5991435287
+Agent Site — lint, test, coverage	Upload coverage	2026-03-18T17:52:06.0018348Z Artifact download URL: https://github.com/edward-rosado/jenisesells-website/actions/runs/23258980741/artifacts/5991435287
+Agent Site — lint, test, coverage	Post Setup Node.js	﻿2026-03-18T17:52:06.0171722Z Post job cleanup.
+Agent Site — lint, test, coverage	Post Setup Node.js	2026-03-18T17:52:06.1796399Z Cache hit occurred on the primary key node-cache-Linux-x64-npm-4cbe340e1275bdd3e48b75890f97f7550cce69a6185b66ad275ea9db42259827, not saving cache.
+Agent Site — lint, test, coverage	Post Run actions/checkout@v4	﻿2026-03-18T17:52:06.1919991Z Post job cleanup.
+Agent Site — lint, test, coverage	Post Run actions/checkout@v4	2026-03-18T17:52:06.2901275Z [command]/usr/bin/git version
+Agent Site — lint, test, coverage	Post Run actions/checkout@v4	2026-03-18T17:52:06.2940372Z git version 2.53.0
+Agent Site — lint, test, coverage	Post Run actions/checkout@v4	2026-03-18T17:52:06.2990028Z Temporarily overriding HOME='/home/runner/work/_temp/1081dea3-2857-48f4-937b-5282ccb286dc' before making global git config changes
+Agent Site — lint, test, coverage	Post Run actions/checkout@v4	2026-03-18T17:52:06.2991094Z Adding repository directory to the temporary git global config as a safe directory
+Agent Site — lint, test, coverage	Post Run actions/checkout@v4	2026-03-18T17:52:06.2995510Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/jenisesells-website/jenisesells-website
+Agent Site — lint, test, coverage	Post Run actions/checkout@v4	2026-03-18T17:52:06.3031727Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Agent Site — lint, test, coverage	Post Run actions/checkout@v4	2026-03-18T17:52:06.3067266Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Agent Site — lint, test, coverage	Post Run actions/checkout@v4	2026-03-18T17:52:06.3315518Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Agent Site — lint, test, coverage	Post Run actions/checkout@v4	2026-03-18T17:52:06.3338899Z http.https://github.com/.extraheader
+Agent Site — lint, test, coverage	Post Run actions/checkout@v4	2026-03-18T17:52:06.3351833Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Agent Site — lint, test, coverage	Post Run actions/checkout@v4	2026-03-18T17:52:06.3383622Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Agent Site — lint, test, coverage	Post Run actions/checkout@v4	2026-03-18T17:52:06.3622804Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Agent Site — lint, test, coverage	Post Run actions/checkout@v4	2026-03-18T17:52:06.3656901Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Agent Site — lint, test, coverage	Complete job	﻿2026-03-18T17:52:06.4044882Z Cleaning up orphan processes
+Agent Site — lint, test, coverage	Complete job	2026-03-18T17:52:06.4384762Z Terminate orphan process: pid (3597) (downloaded-@cloudflare-workerd-linux-64-workerd)
+Agent Site — lint, test, coverage	Complete job	2026-03-18T17:52:06.4452074Z Terminate orphan process: pid (3784) (downloaded-@cloudflare-workerd-linux-64-workerd)
+Agent Site — lint, test, coverage	Complete job	2026-03-18T17:52:06.4476928Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, actions/setup-node@v4, actions/upload-artifact@v4. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Preview Deploy	Set up job	﻿2026-03-18T17:52:12.4279609Z Current runner version: '2.332.0'
+Preview Deploy	Set up job	2026-03-18T17:52:12.4306482Z ##[group]Runner Image Provisioner
+Preview Deploy	Set up job	2026-03-18T17:52:12.4307364Z Hosted Compute Agent
+Preview Deploy	Set up job	2026-03-18T17:52:12.4308038Z Version: 20260213.493
+Preview Deploy	Set up job	2026-03-18T17:52:12.4308686Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+Preview Deploy	Set up job	2026-03-18T17:52:12.4309376Z Build Date: 2026-02-13T00:28:41Z
+Preview Deploy	Set up job	2026-03-18T17:52:12.4310149Z Worker ID: {633bc783-fe77-4784-b29a-7c7ae02d926c}
+Preview Deploy	Set up job	2026-03-18T17:52:12.4311076Z Azure Region: westus
+Preview Deploy	Set up job	2026-03-18T17:52:12.4311748Z ##[endgroup]
+Preview Deploy	Set up job	2026-03-18T17:52:12.4313189Z ##[group]Operating System
+Preview Deploy	Set up job	2026-03-18T17:52:12.4313828Z Ubuntu
+Preview Deploy	Set up job	2026-03-18T17:52:12.4314396Z 24.04.3
+Preview Deploy	Set up job	2026-03-18T17:52:12.4314902Z LTS
+Preview Deploy	Set up job	2026-03-18T17:52:12.4315433Z ##[endgroup]
+Preview Deploy	Set up job	2026-03-18T17:52:12.4315955Z ##[group]Runner Image
+Preview Deploy	Set up job	2026-03-18T17:52:12.4316665Z Image: ubuntu-24.04
+Preview Deploy	Set up job	2026-03-18T17:52:12.4317218Z Version: 20260309.50.1
+Preview Deploy	Set up job	2026-03-18T17:52:12.4318370Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260309.50/images/ubuntu/Ubuntu2404-Readme.md
+Preview Deploy	Set up job	2026-03-18T17:52:12.4320065Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260309.50
+Preview Deploy	Set up job	2026-03-18T17:52:12.4321765Z ##[endgroup]
+Preview Deploy	Set up job	2026-03-18T17:52:12.4323070Z ##[group]GITHUB_TOKEN Permissions
+Preview Deploy	Set up job	2026-03-18T17:52:12.4325258Z Contents: read
+Preview Deploy	Set up job	2026-03-18T17:52:12.4325868Z Deployments: write
+Preview Deploy	Set up job	2026-03-18T17:52:12.4326420Z Metadata: read
+Preview Deploy	Set up job	2026-03-18T17:52:12.4327077Z PullRequests: write
+Preview Deploy	Set up job	2026-03-18T17:52:12.4327658Z ##[endgroup]
+Preview Deploy	Set up job	2026-03-18T17:52:12.4329875Z Secret source: Actions
+Preview Deploy	Set up job	2026-03-18T17:52:12.4330892Z Prepare workflow directory
+Preview Deploy	Set up job	2026-03-18T17:52:12.4654568Z Prepare all required actions
+Preview Deploy	Set up job	2026-03-18T17:52:12.4693797Z Getting action download info
+Preview Deploy	Set up job	2026-03-18T17:52:13.0043621Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Preview Deploy	Set up job	2026-03-18T17:52:13.1470999Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+Preview Deploy	Set up job	2026-03-18T17:52:13.2385454Z Download action repository 'cloudflare/wrangler-action@v3' (SHA:da0e0dfe58b7a431659754fdf3f186c529afbe65)
+Preview Deploy	Set up job	2026-03-18T17:52:13.8529355Z Download action repository 'actions/github-script@v7' (SHA:f28e40c7f34bde8b3046d885e986cb6290c5673b)
+Preview Deploy	Set up job	2026-03-18T17:52:14.4814661Z Complete job name: Preview Deploy
+Preview Deploy	Run actions/checkout@v4	﻿2026-03-18T17:52:14.5554980Z ##[group]Run actions/checkout@v4
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5555721Z with:
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5556098Z   repository: edward-rosado/jenisesells-website
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5556723Z   token: ***
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5557038Z   ssh-strict: true
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5557343Z   ssh-user: git
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5557658Z   persist-credentials: true
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5557996Z   clean: true
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5558314Z   sparse-checkout-cone-mode: true
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5558671Z   fetch-depth: 1
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5558964Z   fetch-tags: false
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5559267Z   show-progress: true
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5559581Z   lfs: false
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5559878Z   submodules: false
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5560184Z   set-safe-directory: true
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.5561050Z ##[endgroup]
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6645657Z Syncing repository: edward-rosado/jenisesells-website
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6647251Z ##[group]Getting Git version info
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6647868Z Working directory is '/home/runner/work/jenisesells-website/jenisesells-website'
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6648758Z [command]/usr/bin/git version
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6747511Z git version 2.53.0
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6773732Z ##[endgroup]
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6788189Z Temporarily overriding HOME='/home/runner/work/_temp/e6221a02-5b70-4642-a7e9-307b8ba882df' before making global git config changes
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6789257Z Adding repository directory to the temporary git global config as a safe directory
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6794282Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/jenisesells-website/jenisesells-website
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6834756Z Deleting the contents of '/home/runner/work/jenisesells-website/jenisesells-website'
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6838219Z ##[group]Initializing the repository
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6842818Z [command]/usr/bin/git init /home/runner/work/jenisesells-website/jenisesells-website
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6969570Z hint: Using 'master' as the name for the initial branch. This default branch name
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6971170Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6972026Z hint: to use in all of your new repositories, which will suppress this warning,
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6972847Z hint: call:
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6973446Z hint:
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6974161Z hint: 	git config --global init.defaultBranch <name>
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6974803Z hint:
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6975663Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6977154Z hint: 'development'. The just-created branch can be renamed via this command:
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6978272Z hint:
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6978969Z hint: 	git branch -m <name>
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6979686Z hint:
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6980806Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6982493Z Initialized empty Git repository in /home/runner/work/jenisesells-website/jenisesells-website/.git/
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.6988151Z [command]/usr/bin/git remote add origin https://github.com/edward-rosado/jenisesells-website
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.7025621Z ##[endgroup]
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.7026600Z ##[group]Disabling automatic garbage collection
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.7030871Z [command]/usr/bin/git config --local gc.auto 0
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.7060610Z ##[endgroup]
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.7061620Z ##[group]Setting up auth
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.7068270Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.7100975Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.7474085Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.7504294Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.7739626Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.7770214Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.8005875Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.8042945Z ##[endgroup]
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.8044079Z ##[group]Fetching the repository
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:14.8052795Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +aa905ee2be0a32cb9853eff57e0ba57a0244a6c6:refs/remotes/pull/24/merge
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.4524362Z From https://github.com/edward-rosado/jenisesells-website
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.4525934Z  * [new ref]         aa905ee2be0a32cb9853eff57e0ba57a0244a6c6 -> pull/24/merge
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.4559417Z ##[endgroup]
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.4560060Z ##[group]Determining the checkout info
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.4563124Z ##[endgroup]
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.4569677Z [command]/usr/bin/git sparse-checkout disable
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.4616428Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.4644746Z ##[group]Checking out the ref
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.4649490Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/24/merge
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5464593Z Note: switching to 'refs/remotes/pull/24/merge'.
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5465189Z 
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5465593Z You are in 'detached HEAD' state. You can look around, make experimental
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5466499Z changes and commit them, and you can discard any commits you make in this
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5467308Z state without impacting any branches by switching back to a branch.
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5468213Z 
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5468624Z If you want to create a new branch to retain commits you create, you may
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5469528Z do so (now or later) by using -c with the switch command. Example:
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5470021Z 
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5536260Z   git switch -c <new-branch-name>
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5536679Z 
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5536853Z Or undo this operation with:
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5537136Z 
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5537304Z   git switch -
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5537547Z 
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5537922Z Turn off this advice by setting config variable advice.detachedHead to false
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5538483Z 
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5539121Z HEAD is now at aa905ee Merge 072ebd4cf98a31fa35329ba540899e38a034350a into 93ed8121d0abfedad8e8d2d067c4c585dd5a25cd
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5541351Z ##[endgroup]
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5542339Z [command]/usr/bin/git log -1 --format=%H
+Preview Deploy	Run actions/checkout@v4	2026-03-18T17:52:18.5545546Z aa905ee2be0a32cb9853eff57e0ba57a0244a6c6
+Preview Deploy	Check if agent-site exists	﻿2026-03-18T17:52:18.5741867Z ##[group]Run if [ -f "apps/agent-site/package.json" ]; then
+Preview Deploy	Check if agent-site exists	2026-03-18T17:52:18.5742395Z [36;1mif [ -f "apps/agent-site/package.json" ]; then[0m
+Preview Deploy	Check if agent-site exists	2026-03-18T17:52:18.5742762Z [36;1m  echo "exists=true" >> $GITHUB_OUTPUT[0m
+Preview Deploy	Check if agent-site exists	2026-03-18T17:52:18.5743042Z [36;1melse[0m
+Preview Deploy	Check if agent-site exists	2026-03-18T17:52:18.5743262Z [36;1m  echo "exists=false" >> $GITHUB_OUTPUT[0m
+Preview Deploy	Check if agent-site exists	2026-03-18T17:52:18.5743536Z [36;1mfi[0m
+Preview Deploy	Check if agent-site exists	2026-03-18T17:52:18.5795052Z shell: /usr/bin/bash -e {0}
+Preview Deploy	Check if agent-site exists	2026-03-18T17:52:18.5795350Z ##[endgroup]
+Preview Deploy	Setup Node.js	﻿2026-03-18T17:52:18.5995690Z ##[group]Run actions/setup-node@v4
+Preview Deploy	Setup Node.js	2026-03-18T17:52:18.5995990Z with:
+Preview Deploy	Setup Node.js	2026-03-18T17:52:18.5996189Z   node-version: 22
+Preview Deploy	Setup Node.js	2026-03-18T17:52:18.5996410Z   cache: npm
+Preview Deploy	Setup Node.js	2026-03-18T17:52:18.5996654Z   cache-dependency-path: package-lock.json
+Preview Deploy	Setup Node.js	2026-03-18T17:52:18.5996955Z   always-auth: false
+Preview Deploy	Setup Node.js	2026-03-18T17:52:18.5997184Z   check-latest: false
+Preview Deploy	Setup Node.js	2026-03-18T17:52:18.5997529Z   token: ***
+Preview Deploy	Setup Node.js	2026-03-18T17:52:18.5997736Z ##[endgroup]
+Preview Deploy	Setup Node.js	2026-03-18T17:52:18.7821366Z Found in cache @ /opt/hostedtoolcache/node/22.22.1/x64
+Preview Deploy	Setup Node.js	2026-03-18T17:52:18.7830199Z ##[group]Environment details
+Preview Deploy	Setup Node.js	2026-03-18T17:52:21.4922818Z node: v22.22.1
+Preview Deploy	Setup Node.js	2026-03-18T17:52:21.4923239Z npm: 10.9.4
+Preview Deploy	Setup Node.js	2026-03-18T17:52:21.4923531Z yarn: 1.22.22
+Preview Deploy	Setup Node.js	2026-03-18T17:52:21.4926749Z ##[endgroup]
+Preview Deploy	Setup Node.js	2026-03-18T17:52:21.4948565Z [command]/opt/hostedtoolcache/node/22.22.1/x64/bin/npm config get cache
+Preview Deploy	Setup Node.js	2026-03-18T17:52:21.7752880Z /home/runner/.npm
+Preview Deploy	Setup Node.js	2026-03-18T17:52:22.0810904Z Cache hit for: node-cache-Linux-x64-npm-4cbe340e1275bdd3e48b75890f97f7550cce69a6185b66ad275ea9db42259827
+Preview Deploy	Setup Node.js	2026-03-18T17:52:23.3625227Z Received 4194304 of 379252458 (1.1%), 4.0 MBs/sec
+Preview Deploy	Setup Node.js	2026-03-18T17:52:24.3628067Z Received 130023424 of 379252458 (34.3%), 61.9 MBs/sec
+Preview Deploy	Setup Node.js	2026-03-18T17:52:25.3631645Z Received 260046848 of 379252458 (68.6%), 82.6 MBs/sec
+Preview Deploy	Setup Node.js	2026-03-18T17:52:26.2991669Z Received 379252458 of 379252458 (100.0%), 91.8 MBs/sec
+Preview Deploy	Setup Node.js	2026-03-18T17:52:26.2993328Z Cache Size: ~362 MB (379252458 B)
+Preview Deploy	Setup Node.js	2026-03-18T17:52:26.3057716Z [command]/usr/bin/tar -xf /home/runner/work/_temp/61f0c187-4786-4459-ad1c-7ab49ed02a50/cache.tzst -P -C /home/runner/work/jenisesells-website/jenisesells-website --use-compress-program unzstd
+Preview Deploy	Setup Node.js	2026-03-18T17:52:27.3305924Z Cache restored successfully
+Preview Deploy	Setup Node.js	2026-03-18T17:52:27.4055723Z Cache restored from key: node-cache-Linux-x64-npm-4cbe340e1275bdd3e48b75890f97f7550cce69a6185b66ad275ea9db42259827
+Preview Deploy	Install dependencies	﻿2026-03-18T17:52:27.4211559Z ##[group]Run npm ci
+Preview Deploy	Install dependencies	2026-03-18T17:52:27.4211917Z [36;1mnpm ci[0m
+Preview Deploy	Install dependencies	2026-03-18T17:52:27.4268570Z shell: /usr/bin/bash -e {0}
+Preview Deploy	Install dependencies	2026-03-18T17:52:27.4268830Z ##[endgroup]
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.1078015Z 
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.1087498Z added 1675 packages, and audited 1680 packages in 41s
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.1088007Z 
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.1088314Z 295 packages are looking for funding
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.1088819Z   run `npm fund` for details
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.3156028Z 
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.3157063Z 30 vulnerabilities (1 moderate, 29 high)
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.3157529Z 
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.3157975Z To address issues that do not require attention, run:
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.3158590Z   npm audit fix
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.3159306Z 
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.3159748Z To address all issues (including breaking changes), run:
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.3160621Z   npm audit fix --force
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.3160933Z 
+Preview Deploy	Install dependencies	2026-03-18T17:53:08.3161178Z Run `npm audit` for details.
+Preview Deploy	Generate config registry	﻿2026-03-18T17:53:08.4851940Z ##[group]Run node apps/agent-site/scripts/generate-config-registry.mjs
+Preview Deploy	Generate config registry	2026-03-18T17:53:08.4852474Z [36;1mnode apps/agent-site/scripts/generate-config-registry.mjs[0m
+Preview Deploy	Generate config registry	2026-03-18T17:53:08.4901728Z shell: /usr/bin/bash -e {0}
+Preview Deploy	Generate config registry	2026-03-18T17:53:08.4901990Z ##[endgroup]
+Preview Deploy	Generate config registry	2026-03-18T17:53:08.5236330Z [prebuild] Found 11 account(s): jenise-buckalew, test-broker-agent, test-brokerage, test-coastal-living, test-country-estate, test-emerald, test-light-luxury, test-modern, test-new-beginnings, test-urban-loft, test-warm
+Preview Deploy	Generate config registry	2026-03-18T17:53:08.5252725Z   test-broker-agent: 1 agent(s): agent-c
+Preview Deploy	Generate config registry	2026-03-18T17:53:08.5259374Z   test-brokerage: 2 agent(s): agent-a, agent-b
+Preview Deploy	Generate config registry	2026-03-18T17:53:08.5275569Z   test-light-luxury: 3 agent(s): agent-a, agent-b, agent-c
+Preview Deploy	Generate config registry	2026-03-18T17:53:08.5289394Z   test-warm: 2 agent(s): agent-a, agent-b
+Preview Deploy	Generate config registry	2026-03-18T17:53:08.5304436Z [prebuild] Wrote /home/runner/work/jenisesells-website/jenisesells-website/apps/agent-site/lib/config-registry.ts
+Preview Deploy	Build Next.js	﻿2026-03-18T17:53:08.5384465Z ##[group]Run npm run build --prefix apps/agent-site
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.5384879Z [36;1mnpm run build --prefix apps/agent-site[0m
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.5433742Z shell: /usr/bin/bash -e {0}
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.5434007Z env:
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.5434387Z   NEXT_PUBLIC_API_URL: ***
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.5434777Z   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ***
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.5435051Z ##[endgroup]
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.6395906Z 
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.6396446Z > agent-site@0.1.0 prebuild
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.6397174Z > node scripts/generate-config-registry.mjs
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.6397600Z 
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.6689253Z [prebuild] Found 11 account(s): jenise-buckalew, test-broker-agent, test-brokerage, test-coastal-living, test-country-estate, test-emerald, test-light-luxury, test-modern, test-new-beginnings, test-urban-loft, test-warm
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.6703641Z   test-broker-agent: 1 agent(s): agent-c
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.6709995Z   test-brokerage: 2 agent(s): agent-a, agent-b
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.6719929Z   test-light-luxury: 3 agent(s): agent-a, agent-b, agent-c
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.6733994Z   test-warm: 2 agent(s): agent-a, agent-b
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.6749442Z [prebuild] Wrote /home/runner/work/jenisesells-website/jenisesells-website/apps/agent-site/lib/config-registry.ts
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.6791646Z 
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.6791936Z > agent-site@0.1.0 build
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.6792373Z > next build
+Preview Deploy	Build Next.js	2026-03-18T17:53:08.6792580Z 
+Preview Deploy	Build Next.js	2026-03-18T17:53:09.6863967Z [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead. (Not supported with Turbopack.)
+Preview Deploy	Build Next.js	2026-03-18T17:53:10.4772525Z ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+Preview Deploy	Build Next.js	2026-03-18T17:53:10.4953545Z Attention: Next.js now collects completely anonymous telemetry regarding usage.
+Preview Deploy	Build Next.js	2026-03-18T17:53:10.4955308Z This information is used to shape Next.js' roadmap and prioritize features.
+Preview Deploy	Build Next.js	2026-03-18T17:53:10.4957683Z You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+Preview Deploy	Build Next.js	2026-03-18T17:53:10.4958865Z https://nextjs.org/telemetry
+Preview Deploy	Build Next.js	2026-03-18T17:53:10.4959182Z 
+Preview Deploy	Build Next.js	2026-03-18T17:53:10.5105692Z ▲ Next.js 16.1.6 (Turbopack)
+Preview Deploy	Build Next.js	2026-03-18T17:53:10.5106491Z - Environments: .env.production
+Preview Deploy	Build Next.js	2026-03-18T17:53:10.5111841Z - Experiments (use with caution):
+Preview Deploy	Build Next.js	2026-03-18T17:53:10.5112459Z   · clientTraceMetadata
+Preview Deploy	Build Next.js	2026-03-18T17:53:10.5112722Z 
+Preview Deploy	Build Next.js	2026-03-18T17:53:10.5368716Z ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+Preview Deploy	Build Next.js	2026-03-18T17:53:10.5659403Z   Creating an optimized production build ...
+Preview Deploy	Build Next.js	2026-03-18T17:53:11.3503234Z [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead. (Not supported with Turbopack.)
+Preview Deploy	Build Next.js	2026-03-18T17:53:21.7920186Z ✓ Compiled successfully in 9.7s
+Preview Deploy	Build Next.js	2026-03-18T17:53:21.7923315Z   Running next.config.js provided runAfterProductionCompile ...
+Preview Deploy	Build Next.js	2026-03-18T17:53:22.0997242Z ✓ Completed runAfterProductionCompile in 308ms
+Preview Deploy	Build Next.js	2026-03-18T17:53:22.1005186Z   Running TypeScript ...
+Preview Deploy	Build Next.js	2026-03-18T17:53:29.6400170Z   Collecting page data using 3 workers ...
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.2734187Z   Generating static pages using 3 workers (0/10) ...
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5172102Z   Generating static pages using 3 workers (2/10) 
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5302703Z   Generating static pages using 3 workers (4/10) 
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5320704Z   Generating static pages using 3 workers (7/10) 
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5618533Z ✓ Generating static pages using 3 workers (10/10) in 287.2ms
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5666720Z   Finalizing page optimization ...
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5730817Z 
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5733877Z Route (app)
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5734391Z ┌ ƒ /
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5734726Z ├ ○ /_not-found
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5735111Z ├ ƒ /accessibility
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5735477Z ├ ƒ /agents/[id]
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5736240Z ├ ƒ /agents/[id]/thank-you
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5736639Z ├ ƒ /privacy
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5737017Z ├ ○ /robots.txt
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5737355Z ├ ○ /sitemap.xml
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5737791Z ├ ƒ /terms
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5738118Z └ ƒ /thank-you
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5738306Z 
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5738316Z 
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5738538Z ƒ Proxy (Middleware)
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5741340Z 
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5743697Z ○  (Static)   prerendered as static content
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5744406Z ƒ  (Dynamic)  server-rendered on demand
+Preview Deploy	Build Next.js	2026-03-18T17:53:30.5744748Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	﻿2026-03-18T17:53:30.6876272Z ##[group]Run npx opennextjs-cloudflare build
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:30.6876652Z [36;1mnpx opennextjs-cloudflare build[0m
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:30.6925297Z shell: /usr/bin/bash -e {0}
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:30.6925577Z ##[endgroup]
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.2447616Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.2448683Z ┌─────────────────────────────┐
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.2449470Z │ OpenNext — Cloudflare build │
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.2450185Z └─────────────────────────────┘
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.2450815Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.3184755Z Monorepo detected at /home/runner/work/jenisesells-website/jenisesells-website
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.3254608Z App directory: /home/runner/work/jenisesells-website/jenisesells-website/apps/agent-site
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.3255554Z Next.js version : 16.1.6
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.3265096Z @opennextjs/cloudflare version: 1.17.1
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.3265515Z @opennextjs/aws version: 3.9.16
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.3275517Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.3275983Z ┌─────────────────────────────────┐
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.3276424Z │ OpenNext — Building Next.js app │
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.3276914Z └─────────────────────────────────┘
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.3277106Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.4464657Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.4465158Z > agent-site@0.1.0 prebuild
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.4465663Z > node scripts/generate-config-registry.mjs
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.4465931Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.4757151Z [prebuild] Found 11 account(s): jenise-buckalew, test-broker-agent, test-brokerage, test-coastal-living, test-country-estate, test-emerald, test-light-luxury, test-modern, test-new-beginnings, test-urban-loft, test-warm
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.4773650Z   test-broker-agent: 1 agent(s): agent-c
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.4780086Z   test-brokerage: 2 agent(s): agent-a, agent-b
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.4795037Z   test-light-luxury: 3 agent(s): agent-a, agent-b, agent-c
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.4808901Z   test-warm: 2 agent(s): agent-a, agent-b
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.4824479Z [prebuild] Wrote /home/runner/work/jenisesells-website/jenisesells-website/apps/agent-site/lib/config-registry.ts
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.4863762Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.4864074Z > agent-site@0.1.0 build
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.4864492Z > next build
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:32.4864688Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:33.4826276Z [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead. (Not supported with Turbopack.)
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:34.3828594Z ▲ Next.js 16.1.6 (Turbopack)
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:34.3829296Z - Environments: .env.production
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:34.3829889Z - Experiments (use with caution):
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:34.3830827Z   · clientTraceMetadata
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:34.3831107Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:34.4053116Z ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:34.4364704Z   Creating an optimized production build ...
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:35.2285107Z [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead. (Not supported with Turbopack.)
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:47.9691854Z ✓ Compiled successfully in 12.0s
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:47.9693013Z   Running next.config.js provided runAfterProductionCompile ...
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:48.2508707Z ✓ Completed runAfterProductionCompile in 283ms
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:48.2518610Z   Running TypeScript ...
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:55.8690265Z   Collecting page data using 3 workers ...
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:56.5123658Z   Generating static pages using 3 workers (0/10) ...
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:56.7865160Z   Generating static pages using 3 workers (2/10) 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:56.8012940Z   Generating static pages using 3 workers (4/10) 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:56.8034817Z   Generating static pages using 3 workers (7/10) 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:56.8338077Z ✓ Generating static pages using 3 workers (10/10) in 321.4ms
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:56.8389277Z   Finalizing page optimization ...
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.0989007Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1008927Z Route (app)
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1011250Z ┌ ƒ /
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1012091Z ├ ○ /_not-found
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1012973Z ├ ƒ /accessibility
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1013375Z ├ ƒ /agents/[id]
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1013804Z ├ ƒ /agents/[id]/thank-you
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1014311Z ├ ƒ /privacy
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1014711Z ├ ○ /robots.txt
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1015133Z ├ ○ /sitemap.xml
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1015384Z ├ ƒ /terms
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1015580Z └ ƒ /thank-you
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1015693Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1015701Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1015832Z ƒ Proxy (Middleware)
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1015993Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1016198Z ○  (Static)   prerendered as static content
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1016588Z ƒ  (Dynamic)  server-rendered on demand
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1016780Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1749409Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1750579Z ┌──────────────────────────────┐
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1751268Z │ OpenNext — Generating bundle │
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1751845Z └──────────────────────────────┘
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1752085Z 
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1960875Z (node:2789) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.1962306Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.2358117Z Bundling middleware function...
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.2949252Z Bundling static assets...
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.3039242Z Bundling cache assets...
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:53:57.3145409Z Building server function: default...
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:54:00.0876243Z Applying code patches: 2.475s
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:54:00.2516197Z # copyPackageTemplateFiles
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:54:00.2530558Z [35m⚙️ Bundling the OpenNext server...
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:54:00.2531133Z [0m
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:54:01.6055515Z [35mWorker saved in `.open-next/worker.js` 🚀
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:54:01.6056137Z [0m
+Preview Deploy	Build for Cloudflare (OpenNext)	2026-03-18T17:54:01.6056487Z OpenNext build complete.
+Preview Deploy	Generate preview wrangler config	﻿2026-03-18T17:54:01.6861715Z ##[group]Run PR_NUM=24
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6862015Z [36;1mPR_NUM=24[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6862327Z [36;1mPREVIEW_NAME="real-estate-star-agents-pr-${PR_NUM}"[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6862719Z [36;1mcat > wrangler.preview.jsonc <<WRANGLER_EOF[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6863008Z [36;1m{[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6863265Z [36;1m  "\$schema": "node_modules/wrangler/config-schema.json",[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6863794Z [36;1m  "name": "${PREVIEW_NAME}",[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6864068Z [36;1m  "main": ".open-next/worker.js",[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6864353Z [36;1m  "compatibility_date": "2026-03-11",[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6864665Z [36;1m  "compatibility_flags": ["nodejs_compat"],[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6864950Z [36;1m  "assets": {[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6865184Z [36;1m    "directory": ".open-next/assets",[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6865452Z [36;1m    "binding": "ASSETS"[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6865682Z [36;1m  },[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6865864Z [36;1m  "services": [[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6866071Z [36;1m    {[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6866321Z [36;1m      "binding": "WORKER_SELF_REFERENCE",[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6866619Z [36;1m      "service": "${PREVIEW_NAME}"[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6866868Z [36;1m    }[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6867040Z [36;1m  ],[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6867216Z [36;1m  "vars": {[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6867776Z [36;1m    "NEXT_PUBLIC_API_URL": "***",[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6868236Z [36;1m    "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": "***",[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6868540Z [36;1m    "PREVIEW": "true"[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6868764Z [36;1m  }[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6868939Z [36;1m}[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6869115Z [36;1mWRANGLER_EOF[0m
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6918093Z shell: /usr/bin/bash -e {0}
+Preview Deploy	Generate preview wrangler config	2026-03-18T17:54:01.6918346Z ##[endgroup]
+Preview Deploy	Deploy preview to Cloudflare Workers	﻿2026-03-18T17:54:01.7065739Z ##[group]Run cloudflare/wrangler-action@v3
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:01.7066036Z with:
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:01.7066353Z   apiToken: ***
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:01.7066593Z   accountId: ***
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:01.7066805Z   workingDirectory: apps/agent-site
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:01.7067104Z   command: deploy --config wrangler.preview.jsonc
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:01.7067391Z   quiet: false
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:01.7067576Z ##[endgroup]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:01.8028046Z ##[group]🔍 Checking for existing Wrangler installation
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:01.8073242Z [command]/opt/hostedtoolcache/node/22.22.1/x64/bin/npx --no-install wrangler --version
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:02.7564376Z 4.73.0
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:02.7898910Z ✅ No wrangler version specified, using pre-installed wrangler version 4.73.0
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:02.7899737Z ##[endgroup]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:02.7900117Z ##[endgroup]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:02.7902212Z ##[group]🚀 Running Wrangler Commands
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:02.7917070Z [command]/opt/hostedtoolcache/node/22.22.1/x64/bin/npx wrangler deploy --config wrangler.preview.jsonc
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:03.9024880Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:03.9025864Z  ⛅️ wrangler 4.73.0 (update available 4.75.0)
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:03.9026736Z ─────────────────────────────────────────────
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:03.9336040Z OpenNext project detected, calling `opennextjs-cloudflare deploy`
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:05.7029757Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:05.7031200Z ┌──────────────────────────────┐
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:05.7031766Z │ OpenNext — Cloudflare deploy │
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:05.7032215Z └──────────────────────────────┘
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:05.7032417Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:05.7144206Z Monorepo detected at /home/runner/work/jenisesells-website/jenisesells-website
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:05.7481784Z (node:3099) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:05.7482830Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:06.2267105Z Incremental cache does not need populating
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:06.2268811Z Tag cache does not need populating
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:07.1347160Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:07.1348105Z  ⛅️ wrangler 4.73.0 (update available 4.75.0)
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:07.1348857Z ─────────────────────────────────────────────
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:07.1413906Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:07.1415711Z Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:12.6818586Z 🌀 Building list of assets...
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:12.6856643Z ✨ Read 118 files from the assets directory /home/runner/work/jenisesells-website/jenisesells-website/apps/agent-site/.open-next/assets
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:12.7342446Z 🌀 Starting asset upload...
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:17.0547632Z 🌀 Found 1 new or modified static asset to upload. Proceeding with upload...
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:17.0549108Z + /BUILD_ID
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:18.0357157Z Uploaded 1 of 1 asset
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:18.0358292Z ✨ Success! Uploaded 1 file (88 already uploaded) (0.98 sec)
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:18.0358771Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:18.3477273Z Total Upload: 14680.35 KiB / gzip: 3382.41 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.3536240Z Your Worker has access to the following bindings:
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.3537483Z Binding                                                                              Resource                  
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.3538853Z env.WORKER_SELF_REFERENCE (real-estate-star-agents-pr-24)                            Worker                    
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.3540196Z env.ASSETS                                                                           Assets                    
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.3541946Z env.NEXT_PUBLIC_API_URL ("***")                         Environment Variable      
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.3543465Z env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ("***")      Environment Variable      
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.3544266Z env.PREVIEW ("true")                                                                 Environment Variable      
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.3544653Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4099109Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4666742Z [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mYour Worker failed validation because it exceeded size limits.[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4668042Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4668216Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4671365Z   A request to the Cloudflare API (/accounts/***/workers/scripts/real-estate-star-agents-pr-24/versions) failed.
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4674092Z    - Your Worker exceeded the size limit of 3 MiB. Please upgrade to a paid plan to deploy Workers up to 10 MiB. [4mhttps://dash.cloudflare.com/***/workers/plans[0m [code: 10027]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4676573Z   To learn more about this error, visit: [4mhttps://developers.cloudflare.com/workers/platform/limits/#worker-size[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4677898Z   Here are the 5 largest dependencies included in your script:
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4678463Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4679105Z   - .open-next/server-functions/default/apps/agent-site/handler.mjs - 11793.37 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4680097Z   - ../../node_modules/next/dist/compiled/@vercel/og/resvg.wasm - 1346.05 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4681237Z   - ../../node_modules/next/dist/compiled/@vercel/og/index.edge.js - 796.35 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4682089Z   - .open-next/middleware/handler.mjs - 571.65 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4682856Z   - ../../node_modules/next/dist/compiled/@vercel/og/yoga.wasm - 86.58 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4683472Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4683993Z   If these are unnecessary, consider removing them
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4684519Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4684691Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4684703Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4686629Z [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mA request to the Cloudflare API (/accounts/***/workers/scripts/real-estate-star-agents-pr-24/versions) failed.[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4687817Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4689678Z   Your Worker exceeded the size limit of 3 MiB. Please upgrade to a paid plan to deploy Workers up to 10 MiB. [4mhttps://dash.cloudflare.com/***/workers/plans[0m [code: 10027]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4692130Z   To learn more about this error, visit: [4mhttps://developers.cloudflare.com/workers/platform/limits/#worker-size[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4693032Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4693183Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4694322Z   If you think this is a bug, please open an issue at: [4mhttps://github.com/cloudflare/workers-sdk/issues/new/choose[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4695143Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4695155Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4696047Z 🪵  Logs were written to "/home/runner/.config/.wrangler/logs/wrangler-2026-03-18_17-54-06_932.log"
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4697095Z ERROR Wrangler deploy command failed:
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4698385Z [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mYour Worker failed validation because it exceeded size limits.[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4699420Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4699561Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4701058Z   A request to the Cloudflare API (/accounts/***/workers/scripts/real-estate-star-agents-pr-24/versions) failed.
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4703706Z    - Your Worker exceeded the size limit of 3 MiB. Please upgrade to a paid plan to deploy Workers up to 10 MiB. [4mhttps://dash.cloudflare.com/***/workers/plans[0m [code: 10027]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4706049Z   To learn more about this error, visit: [4mhttps://developers.cloudflare.com/workers/platform/limits/#worker-size[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4707356Z   Here are the 5 largest dependencies included in your script:
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4707833Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4708231Z   - .open-next/server-functions/default/apps/agent-site/handler.mjs - 11793.37 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4708829Z   - ../../node_modules/next/dist/compiled/@vercel/og/resvg.wasm - 1346.05 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4709355Z   - ../../node_modules/next/dist/compiled/@vercel/og/index.edge.js - 796.35 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4709821Z   - .open-next/middleware/handler.mjs - 571.65 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4710255Z   - ../../node_modules/next/dist/compiled/@vercel/og/yoga.wasm - 86.58 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4710954Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4711212Z   If these are unnecessary, consider removing them
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4711491Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4711587Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4711594Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4712830Z [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mA request to the Cloudflare API (/accounts/***/workers/scripts/real-estate-star-agents-pr-24/versions) failed.[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4713395Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4714628Z   Your Worker exceeded the size limit of 3 MiB. Please upgrade to a paid plan to deploy Workers up to 10 MiB. [4mhttps://dash.cloudflare.com/***/workers/plans[0m [code: 10027]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4716282Z   To learn more about this error, visit: [4mhttps://developers.cloudflare.com/workers/platform/limits/#worker-size[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4716799Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4716888Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4717470Z   If you think this is a bug, please open an issue at: [4mhttps://github.com/cloudflare/workers-sdk/issues/new/choose[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4717902Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4717908Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4718367Z 🪵  Logs were written to "/home/runner/.config/.wrangler/logs/wrangler-2026-03-18_17-54-06_932.log"
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4718745Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.4968678Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.5428781Z [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1m[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.5429238Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.5429250Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.5587879Z [32mIf you think this is a bug then please create an issue at https://github.com/cloudflare/workers-sdk/issues/new/choose[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.5599246Z Note that there is a newer version of Wrangler available (4.75.0). Consider checking whether upgrading resolves this error.
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.5603208Z ? Would you like to report this error to Cloudflare? Wrangler's output and the error details will be shared with the Wrangler team to help us diagnose and fix the issue.
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.5604757Z 🤖 Using fallback value in non-interactive context: no
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.5823811Z 🪵  Logs were written to "/home/runner/.config/.wrangler/logs/wrangler-2026-03-18_17-54-03_508.log"
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.6152269Z ##[endgroup]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.6175216Z ##[error]The process '/opt/hostedtoolcache/node/22.22.1/x64/bin/npx' failed with exit code 1
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-18T17:54:26.6185891Z ##[error]🚨 Action failed
+Preview Deploy	Post Run actions/checkout@v4	﻿2026-03-18T17:54:26.6290902Z Post job cleanup.
+Preview Deploy	Post Run actions/checkout@v4	2026-03-18T17:54:26.7316458Z [command]/usr/bin/git version
+Preview Deploy	Post Run actions/checkout@v4	2026-03-18T17:54:26.7361961Z git version 2.53.0
+Preview Deploy	Post Run actions/checkout@v4	2026-03-18T17:54:26.7406715Z Temporarily overriding HOME='/home/runner/work/_temp/b8e6d44b-f406-457b-966f-a25188b1d4fd' before making global git config changes
+Preview Deploy	Post Run actions/checkout@v4	2026-03-18T17:54:26.7408293Z Adding repository directory to the temporary git global config as a safe directory
+Preview Deploy	Post Run actions/checkout@v4	2026-03-18T17:54:26.7413080Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/jenisesells-website/jenisesells-website
+Preview Deploy	Post Run actions/checkout@v4	2026-03-18T17:54:26.7448385Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Preview Deploy	Post Run actions/checkout@v4	2026-03-18T17:54:26.7482082Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Preview Deploy	Post Run actions/checkout@v4	2026-03-18T17:54:26.7730061Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Preview Deploy	Post Run actions/checkout@v4	2026-03-18T17:54:26.7752711Z http.https://github.com/.extraheader
+Preview Deploy	Post Run actions/checkout@v4	2026-03-18T17:54:26.7766103Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Preview Deploy	Post Run actions/checkout@v4	2026-03-18T17:54:26.7799297Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Preview Deploy	Post Run actions/checkout@v4	2026-03-18T17:54:26.8034516Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Preview Deploy	Post Run actions/checkout@v4	2026-03-18T17:54:26.8067301Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Preview Deploy	Complete job	﻿2026-03-18T17:54:26.8448860Z Cleaning up orphan processes
+Preview Deploy	Complete job	2026-03-18T17:54:26.8783555Z Terminate orphan process: pid (2684) (downloaded-@cloudflare-workerd-linux-64-workerd)
+Preview Deploy	Complete job	2026-03-18T17:54:26.8833177Z Terminate orphan process: pid (2870) (downloaded-@cloudflare-workerd-linux-64-workerd)
+Preview Deploy	Complete job	2026-03-18T17:54:26.8851291Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, actions/setup-node@v4, cloudflare/wrangler-action@v3. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
