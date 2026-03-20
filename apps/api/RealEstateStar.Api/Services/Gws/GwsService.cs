@@ -110,6 +110,74 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
         return stdout.Trim();
     }
 
+    public async Task<string?> DownloadDocAsync(string agentEmail, string folder, string fileName, CancellationToken ct)
+    {
+        try
+        {
+            return await RunGwsAsync(ct, "drive", "download", "--user", agentEmail, "--parent", folder, "--name", fileName);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "[GWS-010] Failed to download doc '{FileName}' from '{Folder}'", fileName, folder);
+            return null;
+        }
+    }
+
+    public async Task UpdateDocAsync(string agentEmail, string folder, string fileName, string content, CancellationToken ct)
+    {
+        var tempFile = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, content, ct);
+            logger?.LogInformation("Updating Doc '{FileName}' in {FolderPath} for {Email}", fileName, folder, agentEmail);
+            await RunGwsAsync(ct, "docs", "update", "--user", agentEmail, "--parent", folder, "--name", fileName, "--body-file", tempFile);
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(tempFile))
+                    File.Delete(tempFile);
+            }
+            catch (IOException ex)
+            {
+                logger?.LogWarning(ex, "Failed to delete temp file {TempFile}", tempFile);
+            }
+        }
+    }
+
+    public async Task DeleteDocAsync(string agentEmail, string folder, string fileName, CancellationToken ct)
+    {
+        logger?.LogInformation("Deleting Doc '{FileName}' in {FolderPath} for {Email}", fileName, folder, agentEmail);
+        await RunGwsAsync(ct, "drive", "delete", "--user", agentEmail, "--parent", folder, "--name", fileName);
+    }
+
+    public async Task<List<string>> ListFilesAsync(string agentEmail, string folder, CancellationToken ct)
+    {
+        logger?.LogInformation("Listing files in {FolderPath} for {Email}", folder, agentEmail);
+        var output = await RunGwsAsync(ct, "drive", "list", "--user", agentEmail, "--parent", folder, "--format", "names");
+        return output
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+    }
+
+    public async Task<List<List<string>>> ReadSheetAsync(string agentEmail, string sheetName, CancellationToken ct)
+    {
+        logger?.LogInformation("Reading sheet {SheetName} for {Email}", sheetName, agentEmail);
+        var output = await RunGwsAsync(ct, "sheets", "read", "--user", agentEmail, "--spreadsheet", sheetName, "--format", "csv");
+        return output
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split(',').Select(v => v.Trim('"')).ToList())
+            .ToList();
+    }
+
+    public async Task UpdateSheetRowsAsync(string agentEmail, string sheetName, string filterColumn, string filterValue, string replacementValue, CancellationToken ct)
+    {
+        logger?.LogInformation("Updating rows in sheet {SheetName} for {Email}", sheetName, agentEmail);
+        await RunGwsAsync(ct, "sheets", "update-rows", "--user", agentEmail, "--spreadsheet", sheetName,
+            "--filter-column", filterColumn, "--filter-value", filterValue, "--replacement", replacementValue);
+    }
+
     // --- Static helper methods (testable without gws installed) ---
 
     public static string BuildLeadFolderPath(string leadName, string address) =>
