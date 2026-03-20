@@ -32,6 +32,12 @@ public class LeadPathsTests
             LeadPaths.CmaFolder("Jane Doe", "123 Main St"));
 
     [Fact]
+    public void DeletionAuditLogSheet_IncludesAgentId()
+        => Assert.Equal(
+            "Real Estate Star/test-agent/Deletion Audit Log",
+            LeadPaths.DeletionAuditLogSheet("test-agent"));
+
+    [Fact]
     public void Constants_MatchExpectedValues()
     {
         Assert.Equal("Real Estate Star", LeadPaths.Root);
