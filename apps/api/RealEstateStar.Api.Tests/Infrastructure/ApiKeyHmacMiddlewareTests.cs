@@ -69,6 +69,10 @@ public class ApiKeyHmacMiddlewareTests
         return $"sha256={Convert.ToHexStringLower(hash)}";
     }
 
+    // Per-agent key derivation must match the middleware: $"{HmacSecret}:{agentId}"
+    private static string GenerateAgentHmac(string agentId, string timestamp, string body) =>
+        GenerateHmac($"{TestSecret}:{agentId}", timestamp, body);
+
     private static HttpRequestMessage BuildLeadRequest(
         string agentId,
         string body,
@@ -77,7 +81,7 @@ public class ApiKeyHmacMiddlewareTests
         string? signature = null)
     {
         var ts = timestamp ?? NowTimestamp();
-        var sig = signature ?? GenerateHmac(TestSecret, ts, body);
+        var sig = signature ?? GenerateAgentHmac(agentId, ts, body);
 
         var request = new HttpRequestMessage(HttpMethod.Post, $"/agents/{agentId}/leads")
         {

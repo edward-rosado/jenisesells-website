@@ -87,7 +87,7 @@ public class ApiKeyHmacMiddleware
         }
 
         var providedHex = signatureHeader["sha256=".Length..];
-        var expectedSignature = ComputeHmac(_options.HmacSecret, timestampHeader!, body);
+        var expectedSignature = ComputeHmac($"{_options.HmacSecret}:{mappedAgentId}", timestampHeader!, body);
         var expectedHex = expectedSignature["sha256=".Length..];
 
         if (!ConstantTimeEquals(providedHex, expectedHex))
