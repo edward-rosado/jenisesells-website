@@ -10,7 +10,8 @@ export async function validateTurnstile(token: string): Promise<boolean> {
     });
     const data = await res.json();
     return data.success === true;
-  } catch {
+  } catch (error) {
+    console.error("[SEC-001] Turnstile validation error:", error);
     return false;
   }
 }

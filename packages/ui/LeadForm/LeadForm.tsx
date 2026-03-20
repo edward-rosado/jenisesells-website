@@ -22,8 +22,10 @@ export interface LeadFormProps {
   serviceAreas?: string[];
   showCmaDisclaimer?: boolean;
   agentFirstName?: string;
-  turnstileSiteKey?: string;
-  onTurnstileSuccess?: (token: string) => void;
+  /** Cloudflare Turnstile token — submit is disabled until provided. Omit to skip Turnstile gating. */
+  turnstileToken?: string | null;
+  /** Render slot for a Turnstile widget (or any CAPTCHA). Rendered above the submit button. */
+  captchaSlot?: React.ReactNode;
 }
 
 function parseOptionalNumber(value: string): number | undefined {
@@ -67,8 +69,8 @@ export function LeadForm({
   serviceAreas = [],
   showCmaDisclaimer = false,
   agentFirstName,
-  turnstileSiteKey: _turnstileSiteKey,
-  onTurnstileSuccess: _onTurnstileSuccess,
+  turnstileToken,
+  captchaSlot,
 }: LeadFormProps) {
   const [isBuying, setIsBuying] = useState(initialMode.includes("buying"));
   const [isSelling, setIsSelling] = useState(initialMode.includes("selling"));
@@ -170,6 +172,13 @@ export function LeadForm({
 
     if (!tcpaConsent) {
       setValidationError("You must consent to receive communications before submitting.");
+      return;
+    }
+
+    // SECURITY: Honeypot — bots fill all fields, real users never see this
+    if (honeypot) {
+      // Fake success to avoid revealing detection to the bot
+      setSubmitting(true);
       return;
     }
 
@@ -587,12 +596,15 @@ export function LeadForm({
         </span>
       </label>
 
+      {/* CAPTCHA slot — Turnstile widget or other challenge rendered by parent */}
+      {captchaSlot}
+
       {/* Submit */}
       <div style={{ marginTop: 12 }} />
       <button
         type="submit"
         className="res-lead-form-submit"
-        disabled={disabled || submitting}
+        disabled={disabled || submitting || (turnstileToken !== undefined && !turnstileToken)}
         style={{
           width: "100%",
           padding: "14px 32px",

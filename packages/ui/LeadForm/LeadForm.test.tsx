@@ -791,6 +791,52 @@ describe("LeadForm", () => {
     expect(honeypot.style.left).toBe("-9999px");
   });
 
+  // Test 47 — honeypot blocks bot submissions
+  it("does not call onSubmit when honeypot is filled", async () => {
+    const onSubmit = vi.fn();
+    render(<LeadForm {...defaultProps} onSubmit={onSubmit} initialMode={["buying"]} />);
+
+    fillContactFields();
+    fillBuyerFields();
+    selectTimeline();
+    fireEvent.click(screen.getByRole("checkbox", { name: /consent to receive/i }));
+
+    // Simulate bot filling the honeypot
+    const honeypot = document.querySelector('input[name="website"]') as HTMLInputElement;
+    fireEvent.change(honeypot, { target: { value: "https://spam.com" } });
+
+    submitForm();
+
+    // Wait a tick, then verify onSubmit was never called
+    await waitFor(() => {
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+  });
+
+  // Test 48 — Turnstile gating: submit disabled when token is null
+  it("disables submit when turnstileToken is null", () => {
+    render(<LeadForm {...defaultProps} turnstileToken={null} />);
+    expect(screen.getByRole("button", { name: /get/i })).toBeDisabled();
+  });
+
+  // Test 49 — Turnstile gating: submit enabled when token provided
+  it("enables submit when turnstileToken is provided", () => {
+    render(<LeadForm {...defaultProps} turnstileToken="valid-token" />);
+    expect(screen.getByRole("button", { name: /get/i })).not.toBeDisabled();
+  });
+
+  // Test 50 — Turnstile gating: submit enabled when turnstileToken omitted (no Turnstile)
+  it("enables submit when turnstileToken is omitted", () => {
+    render(<LeadForm {...defaultProps} />);
+    expect(screen.getByRole("button", { name: /get/i })).not.toBeDisabled();
+  });
+
+  // Test 51 — captchaSlot renders
+  it("renders captchaSlot content", () => {
+    render(<LeadForm {...defaultProps} captchaSlot={<div data-testid="turnstile-widget" />} />);
+    expect(screen.getByTestId("turnstile-widget")).toBeInTheDocument();
+  });
+
   // Test 42
   it("allows submit when TCPA consent is checked", async () => {
     const onSubmit = vi.fn();

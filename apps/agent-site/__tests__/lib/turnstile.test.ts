@@ -27,11 +27,14 @@ describe("validateTurnstile", () => {
     expect(result).toBe(false);
   });
 
-  it("returns false when fetch throws", async () => {
+  it("returns false and logs error when fetch throws", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     (fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("net"));
     const { validateTurnstile } = await import("@/lib/turnstile");
     const result = await validateTurnstile("token");
     expect(result).toBe(false);
+    expect(spy).toHaveBeenCalledWith("[SEC-001] Turnstile validation error:", expect.any(Error));
+    spy.mockRestore();
   });
 
   it("returns false when TURNSTILE_SECRET_KEY is not set", async () => {
