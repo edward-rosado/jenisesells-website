@@ -18,11 +18,6 @@ vi.mock("@real-estate-star/ui/LeadForm/useGoogleMapsAutocomplete", () => ({
   useGoogleMapsAutocomplete: () => ({ loaded: false }),
 }));
 
-// Mock Sentry
-vi.mock("@sentry/nextjs", () => ({
-  captureException: vi.fn(),
-}));
-
 // Mock Analytics
 vi.mock("@/components/Analytics", () => ({
   trackCmaConversion: vi.fn(),
@@ -261,8 +256,8 @@ describe("CmaSection form submission", () => {
     expect(screen.getByText("Verification failed. Please try again.")).toBeInTheDocument();
   });
 
-  it("calls Sentry.captureException when submitLead returns an error", async () => {
-    const Sentry = await import("@sentry/nextjs");
+  it("logs error when submitLead returns an error", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     mockSubmitLead.mockResolvedValueOnce({ error: "Something went wrong. Please try again." });
 
     render(<CmaSection {...DEFAULT_PROPS} />);
@@ -272,15 +267,17 @@ describe("CmaSection form submission", () => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);
     });
 
-    expect(Sentry.captureException).toHaveBeenCalledWith(
-      expect.any(Error),
-      { tags: { accountId: "test-agent", feature: "contact_form" } },
+    expect(spy).toHaveBeenCalledWith(
+      "[agent-site] Lead submission error:",
+      "Something went wrong. Please try again.",
     );
+    spy.mockRestore();
   });
 
-  it("calls Sentry.captureException and shows error when submitLead throws", async () => {
-    const Sentry = await import("@sentry/nextjs");
-    mockSubmitLead.mockRejectedValueOnce(new Error("Network failure"));
+  it("logs error and shows message when submitLead throws", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const err = new Error("Network failure");
+    mockSubmitLead.mockRejectedValueOnce(err);
 
     render(<CmaSection {...DEFAULT_PROPS} />);
     fillForm();
@@ -289,11 +286,12 @@ describe("CmaSection form submission", () => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);
     });
 
-    expect(Sentry.captureException).toHaveBeenCalledWith(
-      expect.any(Error),
-      { tags: { accountId: "test-agent", feature: "contact_form" } },
+    expect(spy).toHaveBeenCalledWith(
+      "[agent-site] Lead submission failed:",
+      err,
     );
     expect(screen.getByText("Something went wrong. Please try again.")).toBeInTheDocument();
+    spy.mockRestore();
   });
 
   it("disables submit button while processing", async () => {
