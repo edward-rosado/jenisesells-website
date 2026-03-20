@@ -5,6 +5,7 @@ using RealEstateStar.Api.Common;
 using RealEstateStar.Api.Features.Leads;
 using RealEstateStar.Api.Features.Leads.Cma;
 using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.Api.Health;
 using RealEstateStar.Api.Services;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Services;
@@ -17,11 +18,12 @@ public class CmaProcessingWorkerTests
     private readonly Mock<ICmaPdfGenerator> _pdfGenerator = new();
     private readonly Mock<ICmaNotifier> _cmaNotifier = new();
     private readonly Mock<IAccountConfigService> _accountConfigService = new();
+    private readonly BackgroundServiceHealthTracker _healthTracker = new();
     private readonly Mock<ILogger<CmaProcessingWorker>> _logger = new();
 
     private CmaProcessingWorker CreateWorker() =>
         new(_channel, _compAggregator.Object, _cmaAnalyzer.Object,
-            _pdfGenerator.Object, _cmaNotifier.Object, _accountConfigService.Object, _logger.Object);
+            _pdfGenerator.Object, _cmaNotifier.Object, _accountConfigService.Object, _healthTracker, _logger.Object);
 
     private static Lead MakeLead() => new()
     {
@@ -215,6 +217,45 @@ public class CmaProcessingWorkerTests
         var result = CmaProcessingWorker.DetermineReportType(2, score);
 
         result.Should().Be(ReportType.Lean);
+    }
+
+    // ---------------------------------------------------------------------------
+    // TryDeleteTempFile — File.Exists(path) == true branch
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task DeletesTempPdfFile_WhenFileExists()
+    {
+        var tempFile = Path.GetTempFileName();
+        var comps = MakeComps(3);
+
+        _compAggregator
+            .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(comps);
+        _cmaAnalyzer
+            .Setup(a => a.AnalyzeAsync(It.IsAny<Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeAnalysis());
+        SetupAccountConfig();
+        _pdfGenerator
+            .Setup(g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
+                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tempFile); // return a real file path that exists
+        _cmaNotifier
+            .Setup(n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),
+                It.IsAny<CmaAnalysis>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var worker = CreateWorker();
+        var cts = new CancellationTokenSource();
+
+        await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
+        _channel.Writer.Complete();
+
+        await worker.StartAsync(cts.Token);
+        await worker.ExecuteTask!;
+
+        // The file should have been deleted
+        File.Exists(tempFile).Should().BeFalse();
     }
 
     // ---------------------------------------------------------------------------

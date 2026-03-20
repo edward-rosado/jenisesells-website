@@ -14,6 +14,7 @@ public sealed class CmaProcessingChannel
 
     public ChannelWriter<CmaProcessingRequest> Writer => _channel.Writer;
     public ChannelReader<CmaProcessingRequest> Reader => _channel.Reader;
+    public int Count => _channel.Reader.Count;
 }
 
 public sealed record CmaProcessingRequest(

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using RealEstateStar.Api.Diagnostics;
+using RealEstateStar.Api.Health;
 
 namespace RealEstateStar.Api.Features.Leads.Services;
 
@@ -15,6 +16,7 @@ public sealed class LeadProcessingWorker(
     ILeadNotifier notifier,
     CmaProcessingChannel cmaChannel,
     HomeSearchProcessingChannel homeSearchChannel,
+    BackgroundServiceHealthTracker healthTracker,
     ILogger<LeadProcessingWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -26,6 +28,7 @@ public sealed class LeadProcessingWorker(
             try
             {
                 await ProcessLeadAsync(request, stoppingToken);
+                healthTracker.RecordActivity(nameof(LeadProcessingWorker));
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

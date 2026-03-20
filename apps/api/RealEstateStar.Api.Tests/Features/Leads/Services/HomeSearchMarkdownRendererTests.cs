@@ -188,6 +188,19 @@ public class HomeSearchMarkdownRendererTests
     }
 
     [Fact]
+    public void RenderListings_WithOnlyMaxBudget_ShowsAnyForMin()
+    {
+        var lead = MakeLeadWithBuyerDetails(minBudget: null, maxBudget: 500_000m);
+        var listings = new List<Listing> { MakeListing(0) };
+
+        var result = HomeSearchMarkdownRenderer.RenderListings(lead, listings, "Test Agent");
+
+        result.Should().Contain("**Price range:**");
+        result.Should().Contain("any");
+        result.Should().Contain("$500,000");
+    }
+
+    [Fact]
     public void RenderListings_WithBedrooms_ShowsBedroomLine()
     {
         var lead = MakeLeadWithBuyerDetails(bedrooms: 3);
@@ -291,5 +304,53 @@ public class HomeSearchMarkdownRendererTests
 
         result.Should().Contain("View:");
         result.Should().Contain("https://example.com/listing/1");
+    }
+
+    // ---------------------------------------------------------------------------
+    // Null BuyerDetails — covers ?. null-conditional branches
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void RenderListings_WithNullBuyerDetails_DoesNotThrow()
+    {
+        var lead = new Lead
+        {
+            Id = Guid.NewGuid(),
+            AgentId = "test-agent",
+            LeadType = LeadType.Buyer,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@example.com",
+            Phone = "555-1234",
+            Timeline = "3-6m",
+            BuyerDetails = null
+        };
+        var listings = new List<Listing> { MakeListing(0) };
+
+        var act = () => HomeSearchMarkdownRenderer.RenderListings(lead, listings, "Test Agent");
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void RenderEmailBody_WithNullBuyerDetails_DoesNotThrow()
+    {
+        var lead = new Lead
+        {
+            Id = Guid.NewGuid(),
+            AgentId = "test-agent",
+            LeadType = LeadType.Buyer,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@example.com",
+            Phone = "555-1234",
+            Timeline = "3-6m",
+            BuyerDetails = null
+        };
+        var listings = new List<Listing> { MakeListing(0) };
+
+        var act = () => HomeSearchMarkdownRenderer.RenderEmailBody(lead, listings, "Test Agent");
+
+        act.Should().NotThrow();
     }
 }

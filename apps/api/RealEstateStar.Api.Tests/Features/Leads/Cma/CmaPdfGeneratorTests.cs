@@ -493,4 +493,131 @@ public class CmaPdfGeneratorTests
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    // ---------------------------------------------------------------------------
+    // AddPropertyOverview — sd == null (Standard/Comprehensive with null SellerDetails)
+    // Exercises the sd?.Beds?.ToString() ?? "—" path where sd itself is null
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GenerateAsync_Standard_WithNullSellerDetails_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead(sellerDetails: null);
+        var analysis = MakeAnalysis();
+        var comps = MakeComps();
+        var agent = MakeAgentConfig();
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // AddPricePerSqftAnalysis — sd == null with comps present
+    // Exercises the sd?.Sqft is { } sqft path where sd itself is null
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GenerateAsync_Comprehensive_WithNullSellerDetails_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead(sellerDetails: null);
+        var analysis = MakeAnalysis();
+        var comps = MakeComps();
+        var agent = MakeAgentConfig();
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // AddAboutAgent — null Agent (exercises agent.Agent?.Languages ?? [] and
+    // agent.Location?.ServiceAreas ?? [] null-coalescing branches)
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GenerateAsync_Lean_WithNullAgent_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead();
+        var analysis = MakeAnalysis();
+        var comps = MakeComps();
+        var agent = new AccountConfig
+        {
+            Handle = "bare",
+            Agent = null,
+            Brokerage = null,
+            Location = null
+        };
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Comp — PricePerSqft property
+// ---------------------------------------------------------------------------
+
+public class CompTests
+{
+    [Fact]
+    public void PricePerSqft_WhenSqftGreaterThanZero_ReturnsSalePriceDividedBySqft()
+    {
+        var comp = new Comp
+        {
+            Address = "123 Main St",
+            SalePrice = 500_000m,
+            SaleDate = new DateOnly(2025, 1, 15),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 2000,
+            DistanceMiles = 0.5,
+            Source = CompSource.Zillow
+        };
+
+        comp.PricePerSqft.Should().Be(250m);
+    }
+
+    [Fact]
+    public void PricePerSqft_WhenSqftIsZero_ReturnsZero()
+    {
+        var comp = new Comp
+        {
+            Address = "456 Oak Ave",
+            SalePrice = 400_000m,
+            SaleDate = new DateOnly(2025, 3, 10),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 0,
+            DistanceMiles = 0.3,
+            Source = CompSource.Redfin
+        };
+
+        comp.PricePerSqft.Should().Be(0m);
+    }
 }

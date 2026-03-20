@@ -20,6 +20,7 @@ public sealed class LeadProcessingChannel
 
     public ChannelWriter<LeadProcessingRequest> Writer => _channel.Writer;
     public ChannelReader<LeadProcessingRequest> Reader => _channel.Reader;
+    public int Count => _channel.Reader.Count;
 }
 
 /// <summary>

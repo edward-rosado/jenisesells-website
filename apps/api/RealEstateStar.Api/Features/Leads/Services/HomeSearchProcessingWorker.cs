@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using RealEstateStar.Api.Diagnostics;
+using RealEstateStar.Api.Health;
 
 namespace RealEstateStar.Api.Features.Leads.Services;
 
@@ -12,6 +13,7 @@ public sealed class HomeSearchProcessingWorker(
     IHomeSearchProvider homeSearchProvider,
     IHomeSearchNotifier homeSearchNotifier,
     ILeadStore leadStore,
+    BackgroundServiceHealthTracker healthTracker,
     ILogger<HomeSearchProcessingWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -23,6 +25,7 @@ public sealed class HomeSearchProcessingWorker(
             try
             {
                 await ProcessHomeSearchAsync(request, stoppingToken);
+                healthTracker.RecordActivity(nameof(HomeSearchProcessingWorker));
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

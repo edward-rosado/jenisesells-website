@@ -14,6 +14,7 @@ public sealed class HomeSearchProcessingChannel
 
     public ChannelWriter<HomeSearchProcessingRequest> Writer => _channel.Writer;
     public ChannelReader<HomeSearchProcessingRequest> Reader => _channel.Reader;
+    public int Count => _channel.Reader.Count;
 }
 
 public sealed record HomeSearchProcessingRequest(

@@ -290,4 +290,60 @@ public class ScraperCompSourceTests
         description.Should().NotContain("Baths:");
         description.Should().NotContain("SqFt:");
     }
+
+    // ---------------------------------------------------------------------------
+    // ParseComps — null JSON value for "address" (hits the ?? "" null branch)
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void ParseComps_NullJsonAddress_TreatsAsEmptyAndSkips()
+    {
+        // "address": null → GetString() returns null → ?? "" → empty → skipped by IsNullOrWhiteSpace
+        var compWithNullAddress = """
+        {
+            "address": null,
+            "salePrice": 500000,
+            "saleDate": "2025-02-10",
+            "beds": 3,
+            "baths": 2,
+            "sqft": 1800,
+            "distanceMiles": 0.4
+        }
+        """;
+        var goodComp = CompJson("Good St");
+        var json = WrapArray(compWithNullAddress, goodComp);
+
+        var result = ScraperCompSource.ParseComps(json, CompSource.Zillow, NullLogger.Instance);
+
+        result.Should().HaveCount(1);
+        result[0].Address.Should().Be("Good St");
+    }
+
+    // ---------------------------------------------------------------------------
+    // ParseComps — null JSON value for "saleDate" (hits the ?? "" null branch)
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void ParseComps_NullJsonSaleDate_TreatsAsEmptyStringAndSkips()
+    {
+        // "saleDate": null → GetString() returns null → ?? "" → fails DateOnly.TryParse → skipped
+        var compWithNullDate = """
+        {
+            "address": "456 Oak Ave",
+            "salePrice": 500000,
+            "saleDate": null,
+            "beds": 3,
+            "baths": 2,
+            "sqft": 1800,
+            "distanceMiles": 0.4
+        }
+        """;
+        var goodComp = CompJson("Good St");
+        var json = WrapArray(compWithNullDate, goodComp);
+
+        var result = ScraperCompSource.ParseComps(json, CompSource.Zillow, NullLogger.Instance);
+
+        result.Should().HaveCount(1);
+        result[0].Address.Should().Be("Good St");
+    }
 }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Api.Features.Leads;
 using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.Api.Health;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Services;
 
@@ -12,10 +13,11 @@ public class HomeSearchProcessingWorkerTests
     private readonly Mock<IHomeSearchProvider> _homeSearchProvider = new();
     private readonly Mock<IHomeSearchNotifier> _homeSearchNotifier = new();
     private readonly Mock<ILeadStore> _leadStore = new();
+    private readonly BackgroundServiceHealthTracker _healthTracker = new();
     private readonly Mock<ILogger<HomeSearchProcessingWorker>> _logger = new();
 
     private HomeSearchProcessingWorker CreateWorker() =>
-        new(_channel, _homeSearchProvider.Object, _homeSearchNotifier.Object, _leadStore.Object, _logger.Object);
+        new(_channel, _homeSearchProvider.Object, _homeSearchNotifier.Object, _leadStore.Object, _healthTracker, _logger.Object);
 
     private static Lead MakeLead() => new()
     {

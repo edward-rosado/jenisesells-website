@@ -4,6 +4,7 @@ using Moq;
 using RealEstateStar.Api.Features.Leads;
 using RealEstateStar.Api.Features.Leads.Services;
 using RealEstateStar.Api.Features.Leads.Submit;
+using RealEstateStar.Api.Health;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Services;
 
@@ -15,11 +16,12 @@ public class LeadProcessingWorkerTests
     private readonly Mock<ILeadStore> _leadStore = new();
     private readonly Mock<ILeadEnricher> _enricher = new();
     private readonly Mock<ILeadNotifier> _notifier = new();
+    private readonly BackgroundServiceHealthTracker _healthTracker = new();
     private readonly Mock<ILogger<LeadProcessingWorker>> _logger = new();
 
     private LeadProcessingWorker CreateWorker() =>
         new(_channel, _leadStore.Object, _enricher.Object,
-            _notifier.Object, _cmaChannel, _homeSearchChannel, _logger.Object);
+            _notifier.Object, _cmaChannel, _homeSearchChannel, _healthTracker, _logger.Object);
 
     private static Lead MakeLead(LeadType type = LeadType.Seller) => new()
     {

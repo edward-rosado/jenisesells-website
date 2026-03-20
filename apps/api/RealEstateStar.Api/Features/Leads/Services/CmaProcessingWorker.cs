@@ -2,6 +2,7 @@ using System.Diagnostics;
 using RealEstateStar.Api.Common;
 using RealEstateStar.Api.Diagnostics;
 using RealEstateStar.Api.Features.Leads.Cma;
+using RealEstateStar.Api.Health;
 using RealEstateStar.Api.Services;
 
 namespace RealEstateStar.Api.Features.Leads.Services;
@@ -17,6 +18,7 @@ public sealed class CmaProcessingWorker(
     ICmaPdfGenerator pdfGenerator,
     ICmaNotifier cmaNotifier,
     IAccountConfigService accountConfigService,
+    BackgroundServiceHealthTracker healthTracker,
     ILogger<CmaProcessingWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -28,6 +30,7 @@ public sealed class CmaProcessingWorker(
             try
             {
                 await ProcessCmaAsync(request, stoppingToken);
+                healthTracker.RecordActivity(nameof(CmaProcessingWorker));
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

@@ -40,13 +40,13 @@ public class HealthCheckTests : IClassFixture<TestWebApplicationFactory>
         var root = doc.RootElement;
 
         root.TryGetProperty("status", out _).Should().BeTrue();
-        root.TryGetProperty("checks", out var checks).Should().BeTrue();
+        root.TryGetProperty("entries", out var entries).Should().BeTrue();
 
-        var checkNames = checks.EnumerateArray()
-            .Select(c => c.GetProperty("name").GetString())
+        var entryNames = entries.EnumerateObject()
+            .Select(e => e.Name)
             .ToList();
 
-        checkNames.Should().Contain("claude_api");
+        entryNames.Should().Contain("claude_api");
     }
 
     [Fact]

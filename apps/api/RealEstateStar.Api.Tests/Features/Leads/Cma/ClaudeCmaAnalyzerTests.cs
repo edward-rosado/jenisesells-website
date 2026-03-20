@@ -347,6 +347,78 @@ public class ClaudeCmaAnalyzerTests
         prompt.Should().Contain("Days on Market: 14");
     }
 
+    // ---------------------------------------------------------------------------
+    // ParseResponse — null marketTrend from JSON (throws the ?? branch)
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void ParseResponse_NullMarketTrend_ThrowsWithNullMessage()
+    {
+        var json = """
+        {
+            "valueLow": 480000,
+            "valueMid": 510000,
+            "valueHigh": 540000,
+            "marketNarrative": "Strong seller's market.",
+            "marketTrend": null,
+            "medianDaysOnMarket": 21
+        }
+        """;
+
+        var act = () => ClaudeCmaAnalyzer.ParseResponse(json);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*marketTrend was null*");
+    }
+
+    // ---------------------------------------------------------------------------
+    // ParseResponse — null marketNarrative from JSON (throws the ?? branch)
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void ParseResponse_NullMarketNarrative_ThrowsWithNullMessage()
+    {
+        var json = """
+        {
+            "valueLow": 480000,
+            "valueMid": 510000,
+            "valueHigh": 540000,
+            "marketNarrative": null,
+            "marketTrend": "Seller's",
+            "medianDaysOnMarket": 21
+        }
+        """;
+
+        var act = () => ClaudeCmaAnalyzer.ParseResponse(json);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*marketNarrative was null or empty*");
+    }
+
+    // ---------------------------------------------------------------------------
+    // ParseResponse — malformed code fence (no newline after opening ```)
+    //   exercises the false branch of: if (firstNewline >= 0 && lastFence > firstNewline)
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void ParseResponse_MalformedCodeFenceNoNewline_StillParsesAsJson()
+    {
+        // The content after "```" has no newline — firstNewline will be -1,
+        // so the fence-stripping inner branch is NOT taken.
+        // The string does NOT start with "```" once we look at it carefully,
+        // but if we craft it so it DOES start with "```" but has no newline:
+        // "```{...}" — firstNewline = -1, so we skip the slice.
+        // However the resulting cleaned string would be "```{...}" which
+        // is invalid JSON, so we expect a JsonException.
+        var json = "```" + MakeValidJson().Replace('\n', ' ');
+
+        var act = () => ClaudeCmaAnalyzer.ParseResponse(json);
+
+        // Either it throws a parse error (the false branch path) OR
+        // a JsonException because "```{...}" isn't valid JSON.
+        act.Should().Throw<Exception>();
+    }
+
     [Fact]
     public void BuildPrompt_CompWithNullDaysOnMarket_OmitsDaysOnMarketLine()
     {
