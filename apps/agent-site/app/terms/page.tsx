@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/nextjs";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { loadAccountConfig, loadLegalContent } from "@/lib/config";
@@ -55,7 +54,7 @@ export default async function TermsPage({ searchParams }: PageProps) {
   try {
     account = loadAccountConfig(handle);
   } catch (err) {
-    Sentry.captureException(err, { tags: { accountId: handle } });
+    console.error("[agent-site] Failed to load account:", handle, err);
     notFound();
   }
 

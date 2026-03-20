@@ -1,6 +1,5 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 
 interface ErrorProps {
@@ -10,7 +9,7 @@ interface ErrorProps {
 
 export default function Error({ error, reset }: ErrorProps) {
   useEffect(() => {
-    Sentry.captureException(error);
+    console.error("[agent-site] Page error:", error);
   }, [error]);
 
   return (

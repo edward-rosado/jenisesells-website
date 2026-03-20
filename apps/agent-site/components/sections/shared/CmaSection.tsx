@@ -1,6 +1,5 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
 import type { ContactFormData, AccountTracking } from "@/lib/types";
 import { trackCmaConversion } from "@/components/Analytics";
 import { LeadForm } from "@real-estate-star/ui";
@@ -40,15 +39,11 @@ export function CmaSection({
 
       if (result.error) {
         setErrorMessage(result.error);
-        Sentry.captureException(new Error(result.error), {
-          tags: { accountId, feature: "contact_form" },
-        });
+        console.error("[agent-site] Lead submission error:", result.error);
         return;
       }
     } catch (err) {
-      Sentry.captureException(err, {
-        tags: { accountId, feature: "contact_form" },
-      });
+      console.error("[agent-site] Lead submission failed:", err);
       setErrorMessage("Something went wrong. Please try again.");
       return;
     } finally {
