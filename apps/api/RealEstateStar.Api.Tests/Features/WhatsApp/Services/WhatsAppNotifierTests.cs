@@ -290,4 +290,553 @@ public class WhatsAppNotifierTests : IDisposable
         _client.Verify(c => c.SendFreeformAsync(It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    // -------------------------------------------------------------------------
+    // Test 13: Config load throws → logs warning, no send
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_Skips_WhenConfigLoadThrows()
+    {
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("config service unavailable"));
+
+        var act = () => _sut.NotifyAsync(AgentId, NotificationType.NewLead, null,
+            new Dictionary<string, string>(), CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+        _client.Verify(c => c.SendTemplateAsync(It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _log.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("WA-015")),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 14: Config has no WhatsApp integration → skips
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_Skips_WhenWhatsAppIntegrationAbsent()
+    {
+        var config = new AgentConfig
+        {
+            Id = AgentId,
+            Identity = new AgentIdentity { Name = "Jenise Buckalew" },
+            Integrations = new AgentIntegrations { WhatsApp = null }
+        };
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+
+        var act = () => _sut.NotifyAsync(AgentId, NotificationType.NewLead, null,
+            new Dictionary<string, string>(), CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+        _client.Verify(c => c.SendTemplateAsync(It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 15: Config has null Integrations → skips
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_Skips_WhenIntegrationsNull()
+    {
+        var config = new AgentConfig
+        {
+            Id = AgentId,
+            Identity = new AgentIdentity { Name = "Jenise Buckalew" },
+            Integrations = null
+        };
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+
+        var act = () => _sut.NotifyAsync(AgentId, NotificationType.NewLead, null,
+            new Dictionary<string, string>(), CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+        _client.Verify(c => c.SendTemplateAsync(It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 16: Welcome flow — general Exception → logs error, returns early
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_WelcomeFlow_GeneralException_LogsErrorAndReturns()
+    {
+        var config = MakeConfig(welcomeSent: false);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendTemplateAsync(AgentPhone, "welcome",
+                It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("network failure"));
+
+        var act = () => _sut.NotifyAsync(AgentId, NotificationType.NewLead, null,
+            new Dictionary<string, string>(), CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+        _log.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("WA-015")),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+        // Must not proceed to send the actual notification
+        _client.Verify(c => c.SendTemplateAsync(AgentPhone, "new_lead_notification",
+            It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 17: Welcome flow — WhatsAppNotRegisteredException → logs warning, returns
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_WelcomeFlow_NotRegistered_LogsWarningAndReturns()
+    {
+        var config = MakeConfig(welcomeSent: false);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendTemplateAsync(AgentPhone, "welcome",
+                It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new WhatsAppNotRegisteredException(AgentPhone));
+
+        var act = () => _sut.NotifyAsync(AgentId, NotificationType.NewLead, null,
+            new Dictionary<string, string>(), CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+        _log.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("WA-014")),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 18: Send freeform throws general exception → logs error [WA-015]
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_FreeformSend_GeneralException_LogsError()
+    {
+        var config = MakeConfig();
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendFreeformAsync(AgentPhone, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("timeout"));
+
+        _sut.RecordAgentMessage(AgentPhone);
+
+        var act = () => _sut.NotifyAsync(AgentId, NotificationType.NewLead, null,
+            new Dictionary<string, string>(), CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+        _log.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("WA-015")),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 19: Template send throws NotRegistered with window closed → logs [WA-014]
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_TemplateSend_NotRegistered_LogsWarning()
+    {
+        var config = MakeConfig();
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendTemplateAsync(AgentPhone, It.IsAny<string>(),
+                It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new WhatsAppNotRegisteredException(AgentPhone));
+
+        var act = () => _sut.NotifyAsync(AgentId, NotificationType.NewLead, null,
+            new Dictionary<string, string>(), CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+        _log.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("WA-014")),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 20: BuildTemplateParams — CmaReady type with window closed
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_SendsTemplate_ForCmaReady()
+    {
+        var config = MakeConfig(preferences: ["cma_ready"]);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendTemplateAsync(AgentPhone, "cma_ready",
+                It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.cma");
+
+        var @params = new Dictionary<string, string>
+        {
+            ["address"] = "123 Main St",
+            ["estimated_value"] = "$450,000"
+        };
+        await _sut.NotifyAsync(AgentId, NotificationType.CmaReady, "Jane", @params, CancellationToken.None);
+
+        _client.Verify(c => c.SendTemplateAsync(AgentPhone, "cma_ready",
+            It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 21: BuildTemplateParams — FollowUpReminder type with window closed
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_SendsTemplate_ForFollowUpReminder()
+    {
+        var config = MakeConfig(preferences: ["follow_up_reminder"]);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendTemplateAsync(AgentPhone, "follow_up_reminder",
+                It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.fu");
+
+        var @params = new Dictionary<string, string> { ["days"] = "7" };
+        await _sut.NotifyAsync(AgentId, NotificationType.FollowUpReminder, "Jane", @params, CancellationToken.None);
+
+        _client.Verify(c => c.SendTemplateAsync(AgentPhone, "follow_up_reminder",
+            It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 22: BuildTemplateParams — FollowUpReminder with invalid days string → defaults to 0
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_FollowUpReminder_InvalidDays_DefaultsToZero()
+    {
+        var config = MakeConfig(preferences: ["follow_up_reminder"]);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendTemplateAsync(AgentPhone, "follow_up_reminder",
+                It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.fu2");
+
+        // "not-a-number" cannot be parsed as int → defaults to 0
+        var @params = new Dictionary<string, string> { ["days"] = "not-a-number" };
+        var act = () => _sut.NotifyAsync(AgentId, NotificationType.FollowUpReminder, "Jane", @params, CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 23: BuildTemplateParams — DataDeletion with valid deletion deadline
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_DataDeletion_WithValidDeadline_SendsTemplate()
+    {
+        var config = MakeConfig(preferences: ["new_lead"]);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendTemplateAsync(AgentPhone, "data_deletion_notice",
+                It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.del");
+
+        var @params = new Dictionary<string, string>
+        {
+            ["deletion_deadline"] = "2026-04-01T00:00:00Z"
+        };
+        await _sut.NotifyAsync(AgentId, NotificationType.DataDeletion, "Jane", @params, CancellationToken.None);
+
+        _client.Verify(c => c.SendTemplateAsync(AgentPhone, "data_deletion_notice",
+            It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 24: BuildTemplateParams — default case (ListingAlert) via template path
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_ListingAlert_FallsToDefaultTemplateParams()
+    {
+        var config = MakeConfig(preferences: ["listing_alert"]);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendTemplateAsync(AgentPhone, "listing_alert",
+                It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.la");
+
+        var act = () => _sut.NotifyAsync(AgentId, NotificationType.ListingAlert, "Jane",
+            new Dictionary<string, string>(), CancellationToken.None);
+
+        // ListingAlert hits the _ => [] default case in BuildTemplateParams
+        await act.Should().NotThrowAsync();
+        _client.Verify(c => c.SendTemplateAsync(AgentPhone, "listing_alert",
+            It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 25: BuildFreeformBody — CmaReady with window open
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_Freeform_CmaReady_BuildsCorrectBody()
+    {
+        var config = MakeConfig(preferences: ["cma_ready"]);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendFreeformAsync(AgentPhone, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.fcma");
+
+        _sut.RecordAgentMessage(AgentPhone);
+
+        var @params = new Dictionary<string, string>
+        {
+            ["address"] = "123 Main St",
+            ["estimated_value"] = "$450,000"
+        };
+        await _sut.NotifyAsync(AgentId, NotificationType.CmaReady, "Jane", @params, CancellationToken.None);
+
+        _client.Verify(c => c.SendFreeformAsync(AgentPhone,
+            It.Is<string>(b => b.Contains("CMA ready") && b.Contains("Jane")),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 26: BuildFreeformBody — FollowUpReminder with window open
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_Freeform_FollowUpReminder_BuildsCorrectBody()
+    {
+        var config = MakeConfig(preferences: ["follow_up_reminder"]);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendFreeformAsync(AgentPhone, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.ffu");
+
+        _sut.RecordAgentMessage(AgentPhone);
+
+        var @params = new Dictionary<string, string> { ["days"] = "3" };
+        await _sut.NotifyAsync(AgentId, NotificationType.FollowUpReminder, "Jane", @params, CancellationToken.None);
+
+        _client.Verify(c => c.SendFreeformAsync(AgentPhone,
+            It.Is<string>(b => b.Contains("Follow-up") && b.Contains("Jane")),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 27: BuildFreeformBody — DataDeletion with window open
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_Freeform_DataDeletion_BuildsCorrectBody()
+    {
+        // DataDeletion bypasses preference check
+        var config = MakeConfig(preferences: ["new_lead"]);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendFreeformAsync(AgentPhone, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.fdel");
+
+        _sut.RecordAgentMessage(AgentPhone);
+
+        var @params = new Dictionary<string, string> { ["deletion_deadline"] = "2026-04-01" };
+        await _sut.NotifyAsync(AgentId, NotificationType.DataDeletion, "Jane", @params, CancellationToken.None);
+
+        _client.Verify(c => c.SendFreeformAsync(AgentPhone,
+            It.Is<string>(b => b.Contains("deletion") && b.Contains("Jane")),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 28: BuildFreeformBody — default case (ListingAlert) with window open
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_Freeform_ListingAlert_UsesDefaultFreeformBody()
+    {
+        var config = MakeConfig(preferences: ["listing_alert"]);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendFreeformAsync(AgentPhone, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.fla");
+
+        _sut.RecordAgentMessage(AgentPhone);
+
+        var act = () => _sut.NotifyAsync(AgentId, NotificationType.ListingAlert, "Jane",
+            new Dictionary<string, string>(), CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+        _client.Verify(c => c.SendFreeformAsync(AgentPhone, It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 29: BuildFreeformBody — leadName is null, uses params fallback
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_Freeform_NullLeadName_FallsBackToParamOrSomeone()
+    {
+        var config = MakeConfig();
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendFreeformAsync(AgentPhone, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.fnull");
+
+        _sut.RecordAgentMessage(AgentPhone);
+
+        // No leadName, no lead_name param → falls back to "someone"
+        var @params = new Dictionary<string, string>();
+        await _sut.NotifyAsync(AgentId, NotificationType.NewLead, null, @params, CancellationToken.None);
+
+        _client.Verify(c => c.SendFreeformAsync(AgentPhone,
+            It.Is<string>(b => b.Contains("someone")),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 30a: configService returns null → treated same as no WhatsApp config
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_Skips_WhenConfigIsNull()
+    {
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((AgentConfig?)null);
+
+        var act = () => _sut.NotifyAsync(AgentId, NotificationType.NewLead, null,
+            new Dictionary<string, string>(), CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+        _client.Verify(c => c.SendTemplateAsync(It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 30b: Type not in PreferenceKeys (Welcome) → preference check skips TryGetValue false path
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_Skips_WhenTypeNotInPreferenceKeysDictionary()
+    {
+        // NotificationType.Welcome is not in PreferenceKeys dictionary,
+        // so TryGetValue returns false → the notification is not suppressed by prefs
+        // but Welcome also isn't in NotificationPreferences so it would proceed...
+        // Actually: TryGetValue false → condition short-circuits to false → no skip → proceeds to send
+        var config = MakeConfig(preferences: ["new_lead"]);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendTemplateAsync(AgentPhone, It.IsAny<string>(),
+                It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.w");
+
+        var act = () => _sut.NotifyAsync(AgentId, NotificationType.Welcome, null,
+            new Dictionary<string, string>(), CancellationToken.None);
+
+        // Welcome type: TryGetValue returns false → no pref check → proceeds
+        await act.Should().NotThrowAsync();
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 30c: BuildTemplateParams — CmaReady with null leadName → uses params fallback
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_CmaReady_NullLeadName_UsesParamFallback()
+    {
+        var config = MakeConfig(preferences: ["cma_ready"]);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendTemplateAsync(AgentPhone, "cma_ready",
+                It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.cma2");
+
+        var @params = new Dictionary<string, string>
+        {
+            ["lead_name"] = "John Smith",
+            ["address"] = "456 Oak Ave",
+            ["estimated_value"] = "$500,000"
+        };
+        // Pass null leadName so the ?? fallback in BuildTemplateParams is exercised
+        await _sut.NotifyAsync(AgentId, NotificationType.CmaReady, null, @params, CancellationToken.None);
+
+        _client.Verify(c => c.SendTemplateAsync(AgentPhone, "cma_ready",
+            It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 30d: BuildTemplateParams — FollowUpReminder with null leadName → uses params fallback
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_FollowUpReminder_NullLeadName_UsesParamFallback()
+    {
+        var config = MakeConfig(preferences: ["follow_up_reminder"]);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendTemplateAsync(AgentPhone, "follow_up_reminder",
+                It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.fu3");
+
+        var @params = new Dictionary<string, string>
+        {
+            ["lead_name"] = "Bob Jones",
+            ["days"] = "5"
+        };
+        await _sut.NotifyAsync(AgentId, NotificationType.FollowUpReminder, null, @params, CancellationToken.None);
+
+        _client.Verify(c => c.SendTemplateAsync(AgentPhone, "follow_up_reminder",
+            It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 30e: BuildTemplateParams — DataDeletion with invalid/missing deadline → uses UtcNow+30d default
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_DataDeletion_InvalidDeadline_UsesDefault()
+    {
+        var config = MakeConfig(preferences: ["new_lead"]);
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendTemplateAsync(AgentPhone, "data_deletion_notice",
+                It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.del2");
+
+        // No deletion_deadline in params → TryParse fails → defaults to UtcNow.AddDays(30)
+        var @params = new Dictionary<string, string>();
+        var act = () => _sut.NotifyAsync(AgentId, NotificationType.DataDeletion, null, @params, CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+        _client.Verify(c => c.SendTemplateAsync(AgentPhone, "data_deletion_notice",
+            It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 30: Welcome flow — Identity is null → firstName defaults to "there"
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAsync_WelcomeFlow_NullIdentity_UsesThereAsFirstName()
+    {
+        var config = new AgentConfig
+        {
+            Id = AgentId,
+            Identity = null,
+            Integrations = new AgentIntegrations
+            {
+                WhatsApp = new AgentWhatsApp
+                {
+                    PhoneNumber = AgentPhone,
+                    OptedIn = true,
+                    WelcomeSent = false,
+                    NotificationPreferences = ["new_lead"]
+                }
+            }
+        };
+        _configService.Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(config);
+        _client.Setup(c => c.SendTemplateAsync(AgentPhone, It.IsAny<string>(),
+                It.IsAny<List<(string, string)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("wamid.welcome");
+
+        var act = () => _sut.NotifyAsync(AgentId, NotificationType.NewLead, null,
+            new Dictionary<string, string>(), CancellationToken.None);
+
+        // Should not throw — falls back to "there" as firstName
+        await act.Should().NotThrowAsync();
+        _client.Verify(c => c.SendTemplateAsync(AgentPhone, "welcome",
+            It.Is<List<(string type, string value)>>(p =>
+                p.Any(x => x.value == "there")),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

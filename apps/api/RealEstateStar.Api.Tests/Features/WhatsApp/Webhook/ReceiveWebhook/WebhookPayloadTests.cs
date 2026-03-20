@@ -79,4 +79,71 @@ public class WebhookPayloadTests
         var payload = JsonSerializer.Deserialize<WebhookPayload>(SamplePayload);
         payload!.GetFirstStatus().Should().BeNull();
     }
+
+    [Fact]
+    public void GetFirstMessage_ReturnsNull_WhenEntryListIsEmpty()
+    {
+        var payload = new WebhookPayload(); // Entry defaults to []
+        payload.GetFirstMessage().Should().BeNull();
+    }
+
+    [Fact]
+    public void GetFirstStatus_ReturnsNull_WhenEntryListIsEmpty()
+    {
+        var payload = new WebhookPayload();
+        payload.GetFirstStatus().Should().BeNull();
+    }
+
+    [Fact]
+    public void GetPhoneNumberId_ReturnsNull_WhenEntryListIsEmpty()
+    {
+        var payload = new WebhookPayload();
+        payload.GetPhoneNumberId().Should().BeNull();
+    }
+
+    [Fact]
+    public void GetFirstMessage_ReturnsNull_WhenChangesListIsEmpty()
+    {
+        var payload = new WebhookPayload
+        {
+            Entry = [new WebhookEntry()] // Changes defaults to []
+        };
+        payload.GetFirstMessage().Should().BeNull();
+    }
+
+    [Fact]
+    public void GetFirstStatus_ReturnsNull_WhenChangesListIsEmpty()
+    {
+        var payload = new WebhookPayload
+        {
+            Entry = [new WebhookEntry()]
+        };
+        payload.GetFirstStatus().Should().BeNull();
+    }
+
+    [Fact]
+    public void GetPhoneNumberId_ReturnsNull_WhenChangesListIsEmpty()
+    {
+        var payload = new WebhookPayload
+        {
+            Entry = [new WebhookEntry()]
+        };
+        payload.GetPhoneNumberId().Should().BeNull();
+    }
+
+    [Fact]
+    public void GetPhoneNumberId_ReturnsNull_WhenMetadataIsNull()
+    {
+        var payload = new WebhookPayload
+        {
+            Entry =
+            [
+                new WebhookEntry
+                {
+                    Changes = [new WebhookChange { Value = new WebhookValue { Metadata = null } }]
+                }
+            ]
+        };
+        payload.GetPhoneNumberId().Should().BeNull();
+    }
 }

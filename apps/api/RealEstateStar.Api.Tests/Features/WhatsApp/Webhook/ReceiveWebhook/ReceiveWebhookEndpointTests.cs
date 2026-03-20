@@ -198,4 +198,72 @@ public class ReceiveWebhookEndpointTests
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_SignatureWithoutSha256Prefix_Returns401()
+    {
+        // Signature present but does not start with "sha256=" — wrong prefix entirely
+        var rawBody = BuildMessagePayload();
+        var queue = new InMemoryWebhookQueueService();
+        var audit = new Mock<IWhatsAppAuditService>();
+        var store = FreshStore();
+
+        var result = await ReceiveWebhookEndpoint.Handle(
+            rawBody, "md5=abcdef0123456789", AppSecret, store, queue, audit.Object, CancellationToken.None);
+
+        result.Should().BeOfType<UnauthorizedHttpResult>();
+        queue.Enqueued.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_SignatureWithInvalidHex_Returns401()
+    {
+        // "sha256=" prefix present but hex part contains non-hex characters
+        var rawBody = BuildMessagePayload();
+        var queue = new InMemoryWebhookQueueService();
+        var audit = new Mock<IWhatsAppAuditService>();
+        var store = FreshStore();
+
+        var result = await ReceiveWebhookEndpoint.Handle(
+            rawBody, "sha256=gg_not_valid_hex!!", AppSecret, store, queue, audit.Object, CancellationToken.None);
+
+        result.Should().BeOfType<UnauthorizedHttpResult>();
+        queue.Enqueued.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_MalformedJson_Returns200_NoEnqueue()
+    {
+        // Valid signature computed over the malformed payload, but JSON is invalid
+        const string malformedBody = "{ this is not valid json !!!";
+        var signature = ComputeSignature(malformedBody, AppSecret);
+        var queue = new InMemoryWebhookQueueService();
+        var audit = new Mock<IWhatsAppAuditService>();
+        var store = FreshStore();
+
+        var result = await ReceiveWebhookEndpoint.Handle(
+            malformedBody, signature, AppSecret, store, queue, audit.Object, CancellationToken.None);
+
+        // Per Meta requirements: always return 200 even for bad payload
+        result.Should().BeOfType<Ok>();
+        queue.Enqueued.Should().BeEmpty("malformed JSON should not be enqueued");
+    }
+
+    [Fact]
+    public async Task Handle_EmptyEntryList_Returns200_NoEnqueue()
+    {
+        // Valid JSON but empty entry list → no message, no status → returns 200 immediately
+        var bodyObj = new { @object = "whatsapp_business_account", entry = Array.Empty<object>() };
+        var rawBody = System.Text.Json.JsonSerializer.Serialize(bodyObj);
+        var signature = ComputeSignature(rawBody, AppSecret);
+        var queue = new InMemoryWebhookQueueService();
+        var audit = new Mock<IWhatsAppAuditService>();
+        var store = FreshStore();
+
+        var result = await ReceiveWebhookEndpoint.Handle(
+            rawBody, signature, AppSecret, store, queue, audit.Object, CancellationToken.None);
+
+        result.Should().BeOfType<Ok>();
+        queue.Enqueued.Should().BeEmpty();
+    }
 }

@@ -64,13 +64,11 @@ public class ConversationLogger(
         {
             // LeadConversation returns "folder/file.md" — extract the directory portion
             var fullPath = WhatsAppPaths.LeadConversation(leadName);
-            var lastSlash = fullPath.LastIndexOf('/');
-            return lastSlash >= 0 ? fullPath[..lastSlash] : fullPath;
+            return fullPath[..fullPath.LastIndexOf('/')];
         }
 
         // GeneralConversation = "Real Estate Star/WhatsApp/General.md" — extract directory
         var generalPath = WhatsAppPaths.GeneralConversation;
-        var idx = generalPath.LastIndexOf('/');
-        return idx >= 0 ? generalPath[..idx] : generalPath;
+        return generalPath[..generalPath.LastIndexOf('/')];
     }
 }
