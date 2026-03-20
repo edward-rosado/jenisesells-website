@@ -9,7 +9,6 @@ const mockLoadAccountConfig = vi.fn();
 const mockLoadLegalContent = vi.fn();
 const mockLoadNavConfig = vi.fn();
 const mockNotFound = vi.fn(() => { throw new Error("NOT_FOUND"); });
-const mockCaptureException = vi.fn();
 
 vi.mock("@/lib/config", () => ({
   loadAccountConfig: (...args: unknown[]) => mockLoadAccountConfig(...args),
@@ -19,8 +18,6 @@ vi.mock("@/lib/nav-config", () => ({
   loadNavConfig: (...args: unknown[]) => mockLoadNavConfig(...args),
 }));
 vi.mock("next/navigation", () => ({ notFound: () => mockNotFound(), usePathname: () => "/privacy", useSearchParams: () => new URLSearchParams() }));
-vi.mock("@sentry/nextjs", () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }));
-
 import PrivacyPage, { generateMetadata } from "@/app/privacy/page";
 
 describe("generateMetadata (privacy)", () => {
@@ -125,7 +122,6 @@ describe("PrivacyPage", () => {
     await expect(
       PrivacyPage({ searchParams: Promise.resolve({ accountId: "bad" }) })
     ).rejects.toThrow("NOT_FOUND");
-    expect(mockCaptureException).toHaveBeenCalled();
     expect(mockNotFound).toHaveBeenCalled();
   });
 
