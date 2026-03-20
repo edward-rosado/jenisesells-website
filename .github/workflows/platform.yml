@@ -8,7 +8,7 @@ on:
       - 'packages/**'
       - '.github/workflows/platform.yml'
   pull_request:
-    branches: [main]
+    branches: [main, feat/lead-submission-api]
     paths:
       - 'apps/platform/**'
       - 'packages/**'

@@ -9,7 +9,7 @@ on:
       - 'packages/**'
       - '.github/workflows/agent-site.yml'
   pull_request:
-    branches: [main]
+    branches: [main, feat/lead-submission-api]
     paths:
       - 'apps/agent-site/**'
       - 'config/accounts/**'
