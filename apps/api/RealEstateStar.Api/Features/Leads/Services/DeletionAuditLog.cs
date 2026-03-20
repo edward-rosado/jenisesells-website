@@ -1,20 +1,27 @@
 namespace RealEstateStar.Api.Features.Leads.Services;
 
+using Microsoft.Extensions.Logging;
 using RealEstateStar.Api.Services.Storage;
 
-public sealed class DeletionAuditLog(IFileStorageProvider storage) : IDeletionAuditLog
+public sealed class DeletionAuditLog(IFileStorageProvider storage, ILogger<DeletionAuditLog> logger) : IDeletionAuditLog
 {
-    public Task RecordInitiationAsync(string agentId, Guid leadId, string email, CancellationToken ct) =>
-        storage.AppendRowAsync(
+    public Task RecordInitiationAsync(string agentId, Guid leadId, string email, CancellationToken ct)
+    {
+        logger.LogInformation("[DELETE-001] Deletion initiated for lead {LeadId}, agent {AgentId}", leadId, agentId);
+        return storage.AppendRowAsync(
             LeadPaths.DeletionAuditLogSheet(agentId),
             [DateTime.UtcNow.ToString("o"), agentId, leadId.ToString(), HashEmail(email), "initiated"],
             ct);
+    }
 
-    public Task RecordCompletionAsync(string agentId, Guid leadId, CancellationToken ct) =>
-        storage.AppendRowAsync(
+    public Task RecordCompletionAsync(string agentId, Guid leadId, CancellationToken ct)
+    {
+        logger.LogInformation("[DELETE-002] Deletion completed for lead {LeadId}, agent {AgentId}", leadId, agentId);
+        return storage.AppendRowAsync(
             LeadPaths.DeletionAuditLogSheet(agentId),
             [DateTime.UtcNow.ToString("o"), agentId, leadId.ToString(), "[REDACTED]", "completed"],
             ct);
+    }
 
     private static string HashEmail(string email)
     {

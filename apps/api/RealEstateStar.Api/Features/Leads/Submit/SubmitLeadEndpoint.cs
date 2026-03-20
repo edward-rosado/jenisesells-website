@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
+using RealEstateStar.Api.Diagnostics;
 using RealEstateStar.Api.Features.Leads.Services;
-using RealEstateStar.Api.Services;
 using RealEstateStar.Api.Infrastructure;
+using RealEstateStar.Api.Middleware;
+using RealEstateStar.Api.Services;
 
 namespace RealEstateStar.Api.Features.Leads.Submit;
 
@@ -18,9 +20,7 @@ public class SubmitLeadEndpoint : IEndpoint
         IAccountConfigService accountConfig,
         ILeadStore leadStore,
         IMarketingConsentLog consentLog,
-        ILeadEnricher enricher,
-        ILeadNotifier notifier,
-        IHomeSearchProvider homeSearchProvider,
+        LeadProcessingChannel processingChannel,
         HttpContext httpContext,
         ILogger<SubmitLeadEndpoint> logger,
         CancellationToken ct)
@@ -55,6 +55,10 @@ public class SubmitLeadEndpoint : IEndpoint
         // 2. Map request to domain
         var lead = request.ToLead(agentId);
 
+        logger.LogInformation(
+            "[LEAD-001] Lead received. LeadId: {LeadId}, AgentId: {AgentId}, Type: {LeadType}, Email: {EmailHash}",
+            lead.Id, agentId, lead.LeadType, lead.Email.GetHashCode());
+
         // 3. Save lead (must succeed before returning 202)
         await leadStore.SaveAsync(lead, ct);
 
@@ -74,66 +78,19 @@ public class SubmitLeadEndpoint : IEndpoint
         };
         await consentLog.RecordConsentAsync(agentId, consent, ct);
 
-        // 5. Return 202 Accepted immediately
-        var response = new SubmitLeadResponse(lead.Id, "received");
+        // 5. Enqueue background processing (enrichment, notification, home search)
+        var correlationId = httpContext.Items[CorrelationIdMiddleware.CorrelationIdKey]?.ToString() ?? Guid.NewGuid().ToString();
+        var processingRequest = new LeadProcessingRequest(agentId, lead, correlationId);
 
-        // 6. Fire-and-forget background pipeline
-        _ = Task.Run(async () =>
-        {
-            // Enrich lead
-            LeadEnrichment enrichment = LeadEnrichment.Empty();
-            LeadScore score = LeadScore.Default("enrichment not yet run");
-            try
-            {
-                (enrichment, score) = await enricher.EnrichAsync(lead, CancellationToken.None);
-                await leadStore.UpdateEnrichmentAsync(agentId, lead.Id, enrichment, score, CancellationToken.None);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "[LEAD-007] Enrichment failed for lead {LeadId}", lead.Id);
-            }
+        await processingChannel.Writer.WriteAsync(processingRequest, ct);
+        LeadDiagnostics.LeadsReceived.Add(1);
 
-            // Notify agent
-            try
-            {
-                await notifier.NotifyAgentAsync(agentId, lead, enrichment, score, CancellationToken.None);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "[LEAD-005] Notification failed for lead {LeadId}", lead.Id);
-            }
+        logger.LogInformation(
+            "[LEAD-002] Lead {LeadId} saved and enqueued for background processing. CorrelationId: {CorrelationId}",
+            lead.Id, correlationId);
 
-            // Home search for buyers
-            if (lead.LeadType is LeadType.Buyer or LeadType.Both && lead.BuyerDetails is not null)
-            {
-                try
-                {
-                    var criteria = new HomeSearchCriteria
-                    {
-                        Area = string.IsNullOrWhiteSpace(lead.BuyerDetails.State)
-                            ? lead.BuyerDetails.City
-                            : $"{lead.BuyerDetails.City}, {lead.BuyerDetails.State}",
-                        MinPrice = lead.BuyerDetails.MinBudget,
-                        MaxPrice = lead.BuyerDetails.MaxBudget,
-                        MinBeds = lead.BuyerDetails.Bedrooms,
-                        MinBaths = lead.BuyerDetails.Bathrooms
-                    };
-                    var listings = await homeSearchProvider.SearchAsync(criteria, CancellationToken.None);
-                    if (listings.Count > 0)
-                    {
-                        // Store a synthetic search ID based on the lead so downstream can correlate
-                        var searchId = $"search-{lead.Id}";
-                        await leadStore.UpdateHomeSearchIdAsync(agentId, lead.Id, searchId, CancellationToken.None);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "[LEAD-006] Home search failed for lead {LeadId}", lead.Id);
-                }
-            }
-        });
-
-        return Results.Accepted($"/agents/{agentId}/leads/{lead.Id}", response);
+        // 6. Return 202 Accepted immediately
+        return Results.Accepted($"/agents/{agentId}/leads/{lead.Id}", new SubmitLeadResponse(lead.Id, "received"));
     }
 
     internal static Dictionary<string, string[]> GroupValidationErrors(List<ValidationResult> results) =>

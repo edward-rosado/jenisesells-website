@@ -26,6 +26,14 @@ public class ApiKeyHmacMiddleware
             return;
         }
 
+        // Skip HMAC when no API keys are configured (local dev / tests)
+        if (_options.ApiKeys.Count == 0 || string.IsNullOrEmpty(_options.HmacSecret))
+        {
+            _logger.LogDebug("[HMAC-010] HMAC authentication skipped — no API keys configured.");
+            await _next(context);
+            return;
+        }
+
         // Step 1: Validate API key header presence
         var apiKeyHeader = context.Request.Headers["X-API-Key"].FirstOrDefault();
         if (string.IsNullOrEmpty(apiKeyHeader))

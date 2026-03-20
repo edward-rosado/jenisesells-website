@@ -21,6 +21,9 @@ public static class OpenTelemetryExtensions
                 .AddService(ServiceName))
             .WithTracing(tracing => tracing
                 .AddSource(OnboardingSourceName)
+                .AddSource(LeadDiagnostics.ServiceName)
+                .AddSource(CmaDiagnostics.ServiceName)
+                .AddSource(HomeSearchDiagnostics.ServiceName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>
@@ -30,6 +33,9 @@ public static class OpenTelemetryExtensions
                 }))
             .WithMetrics(metrics => metrics
                 .AddMeter(OnboardingSourceName)
+                .AddMeter(LeadDiagnostics.ServiceName)
+                .AddMeter(CmaDiagnostics.ServiceName)
+                .AddMeter(HomeSearchDiagnostics.ServiceName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>

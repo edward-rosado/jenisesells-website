@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
 using RealEstateStar.Api.Features.Leads;
+using RealEstateStar.Api.Features.Leads.Services;
 using RealEstateStar.Api.Features.Leads.Submit;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Services.Enrichment;

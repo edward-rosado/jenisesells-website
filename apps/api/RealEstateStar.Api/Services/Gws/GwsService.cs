@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Polly;
+using Polly.CircuitBreaker;
 using Polly.Retry;
 
 namespace RealEstateStar.Api.Services.Gws;
@@ -10,9 +11,10 @@ namespace RealEstateStar.Api.Services.Gws;
 public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
 {
     /// <summary>
-    /// Retry pipeline for gws CLI process calls.
+    /// Retry + circuit breaker pipeline for gws CLI process calls.
     /// 3 retries with exponential backoff (1s, 2s, 4s) + jitter.
-    /// Retries on InvalidOperationException (non-zero exit code from gws).
+    /// Circuit breaker: 5 failures in 60s → 2 min break (prevents wasting 90s+ on a dead CLI).
+    /// Log codes: [GWS-020] retry, [GWS-022] CB opened, [GWS-023] CB closed.
     /// </summary>
     private readonly ResiliencePipeline _retryPipeline = new ResiliencePipelineBuilder()
         .AddRetry(new RetryStrategyOptions
@@ -25,10 +27,31 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
             OnRetry = args =>
             {
                 logger?.LogWarning(
-                    "[GWS-020] GDrive retry attempt {Attempt} after {Delay}ms. Error: {Error}",
-                    args.AttemptNumber + 1,
+                    "[GWS-020] gws CLI retry {Attempt}/{MaxAttempts} after {DelayMs}ms. Error: {Error}",
+                    args.AttemptNumber + 1, 3,
                     args.RetryDelay.TotalMilliseconds,
                     args.Outcome.Exception?.Message);
+                return ValueTask.CompletedTask;
+            }
+        })
+        .AddCircuitBreaker(new CircuitBreakerStrategyOptions
+        {
+            FailureRatio = 1.0,
+            MinimumThroughput = 5,
+            SamplingDuration = TimeSpan.FromSeconds(60),
+            BreakDuration = TimeSpan.FromMinutes(2),
+            ShouldHandle = new PredicateBuilder().Handle<InvalidOperationException>(),
+            OnOpened = args =>
+            {
+                logger?.LogError(
+                    "[GWS-022] gws CLI circuit OPEN for {BreakDurationSec}s. Last error: {Error}",
+                    args.BreakDuration.TotalSeconds,
+                    args.Outcome.Exception?.Message);
+                return ValueTask.CompletedTask;
+            },
+            OnClosed = _ =>
+            {
+                logger?.LogInformation("[GWS-023] gws CLI circuit CLOSED — resuming normal operations.");
                 return ValueTask.CompletedTask;
             }
         })

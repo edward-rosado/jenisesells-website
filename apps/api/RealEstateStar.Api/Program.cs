@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.DataProtection;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Tools;
 using RealEstateStar.Api.Health;
+using RealEstateStar.Api.Features.Leads.Cma;
 using RealEstateStar.Api.Features.Leads.Services;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Api.Services.Storage;
@@ -47,6 +48,9 @@ if (!builder.Environment.IsDevelopment())
             .ProtectKeysWithAzureKeyVault(new Uri(kvUri + "/keys/dataprotection"), new Azure.Identity.DefaultAzureCredential());
     }
 }
+
+// HMAC authentication for lead endpoints (server-to-server from CF Worker)
+builder.Services.Configure<ApiKeyHmacOptions>(builder.Configuration.GetSection("Hmac"));
 
 // Onboarding (session store registered early, services after config keys below)
 builder.Services.AddSingleton<JsonFileSessionStore>();
@@ -162,6 +166,14 @@ builder.Services.AddSingleton<ILeadDataDeletion, GDriveLeadDataDeletion>();
 builder.Services.AddSingleton<IDeletionAuditLog, DeletionAuditLog>();
 builder.Services.AddSingleton<ILeadNotifier, MultiChannelLeadNotifier>();
 
+// Background lead processing (replaces fire-and-forget Task.Run)
+builder.Services.AddSingleton<LeadProcessingChannel>();
+builder.Services.AddSingleton<CmaProcessingChannel>();
+builder.Services.AddSingleton<HomeSearchProcessingChannel>();
+builder.Services.AddHostedService<LeadProcessingWorker>();
+builder.Services.AddHostedService<CmaProcessingWorker>();
+builder.Services.AddHostedService<HomeSearchProcessingWorker>();
+
 // Lead enrichment — typed HttpClient with Polly resilience
 builder.Services.AddHttpClient(nameof(ScraperLeadEnricher))
     .AddClaudeApiResilience(pollyLogger);
@@ -187,6 +199,42 @@ builder.Services.AddHttpClient("ScraperAPI")
     .AddScraperApiResilience(pollyLogger);
 builder.Services.AddHttpClient("GoogleChat")
     .AddGoogleChatResilience(pollyLogger);
+
+// CMA pipeline services
+builder.Services.AddHttpClient(nameof(ScraperCompSource))
+    .AddClaudeApiResilience(pollyLogger);
+builder.Services.AddHttpClient(nameof(ClaudeCmaAnalyzer))
+    .AddClaudeApiResilience(pollyLogger);
+builder.Services.AddSingleton<ICompAggregator>(sp =>
+    new CompAggregator(
+        sp.GetServices<ICompSource>(),
+        sp.GetRequiredService<ILogger<CompAggregator>>()));
+builder.Services.AddSingleton<ICompSource>(sp =>
+    new ScraperCompSource(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        scraperApiKey ?? "", anthropicKey,
+        CompSource.Zillow, "https://www.zillow.com/homedetails/{slug}",
+        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
+builder.Services.AddSingleton<ICompSource>(sp =>
+    new ScraperCompSource(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        scraperApiKey ?? "", anthropicKey,
+        CompSource.Redfin, "https://www.redfin.com/homes/{slug}",
+        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
+builder.Services.AddSingleton<ICompSource>(sp =>
+    new ScraperCompSource(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        scraperApiKey ?? "", anthropicKey,
+        CompSource.RealtorCom, "https://www.realtor.com/realestateandhomes-detail/{slug}",
+        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
+builder.Services.AddSingleton<ICmaAnalyzer>(sp =>
+    new ClaudeCmaAnalyzer(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        anthropicKey,
+        sp.GetRequiredService<ILogger<ClaudeCmaAnalyzer>>()));
+builder.Services.AddSingleton<ICmaPdfGenerator, CmaPdfGenerator>();
+builder.Services.AddSingleton<ICmaNotifier, CmaSellerNotifier>();
+builder.Services.AddSingleton<IHomeSearchNotifier, HomeSearchBuyerNotifier>();
 
 // Drive change monitor
 builder.Services.AddSingleton<DriveChangeMonitor>();
@@ -299,9 +347,22 @@ builder.Services.AddCors(options =>
             .SetIsOriginAllowed(origin =>
             {
                 // Allow *.localhost:{port} subdomains in development (e.g. jenise-buckalew.localhost:3000)
-                if (!builder.Environment.IsDevelopment()) return allowedOrigins.Contains(origin);
-                var uri = new Uri(origin);
-                return uri.Host == "localhost" || uri.Host.EndsWith(".localhost");
+                if (allowedOrigins.Contains(origin)) return true;
+
+                if (builder.Environment.IsDevelopment())
+                {
+                    var uri = new Uri(origin);
+                    return uri.Host == "localhost" || uri.Host.EndsWith(".localhost");
+                }
+
+                // Allow Cloudflare Pages preview deploys (*.pages.dev)
+                if (Uri.TryCreate(origin, UriKind.Absolute, out var originUri) &&
+                    originUri.Host.EndsWith(".pages.dev", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                return false;
             })
             .AllowAnyHeader()
             .AllowAnyMethod()
@@ -417,6 +478,7 @@ app.UseExceptionHandler(exceptionApp =>
 app.UseForwardedHeaders();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<ApiKeyHmacMiddleware>();
 
 app.Use(async (context, next) =>
 {

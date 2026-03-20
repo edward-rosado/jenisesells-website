@@ -1,11 +1,15 @@
+using Microsoft.Extensions.Logging;
 using RealEstateStar.Api.Services.Storage;
 
 namespace RealEstateStar.Api.Features.Leads.Services;
 
-public class MarketingConsentLog(IFileStorageProvider fileStorageProvider) : IMarketingConsentLog
+public class MarketingConsentLog(IFileStorageProvider fileStorageProvider, ILogger<MarketingConsentLog> logger) : IMarketingConsentLog
 {
     public async Task RecordConsentAsync(string agentId, MarketingConsent consent, CancellationToken ct)
     {
+        logger.LogInformation(
+            "[CONSENT-001] Recording consent for lead {LeadId}. OptedIn: {OptedIn}, Channels: {Channels}",
+            consent.LeadId, consent.OptedIn, string.Join(",", consent.Channels));
         var row = new List<string>
         {
             consent.Timestamp.ToString("o"),

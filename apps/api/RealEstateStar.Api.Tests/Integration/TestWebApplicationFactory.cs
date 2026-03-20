@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using RealEstateStar.Api.Common;
 using RealEstateStar.Api.Features.Leads;
+using RealEstateStar.Api.Features.Leads.Cma;
 using RealEstateStar.Api.Features.Leads.Services;
 using RealEstateStar.Api.Features.Leads.Submit;
 
@@ -28,11 +30,6 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseSetting("Stripe:WebhookSecret", "whsec_test_placeholder");
         builder.UseSetting("Platform:BaseUrl", "http://localhost:3000");
 
-        // WhatsApp — intentionally left empty so the disabled-path (noop) is exercised.
-        // Set WhatsApp:PhoneNumberId to a non-empty value if you need to test the
-        // enabled path — also set AzureStorage:ConnectionString in that case.
-        // builder.UseSetting("WhatsApp:PhoneNumberId", "");
-
         // Register no-op stubs for lead services (require external GDrive/GWS credentials in production).
         // Subclasses may override these with more specific implementations.
         builder.ConfigureServices(services =>
@@ -42,6 +39,11 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.AddSingleton<ILeadEnricher, NoOpLeadEnricher>();
             services.AddSingleton<ILeadNotifier, NoOpLeadNotifier>();
             services.AddSingleton<IHomeSearchProvider, NoOpHomeSearchProvider>();
+            services.AddSingleton<IHomeSearchNotifier, NoOpHomeSearchNotifier>();
+            services.AddSingleton<ICompAggregator, NoOpCompAggregator>();
+            services.AddSingleton<ICmaAnalyzer, NoOpCmaAnalyzer>();
+            services.AddSingleton<ICmaPdfGenerator, NoOpCmaPdfGenerator>();
+            services.AddSingleton<ICmaNotifier, NoOpCmaNotifier>();
             services.AddSingleton<ILeadDataDeletion, NoOpLeadDataDeletion>();
             services.AddSingleton<IDeletionAuditLog, NoOpDeletionAuditLog>();
         });
@@ -103,4 +105,38 @@ file sealed class NoOpDeletionAuditLog : IDeletionAuditLog
 {
     public Task RecordInitiationAsync(string agentId, Guid leadId, string email, CancellationToken ct) => Task.CompletedTask;
     public Task RecordCompletionAsync(string agentId, Guid leadId, CancellationToken ct) => Task.CompletedTask;
+}
+
+file sealed class NoOpHomeSearchNotifier : IHomeSearchNotifier
+{
+    public Task NotifyBuyerAsync(string agentId, Lead lead, List<Listing> listings, string correlationId, CancellationToken ct) =>
+        Task.CompletedTask;
+}
+
+file sealed class NoOpCompAggregator : ICompAggregator
+{
+    public Task<List<Comp>> FetchCompsAsync(CompSearchRequest request, CancellationToken ct) =>
+        Task.FromResult(new List<Comp>());
+}
+
+file sealed class NoOpCmaAnalyzer : ICmaAnalyzer
+{
+    public Task<CmaAnalysis> AnalyzeAsync(Lead lead, List<Comp> comps, CancellationToken ct) =>
+        Task.FromResult(new CmaAnalysis
+        {
+            ValueLow = 0, ValueMid = 0, ValueHigh = 0,
+            MarketNarrative = "no-op", MarketTrend = "Balanced", MedianDaysOnMarket = 0
+        });
+}
+
+file sealed class NoOpCmaPdfGenerator : ICmaPdfGenerator
+{
+    public Task<string> GenerateAsync(Lead lead, CmaAnalysis analysis, List<Comp> comps, AccountConfig agent, ReportType reportType, CancellationToken ct) =>
+        Task.FromResult("/tmp/no-op.pdf");
+}
+
+file sealed class NoOpCmaNotifier : ICmaNotifier
+{
+    public Task NotifySellerAsync(string agentId, Lead lead, string pdfPath, CmaAnalysis analysis, string correlationId, CancellationToken ct) =>
+        Task.CompletedTask;
 }

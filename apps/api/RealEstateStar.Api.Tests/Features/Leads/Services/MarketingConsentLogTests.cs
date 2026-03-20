@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Api.Features.Leads;
 using RealEstateStar.Api.Features.Leads.Services;
@@ -12,7 +13,7 @@ public class MarketingConsentLogTests
     public async Task RecordConsentAsync_AppendRowAsync_WithAllTenColumns()
     {
         var storageProvider = new Mock<IFileStorageProvider>();
-        var consentLog = new MarketingConsentLog(storageProvider.Object);
+        var consentLog = new MarketingConsentLog(storageProvider.Object, NullLogger<MarketingConsentLog>.Instance);
 
         var leadId = Guid.NewGuid();
         var timestamp = new DateTime(2026, 3, 19, 15, 30, 45, DateTimeKind.Utc);
@@ -55,7 +56,7 @@ public class MarketingConsentLogTests
     public async Task RecordConsentAsync_TimestampIsUtcIso8601()
     {
         var storageProvider = new Mock<IFileStorageProvider>();
-        var consentLog = new MarketingConsentLog(storageProvider.Object);
+        var consentLog = new MarketingConsentLog(storageProvider.Object, NullLogger<MarketingConsentLog>.Instance);
 
         var leadId = Guid.NewGuid();
         var timestamp = new DateTime(2026, 3, 19, 15, 30, 45, DateTimeKind.Utc);
@@ -88,7 +89,7 @@ public class MarketingConsentLogTests
     public async Task RecordConsentAsync_ChannelsAreCommaSeparated()
     {
         var storageProvider = new Mock<IFileStorageProvider>();
-        var consentLog = new MarketingConsentLog(storageProvider.Object);
+        var consentLog = new MarketingConsentLog(storageProvider.Object, NullLogger<MarketingConsentLog>.Instance);
 
         var leadId = Guid.NewGuid();
         var timestamp = new DateTime(2026, 3, 19, 12, 0, 0, DateTimeKind.Utc);
@@ -121,7 +122,7 @@ public class MarketingConsentLogTests
     public async Task RecordConsentAsync_WithEmptyChannels()
     {
         var storageProvider = new Mock<IFileStorageProvider>();
-        var consentLog = new MarketingConsentLog(storageProvider.Object);
+        var consentLog = new MarketingConsentLog(storageProvider.Object, NullLogger<MarketingConsentLog>.Instance);
 
         var leadId = Guid.NewGuid();
         var timestamp = new DateTime(2026, 3, 19, 12, 0, 0, DateTimeKind.Utc);
