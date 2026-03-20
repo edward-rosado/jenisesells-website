@@ -2,9 +2,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Api.Features.Cma;
 
-namespace RealEstateStar.Api.Features.Cma.Services.Gws;
+namespace RealEstateStar.Api.Services.Gws;
 
 public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
 {
@@ -63,6 +62,17 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
         var csv = string.Join(",", values.Select(v => $"\"{v.Replace("\"", "\"\"")}\""));
         logger?.LogInformation("Appending row to sheet {SpreadsheetId} for {Email}", spreadsheetId, agentEmail);
         await RunGwsAsync(ct, "sheets", "append", "--user", agentEmail, "--spreadsheet", spreadsheetId, "--values", csv);
+    }
+
+    public async Task<string> QueryDriveActivityAsync(
+        string agentEmail, string ancestorFolder, DateTime since, CancellationToken ct)
+    {
+        return await RunGwsAsync(ct,
+            "drive", "activity",
+            "--user", agentEmail,
+            "--ancestor", ancestorFolder,
+            "--after", since.ToString("O"),
+            "--format", "json");
     }
 
     private async Task<string> RunGwsAsync(CancellationToken ct, params string[] args)

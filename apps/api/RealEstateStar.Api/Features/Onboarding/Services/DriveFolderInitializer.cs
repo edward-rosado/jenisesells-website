@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Api.Features.Cma.Services.Gws;
+using RealEstateStar.Api.Services.Gws;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using RealEstateStar.Api.Features.Cma.Services.Gws;
+using RealEstateStar.Api.Services.Gws;
 using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using Xunit;

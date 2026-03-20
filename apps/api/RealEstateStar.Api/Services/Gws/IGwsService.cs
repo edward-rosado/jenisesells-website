@@ -1,4 +1,4 @@
-namespace RealEstateStar.Api.Features.Cma.Services.Gws;
+namespace RealEstateStar.Api.Services.Gws;
 
 public interface IGwsService
 {
@@ -7,4 +7,5 @@ public interface IGwsService
     Task<string> CreateDocAsync(string agentEmail, string folderPath, string title, string content, CancellationToken ct);
     Task SendEmailAsync(string agentEmail, string to, string subject, string body, string? attachmentPath, CancellationToken ct);
     Task AppendSheetRowAsync(string agentEmail, string spreadsheetId, List<string> values, CancellationToken ct);
+    Task<string> QueryDriveActivityAsync(string agentEmail, string ancestorFolder, DateTime since, CancellationToken ct);
 }

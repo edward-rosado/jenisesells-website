@@ -1,6 +1,6 @@
 using FluentAssertions;
 using RealEstateStar.Api.Features.Cma;
-using RealEstateStar.Api.Features.Cma.Services.Gws;
+using RealEstateStar.Api.Services.Gws;
 
 namespace RealEstateStar.Api.Tests.Features.Cma.Services.Gws;
 

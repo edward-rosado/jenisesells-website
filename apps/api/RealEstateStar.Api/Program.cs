@@ -14,7 +14,7 @@ using RealEstateStar.Api.Services;
 using RealEstateStar.Api.Features.Cma.Services;
 using RealEstateStar.Api.Features.Cma.Services.Analysis;
 using RealEstateStar.Api.Features.Cma.Services.Comps;
-using RealEstateStar.Api.Features.Cma.Services.Gws;
+using RealEstateStar.Api.Services.Gws;
 using RealEstateStar.Api.Features.Cma.Services.Pdf;
 using RealEstateStar.Api.Features.Cma.Services.Research;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
