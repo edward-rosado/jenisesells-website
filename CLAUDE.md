@@ -9,6 +9,7 @@ Eddie Rosado, Senior Manager of Engineering at Mindbody/Playlist. Building Real 
 | platform | The main Real Estate Star admin portal (apps/portal) |
 | agent site | White-label websites for real estate agents (apps/agent-site) |
 | CMA | Comparative Market Analysis |
+| lead | Contact information (name, email, phone, property, etc.) submitted by a buyer |
 
 ## Infrastructure
 | Component | Details |
@@ -23,6 +24,7 @@ Eddie Rosado, Senior Manager of Engineering at Mindbody/Playlist. Building Real 
 | **Error Tracking** | Sentry (agent-site only) |
 | **Frontend Analytics** | Cloudflare Web Analytics — enable via CF dashboard, no code needed (auto-injected for proxied sites) |
 | **CI/CD** | GitHub Actions → Cloudflare wrangler deploy |
+| **Lead Storage** | Google Drive (prod) or Local (dev) via `IFileStorageProvider` abstraction |
 
 ## Preferences
 - Use eddie-voice skill when talking

@@ -9,6 +9,8 @@ apps/
   portal/          # Real Estate Star admin portal (Next.js 16)
   agent-site/      # White-label agent websites (Next.js 16)
   api/             # Backend API (.NET 10)
+    Features/
+      Leads/       # Lead submission, storage, and markdown rendering
 packages/
   shared-types/    # TypeScript types shared across apps
   ui/              # Shared UI component library
@@ -62,11 +64,21 @@ When working on a skill, load the agent profile first:
 - **Contracts**: State-specific templates live in `skills/contracts/templates/{STATE}/`
 - **No hardcoding**: Agent identity, branding, and compliance data always come from config
 
+## File Storage Abstraction
+
+The `IFileStorageProvider` interface abstracts lead storage across Google Drive and local file system:
+
+- **Google Drive** (`GDriveStorageProvider`): Production storage in agent's Drive folder (folder ID from config)
+- **Local** (`LocalStorageProvider`): Development/testing in `data/leads/{agent-id}/`
+- **Configuration**: `Storage:UseLocal` (bool) in appsettings selects provider at startup
+
+All lead files are markdown with YAML frontmatter. Frontmatter keys are validated against the Lead schema; user content goes in the markdown body.
 
 ## Docs
 
 - Design: `docs/plans/2026-03-09-repo-restructure-design.md`
 - CMA Pipeline Design: `docs/plans/2026-03-09-cma-pipeline-design.md`
 - CMA Pipeline Plan: `docs/plans/2026-03-09-cma-pipeline-plan.md`
+- Lead Submission Design: `docs/superpowers/specs/2026-03-19-lead-submission-api-design.md`
 - Onboarding: `docs/onboarding.md`
 - PM Skills: `docs/pm-skills-setup.md`
