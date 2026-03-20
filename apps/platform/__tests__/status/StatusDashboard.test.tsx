@@ -238,6 +238,136 @@ describe("StatusDashboard", () => {
     expect(hsWorker.textContent).toContain("Never");
   });
 
+  it("formats lastActivity as seconds ago when under 60s", async () => {
+    const now = Date.now();
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    const mockRecentActivity = {
+      status: "Healthy",
+      entries: {
+        background_workers: {
+          status: "Healthy",
+          description: "All workers active or idle",
+          duration: "00:00:00.001",
+          data: {
+            "LeadProcessingWorker.queueDepth": 0,
+            "LeadProcessingWorker.lastActivity": new Date(now - 15_000).toISOString(),
+            "CmaProcessingWorker.queueDepth": 0,
+            "CmaProcessingWorker.lastActivity": new Date(now - 120_000).toISOString(),
+            "HomeSearchProcessingWorker.queueDepth": 0,
+            "HomeSearchProcessingWorker.lastActivity": new Date(now - 7_200_000).toISOString(),
+          },
+        },
+      },
+    };
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockRecentActivity,
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByTestId("worker-Lead")).toBeInTheDocument();
+    });
+    // 15s ago → "15s ago"
+    expect(screen.getByTestId("worker-Lead").textContent).toContain("15s ago");
+    // 120s ago → "2m ago"
+    expect(screen.getByTestId("worker-Cma").textContent).toContain("2m ago");
+    // 7200s ago → "2h ago"
+    expect(screen.getByTestId("worker-HomeSearch").textContent).toContain("2h ago");
+    vi.restoreAllMocks();
+  });
+
+  it("shows raw value when lastActivity is not a date or 'never'", async () => {
+    const mockNonDateActivity = {
+      status: "Healthy",
+      entries: {
+        background_workers: {
+          status: "Healthy",
+          description: "All workers active or idle",
+          duration: "00:00:00.001",
+          data: {
+            "LeadProcessingWorker.queueDepth": 0,
+            "LeadProcessingWorker.lastActivity": "not-a-date",
+            "CmaProcessingWorker.queueDepth": 0,
+            "CmaProcessingWorker.lastActivity": undefined,
+            "HomeSearchProcessingWorker.queueDepth": 0,
+            "HomeSearchProcessingWorker.lastActivity": "never",
+          },
+        },
+      },
+    };
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockNonDateActivity,
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByTestId("worker-Lead")).toBeInTheDocument();
+    });
+    // Invalid date string should be shown as-is
+    const leadWorker = screen.getByTestId("worker-Lead");
+    expect(leadWorker.textContent).toContain("not-a-date");
+    // Undefined should become "undefined"
+    const cmaWorker = screen.getByTestId("worker-Cma");
+    expect(cmaWorker.textContent).toContain("undefined");
+  });
+
+  it("renders workers with no data property (fallback to empty object)", async () => {
+    const mockNoData = {
+      status: "Healthy",
+      entries: {
+        background_workers: {
+          status: "Healthy",
+          description: "Idle",
+          duration: "00:00:00.001",
+        },
+      },
+    };
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockNoData,
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByTestId("worker-Lead")).toBeInTheDocument();
+    });
+    // All queue depths should be 0 (fallback)
+    const leadWorker = screen.getByTestId("worker-Lead");
+    expect(leadWorker.textContent).toContain("Queue:");
+  });
+
+  it("passes through unparseable duration strings", async () => {
+    const mockBadDuration = {
+      status: "Healthy",
+      entries: {
+        "claude-api": { status: "Healthy", duration: "fast" },
+      },
+    };
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockBadDuration,
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByTestId("status-claude-api")).toBeInTheDocument();
+    });
+    expect(screen.getByText("fast")).toBeInTheDocument();
+  });
+
+  it("renders nothing when current is null after loading completes", async () => {
+    // Mock the hook to return the defensive edge case
+    const useHealthCheckModule = await import("@/app/status/useHealthCheck");
+    const spy = vi.spyOn(useHealthCheckModule, "useHealthCheck").mockReturnValue({
+      current: null,
+      error: null,
+      loading: false,
+      history: [],
+    });
+    const { container } = render(<StatusDashboard />);
+    // The component should render null (empty container)
+    expect(container.firstChild).toBeNull();
+    spy.mockRestore();
+  });
+
   it("renders unhealthy workers with stuck description", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
