@@ -34,13 +34,6 @@ public class FileLeadStore(LocalStorageProvider storage, string basePath) : ILea
         await storage.WriteDocumentAsync(folder, ResearchInsightsFile, content, ct);
     }
 
-    public async Task UpdateCmaJobIdAsync(string agentId, Guid leadId, string cmaJobId, CancellationToken ct)
-    {
-        var (folder, doc) = await ReadLeadDocAsync(agentId, leadId, ct);
-        var updated = YamlFrontmatterParser.UpdateField(doc, "cmaJobId", cmaJobId);
-        await storage.UpdateDocumentAsync(folder, LeadProfileFile, updated, ct);
-    }
-
     public async Task UpdateHomeSearchIdAsync(string agentId, Guid leadId, string homeSearchId, CancellationToken ct)
     {
         var (folder, doc) = await ReadLeadDocAsync(agentId, leadId, ct);
@@ -183,14 +176,13 @@ public class FileLeadStore(LocalStorageProvider storage, string basePath) : ILea
         fm.TryGetValue("leadId", out var leadIdStr);
         fm.TryGetValue("status", out var statusStr);
         fm.TryGetValue("receivedAt", out var receivedAtStr);
-        fm.TryGetValue("cmaJobId", out var cmaJobIdStr);
         fm.TryGetValue("homeSearchId", out var homeSearchIdStr);
         fm.TryGetValue("firstName", out var firstName);
         fm.TryGetValue("lastName", out var lastName);
         fm.TryGetValue("email", out var email);
         fm.TryGetValue("phone", out var phone);
         fm.TryGetValue("timeline", out var timeline);
-        fm.TryGetValue("leadTypes", out var leadTypesRaw);
+        fm.TryGetValue("leadType", out var leadTypeStr);
         fm.TryGetValue("consentToken", out var consentToken);
         fm.TryGetValue("marketing_opted_in", out var marketingOptedInStr);
 
@@ -198,17 +190,16 @@ public class FileLeadStore(LocalStorageProvider storage, string basePath) : ILea
         Enum.TryParse<LeadStatus>(statusStr, ignoreCase: true, out var status);
         DateTime.TryParse(receivedAtStr, null, System.Globalization.DateTimeStyles.RoundtripKind, out var receivedAt);
 
-        Guid? cmaJobId = !string.IsNullOrWhiteSpace(cmaJobIdStr) && Guid.TryParse(cmaJobIdStr, out var cj) ? cj : null;
         Guid? homeSearchId = !string.IsNullOrWhiteSpace(homeSearchIdStr) && Guid.TryParse(homeSearchIdStr, out var hs) ? hs : null;
         bool? marketingOptedIn = marketingOptedInStr is not null && bool.TryParse(marketingOptedInStr, out var moi) ? moi : null;
 
-        var leadTypes = ParseYamlList(leadTypesRaw ?? "");
+        Enum.TryParse<LeadType>(leadTypeStr, ignoreCase: true, out var leadType);
 
         return new Lead
         {
             Id = leadId,
             AgentId = agentId,
-            LeadTypes = leadTypes,
+            LeadType = leadType,
             FirstName = firstName ?? "",
             LastName = lastName ?? "",
             Email = email ?? "",
@@ -216,17 +207,10 @@ public class FileLeadStore(LocalStorageProvider storage, string basePath) : ILea
             Timeline = timeline ?? "",
             Status = status,
             ReceivedAt = receivedAt,
-            CmaJobId = cmaJobId,
             HomeSearchId = homeSearchId,
             ConsentToken = string.IsNullOrWhiteSpace(consentToken) ? null : consentToken,
             MarketingOptedIn = marketingOptedIn,
         };
     }
 
-    private static List<string> ParseYamlList(string raw)
-    {
-        var trimmed = raw.Trim('[', ']').Trim();
-        if (string.IsNullOrWhiteSpace(trimmed)) return [];
-        return [..trimmed.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0)];
-    }
 }

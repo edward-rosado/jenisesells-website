@@ -20,7 +20,6 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
     {
         // UseSetting injects into the configuration before Program.cs reads it
         builder.UseSetting("Anthropic:ApiKey", "test-anthropic-key");
-        builder.UseSetting("Attom:ApiKey", "test-attom-key");
         builder.UseSetting("Google:ClientId", "test-google-client-id");
         builder.UseSetting("Google:ClientSecret", "test-google-client-secret");
         builder.UseSetting("Google:RedirectUri", "http://localhost:5000/oauth/google/callback");
@@ -53,7 +52,6 @@ file sealed class NoOpLeadStore : ILeadStore
 {
     public Task SaveAsync(Lead lead, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateEnrichmentAsync(string a, Guid i, LeadEnrichment e, LeadScore s, CancellationToken ct) => Task.CompletedTask;
-    public Task UpdateCmaJobIdAsync(string a, Guid i, string c, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateHomeSearchIdAsync(string a, Guid i, string h, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateStatusAsync(string a, Guid i, LeadStatus s, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateMarketingOptInAsync(string a, Guid i, bool o, CancellationToken ct) => Task.CompletedTask;

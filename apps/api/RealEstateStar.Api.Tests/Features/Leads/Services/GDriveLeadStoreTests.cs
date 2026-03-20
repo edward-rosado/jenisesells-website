@@ -26,7 +26,7 @@ public class GDriveLeadStoreTests
     {
         Id = id ?? new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
         AgentId = AgentId,
-        LeadTypes = ["buying"],
+        LeadType = LeadType.Buyer,
         FirstName = firstName,
         LastName = lastName,
         Email = $"{firstName.ToLower()}@example.com",
@@ -108,31 +108,6 @@ public class GDriveLeadStoreTests
         Assert.Equal("Research & Insights.md", capturedFile);
         Assert.NotNull(capturedContent);
         Assert.Contains("motivationCategory: relocating", capturedContent);
-    }
-
-    // ── UpdateCmaJobIdAsync ───────────────────────────────────────────────────
-
-    [Fact]
-    public async Task UpdateCmaJobIdAsync_UpdatesFrontmatterFieldInProfile()
-    {
-        var lead = MakeLead();
-        var folder = LeadPaths.LeadFolder(lead.FullName);
-        var profileDoc = MakeLeadProfileMarkdown(lead);
-        var cmaJobId = "job-xyz";
-        string? capturedContent = null;
-
-        _storage.Setup(s => s.ListDocumentsAsync(LeadPaths.LeadsFolder, It.IsAny<CancellationToken>()))
-            .ReturnsAsync([lead.FullName]);
-        _storage.Setup(s => s.ReadDocumentAsync(folder, "Lead Profile.md", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(profileDoc);
-        _storage.Setup(s => s.UpdateDocumentAsync(folder, "Lead Profile.md", It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, string, CancellationToken>((_, _, content, _) => capturedContent = content)
-            .Returns(Task.CompletedTask);
-
-        await _sut.UpdateCmaJobIdAsync(AgentId, lead.Id, cmaJobId, CancellationToken.None);
-
-        Assert.NotNull(capturedContent);
-        Assert.Contains($"cmaJobId: {cmaJobId}", capturedContent);
     }
 
     // ── UpdateHomeSearchIdAsync ───────────────────────────────────────────────
@@ -341,15 +316,4 @@ public class GDriveLeadStoreTests
             () => _sut.UpdateStatusAsync(AgentId, missingId, LeadStatus.Enriched, CancellationToken.None));
     }
 
-    [Fact]
-    public async Task UpdateCmaJobIdAsync_ThrowsInvalidOperation_WhenLeadNotFound()
-    {
-        var missingId = Guid.NewGuid();
-
-        _storage.Setup(s => s.ListDocumentsAsync(LeadPaths.LeadsFolder, It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
-
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _sut.UpdateCmaJobIdAsync(AgentId, missingId, "cma-id", CancellationToken.None));
-    }
 }

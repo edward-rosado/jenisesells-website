@@ -11,7 +11,7 @@ public class LeadMappersTests
         bool withSeller = true,
         string? notes = "Test notes") => new()
     {
-        LeadTypes = ["buying", "selling"],
+        LeadType = LeadType.Both,
         FirstName = "Jane",
         LastName = "Doe",
         Email = "jane@example.com",
@@ -53,7 +53,7 @@ public class LeadMappersTests
         var lead = request.ToLead("agent-1");
 
         Assert.Equal("agent-1", lead.AgentId);
-        Assert.Equal(["buying", "selling"], lead.LeadTypes);
+        Assert.Equal(LeadType.Both, lead.LeadType);
         Assert.Equal("Jane", lead.FirstName);
         Assert.Equal("Doe", lead.LastName);
         Assert.Equal("jane@example.com", lead.Email);

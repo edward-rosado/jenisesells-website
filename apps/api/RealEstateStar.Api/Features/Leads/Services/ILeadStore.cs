@@ -4,7 +4,6 @@ public interface ILeadStore
 {
     Task SaveAsync(Lead lead, CancellationToken ct);
     Task UpdateEnrichmentAsync(string agentId, Guid leadId, LeadEnrichment enrichment, LeadScore score, CancellationToken ct);
-    Task UpdateCmaJobIdAsync(string agentId, Guid leadId, string cmaJobId, CancellationToken ct);
     Task UpdateHomeSearchIdAsync(string agentId, Guid leadId, string homeSearchId, CancellationToken ct);
     Task UpdateStatusAsync(string agentId, Guid leadId, LeadStatus status, CancellationToken ct);
     Task UpdateMarketingOptInAsync(string agentId, Guid leadId, bool optedIn, CancellationToken ct);

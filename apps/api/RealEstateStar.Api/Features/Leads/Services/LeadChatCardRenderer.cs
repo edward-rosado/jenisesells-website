@@ -7,13 +7,13 @@ public static class LeadChatCardRenderer
 {
     public static JsonObject RenderNewLeadCard(Lead lead, LeadEnrichment enrichment, LeadScore score)
     {
-        var leadTypes = string.Join(", ", lead.LeadTypes);
+        var leadType = lead.LeadType.ToString();
         var scoreBadge = ScoreBadge(score.OverallScore);
 
         var header = new JsonObject
         {
             ["title"] = $"New Lead: {lead.FullName}",
-            ["subtitle"] = $"{scoreBadge} • {enrichment.MotivationCategory} • {leadTypes}",
+            ["subtitle"] = $"{scoreBadge} • {enrichment.MotivationCategory} • {leadType}",
             ["imageType"] = "CIRCLE",
             ["imageUrl"] = "https://real-estate-star.com/icon-192.png"
         };

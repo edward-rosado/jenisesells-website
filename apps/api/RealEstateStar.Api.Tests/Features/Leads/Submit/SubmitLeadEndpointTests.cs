@@ -11,16 +11,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Api.Common;
-using RealEstateStar.Api.Features.Cma;
-using RealEstateStar.Api.Features.Cma.Services;
 using RealEstateStar.Api.Features.Leads;
 using RealEstateStar.Api.Features.Leads.Services;
 using RealEstateStar.Api.Features.Leads.Services.Enrichment;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Api.Services;
 using RealEstateStar.Api.Tests.Integration;
-using CmaLead = RealEstateStar.Api.Features.Cma.Lead;
-using Lead = RealEstateStar.Api.Features.Leads.Lead;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Submit;
 
@@ -54,7 +50,6 @@ file sealed class NoOpLeadStore : ILeadStore
 {
     public Task SaveAsync(Lead lead, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateEnrichmentAsync(string a, Guid i, LeadEnrichment e, LeadScore s, CancellationToken ct) => Task.CompletedTask;
-    public Task UpdateCmaJobIdAsync(string a, Guid i, string c, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateHomeSearchIdAsync(string a, Guid i, string h, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateStatusAsync(string a, Guid i, LeadStatus s, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateMarketingOptInAsync(string a, Guid i, bool o, CancellationToken ct) => Task.CompletedTask;
@@ -115,31 +110,21 @@ public class SubmitLeadEndpointIntegrationTests : IClassFixture<LeadSubmitTestFa
         _client = factory.CreateClient();
     }
 
-    private static object ValidPayload(
-        bool includeSeller = false,
-        bool includeBuyer = false,
-        List<string>? leadTypes = null) => new
+    private static object ValidPayload() => new
     {
-        leadTypes = leadTypes ?? ["general"],
+        leadType = "Buyer",
         firstName = "Jane",
         lastName = "Doe",
         email = "jane@example.com",
         phone = "555-123-4567",
         timeline = "3-6 months",
         notes = (string?)null,
-        seller = includeSeller ? new
-        {
-            address = "123 Main St",
-            city = "Springfield",
-            state = "NJ",
-            zip = "07081"
-        } : (object?)null,
-        buyer = includeBuyer ? new
+        buyer = new
         {
             desiredArea = "Springfield, NJ",
             minPrice = (decimal?)null,
             maxPrice = (decimal?)null
-        } : (object?)null,
+        },
         marketingConsent = new
         {
             optedIn = true,
@@ -174,12 +159,13 @@ public class SubmitLeadEndpointIntegrationTests : IClassFixture<LeadSubmitTestFa
     {
         var payload = new
         {
-            leadTypes = new[] { "general" },
+            leadType = "Buyer",
             firstName = "",
             lastName = "Doe",
             email = "jane@example.com",
             phone = "555-123-4567",
             timeline = "ASAP",
+            buyer = new { desiredArea = "Springfield, NJ" },
             marketingConsent = new
             {
                 optedIn = true,
@@ -200,12 +186,13 @@ public class SubmitLeadEndpointIntegrationTests : IClassFixture<LeadSubmitTestFa
     {
         var payload = new
         {
-            leadTypes = new[] { "general" },
+            leadType = "Buyer",
             firstName = "Jane",
             lastName = "Doe",
             email = "not-an-email",
             phone = "555-123-4567",
             timeline = "ASAP",
+            buyer = new { desiredArea = "Springfield, NJ" },
             marketingConsent = new
             {
                 optedIn = true,
@@ -227,12 +214,13 @@ public class SubmitLeadEndpointIntegrationTests : IClassFixture<LeadSubmitTestFa
     {
         var payload = new
         {
-            leadTypes = new[] { "general" },
+            leadType = "Buyer",
             firstName = "Jane",
             lastName = "Doe",
             email = "jane@example.com",
             phone = "ab",
             timeline = "ASAP",
+            buyer = new { desiredArea = "Springfield, NJ" },
             marketingConsent = new
             {
                 optedIn = true,
@@ -251,10 +239,10 @@ public class SubmitLeadEndpointIntegrationTests : IClassFixture<LeadSubmitTestFa
     [Fact]
     public async Task PostLead_Returns400_WhenSellingWithNoSellerDetails()
     {
-        // leadTypes includes "selling" but no seller object → business rule validation → 400
+        // leadType is "Seller" but no seller object → business rule validation → 400
         var payload = new
         {
-            leadTypes = new[] { "selling" },
+            leadType = "Seller",
             firstName = "Jane",
             lastName = "Doe",
             email = "jane@example.com",
@@ -284,18 +272,18 @@ public class SubmitLeadEndpointUnitTests
     // Helpers
     // -------------------------------------------------------------------------
     private static SubmitLeadRequest MakeValidRequest(
-        List<string>? leadTypes = null,
+        LeadType? leadType = null,
         SellerDetailsRequest? seller = null,
         BuyerDetailsRequest? buyer = null) => new()
     {
-        LeadTypes = leadTypes ?? ["general"],
+        LeadType = leadType ?? LeadType.Buyer,
         FirstName = "Jane",
         LastName = "Doe",
         Email = "jane@example.com",
         Phone = "555-123-4567",
         Timeline = "3-6 months",
         Seller = seller,
-        Buyer = buyer,
+        Buyer = buyer ?? MakeBuyer(),
         MarketingConsent = new MarketingConsentRequest
         {
             OptedIn = true,
@@ -317,24 +305,22 @@ public class SubmitLeadEndpointUnitTests
         DesiredArea = "Springfield, NJ"
     };
 
-    private static AgentConfig MakeAgent() => new() { Id = "test-agent" };
+    private static AccountConfig MakeAgent() => new() { Handle = "test-agent" };
 
     private record Mocks(
-        Mock<IAgentConfigService> AgentConfig,
+        Mock<IAccountConfigService> AccountConfig,
         Mock<ILeadStore> LeadStore,
         Mock<IMarketingConsentLog> ConsentLog,
         Mock<ILeadEnricher> Enricher,
         Mock<ILeadNotifier> Notifier,
         Mock<IHomeSearchProvider> HomeSearch,
-        Mock<ICmaJobStore> CmaJobStore,
-        Mock<ICmaPipeline> Pipeline,
         Mock<ILogger<SubmitLeadEndpoint>> Logger);
 
-    private static Mocks CreateMocks(AgentConfig? agent = null)
+    private static Mocks CreateMocks(AccountConfig? agent = null)
     {
-        var agentConfig = new Mock<IAgentConfigService>();
-        agentConfig
-            .Setup(s => s.GetAgentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        var accountConfig = new Mock<IAccountConfigService>();
+        accountConfig
+            .Setup(s => s.GetAccountAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(agent ?? MakeAgent());
 
         var leadStore = new Mock<ILeadStore>();
@@ -365,20 +351,9 @@ public class SubmitLeadEndpointUnitTests
             .Setup(h => h.SearchAsync(It.IsAny<HomeSearchCriteria>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        var cmaJobStore = new Mock<ICmaJobStore>();
-        var pipeline = new Mock<ICmaPipeline>();
-        pipeline
-            .Setup(p => p.ExecuteAsync(
-                It.IsAny<CmaJob>(),
-                It.IsAny<string>(),
-                It.IsAny<CmaLead>(),
-                It.IsAny<Func<CmaJobStatus, Task>>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
         var logger = new Mock<ILogger<SubmitLeadEndpoint>>();
 
-        return new Mocks(agentConfig, leadStore, consentLog, enricher, notifier, homeSearch, cmaJobStore, pipeline, logger);
+        return new Mocks(accountConfig, leadStore, consentLog, enricher, notifier, homeSearch, logger);
     }
 
     private static HttpContext MakeHttpContext(
@@ -399,14 +374,12 @@ public class SubmitLeadEndpointUnitTests
         SubmitLeadEndpoint.Handle(
             agentId,
             request ?? MakeValidRequest(),
-            m.AgentConfig.Object,
+            m.AccountConfig.Object,
             m.LeadStore.Object,
             m.ConsentLog.Object,
             m.Enricher.Object,
             m.Notifier.Object,
             m.HomeSearch.Object,
-            m.CmaJobStore.Object,
-            m.Pipeline.Object,
             httpContext ?? MakeHttpContext(),
             m.Logger.Object,
             CancellationToken.None);
@@ -421,7 +394,7 @@ public class SubmitLeadEndpointUnitTests
         var m = CreateMocks();
         var request = new SubmitLeadRequest
         {
-            LeadTypes = ["general"],
+            LeadType = LeadType.Buyer,
             FirstName = "",      // invalid
             LastName = "Doe",
             Email = "jane@example.com",
@@ -446,7 +419,7 @@ public class SubmitLeadEndpointUnitTests
         var m = CreateMocks();
         var request = new SubmitLeadRequest
         {
-            LeadTypes = ["general"],
+            LeadType = LeadType.Buyer,
             FirstName = "Jane",
             LastName = "Doe",
             Email = "not-an-email",
@@ -471,7 +444,7 @@ public class SubmitLeadEndpointUnitTests
         var m = CreateMocks();
         var request = new SubmitLeadRequest
         {
-            LeadTypes = ["general"],
+            LeadType = LeadType.Buyer,
             FirstName = "Jane",
             LastName = "Doe",
             Email = "jane@example.com",
@@ -494,7 +467,22 @@ public class SubmitLeadEndpointUnitTests
     public async Task Handle_Returns400_WhenSellingWithoutSellerDetails()
     {
         var m = CreateMocks();
-        var request = MakeValidRequest(leadTypes: ["selling"], seller: null);
+        var request = new SubmitLeadRequest
+        {
+            LeadType = LeadType.Seller,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@example.com",
+            Phone = "555-123-4567",
+            Timeline = "3-6 months",
+            Seller = null,  // intentionally absent
+            MarketingConsent = new MarketingConsentRequest
+            {
+                OptedIn = true,
+                ConsentText = "I agree.",
+                Channels = ["email"]
+            }
+        };
 
         var result = await CallHandle(m, request);
 
@@ -505,7 +493,22 @@ public class SubmitLeadEndpointUnitTests
     public async Task Handle_Returns400_WhenBuyingWithoutBuyerDetails()
     {
         var m = CreateMocks();
-        var request = MakeValidRequest(leadTypes: ["buying"], buyer: null);
+        var request = new SubmitLeadRequest
+        {
+            LeadType = LeadType.Buyer,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@example.com",
+            Phone = "555-123-4567",
+            Timeline = "3-6 months",
+            Buyer = null,  // intentionally absent
+            MarketingConsent = new MarketingConsentRequest
+            {
+                OptedIn = true,
+                ConsentText = "I agree.",
+                Channels = ["email"]
+            }
+        };
 
         var result = await CallHandle(m, request);
 
@@ -516,9 +519,9 @@ public class SubmitLeadEndpointUnitTests
     public async Task Handle_Returns404_WhenAgentNotFound()
     {
         var m = CreateMocks();
-        m.AgentConfig
-            .Setup(s => s.GetAgentAsync("no-such-agent", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((AgentConfig?)null);
+        m.AccountConfig
+            .Setup(s => s.GetAccountAsync("no-such-agent", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((AccountConfig?)null);
 
         var result = await CallHandle(m, agentId: "no-such-agent");
 
@@ -611,30 +614,10 @@ public class SubmitLeadEndpointUnitTests
     }
 
     [Fact]
-    public async Task Handle_DoesNotTriggerCma_ForBuyerOnlyLead()
-    {
-        var m = CreateMocks();
-        var request = MakeValidRequest(leadTypes: ["buying"], buyer: MakeBuyer());
-
-        await CallHandle(m, request);
-        await Task.Delay(300);
-
-        m.CmaJobStore.Verify(s => s.Set(It.IsAny<string>(), It.IsAny<CmaJob>()), Times.Never);
-        m.Pipeline.Verify(
-            p => p.ExecuteAsync(
-                It.IsAny<CmaJob>(),
-                It.IsAny<string>(),
-                It.IsAny<CmaLead>(),
-                It.IsAny<Func<CmaJobStatus, Task>>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
     public async Task Handle_DoesNotTriggerHomeSearch_ForSellerOnlyLead()
     {
         var m = CreateMocks();
-        var request = MakeValidRequest(leadTypes: ["selling"], seller: MakeSeller());
+        var request = MakeValidRequest(leadType: LeadType.Seller, seller: MakeSeller());
 
         await CallHandle(m, request);
         await Task.Delay(300);

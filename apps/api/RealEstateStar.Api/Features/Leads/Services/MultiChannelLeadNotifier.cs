@@ -9,13 +9,13 @@ namespace RealEstateStar.Api.Features.Leads.Services;
 public class MultiChannelLeadNotifier(
     IHttpClientFactory httpClientFactory,
     IGwsService gwsService,
-    IAgentConfigService agentConfigService,
+    IAccountConfigService accountConfigService,
     ILogger<MultiChannelLeadNotifier> logger) : ILeadNotifier
 {
     public async Task NotifyAgentAsync(string agentId, Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
     {
-        var config = await agentConfigService.GetAgentAsync(agentId, ct);
-        var agentEmail = config?.Identity?.Email ?? "";
+        var config = await accountConfigService.GetAccountAsync(agentId, ct);
+        var agentEmail = config?.Agent?.Email ?? "";
         var webhookUrl = config?.Integrations?.ChatWebhookUrl;
 
         var chatTask = SendChatAsync(webhookUrl, lead, enrichment, score, ct);
@@ -70,7 +70,7 @@ public class MultiChannelLeadNotifier(
         sb.AppendLine();
         sb.AppendLine($"**Score:** {score.OverallScore} / 100");
         sb.AppendLine($"**Motivation:** {enrichment.MotivationCategory}");
-        sb.AppendLine($"**Lead Types:** {string.Join(", ", lead.LeadTypes)}");
+        sb.AppendLine($"**Lead Type:** {lead.LeadType}");
         sb.AppendLine($"**Received:** {lead.ReceivedAt:MMMM d, yyyy h:mm tt} UTC");
         sb.AppendLine();
 

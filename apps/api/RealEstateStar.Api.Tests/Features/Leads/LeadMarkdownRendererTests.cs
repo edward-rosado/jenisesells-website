@@ -10,7 +10,7 @@ public class LeadMarkdownRendererTests
     {
         Id = new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
         AgentId = "jenise-buckalew",
-        LeadTypes = ["buying", "selling"],
+        LeadType = LeadType.Both,
         FirstName = "Jane",
         LastName = "Doe",
         Email = "jane@example.com",
@@ -65,7 +65,7 @@ public class LeadMarkdownRendererTests
     {
         Id = Guid.NewGuid(),
         AgentId = "jenise-buckalew",
-        LeadTypes = ["buying"],
+        LeadType = LeadType.Buyer,
         FirstName = "Bob",
         LastName = "Smith",
         Email = "bob@example.com",
@@ -89,7 +89,7 @@ public class LeadMarkdownRendererTests
     {
         Id = Guid.NewGuid(),
         AgentId = "jenise-buckalew",
-        LeadTypes = ["selling"],
+        LeadType = LeadType.Seller,
         FirstName = "Alice",
         LastName = "Jones",
         Email = "alice@example.com",
@@ -130,7 +130,7 @@ public class LeadMarkdownRendererTests
     {
         var lead = MakeFullLead();
         var result = LeadMarkdownRenderer.RenderLeadProfile(lead);
-        Assert.Contains("leadTypes: [buying, selling]", result);
+        Assert.Contains("leadType: Both", result);
     }
 
     [Fact]
@@ -202,7 +202,7 @@ public class LeadMarkdownRendererTests
     {
         var lead = new Lead
         {
-            Id = Guid.NewGuid(), AgentId = "test", LeadTypes = ["buying"],
+            Id = Guid.NewGuid(), AgentId = "test", LeadType = LeadType.Buyer,
             FirstName = "T", LastName = "T", Email = "t@t.com", Phone = "5550000000",
             Timeline = "justlooking",
             BuyerDetails = new BuyerDetails { City = "NYC", State = "NY" }
@@ -216,7 +216,7 @@ public class LeadMarkdownRendererTests
     {
         var lead = new Lead
         {
-            Id = Guid.NewGuid(), AgentId = "test", LeadTypes = ["buying"],
+            Id = Guid.NewGuid(), AgentId = "test", LeadType = LeadType.Buyer,
             FirstName = "T", LastName = "T", Email = "t@t.com", Phone = "5550000000",
             Timeline = "6-12months",
             BuyerDetails = new BuyerDetails { City = "NYC", State = "NY" }
@@ -276,25 +276,6 @@ public class LeadMarkdownRendererTests
         var lead = MakeBuyerOnlyLead(); // Notes is null
         var result = LeadMarkdownRenderer.RenderLeadProfile(lead);
         Assert.DoesNotContain("## Notes", result);
-    }
-
-    [Fact]
-    public void RenderLeadProfile_YamlContainsCmaJobIdWhenSet()
-    {
-        var lead = MakeFullLead();
-        var jobId = Guid.NewGuid();
-        lead.CmaJobId = jobId;
-        var result = LeadMarkdownRenderer.RenderLeadProfile(lead);
-        Assert.Contains($"cmaJobId: {jobId}", result);
-    }
-
-    [Fact]
-    public void RenderLeadProfile_YamlCmaJobIdEmptyWhenNull()
-    {
-        var lead = MakeFullLead();
-        lead.CmaJobId = null;
-        var result = LeadMarkdownRenderer.RenderLeadProfile(lead);
-        Assert.Contains("cmaJobId: ", result);
     }
 
     // ─── RenderResearchInsights ──────────────────────────────────────────────────

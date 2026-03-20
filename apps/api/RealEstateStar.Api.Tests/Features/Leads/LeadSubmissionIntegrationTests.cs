@@ -66,7 +66,7 @@ internal static class LeadRequests
         string email = "jane@example.com",
         bool marketingOptIn = true) => new
         {
-            leadTypes = new[] { "selling" },
+            leadType = "seller",
             firstName = "Jane",
             lastName = "Doe",
             email,
@@ -89,7 +89,7 @@ internal static class LeadRequests
 
     internal static object BuyerPayload(string email = "buyer@example.com") => new
     {
-        leadTypes = new[] { "buying" },
+        leadType = "buyer",
         firstName = "Bob",
         lastName = "Smith",
         email,
@@ -119,7 +119,7 @@ internal static class LeadRequests
     {
         Id = Guid.NewGuid(),
         AgentId = agentId,
-        LeadTypes = ["selling"],
+        LeadType = LeadType.Seller,
         FirstName = "Jane",
         LastName = "Doe",
         Email = email,
@@ -181,7 +181,7 @@ public class LeadSubmission_FullSubmissionFlowTests
                 It.Is<Lead>(l =>
                     l.AgentId == AgentId &&
                     l.Email == "jane@example.com" &&
-                    l.LeadTypes.Contains("selling")),
+                    (l.LeadType == LeadType.Seller || l.LeadType == LeadType.Both)),
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
@@ -299,7 +299,7 @@ public class LeadSubmission_FullSubmissionFlowTests
 
         var payload = new
         {
-            leadTypes = new[] { "selling" },
+            leadType = "seller",
             firstName = "Jane",
             lastName = "Doe",
             email = "jane@example.com",

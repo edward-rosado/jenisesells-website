@@ -19,7 +19,7 @@ public class OptOutEndpointTests
     {
         Id = Guid.NewGuid(),
         AgentId = AgentId,
-        LeadTypes = ["buying"],
+        LeadType = LeadType.Buyer,
         FirstName = "Jane",
         LastName = "Doe",
         Email = email,

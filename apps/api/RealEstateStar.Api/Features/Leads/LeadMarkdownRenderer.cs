@@ -20,7 +20,6 @@ public static partial class LeadMarkdownRenderer
         sb.AppendLine($"leadId: {lead.Id}");
         sb.AppendLine($"status: {lead.Status}");
         sb.AppendLine($"receivedAt: {lead.ReceivedAt:O}");
-        sb.AppendLine($"cmaJobId: {lead.CmaJobId?.ToString() ?? ""}");
         sb.AppendLine($"homeSearchId: {lead.HomeSearchId?.ToString() ?? ""}");
         sb.AppendLine();
         sb.AppendLine("# === Indexable ===");
@@ -28,7 +27,7 @@ public static partial class LeadMarkdownRenderer
         sb.AppendLine($"lastName: \"{EscapeYaml(lead.LastName)}\"");
         sb.AppendLine($"email: \"{EscapeYaml(lead.Email)}\"");
         sb.AppendLine($"phone: \"{EscapeYaml(lead.Phone)}\"");
-        sb.AppendLine($"leadTypes: [{string.Join(", ", lead.LeadTypes)}]");
+        sb.AppendLine($"leadType: {lead.LeadType}");
         sb.AppendLine($"timeline: \"{EscapeYaml(lead.Timeline)}\"");
         sb.AppendLine($"city: \"{EscapeYaml(city)}\"");
         sb.AppendLine($"state: \"{EscapeYaml(state)}\"");
@@ -235,9 +234,9 @@ public static partial class LeadMarkdownRenderer
 
     private static List<string> BuildTags(Lead lead)
     {
-        var tags = new List<string>(lead.LeadTypes);
-        if (lead.SellerDetails is not null) tags.Add("seller");
-        if (lead.BuyerDetails  is not null) tags.Add("buyer");
+        var tags = new List<string>();
+        if (lead.LeadType is LeadType.Buyer or LeadType.Both) tags.Add("buyer");
+        if (lead.LeadType is LeadType.Seller or LeadType.Both) tags.Add("seller");
         return tags;
     }
 

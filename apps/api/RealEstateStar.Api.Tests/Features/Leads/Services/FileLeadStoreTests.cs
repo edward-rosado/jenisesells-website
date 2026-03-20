@@ -35,7 +35,7 @@ public class FileLeadStoreTests : IDisposable
     {
         Id = id ?? new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
         AgentId = AgentId,
-        LeadTypes = ["buying"],
+        LeadType = LeadType.Buyer,
         FirstName = firstName,
         LastName = lastName,
         Email = $"{firstName.ToLower()}@example.com",
@@ -87,22 +87,6 @@ public class FileLeadStoreTests : IDisposable
         Assert.True(File.Exists(enrichmentPath));
         var content = await File.ReadAllTextAsync(enrichmentPath);
         Assert.Contains("motivationCategory: relocating", content);
-    }
-
-    // ── UpdateCmaJobIdAsync ───────────────────────────────────────────────────
-
-    [Fact]
-    public async Task UpdateCmaJobIdAsync_UpdatesCmaJobIdInProfileFile()
-    {
-        var lead = MakeLead();
-        await _sut.SaveAsync(lead, CancellationToken.None);
-
-        var cmaJobId = "cma-job-123";
-        await _sut.UpdateCmaJobIdAsync(AgentId, lead.Id, cmaJobId, CancellationToken.None);
-
-        var profilePath = Path.Combine(_basePath, LeadPaths.LeadFolder(lead.FullName), "Lead Profile.md");
-        var content = await File.ReadAllTextAsync(profilePath);
-        Assert.Contains($"cmaJobId: {cmaJobId}", content);
     }
 
     // ── UpdateHomeSearchIdAsync ───────────────────────────────────────────────
@@ -251,13 +235,6 @@ public class FileLeadStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task UpdateCmaJobIdAsync_ThrowsInvalidOperation_WhenLeadNotFound()
-    {
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _sut.UpdateCmaJobIdAsync(AgentId, Guid.NewGuid(), "cma-id", CancellationToken.None));
-    }
-
-    [Fact]
     public async Task UpdateHomeSearchIdAsync_ThrowsInvalidOperation_WhenLeadNotFound()
     {
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -339,20 +316,6 @@ public class FileLeadStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task RoundTrip_PreservesCmaJobId_WhenSet()
-    {
-        var lead = MakeLead();
-        await _sut.SaveAsync(lead, CancellationToken.None);
-        var cmaJobId = Guid.NewGuid().ToString();
-        await _sut.UpdateCmaJobIdAsync(AgentId, lead.Id, cmaJobId, CancellationToken.None);
-
-        var result = await _sut.GetAsync(AgentId, lead.Id, CancellationToken.None);
-
-        Assert.NotNull(result);
-        Assert.Equal(Guid.Parse(cmaJobId), result.CmaJobId);
-    }
-
-    [Fact]
     public async Task RoundTrip_PreservesHomeSearchId_WhenSet()
     {
         var lead = MakeLead();
@@ -376,7 +339,6 @@ public class FileLeadStoreTests : IDisposable
         var result = await _sut.GetAsync(AgentId, lead.Id, CancellationToken.None);
 
         Assert.NotNull(result);
-        Assert.Null(result.CmaJobId);
         Assert.Null(result.HomeSearchId);
         Assert.Null(result.MarketingOptedIn);
     }
@@ -402,7 +364,6 @@ public class FileLeadStoreTests : IDisposable
             timeline: 1-3months
             leadTypes: [buying]
             receivedAt: 2026-03-19T14:00:00Z
-            cmaJobId: not-a-guid
             homeSearchId: also-not-a-guid
             ---
             """;
@@ -412,7 +373,6 @@ public class FileLeadStoreTests : IDisposable
 
         Assert.NotNull(result);
         // Non-parseable GUID values should be returned as null
-        Assert.Null(result.CmaJobId);
         Assert.Null(result.HomeSearchId);
     }
 

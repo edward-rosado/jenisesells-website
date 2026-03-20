@@ -1,1 +1,0 @@
-This site is designed to be accessible to everyone. We're committed to meeting WCAG 2.1 AA standards. If you run into any accessibility issues, reach out to Kai directly at kai@testrealty.com and we'll make it right.

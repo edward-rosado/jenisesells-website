@@ -7,16 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using RealEstateStar.Api.Diagnostics;
 using RealEstateStar.Api.Infrastructure;
-using RealEstateStar.Api.Hubs;
 using RealEstateStar.Api.Logging;
 using RealEstateStar.Api.Middleware;
 using RealEstateStar.Api.Services;
-using RealEstateStar.Api.Features.Cma.Services;
-using RealEstateStar.Api.Features.Cma.Services.Analysis;
-using RealEstateStar.Api.Features.Cma.Services.Comps;
 using RealEstateStar.Api.Services.Gws;
-using RealEstateStar.Api.Features.Cma.Services.Pdf;
-using RealEstateStar.Api.Features.Cma.Services.Research;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.DataProtection;
@@ -33,9 +27,9 @@ builder.AddStructuredLogging();
 builder.AddObservability();
 
 // Agent config
-var configPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "agents");
-builder.Services.AddSingleton<IAgentConfigService>(sp =>
-    new AgentConfigService(configPath, sp.GetRequiredService<ILogger<AgentConfigService>>()));
+var configPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "accounts");
+builder.Services.AddSingleton<IAccountConfigService>(sp =>
+    new AccountConfigService(configPath, sp.GetRequiredService<ILogger<AccountConfigService>>()));
 
 // Data Protection — encrypt OAuth tokens at rest
 var dpBuilder = builder.Services.AddDataProtection()
@@ -65,9 +59,6 @@ builder.Services.AddSingleton<OnboardingStateMachine>();
 // Configuration keys
 var anthropicKey = builder.Configuration["Anthropic:ApiKey"]
     ?? throw new InvalidOperationException("Anthropic:ApiKey configuration is required");
-var attomKey = builder.Configuration["Attom:ApiKey"];
-if (string.IsNullOrEmpty(attomKey))
-    Log.Warning("Attom:ApiKey not configured — ATTOM comp source will be disabled");
 var googleClientId = builder.Configuration["Google:ClientId"]
     ?? throw new InvalidOperationException("Google:ClientId configuration is required");
 var googleClientSecret = builder.Configuration["Google:ClientSecret"]
@@ -132,7 +123,6 @@ builder.Services.AddSingleton<IOnboardingTool, ScrapeUrlTool>();
 builder.Services.AddSingleton<IOnboardingTool, UpdateProfileTool>();
 builder.Services.AddSingleton<IOnboardingTool, SetBrandingTool>();
 builder.Services.AddSingleton<IOnboardingTool, DeploySiteTool>();
-builder.Services.AddSingleton<IOnboardingTool, SubmitCmaFormTool>();
 builder.Services.AddSingleton<IOnboardingTool, CreateStripeSessionTool>();
 builder.Services.AddSingleton<ToolDispatcher>();
 builder.Services.AddSingleton<IStripeService, StripeService>();
@@ -147,44 +137,8 @@ builder.Services.AddSingleton(sp =>
         sp.GetRequiredService<ILogger<OnboardingChatService>>()));
 builder.Services.AddHostedService<TrialExpiryService>();
 
-// Comp sources — typed HttpClient registrations
-builder.Services.AddHttpClient<ZillowCompSource>();
-builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<ZillowCompSource>());
-
-builder.Services.AddHttpClient<RealtorComCompSource>();
-builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<RealtorComCompSource>());
-
-builder.Services.AddHttpClient<RedfinCompSource>();
-builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<RedfinCompSource>());
-
-if (!string.IsNullOrEmpty(attomKey))
-{
-    builder.Services.AddHttpClient(nameof(AttomDataCompSource));
-    builder.Services.AddSingleton<ICompSource>(sp =>
-        new AttomDataCompSource(
-            sp.GetRequiredService<IHttpClientFactory>(),
-            attomKey,
-            sp.GetService<ILogger<AttomDataCompSource>>()));
-}
-
-// Core services
-builder.Services.AddSingleton<CompAggregator>();
-
-builder.Services.AddHttpClient<LeadResearchService>();
-builder.Services.AddSingleton<ILeadResearchService>(sp => sp.GetRequiredService<LeadResearchService>());
-
-builder.Services.AddSingleton<ICmaPdfGenerator, CmaPdfGenerator>();
+// Google Workspace service (Drive, Docs, Sheets, Gmail)
 builder.Services.AddSingleton<IGwsService, GwsService>();
-
-builder.Services.AddHttpClient(nameof(ClaudeAnalysisService));
-builder.Services.AddSingleton<IAnalysisService>(sp =>
-    new ClaudeAnalysisService(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        anthropicKey,
-        sp.GetService<ILogger<ClaudeAnalysisService>>()));
-
-// Pipeline orchestrator
-builder.Services.AddSingleton<ICmaPipeline, CmaPipeline>();
 
 // --- Lead Feature Services ---
 
@@ -223,10 +177,6 @@ builder.Services.AddOpenApi();
 
 // Problem details for validation errors
 builder.Services.AddProblemDetails();
-
-// Job store
-builder.Services.AddMemoryCache(options => options.SizeLimit = 10_000);
-builder.Services.AddSingleton<ICmaJobStore, InMemoryCmaJobStore>();
 
 // SignalR
 builder.Services.AddSignalR();
@@ -282,16 +232,6 @@ builder.Services.AddRateLimiter(options =>
             {
                 PermitLimit = 100,
                 Window = TimeSpan.FromMinutes(1)
-            }));
-
-    // Stricter policy for CMA creation: 10 per hour per agent
-    options.AddPolicy("cma-create", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            context.Request.RouteValues["agentId"]?.ToString() ?? "unknown",
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 10,
-                Window = TimeSpan.FromHours(1)
             }));
 
     // Session creation: 5 per hour per IP (session creation triggers Claude API calls)
@@ -411,13 +351,10 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
     ResponseWriter = WriteHealthResponse
 });
 
-// SignalR hub
-app.MapHub<CmaProgressHub>("/hubs/cma-progress");
-
 // OpenAPI spec
 app.MapOpenApi();
 
-// --- All Endpoints (CMA + Leads) ---
+// --- All Endpoints ---
 app.MapEndpoints();
 
 app.Run();

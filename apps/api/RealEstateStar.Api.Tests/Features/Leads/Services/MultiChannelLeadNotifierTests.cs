@@ -31,7 +31,7 @@ public class MultiChannelLeadNotifierTests
     {
         Id = new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
         AgentId = "jenise-buckalew",
-        LeadTypes = ["buying", "selling"],
+        LeadType = LeadType.Both,
         FirstName = "Jane",
         LastName = "Doe",
         Email = "jane@example.com",
@@ -71,16 +71,16 @@ public class MultiChannelLeadNotifierTests
         Explanation = "Strong motivation and timeline."
     };
 
-    private static AgentConfig MakeConfig(string? chatWebhookUrl = null) => new()
+    private static AccountConfig MakeConfig(string? chatWebhookUrl = null) => new()
     {
-        Id = "jenise-buckalew",
-        Identity = new AgentIdentity
+        Handle = "jenise-buckalew",
+        Agent = new AccountAgent
         {
             Name = "Jenise Buckalew",
             Email = "jenise@example.com",
             Phone = "(973) 555-0100"
         },
-        Integrations = new AgentIntegrations
+        Integrations = new AccountIntegrations
         {
             ChatWebhookUrl = chatWebhookUrl
         }
@@ -97,8 +97,8 @@ public class MultiChannelLeadNotifierTests
         httpFactory.Setup(f => f.CreateClient("GoogleChat")).Returns(httpClient);
 
         var gwsService = new Mock<IGwsService>();
-        var configService = new Mock<IAgentConfigService>();
-        configService.Setup(c => c.GetAgentAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
+        var configService = new Mock<IAccountConfigService>();
+        configService.Setup(c => c.GetAccountAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeConfig(chatWebhookUrl: "https://chat.googleapis.com/webhook/test"));
 
         var sut = new MultiChannelLeadNotifier(httpFactory.Object, gwsService.Object, configService.Object,
@@ -119,8 +119,8 @@ public class MultiChannelLeadNotifierTests
         httpFactory.Setup(f => f.CreateClient("GoogleChat")).Returns(httpClient);
 
         var gwsService = new Mock<IGwsService>();
-        var configService = new Mock<IAgentConfigService>();
-        configService.Setup(c => c.GetAgentAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
+        var configService = new Mock<IAccountConfigService>();
+        configService.Setup(c => c.GetAccountAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeConfig(chatWebhookUrl: null));
 
         var sut = new MultiChannelLeadNotifier(httpFactory.Object, gwsService.Object, configService.Object,
@@ -136,8 +136,8 @@ public class MultiChannelLeadNotifierTests
     {
         var httpFactory = new Mock<IHttpClientFactory>();
         var gwsService = new Mock<IGwsService>();
-        var configService = new Mock<IAgentConfigService>();
-        configService.Setup(c => c.GetAgentAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
+        var configService = new Mock<IAccountConfigService>();
+        configService.Setup(c => c.GetAccountAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeConfig());
 
         var sut = new MultiChannelLeadNotifier(httpFactory.Object, gwsService.Object, configService.Object,
@@ -166,8 +166,8 @@ public class MultiChannelLeadNotifierTests
         httpFactory.Setup(f => f.CreateClient("GoogleChat")).Returns(httpClient);
 
         var gwsService = new Mock<IGwsService>();
-        var configService = new Mock<IAgentConfigService>();
-        configService.Setup(c => c.GetAgentAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
+        var configService = new Mock<IAccountConfigService>();
+        configService.Setup(c => c.GetAccountAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeConfig(chatWebhookUrl: "https://chat.googleapis.com/webhook/test"));
 
         var logger = new Mock<ILogger<MultiChannelLeadNotifier>>();
@@ -201,8 +201,8 @@ public class MultiChannelLeadNotifierTests
                 null, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("email send failed"));
 
-        var configService = new Mock<IAgentConfigService>();
-        configService.Setup(c => c.GetAgentAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
+        var configService = new Mock<IAccountConfigService>();
+        configService.Setup(c => c.GetAccountAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeConfig());
 
         var logger = new Mock<ILogger<MultiChannelLeadNotifier>>();
@@ -230,8 +230,8 @@ public class MultiChannelLeadNotifierTests
         httpFactory.Setup(f => f.CreateClient("GoogleChat")).Returns(httpClient);
 
         var gwsService = new Mock<IGwsService>();
-        var configService = new Mock<IAgentConfigService>();
-        configService.Setup(c => c.GetAgentAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
+        var configService = new Mock<IAccountConfigService>();
+        configService.Setup(c => c.GetAccountAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeConfig(chatWebhookUrl: "https://chat.googleapis.com/webhook/test"));
 
         var sut = new MultiChannelLeadNotifier(httpFactory.Object, gwsService.Object, configService.Object,
@@ -285,7 +285,7 @@ public class MultiChannelLeadNotifierTests
         {
             Id = new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
             AgentId = "jenise-buckalew",
-            LeadTypes = ["selling"],
+            LeadType = LeadType.Seller,
             FirstName = "Jane",
             LastName = "Doe",
             Email = "jane@example.com",
@@ -307,7 +307,7 @@ public class MultiChannelLeadNotifierTests
         {
             Id = new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
             AgentId = "jenise-buckalew",
-            LeadTypes = ["buying"],
+            LeadType = LeadType.Buyer,
             FirstName = "Jane",
             LastName = "Doe",
             Email = "jane@example.com",
@@ -339,7 +339,7 @@ public class MultiChannelLeadNotifierTests
         {
             Id = Guid.NewGuid(),
             AgentId = "jenise-buckalew",
-            LeadTypes = ["selling"],
+            LeadType = LeadType.Seller,
             FirstName = "Jane",
             LastName = "Doe",
             Email = "jane@example.com",
@@ -375,7 +375,7 @@ public class MultiChannelLeadNotifierTests
         {
             Id = Guid.NewGuid(),
             AgentId = "jenise-buckalew",
-            LeadTypes = ["buying"],
+            LeadType = LeadType.Buyer,
             FirstName = "Bob",
             LastName = "Smith",
             Email = "bob@example.com",

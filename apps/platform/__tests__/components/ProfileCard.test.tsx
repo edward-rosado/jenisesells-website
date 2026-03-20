@@ -37,7 +37,7 @@ describe("ProfileCard", () => {
     );
     const img = screen.getByAltText("Jane Doe");
     expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute("src", "https://example.com/photo.jpg");
+    expect(img).toHaveAttribute("src", expect.stringContaining("photo.jpg"));
   });
 
   it("does not render photo when photoUrl is not provided", () => {

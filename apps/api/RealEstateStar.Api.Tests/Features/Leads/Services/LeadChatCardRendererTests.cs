@@ -11,7 +11,7 @@ public class LeadChatCardRendererTests
     {
         Id = new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
         AgentId = "jenise-buckalew",
-        LeadTypes = ["buying", "selling"],
+        LeadType = LeadType.Both,
         FirstName = "Jane",
         LastName = "Doe",
         Email = "jane@example.com",
@@ -88,7 +88,7 @@ public class LeadChatCardRendererTests
     {
         var card = LeadChatCardRenderer.RenderNewLeadCard(MakeLead(), MakeEnrichment(), MakeScore());
         var subtitle = card["cardsV2"]![0]!["card"]!["header"]!["subtitle"]!.GetValue<string>();
-        subtitle.Should().Contain("buying").And.Contain("selling");
+        subtitle.Should().Contain("Both");
     }
 
     [Fact]

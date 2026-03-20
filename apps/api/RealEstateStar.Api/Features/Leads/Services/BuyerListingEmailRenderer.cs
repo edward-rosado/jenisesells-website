@@ -8,7 +8,7 @@ public static class BuyerListingEmailRenderer
     public static (string Subject, string Body) Render(
         string buyerFirstName,
         IEnumerable<Listing> listings,
-        AgentConfig config,
+        AccountConfig config,
         LeadEnrichment? enrichment = null)
     {
         var listingList = listings.ToList();
@@ -23,17 +23,17 @@ public static class BuyerListingEmailRenderer
     private static string BuildBody(
         string buyerFirstName,
         List<Listing> listings,
-        AgentConfig config,
+        AccountConfig config,
         LeadEnrichment? enrichment)
     {
-        var agentName    = config.Identity?.Name ?? "Your Real Estate Professional";
-        var agentPhone   = config.Identity?.Phone ?? "";
-        var agentEmail   = config.Identity?.Email ?? "";
-        var brokerage    = config.Identity?.Brokerage ?? "";
-        var officeAddress = config.Location?.OfficeAddress;
+        var agentName    = config.Agent?.Name ?? "Your Real Estate Professional";
+        var agentPhone   = config.Agent?.Phone ?? "";
+        var agentEmail   = config.Agent?.Email ?? "";
+        var brokerage    = config.Brokerage?.Name ?? "";
+        var officeAddress = config.Brokerage?.OfficeAddress;
         if (string.IsNullOrWhiteSpace(officeAddress))
         {
-            officeAddress = config.Identity?.Brokerage ?? "Address not available";
+            officeAddress = config.Brokerage?.Name ?? "Address not available";
         }
 
         var sb = new StringBuilder();
@@ -96,7 +96,7 @@ public static class BuyerListingEmailRenderer
 
         // CAN-SPAM compliant footer
         sb.AppendLine("You are receiving this email because you inquired about homes in the area.");
-        sb.AppendLine($"To manage your email preferences, visit: https://{config.Id}.real-estate-star.com/privacy/opt-out");
+        sb.AppendLine($"To manage your email preferences, visit: https://{config.Handle}.real-estate-star.com/privacy/opt-out");
         if (!string.IsNullOrWhiteSpace(officeAddress))
         {
             sb.AppendLine();

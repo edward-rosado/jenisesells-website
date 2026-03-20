@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using RealEstateStar.Api.Features.Leads.Services;
 using RealEstateStar.Api.Features.Leads.Services.Enrichment;
-using RealEstateStar.Api.Features.Cma.Services;
 using RealEstateStar.Api.Services;
 using RealEstateStar.Api.Infrastructure;
 
@@ -17,14 +16,12 @@ public class SubmitLeadEndpoint : IEndpoint
     internal static async Task<IResult> Handle(
         string agentId,
         [FromBody] SubmitLeadRequest request,
-        IAgentConfigService agentConfig,
+        IAccountConfigService accountConfig,
         ILeadStore leadStore,
         IMarketingConsentLog consentLog,
         ILeadEnricher enricher,
         ILeadNotifier notifier,
         IHomeSearchProvider homeSearchProvider,
-        ICmaJobStore cmaJobStore,
-        ICmaPipeline pipeline,
         HttpContext httpContext,
         ILogger<SubmitLeadEndpoint> logger,
         CancellationToken ct)
@@ -35,25 +32,25 @@ public class SubmitLeadEndpoint : IEndpoint
             return Results.ValidationProblem(GroupValidationErrors(requestValidation));
 
         // Business rule: selling requires seller details
-        if (request.LeadTypes.Contains("selling") && request.Seller is null)
+        if (request.LeadType is LeadType.Seller or LeadType.Both && request.Seller is null)
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["Seller"] = ["Seller details are required when LeadTypes includes 'selling'."]
+                ["Seller"] = ["Seller details are required when LeadType is 'seller' or 'both'."]
             });
         }
 
         // Business rule: buying requires buyer details
-        if (request.LeadTypes.Contains("buying") && request.Buyer is null)
+        if (request.LeadType is LeadType.Buyer or LeadType.Both && request.Buyer is null)
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["Buyer"] = ["Buyer details are required when LeadTypes includes 'buying'."]
+                ["Buyer"] = ["Buyer details are required when LeadType is 'buyer' or 'both'."]
             });
         }
 
         // 1. Validate agentId exists
-        var agent = await agentConfig.GetAgentAsync(agentId, ct);
+        var agent = await accountConfig.GetAccountAsync(agentId, ct);
         if (agent is null) return Results.NotFound();
 
         // 2. Map request to domain
@@ -107,39 +104,8 @@ public class SubmitLeadEndpoint : IEndpoint
                 logger.LogError(ex, "[LEAD-005] Notification failed for lead {LeadId}", lead.Id);
             }
 
-            // CMA for sellers
-            if (lead.LeadTypes.Contains("selling") && lead.SellerDetails is not null)
-            {
-                try
-                {
-                    var cmaLead = new Features.Cma.Lead
-                    {
-                        FirstName = lead.FirstName,
-                        LastName = lead.LastName,
-                        Email = lead.Email,
-                        Phone = lead.Phone,
-                        Address = lead.SellerDetails.Address,
-                        City = lead.SellerDetails.City,
-                        State = lead.SellerDetails.State,
-                        Zip = lead.SellerDetails.Zip,
-                        Timeline = lead.Timeline,
-                        Beds = lead.SellerDetails.Beds,
-                        Baths = lead.SellerDetails.Baths,
-                        Sqft = lead.SellerDetails.Sqft
-                    };
-                    var cmaJob = Features.Cma.CmaJob.Create(agentId, cmaLead);
-                    cmaJobStore.Set(agentId, cmaJob);
-                    await leadStore.UpdateCmaJobIdAsync(agentId, lead.Id, cmaJob.Id.ToString(), CancellationToken.None);
-                    _ = pipeline.ExecuteAsync(cmaJob, agentId, cmaLead, _ => Task.CompletedTask, CancellationToken.None);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "[LEAD-004] CMA trigger failed for lead {LeadId}", lead.Id);
-                }
-            }
-
             // Home search for buyers
-            if (lead.LeadTypes.Contains("buying") && lead.BuyerDetails is not null)
+            if (lead.LeadType is LeadType.Buyer or LeadType.Both && lead.BuyerDetails is not null)
             {
                 try
                 {

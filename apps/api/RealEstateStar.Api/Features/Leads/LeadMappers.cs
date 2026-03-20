@@ -8,7 +8,7 @@ public static class LeadMappers
     {
         Id = Guid.NewGuid(),
         AgentId = agentId,
-        LeadTypes = request.LeadTypes,
+        LeadType = request.LeadType,
         FirstName = request.FirstName,
         LastName = request.LastName,
         Email = request.Email,

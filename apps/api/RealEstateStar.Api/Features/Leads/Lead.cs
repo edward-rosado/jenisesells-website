@@ -4,7 +4,7 @@ public class Lead
 {
     public required Guid Id { get; init; }
     public required string AgentId { get; init; }
-    public required List<string> LeadTypes { get; init; }
+    public required LeadType LeadType { get; init; }
     public required string FirstName { get; init; }
     public required string LastName { get; init; }
     public required string Email { get; init; }
@@ -17,7 +17,6 @@ public class Lead
     public LeadStatus Status { get; set; }
     public LeadEnrichment? Enrichment { get; set; }
     public LeadScore? Score { get; set; }
-    public Guid? CmaJobId { get; set; }
     public Guid? HomeSearchId { get; set; }
     public string? ConsentToken { get; set; }
     public bool? MarketingOptedIn { get; set; }

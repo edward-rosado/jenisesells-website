@@ -22,7 +22,7 @@ public class RequestDeletionEndpointTests
     {
         Id = Guid.NewGuid(),
         AgentId = AgentId,
-        LeadTypes = ["buying"],
+        LeadType = LeadType.Buyer,
         FirstName = "Jane",
         LastName = "Doe",
         Email = email,

@@ -29,7 +29,7 @@ public class DriveChangeMonitorTests
     {
         Id = Guid.NewGuid(),
         AgentId = AgentId,
-        LeadTypes = ["buying"],
+        LeadType = LeadType.Buyer,
         FirstName = firstName,
         LastName = lastName,
         Email = "jane@example.com",

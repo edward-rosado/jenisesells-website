@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 public class SubmitLeadRequest
 {
-    [Required] public required List<string> LeadTypes { get; init; }
+    [Required] public required LeadType LeadType { get; init; }
     [Required, StringLength(100)] public required string FirstName { get; init; }
     [Required, StringLength(100)] public required string LastName { get; init; }
     [Required, StringLength(254), EmailAddress] public required string Email { get; init; }

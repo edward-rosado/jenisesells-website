@@ -32,7 +32,7 @@ public class ScraperLeadEnricherTests
     {
         Id = Guid.NewGuid(),
         AgentId = "test-agent",
-        LeadTypes = ["selling"],
+        LeadType = LeadType.Seller,
         FirstName = firstName,
         LastName = lastName,
         Email = email,

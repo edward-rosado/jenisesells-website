@@ -7,7 +7,7 @@ namespace RealEstateStar.Api.Tests.Features.Leads.Services;
 
 public class BuyerListingEmailRendererTests
 {
-    private static AgentConfig MakeAgentConfig(
+    private static AccountConfig MakeAccountConfig(
         string name           = "Jenise Buckalew",
         string phone          = "(732) 555-0100",
         string email          = "jenise@example.com",
@@ -15,18 +15,21 @@ public class BuyerListingEmailRendererTests
         string officeAddress  = "100 Broker Lane, Old Bridge, NJ 08857") =>
         new()
         {
-            Id       = "jenise-buckalew",
-            Identity = new AgentIdentity
+            Handle   = "jenise-buckalew",
+            Agent    = new AccountAgent
             {
                 Name      = name,
                 Phone     = phone,
                 Email     = email,
-                Brokerage = brokerage
             },
-            Location = new AgentLocation
+            Brokerage = new AccountBrokerage
             {
-                State         = "NJ",
-                OfficeAddress = officeAddress
+                Name           = brokerage,
+                OfficeAddress  = officeAddress
+            },
+            Location = new AccountLocation
+            {
+                State = "NJ"
             }
         };
 
@@ -55,7 +58,7 @@ public class BuyerListingEmailRendererTests
     public void Render_Subject_IncludesListingCount()
     {
         var listings = new[] { MakeListing(), MakeListing("456 Elm St") };
-        var (subject, _) = BuyerListingEmailRenderer.Render("Jane", listings, MakeAgentConfig());
+        var (subject, _) = BuyerListingEmailRenderer.Render("Jane", listings, MakeAccountConfig());
 
         subject.Should().Contain("2");
     }
@@ -64,7 +67,7 @@ public class BuyerListingEmailRendererTests
     public void Render_Subject_IncludesBuyerFirstName()
     {
         var listings = new[] { MakeListing() };
-        var (subject, _) = BuyerListingEmailRenderer.Render("Sarah", listings, MakeAgentConfig());
+        var (subject, _) = BuyerListingEmailRenderer.Render("Sarah", listings, MakeAccountConfig());
 
         subject.Should().Contain("Sarah");
     }
@@ -73,7 +76,7 @@ public class BuyerListingEmailRendererTests
     public void Render_Subject_UsesSingular_WhenOneHome()
     {
         var listings = new[] { MakeListing() };
-        var (subject, _) = BuyerListingEmailRenderer.Render("Jane", listings, MakeAgentConfig());
+        var (subject, _) = BuyerListingEmailRenderer.Render("Jane", listings, MakeAccountConfig());
 
         subject.Should().Contain("1 Home");
         subject.Should().NotContain("Homes");
@@ -83,7 +86,7 @@ public class BuyerListingEmailRendererTests
     public void Render_Subject_UsesPlural_WhenMultipleHomes()
     {
         var listings = new[] { MakeListing(), MakeListing("2 Spruce Ave") };
-        var (subject, _) = BuyerListingEmailRenderer.Render("Jane", listings, MakeAgentConfig());
+        var (subject, _) = BuyerListingEmailRenderer.Render("Jane", listings, MakeAccountConfig());
 
         subject.Should().Contain("Homes");
     }
@@ -94,7 +97,7 @@ public class BuyerListingEmailRendererTests
     public void Render_Body_IncludesPersonalizedIntro_FromEnrichment()
     {
         var enrichment = MakeEnrichment("First-time buyer eager to settle down");
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAgentConfig(), enrichment);
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAccountConfig(), enrichment);
 
         body.Should().Contain("First-time buyer eager to settle down");
     }
@@ -102,7 +105,7 @@ public class BuyerListingEmailRendererTests
     [Fact]
     public void Render_Body_OmitsEnrichmentSentence_WhenEnrichmentIsNull()
     {
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAgentConfig(), enrichment: null);
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAccountConfig(), enrichment: null);
 
         body.Should().NotContain("Based on what you've shared");
     }
@@ -111,7 +114,7 @@ public class BuyerListingEmailRendererTests
     public void Render_Body_OmitsEnrichmentSentence_WhenMotivationIsUnknown()
     {
         var enrichment = MakeEnrichment("unknown");
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAgentConfig(), enrichment);
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAccountConfig(), enrichment);
 
         body.Should().NotContain("Based on what you've shared");
     }
@@ -119,7 +122,7 @@ public class BuyerListingEmailRendererTests
     [Fact]
     public void Render_Body_IncludesBuyerFirstNameInGreeting()
     {
-        var (_, body) = BuyerListingEmailRenderer.Render("Marcus", [MakeListing()], MakeAgentConfig());
+        var (_, body) = BuyerListingEmailRenderer.Render("Marcus", [MakeListing()], MakeAccountConfig());
 
         body.Should().Contain("Hi Marcus");
     }
@@ -130,7 +133,7 @@ public class BuyerListingEmailRendererTests
     public void Render_Body_IncludesListingAddress()
     {
         var listing = MakeListing("789 Pine Ct");
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAgentConfig());
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAccountConfig());
 
         body.Should().Contain("789 Pine Ct");
     }
@@ -139,7 +142,7 @@ public class BuyerListingEmailRendererTests
     public void Render_Body_IncludesListingPrice()
     {
         var listing = MakeListing();
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAgentConfig());
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAccountConfig());
 
         body.Should().Contain("425,000");
     }
@@ -148,7 +151,7 @@ public class BuyerListingEmailRendererTests
     public void Render_Body_IncludesBedsAndBaths()
     {
         var listing = MakeListing();
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAgentConfig());
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAccountConfig());
 
         body.Should().Contain("3 bed");
         body.Should().Contain("2 bath");
@@ -158,7 +161,7 @@ public class BuyerListingEmailRendererTests
     public void Render_Body_IncludesWhyThisFitsNote()
     {
         var listing = MakeListing(whyThisFits: "Near top-rated schools and commuter rail");
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAgentConfig());
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAccountConfig());
 
         body.Should().Contain("Near top-rated schools and commuter rail");
     }
@@ -167,7 +170,7 @@ public class BuyerListingEmailRendererTests
     public void Render_Body_IncludesListingLink_WhenPresent()
     {
         var listing = MakeListing(listingUrl: "https://zillow.com/my-listing");
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAgentConfig());
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAccountConfig());
 
         body.Should().Contain("https://zillow.com/my-listing");
     }
@@ -176,7 +179,7 @@ public class BuyerListingEmailRendererTests
     public void Render_Body_OmitsListingLink_WhenAbsent()
     {
         var listing = MakeListing(listingUrl: null);
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAgentConfig());
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAccountConfig());
 
         body.Should().NotContain("View listing:");
     }
@@ -190,7 +193,7 @@ public class BuyerListingEmailRendererTests
             MakeListing("2 Second Ave"),
             MakeListing("3 Third Ave")
         };
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", listings, MakeAgentConfig());
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", listings, MakeAccountConfig());
 
         body.Should().Contain("1.");
         body.Should().Contain("2.");
@@ -202,7 +205,7 @@ public class BuyerListingEmailRendererTests
     [Fact]
     public void Render_Body_IncludesAgentName()
     {
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAgentConfig(name: "Alex Agent"));
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAccountConfig(name: "Alex Agent"));
 
         body.Should().Contain("Alex Agent");
     }
@@ -210,7 +213,7 @@ public class BuyerListingEmailRendererTests
     [Fact]
     public void Render_Body_IncludesAgentPhone()
     {
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAgentConfig(phone: "(732) 555-9876"));
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAccountConfig(phone: "(732) 555-9876"));
 
         body.Should().Contain("(732) 555-9876");
     }
@@ -218,7 +221,7 @@ public class BuyerListingEmailRendererTests
     [Fact]
     public void Render_Body_IncludesAgentEmail()
     {
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAgentConfig(email: "alex@realty.com"));
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAccountConfig(email: "alex@realty.com"));
 
         body.Should().Contain("alex@realty.com");
     }
@@ -226,7 +229,7 @@ public class BuyerListingEmailRendererTests
     [Fact]
     public void Render_Body_IncludesBrokerage()
     {
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAgentConfig(brokerage: "Century 21 Realty"));
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAccountConfig(brokerage: "Century 21 Realty"));
 
         body.Should().Contain("Century 21 Realty");
     }
@@ -236,7 +239,7 @@ public class BuyerListingEmailRendererTests
     [Fact]
     public void Render_Body_IncludesOptOutInstruction()
     {
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAgentConfig());
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAccountConfig());
 
         body.Should().ContainAny("UNSUBSCRIBE", "unsubscribe", "opt out", "opt-out");
     }
@@ -245,7 +248,7 @@ public class BuyerListingEmailRendererTests
     public void Render_Body_IncludesAgentOfficeAddress()
     {
         var (_, body) = BuyerListingEmailRenderer.Render(
-            "Jane", [MakeListing()], MakeAgentConfig(officeAddress: "999 Commerce Blvd, Suite 100, NJ 07001"));
+            "Jane", [MakeListing()], MakeAccountConfig(officeAddress: "999 Commerce Blvd, Suite 100, NJ 07001"));
 
         body.Should().Contain("999 Commerce Blvd, Suite 100, NJ 07001");
     }
@@ -253,11 +256,11 @@ public class BuyerListingEmailRendererTests
     [Fact]
     public void Render_Body_OmitsOfficeAddressLine_WhenNotSet()
     {
-        var config = new AgentConfig
+        var config = new AccountConfig
         {
-            Id       = "test-agent",
-            Identity = new AgentIdentity { Name = "Test Agent", Phone = "", Email = "" },
-            Location = new AgentLocation { State = "NJ" } // no OfficeAddress
+            Handle   = "test-agent",
+            Agent    = new AccountAgent { Name = "Test Agent", Phone = "", Email = "" },
+            Location = new AccountLocation { State = "NJ" } // no OfficeAddress
         };
 
         var act = () => BuyerListingEmailRenderer.Render("Jane", [MakeListing()], config);
@@ -270,7 +273,7 @@ public class BuyerListingEmailRendererTests
     [Fact]
     public void Render_ReturnsEmptyListingSection_WhenNoListings()
     {
-        var (subject, body) = BuyerListingEmailRenderer.Render("Jane", [], MakeAgentConfig());
+        var (subject, body) = BuyerListingEmailRenderer.Render("Jane", [], MakeAccountConfig());
 
         subject.Should().Contain("0");
         body.Should().Contain("Hi Jane");
@@ -281,7 +284,7 @@ public class BuyerListingEmailRendererTests
     [Fact]
     public void Render_HandlesMissingIdentity_Gracefully()
     {
-        var config = new AgentConfig { Id = "no-identity" }; // Identity is null
+        var config = new AccountConfig { Handle = "no-identity" }; // Agent is null
 
         var act = () => BuyerListingEmailRenderer.Render("Jane", [MakeListing()], config);
 
@@ -294,7 +297,7 @@ public class BuyerListingEmailRendererTests
         // Listing with Sqft = null exercises the false branch of l.Sqft.HasValue
         var listing = new Listing("45 Park Ave", "Princeton", "NJ", "08540", 390_000m, 3, 2m, null, null, null);
 
-        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAgentConfig());
+        var (_, body) = BuyerListingEmailRenderer.Render("Jane", [listing], MakeAccountConfig());
 
         // Should not contain "sqft" since the value is absent
         body.Should().NotContain("sqft");

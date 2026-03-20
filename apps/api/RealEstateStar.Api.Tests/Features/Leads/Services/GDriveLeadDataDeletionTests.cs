@@ -62,7 +62,7 @@ public class GDriveLeadDataDeletionTests
     {
         Id = Guid.NewGuid(),
         AgentId = AgentId,
-        LeadTypes = ["buying"],
+        LeadType = LeadType.Buyer,
         FirstName = firstName,
         LastName = lastName,
         Email = email,
