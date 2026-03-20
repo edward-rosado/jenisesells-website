@@ -78,8 +78,8 @@ public class GDriveLeadStoreTests
 
         Assert.NotNull(capturedContent);
         Assert.Contains($"leadId: {lead.Id}", capturedContent);
-        Assert.Contains("firstName: Jane", capturedContent);
-        Assert.Contains("lastName: Doe", capturedContent);
+        Assert.Contains("firstName: \"Jane\"", capturedContent);
+        Assert.Contains("lastName: \"Doe\"", capturedContent);
     }
 
     // ── UpdateEnrichmentAsync ────────────────────────────────────────────────

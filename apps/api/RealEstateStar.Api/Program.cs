@@ -181,8 +181,13 @@ builder.Services.AddSingleton<IDeletionAuditLog, DeletionAuditLog>();
 builder.Services.AddSingleton<ILeadNotifier, MultiChannelLeadNotifier>();
 
 // Lead enrichment — typed HttpClient with Polly resilience
-builder.Services.AddHttpClient<ScraperLeadEnricher>();
-builder.Services.AddSingleton<ILeadEnricher>(sp => sp.GetRequiredService<ScraperLeadEnricher>());
+builder.Services.AddHttpClient(nameof(ScraperLeadEnricher));
+builder.Services.AddSingleton<ILeadEnricher>(sp =>
+{
+    var factory = sp.GetRequiredService<IHttpClientFactory>();
+    var logger = sp.GetRequiredService<ILogger<ScraperLeadEnricher>>();
+    return new ScraperLeadEnricher(factory, anthropicKey, scraperApiKey ?? "", logger);
+});
 
 // Home search — scraper-based
 builder.Services.AddHttpClient<ScraperHomeSearchProvider>();

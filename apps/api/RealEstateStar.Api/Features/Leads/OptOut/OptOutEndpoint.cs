@@ -1,4 +1,6 @@
+using System.ComponentModel.DataAnnotations;
 using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Api.Infrastructure;
 
 namespace RealEstateStar.Api.Features.Leads.OptOut;
@@ -17,6 +19,10 @@ public class OptOutEndpoint : IEndpoint
         HttpContext httpContext,
         CancellationToken ct)
     {
+        var requestValidation = new List<ValidationResult>();
+        if (!Validator.TryValidateObject(request, new ValidationContext(request), requestValidation, true))
+            return Results.ValidationProblem(SubmitLeadEndpoint.GroupValidationErrors(requestValidation));
+
         var lead = await leadStore.GetByEmailAsync(agentId, request.Email, ct);
 
         // Always return 200 — no email enumeration.

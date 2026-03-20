@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Configuration;
 using RealEstateStar.Api.Features.Leads.Services;
 using RealEstateStar.Api.Infrastructure;
@@ -22,9 +24,15 @@ public class PollDriveChangesEndpoint : IEndpoint
         var expectedToken = config["InternalApiToken"];
         var authHeader = httpContext.Request.Headers.Authorization.ToString();
 
-        if (string.IsNullOrEmpty(expectedToken)
-            || !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
-            || authHeader["Bearer ".Length..] != expectedToken)
+        var providedToken = authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+            ? authHeader["Bearer ".Length..]
+            : null;
+        var tokensEqual = !string.IsNullOrEmpty(expectedToken)
+            && !string.IsNullOrEmpty(providedToken)
+            && CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(providedToken),
+                Encoding.UTF8.GetBytes(expectedToken));
+        if (!tokensEqual)
         {
             return Results.Unauthorized();
         }

@@ -24,14 +24,14 @@ public static partial class LeadMarkdownRenderer
         sb.AppendLine($"homeSearchId: {lead.HomeSearchId?.ToString() ?? ""}");
         sb.AppendLine();
         sb.AppendLine("# === Indexable ===");
-        sb.AppendLine($"firstName: {lead.FirstName}");
-        sb.AppendLine($"lastName: {lead.LastName}");
-        sb.AppendLine($"email: {lead.Email}");
-        sb.AppendLine($"phone: {lead.Phone}");
+        sb.AppendLine($"firstName: \"{EscapeYaml(lead.FirstName)}\"");
+        sb.AppendLine($"lastName: \"{EscapeYaml(lead.LastName)}\"");
+        sb.AppendLine($"email: \"{EscapeYaml(lead.Email)}\"");
+        sb.AppendLine($"phone: \"{EscapeYaml(lead.Phone)}\"");
         sb.AppendLine($"leadTypes: [{string.Join(", ", lead.LeadTypes)}]");
-        sb.AppendLine($"timeline: {lead.Timeline}");
-        sb.AppendLine($"city: {city}");
-        sb.AppendLine($"state: {state}");
+        sb.AppendLine($"timeline: \"{EscapeYaml(lead.Timeline)}\"");
+        sb.AppendLine($"city: \"{EscapeYaml(city)}\"");
+        sb.AppendLine($"state: \"{EscapeYaml(state)}\"");
         sb.AppendLine($"tags: [{string.Join(", ", tags)}]");
         sb.AppendLine("---");
         sb.AppendLine();
@@ -255,6 +255,9 @@ public static partial class LeadMarkdownRenderer
             sb.AppendLine($"- {item}");
         sb.AppendLine();
     }
+
+    internal static string EscapeYaml(string? value) =>
+        value?.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r") ?? "";
 
     [GeneratedRegex(@"^\(\d{3}\) \d{3}-\d{4}$")]
     private static partial Regex AlreadyFormattedPhone();

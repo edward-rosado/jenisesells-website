@@ -7,7 +7,8 @@ namespace RealEstateStar.Api.Features.Leads.RetryFailed;
 public class RetryFailedLeadsEndpoint : IEndpoint
 {
     public void MapEndpoint(WebApplication app) =>
-        app.MapPost("/agents/{agentId}/leads/retry-failed", Handle);
+        app.MapPost("/agents/{agentId}/leads/retry-failed", Handle)
+            .RequireRateLimiting("lead-create");
 
     internal static async Task<IResult> Handle(
         string agentId,
