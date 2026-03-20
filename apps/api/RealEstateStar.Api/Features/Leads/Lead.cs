@@ -19,6 +19,8 @@ public class Lead
     public LeadScore? Score { get; set; }
     public Guid? CmaJobId { get; set; }
     public Guid? HomeSearchId { get; set; }
+    public string? ConsentToken { get; set; }
+    public bool? MarketingOptedIn { get; set; }
 
     public string FullName => $"{FirstName} {LastName}";
 }

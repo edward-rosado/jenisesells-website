@@ -12,4 +12,6 @@ public record MarketingConsent
     public required string IpAddress { get; init; }
     public required string UserAgent { get; init; }
     public required DateTime Timestamp { get; init; }
+    public string? Action { get; init; }
+    public string? Source { get; init; }
 }
