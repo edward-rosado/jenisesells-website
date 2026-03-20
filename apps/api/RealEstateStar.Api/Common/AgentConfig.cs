@@ -96,6 +96,9 @@ public class AgentIntegrations
 
     [JsonPropertyName("form_handler_id")]
     public string? FormHandlerId { get; init; }
+
+    [JsonPropertyName("chat_webhook_url")]
+    public string? ChatWebhookUrl { get; init; }
 }
 
 public class AgentCompliance
