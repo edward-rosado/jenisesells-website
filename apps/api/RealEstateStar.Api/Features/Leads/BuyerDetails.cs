@@ -1,0 +1,12 @@
+namespace RealEstateStar.Api.Features.Leads;
+
+public record BuyerDetails
+{
+    public required string City { get; init; }
+    public required string State { get; init; }
+    public decimal? MaxBudget { get; init; }
+    public int? Bedrooms { get; init; }
+    public int? Bathrooms { get; init; }
+    public List<string>? PropertyTypes { get; init; }
+    public List<string>? MustHaves { get; init; }
+}
