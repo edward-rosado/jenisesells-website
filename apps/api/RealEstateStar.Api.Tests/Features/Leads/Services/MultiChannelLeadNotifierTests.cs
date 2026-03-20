@@ -14,6 +14,7 @@ public class MultiChannelLeadNotifierTests
 {
     private readonly Mock<IWhatsAppNotifier> _whatsApp = new();
     private readonly Mock<IEmailNotifier> _email = new();
+    private readonly Mock<IConversationLogger> _conversationLogger = new();
     private readonly Mock<IAgentConfigService> _configService = new();
     private readonly Mock<ILogger<MultiChannelLeadNotifier>> _log = new();
     private readonly MultiChannelLeadNotifier _sut;
@@ -25,6 +26,7 @@ public class MultiChannelLeadNotifierTests
         _sut = new MultiChannelLeadNotifier(
             _whatsApp.Object,
             _email.Object,
+            _conversationLogger.Object,
             _configService.Object,
             _log.Object);
     }
@@ -55,89 +57,121 @@ public class MultiChannelLeadNotifierTests
         };
 
     // -------------------------------------------------------------------------
-    // Test 1: WhatsApp opted in → NotifyAsync called with correct params
+    // WhatsApp succeeds → email NOT sent, file storage NOT used
     // -------------------------------------------------------------------------
     [Fact]
-    public async Task NotifyAgentAsync_SendsWhatsApp_WhenOptedIn()
+    public async Task NotifyAgentAsync_WhatsAppSucceeds_EmailAndFileStorageNotUsed()
     {
-        var config = MakeConfig(whatsAppOptedIn: true);
         _configService
             .Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(config);
-
-        var lead = MakeLead();
-        using var cts = new CancellationTokenSource();
-
-        await _sut.NotifyAgentAsync(AgentId, lead, cts.Token);
-
-        _whatsApp.Verify(w => w.NotifyAsync(
-            AgentId,
-            NotificationType.NewLead,
-            lead.Name,
-            It.IsAny<Dictionary<string, string>>(),
-            cts.Token), Times.Once);
-    }
-
-    // -------------------------------------------------------------------------
-    // Test 2: WhatsApp not opted in → NotifyAsync never called
-    // -------------------------------------------------------------------------
-    [Fact]
-    public async Task NotifyAgentAsync_SkipsWhatsApp_WhenNotOptedIn()
-    {
-        var config = MakeConfig(whatsAppOptedIn: false);
-        _configService
-            .Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(config);
+            .ReturnsAsync(MakeConfig(whatsAppOptedIn: true));
 
         await _sut.NotifyAgentAsync(AgentId, MakeLead(), CancellationToken.None);
 
         _whatsApp.Verify(w => w.NotifyAsync(
-            It.IsAny<string>(),
-            It.IsAny<NotificationType>(),
-            It.IsAny<string?>(),
+            AgentId, NotificationType.NewLead, "Jane Smith",
             It.IsAny<Dictionary<string, string>>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        _email.Verify(e => e.SendLeadNotificationAsync(
+            It.IsAny<string>(), It.IsAny<LeadNotification>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+
+        _conversationLogger.Verify(c => c.LogMessagesAsync(
+            It.IsAny<string>(), It.IsAny<string?>(),
+            It.IsAny<List<(DateTime, string, string, string?)>>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // -------------------------------------------------------------------------
-    // Test 3: WhatsApp throws → email still sent (non-fatal failure)
+    // WhatsApp not opted in → falls back to email, no file storage
     // -------------------------------------------------------------------------
     [Fact]
-    public async Task NotifyAgentAsync_WhatsAppFailure_DoesNotBlockEmail()
+    public async Task NotifyAgentAsync_WhatsAppNotOptedIn_FallsBackToEmail()
     {
-        var config = MakeConfig(whatsAppOptedIn: true);
         _configService
             .Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(config);
+            .ReturnsAsync(MakeConfig(whatsAppOptedIn: false));
+
+        var lead = MakeLead();
+        await _sut.NotifyAgentAsync(AgentId, lead, CancellationToken.None);
+
+        _email.Verify(e => e.SendLeadNotificationAsync(
+            AgentId, lead, It.IsAny<CancellationToken>()), Times.Once);
+
+        _conversationLogger.Verify(c => c.LogMessagesAsync(
+            It.IsAny<string>(), It.IsAny<string?>(),
+            It.IsAny<List<(DateTime, string, string, string?)>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // -------------------------------------------------------------------------
+    // WhatsApp fails → falls back to email, no file storage
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAgentAsync_WhatsAppFails_FallsBackToEmail()
+    {
+        _configService
+            .Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeConfig(whatsAppOptedIn: true));
 
         _whatsApp
             .Setup(w => w.NotifyAsync(
-                It.IsAny<string>(),
-                It.IsAny<NotificationType>(),
-                It.IsAny<string?>(),
-                It.IsAny<Dictionary<string, string>>(),
+                It.IsAny<string>(), It.IsAny<NotificationType>(),
+                It.IsAny<string?>(), It.IsAny<Dictionary<string, string>>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("WhatsApp API timeout"));
 
         var lead = MakeLead();
-        using var cts = new CancellationTokenSource();
+        await _sut.NotifyAgentAsync(AgentId, lead, CancellationToken.None);
 
-        // Must not throw
-        Func<Task> act = () => _sut.NotifyAgentAsync(AgentId, lead, cts.Token);
-        await act.Should().NotThrowAsync();
-
-        // Email channel must still be called
         _email.Verify(e => e.SendLeadNotificationAsync(
-            AgentId,
-            lead,
-            cts.Token), Times.Once);
+            AgentId, lead, It.IsAny<CancellationToken>()), Times.Once);
+
+        _conversationLogger.Verify(c => c.LogMessagesAsync(
+            It.IsAny<string>(), It.IsAny<string?>(),
+            It.IsAny<List<(DateTime, string, string, string?)>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // -------------------------------------------------------------------------
-    // Test 4: No WhatsApp config → skip without error
+    // Both WhatsApp and email fail → falls back to file storage
     // -------------------------------------------------------------------------
     [Fact]
-    public async Task NotifyAgentAsync_SkipsWhatsApp_WhenNoWhatsAppConfig()
+    public async Task NotifyAgentAsync_BothFail_FallsBackToFileStorage()
+    {
+        _configService
+            .Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeConfig(whatsAppOptedIn: true));
+
+        _whatsApp
+            .Setup(w => w.NotifyAsync(
+                It.IsAny<string>(), It.IsAny<NotificationType>(),
+                It.IsAny<string?>(), It.IsAny<Dictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("WhatsApp down"));
+
+        _email
+            .Setup(e => e.SendLeadNotificationAsync(
+                It.IsAny<string>(), It.IsAny<LeadNotification>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("SMTP down"));
+
+        var lead = MakeLead();
+        Func<Task> act = () => _sut.NotifyAgentAsync(AgentId, lead, CancellationToken.None);
+        await act.Should().NotThrowAsync();
+
+        _conversationLogger.Verify(c => c.LogMessagesAsync(
+            AgentId, lead.Name,
+            It.IsAny<List<(DateTime, string, string, string?)>>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // WhatsApp not configured + email fails → falls back to file storage
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAgentAsync_NoWhatsAppAndEmailFails_FallsBackToFileStorage()
     {
         var config = new AgentConfig
         {
@@ -148,80 +182,111 @@ public class MultiChannelLeadNotifierTests
             .Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
 
-        await _sut.NotifyAgentAsync(AgentId, MakeLead(), CancellationToken.None);
+        _email
+            .Setup(e => e.SendLeadNotificationAsync(
+                It.IsAny<string>(), It.IsAny<LeadNotification>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("SMTP down"));
 
-        _whatsApp.Verify(w => w.NotifyAsync(
-            It.IsAny<string>(),
-            It.IsAny<NotificationType>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, string>>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        var lead = MakeLead();
+        Func<Task> act = () => _sut.NotifyAgentAsync(AgentId, lead, CancellationToken.None);
+        await act.Should().NotThrowAsync();
+
+        _conversationLogger.Verify(c => c.LogMessagesAsync(
+            AgentId, lead.Name,
+            It.IsAny<List<(DateTime, string, string, string?)>>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // -------------------------------------------------------------------------
-    // Test 5: Config load failure → log error, continue (email still attempted)
+    // All three channels fail → logged, does not throw
     // -------------------------------------------------------------------------
     [Fact]
-    public async Task NotifyAgentAsync_ConfigLoadFailure_LogsAndContinues()
+    public async Task NotifyAgentAsync_AllChannelsFail_DoesNotThrow()
     {
         _configService
             .Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new IOException("Config file unavailable"));
+            .ReturnsAsync(MakeConfig(whatsAppOptedIn: true));
 
-        var lead = MakeLead();
-        using var cts = new CancellationTokenSource();
+        _whatsApp
+            .Setup(w => w.NotifyAsync(
+                It.IsAny<string>(), It.IsAny<NotificationType>(),
+                It.IsAny<string?>(), It.IsAny<Dictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("WhatsApp down"));
 
-        Func<Task> act = () => _sut.NotifyAgentAsync(AgentId, lead, cts.Token);
+        _email
+            .Setup(e => e.SendLeadNotificationAsync(
+                It.IsAny<string>(), It.IsAny<LeadNotification>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("SMTP down"));
+
+        _conversationLogger
+            .Setup(c => c.LogMessagesAsync(
+                It.IsAny<string>(), It.IsAny<string?>(),
+                It.IsAny<List<(DateTime, string, string, string?)>>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Drive down"));
+
+        Func<Task> act = () => _sut.NotifyAgentAsync(AgentId, MakeLead(), CancellationToken.None);
         await act.Should().NotThrowAsync();
-
-        // WhatsApp skipped (no config), email still attempted
-        _email.Verify(e => e.SendLeadNotificationAsync(
-            AgentId,
-            lead,
-            cts.Token), Times.Once);
     }
 
     // -------------------------------------------------------------------------
-    // Test 6a: No Integrations section at all → WhatsApp skipped gracefully
-    // Covers the nullable chain branch where Integrations is null
+    // No Integrations at all → falls back to email
     // -------------------------------------------------------------------------
     [Fact]
-    public async Task NotifyAgentAsync_SkipsWhatsApp_WhenNoIntegrations()
+    public async Task NotifyAgentAsync_NoIntegrations_FallsBackToEmail()
     {
         var config = new AgentConfig { Id = AgentId, Integrations = null };
         _configService
             .Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(config);
 
-        await _sut.NotifyAgentAsync(AgentId, MakeLead(), CancellationToken.None);
+        var lead = MakeLead();
+        await _sut.NotifyAgentAsync(AgentId, lead, CancellationToken.None);
 
-        _whatsApp.Verify(w => w.NotifyAsync(
-            It.IsAny<string>(),
-            It.IsAny<NotificationType>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, string>>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        _email.Verify(e => e.SendLeadNotificationAsync(
+            AgentId, lead, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // -------------------------------------------------------------------------
-    // Test 6: Email channel throws → logged, does not propagate
+    // Config load failure → email still fires
     // -------------------------------------------------------------------------
     [Fact]
-    public async Task NotifyAgentAsync_EmailFailure_IsLogged_DoesNotThrow()
+    public async Task NotifyAgentAsync_ConfigLoadFailure_FallsBackToEmail()
     {
-        var config = MakeConfig(whatsAppOptedIn: false);
         _configService
             .Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(config);
+            .ThrowsAsync(new IOException("Config file unavailable"));
 
-        _email
-            .Setup(e => e.SendLeadNotificationAsync(
-                It.IsAny<string>(),
-                It.IsAny<LeadNotification>(),
-                It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new TimeoutException("SMTP timeout"));
-
-        Func<Task> act = () => _sut.NotifyAgentAsync(AgentId, MakeLead(), CancellationToken.None);
+        var lead = MakeLead();
+        Func<Task> act = () => _sut.NotifyAgentAsync(AgentId, lead, CancellationToken.None);
         await act.Should().NotThrowAsync();
+
+        _email.Verify(e => e.SendLeadNotificationAsync(
+            AgentId, lead, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
+    // Email fallback succeeds → file storage NOT used
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task NotifyAgentAsync_EmailSucceeds_FileStorageNotUsed()
+    {
+        _configService
+            .Setup(s => s.GetAgentAsync(AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeConfig(whatsAppOptedIn: false));
+
+        var lead = MakeLead();
+        await _sut.NotifyAgentAsync(AgentId, lead, CancellationToken.None);
+
+        _email.Verify(e => e.SendLeadNotificationAsync(
+            AgentId, lead, It.IsAny<CancellationToken>()), Times.Once);
+
+        _conversationLogger.Verify(c => c.LogMessagesAsync(
+            It.IsAny<string>(), It.IsAny<string?>(),
+            It.IsAny<List<(DateTime, string, string, string?)>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 }

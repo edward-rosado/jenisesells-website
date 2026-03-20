@@ -138,9 +138,23 @@ if (string.IsNullOrEmpty(whatsAppPhoneNumberId))
     Log.Warning("WhatsApp:PhoneNumberId not configured — WhatsApp notifications disabled");
 
 // ------------------------------------------------------------------
-// Storage provider (Drive integration — noop until wired up)
+// Storage provider — LocalFileStorageProvider for dev (writes to disk),
+// NoopFileStorageProvider for prod until Google Drive is wired up.
 // ------------------------------------------------------------------
-builder.Services.AddSingleton<IFileStorageProvider, NoopFileStorageProvider>();
+var fileStoragePath = builder.Configuration["FileStorage:BasePath"];
+if (!string.IsNullOrEmpty(fileStoragePath) || builder.Environment.IsDevelopment())
+{
+    var storagePath = fileStoragePath
+        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "real-estate-star", "storage");
+    builder.Services.AddSingleton<IFileStorageProvider>(sp =>
+        new LocalFileStorageProvider(storagePath,
+            sp.GetRequiredService<ILogger<LocalFileStorageProvider>>()));
+}
+else
+{
+    builder.Services.AddSingleton<IFileStorageProvider, NoopFileStorageProvider>();
+}
 
 // ------------------------------------------------------------------
 // Lead notification channel stubs (email — noop until email channel built)
