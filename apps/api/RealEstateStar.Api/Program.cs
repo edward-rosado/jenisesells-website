@@ -174,7 +174,7 @@ builder.Services.AddSingleton<IConversationHandler, ConversationHandler>();
 builder.Services.AddHttpClient("WhatsApp", client =>
 {
     client.BaseAddress = new Uri("https://graph.facebook.com/v20.0/");
-});
+}).AddWhatsAppResilience();
 
 if (!string.IsNullOrEmpty(whatsAppPhoneNumberId))
 {
