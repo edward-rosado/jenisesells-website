@@ -9,13 +9,13 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
 {
     public async Task<string> CreateDriveFolderAsync(string agentEmail, string folderPath, CancellationToken ct)
     {
-        logger?.LogInformation("Creating Drive folder {FolderPath} for {Email}", folderPath, agentEmail);
+        logger?.LogInformation("Creating Drive folder {FolderPath} for {AgentEmail}", folderPath, HashEmail(agentEmail));
         return await RunGwsAsync(ct, "drive", "mkdir", "--user", agentEmail, folderPath);
     }
 
     public async Task<string> UploadFileAsync(string agentEmail, string folderPath, string filePath, CancellationToken ct)
     {
-        logger?.LogInformation("Uploading {FilePath} to {FolderPath} for {Email}", filePath, folderPath, agentEmail);
+        logger?.LogInformation("Uploading {FilePath} to {FolderPath} for {AgentEmail}", filePath, folderPath, HashEmail(agentEmail));
         return await RunGwsAsync(ct, "drive", "upload", "--user", agentEmail, "--parent", folderPath, filePath);
     }
 
@@ -25,7 +25,7 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
         try
         {
             await File.WriteAllTextAsync(tempFile, content, ct);
-            logger?.LogInformation("Creating Doc '{Title}' in {FolderPath} for {Email}", title, folderPath, agentEmail);
+            logger?.LogInformation("Creating Doc '{Title}' in {FolderPath} for {AgentEmail}", title, folderPath, HashEmail(agentEmail));
             return await RunGwsAsync(ct, "docs", "create", "--user", agentEmail, "--parent", folderPath, "--title", title, "--body-file", tempFile);
         }
         finally
@@ -44,7 +44,7 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
 
     public async Task SendEmailAsync(string agentEmail, string to, string subject, string body, string? attachmentPath, CancellationToken ct)
     {
-        logger?.LogInformation("Sending email from {Email} to {To} subject '{Subject}'", agentEmail, to, subject);
+        logger?.LogInformation("Sending email from {AgentEmail} to {To} subject '{Subject}'", HashEmail(agentEmail), to, subject);
 
         var args = new List<string> { "gmail", "send", "--user", agentEmail, "--to", to, "--subject", subject, "--body", body };
 
@@ -60,7 +60,7 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
     public async Task AppendSheetRowAsync(string agentEmail, string spreadsheetId, List<string> values, CancellationToken ct)
     {
         var csv = string.Join(",", values.Select(v => $"\"{v.Replace("\"", "\"\"")}\""));
-        logger?.LogInformation("Appending row to sheet {SpreadsheetId} for {Email}", spreadsheetId, agentEmail);
+        logger?.LogInformation("Appending row to sheet {SpreadsheetId} for {AgentEmail}", spreadsheetId, HashEmail(agentEmail));
         await RunGwsAsync(ct, "sheets", "append", "--user", agentEmail, "--spreadsheet", spreadsheetId, "--values", csv);
     }
 
@@ -129,7 +129,7 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
         try
         {
             await File.WriteAllTextAsync(tempFile, content, ct);
-            logger?.LogInformation("Updating Doc '{FileName}' in {FolderPath} for {Email}", fileName, folder, agentEmail);
+            logger?.LogInformation("Updating Doc '{FileName}' in {FolderPath} for {AgentEmail}", fileName, folder, HashEmail(agentEmail));
             await RunGwsAsync(ct, "docs", "update", "--user", agentEmail, "--parent", folder, "--name", fileName, "--body-file", tempFile);
         }
         finally
@@ -148,13 +148,13 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
 
     public async Task DeleteDocAsync(string agentEmail, string folder, string fileName, CancellationToken ct)
     {
-        logger?.LogInformation("Deleting Doc '{FileName}' in {FolderPath} for {Email}", fileName, folder, agentEmail);
+        logger?.LogInformation("Deleting Doc '{FileName}' in {FolderPath} for {AgentEmail}", fileName, folder, HashEmail(agentEmail));
         await RunGwsAsync(ct, "drive", "delete", "--user", agentEmail, "--parent", folder, "--name", fileName);
     }
 
     public async Task<List<string>> ListFilesAsync(string agentEmail, string folder, CancellationToken ct)
     {
-        logger?.LogInformation("Listing files in {FolderPath} for {Email}", folder, agentEmail);
+        logger?.LogInformation("Listing files in {FolderPath} for {AgentEmail}", folder, HashEmail(agentEmail));
         var output = await RunGwsAsync(ct, "drive", "list", "--user", agentEmail, "--parent", folder, "--format", "names");
         return output
             .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -163,7 +163,7 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
 
     public async Task<List<List<string>>> ReadSheetAsync(string agentEmail, string sheetName, CancellationToken ct)
     {
-        logger?.LogInformation("Reading sheet {SheetName} for {Email}", sheetName, agentEmail);
+        logger?.LogInformation("Reading sheet {SheetName} for {AgentEmail}", sheetName, HashEmail(agentEmail));
         var output = await RunGwsAsync(ct, "sheets", "read", "--user", agentEmail, "--spreadsheet", sheetName, "--format", "csv");
         return output
             .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -173,9 +173,16 @@ public class GwsService(ILogger<GwsService>? logger = null) : IGwsService
 
     public async Task UpdateSheetRowsAsync(string agentEmail, string sheetName, string filterColumn, string filterValue, string replacementValue, CancellationToken ct)
     {
-        logger?.LogInformation("Updating rows in sheet {SheetName} for {Email}", sheetName, agentEmail);
+        logger?.LogInformation("Updating rows in sheet {SheetName} for {AgentEmail}", sheetName, HashEmail(agentEmail));
         await RunGwsAsync(ct, "sheets", "update-rows", "--user", agentEmail, "--spreadsheet", sheetName,
             "--filter-column", filterColumn, "--filter-value", filterValue, "--replacement", replacementValue);
+    }
+
+    private static string HashEmail(string email)
+    {
+        var bytes = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(email.Trim().ToLowerInvariant()));
+        return Convert.ToHexString(bytes)[..12].ToLowerInvariant();
     }
 
     // --- Static helper methods (testable without gws installed) ---

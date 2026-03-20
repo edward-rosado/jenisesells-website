@@ -238,7 +238,7 @@ public class BuyerListingEmailRendererTests
     {
         var (_, body) = BuyerListingEmailRenderer.Render("Jane", [MakeListing()], MakeAgentConfig());
 
-        body.Should().ContainAny("UNSUBSCRIBE", "unsubscribe", "opt out");
+        body.Should().ContainAny("UNSUBSCRIBE", "unsubscribe", "opt out", "opt-out");
     }
 
     [Fact]
@@ -275,7 +275,7 @@ public class BuyerListingEmailRendererTests
         subject.Should().Contain("0");
         body.Should().Contain("Hi Jane");
         // Should still include footer
-        body.Should().ContainAny("UNSUBSCRIBE", "unsubscribe", "opt out");
+        body.Should().ContainAny("UNSUBSCRIBE", "unsubscribe", "opt out", "opt-out");
     }
 
     [Fact]

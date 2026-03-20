@@ -25,7 +25,8 @@ public class DeletionAuditLogTests
                 r.Count >= 5 &&
                 r[1] == "agent1" &&
                 r[2] == leadId.ToString() &&
-                r[3] == "john@test.com" &&
+                r[3] != "john@test.com" &&   // email must be hashed, not stored in plain text
+                r[3].Length == 12 &&          // 12-char truncated SHA-256 hex
                 r[4] == "initiated"),
             It.IsAny<CancellationToken>()), Times.Once);
     }

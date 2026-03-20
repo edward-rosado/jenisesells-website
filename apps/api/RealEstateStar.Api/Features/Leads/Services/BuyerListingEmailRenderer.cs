@@ -30,7 +30,11 @@ public static class BuyerListingEmailRenderer
         var agentPhone   = config.Identity?.Phone ?? "";
         var agentEmail   = config.Identity?.Email ?? "";
         var brokerage    = config.Identity?.Brokerage ?? "";
-        var officeAddress = config.Location?.OfficeAddress ?? "";
+        var officeAddress = config.Location?.OfficeAddress;
+        if (string.IsNullOrWhiteSpace(officeAddress))
+        {
+            officeAddress = config.Identity?.Brokerage ?? "Address not available";
+        }
 
         var sb = new StringBuilder();
 
