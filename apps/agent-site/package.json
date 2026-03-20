@@ -15,8 +15,6 @@
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
-    "@grafana/faro-web-sdk": "^2.3.1",
-    "@grafana/faro-web-tracing": "^2.3.1",
     "@marsidev/react-turnstile": "^1.4.2",
     "@opennextjs/cloudflare": "^1.0.0",
     "@real-estate-star/shared-types": "*",
