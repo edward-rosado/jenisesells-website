@@ -59,10 +59,4 @@ public static class LeadMappers
         return (city, state);
     }
 
-    public static Dictionary<string, string> FromFrontmatter(Dictionary<string, string> frontmatter)
-    {
-        // Reconstruct a Lead from frontmatter dictionary (for Drive change monitor).
-        // Returns the raw frontmatter as-is — callers map fields by key convention.
-        return new Dictionary<string, string>(frontmatter, StringComparer.OrdinalIgnoreCase);
-    }
 }

@@ -1,5 +1,5 @@
 "use client";
-import { useHealthCheck, type FetchState, type HealthResponse } from "./useHealthCheck";
+import { useHealthCheck } from "./useHealthCheck";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "https://api.real-estate-star.com";
