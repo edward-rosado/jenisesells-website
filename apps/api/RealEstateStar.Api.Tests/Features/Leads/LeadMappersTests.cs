@@ -99,6 +99,35 @@ public class LeadMappersTests
     }
 
     [Fact]
+    public void ToLead_MapsBuyer_MapsAllFields()
+    {
+        var lead = MakeRequest().ToLead("agent-1");
+
+        Assert.NotNull(lead.BuyerDetails);
+        Assert.Equal(300_000m, lead.BuyerDetails.MinBudget);
+        Assert.Equal(500_000m, lead.BuyerDetails.MaxBudget);
+        Assert.Equal(3, lead.BuyerDetails.Bedrooms);
+        Assert.Equal(2, lead.BuyerDetails.Bathrooms);
+        Assert.Equal("yes", lead.BuyerDetails.PreApproved);
+        Assert.Equal(480_000m, lead.BuyerDetails.PreApprovalAmount);
+    }
+
+    [Fact]
+    public void ToLead_MapsSeller_MapsAllFields()
+    {
+        var lead = MakeRequest().ToLead("agent-1");
+
+        Assert.NotNull(lead.SellerDetails);
+        Assert.Equal("123 Main St", lead.SellerDetails.Address);
+        Assert.Equal("Kill Devil Hills", lead.SellerDetails.City);
+        Assert.Equal("NC", lead.SellerDetails.State);
+        Assert.Equal("27948", lead.SellerDetails.Zip);
+        Assert.Equal(4, lead.SellerDetails.Beds);
+        Assert.Equal(2, lead.SellerDetails.Baths);
+        Assert.Equal(1800, lead.SellerDetails.Sqft);
+    }
+
+    [Fact]
     public void ToLead_MapsBuyer_ParsesCityStateFromDesiredArea()
     {
         var lead = MakeRequest(desiredArea: "Kill Devil Hills, NC").ToLead("agent-1");

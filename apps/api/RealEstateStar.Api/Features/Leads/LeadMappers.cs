@@ -26,7 +26,10 @@ public static class LeadMappers
         Address = s.Address,
         City = s.City,
         State = s.State,
-        Zip = s.Zip
+        Zip = s.Zip,
+        Beds = s.Beds,
+        Baths = s.Baths,
+        Sqft = s.Sqft
     };
 
     private static BuyerDetails MapBuyer(BuyerDetailsRequest b)
@@ -36,9 +39,12 @@ public static class LeadMappers
         {
             City = city,
             State = state,
+            MinBudget = b.MinPrice,
             MaxBudget = b.MaxPrice,
             Bedrooms = b.MinBeds,
-            Bathrooms = b.MinBaths
+            Bathrooms = b.MinBaths,
+            PreApproved = b.PreApproved,
+            PreApprovalAmount = b.PreApprovalAmount
         };
     }
 
