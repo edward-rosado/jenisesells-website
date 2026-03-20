@@ -37,8 +37,19 @@ describe("DeleteRequestForm", () => {
 
   it("does not submit when email is whitespace only", async () => {
     render(<DeleteRequestForm agentId="test" initialEmail="   " />);
-    fireEvent.submit(screen.getByRole("button", { name: /submit deletion request/i }));
+    // Use fireEvent.submit on the form element directly to bypass disabled button
+    const form = screen.getByRole("button", { name: /submit deletion request/i }).closest("form")!;
+    fireEvent.submit(form);
     expect(mockRequestDeletion).not.toHaveBeenCalled();
+  });
+
+  it("trims email before submitting", async () => {
+    mockRequestDeletion.mockResolvedValue({ ok: true });
+    render(<DeleteRequestForm agentId="test" initialEmail="  user@example.com  " />);
+    fireEvent.submit(screen.getByRole("button", { name: /submit deletion request/i }));
+    await waitFor(() => {
+      expect(mockRequestDeletion).toHaveBeenCalledWith("test", "user@example.com");
+    });
   });
 
   it("shows success state after successful submission", async () => {
