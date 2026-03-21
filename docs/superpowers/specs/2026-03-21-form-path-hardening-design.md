@@ -13,44 +13,70 @@ Harden the lead form submission path — from the UI component through the API, 
 
 ## Architecture Overview
 
+### End-to-End Form Submission Flow
+
+```mermaid
+flowchart TD
+    User["User fills form"] --> LeadForm["LeadForm Component"]
+
+    subgraph Frontend ["Frontend — Agent Site"]
+        LeadForm --> CmaSection["CmaSection"]
+        CmaSection --> SubmitLead["submit-lead server action"]
+        LeadForm -->|"form events"| GA4["gtag - GA4<br/>Agent BYOA"]
+        LeadForm -->|"form events"| Telemetry["POST /telemetry<br/>Grafana funnel"]
+        SubmitLead -->|"errors"| Sentry["Sentry<br/>Error tracking"]
+    end
+
+    SubmitLead -->|"HMAC-signed POST"| HMAC["ApiKeyHmacMiddleware"]
+
+    subgraph Backend ["Backend — API"]
+        HMAC --> Endpoint["SubmitLeadEndpoint<br/>OTel span: lead.submit"]
+        Endpoint --> Save["LeadStore.SaveAsync<br/>Google Drive"]
+        Endpoint --> Consent["ConsentLog<br/>Triple-layer write"]
+        Endpoint --> Channel["LeadProcessingChannel"]
+
+        Consent --> AgentDrive["Agent Drive CSV<br/>+ HMAC signature"]
+        Consent --> ComplianceDrive["RE* Service-Account Drive<br/>Untouchable backup"]
+        Consent --> AzureTable["Azure Table Storage<br/>Legal proof"]
+
+        Channel --> Worker["LeadProcessingWorker"]
+        Worker --> Enrich["Enrichment<br/>Claude + Scraper"]
+        Worker --> Notify["Notification<br/>Retry 3x w/ backoff"]
+        Worker --> CMA["CMA dispatch"]
+        Worker --> HomeSearch["Home search dispatch"]
+    end
+
+    Notify -.->|"all 3 fail"| DLQ["Dead Letter<br/>Azure Table"]
 ```
-                        ┌─────────────────────────────────────────────┐
-                        │              FRONTEND (Agent Site)           │
-                        │                                             │
-  User fills form ───►  │  LeadForm ──► CmaSection ──► submit-lead   │
-                        │     │              │              │          │
-                        │     │ GA4 events   │ Sentry       │ /telemetry
-                        │     ▼              ▼              ▼          │
-                        │  gtag()      breadcrumbs    POST /telemetry │
-                        │  (agent's    (RE* ops)      ──► OTel ──►   │
-                        │   GA4)                       Grafana        │
-                        └──────────────────────┬──────────────────────┘
-                                               │ HMAC-signed POST
-                                               ▼
-                        ┌─────────────────────────────────────────────┐
-                        │              BACKEND (API)                   │
-                        │                                             │
-                        │  ApiKeyHmacMiddleware                       │
-                        │       │                                     │
-                        │       ▼                                     │
-                        │  SubmitLeadEndpoint (new OTel span)         │
-                        │       │                                     │
-                        │       ├──► LeadStore.SaveAsync (Drive)      │
-                        │       │                                     │
-                        │       ├──► ConsentLog (triple-layer write)  │
-                        │       │     ├─ Agent Drive CSV + HMAC sig   │
-                        │       │     ├─ RE* service-account Drive    │
-                        │       │     └─ Azure Table Storage          │
-                        │       │                                     │
-                        │       └──► LeadProcessingChannel            │
-                        │              │                              │
-                        │              ▼                              │
-                        │  LeadProcessingWorker                       │
-                        │       ├─ Enrichment (Claude + Scraper)      │
-                        │       ├─ Notification (retry 3x w/ backoff) │
-                        │       ├─ CMA dispatch                       │
-                        │       └─ Home search dispatch               │
-                        └─────────────────────────────────────────────┘
+
+### Observability Architecture
+
+```mermaid
+flowchart LR
+    subgraph AgentOwned ["Agent-Owned"]
+        GA4A["GA4<br/>Campaign analytics<br/>UTM tracking"]
+    end
+
+    subgraph PlatformOwned ["Platform-Owned — Eddie Monitors"]
+        Sentry2["Sentry<br/>JS errors<br/>Fetch timeouts"]
+        Grafana["Grafana Cloud<br/>Funnel metrics<br/>Pipeline health"]
+    end
+
+    subgraph Sources ["Event Sources"]
+        FormUI["Form UI Events"]
+        ServerAction["Server Actions"]
+        APIEndpoint["API Endpoints"]
+        Workers2["Background Workers"]
+    end
+
+    FormUI -->|"gtag events"| GA4A
+    FormUI -->|"POST /telemetry"| Grafana
+    ServerAction -->|"breadcrumbs"| Sentry2
+    APIEndpoint -->|"OTel spans + counters"| Grafana
+    Workers2 -->|"OTel spans + counters"| Grafana
+
+    Grafana -->|"alerts"| Slack["Slack"]
+    Sentry2 -->|"alerts"| Slack
 ```
 
 ---
@@ -92,6 +118,30 @@ Every consent event (opt-in, opt-out, re-subscribe) writes to three destinations
 | Agent Drive CSV | Agent | Transparency — agent sees all consent activity | Agent read/write (existing behavior) |
 | RE* service-account Drive | Real Estate Star | Recoverability — untouchable backup | Service account only, agent has no access |
 | Azure Table Storage | Real Estate Star | Legal proof — queryable, structured | RE* Azure credentials only |
+
+### Consent Write Flow
+
+```mermaid
+flowchart TD
+    Event["Consent Event<br/>opt-in / opt-out / re-subscribe"]
+    Event --> HMAC["Compute HMAC-SHA256<br/>over all row columns"]
+
+    HMAC --> Write1["Write to Agent Drive CSV<br/>+ HMAC signature column"]
+    HMAC --> Write2["Write to RE* Service-Account Drive<br/>Same CSV format"]
+    HMAC --> Write3["Write to Azure Table Storage<br/>EmailHash only, no raw PII"]
+
+    Write1 -->|"success"| Done["Request succeeds"]
+    Write2 -->|"failure"| Warn1["Log CONSENT-011<br/>Grafana alert"]
+    Write3 -->|"failure"| Warn2["Log CONSENT-010<br/>Grafana alert"]
+    Warn1 --> Done
+    Warn2 --> Done
+
+    style Write1 fill:#c8e6c9
+    style Write2 fill:#bbdefb
+    style Write3 fill:#bbdefb
+    style Warn1 fill:#fff9c4
+    style Warn2 fill:#fff9c4
+```
 
 ### Agent Drive CSV (enhanced)
 
@@ -165,6 +215,21 @@ The RE* compliance folder is written using a Google service account that the age
 
 ### Consent Token (Email Footer Links)
 
+```mermaid
+flowchart LR
+    Create["Lead Created<br/>SubmitLeadEndpoint"] -->|"generate 128-bit token"| Hash["SHA-256 hash"]
+    Hash --> Store1["Lead Profile<br/>consent_token_hash field"]
+    Hash --> Store2["Azure Table<br/>ConsentTokens table"]
+    Create -->|"raw token"| Embed["Embed in<br/>email footer links"]
+
+    Embed --> OptOut["Opt-out link"]
+    Embed --> ViewData["View My Data link"]
+    Embed --> Delete["Delete My Data link"]
+
+    OptOut -->|"on click"| Revoke["Revoke token<br/>Delete hash from profile<br/>Delete Azure Table entry"]
+    Delete -->|"on click"| Deletion["Initiate 24-hour<br/>deletion token flow"]
+```
+
 Email footer links (opt-out, view data) embed a **consent token** — a long-lived token separate from the 24-hour deletion token.
 
 - **Lifetime:** 1 year (consent relationships are long-lived; tokens can be revoked on opt-out)
@@ -177,6 +242,49 @@ Email footer links (opt-out, view data) embed a **consent token** — a long-liv
 - **Frontmatter update:** Add `consent_token_hash` field to lead profile YAML frontmatter via `LeadMarkdownRenderer`. `YamlFrontmatterParser` reads it back for consistency checks.
 
 ### Architecture Placement
+
+```mermaid
+flowchart TD
+    subgraph Domain ["RealEstateStar.Domain"]
+        IConsent["IConsentAuditService"]
+        ICompliance["IComplianceGwsService"]
+        IFailed["IFailedNotificationStore"]
+        IExport["ILeadDataExport"]
+        ITemplate["IEmailTemplateRenderer"]
+        Enums["ConsentAction / ConsentSource"]
+    end
+
+    subgraph DataServices ["RealEstateStar.DataServices"]
+        AzureConsent["AzureConsentAuditService"]
+        CompWriter["ComplianceConsentWriter"]
+        AzureFailed["AzureFailedNotificationStore"]
+        GDriveExport["GDriveLeadDataExport"]
+        HmacOpts["ConsentHmacOptions"]
+    end
+
+    subgraph ClientsGws ["RealEstateStar.Clients.Gws"]
+        CompClient["ComplianceGwsClient"]
+    end
+
+    subgraph Notifications ["RealEstateStar.Notifications"]
+        Templates["Templates/"]
+    end
+
+    subgraph Api ["RealEstateStar.Api"]
+        Telemetry["RecordTelemetryEndpoint"]
+        ExportEP["ExportDataEndpoint"]
+        AccessEP["AccessDataEndpoint"]
+        DI["Program.cs — DI wiring"]
+    end
+
+    DataServices --> Domain
+    ClientsGws --> Domain
+    Notifications --> Domain
+    Api --> Domain
+    Api --> DataServices
+    Api --> ClientsGws
+    Api --> Notifications
+```
 
 Following the single-Domain-dependency rule and the established `AzureWhatsAppAuditService` pattern (Azure Table clients live in `DataServices`, not `Clients.Azure`):
 
@@ -306,6 +414,27 @@ New counters in `LeadDiagnostics`:
 
 Retries run as a fire-and-forget background task, **not blocking the main worker loop**. The `LeadProcessingWorker` is a single `BackgroundService` instance — blocking it for 12+ minutes would starve all queued leads.
 
+```mermaid
+flowchart TD
+    Notify["NotifyAgentAsync<br/>WhatsApp → Email → Drive cascade"]
+    Notify -->|"success"| Done["Done"]
+    Notify -->|"throws"| Log054["Log WORKER-054<br/>First attempt failed"]
+    Log054 --> FireForget["Fire-and-forget<br/>RetryNotificationAsync"]
+
+    FireForget --> Retry1["Retry 1<br/>wait 30s"]
+    Retry1 -->|"success"| Done
+    Retry1 -->|"throws"| Retry2["Retry 2<br/>wait 60s"]
+    Retry2 -->|"success"| Done
+    Retry2 -->|"throws"| Retry3["Retry 3<br/>wait 90s"]
+    Retry3 -->|"success"| Done
+    Retry3 -->|"throws"| DLQ["Dead Letter<br/>Azure Table<br/>Log WORKER-060"]
+    DLQ --> Alert["Grafana Alert → Slack"]
+
+    style Done fill:#c8e6c9
+    style DLQ fill:#ffcdd2
+    style Alert fill:#ffcdd2
+```
+
 **Note on current code:** The existing `ILeadNotifier.NotifyAgentAsync()` returns `Task` (void) and throws on failure. `CascadingAgentNotifier` provides the cascade logic but has no result type. The retry design wraps the existing void-returning call in try/catch — exception presence = failure.
 
 ```
@@ -403,6 +532,28 @@ Two new endpoints with **two access paths** depending on how the user arrives:
 **Path A — Email footer link (consent token):** User clicks "View My Data" in a marketing email. The consent token (1-year lifetime, generated at lead creation) is in the URL. Backend resolves token → email → data. No re-verification needed.
 
 **Path B — Web form (fresh 24-hour token):** User visits `/{handle}/privacy/my-data`, enters their email. Platform sends a verification email with a 24-hour token (same flow as deletion requests). User clicks link → data is displayed.
+
+```mermaid
+flowchart TD
+    subgraph PathA ["Path A — Email Footer Link"]
+        Email["Marketing Email"] -->|"click View My Data"| LinkA["/{handle}/privacy/my-data<br/>?token={consentToken}"]
+        LinkA -->|"consent token<br/>1-year lifetime"| Resolve["Backend resolves<br/>token → email"]
+    end
+
+    subgraph PathB ["Path B — Web Form"]
+        Visit["User visits<br/>/{handle}/privacy/my-data"] --> EnterEmail["Enters email"]
+        EnterEmail --> SendToken["Platform sends<br/>verification email"]
+        SendToken -->|"click link"| LinkB["/{handle}/privacy/my-data<br/>?token={24hrToken}"]
+        LinkB -->|"24-hour token"| Resolve
+    end
+
+    Resolve --> Gather["Gather lead data<br/>Profile + Consent + Enrichment"]
+    Gather --> Export["GET /leads/export<br/>JSON — Art. 20"]
+    Gather --> Access["GET /leads/access<br/>HTML — Art. 15"]
+
+    style PathA fill:#e8f5e9
+    style PathB fill:#e3f2fd
+```
 
 Both paths resolve to the same endpoints:
 
