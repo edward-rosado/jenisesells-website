@@ -8,7 +8,7 @@ public class ComplianceConsentWriter(
     IComplianceFileStorageProvider storageProvider,
     ILogger<ComplianceConsentWriter> logger)
 {
-    public async Task WriteAsync(string agentId, MarketingConsent consent, string hmacSignature, CancellationToken ct)
+    public virtual async Task WriteAsync(string agentId, MarketingConsent consent, string hmacSignature, CancellationToken ct)
     {
         try
         {

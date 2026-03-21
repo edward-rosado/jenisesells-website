@@ -2,12 +2,14 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using RealEstateStar.Api.Diagnostics;
 using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Api.Middleware;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Domain.Privacy;
+using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Workers.Leads;
 
@@ -28,6 +30,9 @@ public class SubmitLeadEndpoint : IEndpoint
         LeadProcessingChannel processingChannel,
         HttpContext httpContext,
         ILogger<SubmitLeadEndpoint> logger,
+        IConsentAuditService consentAudit,
+        ComplianceConsentWriter complianceWriter,
+        IOptions<ConsentHmacOptions> consentHmacOptions,
         CancellationToken ct)
     {
         // Validate DataAnnotations on the request
@@ -89,6 +94,13 @@ public class SubmitLeadEndpoint : IEndpoint
             Source = ConsentSource.LeadForm,
         };
         await consentLog.RecordConsentAsync(agentId, consent, ct);
+
+        // Triple-write: agent Drive (existing) + compliance Drive + Azure Table
+        var hmacSignature = MarketingConsentLog.ComputeHmacSignature(consent, consentHmacOptions.Value.Secret);
+        // Layer 1: Agent Drive CSV (already existing call above)
+        await complianceWriter.WriteAsync(agentId, consent, hmacSignature, ct);  // Layer 2: RE* service-account Drive
+        await consentAudit.RecordAsync(agentId, consent, hmacSignature, ct);     // Layer 3: Azure Table
+        LeadDiagnostics.ConsentRecorded.Add(1);
 
         // 5. Enqueue background processing (enrichment, notification, home search)
         var correlationId = httpContext.Items[CorrelationIdMiddleware.CorrelationIdKey]?.ToString() ?? Guid.NewGuid().ToString();

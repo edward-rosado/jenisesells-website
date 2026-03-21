@@ -1,7 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Options;
+using RealEstateStar.Api.Diagnostics;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Domain.Privacy;
+using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Api.Infrastructure;
 
@@ -19,6 +22,9 @@ public class OptOutEndpoint : IEndpoint
         ILeadStore leadStore,
         IMarketingConsentLog consentLog,
         HttpContext httpContext,
+        IConsentAuditService consentAudit,
+        ComplianceConsentWriter complianceWriter,
+        IOptions<ConsentHmacOptions> consentHmacOptions,
         CancellationToken ct)
     {
         var requestValidation = new List<ValidationResult>();
@@ -38,7 +44,7 @@ public class OptOutEndpoint : IEndpoint
         // Idempotent: update frontmatter regardless of current opt-in state.
         await leadStore.UpdateMarketingOptInAsync(agentId, lead.Id, false, ct);
 
-        await consentLog.RecordConsentAsync(agentId, new MarketingConsent
+        var consent = new MarketingConsent
         {
             LeadId = lead.Id,
             Email = lead.Email,
@@ -52,7 +58,15 @@ public class OptOutEndpoint : IEndpoint
             Timestamp = DateTime.UtcNow,
             Action = ConsentAction.OptOut,
             Source = ConsentSource.EmailLink,
-        }, ct);
+        };
+        await consentLog.RecordConsentAsync(agentId, consent, ct);
+
+        // Triple-write: agent Drive (existing) + compliance Drive + Azure Table
+        var hmacSignature = MarketingConsentLog.ComputeHmacSignature(consent, consentHmacOptions.Value.Secret);
+        // Layer 1: Agent Drive CSV (already existing call above)
+        await complianceWriter.WriteAsync(agentId, consent, hmacSignature, ct);  // Layer 2: RE* service-account Drive
+        await consentAudit.RecordAsync(agentId, consent, hmacSignature, ct);     // Layer 3: Azure Table
+        LeadDiagnostics.ConsentRecorded.Add(1);
 
         return Results.Ok(new { status = "opted_out" });
     }
