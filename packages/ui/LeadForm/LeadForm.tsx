@@ -120,7 +120,7 @@ export function LeadForm({
     [],
   );
 
-  useGoogleMapsAutocomplete({
+  const { loaded: mapsLoaded } = useGoogleMapsAutocomplete({
     apiKey: googleMapsApiKey,
     inputRef: addressRef,
     /* v8 ignore start -- covered by useGoogleMapsAutocomplete.test.ts integration */
@@ -153,6 +153,8 @@ export function LeadForm({
     /* v8 ignore stop */
     enabled: isSelling,
   });
+
+  const showMapsAttribution = isSelling && googleMapsApiKey && mapsLoaded;
 
   function getTimelineLabel(): string {
     if (isBuying && isSelling) return "buy/sell";
@@ -552,7 +554,9 @@ export function LeadForm({
               </div>
             </div>
             <p style={{ fontSize: 11, color: "#767676", marginTop: 4, marginBottom: 0 }}>
-              Address autocomplete powered by Google Maps.
+              {showMapsAttribution
+                ? "Address autocomplete powered by Google Maps."
+                : "Enter your address manually."}
             </p>
           </>
         )}

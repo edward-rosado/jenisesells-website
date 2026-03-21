@@ -747,6 +747,13 @@ describe("LeadForm", () => {
     expect(screen.queryByText(/address autocomplete powered by google maps/i)).not.toBeInTheDocument();
   });
 
+  // Test 39b — manual entry fallback when no API key
+  it("shows manual entry hint when googleMapsApiKey is absent", () => {
+    render(<LeadForm {...defaultProps} googleMapsApiKey="" initialMode={["selling"]} />);
+    expect(screen.getByText(/enter your address manually/i)).toBeInTheDocument();
+    expect(screen.queryByText(/autocomplete powered by google maps/i)).not.toBeInTheDocument();
+  });
+
   // Test 40 — agentFirstName dynamic label
   it("shows dynamic buyer CTA with agentFirstName when not selling", () => {
     render(<LeadForm {...defaultProps} agentFirstName="Jenise" initialMode={["buying"]} />);

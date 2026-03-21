@@ -90,6 +90,13 @@ export function useGoogleMapsAutocomplete({
     let listener: any = null;
     let cancelled = false;
 
+    // Google calls window.gm_authFailure when API key is rejected (wrong domain, expired, etc.)
+    const prevAuthFailure = (window as any).gm_authFailure;
+    (window as any).gm_authFailure = () => {
+      if (!cancelled) setLoaded(false);
+      prevAuthFailure?.();
+    };
+
     loadGoogleMapsScript(apiKey)
       .then(() => {
         if (cancelled) return;
@@ -116,6 +123,7 @@ export function useGoogleMapsAutocomplete({
 
     return () => {
       cancelled = true;
+      (window as any).gm_authFailure = prevAuthFailure;
       if (listener && (window as any).google?.maps?.event) {
         (window as any).google.maps.event.removeListener(listener);
       }

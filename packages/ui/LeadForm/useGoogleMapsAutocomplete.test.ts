@@ -396,4 +396,60 @@ describe("useGoogleMapsAutocomplete", () => {
 
     // Should not throw, hook degrades gracefully
   });
+
+  it("reverts loaded to false when gm_authFailure fires (API key rejected)", async () => {
+    setupGoogleMapsMock();
+    const inputRef = makeInputRef();
+    const onPlaceSelected = vi.fn();
+
+    const { result } = renderHook(() =>
+      useGoogleMapsAutocomplete({
+        apiKey: "test-key",
+        inputRef,
+        onPlaceSelected,
+        enabled: true,
+      }),
+    );
+
+    // google.maps.places exists so loadGoogleMapsScript resolves immediately
+    await act(async () => {});
+
+    // loaded should be true after SDK resolves
+    expect(result.current.loaded).toBe(true);
+
+    // Simulate Google calling gm_authFailure (domain not authorized)
+    await act(async () => {
+      (window as any).gm_authFailure();
+    });
+
+    expect(result.current.loaded).toBe(false);
+  });
+
+  it("restores previous gm_authFailure handler on unmount", async () => {
+    const prevHandler = vi.fn();
+    (window as any).gm_authFailure = prevHandler;
+
+    setupGoogleMapsMock();
+    const inputRef = makeInputRef();
+    const { unmount } = renderHook(() =>
+      useGoogleMapsAutocomplete({
+        apiKey: "test-key",
+        inputRef,
+        onPlaceSelected: vi.fn(),
+        enabled: true,
+      }),
+    );
+
+    await act(async () => {});
+
+    // gm_authFailure should chain to previous handler
+    await act(async () => {
+      (window as any).gm_authFailure();
+    });
+    expect(prevHandler).toHaveBeenCalled();
+
+    unmount();
+    // After unmount, the original handler should be restored
+    expect((window as any).gm_authFailure).toBe(prevHandler);
+  });
 });
