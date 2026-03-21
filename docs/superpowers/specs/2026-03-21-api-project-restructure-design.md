@@ -86,7 +86,7 @@ Domain/
       Clients/                       IAnthropicClient, IScraperClient, IStripeClient,
                                      ICloudflareClient, ITurnstileClient,
                                      IGDriveClient, IGmailClient, IGoogleOAuthClient,
-                                     IAzureTableClient
+                                     IAzureTableClient, IGwsCliRunner
       Senders/                       IEmailSender, IWhatsAppSender
     Markdown/                        YamlFrontmatterParser (generic, not lead-specific)
   Leads/
@@ -95,7 +95,7 @@ Domain/
                                      MarketingConsent, HomeSearchCriteria, Listing,
                                      DeleteResult
     Interfaces/                      ILeadStore, ILeadNotifier, ILeadEnricher,
-                                     IEmailNotifier, ILeadDataDeletion, IMarketingConsentLog
+                                     ILeadDataDeletion
     Markdown/                        LeadMarkdownRenderer
     LeadDiagnostics.cs
   Cma/
@@ -124,7 +124,8 @@ Domain/
     Models/                          OnboardingSession, OnboardingState, ChatMessage,
                                      ScrapedProfile, GoogleTokens
     Interfaces/                      ISessionStore, IProfileScraperService,
-                                     IOnboardingTool, IToolDispatcher
+                                     IOnboardingTool, IToolDispatcher, IDnsResolver,
+                                     IProcessRunner, ISiteDeployService
     Services/                        OnboardingStateMachine
     OnboardingHelpers.cs
     OnboardingDiagnostics.cs
@@ -168,6 +169,7 @@ DataServices/
   Leads/
     LeadStore.cs                     implements ILeadStore (routes to GDrive or local based on config)
     LeadPaths.cs                     Drive folder structure constants
+    LeadBriefData.cs                 DTO for lead brief generation (used by LeadStore)
     LeadDataDeletion.cs              implements ILeadDataDeletion
   Cma/
     CmaStore.cs                      implements storage for CMA results
@@ -192,7 +194,7 @@ DataServices/
     StepProgressStore.cs             implements IStepProgressStore (calls IAzureTableClient or ILocalFileProvider)
 ```
 
-**Note on storage routing:** `LeadStore` reads `AccountConfig` to determine whether to use `IGDriveClient` (prod) or `ILocalFileProvider` (dev). The routing decision is business logic — it belongs here, not in Data or Clients.
+**Note on storage routing:** `LeadStore` reads `AccountConfig` to determine whether to use `IGDriveClient` (prod) or `ILocalFileProvider` (dev). The routing decision is business logic — it belongs here, not in Data or Clients. `LeadStore` replaces both the current `FileLeadStore` (local) and `GDriveLeadStore` (Drive) — a single class that routes internally based on config.
 
 **Note on ConversationLogger:** Moved from Notifications to DataServices because it answers "where does this conversation log go?" — not "who needs to know?" It calls `IGDriveClient` to write markdown files to the agent's Drive folder.
 
@@ -217,6 +219,8 @@ Notifications/
     WhatsAppNotifier.cs              implements IWhatsAppNotifier (calls IWhatsAppSender)
     DisabledWhatsAppNotifier.cs
 ```
+
+**Note on IEmailNotifier:** The current `IEmailNotifier` interface is superseded by the combination of `ILeadNotifier` (Domain/Leads/) + `IEmailSender` (Domain/Shared/Interfaces/Senders/). `MultiChannelLeadNotifier` implements `ILeadNotifier` and calls `IEmailSender` for email delivery. The separate `IEmailNotifier` interface is deleted during migration.
 
 **Dependencies:** Domain only.
 
@@ -284,11 +288,26 @@ Clients.Azure/                       Azure Table Storage → implements IAzureTa
   AzureTableClient.cs
   AzureTableOptions.cs
   Dto/...
+
+Clients.Gws/                         Google Workspace CLI wrapper → implements IGwsCliRunner
+  GwsCliRunner.cs                    wraps the `gws` CLI tool for Drive/Gmail operations
+  GwsOptions.cs
 ```
+
+**Note on IWhatsAppClient rename:** The current `IWhatsAppClient` is renamed to `IWhatsAppSender` and moved to `Domain/Shared/Interfaces/Senders/`. `Clients.WhatsApp/WhatsAppApiClient` implements `IWhatsAppSender`. This rename reflects its role as a thin sender contract rather than a full API client.
+
+**Note on GwsService split:** The current monolithic `GwsService` (wraps the `gws` CLI for Gmail/Drive) is split by function. `GwsCliRunner` (the CLI process wrapper) moves to `Clients.Gws/`. The higher-level operations that GwsService performed are absorbed into their respective layers: Drive file operations → `Clients.GDrive/GDriveClient`, Gmail sending → `Clients.Gmail/GmailClient`. `IGwsCliRunner` is the Domain interface; `Clients.Gws` implements it.
+
+**Note on IFileStorageProvider migration:** The current `IFileStorageProvider` (with implementations `GDriveStorageProvider`, `LocalFileStorageProvider`, `LocalStorageProvider`, `NoopFileStorageProvider`) is replaced by the new layered approach:
+- `ILocalFileProvider` (Domain) → `LocalFileProvider` (Data) — pure local file read/write
+- `IGDriveClient` (Domain) → `GDriveClient` (Clients.GDrive) — pure Drive API calls
+- `LeadStore`, `CmaStore`, etc. (DataServices) — routing logic that decides which provider to use
+- `InMemoryFileProvider` (Data) replaces `NoopFileStorageProvider` for testing
+- The old `IFileStorageProvider` interface is **deleted** — it mixed routing with physical access
 
 **Note on Google split:** The old `Clients.Google` is split into 3 projects because Drive, Gmail, and OAuth are different APIs with different auth patterns, different rate limits, and different use cases. Each gets its own Polly policies, HttpClient config, and options class.
 
-**Note on resilience:** Each client that calls a rate-limited or unreliable API includes its own `*ResiliencePolicies.cs` with Polly retry + circuit breaker configuration. These are registered with `IHttpClientFactory` in Api's DI wiring.
+**Note on resilience:** Each client that calls a rate-limited or unreliable API includes its own `*ResiliencePolicies.cs` with Polly retry + circuit breaker configuration. These are registered with `IHttpClientFactory` in Api's DI wiring. The current shared `Infrastructure/PollyPolicies.cs` is eliminated — each client owns its own policies. If a policy pattern is reused across multiple clients, extract a shared helper into a `Polly/` folder in the client's project, not a shared infrastructure file.
 
 **Dependencies:** Domain (for the interface each client implements).
 
@@ -398,7 +417,13 @@ Workers.Cma/
     CmaWorkerMappers.cs
 ```
 
-**Note on CMA steps:** `CmaPdfGenerator`, `ClaudeCmaAnalyzer`, and `CompAggregator` from the old codebase become steps (`GeneratePdfStep`, `AnalyzeCompsStep`, `FetchCompsStep`). Each extends `WorkerStepBase<TRequest, TResponse>`, getting structured logging, OTel spans, and error handling for free.
+**Note on CMA steps:** `CmaPdfGenerator`, `ClaudeCmaAnalyzer`, and `CompAggregator` from the old codebase become steps (`GeneratePdfStep`, `AnalyzeCompsStep`, `FetchCompsStep`). Each extends `WorkerStepBase<TRequest, TResponse>`, getting structured logging, OTel spans, and error handling for free. `ScraperCompSource` (which implements `ICompSource`) is absorbed into `FetchCompsStep` — the step calls `IScraperClient` directly.
+
+**Note on Scraper* service migrations:** Several current services that wrap ScraperAPI are absorbed into their respective Worker steps:
+- `ScraperLeadEnricher` (implements `ILeadEnricher`) → absorbed into `Workers.Leads/Steps/EnrichLeadStep` (calls `IScraperClient` directly)
+- `ScraperCompSource` (implements `ICompSource`) → absorbed into `Workers.Cma/Steps/FetchCompsStep` (calls `IScraperClient` directly)
+- `ScraperHomeSearchProvider` (implements `IHomeSearchProvider`) → absorbed into `Workers.HomeSearch/Steps/SearchListingsStep` (calls `IScraperClient` directly)
+These services were thin wrappers around ScraperAPI calls — the step pattern makes a separate service class unnecessary.
 
 **Dependencies:** Domain, Workers.Shared.
 
@@ -428,8 +453,12 @@ WhatsApp webhook processing: dequeue → classify intent → generate response �
 
 ```
 Workers.WhatsApp/
+  WebhookProcessorChannel.cs         Channel<T> for incoming webhook messages
   WebhookProcessorWorker.cs
+  ConversationHandler.cs             implements IConversationHandler (orchestrates classify → respond → send)
   WhatsAppRetryJob.cs                background service for retrying failed WhatsApp sends
+  NoopIntentClassifier.cs            implements IIntentClassifier (fallback — echoes input)
+  NoopResponseGenerator.cs           implements IResponseGenerator (fallback — canned reply)
   Steps/
     ClassifyIntentStep.cs            in: ClassifyRequest → out: ClassifyResponse
     GenerateResponseStep.cs          in: GenerateRequest → out: GenerateResponse
@@ -438,6 +467,8 @@ Workers.WhatsApp/
   Mappers/
     WhatsAppWorkerMappers.cs
 ```
+
+**Note on ConversationHandler:** `ConversationHandler` orchestrates the webhook processing flow (classify intent → generate response → send reply → log). It lives in Workers.WhatsApp because it's the core processing logic for the webhook pipeline. The noop implementations (`NoopIntentClassifier`, `NoopResponseGenerator`) are fallback implementations used when Claude-powered classification/generation is disabled — they live alongside the real steps.
 
 **Dependencies:** Domain, Workers.Shared.
 
@@ -476,6 +507,8 @@ Api/
         CreateStripeSessionTool.cs   implements IOnboardingTool (calls IStripeClient)
         GoogleAuthCardTool.cs        implements IOnboardingTool (calls IGoogleOAuthClient)
         SendWhatsAppWelcomeTool.cs   implements IOnboardingTool (calls IWhatsAppSender)
+        SetBrandingTool.cs           implements IOnboardingTool (calls IAccountConfigService)
+        UpdateProfileTool.cs         implements IOnboardingTool (calls IAccountConfigService)
       OnboardingMappers.cs
     WhatsApp/
       Webhook/
@@ -487,6 +520,7 @@ Api/
     EndpointExtensions.cs
     ApiKeyHmacMiddleware.cs
     ApiKeyHmacOptions.cs
+    DnsResolver.cs                   implements IDnsResolver (used by DeploySiteTool)
   Middleware/
     AgentIdEnricher.cs
     CorrelationIdMiddleware.cs
@@ -495,6 +529,7 @@ Api/
     BackgroundServiceHealthTracker.cs
     ClaudeApiHealthCheck.cs
     GoogleDriveHealthCheck.cs
+    GwsCliHealthCheck.cs
     ScraperApiHealthCheck.cs
     TurnstileHealthCheck.cs
   Diagnostics/
@@ -570,20 +605,31 @@ tests/
   RealEstateStar.Clients.Stripe.Tests/
   RealEstateStar.Clients.Azure.Tests/
 
+  RealEstateStar.Clients.Gws.Tests/
+
   RealEstateStar.Api.Tests/
     Features/Leads/Submit/           SubmitLeadEndpointTests
     Features/Leads/OptOut/           OptOutEndpointTests
     Features/Billing/                StripeWebhookEndpointTests, StripeServiceTests
     Features/Onboarding/Services/    OnboardingChatServiceTests, GoogleOAuthServiceTests
     Features/Onboarding/Tools/       ToolDispatcherTests, DeploySiteToolTests, ...
+    Infrastructure/                  PollyPolicyTests, RateLimitingTests
+    Integration/                     MiddlewarePipelineTests, TestWebApplicationFactory
     ...
+
+  RealEstateStar.Architecture.Tests/
+    DependencyTests.cs               ArchUnit-style dependency enforcement (see Architecture Enforcement)
 
   RealEstateStar.TestUtilities/
     TestHelpers.cs                   shared builders, fakes, assertion helpers
     TestData.cs                      shared fixture data
+    InMemoryWebhookQueueService.cs   fake IWebhookQueueService for testing
+    MockHttpMessageHandler.cs        shared mock for HttpClient-based tests
 ```
 
 **Note on InternalsVisibleTo:** Each production project adds `[InternalsVisibleTo("RealEstateStar.{Project}.Tests")]` in its .csproj.
+
+**Note on TestUtilities:** `RealEstateStar.TestUtilities` is a shared library referenced by all test projects — it does NOT have its own test project. This is intentional; it contains test fakes and builders, not production code.
 
 **Note on CI:** Each test project can run independently (`dotnet test tests/RealEstateStar.Domain.Tests/`), or all at once from the solution.
 
@@ -854,12 +900,13 @@ public class DependencyTests
     [Fact]
     public void Api_is_the_only_project_that_references_Clients()
     {
-        var allAssemblies = AppDomain.CurrentDomain.GetAssemblies()
-            .Where(a => a.GetName().Name?.StartsWith("RealEstateStar") == true)
+        // Explicitly load all production assemblies to avoid AppDomain lazy-loading gaps
+        var productionAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.*.dll")
+            .Select(Assembly.LoadFrom)
             .Where(a => !a.GetName().Name!.Contains("Api"))
             .Where(a => !a.GetName().Name!.Contains("Tests"));
 
-        foreach (var assembly in allAssemblies)
+        foreach (var assembly in productionAssemblies)
         {
             var clientRefs = assembly.GetReferencedAssemblies()
                 .Where(a => a.Name!.Contains("Clients"))
@@ -899,7 +946,7 @@ This is a large refactor (~160 production files + ~120 test files). Execute incr
 3. **Move Domain first** — models, interfaces, state machine, helpers. Everything else still compiles against the old location.
 4. **Create DataServices** — move storage orchestration (LeadStore, AccountConfigService, etc.)
 5. **Create Data** — move pure providers (LocalFileProvider)
-6. **Extract Clients** — one at a time, starting with the most isolated: Turnstile → Scraper → Anthropic → Azure → GDrive → Gmail → GoogleOAuth → Stripe → Cloudflare → WhatsApp
+6. **Extract Clients** — one at a time, starting with the most isolated: Turnstile → Scraper → Anthropic → Azure → Gws → GDrive → Gmail → GoogleOAuth → Stripe → Cloudflare → WhatsApp
 7. **Move Notifications** — notifier implementations
 8. **Create Workers.Shared** — base classes and interfaces
 9. **Move Workers** — one pipeline at a time: Leads → CMA → HomeSearch → WhatsApp
