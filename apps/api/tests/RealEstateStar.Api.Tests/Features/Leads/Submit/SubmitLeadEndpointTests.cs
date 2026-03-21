@@ -315,7 +315,7 @@ public class SubmitLeadEndpointUnitTests
         LeadProcessingChannel ProcessingChannel,
         Mock<ILogger<SubmitLeadEndpoint>> Logger,
         Mock<IConsentAuditService> ConsentAudit,
-        Mock<ComplianceConsentWriter> ComplianceWriter,
+        Mock<IComplianceConsentWriter> ComplianceWriter,
         IOptions<ConsentHmacOptions> ConsentHmacOptions);
 
     private static Mocks CreateMocks(AccountConfig? agent = null)
@@ -343,7 +343,7 @@ public class SubmitLeadEndpointUnitTests
             .Setup(s => s.RecordAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var complianceWriter = new Mock<ComplianceConsentWriter>();
+        var complianceWriter = new Mock<IComplianceConsentWriter>();
         complianceWriter
             .Setup(s => s.WriteAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);

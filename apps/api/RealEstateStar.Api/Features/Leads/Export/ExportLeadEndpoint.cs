@@ -13,8 +13,8 @@ public class ExportLeadEndpoint : IEndpoint
     internal static async Task<IResult> Handle(
         string agentId,
         [FromQuery] string email,
-        ILeadDataExport dataExport,
-        ILogger<ExportLeadEndpoint> logger,
+        [FromServices] ILeadDataExport dataExport,
+        [FromServices] ILogger<ExportLeadEndpoint> logger,
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(email))

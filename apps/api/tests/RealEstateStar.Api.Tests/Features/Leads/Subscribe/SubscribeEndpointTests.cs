@@ -32,13 +32,13 @@ public class SubscribeEndpointTests
         MarketingOptedIn = marketingOptedIn,
     };
 
-    private static (Mock<IConsentAuditService> audit, Mock<ComplianceConsentWriter> writer, IOptions<ConsentHmacOptions> opts) MakeTripleWriteMocks()
+    private static (Mock<IConsentAuditService> audit, Mock<IComplianceConsentWriter> writer, IOptions<ConsentHmacOptions> opts) MakeTripleWriteMocks()
     {
         var audit = new Mock<IConsentAuditService>();
         audit.Setup(s => s.RecordAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var writer = new Mock<ComplianceConsentWriter>();
+        var writer = new Mock<IComplianceConsentWriter>();
         writer.Setup(s => s.WriteAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 

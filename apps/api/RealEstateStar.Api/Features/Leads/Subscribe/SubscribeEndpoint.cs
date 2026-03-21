@@ -23,7 +23,7 @@ public class SubscribeEndpoint : IEndpoint
         IMarketingConsentLog consentLog,
         HttpContext httpContext,
         IConsentAuditService consentAudit,
-        ComplianceConsentWriter complianceWriter,
+        IComplianceConsentWriter complianceWriter,
         IOptions<ConsentHmacOptions> consentHmacOptions,
         CancellationToken ct)
     {
