@@ -9,7 +9,7 @@ public class WebhookProcessorWorkerTests
 {
     private readonly Mock<IWebhookQueueService> _queue = new();
     private readonly Mock<IConversationHandler> _handler = new();
-    private readonly Mock<IWhatsAppClient> _whatsAppClient = new();
+    private readonly Mock<IWhatsAppSender> _whatsAppClient = new();
     private readonly Mock<IWhatsAppAuditService> _audit = new();
     private readonly Mock<ILogger<WebhookProcessorWorker>> _logger = new();
 

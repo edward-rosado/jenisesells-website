@@ -4,7 +4,7 @@ using RealEstateStar.Api.Features.Onboarding.Services;
 
 namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
-public class ScrapeUrlTool(IProfileScraper scraper, OnboardingStateMachine stateMachine) : IOnboardingTool
+public class ScrapeUrlTool(IProfileScraperService scraper, OnboardingStateMachine stateMachine) : IOnboardingTool
 {
     public string Name => "scrape_url";
 

@@ -105,7 +105,7 @@ builder.Services.AddHttpClient(nameof(ProfileScraperService))
     .AddClaudeApiResilience(pollyLogger)
     .AddScraperApiResilience(pollyLogger);
 builder.Services.AddSingleton<IDnsResolver, SystemDnsResolver>();
-builder.Services.AddSingleton<IProfileScraper>(sp =>
+builder.Services.AddSingleton<IProfileScraperService>(sp =>
     new ProfileScraperService(
         sp.GetRequiredService<IHttpClientFactory>(),
         anthropicKey,
@@ -309,7 +309,7 @@ builder.Services.AddHttpClient("WhatsApp", client =>
 
 if (!string.IsNullOrEmpty(whatsAppPhoneNumberId))
 {
-    builder.Services.AddSingleton<IWhatsAppClient>(sp =>
+    builder.Services.AddSingleton<IWhatsAppSender>(sp =>
         new WhatsAppClient(
             sp.GetRequiredService<IHttpClientFactory>(),
             whatsAppPhoneNumberId,

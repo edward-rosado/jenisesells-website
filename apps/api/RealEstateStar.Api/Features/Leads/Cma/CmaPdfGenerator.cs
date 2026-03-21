@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using RealEstateStar.Api.Common;
+using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.Api.Features.Leads.Cma;
 

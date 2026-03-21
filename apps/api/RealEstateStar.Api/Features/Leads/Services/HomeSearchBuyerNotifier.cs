@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using RealEstateStar.Api.Diagnostics;
-using RealEstateStar.Api.Services;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Api.Services.Gws;
 
 namespace RealEstateStar.Api.Features.Leads.Services;

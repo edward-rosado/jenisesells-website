@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using RealEstateStar.Api.Common;
+using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.Tools;
 using RealEstateStar.Api.Features.WhatsApp.Services;
@@ -15,10 +15,10 @@ public class SendWhatsAppWelcomeToolTests
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static SendWhatsAppWelcomeTool CreateTool(
-        out Mock<IWhatsAppClient> whatsAppClient,
+        out Mock<IWhatsAppSender> whatsAppClient,
         out Mock<IAccountConfigService> accountConfigService)
     {
-        whatsAppClient = new Mock<IWhatsAppClient>();
+        whatsAppClient = new Mock<IWhatsAppSender>();
         accountConfigService = new Mock<IAccountConfigService>();
         return new SendWhatsAppWelcomeTool(
             whatsAppClient.Object,

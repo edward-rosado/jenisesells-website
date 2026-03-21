@@ -1,12 +1,12 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Api.Common;
-using RealEstateStar.Api.Services;
+using RealEstateStar.Domain.Shared.Models;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Api.Features.WhatsApp.Services;
 
 public class WhatsAppNotifier(
-    IWhatsAppClient client,
+    IWhatsAppSender client,
     IConversationLogger conversationLogger,
     IAccountConfigService configService,
     IMemoryCache cache,

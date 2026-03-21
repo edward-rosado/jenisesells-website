@@ -1,12 +1,12 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Api.Services;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Api.Features.WhatsApp.Services;
 
 public class WhatsAppRetryJob(
     IAccountConfigService accountConfigService,
-    IWhatsAppClient whatsAppClient,
+    IWhatsAppSender whatsAppClient,
     ILogger<WhatsAppRetryJob> logger) : BackgroundService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(30);

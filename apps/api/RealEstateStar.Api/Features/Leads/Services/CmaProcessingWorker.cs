@@ -1,9 +1,9 @@
 using System.Diagnostics;
-using RealEstateStar.Api.Common;
+using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Api.Diagnostics;
 using RealEstateStar.Api.Features.Leads.Cma;
 using RealEstateStar.Api.Health;
-using RealEstateStar.Api.Services;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Api.Features.Leads.Services;
 

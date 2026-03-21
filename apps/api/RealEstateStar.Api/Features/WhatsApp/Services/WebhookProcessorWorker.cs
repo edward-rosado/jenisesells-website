@@ -5,7 +5,7 @@ namespace RealEstateStar.Api.Features.WhatsApp.Services;
 public class WebhookProcessorWorker(
     IWebhookQueueService queue,
     IConversationHandler handler,
-    IWhatsAppClient whatsAppClient,
+    IWhatsAppSender whatsAppClient,
     IWhatsAppAuditService audit,
     ILogger<WebhookProcessorWorker> logger) : BackgroundService
 {

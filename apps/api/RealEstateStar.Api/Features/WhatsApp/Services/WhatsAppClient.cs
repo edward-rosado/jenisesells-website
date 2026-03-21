@@ -7,7 +7,7 @@ public class WhatsAppClient(
     IHttpClientFactory httpClientFactory,
     string phoneNumberId,
     string accessToken,
-    ILogger<WhatsAppClient>? logger = null) : IWhatsAppClient
+    ILogger<WhatsAppClient>? logger = null) : IWhatsAppSender
 {
     public async Task<string> SendTemplateAsync(string toPhoneNumber, string templateName,
         List<(string type, string value)> parameters, CancellationToken ct)

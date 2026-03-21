@@ -25,7 +25,7 @@ public class OnboardingChatService(
     internal static readonly ActivitySource ActivitySource = new("RealEstateStar.Onboarding");
     private static readonly Meter Meter = new("RealEstateStar.Onboarding");
     internal static readonly Counter<long> SessionsCreated = Meter.CreateCounter<long>("onboarding.sessions_created");
-    internal static readonly Counter<long> StateTransitions = Meter.CreateCounter<long>("onboarding.state_transitions");
+
 
     private static readonly Regex CardMarkerRegex = new(@"\[CARD:\w+\]\{[\s\S]*?\}", RegexOptions.Compiled);
 

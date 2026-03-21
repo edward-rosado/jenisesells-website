@@ -2,9 +2,9 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using RealEstateStar.Api.Common;
+using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Api.Diagnostics;
-using RealEstateStar.Api.Services;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Api.Services.Gws;
 
 namespace RealEstateStar.Api.Features.Leads.Cma;

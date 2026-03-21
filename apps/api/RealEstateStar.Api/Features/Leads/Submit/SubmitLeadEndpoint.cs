@@ -4,7 +4,7 @@ using RealEstateStar.Api.Diagnostics;
 using RealEstateStar.Api.Features.Leads.Services;
 using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Api.Middleware;
-using RealEstateStar.Api.Services;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Api.Features.Leads.Submit;
 

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Api.Features.WhatsApp;
 using RealEstateStar.Api.Features.WhatsApp.Services;
-using RealEstateStar.Api.Services;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Api.Features.Leads.Services;
 
@@ -84,7 +84,7 @@ public class CascadingAgentNotifier(
     // Private helpers
     // -------------------------------------------------------------------------
 
-    private async Task<Common.AccountConfig?> LoadConfigAsync(
+    private async Task<AccountConfig?> LoadConfigAsync(
         string agentId, CancellationToken ct)
     {
         try

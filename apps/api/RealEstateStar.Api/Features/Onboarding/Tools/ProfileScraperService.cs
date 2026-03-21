@@ -12,7 +12,7 @@ public partial class ProfileScraperService(
     string apiKey,
     string? scraperApiKey,
     IDnsResolver dnsResolver,
-    ILogger<ProfileScraperService> logger) : IProfileScraper
+    ILogger<ProfileScraperService> logger) : IProfileScraperService
 {
     private const string ApiUrl = "https://api.anthropic.com/v1/messages";
     private const string Model = "claude-haiku-4-5-20251001";

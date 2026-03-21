@@ -10,7 +10,7 @@ namespace RealEstateStar.Api.Tests.Features.Onboarding.Tools;
 
 public class ScrapeUrlToolTests
 {
-    private readonly Mock<IProfileScraper> _scraper = new();
+    private readonly Mock<IProfileScraperService> _scraper = new();
     private readonly OnboardingStateMachine _stateMachine = new();
     private readonly ScrapeUrlTool _tool;
 

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using RealEstateStar.Api.Common;
+using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Api.Features.Leads;
 using RealEstateStar.Api.Features.Leads.Cma;
 using RealEstateStar.Api.Features.Leads.Services;

@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RealEstateStar.Api.Common;
+using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Api.Features.Leads;
 using RealEstateStar.Api.Features.Leads.Cma;
 

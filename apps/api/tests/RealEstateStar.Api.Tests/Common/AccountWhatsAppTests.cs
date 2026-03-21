@@ -1,6 +1,6 @@
 using System.Text.Json;
 using FluentAssertions;
-using RealEstateStar.Api.Common;
+using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.Api.Tests.Common;
 

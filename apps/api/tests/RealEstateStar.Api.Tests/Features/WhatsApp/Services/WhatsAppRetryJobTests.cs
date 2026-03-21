@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RealEstateStar.Api.Common;
+using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Api.Features.WhatsApp.Services;
 using RealEstateStar.Api.Services;
 
@@ -10,7 +10,7 @@ namespace RealEstateStar.Api.Tests.Features.WhatsApp.Services;
 public class WhatsAppRetryJobTests
 {
     private readonly Mock<IAccountConfigService> _configService = new();
-    private readonly Mock<IWhatsAppClient> _whatsAppClient = new();
+    private readonly Mock<IWhatsAppSender> _whatsAppClient = new();
     private readonly Mock<ILogger<WhatsAppRetryJob>> _logger = new();
 
     private WhatsAppRetryJob CreateSut() =>
