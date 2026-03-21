@@ -114,7 +114,10 @@ public class LocalStorageProvider(string basePath) : IFileStorageProvider
     private string GetCsvPath(string sheetName)
     {
         ValidatePathComponent(sheetName);
-        return Path.Combine(basePath, "logs", $"{sheetName}.csv");
+        var fullPath = Path.GetFullPath(Path.Combine(basePath, "logs", $"{sheetName}.csv"));
+        if (!fullPath.StartsWith(Path.GetFullPath(basePath), StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException($"Path traversal detected: {sheetName}");
+        return fullPath;
     }
 
     private static List<string> ParseCsvLine(string line)
