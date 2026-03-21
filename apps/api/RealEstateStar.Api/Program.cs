@@ -75,6 +75,9 @@ if (!builder.Environment.IsDevelopment())
     }
 }
 
+// Consent HMAC signing (triple-write audit trail)
+builder.Services.Configure<ConsentHmacOptions>(builder.Configuration.GetSection("Consent:Hmac"));
+
 // Onboarding (session store registered early, services after config keys below)
 builder.Services.AddSingleton<JsonFileSessionStore>();
 builder.Services.AddSingleton<ISessionStore>(sp =>
@@ -188,6 +191,27 @@ builder.Services.AddSingleton<IMarketingConsentLog, MarketingConsentLog>();
 builder.Services.AddSingleton<ILeadDataDeletion, GDriveLeadDataDeletion>();
 builder.Services.AddSingleton<IDeletionAuditLog, DeletionAuditLog>();
 builder.Services.AddSingleton<ILeadNotifier, MultiChannelLeadNotifier>();
+
+// Compliance consent triple-write services
+// IComplianceFileStorageProvider: service-account Drive in prod, local filesystem in dev
+builder.Services.AddSingleton<IComplianceFileStorageProvider>(sp =>
+    new LocalComplianceStorageProvider(
+        builder.Configuration["Storage:ComplianceBasePath"] ??
+        Path.Combine(builder.Environment.ContentRootPath, "data", "compliance")));
+
+// ComplianceConsentWriter: concrete class — registers itself directly
+builder.Services.AddSingleton<ComplianceConsentWriter>();
+
+// IConsentAuditService: Azure Table in prod, no-op in dev
+builder.Services.AddSingleton<IConsentAuditService>(sp =>
+{
+    var connStr = builder.Configuration["AzureStorage:ConnectionString"];
+    if (string.IsNullOrEmpty(connStr))
+        return new NullConsentAuditService();
+
+    var tableClient = new Azure.Data.Tables.TableClient(connStr, "consentaudit");
+    return new ConsentAuditService(tableClient, sp.GetRequiredService<ILogger<ConsentAuditService>>());
+});
 
 // Notification dead letter store (Azure Table Storage; no-op when connection string is absent)
 builder.Services.AddSingleton<IFailedNotificationStore>(sp =>
@@ -474,6 +498,18 @@ builder.Services.AddRateLimiter(options =>
 
     // Lead opt-out: 10 per hour per IP
     options.AddPolicy("lead-opt-out", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1) }));
+
+    // Lead export: 10 per hour per IP
+    options.AddPolicy("lead-export", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1) }));
+
+    // Lead delete: 10 per hour per IP
+    options.AddPolicy("lead-delete", context =>
         RateLimitPartition.GetFixedWindowLimiter(
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1) }));
