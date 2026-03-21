@@ -410,7 +410,7 @@ describe("CmaSection marketing consent", () => {
         marketingConsent: {
           optedIn: true,
           consentText: expect.stringContaining("consent to receive"),
-          channels: ["calls", "texts"],
+          channels: ["email", "calls"],
         },
       }),
       expect.any(String),
