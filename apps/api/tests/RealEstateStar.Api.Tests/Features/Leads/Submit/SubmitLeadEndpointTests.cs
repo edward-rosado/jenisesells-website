@@ -9,11 +9,12 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.DataServices.Leads;
-using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.DataServices.Config;
 using RealEstateStar.Api.Tests.Integration;
@@ -312,7 +313,10 @@ public class SubmitLeadEndpointUnitTests
         Mock<ILeadStore> LeadStore,
         Mock<IMarketingConsentLog> ConsentLog,
         LeadProcessingChannel ProcessingChannel,
-        Mock<ILogger<SubmitLeadEndpoint>> Logger);
+        Mock<ILogger<SubmitLeadEndpoint>> Logger,
+        Mock<IConsentAuditService> ConsentAudit,
+        Mock<IComplianceConsentWriter> ComplianceWriter,
+        IOptions<ConsentHmacOptions> ConsentHmacOptions);
 
     private static Mocks CreateMocks(AccountConfig? agent = null)
     {
@@ -334,7 +338,19 @@ public class SubmitLeadEndpointUnitTests
         var channel = new LeadProcessingChannel();
         var logger = new Mock<ILogger<SubmitLeadEndpoint>>();
 
-        return new Mocks(accountConfig, leadStore, consentLog, channel, logger);
+        var consentAudit = new Mock<IConsentAuditService>();
+        consentAudit
+            .Setup(s => s.RecordAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var complianceWriter = new Mock<IComplianceConsentWriter>();
+        complianceWriter
+            .Setup(s => s.WriteAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var consentHmacOptions = Options.Create(new ConsentHmacOptions { Secret = "test-hmac-secret-32-bytes-xxxxx!" });
+
+        return new Mocks(accountConfig, leadStore, consentLog, channel, logger, consentAudit, complianceWriter, consentHmacOptions);
     }
 
     private static HttpContext MakeHttpContext(
@@ -361,6 +377,9 @@ public class SubmitLeadEndpointUnitTests
             m.ProcessingChannel,
             httpContext ?? MakeHttpContext(),
             m.Logger.Object,
+            m.ConsentAudit.Object,
+            m.ComplianceWriter.Object,
+            m.ConsentHmacOptions,
             CancellationToken.None);
 
     // -------------------------------------------------------------------------
@@ -543,6 +562,21 @@ public class SubmitLeadEndpointUnitTests
 
         m.ConsentLog.Verify(
             c => c.RecordConsentAsync("test-agent", It.IsAny<MarketingConsent>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WritesComplianceCopyAndAuditRecord_OnSuccessfulConsent()
+    {
+        var m = CreateMocks();
+
+        await CallHandle(m);
+
+        m.ComplianceWriter.Verify(
+            w => w.WriteAsync("test-agent", It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        m.ConsentAudit.Verify(
+            a => a.RecordAsync("test-agent", It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

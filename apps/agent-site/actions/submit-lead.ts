@@ -1,5 +1,6 @@
 "use server";
 
+import * as Sentry from "@sentry/nextjs";
 import type { LeadFormData } from "@real-estate-star/shared-types";
 import { validateTurnstile } from "@/lib/turnstile";
 import { signAndForward } from "@/lib/hmac";
@@ -16,9 +17,14 @@ export async function submitLead(
   const isHuman = await validateTurnstile(turnstileToken);
   if (!isHuman) return { error: "Verification failed. Please try again." };
 
-  const body = JSON.stringify(formData);
-  const response = await signAndForward(agentId, body);
+  try {
+    const body = JSON.stringify(formData);
+    const response = await signAndForward(agentId, body);
 
-  if (!response.ok) return { error: "Something went wrong. Please try again." };
-  return response.json();
+    if (!response.ok) return { error: "Something went wrong. Please try again." };
+    return response.json();
+  } catch (error) {
+    Sentry.captureException(error);
+    return { error: "Something went wrong. Please try again." };
+  }
 }

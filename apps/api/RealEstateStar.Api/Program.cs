@@ -11,11 +11,15 @@ using RealEstateStar.Api.Logging;
 using RealEstateStar.Api.Middleware;
 using RealEstateStar.DataServices.Config;
 using RealEstateStar.DataServices.Leads;
+using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.DataServices.Onboarding;
 using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.DataServices.WhatsApp;
+using RealEstateStar.Domain.Notifications.Interfaces;
+using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Notifications.Templates;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.DataProtection;
@@ -73,6 +77,9 @@ if (!builder.Environment.IsDevelopment())
             "Empty ApiKeys silently disables HMAC authentication on all lead endpoints.");
     }
 }
+
+// Consent HMAC signing (triple-write audit trail)
+builder.Services.Configure<ConsentHmacOptions>(builder.Configuration.GetSection("Consent:Hmac"));
 
 // Onboarding (session store registered early, services after config keys below)
 builder.Services.AddSingleton<JsonFileSessionStore>();
@@ -187,6 +194,57 @@ builder.Services.AddSingleton<IMarketingConsentLog, MarketingConsentLog>();
 builder.Services.AddSingleton<ILeadDataDeletion, GDriveLeadDataDeletion>();
 builder.Services.AddSingleton<IDeletionAuditLog, DeletionAuditLog>();
 builder.Services.AddSingleton<ILeadNotifier, MultiChannelLeadNotifier>();
+
+// Compliance consent triple-write services
+// IComplianceFileStorageProvider: service-account Drive in prod, local filesystem in dev
+builder.Services.AddSingleton<IComplianceFileStorageProvider>(sp =>
+    new LocalComplianceStorageProvider(
+        builder.Configuration["Storage:ComplianceBasePath"] ??
+        Path.Combine(builder.Environment.ContentRootPath, "data", "compliance")));
+
+// IComplianceConsentWriter: backed by ComplianceConsentWriter
+builder.Services.AddSingleton<IComplianceConsentWriter, ComplianceConsentWriter>();
+
+// IConsentAuditService: Azure Table in prod, no-op in dev
+builder.Services.AddSingleton<IConsentAuditService>(sp =>
+{
+    var connStr = builder.Configuration["AzureStorage:ConnectionString"];
+    if (string.IsNullOrEmpty(connStr))
+        return new NullConsentAuditService();
+
+    var tableClient = new Azure.Data.Tables.TableClient(connStr, "consentaudit");
+    return new ConsentAuditService(tableClient, sp.GetRequiredService<ILogger<ConsentAuditService>>());
+});
+
+// Notification dead letter store (Azure Table Storage; no-op when connection string is absent)
+builder.Services.AddSingleton<IFailedNotificationStore>(sp =>
+{
+    var connStr = builder.Configuration["AzureStorage:ConnectionString"];
+    if (string.IsNullOrEmpty(connStr))
+        return new NullFailedNotificationStore();
+
+    var tableClient = new Azure.Data.Tables.TableClient(connStr, "failednotifications");
+    return new FailedNotificationStore(tableClient, sp.GetRequiredService<ILogger<FailedNotificationStore>>());
+});
+
+// GDPR data export
+builder.Services.AddSingleton<ILeadDataExport, LeadDataExport>();
+
+// Email template rendering (privacy footer with unsubscribe/view-data links)
+builder.Services.AddSingleton<IEmailTemplateRenderer, PrivacyFooterRenderer>();
+
+// Consent token store (Azure Table; in-memory fallback when not configured)
+builder.Services.AddSingleton<ConsentTokenStore>(sp =>
+{
+    var connStr = builder.Configuration["AzureStorage:ConnectionString"];
+    if (string.IsNullOrEmpty(connStr))
+        return new ConsentTokenStore(
+            new Azure.Data.Tables.TableClient("UseDevelopmentStorage=true", "consenttokens"),
+            sp.GetRequiredService<ILogger<ConsentTokenStore>>());
+
+    var tableClient = new Azure.Data.Tables.TableClient(connStr, "consenttokens");
+    return new ConsentTokenStore(tableClient, sp.GetRequiredService<ILogger<ConsentTokenStore>>());
+});
 
 // Background lead processing (replaces fire-and-forget Task.Run)
 builder.Services.AddSingleton<LeadProcessingChannel>();
@@ -465,6 +523,24 @@ builder.Services.AddRateLimiter(options =>
         RateLimitPartition.GetFixedWindowLimiter(
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1) }));
+
+    // Lead export: 10 per hour per IP
+    options.AddPolicy("lead-export", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1) }));
+
+    // Lead delete: 10 per hour per IP
+    options.AddPolicy("lead-delete", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1) }));
+
+    // Telemetry events: 60 per minute per IP (one event per second per visitor, generous for analytics)
+    options.AddPolicy("telemetry", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1) }));
 });
 
 // Endpoint auto-registration

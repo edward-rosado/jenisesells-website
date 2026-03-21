@@ -99,4 +99,60 @@ public class LeadDiagnosticsTests
         Assert.NotNull(LeadDiagnostics.LlmCostUsd);
         Assert.Equal("leads.llm_cost_usd", LeadDiagnostics.LlmCostUsd.Name);
     }
+
+    [Fact]
+    public void FormViewed_Counter_Exists()
+    {
+        Assert.NotNull(LeadDiagnostics.FormViewed);
+        Assert.Equal("form.viewed", LeadDiagnostics.FormViewed.Name);
+    }
+
+    [Fact]
+    public void FormStarted_Counter_Exists()
+    {
+        Assert.NotNull(LeadDiagnostics.FormStarted);
+        Assert.Equal("form.started", LeadDiagnostics.FormStarted.Name);
+    }
+
+    [Fact]
+    public void FormSubmitted_Counter_Exists()
+    {
+        Assert.NotNull(LeadDiagnostics.FormSubmitted);
+        Assert.Equal("form.submitted", LeadDiagnostics.FormSubmitted.Name);
+    }
+
+    [Fact]
+    public void FormSucceeded_Counter_Exists()
+    {
+        Assert.NotNull(LeadDiagnostics.FormSucceeded);
+        Assert.Equal("form.succeeded", LeadDiagnostics.FormSucceeded.Name);
+    }
+
+    [Fact]
+    public void FormFailed_Counter_Exists()
+    {
+        Assert.NotNull(LeadDiagnostics.FormFailed);
+        Assert.Equal("form.failed", LeadDiagnostics.FormFailed.Name);
+    }
+
+    [Fact]
+    public void ConsentRecorded_Counter_Exists()
+    {
+        Assert.NotNull(LeadDiagnostics.ConsentRecorded);
+        Assert.Equal("consent.recorded", LeadDiagnostics.ConsentRecorded.Name);
+    }
+
+    [Fact]
+    public void ConsentAuditWriteFailed_Counter_Exists()
+    {
+        Assert.NotNull(LeadDiagnostics.ConsentAuditWriteFailed);
+        Assert.Equal("consent.audit_write_failed", LeadDiagnostics.ConsentAuditWriteFailed.Name);
+    }
+
+    [Fact]
+    public void NotificationPermanentlyFailed_Counter_Exists()
+    {
+        Assert.NotNull(LeadDiagnostics.NotificationPermanentlyFailed);
+        Assert.Equal("leads.notification_permanently_failed", LeadDiagnostics.NotificationPermanentlyFailed.Name);
+    }
 }

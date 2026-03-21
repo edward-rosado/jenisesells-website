@@ -43,4 +43,27 @@ describe("validateTurnstile", () => {
     const result = await validateTurnstile("token");
     expect(result).toBe(false);
   });
+
+  it("aborts fetch after 15 seconds and returns false", async () => {
+    vi.useFakeTimers();
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    (fetch as ReturnType<typeof vi.fn>).mockImplementation(
+      (_url: string, init?: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(new DOMException("The operation was aborted.", "AbortError")));
+        }),
+    );
+
+    const { validateTurnstile } = await import("@/lib/turnstile");
+    const promise = validateTurnstile("test-token");
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    const result = await promise;
+    expect(result).toBe(false);
+    // DOMException is not a subclass of Error in all environments — use anything() for AbortError
+    expect(spy).toHaveBeenCalledWith("[SEC-001] Turnstile validation error:", expect.anything());
+
+    spy.mockRestore();
+    vi.useRealTimers();
+  });
 });

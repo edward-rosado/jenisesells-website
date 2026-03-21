@@ -11,11 +11,12 @@ import type {
 } from "@real-estate-star/shared-types";
 import { useGoogleMapsAutocomplete } from "./useGoogleMapsAutocomplete";
 
-const TCPA_CONSENT_TEXT =
-  "By checking this box, you consent to receive calls and text messages from the agent " +
-  "at the phone number you provided, including automated calls. Message and data rates " +
-  "may apply. Reply STOP to opt out. Consent is not a condition of purchasing any " +
-  "property or service.";
+const TCPA_CONSENT_TEXT = (agentName: string) =>
+  `By submitting this form, you consent to receive email communications from ${agentName} ` +
+  `regarding your real estate inquiry, including market updates and property information. ` +
+  `You also consent to be contacted by ${agentName} by phone at the number provided. ` +
+  `You may unsubscribe from emails at any time. Consent is not a condition of purchasing ` +
+  `any property or service.`;
 
 export interface LeadFormProps {
   defaultState: string;
@@ -239,8 +240,8 @@ export function LeadForm({
       notes: fields.notes || undefined,
       marketingConsent: {
         optedIn: tcpaConsent,
-        consentText: TCPA_CONSENT_TEXT,
-        channels: ["calls", "texts"],
+        consentText: TCPA_CONSENT_TEXT(agentFirstName ?? "the agent"),
+        channels: ["email", "calls"],
       },
     };
 
@@ -530,7 +531,7 @@ export function LeadForm({
               </div>
               <div style={fieldGroupStyle}>
                 <label style={labelStyle} htmlFor="lf-sellerState">State{requiredMark}</label>
-                <input {...field("sellerState", { id: "lf-sellerState", required: true })} readOnly style={{ ...inputStyle, backgroundColor: "#f5f5f5", cursor: "default" }} />
+                <input {...field("sellerState", { id: "lf-sellerState", required: true })} readOnly aria-readonly="true" style={{ ...inputStyle, backgroundColor: "#f5f5f5", cursor: "default" }} />
               </div>
               <div style={fieldGroupStyle}>
                 <label style={labelStyle} htmlFor="lf-zip">Zip{requiredMark}</label>
@@ -551,7 +552,7 @@ export function LeadForm({
                 <input {...field("sqft", { type: "number" })} />
               </div>
             </div>
-            <p style={{ fontSize: 11, color: "#767676", marginTop: 4, marginBottom: 0 }}>
+            <p style={{ fontSize: 11, color: "#595959", marginTop: 4, marginBottom: 0 }}>
               Address autocomplete powered by Google Maps.
             </p>
           </>
@@ -584,15 +585,15 @@ export function LeadForm({
       {/* Errors */}
       <div id="lf-error" aria-live="polite" role="alert">
         {validationError && (
-          <p style={{ color: "red", fontSize: 14, marginBottom: 12 }}>{validationError}</p>
+          <p style={{ color: "#d32f2f", fontSize: 14, marginBottom: 12 }}>{validationError}</p>
         )}
         {error && (
-          <p style={{ color: "red", fontSize: 14, marginBottom: 12 }}>{error}</p>
+          <p style={{ color: "#d32f2f", fontSize: 14, marginBottom: 12 }}>{error}</p>
         )}
       </div>
 
       {/* TCPA Consent */}
-      <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: 11, color: "#767676", textAlign: "left", marginTop: "16px" }}>
+      <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: 11, color: "#595959", textAlign: "left", marginTop: "16px" }}>
         <input
           type="checkbox"
           data-testid="tcpa-consent"
@@ -600,7 +601,7 @@ export function LeadForm({
           onChange={(e) => setTcpaConsent(e.target.checked)}
           style={{ marginTop: "2px", flexShrink: 0 }}
         />
-        <span>{TCPA_CONSENT_TEXT}</span>
+        <span>{TCPA_CONSENT_TEXT(agentFirstName ?? "the agent")}</span>
       </label>
 
       {/* CAPTCHA slot — Turnstile widget or other challenge rendered by parent */}
@@ -617,7 +618,7 @@ export function LeadForm({
           padding: "14px 32px",
           borderRadius: 30,
           border: "none",
-          background: "var(--color-accent, #C8A951)",
+          background: "var(--color-accent, #A68A3E)",
           color: "#fff",
           fontSize: 17,
           fontWeight: 700,
@@ -634,7 +635,7 @@ export function LeadForm({
           style={{
             display: "block",
             fontSize: 11,
-            color: "#767676",
+            color: "#595959",
             marginTop: 16,
             textAlign: "center",
             lineHeight: 1.5,

@@ -9,10 +9,8 @@ import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import { safeTelHref } from "@/lib/safe-contact";
 import type { ThankYouData } from "@/lib/types";
 
-const EMAIL_RE = /^[^\s@:]+@[^\s@:]+\.[^\s@:]+$/;
-
 interface PageProps {
-  searchParams: Promise<{ accountId?: string; email?: string }>;
+  searchParams: Promise<{ accountId?: string }>;
 }
 
 const DEFAULT_THANK_YOU: ThankYouData = {
@@ -29,7 +27,7 @@ function interpolate(template: string, vars: Record<string, string>): string {
 }
 
 export default async function ThankYouPage({ searchParams }: PageProps) {
-  const { accountId, email } = await searchParams;
+  const { accountId } = await searchParams;
   const handle = accountId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 
   let account: ReturnType<typeof loadAccountConfig>;
@@ -72,13 +70,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
           <p className="text-lg font-semibold mb-4" style={{ color: "var(--color-accent)" }}>
             {interpolate(thankYou.subheading, vars)}
           </p>
-          {email && EMAIL_RE.test(email) && (
-            <p className="text-gray-700 mb-4 text-base">
-              We&apos;ll send your personalized report to{" "}
-              <strong>{email}</strong>. Keep an eye on your inbox!
-            </p>
-          )}
-          {!email && thankYou.body && (
+          {thankYou.body && (
             <p className="text-gray-600 mb-4">
               {interpolate(thankYou.body, vars)}
             </p>

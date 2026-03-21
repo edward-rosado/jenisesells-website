@@ -5,6 +5,25 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { CmaSection } from "@/components/sections/shared/CmaSection";
 import type { ContactFormData } from "@/lib/types";
+import { trackFormEvent } from "@/lib/telemetry";
+
+// Mock IntersectionObserver (not available in jsdom)
+const mockObserve = vi.fn();
+const mockDisconnect = vi.fn();
+let capturedObserverCallback: IntersectionObserverCallback | null = null;
+class MockIntersectionObserver {
+  observe = mockObserve;
+  disconnect = mockDisconnect;
+  constructor(callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {
+    capturedObserverCallback = callback;
+  }
+}
+vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+
+// Mock telemetry so tests don't make network requests
+vi.mock("@/lib/telemetry", () => ({
+  trackFormEvent: vi.fn(),
+}));
 
 // --- Mock submitLead server action ---
 const mockSubmitLead = vi.fn();
@@ -206,7 +225,7 @@ describe("CmaSection form submission", () => {
 
     expect(locationMock.href).toContain("/thank-you");
     expect(locationMock.href).toContain("test-agent");
-    expect(locationMock.href).toContain("email=alice%40test.com");
+    expect(locationMock.href).not.toContain("email=");
   });
 
   it("fires analytics conversion tracking on success", async () => {
@@ -374,6 +393,82 @@ describe("CmaSection Turnstile integration", () => {
   });
 });
 
+describe("CmaSection telemetry events", () => {
+  beforeEach(() => {
+    capturedObserverCallback = null;
+    mockObserve.mockClear();
+    mockDisconnect.mockClear();
+    vi.mocked(trackFormEvent).mockClear();
+  });
+
+  it("tracks form.viewed when section first intersects viewport", () => {
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    expect(capturedObserverCallback).not.toBeNull();
+
+    act(() => {
+      capturedObserverCallback!(
+        [{ isIntersecting: true } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+    });
+
+    expect(vi.mocked(trackFormEvent)).toHaveBeenCalledWith("form.viewed", "test-agent");
+    expect(mockDisconnect).toHaveBeenCalled();
+  });
+
+  it("does not track form.viewed when entry is not intersecting", () => {
+    render(<CmaSection {...DEFAULT_PROPS} />);
+
+    act(() => {
+      capturedObserverCallback!(
+        [{ isIntersecting: false } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+    });
+
+    expect(vi.mocked(trackFormEvent)).not.toHaveBeenCalledWith("form.viewed", "test-agent");
+  });
+
+  it("tracks form.viewed only once even if intersected multiple times", () => {
+    render(<CmaSection {...DEFAULT_PROPS} />);
+
+    act(() => {
+      capturedObserverCallback!(
+        [{ isIntersecting: true } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+    });
+    act(() => {
+      capturedObserverCallback!(
+        [{ isIntersecting: true } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+    });
+
+    const viewedCalls = vi.mocked(trackFormEvent).mock.calls.filter((c) => c[0] === "form.viewed");
+    expect(viewedCalls).toHaveLength(1);
+  });
+
+  it("tracks form.started on first focus into the form", () => {
+    render(<CmaSection {...DEFAULT_PROPS} />);
+
+    fireEvent.focusIn(screen.getByLabelText(/^first name/i));
+
+    expect(vi.mocked(trackFormEvent)).toHaveBeenCalledWith("form.started", "test-agent");
+  });
+
+  it("tracks form.started only once even if focused multiple times", () => {
+    render(<CmaSection {...DEFAULT_PROPS} />);
+
+    const input = screen.getByLabelText(/^first name/i);
+    fireEvent.focusIn(input);
+    fireEvent.focusIn(input);
+
+    const startedCalls = vi.mocked(trackFormEvent).mock.calls.filter((c) => c[0] === "form.started");
+    expect(startedCalls).toHaveLength(1);
+  });
+});
+
 describe("CmaSection marketing consent", () => {
   it("includes marketingConsent in submitted data", async () => {
     mockSubmitLead.mockResolvedValueOnce({ leadId: "lead-789", status: "received" });
@@ -394,7 +489,7 @@ describe("CmaSection marketing consent", () => {
         marketingConsent: {
           optedIn: true,
           consentText: expect.stringContaining("consent to receive"),
-          channels: ["calls", "texts"],
+          channels: ["email", "calls"],
         },
       }),
       expect.any(String),

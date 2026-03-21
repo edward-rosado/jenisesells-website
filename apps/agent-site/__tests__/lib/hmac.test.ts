@@ -160,4 +160,38 @@ describe("signAndForward", () => {
       expect.objectContaining({ method: "POST" }),
     );
   });
+
+  it("aborts fetch after 15 seconds", async () => {
+    // Mock crypto.subtle so the HMAC step doesn't block fake timers
+    const fakeKey = {} as CryptoKey;
+    const fakeSig = new Uint8Array(32).buffer;
+    vi.stubGlobal("crypto", {
+      subtle: {
+        importKey: vi.fn().mockResolvedValue(fakeKey),
+        sign: vi.fn().mockResolvedValue(fakeSig),
+      },
+    });
+
+    vi.useFakeTimers();
+    let rejectFetch!: (err: unknown) => void;
+    (fetch as ReturnType<typeof vi.fn>).mockImplementation(
+      (_url: string, init?: RequestInit) => {
+        const p = new Promise((_resolve, reject) => { rejectFetch = reject; });
+        init?.signal?.addEventListener("abort", () => rejectFetch(new DOMException("The operation was aborted.", "AbortError")));
+        return p;
+      },
+    );
+
+    const { signAndForward } = await import("@/lib/hmac");
+    const promise = signAndForward("agent-123", JSON.stringify({ email: "test@example.com" }));
+    // Attach catch before advancing timers to prevent unhandled rejection
+    const caught = promise.catch((e) => e);
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    const err = await caught;
+    expect(err).toBeDefined();
+
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 });

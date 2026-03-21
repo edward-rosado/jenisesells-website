@@ -19,14 +19,21 @@ export async function signAndForward(agentId: string, body: string, path?: strin
     .join("")}`;
 
   const endpoint = path ?? `agents/${agentId}/leads`;
-  return fetch(`${apiUrl}/${endpoint}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-Key": apiKey,
-      "X-Signature": signature,
-      "X-Timestamp": timestamp,
-    },
-    body,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15_000);
+  try {
+    return await fetch(`${apiUrl}/${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": apiKey,
+        "X-Signature": signature,
+        "X-Timestamp": timestamp,
+      },
+      body,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }

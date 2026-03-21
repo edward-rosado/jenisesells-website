@@ -2,11 +2,14 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using RealEstateStar.Api.Diagnostics;
 using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Api.Middleware;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.Domain.Privacy;
+using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Workers.Leads;
 
@@ -27,6 +30,9 @@ public class SubmitLeadEndpoint : IEndpoint
         LeadProcessingChannel processingChannel,
         HttpContext httpContext,
         ILogger<SubmitLeadEndpoint> logger,
+        IConsentAuditService consentAudit,
+        IComplianceConsentWriter complianceWriter,
+        IOptions<ConsentHmacOptions> consentHmacOptions,
         CancellationToken ct)
     {
         // Validate DataAnnotations on the request
@@ -52,12 +58,17 @@ public class SubmitLeadEndpoint : IEndpoint
             });
         }
 
+        using var activity = LeadDiagnostics.ActivitySource.StartActivity("lead.submit");
+        activity?.SetTag("lead.agent_id", agentId);
+
         // 1. Validate agentId exists
         var agent = await accountConfig.GetAccountAsync(agentId, ct);
         if (agent is null) return Results.NotFound();
 
         // 2. Map request to domain
         var lead = request.ToLead(agentId);
+        activity?.SetTag("lead.id", lead.Id.ToString());
+        activity?.SetTag("lead.type", lead.LeadType.ToString());
 
         logger.LogInformation(
             "[LEAD-001] Lead received. LeadId: {LeadId}, AgentId: {AgentId}, Type: {LeadType}, Email: {EmailHash}",
@@ -78,12 +89,22 @@ public class SubmitLeadEndpoint : IEndpoint
             ConsentText = request.MarketingConsent.ConsentText,
             IpAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             UserAgent = httpContext.Request.Headers.UserAgent.ToString(),
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow,
+            Action = ConsentAction.OptIn,
+            Source = ConsentSource.LeadForm,
         };
         await consentLog.RecordConsentAsync(agentId, consent, ct);
 
+        // Triple-write: agent Drive (existing) + compliance Drive + Azure Table
+        var hmacSignature = MarketingConsentLog.ComputeHmacSignature(consent, consentHmacOptions.Value.Secret);
+        // Layer 1: Agent Drive CSV (already existing call above)
+        await complianceWriter.WriteAsync(agentId, consent, hmacSignature, ct);  // Layer 2: RE* service-account Drive
+        await consentAudit.RecordAsync(agentId, consent, hmacSignature, ct);     // Layer 3: Azure Table
+        LeadDiagnostics.ConsentRecorded.Add(1);
+
         // 5. Enqueue background processing (enrichment, notification, home search)
         var correlationId = httpContext.Items[CorrelationIdMiddleware.CorrelationIdKey]?.ToString() ?? Guid.NewGuid().ToString();
+        activity?.SetTag("correlation.id", correlationId);
         var processingRequest = new LeadProcessingRequest(agentId, lead, correlationId);
 
         await processingChannel.Writer.WriteAsync(processingRequest, ct);

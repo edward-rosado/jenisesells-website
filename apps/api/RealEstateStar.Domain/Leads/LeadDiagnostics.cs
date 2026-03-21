@@ -52,4 +52,26 @@ public static class LeadDiagnostics
 
     public static readonly Counter<double> LlmCostUsd = Meter.CreateCounter<double>(
         "leads.llm_cost_usd", unit: "USD", description: "Estimated LLM cost in USD for lead processing");
+
+    // Form funnel counters (incremented by /telemetry endpoint)
+    public static readonly Counter<long> FormViewed = Meter.CreateCounter<long>(
+        "form.viewed", description: "Form section entered viewport");
+    public static readonly Counter<long> FormStarted = Meter.CreateCounter<long>(
+        "form.started", description: "First form field interaction");
+    public static readonly Counter<long> FormSubmitted = Meter.CreateCounter<long>(
+        "form.submitted", description: "Form submit button clicked");
+    public static readonly Counter<long> FormSucceeded = Meter.CreateCounter<long>(
+        "form.succeeded", description: "Form submission returned 202");
+    public static readonly Counter<long> FormFailed = Meter.CreateCounter<long>(
+        "form.failed", description: "Form submission returned error");
+
+    // Consent audit counters
+    public static readonly Counter<long> ConsentRecorded = Meter.CreateCounter<long>(
+        "consent.recorded", description: "Consent events recorded successfully");
+    public static readonly Counter<long> ConsentAuditWriteFailed = Meter.CreateCounter<long>(
+        "consent.audit_write_failed", description: "Consent audit writes that failed (Azure Table or compliance Drive)");
+
+    // Notification retry
+    public static readonly Counter<long> NotificationPermanentlyFailed = Meter.CreateCounter<long>(
+        "leads.notification_permanently_failed", description: "Notifications that failed after all retries");
 }

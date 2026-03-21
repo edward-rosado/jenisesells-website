@@ -9,6 +9,10 @@ vi.mock("@/lib/hmac", () => ({
   signAndForward: vi.fn(),
 }));
 
+vi.mock("@sentry/nextjs", () => ({
+  captureException: vi.fn(),
+}));
+
 describe("submitLead", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -91,5 +95,25 @@ describe("submitLead", () => {
     );
 
     expect(result).toEqual({ error: "Something went wrong. Please try again." });
+  });
+
+  it("captures exception via Sentry and returns generic error when signAndForward throws", async () => {
+    const { validateTurnstile } = await import("@/lib/turnstile");
+    const { signAndForward } = await import("@/lib/hmac");
+    const Sentry = await import("@sentry/nextjs");
+    const { submitLead } = await import("@/actions/submit-lead");
+
+    const networkError = new Error("Network timeout");
+    (validateTurnstile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(true);
+    (signAndForward as ReturnType<typeof vi.fn>).mockRejectedValueOnce(networkError);
+
+    const result = await submitLead(
+      "agent-123",
+      { email: "test@example.com" } as LeadFormData,
+      "valid-token",
+    );
+
+    expect(result).toEqual({ error: "Something went wrong. Please try again." });
+    expect(Sentry.captureException).toHaveBeenCalledWith(networkError);
   });
 });

@@ -1,0 +1,72 @@
+using FluentAssertions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using RealEstateStar.Api.Features.Leads.Export;
+using RealEstateStar.Domain.Privacy;
+
+namespace RealEstateStar.Api.Tests.Features.Leads.Export;
+
+public class ExportLeadEndpointTests
+{
+    private readonly Mock<ILeadDataExport> _dataExport = new();
+    private readonly ILogger<ExportLeadEndpoint> _logger = NullLogger<ExportLeadEndpoint>.Instance;
+    private const string AgentId = "jenise-buckalew";
+    private const string Email = "lead@example.com";
+
+    [Fact]
+    public async Task Handle_Returns200WithExportData_WhenLeadExists()
+    {
+        var exportData = new LeadExportData(
+            new Lead
+            {
+                Id = Guid.NewGuid(),
+                AgentId = AgentId,
+                LeadType = LeadType.Buyer,
+                FirstName = "Jane",
+                LastName = "Doe",
+                Email = Email,
+                Phone = "555-1234",
+                Timeline = "ASAP",
+                Status = LeadStatus.Enriched
+            },
+            [],
+            null);
+
+        _dataExport.Setup(e => e.GatherAsync(AgentId, Email, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(exportData);
+
+        var result = await ExportLeadEndpoint.Handle(
+            AgentId, Email, _dataExport.Object, _logger, CancellationToken.None);
+
+        var ok = result.Should().BeAssignableTo<Ok<LeadExportData>>().Subject;
+        ok.Value.Should().Be(exportData);
+    }
+
+    [Fact]
+    public async Task Handle_Returns404_WhenLeadNotFound()
+    {
+        _dataExport.Setup(e => e.GatherAsync(AgentId, Email, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LeadExportData?)null);
+
+        var result = await ExportLeadEndpoint.Handle(
+            AgentId, Email, _dataExport.Object, _logger, CancellationToken.None);
+
+        result.Should().BeAssignableTo<NotFound>();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public async Task Handle_Returns400_WhenEmailIsMissing(string? email)
+    {
+        var result = await ExportLeadEndpoint.Handle(
+            AgentId, email!, _dataExport.Object, _logger, CancellationToken.None);
+
+        var problem = result.Should().BeAssignableTo<ProblemHttpResult>().Subject;
+        problem.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
+    }
+}
