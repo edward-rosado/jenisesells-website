@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="RealEstateStar.Workers.Cma.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers.Shared\RealEstateStar.Workers.Shared.csproj" />
+  </ItemGroup>
+</Project>

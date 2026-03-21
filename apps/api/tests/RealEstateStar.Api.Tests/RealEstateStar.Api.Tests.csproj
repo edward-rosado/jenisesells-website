@@ -27,7 +27,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RealEstateStar.Api\RealEstateStar.Api.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Api/RealEstateStar.Api.csproj" />
+    <ProjectReference Include="../RealEstateStar.TestUtilities/RealEstateStar.TestUtilities.csproj" />
   </ItemGroup>
 
 </Project>
