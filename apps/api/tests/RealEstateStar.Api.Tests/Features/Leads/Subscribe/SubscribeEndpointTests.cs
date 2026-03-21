@@ -1,11 +1,12 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Options;
 using Moq;
-using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Domain.Privacy;
+using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Api.Features.Leads.Subscribe;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Subscribe;
@@ -31,12 +32,28 @@ public class SubscribeEndpointTests
         MarketingOptedIn = marketingOptedIn,
     };
 
+    private static (Mock<IConsentAuditService> audit, Mock<ComplianceConsentWriter> writer, IOptions<ConsentHmacOptions> opts) MakeTripleWriteMocks()
+    {
+        var audit = new Mock<IConsentAuditService>();
+        audit.Setup(s => s.RecordAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var writer = new Mock<ComplianceConsentWriter>();
+        writer.Setup(s => s.WriteAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var opts = Options.Create(new ConsentHmacOptions { Secret = "test-hmac-secret-32-bytes-xxxxx!" });
+
+        return (audit, writer, opts);
+    }
+
     [Fact]
     public async Task Handle_ValidToken_Returns200AndUpdatesOptInAndAppendConsentLog()
     {
         var lead = MakeLead();
         var leadStore = new Mock<ILeadStore>();
         var consentLog = new Mock<IMarketingConsentLog>();
+        var (consentAudit, complianceWriter, consentHmacOptions) = MakeTripleWriteMocks();
 
         leadStore.Setup(s => s.GetByEmailAsync(AgentId, lead.Email, It.IsAny<CancellationToken>()))
             .ReturnsAsync(lead);
@@ -52,6 +69,9 @@ public class SubscribeEndpointTests
             leadStore.Object,
             consentLog.Object,
             httpContext,
+            consentAudit.Object,
+            complianceWriter.Object,
+            consentHmacOptions,
             CancellationToken.None);
 
         var okResult = result.Should().BeAssignableTo<IStatusCodeHttpResult>().Subject;
@@ -62,11 +82,43 @@ public class SubscribeEndpointTests
     }
 
     [Fact]
+    public async Task Handle_ValidToken_TripleWritesConsent()
+    {
+        var lead = MakeLead();
+        var leadStore = new Mock<ILeadStore>();
+        var consentLog = new Mock<IMarketingConsentLog>();
+        var (consentAudit, complianceWriter, consentHmacOptions) = MakeTripleWriteMocks();
+
+        leadStore.Setup(s => s.GetByEmailAsync(AgentId, lead.Email, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(lead);
+        leadStore.Setup(s => s.UpdateMarketingOptInAsync(AgentId, lead.Id, true, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        consentLog.Setup(c => c.RecordConsentAsync(AgentId, It.IsAny<MarketingConsent>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var httpContext = new DefaultHttpContext();
+        await SubscribeEndpoint.Handle(
+            AgentId,
+            new SubscribeRequest { Email = lead.Email, Token = lead.ConsentToken! },
+            leadStore.Object,
+            consentLog.Object,
+            httpContext,
+            consentAudit.Object,
+            complianceWriter.Object,
+            consentHmacOptions,
+            CancellationToken.None);
+
+        complianceWriter.Verify(w => w.WriteAsync(AgentId, It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        consentAudit.Verify(a => a.RecordAsync(AgentId, It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_InvalidToken_Returns200WithoutWriting()
     {
         var lead = MakeLead();
         var leadStore = new Mock<ILeadStore>();
         var consentLog = new Mock<IMarketingConsentLog>();
+        var (consentAudit, complianceWriter, consentHmacOptions) = MakeTripleWriteMocks();
 
         leadStore.Setup(s => s.GetByEmailAsync(AgentId, lead.Email, It.IsAny<CancellationToken>()))
             .ReturnsAsync(lead);
@@ -78,6 +130,9 @@ public class SubscribeEndpointTests
             leadStore.Object,
             consentLog.Object,
             httpContext,
+            consentAudit.Object,
+            complianceWriter.Object,
+            consentHmacOptions,
             CancellationToken.None);
 
         var okResult = result.Should().BeAssignableTo<IStatusCodeHttpResult>().Subject;
@@ -85,6 +140,8 @@ public class SubscribeEndpointTests
 
         leadStore.Verify(s => s.UpdateMarketingOptInAsync(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
         consentLog.Verify(c => c.RecordConsentAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<CancellationToken>()), Times.Never);
+        complianceWriter.Verify(w => w.WriteAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        consentAudit.Verify(a => a.RecordAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -93,6 +150,7 @@ public class SubscribeEndpointTests
         var lead = MakeLead();
         var leadStore = new Mock<ILeadStore>();
         var consentLog = new Mock<IMarketingConsentLog>();
+        var (consentAudit, complianceWriter, consentHmacOptions) = MakeTripleWriteMocks();
 
         leadStore.Setup(s => s.GetByEmailAsync(AgentId, lead.Email, It.IsAny<CancellationToken>()))
             .ReturnsAsync(lead);
@@ -111,6 +169,9 @@ public class SubscribeEndpointTests
             leadStore.Object,
             consentLog.Object,
             httpContext,
+            consentAudit.Object,
+            complianceWriter.Object,
+            consentHmacOptions,
             CancellationToken.None);
 
         captured.Should().NotBeNull();
