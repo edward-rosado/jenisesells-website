@@ -7,6 +7,7 @@ using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Api.Middleware;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.Domain.Privacy;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Workers.Leads;
 
@@ -78,7 +79,9 @@ public class SubmitLeadEndpoint : IEndpoint
             ConsentText = request.MarketingConsent.ConsentText,
             IpAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             UserAgent = httpContext.Request.Headers.UserAgent.ToString(),
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow,
+            Action = ConsentAction.OptIn,
+            Source = ConsentSource.LeadForm,
         };
         await consentLog.RecordConsentAsync(agentId, consent, ct);
 

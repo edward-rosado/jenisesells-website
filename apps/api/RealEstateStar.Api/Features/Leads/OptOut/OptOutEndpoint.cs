@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.Domain.Privacy;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Api.Infrastructure;
 
@@ -49,8 +50,8 @@ public class OptOutEndpoint : IEndpoint
             IpAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "",
             UserAgent = httpContext.Request.Headers.UserAgent.ToString(),
             Timestamp = DateTime.UtcNow,
-            Action = "opt-out",
-            Source = "email-unsubscribe",
+            Action = ConsentAction.OptOut,
+            Source = ConsentSource.EmailLink,
         }, ct);
 
         return Results.Ok(new { status = "opted_out" });

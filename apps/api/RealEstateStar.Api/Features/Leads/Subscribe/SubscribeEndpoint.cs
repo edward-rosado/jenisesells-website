@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.Domain.Privacy;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Api.Infrastructure;
 
@@ -49,8 +50,8 @@ public class SubscribeEndpoint : IEndpoint
             IpAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "",
             UserAgent = httpContext.Request.Headers.UserAgent.ToString(),
             Timestamp = DateTime.UtcNow,
-            Action = "opt-in",
-            Source = "re-subscribe",
+            Action = ConsentAction.Resubscribe,
+            Source = ConsentSource.EmailLink,
         }, ct);
 
         return Results.Ok(new { status = "subscribed" });

@@ -5,6 +5,7 @@ using Moq;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.Domain.Privacy;
 using RealEstateStar.Api.Features.Leads.Subscribe;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Subscribe;
@@ -113,8 +114,8 @@ public class SubscribeEndpointTests
             CancellationToken.None);
 
         captured.Should().NotBeNull();
-        captured!.Action.Should().Be("opt-in");
-        captured.Source.Should().Be("re-subscribe");
+        captured!.Action.Should().Be(ConsentAction.Resubscribe);
+        captured.Source.Should().Be(ConsentSource.EmailLink);
         captured.OptedIn.Should().BeTrue();
     }
 }

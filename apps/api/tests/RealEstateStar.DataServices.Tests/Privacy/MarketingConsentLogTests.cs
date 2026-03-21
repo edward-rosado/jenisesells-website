@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using RealEstateStar.Domain.Privacy;
 
 namespace RealEstateStar.DataServices.Tests.Privacy;
 
@@ -25,7 +26,9 @@ public class MarketingConsentLogTests
             Channels = ["email", "sms"],
             IpAddress = "192.168.1.1",
             UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-            Timestamp = timestamp
+            Timestamp = timestamp,
+            Action = ConsentAction.OptIn,
+            Source = ConsentSource.LeadForm,
         };
 
         await consentLog.RecordConsentAsync("agent1", consent, CancellationToken.None);
@@ -68,7 +71,9 @@ public class MarketingConsentLogTests
             Channels = [],
             IpAddress = "10.0.0.1",
             UserAgent = "Mozilla/5.0",
-            Timestamp = timestamp
+            Timestamp = timestamp,
+            Action = ConsentAction.OptOut,
+            Source = ConsentSource.EmailLink,
         };
 
         await consentLog.RecordConsentAsync("agent1", consent, CancellationToken.None);
@@ -101,7 +106,9 @@ public class MarketingConsentLogTests
             Channels = ["email", "sms", "push"],
             IpAddress = "127.0.0.1",
             UserAgent = "TestAgent",
-            Timestamp = timestamp
+            Timestamp = timestamp,
+            Action = ConsentAction.OptIn,
+            Source = ConsentSource.LeadForm,
         };
 
         await consentLog.RecordConsentAsync("agent1", consent, CancellationToken.None);
@@ -134,7 +141,9 @@ public class MarketingConsentLogTests
             Channels = [],
             IpAddress = "192.168.0.1",
             UserAgent = "TestAgent",
-            Timestamp = timestamp
+            Timestamp = timestamp,
+            Action = ConsentAction.OptOut,
+            Source = ConsentSource.EmailLink,
         };
 
         await consentLog.RecordConsentAsync("agent1", consent, CancellationToken.None);

@@ -6,6 +6,7 @@ using RealEstateStar.DataServices.Leads;
 using RealEstateStar.Api.Features.Leads.OptOut;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.Domain.Privacy;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.OptOut;
 
@@ -165,8 +166,8 @@ public class OptOutEndpointTests
             CancellationToken.None);
 
         captured.Should().NotBeNull();
-        captured!.Action.Should().Be("opt-out");
+        captured!.Action.Should().Be(ConsentAction.OptOut);
         captured.OptedIn.Should().BeFalse();
-        captured.Source.Should().Be("email-unsubscribe");
+        captured.Source.Should().Be(ConsentSource.EmailLink);
     }
 }

@@ -8,6 +8,7 @@ using Moq;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.Domain.Privacy;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Api.Tests.Integration;
 
@@ -549,8 +550,8 @@ public class LeadSubmission_OptOutSubscribeFlowTests
                 It.Is<MarketingConsent>(mc =>
                     mc.Email == email &&
                     mc.OptedIn == false &&
-                    mc.Action == "opt-out" &&
-                    mc.Source == "email-unsubscribe"),
+                    mc.Action == ConsentAction.OptOut &&
+                    mc.Source == ConsentSource.EmailLink),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
