@@ -21,7 +21,7 @@ $AppDir    = Join-Path $RepoRoot "apps\agent-site"
 function Write-Ok($Msg)   { Write-Host "  [OK]   $Msg" -ForegroundColor Green }
 function Write-Info($Msg)  { Write-Host "  [-->]  $Msg" -ForegroundColor Cyan }
 function Write-Warn($Msg) { Write-Host "  [WARN] $Msg" -ForegroundColor Yellow }
-function Write-Step($Num, $Msg) { Write-Host "`n=== Step $Num: $Msg ===" -ForegroundColor White }
+function Write-Step($Num, $Msg) { Write-Host "`n=== Step ${Num}: ${Msg} ===" -ForegroundColor White }
 
 Write-Host ""
 Write-Host "============================================================================" -ForegroundColor White
