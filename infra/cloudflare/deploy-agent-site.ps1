@@ -403,6 +403,66 @@ try {
     Pop-Location
 }
 
+# --- Set Worker Secrets (production only) ---
+if ($Production) {
+    Write-Host ""
+    Write-Host "=== Set Worker Secrets ===" -ForegroundColor White
+    Write-Info "Injecting runtime secrets via wrangler secret bulk..."
+
+    # These secrets are required for Turnstile CAPTCHA and Lead API integration.
+    # They are NOT in wrangler.jsonc (that would expose them as plaintext).
+    $workerSecrets = @(
+        @{ Name = "TURNSTILE_SECRET_KEY"; Env = "TURNSTILE_SECRET_KEY"; Display = "Cloudflare Turnstile Secret Key" }
+        @{ Name = "LEAD_API_KEY";         Env = "LEAD_API_KEY";         Display = "Lead API Key" }
+        @{ Name = "LEAD_HMAC_SECRET";     Env = "LEAD_HMAC_SECRET";     Display = "Lead HMAC Secret" }
+        @{ Name = "LEAD_API_URL";         Env = "LEAD_API_URL";         Display = "Lead API URL" }
+    )
+
+    $jsonParts = @()
+    $missing = @()
+
+    foreach ($secret in $workerSecrets) {
+        $value = [Environment]::GetEnvironmentVariable($secret.Env)
+        if ([string]::IsNullOrWhiteSpace($value)) {
+            $missing += $secret.Display
+        } else {
+            $escapedValue = $value -replace '"', '\"'
+            $jsonParts += "`"$($secret.Name)`":`"$escapedValue`""
+        }
+    }
+
+    if ($missing.Count -gt 0) {
+        Write-Warn "Missing environment variables for secrets:"
+        foreach ($m in $missing) { Write-Host "    - $m" -ForegroundColor Yellow }
+        Write-Host ""
+        Write-Host "  Set them before deploying, or run separately:" -ForegroundColor Yellow
+        Write-Host "    .\set-worker-secrets.ps1" -ForegroundColor Yellow
+        Write-Host ""
+    }
+
+    if ($jsonParts.Count -gt 0) {
+        $json = "{" + ($jsonParts -join ",") + "}"
+
+        Push-Location $AppDir
+        try {
+            $savedEAP = $ErrorActionPreference
+            $ErrorActionPreference = "Continue"
+            $json | npx wrangler secret bulk 2>&1 | ForEach-Object { Write-Host "    $_" }
+            $secretExitCode = $LASTEXITCODE
+            $ErrorActionPreference = $savedEAP
+
+            if ($secretExitCode -ne 0) {
+                Write-Fail "wrangler secret bulk failed (exit code: $secretExitCode)"
+                Write-Info "Run .\set-worker-secrets.ps1 manually to retry"
+            } else {
+                Write-Ok "$($jsonParts.Count) secret(s) set on worker"
+            }
+        } finally {
+            Pop-Location
+        }
+    }
+}
+
 # --- Post-deploy info ---
 Write-Host ""
 Write-Host "=== Deploy Complete ===" -ForegroundColor White
