@@ -39,6 +39,7 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
         run: npm run build --prefix apps/agent-site
 
   deploy:
@@ -71,6 +72,7 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
         run: npm run build --prefix apps/agent-site
 
       - name: Build for Cloudflare (OpenNext)
@@ -84,3 +86,20 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/agent-site
           command: deploy
+
+      # OpenNext intercepts `wrangler deploy` so the wrangler-action secrets:
+      # parameter never runs `wrangler secret put`. Set secrets explicitly.
+      - name: Set Cloudflare Worker secrets
+        working-directory: apps/agent-site
+        run: |
+          printf '%s\n' "$WORKER_SECRETS" | npx wrangler secret bulk
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER_SECRETS: |
+            {
+              "TURNSTILE_SECRET_KEY": "${{ secrets.TURNSTILE_SECRET_KEY }}",
+              "LEAD_API_KEY": "${{ secrets.LEAD_API_KEY }}",
+              "LEAD_HMAC_SECRET": "${{ secrets.LEAD_HMAC_SECRET }}",
+              "LEAD_API_URL": "${{ secrets.LEAD_API_URL }}"
+            }
