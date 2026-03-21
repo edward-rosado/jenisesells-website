@@ -41,6 +41,36 @@ if (-not $npxAvailable) {
     exit 1
 }
 
+# Check Cloudflare auth BEFORE prompting for secrets
+if (-not $env:CLOUDFLARE_API_TOKEN) {
+    Write-Warn "CLOUDFLARE_API_TOKEN not set"
+    Write-Host ""
+    Write-Host "  Wrangler needs an API token to set secrets on the Worker." -ForegroundColor Yellow
+    Write-Host "  Find yours in the Cloudflare dashboard or appsettings.Development.json" -ForegroundColor Yellow
+    Write-Host ""
+    $tokenInput = Read-Host -Prompt "  Paste your Cloudflare API token (or press Enter to exit)"
+    if ([string]::IsNullOrWhiteSpace($tokenInput)) { exit 1 }
+    $env:CLOUDFLARE_API_TOKEN = $tokenInput.Trim()
+}
+
+# Verify the token works before collecting secrets
+Push-Location $AppDir
+try {
+    $savedEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $null = npx wrangler whoami 2>&1
+    $whoamiExit = $LASTEXITCODE
+    $ErrorActionPreference = $savedEAP
+
+    if ($whoamiExit -ne 0) {
+        Write-Host "  [FAIL] Cloudflare authentication failed -- check your token" -ForegroundColor Red
+        exit 1
+    }
+    Write-Ok "Cloudflare authentication verified"
+} finally {
+    Pop-Location
+}
+
 # ============================================================================
 # STEP 1: Turnstile
 # ============================================================================
