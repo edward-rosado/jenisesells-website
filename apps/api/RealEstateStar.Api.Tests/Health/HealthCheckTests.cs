@@ -41,10 +41,9 @@ public class HealthCheckTests : IClassFixture<TestWebApplicationFactory>
 
         root.TryGetProperty("status", out _).Should().BeTrue();
         root.TryGetProperty("entries", out var entries).Should().BeTrue();
-        entries.ValueKind.Should().Be(JsonValueKind.Object);
 
         var entryNames = entries.EnumerateObject()
-            .Select(p => p.Name)
+            .Select(e => e.Name)
             .ToList();
 
         entryNames.Should().Contain("claude_api");
