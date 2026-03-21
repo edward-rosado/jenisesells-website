@@ -1,5 +1,5 @@
 using FluentAssertions;
-using RealEstateStar.Api.Health;
+using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Api.Tests.Health;
 

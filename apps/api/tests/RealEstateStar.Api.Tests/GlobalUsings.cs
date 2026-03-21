@@ -33,16 +33,20 @@ global using RealEstateStar.DataServices.WhatsApp;
 
 // Api features (types that remain in Api)
 global using RealEstateStar.Api.Features.Leads;
-global using RealEstateStar.Api.Features.Leads.Cma;
-global using RealEstateStar.Api.Features.Leads.Services;
 global using RealEstateStar.Api.Features.Leads.Submit;
 global using RealEstateStar.Api.Features.Onboarding.Services;
 global using RealEstateStar.Api.Features.Onboarding.Tools;
-global using RealEstateStar.Api.Features.WhatsApp.Services;
 global using RealEstateStar.Api.Services.Storage;
 global using RealEstateStar.Clients.Gws;
 global using RealEstateStar.Clients.WhatsApp;
 global using RealEstateStar.Data;
+
+// Workers
+global using RealEstateStar.Workers.Shared;
+global using RealEstateStar.Workers.Leads;
+global using RealEstateStar.Workers.Cma;
+global using RealEstateStar.Workers.HomeSearch;
+global using RealEstateStar.Workers.WhatsApp;
 
 // Notifications
 global using RealEstateStar.Notifications.Leads;

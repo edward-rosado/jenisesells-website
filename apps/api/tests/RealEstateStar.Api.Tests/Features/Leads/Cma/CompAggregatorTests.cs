@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using RealEstateStar.Api.Features.Leads.Cma;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Cma;
 
