@@ -7,7 +7,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Moq;
 using RealEstateStar.DataServices.WhatsApp;
 using RealEstateStar.Api.Features.WhatsApp.Webhook.ReceiveWebhook;
-using RealEstateStar.Api.Tests.TestHelpers;
+using RealEstateStar.TestUtilities;
 
 namespace RealEstateStar.Api.Tests.Features.WhatsApp.Webhook.ReceiveWebhook;
 

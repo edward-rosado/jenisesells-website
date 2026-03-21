@@ -28,7 +28,6 @@ using RealEstateStar.Workers.HomeSearch;
 using RealEstateStar.Workers.Leads;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.WhatsApp;
-using RealEstateStar.Api.Services.Storage;
 using RealEstateStar.Clients.Gws;
 using RealEstateStar.Clients.WhatsApp;
 using Serilog;

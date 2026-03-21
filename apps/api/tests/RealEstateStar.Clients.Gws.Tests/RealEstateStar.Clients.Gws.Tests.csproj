@@ -18,6 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../RealEstateStar.Clients.Gws/RealEstateStar.Clients.Gws.csproj" />
+    <ProjectReference Include="../../RealEstateStar.DataServices/RealEstateStar.DataServices.csproj" />
     <ProjectReference Include="../RealEstateStar.TestUtilities/RealEstateStar.TestUtilities.csproj" />
   </ItemGroup>
 </Project>

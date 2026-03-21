@@ -6,5 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../RealEstateStar.Domain/RealEstateStar.Domain.csproj" />
+    <ProjectReference Include="../../RealEstateStar.DataServices/RealEstateStar.DataServices.csproj" />
   </ItemGroup>
 </Project>
