@@ -9,7 +9,7 @@ namespace RealEstateStar.Api.Features.Leads.Cma;
 
 public class CmaPdfGenerator : ICmaPdfGenerator
 {
-    private static readonly CultureInfo EnUs = CultureInfo.GetCultureInfo("en-US");
+    private static readonly CultureInfo EnUs = new("en-US");
 
     private readonly ILogger<CmaPdfGenerator> _logger;
 
