@@ -22,6 +22,7 @@ public static partial class LeadMarkdownRenderer
         sb.AppendLine($"status: {lead.Status}");
         sb.AppendLine($"receivedAt: {lead.ReceivedAt:O}");
         sb.AppendLine($"homeSearchId: {lead.HomeSearchId?.ToString() ?? ""}");
+        sb.AppendLine($"consent_token_hash: {lead.ConsentTokenHash ?? ""}");
         sb.AppendLine();
         sb.AppendLine("# === Indexable ===");
         sb.AppendLine($"firstName: \"{EscapeYaml(lead.FirstName)}\"");

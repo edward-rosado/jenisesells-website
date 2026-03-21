@@ -19,6 +19,7 @@ public class Lead
     public LeadScore? Score { get; set; }
     public Guid? HomeSearchId { get; set; }
     public string? ConsentToken { get; set; }
+    public string? ConsentTokenHash { get; init; }
     public bool? MarketingOptedIn { get; set; }
 
     public string FullName => $"{FirstName} {LastName}";
