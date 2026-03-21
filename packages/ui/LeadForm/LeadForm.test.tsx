@@ -844,6 +844,15 @@ describe("LeadForm", () => {
     expect(screen.getByText(/contacted by Test by phone/i)).toBeTruthy();
   });
 
+  // Test 54 — aria-readonly on read-only state field
+  it("sets aria-readonly on read-only state field", () => {
+    render(<LeadForm onSubmit={vi.fn()} defaultState="NJ" agentFirstName="Test" />);
+    const sellerPill = screen.getByRole("checkbox", { name: /i'm selling/i });
+    fireEvent.click(sellerPill);
+    const stateField = screen.getByLabelText(/^state/i);
+    expect(stateField).toHaveAttribute("aria-readonly", "true");
+  });
+
   // Test 42
   it("allows submit when TCPA consent is checked", async () => {
     const onSubmit = vi.fn();
