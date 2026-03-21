@@ -260,6 +260,47 @@ public class DependencyTests
     }
 
     [Fact]
+    public void Clients_do_not_reference_other_Clients()
+    {
+        var clientAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.Clients.*.dll")
+            .Select(Assembly.LoadFrom)
+            .Where(a => !a.GetName().Name!.Contains("Tests"));
+
+        foreach (var assembly in clientAssemblies)
+        {
+            var crossClientRefs = assembly.GetReferencedAssemblies()
+                .Where(a => a.Name!.StartsWith("RealEstateStar.Clients."))
+                .Where(a => a.Name != assembly.GetName().Name)
+                .Select(a => a.Name!)
+                .ToList();
+
+            Assert.True(crossClientRefs.Count == 0,
+                $"{assembly.GetName().Name} references {string.Join(", ", crossClientRefs)} — Clients must not reference other Clients");
+        }
+    }
+
+    [Fact]
+    public void Workers_do_not_reference_Data_or_DataServices_or_Notifications()
+    {
+        var workerAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.Workers.*.dll")
+            .Select(Assembly.LoadFrom)
+            .Where(a => !a.GetName().Name!.Contains("Tests"));
+
+        var forbidden = new[] { "RealEstateStar.Data", "RealEstateStar.DataServices", "RealEstateStar.Notifications" };
+
+        foreach (var assembly in workerAssemblies)
+        {
+            var violations = assembly.GetReferencedAssemblies()
+                .Where(a => forbidden.Contains(a.Name!))
+                .Select(a => a.Name!)
+                .ToList();
+
+            Assert.True(violations.Count == 0,
+                $"{assembly.GetName().Name} references {string.Join(", ", violations)} — Workers must not reference Data, DataServices, or Notifications");
+        }
+    }
+
+    [Fact]
     public void All_Domain_exported_types_are_public()
     {
         var domainAssembly = typeof(Domain.Leads.Models.Lead).Assembly;
