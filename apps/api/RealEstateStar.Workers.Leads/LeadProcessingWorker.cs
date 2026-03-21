@@ -21,11 +21,19 @@ public sealed class LeadProcessingWorker(
     ILeadStore leadStore,
     ILeadEnricher enricher,
     ILeadNotifier notifier,
+    IFailedNotificationStore failedNotificationStore,
     CmaProcessingChannel cmaChannel,
     HomeSearchProcessingChannel homeSearchChannel,
     BackgroundServiceHealthTracker healthTracker,
     ILogger<LeadProcessingWorker> logger) : BackgroundService
 {
+    // Exposed internal for test injection — production values are 30s/60s/90s
+    internal TimeSpan[] RetryDelays { get; init; } =
+    [
+        TimeSpan.FromSeconds(30),
+        TimeSpan.FromSeconds(60),
+        TimeSpan.FromSeconds(90),
+    ];
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("[WORKER-001] Lead processing worker started.");
@@ -115,23 +123,46 @@ public sealed class LeadProcessingWorker(
     private async Task NotifyAgentAsync(string agentId, Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
     {
         var sw = Stopwatch.GetTimestamp();
+        Exception? lastException = null;
 
-        try
+        for (var attempt = 0; attempt <= RetryDelays.Length; attempt++)
         {
-            await notifier.NotifyAgentAsync(agentId, lead, enrichment, score, ct);
+            try
+            {
+                if (attempt > 0)
+                {
+                    logger.LogInformation(
+                        "[WORKER-032] Retry {Attempt}/{MaxRetries} for lead {LeadId}",
+                        attempt, RetryDelays.Length, lead.Id);
+                    await Task.Delay(RetryDelays[attempt - 1], ct);
+                }
 
-            LeadDiagnostics.LeadsNotificationSent.Add(1);
-            logger.LogInformation(
-                "[WORKER-030] Agent notification sent for lead {LeadId}. Duration: {DurationMs}ms",
-                lead.Id, Stopwatch.GetElapsedTime(sw).TotalMilliseconds);
+                await notifier.NotifyAgentAsync(agentId, lead, enrichment, score, ct);
+
+                LeadDiagnostics.LeadsNotificationSent.Add(1);
+                logger.LogInformation(
+                    "[WORKER-030] Agent notification sent for lead {LeadId}. Duration: {DurationMs}ms",
+                    lead.Id, Stopwatch.GetElapsedTime(sw).TotalMilliseconds);
+
+                LeadDiagnostics.NotificationDuration.Record(Stopwatch.GetElapsedTime(sw).TotalMilliseconds);
+                return;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                lastException = ex;
+                LeadDiagnostics.LeadsNotificationFailed.Add(1);
+                logger.LogWarning(ex,
+                    "[WORKER-033] Notification attempt {Attempt} failed for lead {LeadId}",
+                    attempt + 1, lead.Id);
+            }
         }
-        catch (Exception ex)
-        {
-            LeadDiagnostics.LeadsNotificationFailed.Add(1);
-            logger.LogError(ex,
-                "[WORKER-031] Agent notification failed for lead {LeadId}. Duration: {DurationMs}ms",
-                lead.Id, Stopwatch.GetElapsedTime(sw).TotalMilliseconds);
-        }
+
+        // All retries exhausted — write to dead letter
+        LeadDiagnostics.NotificationPermanentlyFailed.Add(1);
+        logger.LogError(lastException,
+            "[WORKER-034] Notification permanently failed for lead {LeadId} after {MaxRetries} retries",
+            lead.Id, RetryDelays.Length + 1);
+        await failedNotificationStore.RecordAsync(agentId, lead.Id, lastException?.Message ?? "Unknown error", RetryDelays.Length + 1, ct);
 
         LeadDiagnostics.NotificationDuration.Record(Stopwatch.GetElapsedTime(sw).TotalMilliseconds);
     }

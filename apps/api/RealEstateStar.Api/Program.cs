@@ -11,6 +11,7 @@ using RealEstateStar.Api.Logging;
 using RealEstateStar.Api.Middleware;
 using RealEstateStar.DataServices.Config;
 using RealEstateStar.DataServices.Leads;
+using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.DataServices.Onboarding;
 using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.DataServices.WhatsApp;
@@ -187,6 +188,17 @@ builder.Services.AddSingleton<IMarketingConsentLog, MarketingConsentLog>();
 builder.Services.AddSingleton<ILeadDataDeletion, GDriveLeadDataDeletion>();
 builder.Services.AddSingleton<IDeletionAuditLog, DeletionAuditLog>();
 builder.Services.AddSingleton<ILeadNotifier, MultiChannelLeadNotifier>();
+
+// Notification dead letter store (Azure Table Storage; no-op when connection string is absent)
+builder.Services.AddSingleton<IFailedNotificationStore>(sp =>
+{
+    var connStr = builder.Configuration["AzureStorage:ConnectionString"];
+    if (string.IsNullOrEmpty(connStr))
+        return new NullFailedNotificationStore();
+
+    var tableClient = new Azure.Data.Tables.TableClient(connStr, "failednotifications");
+    return new FailedNotificationStore(tableClient, sp.GetRequiredService<ILogger<FailedNotificationStore>>());
+});
 
 // Background lead processing (replaces fire-and-forget Task.Run)
 builder.Services.AddSingleton<LeadProcessingChannel>();
@@ -465,6 +477,12 @@ builder.Services.AddRateLimiter(options =>
         RateLimitPartition.GetFixedWindowLimiter(
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1) }));
+
+    // Telemetry events: 60 per minute per IP (one event per second per visitor, generous for analytics)
+    options.AddPolicy("telemetry", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1) }));
 });
 
 // Endpoint auto-registration

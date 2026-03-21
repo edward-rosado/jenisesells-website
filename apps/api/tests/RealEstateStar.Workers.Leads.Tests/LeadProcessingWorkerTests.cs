@@ -18,12 +18,25 @@ public class LeadProcessingWorkerTests
     private readonly Mock<ILeadStore> _leadStore = new();
     private readonly Mock<ILeadEnricher> _enricher = new();
     private readonly Mock<ILeadNotifier> _notifier = new();
+    private readonly Mock<IFailedNotificationStore> _failedNotificationStore = new();
     private readonly BackgroundServiceHealthTracker _healthTracker = new();
     private readonly Mock<ILogger<LeadProcessingWorker>> _logger = new();
 
+    // Zero-delay retries so tests don't wait 30–90 seconds in production delays
+    private static readonly TimeSpan[] ZeroDelays =
+    [
+        TimeSpan.Zero,
+        TimeSpan.Zero,
+        TimeSpan.Zero,
+    ];
+
     private LeadProcessingWorker CreateWorker() =>
         new(_channel, _leadStore.Object, _enricher.Object,
-            _notifier.Object, _cmaChannel, _homeSearchChannel, _healthTracker, _logger.Object);
+            _notifier.Object, _failedNotificationStore.Object,
+            _cmaChannel, _homeSearchChannel, _healthTracker, _logger.Object)
+        {
+            RetryDelays = ZeroDelays,
+        };
 
     private static Lead MakeLead(LeadType type = LeadType.Seller) => new()
     {
@@ -112,7 +125,7 @@ public class LeadProcessingWorkerTests
     }
 
     [Fact]
-    public async Task LogsError_WhenNotificationFails_DoesNotCrashWorker()
+    public async Task Notification_SucceedsOnFirstAttempt_DoesNotRetry()
     {
         _enricher
             .Setup(e => e.EnrichAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
@@ -120,7 +133,7 @@ public class LeadProcessingWorkerTests
         _notifier
             .Setup(n => n.NotifyAgentAsync(It.IsAny<string>(), It.IsAny<Lead>(),
                 It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("smtp down"));
+            .Returns(Task.CompletedTask);
 
         var worker = CreateWorker();
         var cts = new CancellationTokenSource();
@@ -131,14 +144,144 @@ public class LeadProcessingWorkerTests
         await worker.StartAsync(cts.Token);
         await worker.ExecuteTask!;
 
+        // Called exactly once — no retries
+        _notifier.Verify(n => n.NotifyAgentAsync(
+            It.IsAny<string>(), It.IsAny<Lead>(),
+            It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        // Dead letter store is NOT called
+        _failedNotificationStore.Verify(
+            s => s.RecordAsync(It.IsAny<string>(), It.IsAny<Guid>(),
+                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Notification_SucceedsOnSecondAttempt_RetriesOnceOnly()
+    {
+        _enricher
+            .Setup(e => e.EnrichAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LeadEnrichment.Empty(), LeadScore.Default("test")));
+
+        var callCount = 0;
+        _notifier
+            .Setup(n => n.NotifyAgentAsync(It.IsAny<string>(), It.IsAny<Lead>(),
+                It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(), It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                callCount++;
+                return callCount == 1
+                    ? Task.FromException(new HttpRequestException("smtp timeout"))
+                    : Task.CompletedTask;
+            });
+
+        var worker = CreateWorker();
+        var cts = new CancellationTokenSource();
+
+        await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
+        _channel.Writer.Complete();
+
+        await worker.StartAsync(cts.Token);
+        await worker.ExecuteTask!;
+
+        // Called twice — original attempt + one retry
+        _notifier.Verify(n => n.NotifyAgentAsync(
+            It.IsAny<string>(), It.IsAny<Lead>(),
+            It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(),
+            It.IsAny<CancellationToken>()), Times.Exactly(2));
+
+        // Retry logged with [WORKER-032]
+        _logger.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[WORKER-032]")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+
+        // Dead letter store is NOT called (succeeded on retry)
+        _failedNotificationStore.Verify(
+            s => s.RecordAsync(It.IsAny<string>(), It.IsAny<Guid>(),
+                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Notification_PermanentlyFailed_WritesToDeadLetterAfterAllRetries()
+    {
+        _enricher
+            .Setup(e => e.EnrichAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LeadEnrichment.Empty(), LeadScore.Default("test")));
+        _notifier
+            .Setup(n => n.NotifyAgentAsync(It.IsAny<string>(), It.IsAny<Lead>(),
+                It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("smtp down"));
+        _failedNotificationStore
+            .Setup(s => s.RecordAsync(It.IsAny<string>(), It.IsAny<Guid>(),
+                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var lead = MakeLead();
+        var worker = CreateWorker();
+        var cts = new CancellationTokenSource();
+
+        await _channel.Writer.WriteAsync(MakeRequest(lead), CancellationToken.None);
+        _channel.Writer.Complete();
+
+        await worker.StartAsync(cts.Token);
+        await worker.ExecuteTask!;
+
+        // Called 4 times: 1 initial + 3 retries (ZeroDelays has 3 entries)
+        _notifier.Verify(n => n.NotifyAgentAsync(
+            It.IsAny<string>(), It.IsAny<Lead>(),
+            It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(),
+            It.IsAny<CancellationToken>()), Times.Exactly(4));
+
+        // Dead letter store called once with correct agentId and leadId
+        _failedNotificationStore.Verify(
+            s => s.RecordAsync("test-agent", lead.Id,
+                It.Is<string>(msg => msg.Contains("smtp down")),
+                4, It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // Permanent failure logged with [WORKER-034]
         _logger.Verify(
             l => l.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[WORKER-031]")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[WORKER-034]")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Notification_PermanentlyFailed_DoesNotCrashWorker()
+    {
+        _enricher
+            .Setup(e => e.EnrichAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LeadEnrichment.Empty(), LeadScore.Default("test")));
+        _notifier
+            .Setup(n => n.NotifyAgentAsync(It.IsAny<string>(), It.IsAny<Lead>(),
+                It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("smtp down"));
+        _failedNotificationStore
+            .Setup(s => s.RecordAsync(It.IsAny<string>(), It.IsAny<Guid>(),
+                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var worker = CreateWorker();
+        var cts = new CancellationTokenSource();
+
+        await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
+        _channel.Writer.Complete();
+
+        // Should complete without throwing
+        await worker.StartAsync(cts.Token);
+        var act = async () => await worker.ExecuteTask!;
+        await act.Should().NotThrowAsync();
     }
 
     [Fact]
