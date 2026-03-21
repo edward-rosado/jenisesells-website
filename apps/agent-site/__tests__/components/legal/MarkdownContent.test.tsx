@@ -48,4 +48,35 @@ describe("MarkdownContent", () => {
     const { container } = render(<MarkdownContent content="Hello" />);
     expect(container.firstChild).toHaveClass("prose");
   });
+
+  it("closes list before heading when heading follows list items", () => {
+    const md = "- Item 1\n- Item 2\n## Section";
+    render(<MarkdownContent content={md} />);
+    expect(screen.getByText("Item 1")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Section");
+    // List should be properly closed before heading
+    const list = document.querySelector("ul");
+    expect(list).not.toBeNull();
+    expect(list!.querySelectorAll("li")).toHaveLength(2);
+  });
+
+  it("renders italic text", () => {
+    render(<MarkdownContent content="This is *italic* text" />);
+    const em = document.querySelector("em");
+    expect(em).toHaveTextContent("italic");
+  });
+
+  it("closes list at end of input", () => {
+    render(<MarkdownContent content={"- Last item"} />);
+    const list = document.querySelector("ul");
+    expect(list).not.toBeNull();
+    expect(list!.querySelectorAll("li")).toHaveLength(1);
+  });
+
+  it("closes list when followed by a non-list line", () => {
+    const md = "- Item\nParagraph after list";
+    render(<MarkdownContent content={md} />);
+    expect(screen.getByText("Item")).toBeInTheDocument();
+    expect(screen.getByText("Paragraph after list")).toBeInTheDocument();
+  });
 });
