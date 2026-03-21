@@ -40,6 +40,19 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | [Legal Page Rendering](legal-page-rendering.md) | Dynamic state-specific content rendering on terms and privacy pages |
 | [Legal Content System](legal-content-system.md) | Above/below-the-fold legal markdown discovery and rendering pipeline |
 
+## Lead Submission & Processing
+
+| Document | Description |
+|----------|------------|
+| [Lead Processing Pipeline](lead-processing-pipeline.md) | Lead submission through enrichment to parallel CMA and Home Search pipelines |
+| [Background Service Health](background-service-health.md) | Channel-aware health checks detecting stuck workers via queue depth + activity timestamps |
+
+## WhatsApp Integration
+
+| Document | Description |
+|----------|------------|
+| [WhatsApp Message Flow](whatsapp-message-flow.md) | Inbound webhook verification, deduplication, durable processing, and conversation handling |
+
 ## How to Read
 
 All diagrams use [Mermaid](https://mermaid.js.org/) syntax. GitHub renders them natively in Markdown preview. For local viewing, use a Mermaid-compatible Markdown viewer or the [Mermaid Live Editor](https://mermaid.live/).

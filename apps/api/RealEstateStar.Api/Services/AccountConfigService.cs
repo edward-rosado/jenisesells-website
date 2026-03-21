@@ -78,6 +78,21 @@ public partial class AccountConfigService(string configDirectory, ILogger<Accoun
         return results;
     }
 
+    public async Task UpdateAccountAsync(string handle, AccountConfig config, CancellationToken ct)
+    {
+        ValidateHandle(handle);
+
+        var resolvedConfigDir = Path.GetFullPath(configDirectory);
+        var resolvedPath = Path.GetFullPath(Path.Combine(configDirectory, handle, "account.json"));
+
+        if (!resolvedPath.StartsWith(resolvedConfigDir, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException($"Invalid handle: {handle}", nameof(handle));
+
+        var json = JsonSerializer.Serialize(config, JsonOptions);
+        await File.WriteAllTextAsync(resolvedPath, json, ct);
+        logger?.LogInformation("[CONFIG-010] Updated account config for {Handle}", handle);
+    }
+
     private static void ValidateHandle(string handle)
     {
         if (string.IsNullOrWhiteSpace(handle) || !AccountHandlePattern().IsMatch(handle))

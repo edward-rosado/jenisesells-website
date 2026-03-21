@@ -129,6 +129,30 @@ public class AccountIntegrations
 
     [JsonPropertyName("chat_webhook_url")]
     public string? ChatWebhookUrl { get; init; }
+
+    [JsonPropertyName("whatsapp")]
+    public AccountWhatsApp? WhatsApp { get; init; }
+}
+
+public class AccountWhatsApp
+{
+    [JsonPropertyName("phone_number")]
+    public string PhoneNumber { get; init; } = "";
+
+    [JsonPropertyName("opted_in")]
+    public bool OptedIn { get; init; }
+
+    [JsonPropertyName("notification_preferences")]
+    public List<string> NotificationPreferences { get; init; } = ["new_lead", "cma_ready", "data_deletion"];
+
+    [JsonPropertyName("status")]
+    public string Status { get; set; } = "not_registered";
+
+    [JsonPropertyName("welcome_sent")]
+    public bool WelcomeSent { get; set; }
+
+    [JsonPropertyName("retry_after")]
+    public DateTime? RetryAfter { get; set; }
 }
 
 public class AccountCompliance

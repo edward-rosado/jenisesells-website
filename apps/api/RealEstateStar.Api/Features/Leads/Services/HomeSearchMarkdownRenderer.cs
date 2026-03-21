@@ -9,7 +9,6 @@ public static class HomeSearchMarkdownRenderer
 
     private static string FormatUsd(decimal value) =>
         $"${value.ToString("N0", UsFormat)}";
-
     public static string RenderListings(Lead lead, List<Listing> listings, string agentName)
     {
         var sb = new StringBuilder();
@@ -50,7 +49,7 @@ public static class HomeSearchMarkdownRenderer
             sb.AppendLine($"- **Beds/Baths:** {listing.Beds} / {listing.Baths}");
 
             if (listing.Sqft.HasValue)
-                sb.AppendLine($"- **Sqft:** {listing.Sqft.Value.ToString("N0", UsFormat)}");
+                sb.AppendLine($"- **Sqft:** {listing.Sqft:N0}");
 
             if (listing.WhyThisFits is not null)
                 sb.AppendLine($"- **Why this fits:** {listing.WhyThisFits}");

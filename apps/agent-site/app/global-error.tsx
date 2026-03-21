@@ -15,7 +15,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
   return (
     <html lang="en">
       <body>
-        <main className="min-h-screen flex items-center justify-center">
+        <main className="min-h-screen flex items-center justify-center" role="alert">
           <div className="text-center max-w-md px-6">
             <h1 className="text-4xl font-bold mb-4">Something went wrong</h1>
             <p className="text-gray-500 mb-6">

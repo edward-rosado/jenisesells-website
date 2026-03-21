@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
@@ -156,12 +157,12 @@ public class ClaudeCmaAnalyzer(
                 var comp = comps[i];
                 sb.AppendLine($"### Comp {i + 1}");
                 sb.AppendLine($"Address: {comp.Address}");
-                sb.AppendLine($"Sale Price: {comp.SalePrice:C0}");
+                sb.AppendLine($"Sale Price: ${comp.SalePrice.ToString("N0", CultureInfo.GetCultureInfo("en-US"))}");
                 sb.AppendLine($"Sale Date: {comp.SaleDate:yyyy-MM-dd}");
                 sb.AppendLine($"Beds: {comp.Beds}");
                 sb.AppendLine($"Baths: {comp.Baths}");
                 sb.AppendLine($"Sqft: {comp.Sqft}");
-                sb.AppendLine($"Price/Sqft: {comp.PricePerSqft:C2}");
+                sb.AppendLine($"Price/Sqft: ${comp.PricePerSqft.ToString("N2", CultureInfo.GetCultureInfo("en-US"))}");
                 sb.AppendLine($"Distance: {comp.DistanceMiles:F2} miles");
                 sb.AppendLine($"Source: {comp.Source}");
                 if (comp.DaysOnMarket.HasValue)
