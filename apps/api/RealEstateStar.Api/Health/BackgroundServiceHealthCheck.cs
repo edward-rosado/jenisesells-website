@@ -1,5 +1,8 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.Workers.Cma;
+using RealEstateStar.Workers.HomeSearch;
+using RealEstateStar.Workers.Leads;
+using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Api.Health;
 

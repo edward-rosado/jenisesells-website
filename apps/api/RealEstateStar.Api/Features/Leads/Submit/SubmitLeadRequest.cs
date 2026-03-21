@@ -9,7 +9,7 @@ public class SubmitLeadRequest
     [Required, StringLength(100)] public required string LastName { get; init; }
     [Required, StringLength(254), EmailAddress] public required string Email { get; init; }
     [Required, StringLength(30), RegularExpression(@"^\+?[\d\s\-().]{7,20}$")] public required string Phone { get; init; }
-    [Required] public required string Timeline { get; init; }
+    [Required, StringLength(200)] public required string Timeline { get; init; }
     public BuyerDetailsRequest? Buyer { get; init; }
     public SellerDetailsRequest? Seller { get; init; }
     [StringLength(2000)] public string? Notes { get; init; }

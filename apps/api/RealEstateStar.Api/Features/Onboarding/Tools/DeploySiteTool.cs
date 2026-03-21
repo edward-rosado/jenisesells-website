@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Api.Features.Onboarding.Services;
+using RealEstateStar.DataServices.Onboarding;
 
 namespace RealEstateStar.Api.Features.Onboarding.Tools;
 

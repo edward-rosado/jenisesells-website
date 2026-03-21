@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Api.Features.WhatsApp.Services;
+using RealEstateStar.DataServices.WhatsApp;
 using RealEstateStar.Api.Infrastructure;
 
 namespace RealEstateStar.Api.Features.WhatsApp.Webhook.ReceiveWebhook;
@@ -27,7 +27,7 @@ public class ReceiveWebhookEndpoint : IEndpoint
             var appSecret = config["WhatsApp:AppSecret"]!;
 
             return await Handle(rawBody, signature, appSecret, idempotencyStore, queue, audit, ct);
-        });
+        }).DisableRateLimiting();
 
     internal static async Task<IResult> Handle(
         string rawBody,

@@ -9,19 +9,27 @@ using RealEstateStar.Api.Diagnostics;
 using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Api.Logging;
 using RealEstateStar.Api.Middleware;
-using RealEstateStar.Api.Services;
-using RealEstateStar.Api.Services.Gws;
+using RealEstateStar.DataServices.Config;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.DataServices.WhatsApp;
+using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.DataProtection;
+using RealEstateStar.Api.Health;
+using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Tools;
-using RealEstateStar.Api.Health;
-using RealEstateStar.Api.Features.Leads.Cma;
-using RealEstateStar.Api.Features.Leads.Services;
-using RealEstateStar.Api.Features.Leads.Submit;
-using RealEstateStar.Api.Services.Storage;
-using RealEstateStar.Api.Features.WhatsApp.Services;
+using RealEstateStar.Workers.Cma;
+using RealEstateStar.Workers.HomeSearch;
+using RealEstateStar.Workers.Leads;
+using RealEstateStar.Workers.Shared;
+using RealEstateStar.Workers.WhatsApp;
+using RealEstateStar.Clients.Gws;
+using RealEstateStar.Clients.WhatsApp;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -105,7 +113,7 @@ builder.Services.AddHttpClient(nameof(ProfileScraperService))
     .AddClaudeApiResilience(pollyLogger)
     .AddScraperApiResilience(pollyLogger);
 builder.Services.AddSingleton<IDnsResolver, SystemDnsResolver>();
-builder.Services.AddSingleton<IProfileScraper>(sp =>
+builder.Services.AddSingleton<IProfileScraperService>(sp =>
     new ProfileScraperService(
         sp.GetRequiredService<IHttpClientFactory>(),
         anthropicKey,
@@ -148,7 +156,7 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddHostedService<TrialExpiryService>();
 
 // Google Workspace service (Drive, Docs, Sheets, Gmail)
-builder.Services.AddSingleton<IGwsService, GwsService>();
+builder.Services.AddSingleton<IGwsService, GwsCliRunner>();
 
 // --- Lead Feature Services ---
 
@@ -236,42 +244,6 @@ builder.Services.AddHttpClient("ScraperAPI")
 builder.Services.AddHttpClient("GoogleChat")
     .AddGoogleChatResilience(pollyLogger);
 
-// CMA pipeline services
-builder.Services.AddHttpClient(nameof(ScraperCompSource))
-    .AddClaudeApiResilience(pollyLogger);
-builder.Services.AddHttpClient(nameof(ClaudeCmaAnalyzer))
-    .AddClaudeApiResilience(pollyLogger);
-builder.Services.AddSingleton<ICompAggregator>(sp =>
-    new CompAggregator(
-        sp.GetServices<ICompSource>(),
-        sp.GetRequiredService<ILogger<CompAggregator>>()));
-builder.Services.AddSingleton<ICompSource>(sp =>
-    new ScraperCompSource(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        scraperApiKey ?? "", anthropicKey,
-        CompSource.Zillow, "https://www.zillow.com/homedetails/{slug}",
-        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
-builder.Services.AddSingleton<ICompSource>(sp =>
-    new ScraperCompSource(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        scraperApiKey ?? "", anthropicKey,
-        CompSource.Redfin, "https://www.redfin.com/homes/{slug}",
-        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
-builder.Services.AddSingleton<ICompSource>(sp =>
-    new ScraperCompSource(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        scraperApiKey ?? "", anthropicKey,
-        CompSource.RealtorCom, "https://www.realtor.com/realestateandhomes-detail/{slug}",
-        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
-builder.Services.AddSingleton<ICmaAnalyzer>(sp =>
-    new ClaudeCmaAnalyzer(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        anthropicKey,
-        sp.GetRequiredService<ILogger<ClaudeCmaAnalyzer>>()));
-builder.Services.AddSingleton<ICmaPdfGenerator, CmaPdfGenerator>();
-builder.Services.AddSingleton<ICmaNotifier, CmaSellerNotifier>();
-builder.Services.AddSingleton<IHomeSearchNotifier, HomeSearchBuyerNotifier>();
-
 // Drive change monitor
 builder.Services.AddSingleton<DriveChangeMonitor>();
 
@@ -309,12 +281,12 @@ builder.Services.AddHttpClient("WhatsApp", client =>
 
 if (!string.IsNullOrEmpty(whatsAppPhoneNumberId))
 {
-    builder.Services.AddSingleton<IWhatsAppClient>(sp =>
-        new WhatsAppClient(
+    builder.Services.AddSingleton<IWhatsAppSender>(sp =>
+        new WhatsAppApiClient(
             sp.GetRequiredService<IHttpClientFactory>(),
             whatsAppPhoneNumberId,
             whatsAppAccessToken!,
-            sp.GetRequiredService<ILogger<WhatsAppClient>>()));
+            sp.GetRequiredService<ILogger<WhatsAppApiClient>>()));
     builder.Services.AddSingleton<WhatsAppIdempotencyStore>();
     builder.Services.AddSingleton<IWhatsAppNotifier, WhatsAppNotifier>();
 
@@ -354,7 +326,10 @@ else
 builder.Services.AddSingleton<CascadingAgentNotifier>();
 
 // Memory cache for WhatsApp 24hr window tracking + any future caching
-builder.Services.AddMemoryCache();
+builder.Services.AddMemoryCache(options =>
+{
+    options.SizeLimit = 100_000;
+});
 
 // OpenAPI
 builder.Services.AddOpenApi();
@@ -395,7 +370,7 @@ builder.Services.AddCors(options =>
 
                 // Allow Cloudflare Pages preview deploys (*.pages.dev)
                 if (Uri.TryCreate(origin, UriKind.Absolute, out var originUri) &&
-                    originUri.Host.EndsWith(".pages.dev", StringComparison.OrdinalIgnoreCase))
+                    originUri.Host.EndsWith(".real-estate-star-agents.pages.dev", StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }
@@ -537,7 +512,6 @@ app.UseSerilogRequestLogging(options =>
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseRateLimiter();
-app.UseMiddleware<ApiKeyHmacMiddleware>();
 
 // Liveness probe — no dependency checks, just "am I running?"
 app.MapHealthChecks("/health/live", new HealthCheckOptions

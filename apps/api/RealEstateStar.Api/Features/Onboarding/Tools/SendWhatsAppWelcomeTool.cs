@@ -1,12 +1,12 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Api.Features.WhatsApp.Services;
-using RealEstateStar.Api.Services;
+using RealEstateStar.DataServices.WhatsApp;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
 public class SendWhatsAppWelcomeTool(
-    IWhatsAppClient whatsAppClient,
+    IWhatsAppSender whatsAppClient,
     IAccountConfigService accountConfigService,
     ILogger<SendWhatsAppWelcomeTool> logger) : IOnboardingTool
 {

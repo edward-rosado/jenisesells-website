@@ -1,10 +1,10 @@
 using System.Text;
 using System.Text.Json;
-using RealEstateStar.Api.Features.Onboarding.Services;
+using RealEstateStar.DataServices.Onboarding;
 
 namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
-public class ScrapeUrlTool(IProfileScraper scraper, OnboardingStateMachine stateMachine) : IOnboardingTool
+public class ScrapeUrlTool(IProfileScraperService scraper, OnboardingStateMachine stateMachine) : IOnboardingTool
 {
     public string Name => "scrape_url";
 
