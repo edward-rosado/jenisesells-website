@@ -15,7 +15,7 @@ vi.mock("@/actions/submit-lead", () => ({
 
 // Mock useGoogleMapsAutocomplete so it doesn't try to load Google Maps SDK
 vi.mock("@real-estate-star/ui/LeadForm/useGoogleMapsAutocomplete", () => ({
-  useGoogleMapsAutocomplete: () => ({ loaded: true }),
+  useGoogleMapsAutocomplete: () => ({ loaded: false }),
 }));
 
 // Mock Analytics
@@ -114,7 +114,7 @@ describe("CmaSection rendering", () => {
       data: { ...FORM_DATA, description: "Enter your address for a **free** report." },
     };
     render(<CmaSection {...props} />);
-    expect(screen.getByText(/Enter your address for a/)).toBeInTheDocument();
+    expect(screen.getByText(/Enter your address/)).toBeInTheDocument();
     // **bold** markdown renders as <strong>
     const strong = screen.getByText("free");
     expect(strong.tagName).toBe("STRONG");

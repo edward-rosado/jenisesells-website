@@ -5,11 +5,9 @@ export async function signAndForward(agentId: string, body: string, path?: strin
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const message = `${timestamp}.${body}`;
 
-  // Per-agent key derivation must match API middleware: "{HmacSecret}:{agentId}"
-  const derivedSecret = `${hmacSecret}:${agentId}`;
   const key = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(derivedSecret),
+    new TextEncoder().encode(hmacSecret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
