@@ -25,7 +25,7 @@ function Write-Step($Num, $Msg) { Write-Host "`n=== Step ${Num}: ${Msg} ===" -Fo
 
 Write-Host ""
 Write-Host "============================================================================" -ForegroundColor White
-Write-Host "  Real Estate Star — Worker Secrets Setup Wizard" -ForegroundColor White
+Write-Host "  Real Estate Star -- Worker Secrets Setup Wizard" -ForegroundColor White
 Write-Host "============================================================================" -ForegroundColor White
 Write-Host ""
 Write-Host "  This wizard sets up 4 runtime secrets on the Cloudflare Worker"
@@ -59,10 +59,10 @@ $turnstileSecret = Read-Host -Prompt "  Turnstile SECRET Key (starts with 0x)"
 $turnstileSite   = Read-Host -Prompt "  Turnstile SITE Key (starts with 0x)"
 
 if ([string]::IsNullOrWhiteSpace($turnstileSecret)) {
-    Write-Warn "Turnstile secret key is empty — Turnstile verification will fail"
+    Write-Warn "Turnstile secret key is empty -- Turnstile verification will fail"
 }
 if ([string]::IsNullOrWhiteSpace($turnstileSite)) {
-    Write-Warn "Turnstile site key is empty — widget won't render on forms"
+    Write-Warn "Turnstile site key is empty -- widget won't render on forms"
 }
 
 # ============================================================================
@@ -219,7 +219,7 @@ if ($ghAvailable) {
     }
 } else {
     Write-Host ""
-    Write-Warn "GitHub CLI (gh) not found — set GitHub secrets manually:"
+    Write-Warn "GitHub CLI (gh) not found -- set GitHub secrets manually:"
     Write-Host "    gh secret set TURNSTILE_SECRET_KEY --body '...'" -ForegroundColor Yellow
     Write-Host "    gh secret set TURNSTILE_SITE_KEY --body '...'" -ForegroundColor Yellow
     Write-Host "    gh secret set LEAD_API_KEY --body '...'" -ForegroundColor Yellow

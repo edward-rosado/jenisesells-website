@@ -364,6 +364,20 @@ use a separate preview/staging workflow, not the production deploy script.
 - **String interpolation in single quotes**: Single-quoted strings are literal in PowerShell.
   Use double quotes when you need variable expansion: `"Hello $name"` vs `'Hello $name'`.
 
+- **`$Var:` is parsed as a drive reference, not "variable then colon"**: PowerShell interprets
+  `$Foo:` as a reference to a variable on the `Foo:` PSDrive, not as `$Foo` followed by a colon.
+  This causes `InvalidVariableReferenceWithDrive` parse errors. Always use `${Var}:` to delimit:
+
+  ```powershell
+  # BAD -- PowerShell sees $Num: as a drive reference, script fails to parse
+  Write-Host "Step $Num: $Msg"
+
+  # GOOD -- ${} delimits the variable name from the colon
+  Write-Host "Step ${Num}: ${Msg}"
+  ```
+
+  This is especially common in Write-Host helper functions that format output with colons.
+
 - **Native commands + `$ErrorActionPreference = "Stop"` (RECURRING BUG -- READ THIS)**:
   When calling native commands that write to stderr, PowerShell with `Stop` mode treats ALL
   stderr output as a terminating error. The script throws and crashes instead of continuing.

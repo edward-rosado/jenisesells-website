@@ -44,7 +44,7 @@ function Write-Info($Msg)  { Write-Host "  [-->]  $Msg" -ForegroundColor Cyan }
 
 Write-Host ""
 Write-Host "============================================================================" -ForegroundColor White
-Write-Host "  Real Estate Star — Set Cloudflare Worker Secrets" -ForegroundColor White
+Write-Host "  Real Estate Star -- Set Cloudflare Worker Secrets" -ForegroundColor White
 Write-Host "============================================================================" -ForegroundColor White
 Write-Host ""
 
