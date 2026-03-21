@@ -10,33 +10,36 @@ on:
       - 'packages/**'
       - '.github/workflows/agent-site.yml'
   pull_request:
-    branches: [main, feat/lead-submission-api, feat/whatsapp-agent-channel]
-    paths:
-      - 'apps/agent-site/**'
-      - 'config/accounts/**'
-      - 'packages/**'
-      - '.github/workflows/agent-site.yml'
+    branches: [main]
 
 jobs:
+  changes:
+    name: "Detect changes"
+    runs-on: ubuntu-latest
+    outputs:
+      agent-site: ${{ steps.filter.outputs.agent-site }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            agent-site:
+              - 'apps/agent-site/**'
+              - 'config/accounts/**'
+              - 'packages/**'
+              - '.github/workflows/agent-site.yml'
+
   lint-test-build:
     name: "Agent Site — lint, test, coverage"
+    needs: changes
+    if: needs.changes.outputs.agent-site == 'true'
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check if agent-site exists
-        id: check
-        run: |
-          if [ -f "apps/agent-site/package.json" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "No apps/agent-site/package.json found -- skipping."
-          fi
-
       - name: Setup Node.js
-        if: steps.check.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -44,40 +47,42 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        if: steps.check.outputs.exists == 'true'
         run: npm ci
 
       - name: Generate config registry
-        if: steps.check.outputs.exists == 'true'
         run: node apps/agent-site/scripts/generate-config-registry.mjs
 
       - name: Lint
-        if: steps.check.outputs.exists == 'true'
         run: npm run lint --prefix apps/agent-site
 
       - name: Test with coverage
-        if: steps.check.outputs.exists == 'true'
         run: npm run test:coverage --prefix apps/agent-site
 
       - name: Build Next.js
-        if: steps.check.outputs.exists == 'true'
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
         run: npm run build --prefix apps/agent-site
 
       - name: Build for Cloudflare (OpenNext)
-        if: steps.check.outputs.exists == 'true'
         working-directory: apps/agent-site
         run: npx opennextjs-cloudflare build
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
-        if: steps.check.outputs.exists == 'true'
+        if: always()
         with:
           name: agent-site-coverage
           path: apps/agent-site/coverage/
           retention-days: 7
+
+  skip:
+    name: "Agent Site — lint, test, coverage"
+    needs: changes
+    if: needs.changes.outputs.agent-site != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No agent-site changes detected — skipping."
 
   preview-deploy:
     name: "Preview Deploy"
@@ -93,17 +98,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check if agent-site exists
-        id: check
-        run: |
-          if [ -f "apps/agent-site/package.json" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Setup Node.js
-        if: steps.check.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -111,27 +106,22 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        if: steps.check.outputs.exists == 'true'
         run: npm ci
 
       - name: Generate config registry
-        if: steps.check.outputs.exists == 'true'
         run: node apps/agent-site/scripts/generate-config-registry.mjs
 
       - name: Build Next.js
-        if: steps.check.outputs.exists == 'true'
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
         run: npm run build --prefix apps/agent-site
 
       - name: Build for Cloudflare (OpenNext)
-        if: steps.check.outputs.exists == 'true'
         working-directory: apps/agent-site
         run: npx opennextjs-cloudflare build
 
       - name: Generate preview wrangler config
-        if: steps.check.outputs.exists == 'true'
         working-directory: apps/agent-site
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
@@ -162,7 +152,6 @@ jobs:
           WRANGLER_EOF
 
       - name: Deploy preview to Cloudflare Workers
-        if: steps.check.outputs.exists == 'true'
         id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
@@ -172,7 +161,6 @@ jobs:
           command: deploy --config wrangler.preview.jsonc
 
       - name: Discover agents for preview links
-        if: steps.check.outputs.exists == 'true'
         id: agents
         run: |
           # Build JSON array of agent metadata for the PR comment
@@ -198,7 +186,6 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Comment preview URL on PR
-        if: steps.check.outputs.exists == 'true'
         uses: actions/github-script@v7
         with:
           script: |
