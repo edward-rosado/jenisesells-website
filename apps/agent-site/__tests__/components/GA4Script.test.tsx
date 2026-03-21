@@ -1,4 +1,5 @@
 import { render } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { GA4Script } from "@/components/GA4Script";
 
 // Mock next/script to render a simple element we can query
@@ -66,5 +67,13 @@ describe("GA4Script", () => {
     localStorage.setItem("analytics-consent", "granted");
     const { container } = render(<GA4Script measurementId="" />);
     expect(container.innerHTML).toBe("");
+  });
+
+  it("renders nothing on the server regardless of localStorage (SSR safety via getServerSnapshot)", () => {
+    // renderToString exercises getServerSnapshot, which always returns null.
+    // Even if localStorage has consent=granted, the server snapshot overrides it.
+    localStorage.setItem("analytics-consent", "granted");
+    const html = renderToString(<GA4Script measurementId="G-ABC123" />);
+    expect(html).not.toContain("script");
   });
 });

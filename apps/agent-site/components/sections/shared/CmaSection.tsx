@@ -36,9 +36,6 @@ export function CmaSection({
   const startedRef = useRef(false);
 
   useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -52,7 +49,7 @@ export function CmaSection({
       { threshold: 0.25 }
     );
 
-    observer.observe(el);
+    observer.observe(sectionRef.current!);
     return () => observer.disconnect();
   }, [accountId]);
 
