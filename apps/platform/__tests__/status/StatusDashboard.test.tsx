@@ -13,6 +13,26 @@ const mockHealthy = {
   },
 };
 
+const mockWithWorkers = {
+  status: "Healthy",
+  entries: {
+    "claude-api": { status: "Healthy", duration: "00:00:00.234" },
+    background_workers: {
+      status: "Healthy",
+      description: "All workers active or idle",
+      duration: "00:00:00.001",
+      data: {
+        "LeadProcessingWorker.queueDepth": 0,
+        "LeadProcessingWorker.lastActivity": "2026-03-20T12:00:00Z",
+        "CmaProcessingWorker.queueDepth": 2,
+        "CmaProcessingWorker.lastActivity": "2026-03-20T12:00:00Z",
+        "HomeSearchProcessingWorker.queueDepth": 0,
+        "HomeSearchProcessingWorker.lastActivity": "never",
+      },
+    },
+  },
+};
+
 const mockDegraded = {
   status: "Degraded",
   entries: {
@@ -21,6 +41,25 @@ const mockDegraded = {
       status: "Degraded",
       duration: "00:00:05.000",
       description: "gws CLI not found",
+    },
+  },
+};
+
+const mockUnhealthyWorkers = {
+  status: "Unhealthy",
+  entries: {
+    background_workers: {
+      status: "Unhealthy",
+      description: "Stuck workers: LeadProcessingWorker: 5 queued, never active",
+      duration: "00:00:00.001",
+      data: {
+        "LeadProcessingWorker.queueDepth": 5,
+        "LeadProcessingWorker.lastActivity": "never",
+        "CmaProcessingWorker.queueDepth": 0,
+        "CmaProcessingWorker.lastActivity": "never",
+        "HomeSearchProcessingWorker.queueDepth": 0,
+        "HomeSearchProcessingWorker.lastActivity": "never",
+      },
     },
   },
 };
@@ -151,5 +190,217 @@ describe("StatusDashboard", () => {
     await waitFor(() => {
       expect(screen.getByText("not-a-duration")).toBeInTheDocument();
     });
+  });
+
+  it("renders uptime tracker with session history", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockHealthy,
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByText("1/1 checks OK")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("uptime-tracker")).toBeInTheDocument();
+  });
+
+  it("separates core services from background workers", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockWithWorkers,
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByText("Core Services")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Background Processing")).toBeInTheDocument();
+    expect(screen.getByTestId("status-claude-api")).toBeInTheDocument();
+    expect(screen.getByTestId("status-background_workers")).toBeInTheDocument();
+  });
+
+  it("renders worker details with queue depth and last activity", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockWithWorkers,
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByTestId("worker-Lead")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("worker-Cma")).toBeInTheDocument();
+    expect(screen.getByTestId("worker-HomeSearch")).toBeInTheDocument();
+  });
+
+  it("shows queue depth with yellow highlight when non-zero", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockWithWorkers,
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByTestId("worker-Cma")).toBeInTheDocument();
+    });
+    // Cma has queueDepth 2 — should have yellow text
+    const cmaWorker = screen.getByTestId("worker-Cma");
+    const yellowSpan = cmaWorker.querySelector(".text-yellow-400");
+    expect(yellowSpan).not.toBeNull();
+    expect(yellowSpan!.textContent).toBe("2");
+  });
+
+  it("shows Never for workers that have no activity", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockWithWorkers,
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByTestId("worker-HomeSearch")).toBeInTheDocument();
+    });
+    const hsWorker = screen.getByTestId("worker-HomeSearch");
+    expect(hsWorker.textContent).toContain("Never");
+  });
+
+  it("formats lastActivity as seconds ago when under 60s", async () => {
+    const now = Date.now();
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    const mockRecentActivity = {
+      status: "Healthy",
+      entries: {
+        background_workers: {
+          status: "Healthy",
+          description: "All workers active or idle",
+          duration: "00:00:00.001",
+          data: {
+            "LeadProcessingWorker.queueDepth": 0,
+            "LeadProcessingWorker.lastActivity": new Date(now - 15_000).toISOString(),
+            "CmaProcessingWorker.queueDepth": 0,
+            "CmaProcessingWorker.lastActivity": new Date(now - 120_000).toISOString(),
+            "HomeSearchProcessingWorker.queueDepth": 0,
+            "HomeSearchProcessingWorker.lastActivity": new Date(now - 7_200_000).toISOString(),
+          },
+        },
+      },
+    };
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockRecentActivity,
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByTestId("worker-Lead")).toBeInTheDocument();
+    });
+    // 15s ago → "15s ago"
+    expect(screen.getByTestId("worker-Lead").textContent).toContain("15s ago");
+    // 120s ago → "2m ago"
+    expect(screen.getByTestId("worker-Cma").textContent).toContain("2m ago");
+    // 7200s ago → "2h ago"
+    expect(screen.getByTestId("worker-HomeSearch").textContent).toContain("2h ago");
+    vi.restoreAllMocks();
+  });
+
+  it("shows raw value when lastActivity is not a date or 'never'", async () => {
+    const mockNonDateActivity = {
+      status: "Healthy",
+      entries: {
+        background_workers: {
+          status: "Healthy",
+          description: "All workers active or idle",
+          duration: "00:00:00.001",
+          data: {
+            "LeadProcessingWorker.queueDepth": 0,
+            "LeadProcessingWorker.lastActivity": "not-a-date",
+            "CmaProcessingWorker.queueDepth": 0,
+            "CmaProcessingWorker.lastActivity": undefined,
+            "HomeSearchProcessingWorker.queueDepth": 0,
+            "HomeSearchProcessingWorker.lastActivity": "never",
+          },
+        },
+      },
+    };
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockNonDateActivity,
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByTestId("worker-Lead")).toBeInTheDocument();
+    });
+    // Invalid date string should be shown as-is
+    const leadWorker = screen.getByTestId("worker-Lead");
+    expect(leadWorker.textContent).toContain("not-a-date");
+    // Undefined should become "undefined"
+    const cmaWorker = screen.getByTestId("worker-Cma");
+    expect(cmaWorker.textContent).toContain("undefined");
+  });
+
+  it("renders workers with no data property (fallback to empty object)", async () => {
+    const mockNoData = {
+      status: "Healthy",
+      entries: {
+        background_workers: {
+          status: "Healthy",
+          description: "Idle",
+          duration: "00:00:00.001",
+        },
+      },
+    };
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockNoData,
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByTestId("worker-Lead")).toBeInTheDocument();
+    });
+    // All queue depths should be 0 (fallback)
+    const leadWorker = screen.getByTestId("worker-Lead");
+    expect(leadWorker.textContent).toContain("Queue:");
+  });
+
+  it("passes through unparseable duration strings", async () => {
+    const mockBadDuration = {
+      status: "Healthy",
+      entries: {
+        "claude-api": { status: "Healthy", duration: "fast" },
+      },
+    };
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockBadDuration,
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByTestId("status-claude-api")).toBeInTheDocument();
+    });
+    expect(screen.getByText("fast")).toBeInTheDocument();
+  });
+
+  it("renders nothing when current is null after loading completes", async () => {
+    // Mock the hook to return the defensive edge case
+    const useHealthCheckModule = await import("@/app/status/useHealthCheck");
+    const spy = vi.spyOn(useHealthCheckModule, "useHealthCheck").mockReturnValue({
+      current: null,
+      error: null,
+      loading: false,
+      history: [],
+    });
+    const { container } = render(<StatusDashboard />);
+    // The component should render null (empty container)
+    expect(container.firstChild).toBeNull();
+    spy.mockRestore();
+  });
+
+  it("renders unhealthy workers with stuck description", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockUnhealthyWorkers,
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByText("Service Disruption")).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText(/Stuck workers: LeadProcessingWorker/)
+    ).toBeInTheDocument();
   });
 });
