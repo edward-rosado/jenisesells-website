@@ -1,6 +1,7 @@
 name: Agent Site
-# Triggered on push to main and PRs targeting main or feature branches
+
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -9,7 +10,7 @@ on:
       - 'packages/**'
       - '.github/workflows/agent-site.yml'
   pull_request:
-    branches: [main, feat/lead-submission-api]
+    branches: [main, feat/lead-submission-api, feat/whatsapp-agent-channel]
     paths:
       - 'apps/agent-site/**'
       - 'config/accounts/**'
