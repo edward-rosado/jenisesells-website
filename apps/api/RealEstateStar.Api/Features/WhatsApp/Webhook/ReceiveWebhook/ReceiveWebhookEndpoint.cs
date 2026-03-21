@@ -27,7 +27,7 @@ public class ReceiveWebhookEndpoint : IEndpoint
             var appSecret = config["WhatsApp:AppSecret"]!;
 
             return await Handle(rawBody, signature, appSecret, idempotencyStore, queue, audit, ct);
-        });
+        }).DisableRateLimiting();
 
     internal static async Task<IResult> Handle(
         string rawBody,

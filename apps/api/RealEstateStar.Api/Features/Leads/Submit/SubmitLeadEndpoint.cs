@@ -1,12 +1,14 @@
-using RealEstateStar.Workers.Leads;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using RealEstateStar.Api.Diagnostics;
-using RealEstateStar.DataServices.Leads;
-using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Api.Middleware;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Workers.Leads;
 
 namespace RealEstateStar.Api.Features.Leads.Submit;
 
@@ -59,7 +61,7 @@ public class SubmitLeadEndpoint : IEndpoint
 
         logger.LogInformation(
             "[LEAD-001] Lead received. LeadId: {LeadId}, AgentId: {AgentId}, Type: {LeadType}, Email: {EmailHash}",
-            lead.Id, agentId, lead.LeadType, lead.Email.GetHashCode());
+            lead.Id, agentId, lead.LeadType, HashEmail(lead.Email));
 
         // 3. Save lead (must succeed before returning 202)
         await leadStore.SaveAsync(lead, ct);
@@ -98,4 +100,10 @@ public class SubmitLeadEndpoint : IEndpoint
     internal static Dictionary<string, string[]> GroupValidationErrors(List<ValidationResult> results) =>
         results.GroupBy(v => v.MemberNames.FirstOrDefault() ?? "")
             .ToDictionary(g => g.Key, g => g.Select(v => v.ErrorMessage!).ToArray());
+
+    internal static string HashEmail(string email)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(email.ToLowerInvariant()));
+        return Convert.ToHexString(hash)[..12];
+    }
 }

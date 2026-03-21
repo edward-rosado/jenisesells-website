@@ -326,7 +326,10 @@ else
 builder.Services.AddSingleton<CascadingAgentNotifier>();
 
 // Memory cache for WhatsApp 24hr window tracking + any future caching
-builder.Services.AddMemoryCache();
+builder.Services.AddMemoryCache(options =>
+{
+    options.SizeLimit = 100_000;
+});
 
 // OpenAPI
 builder.Services.AddOpenApi();
@@ -367,7 +370,7 @@ builder.Services.AddCors(options =>
 
                 // Allow Cloudflare Pages preview deploys (*.pages.dev)
                 if (Uri.TryCreate(origin, UriKind.Absolute, out var originUri) &&
-                    originUri.Host.EndsWith(".pages.dev", StringComparison.OrdinalIgnoreCase))
+                    originUri.Host.EndsWith(".real-estate-star-agents.pages.dev", StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }
