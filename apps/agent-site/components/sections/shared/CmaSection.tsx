@@ -1,15 +1,13 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
-import { useCmaSubmit } from "@real-estate-star/ui";
 import type { ContactFormData, AccountTracking } from "@/lib/types";
 import { trackCmaConversion } from "@/components/Analytics";
 import { LeadForm } from "@real-estate-star/ui";
 import type { LeadFormData } from "@real-estate-star/shared-types";
+import { Turnstile } from "@marsidev/react-turnstile";
 import type { ReactNode } from "react";
-import { Fragment } from "react";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5135";
+import { Fragment, useState } from "react";
+import { submitLead } from "@/actions/submit-lead";
 
 interface CmaSectionProps {
   accountId: string;
@@ -28,22 +26,28 @@ export function CmaSection({
   data,
   serviceAreas = [],
 }: CmaSectionProps) {
-  const { state, submit } = useCmaSubmit(API_BASE_URL, {
-    onError: (err) => {
-      Sentry.captureException(err, {
-        tags: { accountId, feature: "contact_form" },
-      });
-    },
-  });
-
-  const isProcessing = state.phase === "submitting";
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   async function handleSubmit(leadData: LeadFormData) {
-    const isSelling = leadData.leadTypes.includes("selling") && leadData.seller?.address;
+    setIsProcessing(true);
+    setErrorMessage(null);
 
-    if (isSelling) {
-      const success = await submit(accountId, leadData);
-      if (!success) return;
+    try {
+      const result = await submitLead(accountId, leadData, turnstileToken ?? "");
+
+      if (result.error) {
+        setErrorMessage(result.error);
+        console.error("[agent-site] Lead submission error:", result.error);
+        return;
+      }
+    } catch (err) {
+      console.error("[agent-site] Lead submission failed:", err);
+      setErrorMessage("Something went wrong. Please try again.");
+      return;
+    } finally {
+      setIsProcessing(false);
     }
 
     trackCmaConversion(tracking);
@@ -110,9 +114,18 @@ export function CmaSection({
             return "Get Started \u2192";
           }}
           disabled={isProcessing}
-          error={state.errorMessage ?? undefined}
+          error={errorMessage ?? undefined}
           serviceAreas={serviceAreas}
           showCmaDisclaimer
+          turnstileToken={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? turnstileToken : undefined}
+          captchaSlot={
+            process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
+              <Turnstile
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                onSuccess={setTurnstileToken}
+              />
+            ) : undefined
+          }
         />
       </div>
     </section>

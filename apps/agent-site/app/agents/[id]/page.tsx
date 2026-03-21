@@ -1,6 +1,5 @@
 import { createElement } from "react";
 import type { Metadata } from "next";
-import * as Sentry from "@sentry/nextjs";
 import { notFound } from "next/navigation";
 import { loadAccountConfig, loadAgentConfig, loadAgentContent } from "@/lib/config";
 import { buildCssVariableStyle } from "@/lib/branding";
@@ -57,7 +56,7 @@ export default async function AgentSubPage({ params, searchParams }: PageProps) 
   try {
     account = loadAccountConfig(handle);
   } catch (err) {
-    Sentry.captureException(err, { tags: { handle } });
+    console.error("[agent-site] Failed to load account:", handle, err);
     notFound();
   }
 
@@ -65,7 +64,7 @@ export default async function AgentSubPage({ params, searchParams }: PageProps) 
   try {
     agentConfig = loadAgentConfig(handle, id);
   } catch (err) {
-    Sentry.captureException(err, { tags: { handle, agentId: id } });
+    console.error("[agent-site] Failed to load agent:", handle, id, err);
     notFound();
   }
 

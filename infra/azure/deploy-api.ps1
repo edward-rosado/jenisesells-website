@@ -10,6 +10,12 @@
 .PARAMETER SkipBuild
     Skip the Docker build step (useful if image was already built locally).
 
+.NOTES
+    Required env vars on Container App (set via az containerapp update --set-env-vars):
+      AzureKeyVault__VaultUri=https://real-estate-star-kv.vault.azure.net
+      DataProtection__BlobUri=https://realestatestarsa.blob.core.windows.net/dataprotection/keys.xml
+    Run infra/azure/provision-keyvault.ps1 first to create these resources.
+
 .EXAMPLE
     .\deploy-api.ps1
     .\deploy-api.ps1 -SkipBuild

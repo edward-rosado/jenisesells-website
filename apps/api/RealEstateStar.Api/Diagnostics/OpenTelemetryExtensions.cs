@@ -7,6 +7,7 @@ namespace RealEstateStar.Api.Diagnostics;
 
 public static class OpenTelemetryExtensions
 {
+    private const string ServiceName = "RealEstateStar.Api";
     private const string OnboardingSourceName = "RealEstateStar.Onboarding";
     private const string DefaultOtlpEndpoint = "http://localhost:4317";
 
@@ -17,10 +18,12 @@ public static class OpenTelemetryExtensions
 
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource => resource
-                .AddService(CmaDiagnostics.ServiceName))
+                .AddService(ServiceName))
             .WithTracing(tracing => tracing
-                .AddSource(CmaDiagnostics.SourceName)
                 .AddSource(OnboardingSourceName)
+                .AddSource(LeadDiagnostics.ServiceName)
+                .AddSource(CmaDiagnostics.ServiceName)
+                .AddSource(HomeSearchDiagnostics.ServiceName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>
@@ -29,8 +32,10 @@ public static class OpenTelemetryExtensions
                     options.Protocol = OtlpExportProtocol.Grpc;
                 }))
             .WithMetrics(metrics => metrics
-                .AddMeter(CmaDiagnostics.SourceName)
                 .AddMeter(OnboardingSourceName)
+                .AddMeter(LeadDiagnostics.ServiceName)
+                .AddMeter(CmaDiagnostics.ServiceName)
+                .AddMeter(HomeSearchDiagnostics.ServiceName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>

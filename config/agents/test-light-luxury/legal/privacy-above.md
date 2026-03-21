@@ -1,1 +1,0 @@
-Fontaine & Partners is committed to protecting the privacy and confidentiality of all personal information entrusted to us. We collect only the information necessary to serve your real estate needs and will never sell or share your data with third parties without your express consent.

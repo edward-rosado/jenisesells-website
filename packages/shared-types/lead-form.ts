@@ -29,6 +29,12 @@ export interface SellerDetails {
   sqft?: number;
 }
 
+export interface MarketingConsentData {
+  optedIn: boolean;
+  consentText: string;
+  channels: string[];
+}
+
 export interface LeadFormData {
   leadTypes: LeadType[];
   firstName: string;
@@ -39,4 +45,5 @@ export interface LeadFormData {
   seller?: SellerDetails;
   timeline: Timeline;
   notes?: string;
+  marketingConsent?: MarketingConsentData;
 }

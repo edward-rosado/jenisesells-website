@@ -9,6 +9,8 @@ apps/
   portal/          # Real Estate Star admin portal (Next.js 16)
   agent-site/      # White-label agent websites (Next.js 16)
   api/             # Backend API (.NET 10)
+    Features/
+      Leads/       # Lead submission, storage, and markdown rendering
 packages/
   shared-types/    # TypeScript types shared across apps
   ui/              # Shared UI component library
@@ -18,8 +20,8 @@ skills/
   email/           # Multi-provider email sending
   deploy/          # Website deployment
 config/
+  accounts/{handle}/         # Per-tenant account config (account.json, content.json, legal/)
   agent.schema.json          # JSON Schema for agent profiles
-  agents/{agent-id}.json     # Per-tenant agent configurations
 prototype/         # Original jenisesellsnj.com static site
 infra/             # Infrastructure and hosting config
 docs/              # Design docs, onboarding, plans
@@ -27,7 +29,7 @@ docs/              # Design docs, onboarding, plans
 
 ## Multi-Tenant Architecture
 
-Every agent (tenant) has a JSON config file at `config/agents/{agent-id}.json` validated against `config/agent.schema.json`.
+Every agent (tenant) has a config directory at `config/accounts/{handle}/` containing `account.json`, `content.json`, and `legal/` files.
 
 **All skills read from agent config — never hardcode agent-specific data.**
 
@@ -36,7 +38,7 @@ Every agent (tenant) has a JSON config file at `config/agents/{agent-id}.json` v
 When working on a skill, load the agent profile first:
 
 ```
-1. Read config/agents/{agent-id}.json
+1. Read config/accounts/{handle}/account.json
 2. Use {agent.identity.*} for name, phone, email, brokerage, etc.
 3. Use {agent.location.*} for state, service areas, office address
 4. Use {agent.branding.*} for colors, fonts
@@ -62,11 +64,19 @@ When working on a skill, load the agent profile first:
 - **Contracts**: State-specific templates live in `skills/contracts/templates/{STATE}/`
 - **No hardcoding**: Agent identity, branding, and compliance data always come from config
 
+## File Storage Abstraction
+
+The `IFileStorageProvider` interface abstracts lead storage across Google Drive and local file system:
+
+- **Google Drive** (`GDriveStorageProvider`): Production storage in agent's Drive folder (folder ID from config)
+- **Local** (`LocalStorageProvider`): Development/testing in `data/leads/{agent-id}/`
+- **Configuration**: `Storage:UseLocal` (bool) in appsettings selects provider at startup
+
+All lead files are markdown with YAML frontmatter. Frontmatter keys are validated against the Lead schema; user content goes in the markdown body.
 
 ## Docs
 
 - Design: `docs/plans/2026-03-09-repo-restructure-design.md`
-- CMA Pipeline Design: `docs/plans/2026-03-09-cma-pipeline-design.md`
-- CMA Pipeline Plan: `docs/plans/2026-03-09-cma-pipeline-plan.md`
+- Lead Submission Design: `docs/superpowers/specs/2026-03-19-lead-submission-api-design.md`
 - Onboarding: `docs/onboarding.md`
 - PM Skills: `docs/pm-skills-setup.md`

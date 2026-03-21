@@ -5,6 +5,7 @@ export type {
   BuyerDetails,
   SellerDetails,
   LeadFormData,
+  MarketingConsentData,
 } from "./lead-form";
 
 export type {

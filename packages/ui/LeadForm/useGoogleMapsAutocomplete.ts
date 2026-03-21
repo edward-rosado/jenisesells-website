@@ -88,13 +88,41 @@ export function useGoogleMapsAutocomplete({
     if (!enabled || !apiKey || typeof window === "undefined") return;
 
     let listener: any = null;
+    let autocompleteInstance: any = null;
     let cancelled = false;
+
+    // Google calls window.gm_authFailure when API key is rejected (wrong domain, expired, etc.)
+    const prevAuthFailure = (window as any).gm_authFailure;
+    (window as any).gm_authFailure = () => {
+      if (!cancelled) {
+        setLoaded(false);
+        // Detach the autocomplete widget so it stops intercepting the input
+        if (autocompleteInstance) {
+          autocompleteInstance.unbindAll?.();
+          autocompleteInstance = null;
+        }
+        if (listener && (window as any).google?.maps?.event) {
+          (window as any).google.maps.event.removeListener(listener);
+          listener = null;
+        }
+        // Remove the Google-injected dropdown overlay
+        document.querySelectorAll(".pac-container").forEach((el) => el.remove());
+        // Strip Google-added attributes from the input
+        if (inputRef.current) {
+          inputRef.current.removeAttribute("autocomplete");
+          inputRef.current.removeAttribute("role");
+          inputRef.current.removeAttribute("aria-autocomplete");
+          inputRef.current.removeAttribute("aria-haspopup");
+        }
+      }
+      prevAuthFailure?.();
+    };
 
     loadGoogleMapsScript(apiKey)
       .then(() => {
         if (cancelled) return;
         if (!inputRef.current) return;
-        const autocomplete = new (window as any).google.maps.places.Autocomplete(
+        autocompleteInstance = new (window as any).google.maps.places.Autocomplete(
           inputRef.current,
           {
             componentRestrictions: { country: "us" },
@@ -102,8 +130,8 @@ export function useGoogleMapsAutocomplete({
             types: ["address"],
           },
         );
-        listener = autocomplete.addListener("place_changed", () => {
-          const place = autocomplete.getPlace();
+        listener = autocompleteInstance.addListener("place_changed", () => {
+          const place = autocompleteInstance.getPlace();
           if (place.address_components) {
             onPlaceSelected(parseAddressComponents(place.address_components));
           }
@@ -116,6 +144,7 @@ export function useGoogleMapsAutocomplete({
 
     return () => {
       cancelled = true;
+      (window as any).gm_authFailure = prevAuthFailure;
       if (listener && (window as any).google?.maps?.event) {
         (window as any).google.maps.event.removeListener(listener);
       }

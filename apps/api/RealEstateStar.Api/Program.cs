@@ -7,21 +7,20 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using RealEstateStar.Api.Diagnostics;
 using RealEstateStar.Api.Infrastructure;
-using RealEstateStar.Api.Hubs;
 using RealEstateStar.Api.Logging;
 using RealEstateStar.Api.Middleware;
 using RealEstateStar.Api.Services;
-using RealEstateStar.Api.Features.Cma.Services;
-using RealEstateStar.Api.Features.Cma.Services.Analysis;
-using RealEstateStar.Api.Features.Cma.Services.Comps;
-using RealEstateStar.Api.Features.Cma.Services.Gws;
-using RealEstateStar.Api.Features.Cma.Services.Pdf;
-using RealEstateStar.Api.Features.Cma.Services.Research;
+using RealEstateStar.Api.Services.Gws;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.DataProtection;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Tools;
 using RealEstateStar.Api.Health;
+using RealEstateStar.Api.Features.Leads.Cma;
+using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.Api.Features.Leads.Submit;
+using RealEstateStar.Api.Services.Storage;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,20 +28,41 @@ builder.AddStructuredLogging();
 builder.AddObservability();
 
 // Agent config
-var configPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "agents");
-builder.Services.AddSingleton<IAgentConfigService>(sp =>
-    new AgentConfigService(configPath, sp.GetRequiredService<ILogger<AgentConfigService>>()));
+var configPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "accounts");
+builder.Services.AddSingleton<IAccountConfigService>(sp =>
+    new AccountConfigService(configPath, sp.GetRequiredService<ILogger<AccountConfigService>>()));
+
+// Data Protection — encrypt OAuth tokens at rest
+var dpBuilder = builder.Services.AddDataProtection()
+    .SetApplicationName("RealEstateStar");
+
+if (!builder.Environment.IsDevelopment())
+{
+    var kvUri = builder.Configuration["AzureKeyVault:VaultUri"];
+    var blobUri = builder.Configuration["DataProtection:BlobUri"];
+    if (!string.IsNullOrEmpty(kvUri) && !string.IsNullOrEmpty(blobUri))
+    {
+        dpBuilder
+            .PersistKeysToAzureBlobStorage(new Uri(blobUri), new Azure.Identity.DefaultAzureCredential())
+            .ProtectKeysWithAzureKeyVault(new Uri(kvUri + "/keys/dataprotection"), new Azure.Identity.DefaultAzureCredential());
+    }
+}
+
+// HMAC authentication for lead endpoints (server-to-server from CF Worker)
+builder.Services.Configure<ApiKeyHmacOptions>(builder.Configuration.GetSection("Hmac"));
 
 // Onboarding (session store registered early, services after config keys below)
-builder.Services.AddSingleton<ISessionStore, JsonFileSessionStore>();
+builder.Services.AddSingleton<JsonFileSessionStore>();
+builder.Services.AddSingleton<ISessionStore>(sp =>
+    new EncryptingSessionStoreDecorator(
+        sp.GetRequiredService<JsonFileSessionStore>(),
+        sp.GetRequiredService<IDataProtectionProvider>(),
+        sp.GetRequiredService<ILogger<EncryptingSessionStoreDecorator>>()));
 builder.Services.AddSingleton<OnboardingStateMachine>();
 
 // Configuration keys
 var anthropicKey = builder.Configuration["Anthropic:ApiKey"]
     ?? throw new InvalidOperationException("Anthropic:ApiKey configuration is required");
-var attomKey = builder.Configuration["Attom:ApiKey"];
-if (string.IsNullOrEmpty(attomKey))
-    Log.Warning("Attom:ApiKey not configured — ATTOM comp source will be disabled");
 var googleClientId = builder.Configuration["Google:ClientId"]
     ?? throw new InvalidOperationException("Google:ClientId configuration is required");
 var googleClientSecret = builder.Configuration["Google:ClientSecret"]
@@ -76,7 +96,13 @@ var scraperApiKey = builder.Configuration["ScraperApi:ApiKey"];
 if (string.IsNullOrEmpty(scraperApiKey))
     Log.Warning("ScraperApi:ApiKey not configured — profile scraping will use direct HTTP (may be blocked by Zillow/Realtor)");
 
-builder.Services.AddHttpClient(nameof(ProfileScraperService));
+// Polly resilience logger — resolved early so AddResilienceHandler callbacks can log
+var pollyLoggerFactory = LoggerFactory.Create(lb => lb.AddSerilog(Log.Logger));
+var pollyLogger = pollyLoggerFactory.CreateLogger("Polly");
+
+builder.Services.AddHttpClient(nameof(ProfileScraperService))
+    .AddClaudeApiResilience(pollyLogger)
+    .AddScraperApiResilience(pollyLogger);
 builder.Services.AddSingleton<IDnsResolver, SystemDnsResolver>();
 builder.Services.AddSingleton<IProfileScraper>(sp =>
     new ProfileScraperService(
@@ -102,17 +128,15 @@ builder.Services.AddSingleton<ISiteDeployService>(sp =>
         sp.GetRequiredService<IProcessRunner>(),
         sp.GetRequiredService<CloudflareOptions>(),
         configPath));
-builder.Services.AddSingleton<IDriveFolderInitializer, DriveFolderInitializer>();
 builder.Services.AddSingleton<IOnboardingTool, ScrapeUrlTool>();
 builder.Services.AddSingleton<IOnboardingTool, UpdateProfileTool>();
 builder.Services.AddSingleton<IOnboardingTool, SetBrandingTool>();
 builder.Services.AddSingleton<IOnboardingTool, DeploySiteTool>();
-builder.Services.AddSingleton<IOnboardingTool, SubmitCmaFormTool>();
 builder.Services.AddSingleton<IOnboardingTool, CreateStripeSessionTool>();
 builder.Services.AddSingleton<ToolDispatcher>();
 builder.Services.AddSingleton<IStripeService, StripeService>();
-builder.Services.AddSingleton<DomainService>();
-builder.Services.AddHttpClient(nameof(OnboardingChatService));
+builder.Services.AddHttpClient(nameof(OnboardingChatService))
+    .AddClaudeApiResilience(pollyLogger);
 builder.Services.AddSingleton(sp =>
     new OnboardingChatService(
         sp.GetRequiredService<IHttpClientFactory>(),
@@ -122,58 +146,115 @@ builder.Services.AddSingleton(sp =>
         sp.GetRequiredService<ILogger<OnboardingChatService>>()));
 builder.Services.AddHostedService<TrialExpiryService>();
 
-// Comp sources — typed HttpClient registrations
-builder.Services.AddHttpClient<ZillowCompSource>();
-builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<ZillowCompSource>());
-
-builder.Services.AddHttpClient<RealtorComCompSource>();
-builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<RealtorComCompSource>());
-
-builder.Services.AddHttpClient<RedfinCompSource>();
-builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<RedfinCompSource>());
-
-if (!string.IsNullOrEmpty(attomKey))
-{
-    builder.Services.AddHttpClient(nameof(AttomDataCompSource));
-    builder.Services.AddSingleton<ICompSource>(sp =>
-        new AttomDataCompSource(
-            sp.GetRequiredService<IHttpClientFactory>(),
-            attomKey,
-            sp.GetService<ILogger<AttomDataCompSource>>()));
-}
-
-// Core services
-builder.Services.AddSingleton<CompAggregator>();
-
-builder.Services.AddHttpClient<LeadResearchService>();
-builder.Services.AddSingleton<ILeadResearchService>(sp => sp.GetRequiredService<LeadResearchService>());
-
-builder.Services.AddSingleton<ICmaPdfGenerator, CmaPdfGenerator>();
+// Google Workspace service (Drive, Docs, Sheets, Gmail)
 builder.Services.AddSingleton<IGwsService, GwsService>();
 
-builder.Services.AddHttpClient(nameof(ClaudeAnalysisService));
-builder.Services.AddSingleton<IAnalysisService>(sp =>
-    new ClaudeAnalysisService(
+// --- Lead Feature Services ---
+
+// Storage provider — local by default, GDrive requires per-request agentEmail (scoped)
+// GDriveStorageProvider needs agentEmail from route, so it's resolved per-request via endpoint logic.
+// For DI container, register LocalStorageProvider as the default singleton.
+builder.Services.AddSingleton<IFileStorageProvider>(sp =>
+    new LocalStorageProvider(
+        builder.Configuration["Storage:BasePath"] ?? Path.Combine(builder.Environment.ContentRootPath, "data")));
+
+// Lead feature services
+builder.Services.AddSingleton<ILeadStore, GDriveLeadStore>();
+builder.Services.AddSingleton<IMarketingConsentLog, MarketingConsentLog>();
+builder.Services.AddSingleton<ILeadDataDeletion, GDriveLeadDataDeletion>();
+builder.Services.AddSingleton<IDeletionAuditLog, DeletionAuditLog>();
+builder.Services.AddSingleton<ILeadNotifier, MultiChannelLeadNotifier>();
+
+// Background lead processing (replaces fire-and-forget Task.Run)
+builder.Services.AddSingleton<LeadProcessingChannel>();
+builder.Services.AddSingleton<CmaProcessingChannel>();
+builder.Services.AddSingleton<HomeSearchProcessingChannel>();
+builder.Services.AddHostedService<LeadProcessingWorker>();
+builder.Services.AddHostedService<CmaProcessingWorker>();
+builder.Services.AddHostedService<HomeSearchProcessingWorker>();
+
+// Lead enrichment — typed HttpClient with Polly resilience
+builder.Services.AddHttpClient(nameof(ScraperLeadEnricher))
+    .AddClaudeApiResilience(pollyLogger);
+builder.Services.AddSingleton<ILeadEnricher>(sp =>
+{
+    var factory = sp.GetRequiredService<IHttpClientFactory>();
+    var logger = sp.GetRequiredService<ILogger<ScraperLeadEnricher>>();
+    return new ScraperLeadEnricher(factory, anthropicKey, scraperApiKey ?? "", logger);
+});
+
+// Home search — scraper-based (uses both nameof and "ScraperAPI" named clients)
+builder.Services.AddHttpClient(nameof(ScraperHomeSearchProvider))
+    .AddClaudeApiResilience(pollyLogger);
+builder.Services.AddSingleton<IHomeSearchProvider>(sp =>
+    new ScraperHomeSearchProvider(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        scraperApiKey ?? "",
+        anthropicKey,
+        sp.GetRequiredService<ILogger<ScraperHomeSearchProvider>>()));
+
+// CMA pipeline services
+builder.Services.AddHttpClient(nameof(ScraperCompSource))
+    .AddClaudeApiResilience(pollyLogger);
+builder.Services.AddHttpClient(nameof(ClaudeCmaAnalyzer))
+    .AddClaudeApiResilience(pollyLogger);
+builder.Services.AddSingleton<ICompAggregator>(sp =>
+    new CompAggregator(
+        sp.GetServices<ICompSource>(),
+        sp.GetRequiredService<ILogger<CompAggregator>>()));
+builder.Services.AddSingleton<ICompSource>(sp =>
+    new ScraperCompSource(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        scraperApiKey ?? "", anthropicKey,
+        CompSource.Zillow, "https://www.zillow.com/homedetails/{slug}",
+        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
+builder.Services.AddSingleton<ICompSource>(sp =>
+    new ScraperCompSource(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        scraperApiKey ?? "", anthropicKey,
+        CompSource.Redfin, "https://www.redfin.com/homes/{slug}",
+        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
+builder.Services.AddSingleton<ICompSource>(sp =>
+    new ScraperCompSource(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        scraperApiKey ?? "", anthropicKey,
+        CompSource.RealtorCom, "https://www.realtor.com/realestateandhomes-detail/{slug}",
+        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
+builder.Services.AddSingleton<ICmaAnalyzer>(sp =>
+    new ClaudeCmaAnalyzer(
         sp.GetRequiredService<IHttpClientFactory>(),
         anthropicKey,
-        sp.GetService<ILogger<ClaudeAnalysisService>>()));
+        sp.GetRequiredService<ILogger<ClaudeCmaAnalyzer>>()));
+builder.Services.AddSingleton<ICmaPdfGenerator, CmaPdfGenerator>();
+builder.Services.AddSingleton<ICmaNotifier, CmaSellerNotifier>();
+builder.Services.AddSingleton<IHomeSearchNotifier, HomeSearchBuyerNotifier>();
 
-// Pipeline orchestrator
-builder.Services.AddSingleton<ICmaPipeline, CmaPipeline>();
+// Named HttpClients used by services with hardcoded client names
+builder.Services.AddHttpClient("ScraperAPI")
+    .AddScraperApiResilience(pollyLogger);
+builder.Services.AddHttpClient("GoogleChat")
+    .AddGoogleChatResilience(pollyLogger);
+
+// Drive change monitor
+builder.Services.AddSingleton<DriveChangeMonitor>();
+
+// OpenAPI
+builder.Services.AddOpenApi();
 
 // Problem details for validation errors
 builder.Services.AddProblemDetails();
-
-// Job store
-builder.Services.AddMemoryCache(options => options.SizeLimit = 10_000);
-builder.Services.AddSingleton<ICmaJobStore, InMemoryCmaJobStore>();
 
 // SignalR
 builder.Services.AddSignalR();
 
 // Health checks
+builder.Services.AddSingleton<BackgroundServiceHealthTracker>();
 builder.Services.AddHealthChecks()
-    .AddCheck<ClaudeApiHealthCheck>("claude_api", tags: ["ready"]);
+    .AddCheck<ClaudeApiHealthCheck>("claude_api", tags: ["ready"])
+    .AddCheck<GoogleDriveHealthCheck>("google_drive", tags: ["ready"])
+    .AddCheck<ScraperApiHealthCheck>("scraper_api", tags: ["ready"])
+    .AddCheck<TurnstileHealthCheck>("turnstile", tags: ["ready"])
+    .AddCheck<BackgroundServiceHealthCheck>("background_workers", tags: ["ready", "workers"]);
 
 // CORS
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -185,10 +266,23 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(allowedOrigins)
             .SetIsOriginAllowed(origin =>
             {
+                if (allowedOrigins.Contains(origin)) return true;
+
                 // Allow *.localhost:{port} subdomains in development (e.g. jenise-buckalew.localhost:3000)
-                if (!builder.Environment.IsDevelopment()) return allowedOrigins.Contains(origin);
-                var uri = new Uri(origin);
-                return uri.Host == "localhost" || uri.Host.EndsWith(".localhost");
+                if (builder.Environment.IsDevelopment())
+                {
+                    var uri = new Uri(origin);
+                    return uri.Host == "localhost" || uri.Host.EndsWith(".localhost");
+                }
+
+                // Allow Cloudflare Pages preview deploys (*.pages.dev)
+                if (Uri.TryCreate(origin, UriKind.Absolute, out var originUri) &&
+                    originUri.Host.EndsWith(".pages.dev", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                return false;
             })
             .AllowAnyHeader()
             .AllowAnyMethod()
@@ -196,10 +290,14 @@ builder.Services.AddCors(options =>
     });
 });
 
-// ForwardedHeaders — must be configured before rate limiter so RemoteIpAddress is correct behind proxy
+// ForwardedHeaders — must be configured before rate limiter so RemoteIpAddress is correct behind proxy.
+// KnownIPNetworks and KnownProxies are cleared because Cloudflare + Azure Container Apps use rotating IPs
+// that cannot be enumerated statically. All forwarded headers from the proxy chain are trusted.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 // Rate limiting
@@ -215,16 +313,6 @@ builder.Services.AddRateLimiter(options =>
             {
                 PermitLimit = 100,
                 Window = TimeSpan.FromMinutes(1)
-            }));
-
-    // Stricter policy for CMA creation: 10 per hour per agent
-    options.AddPolicy("cma-create", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            context.Request.RouteValues["agentId"]?.ToString() ?? "unknown",
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 10,
-                Window = TimeSpan.FromHours(1)
             }));
 
     // Session creation: 5 per hour per IP (session creation triggers Claude API calls)
@@ -246,6 +334,30 @@ builder.Services.AddRateLimiter(options =>
                 PermitLimit = 20,
                 Window = TimeSpan.FromMinutes(1)
             }));
+
+    // Lead creation: 20 per hour per IP
+    options.AddPolicy("lead-create", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromHours(1) }));
+
+    // Deletion requests: 5 per hour per IP
+    options.AddPolicy("deletion-request", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromHours(1) }));
+
+    // Data deletion: 10 per hour per IP
+    options.AddPolicy("delete-data", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1) }));
+
+    // Lead opt-out: 10 per hour per IP
+    options.AddPolicy("lead-opt-out", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1) }));
 });
 
 // Endpoint auto-registration
@@ -306,6 +418,7 @@ app.UseSerilogRequestLogging(options =>
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseRateLimiter();
+app.UseMiddleware<ApiKeyHmacMiddleware>();
 
 // Liveness probe — no dependency checks, just "am I running?"
 app.MapHealthChecks("/health/live", new HealthCheckOptions
@@ -320,10 +433,17 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
     ResponseWriter = WriteHealthResponse
 });
 
-// SignalR hub
-app.MapHub<CmaProgressHub>("/hubs/cma-progress");
+// Worker health — checks background service activity
+app.MapHealthChecks("/health/workers", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("workers"),
+    ResponseWriter = WriteHealthResponse
+});
 
-// --- CMA Endpoints ---
+// OpenAPI spec
+app.MapOpenApi();
+
+// --- All Endpoints ---
 app.MapEndpoints();
 
 app.Run();
@@ -334,13 +454,14 @@ static async Task WriteHealthResponse(HttpContext context, HealthReport report)
     var result = new
     {
         status = report.Status.ToString(),
-        checks = report.Entries.Select(e => new
-        {
-            name = e.Key,
-            status = e.Value.Status.ToString(),
-            description = e.Value.Description,
-            duration = e.Value.Duration.TotalMilliseconds
-        })
+        entries = report.Entries.ToDictionary(
+            e => e.Key,
+            e => new
+            {
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                duration = e.Value.Duration.ToString()
+            })
     };
     await context.Response.WriteAsJsonAsync(result);
 }

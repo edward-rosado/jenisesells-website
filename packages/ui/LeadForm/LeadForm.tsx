@@ -11,6 +11,12 @@ import type {
 } from "@real-estate-star/shared-types";
 import { useGoogleMapsAutocomplete } from "./useGoogleMapsAutocomplete";
 
+const TCPA_CONSENT_TEXT =
+  "By checking this box, you consent to receive calls and text messages from the agent " +
+  "at the phone number you provided, including automated calls. Message and data rates " +
+  "may apply. Reply STOP to opt out. Consent is not a condition of purchasing any " +
+  "property or service.";
+
 export interface LeadFormProps {
   defaultState: string;
   googleMapsApiKey?: string;
@@ -22,6 +28,10 @@ export interface LeadFormProps {
   serviceAreas?: string[];
   showCmaDisclaimer?: boolean;
   agentFirstName?: string;
+  /** Cloudflare Turnstile token — submit is disabled until provided. Omit to skip Turnstile gating. */
+  turnstileToken?: string | null;
+  /** Render slot for a Turnstile widget (or any CAPTCHA). Rendered above the submit button. */
+  captchaSlot?: React.ReactNode;
 }
 
 function parseOptionalNumber(value: string): number | undefined {
@@ -65,6 +75,8 @@ export function LeadForm({
   serviceAreas = [],
   showCmaDisclaimer = false,
   agentFirstName,
+  turnstileToken,
+  captchaSlot,
 }: LeadFormProps) {
   const [isBuying, setIsBuying] = useState(initialMode.includes("buying"));
   const [isSelling, setIsSelling] = useState(initialMode.includes("selling"));
@@ -75,6 +87,7 @@ export function LeadForm({
   const [submitting, setSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [tcpaConsent, setTcpaConsent] = useState(false);
+  const [honeypot, setHoneypot] = useState("");
   const [fields, setFields] = useState<FormFields>({
     firstName: "",
     lastName: "",
@@ -107,7 +120,7 @@ export function LeadForm({
     [],
   );
 
-  useGoogleMapsAutocomplete({
+  const { loaded: mapsLoaded } = useGoogleMapsAutocomplete({
     apiKey: googleMapsApiKey,
     inputRef: addressRef,
     /* v8 ignore start -- covered by useGoogleMapsAutocomplete.test.ts integration */
@@ -141,6 +154,8 @@ export function LeadForm({
     enabled: isSelling,
   });
 
+  const showMapsAttribution = isSelling && googleMapsApiKey && mapsLoaded;
+
   function getTimelineLabel(): string {
     if (isBuying && isSelling) return "buy/sell";
     if (isBuying) return "buy";
@@ -165,6 +180,13 @@ export function LeadForm({
 
     if (!tcpaConsent) {
       setValidationError("You must consent to receive communications before submitting.");
+      return;
+    }
+
+    // SECURITY: Honeypot — bots fill all fields, real users never see this
+    if (honeypot) {
+      // Fake success to avoid revealing detection to the bot
+      setSubmitting(true);
       return;
     }
 
@@ -217,6 +239,11 @@ export function LeadForm({
       seller,
       timeline: fields.timeline as Timeline,
       notes: fields.notes || undefined,
+      marketingConsent: {
+        optedIn: tcpaConsent,
+        consentText: TCPA_CONSENT_TEXT,
+        channels: ["calls", "texts"],
+      },
     };
 
     setSubmitting(true);
@@ -302,6 +329,7 @@ export function LeadForm({
   return (
     <form
       onSubmit={handleSubmit}
+      aria-describedby="lf-error"
       style={{
         background: "#fff",
         borderRadius: 14,
@@ -311,6 +339,18 @@ export function LeadForm({
         margin: "0 auto",
       }}
     >
+      {/* SECURITY: Honeypot field — hidden from real users, catches bots that fill all fields */}
+      <input
+        type="text"
+        name="website"
+        aria-hidden="true"
+        tabIndex={-1}
+        autoComplete="off"
+        value={honeypot}
+        onChange={(e) => setHoneypot(e.target.value)}
+        style={{ position: "absolute", left: -9999, width: 1, height: 1, overflow: "hidden" }}
+      />
+
       {/* SECURITY: Static CSS only. Never interpolate dynamic values here. */}
       <style>{`
         .res-lead-form-row { display: flex; gap: 16px; }
@@ -513,8 +553,10 @@ export function LeadForm({
                 <input {...field("sqft", { type: "number" })} />
               </div>
             </div>
-            <p style={{ fontSize: 11, color: "#999", marginTop: 4, marginBottom: 0 }}>
-              Address autocomplete powered by Google Maps.
+            <p style={{ fontSize: 11, color: "#767676", marginTop: 4, marginBottom: 0 }}>
+              {showMapsAttribution
+                ? "Address autocomplete powered by Google Maps."
+                : "Enter your address manually."}
             </p>
           </>
         )}
@@ -544,7 +586,7 @@ export function LeadForm({
       </div>
 
       {/* Errors */}
-      <div aria-live="polite" role="alert">
+      <div id="lf-error" aria-live="polite" role="alert">
         {validationError && (
           <p style={{ color: "red", fontSize: 14, marginBottom: 12 }}>{validationError}</p>
         )}
@@ -554,7 +596,7 @@ export function LeadForm({
       </div>
 
       {/* TCPA Consent */}
-      <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: 11, color: "#999", textAlign: "left", marginTop: "16px" }}>
+      <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: 11, color: "#767676", textAlign: "left", marginTop: "16px" }}>
         <input
           type="checkbox"
           data-testid="tcpa-consent"
@@ -562,20 +604,18 @@ export function LeadForm({
           onChange={(e) => setTcpaConsent(e.target.checked)}
           style={{ marginTop: "2px", flexShrink: 0 }}
         />
-        <span>
-          By checking this box, you consent to receive calls and text messages from the agent
-          at the phone number you provided, including automated calls. Message and data rates
-          may apply. Reply STOP to opt out. Consent is not a condition of purchasing any
-          property or service.
-        </span>
+        <span>{TCPA_CONSENT_TEXT}</span>
       </label>
+
+      {/* CAPTCHA slot — Turnstile widget or other challenge rendered by parent */}
+      {captchaSlot}
 
       {/* Submit */}
       <div style={{ marginTop: 12 }} />
       <button
         type="submit"
         className="res-lead-form-submit"
-        disabled={disabled || submitting}
+        disabled={disabled || submitting || (turnstileToken !== undefined && !turnstileToken)}
         style={{
           width: "100%",
           padding: "14px 32px",
@@ -598,7 +638,7 @@ export function LeadForm({
           style={{
             display: "block",
             fontSize: 11,
-            color: "#999",
+            color: "#767676",
             marginTop: 16,
             textAlign: "center",
             lineHeight: 1.5,

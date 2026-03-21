@@ -1,50 +1,33 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { CmaSection } from "@/components/sections/shared/CmaSection";
 import type { ContactFormData } from "@/lib/types";
 
-// --- Mock useCmaSubmit from @real-estate-star/ui ---
-const mockSubmit = vi.fn();
-const mockReset = vi.fn();
-let capturedOnError: ((err: Error) => void) | undefined;
+// --- Mock submitLead server action ---
+const mockSubmitLead = vi.fn();
 
-let mockCmaState = {
-  phase: "idle" as string,
-  jobId: null as string | null,
-  errorMessage: null as string | null,
-};
-
-vi.mock("@real-estate-star/ui", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@real-estate-star/ui")>();
-  return {
-    ...actual,
-    useCmaSubmit: (_apiBaseUrl: string, options?: { onError?: (err: Error) => void }) => {
-      capturedOnError = options?.onError;
-      return {
-        state: mockCmaState,
-        submit: mockSubmit,
-        reset: mockReset,
-      };
-    },
-  };
-});
+vi.mock("@/actions/submit-lead", () => ({
+  submitLead: (...args: unknown[]) => mockSubmitLead(...args),
+}));
 
 // Mock useGoogleMapsAutocomplete so it doesn't try to load Google Maps SDK
 vi.mock("@real-estate-star/ui/LeadForm/useGoogleMapsAutocomplete", () => ({
-  useGoogleMapsAutocomplete: () => ({ loaded: false }),
-}));
-
-// Mock Sentry
-vi.mock("@sentry/nextjs", () => ({
-  captureException: vi.fn(),
+  useGoogleMapsAutocomplete: () => ({ loaded: true }),
 }));
 
 // Mock Analytics
 vi.mock("@/components/Analytics", () => ({
   trackCmaConversion: vi.fn(),
+}));
+
+// Mock Turnstile
+vi.mock("@marsidev/react-turnstile", () => ({
+  Turnstile: (props: { siteKey: string; onSuccess: (token: string) => void }) => (
+    <div data-testid="turnstile-widget" data-site-key={props.siteKey} />
+  ),
 }));
 
 const FORM_DATA: ContactFormData = {
@@ -86,9 +69,7 @@ function switchToBuyerAndFill(options?: { skipEmail?: boolean }) {
 }
 
 beforeEach(() => {
-  mockCmaState = { phase: "idle", jobId: null, errorMessage: null };
-  mockSubmit.mockReset();
-  mockReset.mockReset();
+  mockSubmitLead.mockReset();
 });
 
 describe("CmaSection rendering", () => {
@@ -133,7 +114,7 @@ describe("CmaSection rendering", () => {
       data: { ...FORM_DATA, description: "Enter your address for a **free** report." },
     };
     render(<CmaSection {...props} />);
-    expect(screen.getByText(/Enter your address/)).toBeInTheDocument();
+    expect(screen.getByText(/Enter your address for a/)).toBeInTheDocument();
     // **bold** markdown renders as <strong>
     const strong = screen.getByText("free");
     expect(strong.tagName).toBe("STRONG");
@@ -164,8 +145,8 @@ describe("CmaSection rendering", () => {
 });
 
 describe("CmaSection form submission", () => {
-  it("calls useCmaSubmit.submit with accountId and LeadFormData on submit", async () => {
-    mockSubmit.mockResolvedValueOnce(true);
+  it("calls submitLead with accountId and LeadFormData on submit", async () => {
+    mockSubmitLead.mockResolvedValueOnce({ leadId: "lead-123", status: "received" });
 
     const locationMock = { href: "" };
     Object.defineProperty(window, "location", { value: locationMock, writable: true });
@@ -177,7 +158,7 @@ describe("CmaSection form submission", () => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);
     });
 
-    expect(mockSubmit).toHaveBeenCalledWith(
+    expect(mockSubmitLead).toHaveBeenCalledWith(
       "test-agent",
       expect.objectContaining({
         firstName: "Alice",
@@ -185,11 +166,33 @@ describe("CmaSection form submission", () => {
         email: "alice@test.com",
         phone: "555-111-2222",
       }),
+      expect.any(String),
     );
   });
 
+  it("calls submitLead for buyer-only leads (all lead types submitted)", async () => {
+    mockSubmitLead.mockResolvedValueOnce({ leadId: "lead-456", status: "received" });
+
+    const locationMock = { href: "" };
+    Object.defineProperty(window, "location", { value: locationMock, writable: true });
+
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    switchToBuyerAndFill();
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    expect(mockSubmitLead).toHaveBeenCalledWith(
+      "test-agent",
+      expect.objectContaining({ firstName: "Alice" }),
+      expect.any(String),
+    );
+    expect(locationMock.href).toContain("/thank-you");
+  });
+
   it("redirects to thank-you page on successful submission", async () => {
-    mockSubmit.mockResolvedValueOnce(true);
+    mockSubmitLead.mockResolvedValueOnce({ leadId: "lead-123", status: "received" });
 
     const locationMock = { href: "" };
     Object.defineProperty(window, "location", { value: locationMock, writable: true });
@@ -208,7 +211,7 @@ describe("CmaSection form submission", () => {
 
   it("fires analytics conversion tracking on success", async () => {
     const { trackCmaConversion } = await import("@/components/Analytics");
-    mockSubmit.mockResolvedValueOnce(true);
+    mockSubmitLead.mockResolvedValueOnce({ leadId: "lead-123", status: "received" });
 
     const locationMock = { href: "" };
     Object.defineProperty(window, "location", { value: locationMock, writable: true });
@@ -224,8 +227,8 @@ describe("CmaSection form submission", () => {
     expect(trackCmaConversion).toHaveBeenCalledWith(tracking);
   });
 
-  it("does NOT redirect on failed submission", async () => {
-    mockSubmit.mockResolvedValueOnce(false);
+  it("does NOT redirect when submitLead returns an error", async () => {
+    mockSubmitLead.mockResolvedValueOnce({ error: "Verification failed. Please try again." });
 
     const locationMock = { href: "" };
     Object.defineProperty(window, "location", { value: locationMock, writable: true });
@@ -240,66 +243,41 @@ describe("CmaSection form submission", () => {
     expect(locationMock.href).toBe("");
   });
 
-  it("disables submit button when phase is submitting", () => {
-    mockCmaState = { phase: "submitting", jobId: null, errorMessage: null };
-    render(<CmaSection {...DEFAULT_PROPS} />);
-    expect(screen.getByRole("button", { name: /Get My Free Home Value Report/ })).toBeDisabled();
-  });
-
-  it("shows error message from cmaSubmit state", () => {
-    mockCmaState = { phase: "error", jobId: null, errorMessage: "CMA submission failed (500)" };
-    render(<CmaSection {...DEFAULT_PROPS} />);
-    expect(screen.getByText("CMA submission failed (500)")).toBeInTheDocument();
-  });
-
-  it("skips CMA API and redirects directly for buyer-only leads", async () => {
-    const locationMock = { href: "" };
-    Object.defineProperty(window, "location", { value: locationMock, writable: true });
-
-    render(<CmaSection {...DEFAULT_PROPS} />);
-    switchToBuyerAndFill();
-
-    await act(async () => {
-      fireEvent.submit(screen.getByRole("button").closest("form")!);
-    });
-
-    // Buyer-only leads skip the CMA pipeline (no property address to analyze)
-    expect(mockSubmit).not.toHaveBeenCalled();
-    expect(locationMock.href).toContain("/thank-you");
-    expect(locationMock.href).toContain("test-agent");
-  });
-
-  it("passes numeric beds, baths, and sqft when provided", async () => {
-    mockSubmit.mockResolvedValueOnce(true);
-
-    const locationMock = { href: "" };
-    Object.defineProperty(window, "location", { value: locationMock, writable: true });
+  it("shows error message when submitLead returns an error", async () => {
+    mockSubmitLead.mockResolvedValueOnce({ error: "Verification failed. Please try again." });
 
     render(<CmaSection {...DEFAULT_PROPS} />);
     fillForm();
-    fireEvent.change(screen.getByLabelText(/^beds$/i), { target: { value: "4" } });
-    fireEvent.change(screen.getByLabelText(/^baths$/i), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText(/^sqft$/i), { target: { value: "2200" } });
 
     await act(async () => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);
     });
 
-    expect(mockSubmit).toHaveBeenCalledWith(
-      "test-agent",
-      expect.objectContaining({
-        seller: expect.objectContaining({ beds: 4, baths: 2, sqft: 2200 }),
-      }),
+    expect(screen.getByText("Verification failed. Please try again.")).toBeInTheDocument();
+  });
+
+  it("logs error when submitLead returns an error", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockSubmitLead.mockResolvedValueOnce({ error: "Something went wrong. Please try again." });
+
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    fillForm();
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    expect(spy).toHaveBeenCalledWith(
+      "[agent-site] Lead submission error:",
+      "Something went wrong. Please try again.",
     );
+    spy.mockRestore();
   });
 
-  it("does NOT call fetch directly — uses shared hook", async () => {
-    vi.stubGlobal("fetch", vi.fn());
-    const mockFetch = vi.mocked(fetch);
-    mockSubmit.mockResolvedValueOnce(true);
-
-    const locationMock = { href: "" };
-    Object.defineProperty(window, "location", { value: locationMock, writable: true });
+  it("logs error and shows message when submitLead throws", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const err = new Error("Network failure");
+    mockSubmitLead.mockRejectedValueOnce(err);
 
     render(<CmaSection {...DEFAULT_PROPS} />);
     fillForm();
@@ -308,11 +286,38 @@ describe("CmaSection form submission", () => {
       fireEvent.submit(screen.getByRole("button").closest("form")!);
     });
 
-    expect(mockFetch).not.toHaveBeenCalled();
-    vi.unstubAllGlobals();
+    expect(spy).toHaveBeenCalledWith(
+      "[agent-site] Lead submission failed:",
+      err,
+    );
+    expect(screen.getByText("Something went wrong. Please try again.")).toBeInTheDocument();
+    spy.mockRestore();
+  });
+
+  it("disables submit button while processing", async () => {
+    let resolveSubmit: (v: unknown) => void;
+    mockSubmitLead.mockReturnValueOnce(
+      new Promise((resolve) => { resolveSubmit = resolve; }),
+    );
+
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    fillForm();
+
+    act(() => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
+    });
+
+    // While pending, button should be disabled
+    expect(screen.getByRole("button", { name: /Get My Free Home Value Report/ })).toBeDisabled();
+
+    await act(async () => {
+      resolveSubmit!({ leadId: "lead-123" });
+    });
   });
 
   it("omits email param from redirect URL when email is empty", async () => {
+    mockSubmitLead.mockResolvedValueOnce({ leadId: "lead-456", status: "received" });
+
     const locationMock = { href: "" };
     Object.defineProperty(window, "location", { value: locationMock, writable: true });
 
@@ -326,20 +331,73 @@ describe("CmaSection form submission", () => {
     expect(locationMock.href).toBe("/thank-you?accountId=test-agent");
     expect(locationMock.href).not.toContain("email=");
   });
+});
 
-  it("calls Sentry.captureException via onError callback when submission fails", async () => {
-    const Sentry = await import("@sentry/nextjs");
+describe("CmaSection Turnstile integration", () => {
+  const ORIGINAL_ENV = process.env;
+
+  beforeEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+  });
+
+  afterEach(() => {
+    process.env = ORIGINAL_ENV;
+  });
+
+  it("renders Turnstile widget when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set", () => {
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "test-site-key";
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    expect(screen.getByTestId("turnstile-widget")).toBeInTheDocument();
+    expect(screen.getByTestId("turnstile-widget")).toHaveAttribute("data-site-key", "test-site-key");
+  });
+
+  it("does not render Turnstile widget when NEXT_PUBLIC_TURNSTILE_SITE_KEY is absent", () => {
+    delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    expect(screen.queryByTestId("turnstile-widget")).not.toBeInTheDocument();
+  });
+
+  it("does not gate submit when NEXT_PUBLIC_TURNSTILE_SITE_KEY is absent", () => {
+    delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    // When no Turnstile key, turnstileToken is passed as undefined so submit is not gated
+    const submitButton = screen.getByRole("button", { name: /Get My Free Home Value Report/ });
+    expect(submitButton).not.toBeDisabled();
+  });
+
+  it("gates submit when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set but token not yet received", () => {
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "test-site-key";
+    render(<CmaSection {...DEFAULT_PROPS} />);
+    // Token starts as null — submit should be disabled until Turnstile resolves
+    const submitButton = screen.getByRole("button", { name: /Get My Free Home Value Report/ });
+    expect(submitButton).toBeDisabled();
+  });
+});
+
+describe("CmaSection marketing consent", () => {
+  it("includes marketingConsent in submitted data", async () => {
+    mockSubmitLead.mockResolvedValueOnce({ leadId: "lead-789", status: "received" });
+
+    const locationMock = { href: "" };
+    Object.defineProperty(window, "location", { value: locationMock, writable: true });
 
     render(<CmaSection {...DEFAULT_PROPS} />);
+    fillForm();
 
-    // The mock captures the onError callback passed to useCmaSubmit
-    expect(capturedOnError).toBeDefined();
-
-    const testError = new Error("Network failure");
-    capturedOnError!(testError);
-
-    expect(Sentry.captureException).toHaveBeenCalledWith(testError, {
-      tags: { accountId: "test-agent", feature: "contact_form" },
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button").closest("form")!);
     });
+
+    expect(mockSubmitLead).toHaveBeenCalledWith(
+      "test-agent",
+      expect.objectContaining({
+        marketingConsent: {
+          optedIn: true,
+          consentText: expect.stringContaining("consent to receive"),
+          channels: ["calls", "texts"],
+        },
+      }),
+      expect.any(String),
+    );
   });
 });

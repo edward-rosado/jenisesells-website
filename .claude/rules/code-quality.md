@@ -36,3 +36,8 @@ Enforce these before marking test coverage as complete:
 - [ ] Serialization roundtrip tested for all domain types stored in JSON/DB
 - [ ] Concurrent access scenarios tested for shared-state services
 - [ ] Every `IAsyncEnumerable` / streaming endpoint has at least one integration-style test
+
+- [ ] Every `LeadMarkdownRenderer.Render*` method has a roundtrip test (render → parse frontmatter → assert values match)
+- [ ] Every `IFileStorageProvider` implementation (GDrive, Local) has symmetric test coverage for all methods
+- [ ] Every YAML frontmatter field has an injection test (newlines, colons, quotes in value don't break parsing)
+- [ ] Lead submission endpoint has test for: valid lead, missing required field, invalid email format, oversized payload

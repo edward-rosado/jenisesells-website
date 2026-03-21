@@ -9,7 +9,7 @@ on:
       - 'packages/**'
       - '.github/workflows/agent-site.yml'
   pull_request:
-    branches: [main]
+    branches: [main, feat/lead-submission-api]
     paths:
       - 'apps/agent-site/**'
       - 'config/accounts/**'
@@ -122,6 +122,7 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
         run: npm run build --prefix apps/agent-site
 
       - name: Build for Cloudflare (OpenNext)
@@ -155,6 +156,10 @@ jobs:
             "vars": {
               "NEXT_PUBLIC_API_URL": "https://api.real-estate-star.com",
               "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": "${{ secrets.GOOGLE_MAPS_API_KEY }}",
+              "TURNSTILE_SECRET_KEY": "${{ secrets.TURNSTILE_SECRET_KEY }}",
+              "LEAD_API_KEY": "${{ secrets.LEAD_API_KEY }}",
+              "LEAD_HMAC_SECRET": "${{ secrets.LEAD_HMAC_SECRET }}",
+              "LEAD_API_URL": "${{ secrets.LEAD_API_URL }}",
               "PREVIEW": "true"
             }
           }

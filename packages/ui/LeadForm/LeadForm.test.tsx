@@ -747,6 +747,13 @@ describe("LeadForm", () => {
     expect(screen.queryByText(/address autocomplete powered by google maps/i)).not.toBeInTheDocument();
   });
 
+  // Test 39b — manual entry fallback when no API key
+  it("shows manual entry hint when googleMapsApiKey is absent", () => {
+    render(<LeadForm {...defaultProps} googleMapsApiKey="" initialMode={["selling"]} />);
+    expect(screen.getByText(/enter your address manually/i)).toBeInTheDocument();
+    expect(screen.queryByText(/autocomplete powered by google maps/i)).not.toBeInTheDocument();
+  });
+
   // Test 40 — agentFirstName dynamic label
   it("shows dynamic buyer CTA with agentFirstName when not selling", () => {
     render(<LeadForm {...defaultProps} agentFirstName="Jenise" initialMode={["buying"]} />);
@@ -757,6 +764,84 @@ describe("LeadForm", () => {
   it("shows seller CTA when agentFirstName is set and selling", () => {
     render(<LeadForm {...defaultProps} agentFirstName="Jenise" initialMode={["selling"]} />);
     expect(screen.getByRole("button", { name: /get my free cma/i })).toBeInTheDocument();
+  });
+
+  // Test 43 — Honeypot field
+  it("honeypot field is aria-hidden", () => {
+    render(<LeadForm {...defaultProps} />);
+    const honeypot = document.querySelector('input[name="website"]') as HTMLInputElement;
+    expect(honeypot).not.toBeNull();
+    expect(honeypot.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  // Test 44
+  it("honeypot field has tabIndex of -1", () => {
+    render(<LeadForm {...defaultProps} />);
+    const honeypot = document.querySelector('input[name="website"]') as HTMLInputElement;
+    expect(honeypot).not.toBeNull();
+    expect(honeypot.tabIndex).toBe(-1);
+  });
+
+  // Test 45 — marketing consent checkbox (TCPA)
+  it("marketing consent checkbox is present", () => {
+    render(<LeadForm {...defaultProps} />);
+    const checkbox = screen.getByRole("checkbox", { name: /consent to receive/i });
+    expect(checkbox).toBeInTheDocument();
+  });
+
+  // Test 46
+  it("honeypot field is positioned off-screen", () => {
+    render(<LeadForm {...defaultProps} />);
+    const honeypot = document.querySelector('input[name="website"]') as HTMLInputElement;
+    expect(honeypot).not.toBeNull();
+    expect(honeypot.style.position).toBe("absolute");
+    expect(honeypot.style.left).toBe("-9999px");
+  });
+
+  // Test 47 — honeypot blocks bot submissions
+  it("does not call onSubmit when honeypot is filled", async () => {
+    const onSubmit = vi.fn();
+    render(<LeadForm {...defaultProps} onSubmit={onSubmit} initialMode={["buying"]} />);
+
+    fillContactFields();
+    fillBuyerFields();
+    selectTimeline();
+    fireEvent.click(screen.getByRole("checkbox", { name: /consent to receive/i }));
+
+    // Simulate bot filling the honeypot
+    const honeypot = document.querySelector('input[name="website"]') as HTMLInputElement;
+    fireEvent.change(honeypot, { target: { value: "https://spam.com" } });
+
+    submitForm();
+
+    // Wait a tick, then verify onSubmit was never called
+    await waitFor(() => {
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+  });
+
+  // Test 48 — Turnstile gating: submit disabled when token is null
+  it("disables submit when turnstileToken is null", () => {
+    render(<LeadForm {...defaultProps} turnstileToken={null} />);
+    expect(screen.getByRole("button", { name: /get/i })).toBeDisabled();
+  });
+
+  // Test 49 — Turnstile gating: submit enabled when token provided
+  it("enables submit when turnstileToken is provided", () => {
+    render(<LeadForm {...defaultProps} turnstileToken="valid-token" />);
+    expect(screen.getByRole("button", { name: /get/i })).not.toBeDisabled();
+  });
+
+  // Test 50 — Turnstile gating: submit enabled when turnstileToken omitted (no Turnstile)
+  it("enables submit when turnstileToken is omitted", () => {
+    render(<LeadForm {...defaultProps} />);
+    expect(screen.getByRole("button", { name: /get/i })).not.toBeDisabled();
+  });
+
+  // Test 51 — captchaSlot renders
+  it("renders captchaSlot content", () => {
+    render(<LeadForm {...defaultProps} captchaSlot={<div data-testid="turnstile-widget" />} />);
+    expect(screen.getByTestId("turnstile-widget")).toBeInTheDocument();
   });
 
   // Test 42
@@ -773,5 +858,27 @@ describe("LeadForm", () => {
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalled();
     });
+  });
+
+  // Test 52 — marketingConsent included in submitted data
+  it("includes marketingConsent with optedIn, consentText, and channels in submitted data", async () => {
+    const onSubmit = vi.fn();
+    render(<LeadForm {...defaultProps} onSubmit={onSubmit} initialMode={["buying"]} />);
+
+    fillContactFields();
+    fillBuyerFields();
+    selectTimeline();
+    checkTcpaConsent();
+    submitForm();
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    const data: LeadFormData = onSubmit.mock.calls[0][0];
+    expect(data.marketingConsent).toBeDefined();
+    expect(data.marketingConsent!.optedIn).toBe(true);
+    expect(data.marketingConsent!.consentText).toContain("consent to receive");
+    expect(data.marketingConsent!.channels).toEqual(["calls", "texts"]);
   });
 });

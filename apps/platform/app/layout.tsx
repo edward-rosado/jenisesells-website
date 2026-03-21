@@ -69,6 +69,10 @@ export default function RootLayout({
             <Link href="/accessibility" className="hover:text-white transition-colors">
               Accessibility
             </Link>
+            <span aria-hidden="true">|</span>
+            <Link href="/status" className="hover:text-white transition-colors">
+              Status
+            </Link>
           </nav>
           <EqualHousingOpportunity />
           <p className="mt-4">&copy; {new Date().getFullYear()} Real Estate Star. All rights reserved.</p>
