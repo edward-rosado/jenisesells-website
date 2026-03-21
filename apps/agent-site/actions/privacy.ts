@@ -25,7 +25,7 @@ export async function requestDeletion(
   const body = JSON.stringify({ email });
   let response: Response;
   try {
-    response = await signAndForward(agentId, body, `agents/${agentId}/leads/delete-request`);
+    response = await signAndForward(agentId, body, `agents/${agentId}/leads/request-deletion`);
   } catch {
     return { ok: false, error: "Something went wrong. Please try again." };
   }

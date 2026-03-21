@@ -63,7 +63,7 @@ describe("requestDeletion", () => {
     expect(signAndForward).toHaveBeenCalledWith(
       "agent-123",
       JSON.stringify({ email: "user@example.com" }),
-      "agents/agent-123/leads/delete-request",
+      "agents/agent-123/leads/request-deletion",
     );
   });
 
