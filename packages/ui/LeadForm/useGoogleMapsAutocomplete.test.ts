@@ -30,6 +30,7 @@ function setupGoogleMapsMock() {
       return listenerHandle;
     }),
     getPlace: vi.fn(),
+    unbindAll: vi.fn(),
   };
 
   function MockAutocompleteClass() {
@@ -397,9 +398,55 @@ describe("useGoogleMapsAutocomplete", () => {
     // Should not throw, hook degrades gracefully
   });
 
-  it("reverts loaded to false when gm_authFailure fires (API key rejected)", async () => {
+  it("reverts loaded and cleans up widget when gm_authFailure fires", async () => {
     setupGoogleMapsMock();
-    const inputRef = makeInputRef();
+    const inputEl = document.createElement("input");
+    const inputRef = makeInputRef(inputEl);
+    const onPlaceSelected = vi.fn();
+
+    // Simulate a .pac-container that Google would inject
+    const pacContainer = document.createElement("div");
+    pacContainer.className = "pac-container";
+    document.body.appendChild(pacContainer);
+
+    const { result } = renderHook(() =>
+      useGoogleMapsAutocomplete({
+        apiKey: "test-key",
+        inputRef,
+        onPlaceSelected,
+        enabled: true,
+      }),
+    );
+
+    await act(async () => {});
+    expect(result.current.loaded).toBe(true);
+
+    // Google adds these attributes when it attaches Autocomplete
+    inputEl.setAttribute("autocomplete", "off");
+    inputEl.setAttribute("role", "combobox");
+    inputEl.setAttribute("aria-autocomplete", "list");
+    inputEl.setAttribute("aria-haspopup", "false");
+
+    // Simulate Google calling gm_authFailure (domain not authorized)
+    await act(async () => {
+      (window as any).gm_authFailure();
+    });
+
+    expect(result.current.loaded).toBe(false);
+    // .pac-container should be removed from DOM
+    expect(document.querySelector(".pac-container")).toBeNull();
+    // Google-injected attributes should be stripped from input
+    expect(inputEl.hasAttribute("autocomplete")).toBe(false);
+    expect(inputEl.hasAttribute("role")).toBe(false);
+    expect(inputEl.hasAttribute("aria-autocomplete")).toBe(false);
+    expect(inputEl.hasAttribute("aria-haspopup")).toBe(false);
+    // unbindAll should have been called on the autocomplete instance
+    expect(mockAutocompleteInstance.addListener).toHaveBeenCalled();
+  });
+
+  it("handles gm_authFailure before autocomplete is created", async () => {
+    // Don't set up google mock — script will be injected but not loaded
+    const inputRef = makeInputRef(null);
     const onPlaceSelected = vi.fn();
 
     const { result } = renderHook(() =>
@@ -411,17 +458,13 @@ describe("useGoogleMapsAutocomplete", () => {
       }),
     );
 
-    // google.maps.places exists so loadGoogleMapsScript resolves immediately
-    await act(async () => {});
-
-    // loaded should be true after SDK resolves
-    expect(result.current.loaded).toBe(true);
-
-    // Simulate Google calling gm_authFailure (domain not authorized)
+    // gm_authFailure fires before script.onload — autocompleteInstance and listener are null
+    expect((window as any).gm_authFailure).toBeDefined();
     await act(async () => {
       (window as any).gm_authFailure();
     });
 
+    // Should still set loaded to false without throwing
     expect(result.current.loaded).toBe(false);
   });
 
