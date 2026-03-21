@@ -9,7 +9,7 @@ export async function submitLead(
   formData: LeadFormData,
   turnstileToken: string,
 ): Promise<{ leadId?: string; status?: string; error?: string }> {
-  // Honeypot: filled means bot (defense in depth — LeadForm also blocks bot submissions client-side)
+  // Honeypot: filled means bot (defense in depth -- LeadForm also blocks bot submissions client-side)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if ((formData as any).website) return { leadId: "fake-id", status: "received" };
 

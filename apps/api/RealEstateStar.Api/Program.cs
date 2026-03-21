@@ -527,7 +527,7 @@ app.UseHttpsRedirection();
 app.UseCors();
 app.UseRateLimiter();
 
-// Liveness probe — no dependency checks, just "am I running?"
+// Liveness probe -- no dependency checks, just "am I running?"
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
     Predicate = _ => false
