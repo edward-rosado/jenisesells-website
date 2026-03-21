@@ -2,7 +2,8 @@ using FluentAssertions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
 using RealEstateStar.Api.Health;
-using RealEstateStar.Api.Services.Storage;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.DataServices.Leads;
 
 namespace RealEstateStar.Api.Tests.Health;
 

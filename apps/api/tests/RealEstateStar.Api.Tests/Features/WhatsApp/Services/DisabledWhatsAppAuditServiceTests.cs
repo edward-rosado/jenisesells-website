@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using RealEstateStar.Api.Features.WhatsApp.Services;
+using RealEstateStar.DataServices.WhatsApp;
 
 namespace RealEstateStar.Api.Tests.Features.WhatsApp.Services;
 

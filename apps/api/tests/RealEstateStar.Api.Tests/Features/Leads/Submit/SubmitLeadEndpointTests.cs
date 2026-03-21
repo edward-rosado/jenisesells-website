@@ -11,10 +11,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.Api.Features.Leads;
-using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Api.Features.Leads.Submit;
-using RealEstateStar.Api.Services;
+using RealEstateStar.DataServices.Config;
 using RealEstateStar.Api.Tests.Integration;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Submit;

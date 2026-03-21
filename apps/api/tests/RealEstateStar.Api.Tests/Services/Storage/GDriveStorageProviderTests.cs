@@ -1,6 +1,8 @@
 using Moq;
-using RealEstateStar.Api.Services.Gws;
-using RealEstateStar.Api.Services.Storage;
+using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.DataServices.Leads;
 
 namespace RealEstateStar.Api.Tests.Services.Storage;
 

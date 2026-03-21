@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RealEstateStar.Api.Features.WhatsApp.Services;
+using RealEstateStar.DataServices.WhatsApp;
 
 namespace RealEstateStar.Api.Tests.Features.WhatsApp.Services;
 

@@ -2,7 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging.Abstractions;
 using RealEstateStar.Api.Features.Onboarding;
-using RealEstateStar.Api.Features.Onboarding.Services;
+using RealEstateStar.DataServices.Onboarding;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.Services;
 

@@ -2,8 +2,9 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
-using RealEstateStar.Api.Features.Leads;
-using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Api.Features.Leads.Subscribe;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Subscribe;

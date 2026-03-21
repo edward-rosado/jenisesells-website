@@ -4,9 +4,10 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using RealEstateStar.Api.Features.Leads;
+using RealEstateStar.DataServices.Leads;
 using RealEstateStar.Api.Features.Leads.RequestDeletion;
-using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Privacy;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.RequestDeletion;
 

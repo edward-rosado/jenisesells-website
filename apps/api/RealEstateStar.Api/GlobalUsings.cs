@@ -5,6 +5,7 @@
 global using RealEstateStar.Domain.Shared.Models;
 global using RealEstateStar.Domain.Shared.Interfaces.Storage;
 global using RealEstateStar.Domain.Shared.Interfaces.Senders;
+global using RealEstateStar.Domain.Shared.Interfaces.External;
 global using RealEstateStar.Domain.Shared.Markdown;
 
 // Leads
@@ -37,4 +38,10 @@ global using RealEstateStar.Domain.Onboarding.Models;
 global using RealEstateStar.Domain.Onboarding.Interfaces;
 global using RealEstateStar.Domain.Onboarding.Services;
 global using RealEstateStar.Domain.Onboarding;
+
+// Notifications
+global using RealEstateStar.Notifications.Leads;
+global using RealEstateStar.Notifications.Cma;
+global using RealEstateStar.Notifications.HomeSearch;
+global using RealEstateStar.Notifications.WhatsApp;
 

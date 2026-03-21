@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Api.Services.Storage;
 

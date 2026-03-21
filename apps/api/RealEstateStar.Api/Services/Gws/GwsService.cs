@@ -1,3 +1,4 @@
+using RealEstateStar.DataServices.Leads;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
@@ -5,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
+
+using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Api.Services.Gws;
 

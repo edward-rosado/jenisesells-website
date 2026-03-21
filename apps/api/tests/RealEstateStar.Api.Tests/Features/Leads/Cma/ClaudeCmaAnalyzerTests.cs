@@ -1,6 +1,6 @@
 using System.Text.Json;
 using FluentAssertions;
-using RealEstateStar.Api.Features.Leads;
+using RealEstateStar.DataServices.Leads;
 using RealEstateStar.Api.Features.Leads.Cma;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Cma;

@@ -2,8 +2,9 @@ using FluentAssertions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RealEstateStar.Api.Features.Leads;
-using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Api.Health;
 

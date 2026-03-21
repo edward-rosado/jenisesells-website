@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Api.Features.Onboarding;
-using RealEstateStar.Api.Features.Onboarding.Services;
+using RealEstateStar.DataServices.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.Webhooks;
 using RealEstateStar.Api.Tests.Integration;
 using Stripe;

@@ -1,7 +1,9 @@
+using RealEstateStar.Api.Features.Leads.Services;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using RealEstateStar.Api.Diagnostics;
-using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Api.Middleware;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;

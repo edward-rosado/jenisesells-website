@@ -1,7 +1,8 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RealEstateStar.Api.Services.Storage;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.DataServices.Leads;
 
 namespace RealEstateStar.Api.Tests.Services.Storage;
 

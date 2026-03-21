@@ -1,9 +1,11 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using RealEstateStar.Api.Features.Leads;
-using RealEstateStar.Api.Features.Leads.Services;
-using RealEstateStar.Api.Services.Storage;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.DataServices.Leads;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Services;
 

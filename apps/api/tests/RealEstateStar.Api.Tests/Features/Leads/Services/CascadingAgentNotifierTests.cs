@@ -2,11 +2,12 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.Api.Features.Leads;
-using RealEstateStar.Api.Features.Leads.Services;
-using RealEstateStar.Api.Features.WhatsApp;
-using RealEstateStar.Api.Features.WhatsApp.Services;
-using RealEstateStar.Api.Services;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.DataServices.WhatsApp;
+using RealEstateStar.DataServices.WhatsApp;
+using RealEstateStar.DataServices.Config;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Services;
 

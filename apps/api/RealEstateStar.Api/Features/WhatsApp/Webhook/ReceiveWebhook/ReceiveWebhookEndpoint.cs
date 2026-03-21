@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Api.Features.WhatsApp.Services;
+using RealEstateStar.DataServices.WhatsApp;
 using RealEstateStar.Api.Infrastructure;
 
 namespace RealEstateStar.Api.Features.WhatsApp.Webhook.ReceiveWebhook;

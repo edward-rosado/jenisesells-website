@@ -1,5 +1,6 @@
 using FluentAssertions;
-using RealEstateStar.Api.Services.Gws;
+using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.DataServices.Leads;
 
 namespace RealEstateStar.Api.Tests.Services.Gws;
 

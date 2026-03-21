@@ -5,7 +5,7 @@ using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Polly;
-using RealEstateStar.Api.Features.WhatsApp.Services;
+using RealEstateStar.DataServices.WhatsApp;
 
 namespace RealEstateStar.Api.Tests.Features.WhatsApp.Services;
 

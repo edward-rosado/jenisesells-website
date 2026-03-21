@@ -1,4 +1,4 @@
-using RealEstateStar.Api.Features.WhatsApp;
+using RealEstateStar.DataServices.WhatsApp;
 
 namespace RealEstateStar.Api.Tests.Features.WhatsApp;
 

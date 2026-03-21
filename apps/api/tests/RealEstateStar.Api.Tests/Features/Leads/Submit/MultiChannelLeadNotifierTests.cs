@@ -2,11 +2,13 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.Api.Features.Leads;
-using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Api.Features.Leads.Submit;
-using RealEstateStar.Api.Services;
-using RealEstateStar.Api.Services.Gws;
+using RealEstateStar.DataServices.Config;
+using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.DataServices.Leads;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Services;
 

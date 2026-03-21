@@ -1,4 +1,4 @@
-using RealEstateStar.Api.Features.Leads;
+using RealEstateStar.DataServices.Leads;
 
 namespace RealEstateStar.Api.Tests.Features.Leads;
 

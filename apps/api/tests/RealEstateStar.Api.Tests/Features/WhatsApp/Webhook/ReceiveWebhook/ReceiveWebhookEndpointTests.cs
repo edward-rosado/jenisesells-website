@@ -5,7 +5,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Caching.Memory;
 using Moq;
-using RealEstateStar.Api.Features.WhatsApp.Services;
+using RealEstateStar.DataServices.WhatsApp;
 using RealEstateStar.Api.Features.WhatsApp.Webhook.ReceiveWebhook;
 using RealEstateStar.Api.Tests.TestHelpers;
 

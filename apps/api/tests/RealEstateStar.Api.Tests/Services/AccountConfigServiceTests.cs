@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using RealEstateStar.Api.Services;
+using RealEstateStar.DataServices.Config;
 
 namespace RealEstateStar.Api.Tests.Services;
 

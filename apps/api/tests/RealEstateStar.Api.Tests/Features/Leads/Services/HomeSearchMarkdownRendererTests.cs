@@ -1,6 +1,7 @@
 using FluentAssertions;
-using RealEstateStar.Api.Features.Leads;
-using RealEstateStar.Api.Features.Leads.Services;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Privacy;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Services;
 

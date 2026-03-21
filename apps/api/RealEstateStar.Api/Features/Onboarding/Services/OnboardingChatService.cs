@@ -1,3 +1,4 @@
+using RealEstateStar.Api.Features.Onboarding.Tools;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
@@ -5,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Api.Features.Onboarding.Tools;
+using RealEstateStar.DataServices.Onboarding;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 

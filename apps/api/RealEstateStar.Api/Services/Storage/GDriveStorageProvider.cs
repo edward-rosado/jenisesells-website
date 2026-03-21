@@ -1,4 +1,5 @@
-using RealEstateStar.Api.Services.Gws;
+using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Api.Services.Storage;
 

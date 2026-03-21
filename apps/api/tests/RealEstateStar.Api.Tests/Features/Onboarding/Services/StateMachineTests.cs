@@ -1,5 +1,5 @@
 using RealEstateStar.Api.Features.Onboarding;
-using RealEstateStar.Api.Features.Onboarding.Services;
+using RealEstateStar.DataServices.Onboarding;
 using Xunit;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.Services;

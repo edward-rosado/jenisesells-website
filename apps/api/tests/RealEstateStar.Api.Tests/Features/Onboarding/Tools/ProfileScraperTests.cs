@@ -3,8 +3,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
 using RealEstateStar.Api.Features.Onboarding;
-using RealEstateStar.Api.Features.Onboarding.Services;
-using RealEstateStar.Api.Features.Onboarding.Tools;
+using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.DataServices.Onboarding;
 using Xunit;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.Services;

@@ -1,5 +1,7 @@
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RealEstateStar.Api.Features.Leads.Services;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Privacy;
 
 namespace RealEstateStar.Api.Health;
 
