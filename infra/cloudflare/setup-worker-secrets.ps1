@@ -79,7 +79,7 @@ $leadApiKey = Read-Host -Prompt "  Lead API Key (press Enter to auto-generate)"
 
 if ([string]::IsNullOrWhiteSpace($leadApiKey)) {
     $bytes = New-Object byte[] 32
-    [System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+    (New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes($bytes)
     $leadApiKey = -join ($bytes | ForEach-Object { $_.ToString("x2") })
     Write-Ok "Generated: $leadApiKey"
     Write-Host ""
@@ -101,7 +101,7 @@ $leadHmacSecret = Read-Host -Prompt "  HMAC Secret (press Enter to auto-generate
 
 if ([string]::IsNullOrWhiteSpace($leadHmacSecret)) {
     $bytes = New-Object byte[] 32
-    [System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+    (New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes($bytes)
     $leadHmacSecret = -join ($bytes | ForEach-Object { $_.ToString("x2") })
     Write-Ok "Generated: $leadHmacSecret"
     Write-Host ""
