@@ -244,42 +244,6 @@ builder.Services.AddHttpClient("ScraperAPI")
 builder.Services.AddHttpClient("GoogleChat")
     .AddGoogleChatResilience(pollyLogger);
 
-// CMA pipeline services
-builder.Services.AddHttpClient(nameof(ScraperCompSource))
-    .AddClaudeApiResilience(pollyLogger);
-builder.Services.AddHttpClient(nameof(ClaudeCmaAnalyzer))
-    .AddClaudeApiResilience(pollyLogger);
-builder.Services.AddSingleton<ICompAggregator>(sp =>
-    new CompAggregator(
-        sp.GetServices<ICompSource>(),
-        sp.GetRequiredService<ILogger<CompAggregator>>()));
-builder.Services.AddSingleton<ICompSource>(sp =>
-    new ScraperCompSource(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        scraperApiKey ?? "", anthropicKey,
-        CompSource.Zillow, "https://www.zillow.com/homedetails/{slug}",
-        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
-builder.Services.AddSingleton<ICompSource>(sp =>
-    new ScraperCompSource(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        scraperApiKey ?? "", anthropicKey,
-        CompSource.Redfin, "https://www.redfin.com/homes/{slug}",
-        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
-builder.Services.AddSingleton<ICompSource>(sp =>
-    new ScraperCompSource(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        scraperApiKey ?? "", anthropicKey,
-        CompSource.RealtorCom, "https://www.realtor.com/realestateandhomes-detail/{slug}",
-        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
-builder.Services.AddSingleton<ICmaAnalyzer>(sp =>
-    new ClaudeCmaAnalyzer(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        anthropicKey,
-        sp.GetRequiredService<ILogger<ClaudeCmaAnalyzer>>()));
-builder.Services.AddSingleton<ICmaPdfGenerator, CmaPdfGenerator>();
-builder.Services.AddSingleton<ICmaNotifier, CmaSellerNotifier>();
-builder.Services.AddSingleton<IHomeSearchNotifier, HomeSearchBuyerNotifier>();
-
 // Drive change monitor
 builder.Services.AddSingleton<DriveChangeMonitor>();
 
@@ -545,7 +509,6 @@ app.UseSerilogRequestLogging(options =>
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseRateLimiter();
-app.UseMiddleware<ApiKeyHmacMiddleware>();
 
 // Liveness probe — no dependency checks, just "am I running?"
 app.MapHealthChecks("/health/live", new HealthCheckOptions
