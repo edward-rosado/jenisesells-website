@@ -8,9 +8,29 @@ A SaaS platform that automates real estate agent workflows — from lead respons
 apps/
   portal/          # Real Estate Star admin portal (Next.js 16)
   agent-site/      # White-label agent websites (Next.js 16)
-  api/             # Backend API (.NET 10)
-    Features/
-      Leads/       # Lead submission, storage, and markdown rendering
+  api/             # Backend API (.NET 10) — 21 isolated projects
+    RealEstateStar.Api/              # HTTP layer + sole composition root (DI wiring)
+    RealEstateStar.Domain/           # Pure models, interfaces, enums — ZERO deps
+    RealEstateStar.Data/             # Physical file storage providers
+    RealEstateStar.DataServices/     # Storage orchestration (routes GDrive vs local)
+    RealEstateStar.Notifications/    # Delivery channels (email, WhatsApp)
+    RealEstateStar.Workers.Shared/   # Pipeline base classes (WorkerBase, steps, channels)
+    RealEstateStar.Workers.Leads/    # Lead processing pipeline
+    RealEstateStar.Workers.Cma/      # CMA pipeline
+    RealEstateStar.Workers.HomeSearch/ # Home search pipeline
+    RealEstateStar.Workers.WhatsApp/ # WhatsApp message processing
+    RealEstateStar.Clients.Anthropic/  # Claude API client
+    RealEstateStar.Clients.Scraper/    # Web scraper client
+    RealEstateStar.Clients.WhatsApp/   # WhatsApp API client
+    RealEstateStar.Clients.GDrive/     # Google Drive client
+    RealEstateStar.Clients.Gmail/      # Gmail client
+    RealEstateStar.Clients.GoogleOAuth/ # Google OAuth client
+    RealEstateStar.Clients.Stripe/     # Stripe client
+    RealEstateStar.Clients.Cloudflare/ # Cloudflare client
+    RealEstateStar.Clients.Turnstile/  # Turnstile client
+    RealEstateStar.Clients.Azure/      # Azure Table Storage client
+    RealEstateStar.Clients.Gws/        # GWS CLI wrapper
+    tests/                             # 23 test projects (1:1 with production + Architecture.Tests + TestUtilities)
 packages/
   shared-types/    # TypeScript types shared across apps
   ui/              # Shared UI component library
@@ -26,6 +46,21 @@ prototype/         # Original jenisesellsnj.com static site
 infra/             # Infrastructure and hosting config
 docs/              # Design docs, onboarding, plans
 ```
+
+### API Dependency Rules
+
+```
+Domain         → nothing (owns ALL interfaces)
+Data           → Domain only
+Clients.*      → Domain only (own internal DTOs)
+DataServices   → Domain only
+Notifications  → Domain only
+Workers.Shared → Domain only
+Workers.*      → Domain + Workers.Shared
+Api            → everything (sole composition root)
+```
+
+Every non-Api project has at most 2 deps. Domain defines ALL contracts. Api wires all implementations via DI. Architecture is enforced at compile-time (csproj refs) and CI-time (ArchUnit tests in `tests/RealEstateStar.Architecture.Tests/`).
 
 ## Multi-Tenant Architecture
 
@@ -52,7 +87,7 @@ When working on a skill, load the agent profile first:
 |-----------|-----------|
 | Portal | Next.js 16 |
 | Agent Sites | Next.js 16 (white-label) |
-| API | .NET 10 |
+| API | .NET 10 (21 isolated projects) |
 | Agent Config | JSON + JSON Schema |
 | PM | GitHub Issues + Projects |
 
@@ -66,10 +101,12 @@ When working on a skill, load the agent profile first:
 
 ## File Storage Abstraction
 
-The `IFileStorageProvider` interface abstracts lead storage across Google Drive and local file system:
+The `IFileStorageProvider` interface (defined in `RealEstateStar.Domain`) abstracts lead storage across Google Drive and local file system. Implementations live in `RealEstateStar.Data`:
 
-- **Google Drive** (`GDriveStorageProvider`): Production storage in agent's Drive folder (folder ID from config)
-- **Local** (`LocalStorageProvider`): Development/testing in `data/leads/{agent-id}/`
+- **Local** (`LocalFileProvider` in `RealEstateStar.Data`): Development/testing in `data/leads/{agent-id}/`
+- **In-Memory** (`InMemoryFileProvider` in `RealEstateStar.Data`): Unit testing
+- **Storage orchestration** (`LeadStore` in `RealEstateStar.DataServices`): Routes to GDrive or local based on config
+- **Google Drive** (`GDriveClient` in `RealEstateStar.Clients.GDrive`): Production storage in agent's Drive folder
 - **Configuration**: `Storage:UseLocal` (bool) in appsettings selects provider at startup
 
 All lead files are markdown with YAML frontmatter. Frontmatter keys are validated against the Lead schema; user content goes in the markdown body.
@@ -77,6 +114,8 @@ All lead files are markdown with YAML frontmatter. Frontmatter keys are validate
 ## Docs
 
 - Design: `docs/plans/2026-03-09-repo-restructure-design.md`
+- API Restructure Design: `docs/superpowers/specs/2026-03-21-api-project-restructure-design.md`
 - Lead Submission Design: `docs/superpowers/specs/2026-03-19-lead-submission-api-design.md`
+- Architecture Diagrams: `docs/architecture/README.md`
 - Onboarding: `docs/onboarding.md`
 - PM Skills: `docs/pm-skills-setup.md`

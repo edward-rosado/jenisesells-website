@@ -13,6 +13,29 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | [Data Model](data-model.md) | Agent config entity model, section types, file relationships |
 | [Skill Integration](skill-integration.md) | Config-driven skills, onboarding flow, field mapping |
 
+## API Project Structure (21 Projects + 23 Test Projects)
+
+The .NET 10 backend (`apps/api/`) is split into 21 isolated production projects and 23 test projects following a strict dependency graph:
+
+| Layer | Projects | Depends On |
+|-------|----------|------------|
+| **Domain** | `RealEstateStar.Domain` | Nothing (pure models, interfaces, enums) |
+| **Data** | `RealEstateStar.Data` | Domain only |
+| **DataServices** | `RealEstateStar.DataServices` | Domain only |
+| **Notifications** | `RealEstateStar.Notifications` | Domain only |
+| **Workers** | `Workers.Shared`, `Workers.Leads`, `Workers.Cma`, `Workers.HomeSearch`, `Workers.WhatsApp` | Domain + Workers.Shared |
+| **Clients** | `Clients.Anthropic`, `Clients.Scraper`, `Clients.WhatsApp`, `Clients.GDrive`, `Clients.Gmail`, `Clients.GoogleOAuth`, `Clients.Stripe`, `Clients.Cloudflare`, `Clients.Turnstile`, `Clients.Azure`, `Clients.Gws` | Domain only (own internal DTOs) |
+| **Api** | `RealEstateStar.Api` | Everything (sole composition root) |
+
+Key rules:
+- **Domain owns ALL interfaces** — storage, client, sender contracts
+- **Api is the sole composition root** — only project that wires DI bindings
+- **Each Client has its own DTOs** — maps to Domain types internally, no leaking
+- **Architecture enforced** at compile-time (csproj refs) and CI-time (ArchUnit tests in `tests/RealEstateStar.Architecture.Tests/`)
+- **1175+ tests** across 23 test projects (1:1 with production projects + `Architecture.Tests` + `TestUtilities`)
+
+Design spec: `docs/superpowers/specs/2026-03-21-api-project-restructure-design.md`
+
 ## Shared LeadForm Component
 
 | Document | Description |

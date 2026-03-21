@@ -413,16 +413,30 @@ cd apps/api
 dotnet test
 ```
 
-The test suite contains 17 test files covering:
+The test suite contains 1175+ tests across 23 test projects:
 
-| Area | Tests |
-|------|-------|
-| Endpoints | CMA endpoint request/response validation |
-| Health | Health check behavior |
-| Integration | Full pipeline and middleware pipeline tests |
-| Middleware | Correlation ID propagation |
-| Models | CmaJob state machine, report type selection |
-| Services | AgentConfigService, ClaudeAnalysisService, CompAggregator, GwsService, InMemoryCmaJobStore, CmaPdfGenerator, LeadResearchService, CmaPipeline |
+| Test Project | Covers |
+|-------------|--------|
+| `Api.Tests` | Endpoints, health checks, middleware, integration |
+| `Domain.Tests` | Domain models, enums, state machines |
+| `Data.Tests` | File storage providers (GDrive, Local, Noop) |
+| `DataServices.Tests` | Lead stores, config services, privacy, WhatsApp conversations |
+| `Notifications.Tests` | Email delivery |
+| `Workers.Shared.Tests` | Step pattern, channels, health tracking |
+| `Workers.Cma.Tests` | CMA pipeline steps |
+| `Workers.Leads.Tests` | Lead processing steps |
+| `Workers.HomeSearch.Tests` | Home search steps |
+| `Workers.WhatsApp.Tests` | WhatsApp message processing |
+| `Clients.*.Tests` (11) | One test project per external client |
+| `Architecture.Tests` | ArchUnit dependency rules (compile-time architecture enforcement) |
+| `TestUtilities` | Shared test helpers, fixtures, test data (not a test runner) |
+
+Run coverage:
+
+```bash
+bash apps/api/scripts/coverage.sh          # full coverage report
+bash apps/api/scripts/coverage.sh --low-only  # only classes below 100%
+```
 
 ## Adding New Endpoints
 
@@ -463,74 +477,79 @@ No registration code needed -- `app.MapEndpoints()` auto-discovers all `IEndpoin
 
 ## Project Structure
 
+The API is a multi-project solution with 21 production projects and 23 test projects, organized by the "who needs to know" principle.
+
+### Production Projects
+
+| Layer | Project | Responsibility |
+|-------|---------|---------------|
+| **Domain** | `RealEstateStar.Domain` | Pure domain models, interfaces, enums (zero dependencies) |
+| **Data** | `RealEstateStar.Data` | `IFileStorageProvider` implementations (GDrive, Local, Noop) |
+| **DataServices** | `RealEstateStar.DataServices` | Higher-level data operations (leads, config, privacy, WhatsApp conversations) |
+| **Notifications** | `RealEstateStar.Notifications` | Email and notification delivery |
+| **Workers** | `RealEstateStar.Workers.Shared` | Worker step pattern: `IWorkerStep<TReq, TRes>`, `WorkerStepBase`, `ProcessingChannelBase` |
+| | `RealEstateStar.Workers.Cma` | CMA pipeline worker |
+| | `RealEstateStar.Workers.Leads` | Lead processing worker |
+| | `RealEstateStar.Workers.HomeSearch` | Home search worker |
+| | `RealEstateStar.Workers.WhatsApp` | WhatsApp message processing worker |
+| **Clients** | `RealEstateStar.Clients.Anthropic` | Claude API client |
+| | `RealEstateStar.Clients.Azure` | Azure Table Storage client |
+| | `RealEstateStar.Clients.Cloudflare` | Cloudflare Workers client |
+| | `RealEstateStar.Clients.GDrive` | Google Drive API client |
+| | `RealEstateStar.Clients.Gmail` | Gmail API client |
+| | `RealEstateStar.Clients.GoogleOAuth` | Google OAuth client |
+| | `RealEstateStar.Clients.Gws` | gws CLI wrapper |
+| | `RealEstateStar.Clients.Scraper` | Web scraping client |
+| | `RealEstateStar.Clients.Stripe` | Stripe payment client |
+| | `RealEstateStar.Clients.Turnstile` | Cloudflare Turnstile verification |
+| | `RealEstateStar.Clients.WhatsApp` | Meta WhatsApp Business API client |
+| **Api** | `RealEstateStar.Api` | Composition root: endpoints, DI, middleware, health checks |
+
+### Dependency Matrix
+
+```
+Domain (zero deps)
+  +-- Data (storage implementations)
+  +-- DataServices (higher-level data operations)
+  +-- Clients.* (each fully isolated, own DTOs, zero cross-client deps)
+  +-- Workers.Shared (step pattern, channels)
+  |     +-- Workers.Cma / Workers.Leads / Workers.HomeSearch / Workers.WhatsApp
+  +-- Notifications (email delivery)
+  |
+  Api (composition root — references everything, wires DI)
+```
+
+Architecture is enforced at compile time via csproj references and at CI time via ArchUnit tests in `Architecture.Tests`.
+
+### Test Projects (23)
+
+Each production project has a matching test project under `tests/`, plus two shared projects:
+
+- `RealEstateStar.TestUtilities` -- shared test helpers, fixtures, and test data
+- `RealEstateStar.Architecture.Tests` -- ArchUnit tests enforcing dependency rules
+
+### Worker Step Pattern
+
+Workers use a step-based pipeline pattern:
+
+- `IWorkerStep<TRequest, TResponse>` -- interface for individual pipeline steps
+- `WorkerStepBase` -- base class with built-in diagnostics (spans, metrics)
+- `ProcessingChannelBase` -- `Channel<T>` fan-out BackgroundService for durable message processing
+- `AddWorkerPipeline<TChannel, TWorker>()` -- auto-registers channel + worker + health checks
+
+### Key Directories
+
 ```
 apps/api/
-  Dockerfile
-  docker-compose.observability.yml
   RealEstateStar.Api/
-    Program.cs                          # Middleware, DI setup, MapEndpoints()
-    appsettings.json
-    appsettings.Development.json
-    Diagnostics/
-      CmaDiagnostics.cs                 # ActivitySource + Meters
-      OpenTelemetryExtensions.cs        # OTel registration helpers
-    Endpoints/
-      IEndpoint.cs                       # REPR endpoint interface
-      EndpointExtensions.cs              # MapEndpoints() auto-registration
-      CreateCmaEndpoint.cs               # POST /agents/{agentId}/cma
-      GetCmaStatusEndpoint.cs            # GET  /agents/{agentId}/cma/{jobId}/status
-      GetLeadsEndpoint.cs                # GET  /agents/{agentId}/leads
-    Health/
-      ClaudeApiHealthCheck.cs
-      GwsCliHealthCheck.cs
-    Hubs/
-      CmaProgressHub.cs                 # SignalR hub
-    Logging/
-      LoggingExtensions.cs              # Serilog configuration
-    Middleware/
-      CorrelationIdMiddleware.cs
-      AgentIdEnricher.cs                # Serilog enricher for agent context
-    Models/
-      AgentConfig.cs                     # Agent profile model
-      CmaAnalysis.cs                     # Analysis result model
-      CmaJob.cs                          # Job entity + status enum + report type
-      Comp.cs                            # Comparable sale model
-      Lead.cs                            # Input model with DataAnnotations
-      LeadResearch.cs                    # Property research model
-      StatusMessages.cs                  # Pipeline status message constants
-      Responses/
-        CreateCmaResponse.cs             # POST /cma response record
-        CmaStatusResponse.cs             # GET /status response record
-        LeadSummaryResponse.cs           # GET /leads response record
-    Services/
-      AgentConfigService.cs             # Multi-tenant config loader
-      CmaPipeline.cs                    # 9-step orchestrator
-      ICmaJobStore.cs / InMemoryCmaJobStore.cs
-      Analysis/
-        ClaudeAnalysisService.cs        # Anthropic Claude integration
-      Comps/
-        CompAggregator.cs               # Parallel fetch + dedup
-        ZillowCompSource.cs
-        RealtorComCompSource.cs
-        RedfinCompSource.cs
-        AttomDataCompSource.cs
-      Gws/
-        GwsService.cs                   # Google Workspace CLI wrapper
-      Pdf/
-        CmaPdfGenerator.cs              # QuestPDF report builder
-      Research/
-        LeadResearchService.cs          # Property record research
-  RealEstateStar.Api.Tests/
-    Endpoints/                           # HTTP endpoint tests
-    Health/                              # Health check tests
-    Integration/                         # Pipeline + middleware integration tests
-    Middleware/                           # Correlation ID tests
-    Models/                              # CmaJob unit tests
-    Services/                            # Service-level unit tests
-  infra/
-    otel-collector-config.yaml
-    prometheus.yml
-    grafana/
-      provisioning/                      # Datasource + dashboard provisioning
-      dashboards/                        # Pre-built Grafana dashboards
+    Features/                            # REPR vertical slices (endpoint per folder)
+    Health/                              # Health check implementations
+    Hubs/                                # SignalR hubs
+    Middleware/                           # CorrelationId, AgentIdEnricher
+    Diagnostics/                         # ActivitySource + Meters + OTel extensions
+  RealEstateStar.Domain/
+    Shared/Interfaces/Storage/           # IFileStorageProvider, IAccountConfigService
+    Cma/ Leads/ Onboarding/ ...          # Domain models grouped by feature
+  tests/                                 # 23 test projects
+  infra/                                 # OTel collector, Prometheus, Grafana configs
 ```
