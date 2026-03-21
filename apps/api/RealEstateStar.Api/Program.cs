@@ -15,8 +15,11 @@ using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.DataServices.Onboarding;
 using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.DataServices.WhatsApp;
+using RealEstateStar.Domain.Notifications.Interfaces;
+using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Notifications.Templates;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.DataProtection;
@@ -199,8 +202,8 @@ builder.Services.AddSingleton<IComplianceFileStorageProvider>(sp =>
         builder.Configuration["Storage:ComplianceBasePath"] ??
         Path.Combine(builder.Environment.ContentRootPath, "data", "compliance")));
 
-// ComplianceConsentWriter: concrete class — registers itself directly
-builder.Services.AddSingleton<ComplianceConsentWriter>();
+// IComplianceConsentWriter: backed by ComplianceConsentWriter
+builder.Services.AddSingleton<IComplianceConsentWriter, ComplianceConsentWriter>();
 
 // IConsentAuditService: Azure Table in prod, no-op in dev
 builder.Services.AddSingleton<IConsentAuditService>(sp =>
@@ -222,6 +225,25 @@ builder.Services.AddSingleton<IFailedNotificationStore>(sp =>
 
     var tableClient = new Azure.Data.Tables.TableClient(connStr, "failednotifications");
     return new FailedNotificationStore(tableClient, sp.GetRequiredService<ILogger<FailedNotificationStore>>());
+});
+
+// GDPR data export
+builder.Services.AddSingleton<ILeadDataExport, LeadDataExport>();
+
+// Email template rendering (privacy footer with unsubscribe/view-data links)
+builder.Services.AddSingleton<IEmailTemplateRenderer, PrivacyFooterRenderer>();
+
+// Consent token store (Azure Table; in-memory fallback when not configured)
+builder.Services.AddSingleton<ConsentTokenStore>(sp =>
+{
+    var connStr = builder.Configuration["AzureStorage:ConnectionString"];
+    if (string.IsNullOrEmpty(connStr))
+        return new ConsentTokenStore(
+            new Azure.Data.Tables.TableClient("UseDevelopmentStorage=true", "consenttokens"),
+            sp.GetRequiredService<ILogger<ConsentTokenStore>>());
+
+    var tableClient = new Azure.Data.Tables.TableClient(connStr, "consenttokens");
+    return new ConsentTokenStore(tableClient, sp.GetRequiredService<ILogger<ConsentTokenStore>>());
 });
 
 // Background lead processing (replaces fire-and-forget Task.Run)
