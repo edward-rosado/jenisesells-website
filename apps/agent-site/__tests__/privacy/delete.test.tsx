@@ -163,6 +163,19 @@ describe("DeletePage", () => {
     });
   });
 
+  it("updates email when user types into the input", async () => {
+    const page = await DeletePage({
+      params: Promise.resolve({ handle: "test-agent" }),
+      searchParams: Promise.resolve({ email: "" }),
+    });
+    render(page);
+
+    const input = screen.getByRole("textbox", { name: /Email Address/i }) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "typed@example.com" } });
+
+    expect(input.value).toBe("typed@example.com");
+  });
+
   it("displays agent name in description", async () => {
     const page = await DeletePage({
       params: Promise.resolve({ handle: "test-agent" }),

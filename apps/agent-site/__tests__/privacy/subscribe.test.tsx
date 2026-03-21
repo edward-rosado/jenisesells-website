@@ -131,6 +131,22 @@ describe("SubscribePage", () => {
     });
   });
 
+  it("shows fallback error message when result.error is undefined", async () => {
+    mockRequestSubscribe.mockResolvedValue({ ok: false });
+    const page = await SubscribePage({
+      params: Promise.resolve({ handle: "test-agent" }),
+      searchParams: Promise.resolve({ email: "user@example.com", token: "abc123" }),
+    });
+    render(page);
+
+    fireEvent.click(screen.getByRole("button", { name: /Confirm Re-subscribe/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+      expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
+    });
+  });
+
   it("uses fallback agent name when config fails", async () => {
     mockLoadAccountConfig.mockImplementation(() => { throw new Error("fail"); });
     const page = await SubscribePage({

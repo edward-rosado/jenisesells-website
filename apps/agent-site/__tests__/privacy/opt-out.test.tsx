@@ -130,6 +130,22 @@ describe("OptOutPage", () => {
     });
   });
 
+  it("shows fallback error message when result.error is undefined", async () => {
+    mockRequestOptOut.mockResolvedValue({ ok: false });
+    const page = await OptOutPage({
+      params: Promise.resolve({ handle: "test-agent" }),
+      searchParams: Promise.resolve({ email: "user@example.com", token: "abc123" }),
+    });
+    render(page);
+
+    fireEvent.click(screen.getByRole("button", { name: /Confirm Opt Out/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+      expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
+    });
+  });
+
   it("uses fallback agent name when config fails", async () => {
     mockLoadAccountConfig.mockImplementation(() => { throw new Error("fail"); });
     const page = await OptOutPage({
