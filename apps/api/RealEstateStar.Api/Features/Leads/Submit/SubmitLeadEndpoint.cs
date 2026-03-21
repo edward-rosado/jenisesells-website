@@ -31,7 +31,7 @@ public class SubmitLeadEndpoint : IEndpoint
         HttpContext httpContext,
         ILogger<SubmitLeadEndpoint> logger,
         IConsentAuditService consentAudit,
-        ComplianceConsentWriter complianceWriter,
+        IComplianceConsentWriter complianceWriter,
         IOptions<ConsentHmacOptions> consentHmacOptions,
         CancellationToken ct)
     {

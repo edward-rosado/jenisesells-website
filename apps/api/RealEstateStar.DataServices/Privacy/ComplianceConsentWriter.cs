@@ -6,7 +6,7 @@ namespace RealEstateStar.DataServices.Privacy;
 
 public class ComplianceConsentWriter(
     IComplianceFileStorageProvider storageProvider,
-    ILogger<ComplianceConsentWriter> logger)
+    ILogger<ComplianceConsentWriter> logger) : IComplianceConsentWriter
 {
     public virtual async Task WriteAsync(string agentId, MarketingConsent consent, string hmacSignature, CancellationToken ct)
     {
