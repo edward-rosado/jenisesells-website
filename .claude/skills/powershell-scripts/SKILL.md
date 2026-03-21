@@ -352,6 +352,22 @@ use a separate preview/staging workflow, not the production deploy script.
   )
   ```
 
+- **`.NET Framework vs .NET Core` API differences**: Windows PowerShell 5.1 runs on .NET
+  Framework, NOT .NET Core/5+. Many newer .NET APIs are unavailable. Common trap:
+
+  ```powershell
+  # BAD -- RandomNumberGenerator.Fill() is .NET Core 2.1+ only
+  [System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+
+  # GOOD -- RNGCryptoServiceProvider works on .NET Framework 4.x
+  (New-Object System.Security.Cryptography.RNGCryptoServiceProvider).GetBytes($bytes)
+  ```
+
+  Other .NET Core-only APIs that don't exist in PowerShell 5.1:
+  - `System.Text.Json` (use `ConvertTo-Json` / `ConvertFrom-Json` instead)
+  - `System.IO.Path.GetRelativePath()` (compute manually)
+  - `HttpClient` async patterns (use `Invoke-WebRequest` instead)
+
 - **Backtick line continuation**: PowerShell uses backtick (`` ` ``) for line continuation,
   NOT backslash. And the backtick must be the LAST character on the line -- no trailing spaces.
 
