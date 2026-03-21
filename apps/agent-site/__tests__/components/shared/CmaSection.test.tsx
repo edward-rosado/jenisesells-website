@@ -6,6 +6,22 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { CmaSection } from "@/components/sections/shared/CmaSection";
 import type { ContactFormData } from "@/lib/types";
 
+// Mock IntersectionObserver (not available in jsdom)
+const mockObserve = vi.fn();
+const mockDisconnect = vi.fn();
+class MockIntersectionObserver {
+  observe = mockObserve;
+  disconnect = mockDisconnect;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  constructor(_callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {}
+}
+vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+
+// Mock telemetry so tests don't make network requests
+vi.mock("@/lib/telemetry", () => ({
+  trackFormEvent: vi.fn(),
+}));
+
 // --- Mock submitLead server action ---
 const mockSubmitLead = vi.fn();
 

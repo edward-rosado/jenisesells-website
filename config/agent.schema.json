@@ -67,6 +67,11 @@
           "type": "string",
           "description": "Hosting provider (TBD — analysis pending)"
         },
+        "ga4MeasurementId": {
+          "type": "string",
+          "pattern": "^G-[A-Za-z0-9]+$",
+          "description": "Google Analytics 4 Measurement ID for BYOA (Bring Your Own Analytics) integration"
+        },
         "whatsapp": {
           "type": "object",
           "properties": {
