@@ -60,6 +60,20 @@ if (!builder.Environment.IsDevelopment())
 // HMAC authentication for lead endpoints (server-to-server from CF Worker)
 builder.Services.Configure<ApiKeyHmacOptions>(builder.Configuration.GetSection("Hmac"));
 
+// Validate HMAC config in production — empty ApiKeys silently disables auth
+if (!builder.Environment.IsDevelopment())
+{
+    var hmacSection = builder.Configuration.GetSection("Hmac");
+    var hmacSecret = hmacSection["HmacSecret"];
+    var apiKeysSection = hmacSection.GetSection("ApiKeys");
+    if (string.IsNullOrWhiteSpace(hmacSecret) || !apiKeysSection.GetChildren().Any())
+    {
+        throw new InvalidOperationException(
+            "Hmac:HmacSecret and Hmac:ApiKeys must be configured in non-Development environments. " +
+            "Empty ApiKeys silently disables HMAC authentication on all lead endpoints.");
+    }
+}
+
 // Onboarding (session store registered early, services after config keys below)
 builder.Services.AddSingleton<JsonFileSessionStore>();
 builder.Services.AddSingleton<ISessionStore>(sp =>
