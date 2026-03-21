@@ -26,7 +26,7 @@ function fillContactFields() {
   fireEvent.change(screen.getByLabelText(/last name/i), {
     target: { value: "Doe" },
   });
-  fireEvent.change(screen.getByLabelText(/email/i), {
+  fireEvent.change(screen.getByLabelText(/^email/i), {
     target: { value: "jane@example.com" },
   });
   fireEvent.change(document.getElementById("lf-phone")!, {
@@ -112,7 +112,7 @@ describe("LeadForm", () => {
 
     expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/last name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^email/i)).toBeInTheDocument();
     expect(document.getElementById("lf-phone")).toBeInTheDocument();
   });
 
@@ -292,7 +292,7 @@ describe("LeadForm", () => {
 
     checkSelling();
 
-    const stateInput = screen.getByLabelText(/state/i);
+    const stateInput = screen.getByLabelText(/^state/i);
     expect(stateInput).toHaveValue("CA");
   });
 
@@ -353,7 +353,7 @@ describe("LeadForm", () => {
     // Contact fields
     expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/last name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^email/i)).toBeInTheDocument();
     expect(document.getElementById("lf-phone")).toBeInTheDocument();
 
     // Buyer fields
@@ -367,7 +367,7 @@ describe("LeadForm", () => {
     // Seller fields
     expect(screen.getByLabelText(/property address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/city/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/state/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^state/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/zip/i)).toBeInTheDocument();
 
     // Shared fields
@@ -591,7 +591,7 @@ describe("LeadForm", () => {
     expect(screen.getByLabelText(/city/i)).toHaveValue("");
     expect(screen.getByLabelText(/zip/i)).toHaveValue("");
     // State should reset to defaultState
-    expect(screen.getByLabelText(/state/i)).toHaveValue("NJ");
+    expect(screen.getByLabelText(/^state/i)).toHaveValue("NJ");
   });
 
   // Test 31
@@ -610,7 +610,7 @@ describe("LeadForm", () => {
     expect(screen.queryByText(/only serve/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/property address/i)).toHaveValue("123 Main St");
     expect(screen.getByLabelText(/city/i)).toHaveValue("Newark");
-    expect(screen.getByLabelText(/state/i)).toHaveValue("NJ");
+    expect(screen.getByLabelText(/^state/i)).toHaveValue("NJ");
     expect(screen.getByLabelText(/zip/i)).toHaveValue("07102");
   });
 
@@ -657,7 +657,7 @@ describe("LeadForm", () => {
 
     // Now simulate DOM tampering by firing change on the readOnly state field
     // Since it's readOnly, we force it via the updateField pathway
-    const stateInput = screen.getByLabelText(/state/i);
+    const stateInput = screen.getByLabelText(/^state/i);
     // Override the readOnly by directly dispatching a change event
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(stateInput, 'PA');
     fireEvent.change(stateInput, { target: { value: "PA" } });
@@ -837,6 +837,13 @@ describe("LeadForm", () => {
     expect(screen.getByTestId("turnstile-widget")).toBeInTheDocument();
   });
 
+  // Test 53 — updated TCPA consent text with agent name
+  it("renders updated TCPA consent text with agent name and email/calls", () => {
+    render(<LeadForm onSubmit={vi.fn()} defaultState="NJ" agentFirstName="Test" />);
+    expect(screen.getByText(/consent to receive email communications from Test/i)).toBeTruthy();
+    expect(screen.getByText(/contacted by Test by phone/i)).toBeTruthy();
+  });
+
   // Test 42
   it("allows submit when TCPA consent is checked", async () => {
     const onSubmit = vi.fn();
@@ -871,7 +878,7 @@ describe("LeadForm", () => {
     const data: LeadFormData = onSubmit.mock.calls[0][0];
     expect(data.marketingConsent).toBeDefined();
     expect(data.marketingConsent!.optedIn).toBe(true);
-    expect(data.marketingConsent!.consentText).toContain("consent to receive");
-    expect(data.marketingConsent!.channels).toEqual(["calls", "texts"]);
+    expect(data.marketingConsent!.consentText).toContain("consent to receive email communications");
+    expect(data.marketingConsent!.channels).toEqual(["email", "calls"]);
   });
 });

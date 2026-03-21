@@ -11,11 +11,12 @@ import type {
 } from "@real-estate-star/shared-types";
 import { useGoogleMapsAutocomplete } from "./useGoogleMapsAutocomplete";
 
-const TCPA_CONSENT_TEXT =
-  "By checking this box, you consent to receive calls and text messages from the agent " +
-  "at the phone number you provided, including automated calls. Message and data rates " +
-  "may apply. Reply STOP to opt out. Consent is not a condition of purchasing any " +
-  "property or service.";
+const TCPA_CONSENT_TEXT = (agentName: string) =>
+  `By submitting this form, you consent to receive email communications from ${agentName} ` +
+  `regarding your real estate inquiry, including market updates and property information. ` +
+  `You also consent to be contacted by ${agentName} by phone at the number provided. ` +
+  `You may unsubscribe from emails at any time. Consent is not a condition of purchasing ` +
+  `any property or service.`;
 
 export interface LeadFormProps {
   defaultState: string;
@@ -239,8 +240,8 @@ export function LeadForm({
       notes: fields.notes || undefined,
       marketingConsent: {
         optedIn: tcpaConsent,
-        consentText: TCPA_CONSENT_TEXT,
-        channels: ["calls", "texts"],
+        consentText: TCPA_CONSENT_TEXT(agentFirstName ?? "the agent"),
+        channels: ["email", "calls"],
       },
     };
 
@@ -600,7 +601,7 @@ export function LeadForm({
           onChange={(e) => setTcpaConsent(e.target.checked)}
           style={{ marginTop: "2px", flexShrink: 0 }}
         />
-        <span>{TCPA_CONSENT_TEXT}</span>
+        <span>{TCPA_CONSENT_TEXT(agentFirstName ?? "the agent")}</span>
       </label>
 
       {/* CAPTCHA slot — Turnstile widget or other challenge rendered by parent */}
