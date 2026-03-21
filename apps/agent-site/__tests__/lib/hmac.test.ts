@@ -149,6 +149,28 @@ describe("signAndForward", () => {
     expect(result).toBe(mockResponse);
   });
 
+  it("different agentId produces different signature (per-agent key derivation)", async () => {
+    const mockDate = 1700000000000;
+    vi.spyOn(Date, "now").mockReturnValue(mockDate);
+
+    (fetch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: true });
+
+    const { signAndForward } = await import("@/lib/hmac");
+    const body = JSON.stringify({ email: "test@example.com" });
+
+    await signAndForward("agent-aaa", body);
+    await signAndForward("agent-bbb", body);
+
+    const sig1 = ((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].headers as Record<string, string>)["X-Signature"];
+    const sig2 = ((fetch as ReturnType<typeof vi.fn>).mock.calls[1][1].headers as Record<string, string>)["X-Signature"];
+
+    expect(sig1).not.toBe(sig2);
+
+    vi.restoreAllMocks();
+  });
+
   it("uses provided path override instead of default leads path", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true });
     const { signAndForward } = await import("@/lib/hmac");
