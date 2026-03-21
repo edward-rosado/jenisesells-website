@@ -1,0 +1,125 @@
+API — build and test	Test with coverage	﻿2026-03-20T22:56:46.8487102Z ##[group]Run dotnet test apps/api/RealEstateStar.Api.sln --no-build --configuration Release --collect:"XPlat Code Coverage" --results-directory apps/api/coverage --logger "console;verbosity=minimal"
+API — build and test	Test with coverage	2026-03-20T22:56:46.8488495Z [36;1mdotnet test apps/api/RealEstateStar.Api.sln --no-build --configuration Release --collect:"XPlat Code Coverage" --results-directory apps/api/coverage --logger "console;verbosity=minimal"[0m
+API — build and test	Test with coverage	2026-03-20T22:56:46.8537279Z shell: /usr/bin/bash -e {0}
+API — build and test	Test with coverage	2026-03-20T22:56:46.8537519Z env:
+API — build and test	Test with coverage	2026-03-20T22:56:46.8537705Z   DOTNET_ROOT: /usr/share/dotnet
+API — build and test	Test with coverage	2026-03-20T22:56:46.8537936Z ##[endgroup]
+API — build and test	Test with coverage	2026-03-20T22:56:47.8438987Z Test run for /home/runner/work/jenisesells-website/jenisesells-website/apps/api/RealEstateStar.Api.Tests/bin/Release/net10.0/RealEstateStar.Api.Tests.dll (.NETCoreApp,Version=v10.0)
+API — build and test	Test with coverage	2026-03-20T22:56:47.9857257Z VSTest version 18.0.1 (x64)
+API — build and test	Test with coverage	2026-03-20T22:56:47.9902385Z 
+API — build and test	Test with coverage	2026-03-20T22:56:48.2507957Z Starting test execution, please wait...
+API — build and test	Test with coverage	2026-03-20T22:56:48.3130124Z A total of 1 test files matched the specified pattern.
+API — build and test	Test with coverage	2026-03-20T22:56:55.5527217Z [xUnit.net 00:00:05.15]     RealEstateStar.Api.Tests.Features.Leads.Services.HomeSearchMarkdownRendererTests.RenderListings_WithOnlyMinBudget_ShowsAnyForMax [FAIL]
+API — build and test	Test with coverage	2026-03-20T22:56:55.5580276Z [xUnit.net 00:00:05.16]     RealEstateStar.Api.Tests.Features.Leads.Services.HomeSearchMarkdownRendererTests.RenderListings_WithBothBudgets_ShowsPriceRange [FAIL]
+API — build and test	Test with coverage	2026-03-20T22:56:55.5666724Z   Failed RealEstateStar.Api.Tests.Features.Leads.Services.HomeSearchMarkdownRendererTests.RenderListings_WithOnlyMinBudget_ShowsAnyForMax [27 ms]
+API — build and test	Test with coverage	2026-03-20T22:56:55.5668367Z   Error Message:
+API — build and test	Test with coverage	2026-03-20T22:56:55.5668909Z    Expected result "---
+API — build and test	Test with coverage	2026-03-20T22:56:55.5669529Z leadId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+API — build and test	Test with coverage	2026-03-20T22:56:55.5672400Z leadName: Jane Doe
+API — build and test	Test with coverage	2026-03-20T22:56:55.5672997Z generatedAt: 2026-03-20T22:56:55.5186584Z
+API — build and test	Test with coverage	2026-03-20T22:56:55.5673451Z listingCount: 1
+API — build and test	Test with coverage	2026-03-20T22:56:55.5673785Z agent: Test Agent
+API — build and test	Test with coverage	2026-03-20T22:56:55.5674098Z ---
+API — build and test	Test with coverage	2026-03-20T22:56:55.5674333Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5674534Z # Home Search Results for Jane Doe
+API — build and test	Test with coverage	2026-03-20T22:56:55.5674838Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5675035Z **Search criteria:** Springfield, NJ
+API — build and test	Test with coverage	2026-03-20T22:56:55.5675837Z **Price range:** ¤200,000 – any
+API — build and test	Test with coverage	2026-03-20T22:56:55.5676124Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5676253Z ---
+API — build and test	Test with coverage	2026-03-20T22:56:55.5676426Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5676631Z ## 1. 100 Oak Ave, Springfield, NJ 07081
+API — build and test	Test with coverage	2026-03-20T22:56:55.5677438Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5677718Z - **Price:** ¤400,000
+API — build and test	Test with coverage	2026-03-20T22:56:55.5678119Z - **Beds/Baths:** 3 / 2
+API — build and test	Test with coverage	2026-03-20T22:56:55.5678488Z - **Sqft:** 1,600
+API — build and test	Test with coverage	2026-03-20T22:56:55.5678683Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5678842Z " to contain "$200,000".
+API — build and test	Test with coverage	2026-03-20T22:56:55.5679210Z   Stack Trace:
+API — build and test	Test with coverage	2026-03-20T22:56:55.5679806Z      at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5681119Z    at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5682412Z    at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5683633Z    at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5684630Z    at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5685695Z    at FluentAssertions.Execution.AssertionChain.FailWith(String message, Object[] args)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5686898Z    at FluentAssertions.Primitives.StringAssertions`1.Contain(String expected, String because, Object[] becauseArgs)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5689577Z    at RealEstateStar.Api.Tests.Features.Leads.Services.HomeSearchMarkdownRendererTests.RenderListings_WithOnlyMinBudget_ShowsAnyForMax() in /home/runner/work/jenisesells-website/jenisesells-website/apps/api/RealEstateStar.Api.Tests/Features/Leads/Services/HomeSearchMarkdownRendererTests.cs:line 186
+API — build and test	Test with coverage	2026-03-20T22:56:55.5692325Z    at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5693529Z    at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5695602Z   Failed RealEstateStar.Api.Tests.Features.Leads.Services.HomeSearchMarkdownRendererTests.RenderListings_WithBothBudgets_ShowsPriceRange [1 ms]
+API — build and test	Test with coverage	2026-03-20T22:56:55.5696910Z   Error Message:
+API — build and test	Test with coverage	2026-03-20T22:56:55.5697276Z    Expected result "---
+API — build and test	Test with coverage	2026-03-20T22:56:55.5697746Z leadId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+API — build and test	Test with coverage	2026-03-20T22:56:55.5698255Z leadName: Jane Doe
+API — build and test	Test with coverage	2026-03-20T22:56:55.5698656Z generatedAt: 2026-03-20T22:56:55.5482188Z
+API — build and test	Test with coverage	2026-03-20T22:56:55.5699099Z listingCount: 1
+API — build and test	Test with coverage	2026-03-20T22:56:55.5699408Z agent: Test Agent
+API — build and test	Test with coverage	2026-03-20T22:56:55.5699724Z ---
+API — build and test	Test with coverage	2026-03-20T22:56:55.5699894Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5700081Z # Home Search Results for Jane Doe
+API — build and test	Test with coverage	2026-03-20T22:56:55.5700382Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5700801Z **Search criteria:** Springfield, NJ
+API — build and test	Test with coverage	2026-03-20T22:56:55.5728063Z **Price range:** ¤200,000 – ¤500,000
+API — build and test	Test with coverage	2026-03-20T22:56:55.5728363Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5728474Z ---
+API — build and test	Test with coverage	2026-03-20T22:56:55.5728647Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5728853Z ## 1. 100 Oak Ave, Springfield, NJ 07081
+API — build and test	Test with coverage	2026-03-20T22:56:55.5729153Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5729406Z - **Price:** ¤400,000
+API — build and test	Test with coverage	2026-03-20T22:56:55.5729810Z - **Beds/Baths:** 3 / 2
+API — build and test	Test with coverage	2026-03-20T22:56:55.5730226Z - **Sqft:** 1,600
+API — build and test	Test with coverage	2026-03-20T22:56:55.5730445Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5730809Z " to contain "$200,000".
+API — build and test	Test with coverage	2026-03-20T22:56:55.5731351Z   Stack Trace:
+API — build and test	Test with coverage	2026-03-20T22:56:55.5731996Z      at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5733130Z    at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5734470Z    at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5735753Z    at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5736750Z    at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5737847Z    at FluentAssertions.Execution.AssertionChain.FailWith(String message, Object[] args)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5739226Z    at FluentAssertions.Primitives.StringAssertions`1.Contain(String expected, String because, Object[] becauseArgs)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5742169Z    at RealEstateStar.Api.Tests.Features.Leads.Services.HomeSearchMarkdownRendererTests.RenderListings_WithBothBudgets_ShowsPriceRange() in /home/runner/work/jenisesells-website/jenisesells-website/apps/api/RealEstateStar.Api.Tests/Features/Leads/Services/HomeSearchMarkdownRendererTests.cs:line 173
+API — build and test	Test with coverage	2026-03-20T22:56:55.5745250Z    at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5746533Z    at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5748448Z [xUnit.net 00:00:05.17]     RealEstateStar.Api.Tests.Features.Leads.Services.HomeSearchMarkdownRendererTests.RenderListings_WithOnlyMaxBudget_ShowsAnyForMin [FAIL]
+API — build and test	Test with coverage	2026-03-20T22:56:55.5772167Z   Failed RealEstateStar.Api.Tests.Features.Leads.Services.HomeSearchMarkdownRendererTests.RenderListings_WithOnlyMaxBudget_ShowsAnyForMin [< 1 ms]
+API — build and test	Test with coverage	2026-03-20T22:56:55.5774060Z   Error Message:
+API — build and test	Test with coverage	2026-03-20T22:56:55.5774741Z    Expected result "---
+API — build and test	Test with coverage	2026-03-20T22:56:55.5775353Z leadId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+API — build and test	Test with coverage	2026-03-20T22:56:55.5776112Z leadName: Jane Doe
+API — build and test	Test with coverage	2026-03-20T22:56:55.5776732Z generatedAt: 2026-03-20T22:56:55.5514171Z
+API — build and test	Test with coverage	2026-03-20T22:56:55.5777304Z listingCount: 1
+API — build and test	Test with coverage	2026-03-20T22:56:55.5777745Z agent: Test Agent
+API — build and test	Test with coverage	2026-03-20T22:56:55.5778151Z ---
+API — build and test	Test with coverage	2026-03-20T22:56:55.5778423Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5778720Z # Home Search Results for Jane Doe
+API — build and test	Test with coverage	2026-03-20T22:56:55.5779132Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5779439Z **Search criteria:** Springfield, NJ
+API — build and test	Test with coverage	2026-03-20T22:56:55.5780218Z **Price range:** any – ¤500,000
+API — build and test	Test with coverage	2026-03-20T22:56:55.5780789Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5781010Z ---
+API — build and test	Test with coverage	2026-03-20T22:56:55.5781280Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5782511Z ## 1. 100 Oak Ave, Springfield, NJ 07081
+API — build and test	Test with coverage	2026-03-20T22:56:55.5784653Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5789849Z - **Price:** ¤400,000
+API — build and test	Test with coverage	2026-03-20T22:56:55.5791296Z - **Beds/Baths:** 3 / 2
+API — build and test	Test with coverage	2026-03-20T22:56:55.5792002Z - **Sqft:** 1,600
+API — build and test	Test with coverage	2026-03-20T22:56:55.5792262Z 
+API — build and test	Test with coverage	2026-03-20T22:56:55.5792449Z " to contain "$500,000".
+API — build and test	Test with coverage	2026-03-20T22:56:55.5792814Z   Stack Trace:
+API — build and test	Test with coverage	2026-03-20T22:56:55.5793449Z      at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5794557Z    at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5795825Z    at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5797017Z    at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5798022Z    at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5799077Z    at FluentAssertions.Execution.AssertionChain.FailWith(String message, Object[] args)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5800319Z    at FluentAssertions.Primitives.StringAssertions`1.Contain(String expected, String because, Object[] becauseArgs)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5823534Z    at RealEstateStar.Api.Tests.Features.Leads.Services.HomeSearchMarkdownRendererTests.RenderListings_WithOnlyMaxBudget_ShowsAnyForMin() in /home/runner/work/jenisesells-website/jenisesells-website/apps/api/RealEstateStar.Api.Tests/Features/Leads/Services/HomeSearchMarkdownRendererTests.cs:line 200
+API — build and test	Test with coverage	2026-03-20T22:56:55.5826199Z    at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+API — build and test	Test with coverage	2026-03-20T22:56:55.5827372Z    at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+API — build and test	Test with coverage	2026-03-20T22:57:57.3237974Z 
+API — build and test	Test with coverage	2026-03-20T22:57:57.3289955Z Failed!  - Failed:     3, Passed:  1179, Skipped:     0, Total:  1182, Duration: 1 m 5 s - RealEstateStar.Api.Tests.dll (net10.0)
+API — build and test	Test with coverage	2026-03-20T22:57:57.5421054Z 
+API — build and test	Test with coverage	2026-03-20T22:57:57.5429236Z Attachments:
+API — build and test	Test with coverage	2026-03-20T22:57:57.5432891Z   /home/runner/work/jenisesells-website/jenisesells-website/apps/api/coverage/ecff008c-bea3-4e70-adb3-1889ac63bea4/coverage.cobertura.xml
+API — build and test	Test with coverage	2026-03-20T22:57:57.5997754Z ##[error]Process completed with exit code 1.

@@ -1,0 +1,141 @@
+Preview Deploy	Deploy preview to Cloudflare Workers	﻿2026-03-20T23:19:51.3307552Z ##[group]Run cloudflare/wrangler-action@v3
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:51.3308162Z with:
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:51.3308530Z   apiToken: ***
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:51.3308772Z   accountId: ***
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:51.3308985Z   workingDirectory: apps/agent-site
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:51.3309290Z   command: deploy --config wrangler.preview.jsonc
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:51.3309576Z   quiet: false
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:51.3309766Z ##[endgroup]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:51.4254048Z ##[group]🔍 Checking for existing Wrangler installation
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:51.4294502Z [command]/opt/hostedtoolcache/node/22.22.1/x64/bin/npx --no-install wrangler --version
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:52.3674987Z 4.73.0
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:52.3994703Z ✅ No wrangler version specified, using pre-installed wrangler version 4.73.0
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:52.3995742Z ##[endgroup]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:52.3996075Z ##[endgroup]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:52.3998191Z ##[group]🚀 Running Wrangler Commands
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:52.4016557Z [command]/opt/hostedtoolcache/node/22.22.1/x64/bin/npx wrangler deploy --config wrangler.preview.jsonc
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:53.5542943Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:53.5543844Z  ⛅️ wrangler 4.73.0 (update available 4.76.0)
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:53.5544335Z ─────────────────────────────────────────────
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:53.5857141Z OpenNext project detected, calling `opennextjs-cloudflare deploy`
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:55.3406479Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:55.3407422Z ┌──────────────────────────────┐
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:55.3408393Z │ OpenNext — Cloudflare deploy │
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:55.3409042Z └──────────────────────────────┘
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:55.3409338Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:55.3519656Z Monorepo detected at /home/runner/work/jenisesells-website/jenisesells-website
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:55.3852164Z (node:3139) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:55.3854021Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:55.8567181Z Incremental cache does not need populating
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:55.8570169Z Tag cache does not need populating
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:56.7667410Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:56.7668627Z  ⛅️ wrangler 4.73.0 (update available 4.76.0)
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:56.7669374Z ─────────────────────────────────────────────
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:56.7733259Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:56.7735622Z Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:57.3386511Z ? Would you like to continue?
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:57.3387642Z 🤖 Using fallback value in non-interactive context: yes
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:58.5866483Z 🌀 Building list of assets...
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:58.5908356Z ✨ Read 123 files from the assets directory /home/runner/work/jenisesells-website/jenisesells-website/apps/agent-site/.open-next/assets
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:19:58.6272032Z 🌀 Starting asset upload...
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:00.4166789Z 🌀 Found 5 new or modified static assets to upload. Proceeding with upload...
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:00.4167978Z + /BUILD_ID
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:00.4168825Z + /_next/static/chunks/cac5e05fc715e02e.js
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:00.4170070Z + /_next/static/chunks/3059e3afeab4acd2.js
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:00.4170713Z + /_next/static/chunks/0801dbf3bc4178ee.js
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:00.4171338Z + /_next/static/chunks/1755f9ffa6822810.js
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:01.5876674Z Uploaded 1 of 5 assets
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:02.3222993Z Uploaded 3 of 5 assets
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:03.1138813Z Uploaded 5 of 5 assets
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:03.1140436Z ✨ Success! Uploaded 5 files (89 already uploaded) (2.70 sec)
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:03.1140937Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:03.3974090Z Total Upload: 13411.07 KiB / gzip: 3083.40 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.2657943Z Your Worker has access to the following bindings:
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.2659260Z Binding                                                                              Resource                  
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.2660670Z env.WORKER_SELF_REFERENCE (real-estate-star-agents-pr-29)                            Worker                    
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.2661635Z env.ASSETS                                                                           Assets                    
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.2664203Z env.NEXT_PUBLIC_API_URL ("***")                         Environment Variable      
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.2665921Z env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ("***")      Environment Variable      
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.2667247Z env.PREVIEW ("true")                                                                 Environment Variable      
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.2667647Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.2758234Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3243752Z [33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mYou are about to publish a Workers Service that was last updated via the script API.[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3244652Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3245334Z   Edits that have been made via the script API will be overridden by your local code and config.
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3246106Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3246120Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3247155Z [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mYour Worker failed validation because it exceeded size limits.[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3247992Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3248139Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3249360Z   A request to the Cloudflare API (/accounts/***/workers/scripts/real-estate-star-agents-pr-29/versions) failed.
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3251943Z    - Your Worker exceeded the size limit of 3 MiB. Please upgrade to a paid plan to deploy Workers up to 10 MiB. [4mhttps://dash.cloudflare.com/***/workers/plans[0m [code: 10027]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3253696Z   To learn more about this error, visit: [4mhttps://developers.cloudflare.com/workers/platform/limits/#worker-size[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3254381Z   Here are the 5 largest dependencies included in your script:
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3254710Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3255091Z   - .open-next/server-functions/default/apps/agent-site/handler.mjs - 10531.53 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3255657Z   - ../../node_modules/next/dist/compiled/@vercel/og/resvg.wasm - 1346.05 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3256467Z   - ../../node_modules/next/dist/compiled/@vercel/og/index.edge.js - 796.35 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3256966Z   - .open-next/middleware/handler.mjs - 564.21 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3257395Z   - ../../node_modules/next/dist/compiled/@vercel/og/yoga.wasm - 86.58 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3258007Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3258438Z   If these are unnecessary, consider removing them
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3258730Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3258824Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3258831Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3259824Z [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mA request to the Cloudflare API (/accounts/***/workers/scripts/real-estate-star-agents-pr-29/versions) failed.[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3260388Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3261287Z   Your Worker exceeded the size limit of 3 MiB. Please upgrade to a paid plan to deploy Workers up to 10 MiB. [4mhttps://dash.cloudflare.com/***/workers/plans[0m [code: 10027]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3262394Z   To learn more about this error, visit: [4mhttps://developers.cloudflare.com/workers/platform/limits/#worker-size[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3262862Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3262938Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3263513Z   If you think this is a bug, please open an issue at: [4mhttps://github.com/cloudflare/workers-sdk/issues/new/choose[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3263939Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3263945Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3264419Z 🪵  Logs were written to "/home/runner/.config/.wrangler/logs/wrangler-2026-03-20_23-19-56_565.log"
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3264929Z ERROR Wrangler deploy command failed:
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3265759Z [33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mYou are about to publish a Workers Service that was last updated via the script API.[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3266227Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3266529Z   Edits that have been made via the script API will be overridden by your local code and config.
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3266885Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3266891Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3267359Z [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mYour Worker failed validation because it exceeded size limits.[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3268290Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3268377Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3269061Z   A request to the Cloudflare API (/accounts/***/workers/scripts/real-estate-star-agents-pr-29/versions) failed.
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3270618Z    - Your Worker exceeded the size limit of 3 MiB. Please upgrade to a paid plan to deploy Workers up to 10 MiB. [4mhttps://dash.cloudflare.com/***/workers/plans[0m [code: 10027]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3271741Z   To learn more about this error, visit: [4mhttps://developers.cloudflare.com/workers/platform/limits/#worker-size[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3272384Z   Here are the 5 largest dependencies included in your script:
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3272697Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3273063Z   - .open-next/server-functions/default/apps/agent-site/handler.mjs - 10531.53 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3273619Z   - ../../node_modules/next/dist/compiled/@vercel/og/resvg.wasm - 1346.05 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3274154Z   - ../../node_modules/next/dist/compiled/@vercel/og/index.edge.js - 796.35 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3274820Z   - .open-next/middleware/handler.mjs - 564.21 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3275306Z   - ../../node_modules/next/dist/compiled/@vercel/og/yoga.wasm - 86.58 KiB
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3275668Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3275912Z   If these are unnecessary, consider removing them
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3276192Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3276282Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3276288Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3277241Z [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mA request to the Cloudflare API (/accounts/***/workers/scripts/real-estate-star-agents-pr-29/versions) failed.[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3278047Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3279323Z   Your Worker exceeded the size limit of 3 MiB. Please upgrade to a paid plan to deploy Workers up to 10 MiB. [4mhttps://dash.cloudflare.com/***/workers/plans[0m [code: 10027]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3280509Z   To learn more about this error, visit: [4mhttps://developers.cloudflare.com/workers/platform/limits/#worker-size[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3280964Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3281215Z   
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3281794Z   If you think this is a bug, please open an issue at: [4mhttps://github.com/cloudflare/workers-sdk/issues/new/choose[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3282232Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3282238Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3282728Z 🪵  Logs were written to "/home/runner/.config/.wrangler/logs/wrangler-2026-03-20_23-19-56_565.log"
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3283118Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.3565237Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.4040687Z [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1m[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.4041176Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.4041188Z 
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.4199876Z [32mIf you think this is a bug then please create an issue at https://github.com/cloudflare/workers-sdk/issues/new/choose[0m
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.4211697Z Note that there is a newer version of Wrangler available (4.76.0). Consider checking whether upgrading resolves this error.
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.4215538Z ? Would you like to report this error to Cloudflare? Wrangler's output and the error details will be shared with the Wrangler team to help us diagnose and fix the issue.
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.4218077Z 🤖 Using fallback value in non-interactive context: no
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.4416194Z 🪵  Logs were written to "/home/runner/.config/.wrangler/logs/wrangler-2026-03-20_23-19-53_112.log"
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.4739347Z ##[endgroup]
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.4761797Z ##[error]The process '/opt/hostedtoolcache/node/22.22.1/x64/bin/npx' failed with exit code 1
+Preview Deploy	Deploy preview to Cloudflare Workers	2026-03-20T23:20:10.4773226Z ##[error]🚨 Action failed

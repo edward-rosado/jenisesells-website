@@ -162,11 +162,33 @@ describe("StatusDashboard", () => {
   it("renders service disruption for Unhealthy overall status", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ status: "Unhealthy", entries: {} }),
+      json: async () => ({
+        status: "Unhealthy",
+        entries: {
+          "scraper-api": { status: "Unhealthy", duration: "00:00:00.000", description: "Timeout" },
+        },
+      }),
     });
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByText("Service Disruption")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("status-scraper-api")).toHaveAttribute("data-status", "Unhealthy");
+  });
+
+  it("renders raw duration when format does not match HH:MM:SS.ms", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        status: "Healthy",
+        entries: {
+          "test-service": { status: "Healthy", duration: "not-a-duration" },
+        },
+      }),
+    });
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByText("not-a-duration")).toBeInTheDocument();
     });
   });
 

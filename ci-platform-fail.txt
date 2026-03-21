@@ -1,0 +1,241 @@
+Platform — lint, test, build	Test with coverage	﻿2026-03-20T23:08:11.7554628Z ##[group]Run npm run test:coverage --prefix apps/platform
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:11.7555088Z [36;1mnpm run test:coverage --prefix apps/platform[0m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:11.7604198Z shell: /usr/bin/bash -e {0}
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:11.7604437Z ##[endgroup]
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:11.8561661Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:11.8562133Z > platform@0.1.0 test:coverage
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:11.8563158Z > vitest run --coverage
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:11.8563324Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:12.2836329Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:12.2841684Z [1m[46m RUN [49m[22m [36mv4.1.0 [39m[90m/home/runner/work/jenisesells-website/jenisesells-website/apps/platform[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:12.2843401Z       [2mCoverage enabled with [22m[33mv8[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:12.2843834Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0829728Z [90mstderr[2m | __tests__/onboard.test.tsx[2m > [22m[2mOnboardPage[2m > [22m[2mshows loading state initially
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0835836Z [22m[39mAn update to OnboardContent inside a test was not wrapped in act(...).
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0843312Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0843999Z When testing, code that causes React state updates should be wrapped into act(...):
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0844725Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0844888Z act(() => {
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0845330Z   /* fire events that update state */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0845796Z });
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0846154Z /* assert on the output */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0846466Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0847520Z This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0848977Z An update to OnboardContent inside a test was not wrapped in act(...).
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0849518Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0850151Z When testing, code that causes React state updates should be wrapped into act(...):
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0850786Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0850959Z act(() => {
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0851435Z   /* fire events that update state */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0851897Z });
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0852256Z /* assert on the output */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0852522Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0853784Z This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.0854720Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6616024Z [90mstderr[2m | __tests__/onboard.test.tsx[2m > [22m[2mOnboardPage - Coming Soon[2m > [22m[2mdoes not render Coming Soon when NEXT_PUBLIC_COMING_SOON is not set
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6621091Z [22m[39mAn update to OnboardContent inside a test was not wrapped in act(...).
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6621706Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6622317Z When testing, code that causes React state updates should be wrapped into act(...):
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6623177Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6623344Z act(() => {
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6623761Z   /* fire events that update state */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6624200Z });
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6624544Z /* assert on the output */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6624816Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6625847Z This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6627530Z An update to OnboardContent inside a test was not wrapped in act(...).
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6628101Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6628711Z When testing, code that causes React state updates should be wrapped into act(...):
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6629312Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6629478Z act(() => {
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6629872Z   /* fire events that update state */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6630313Z });
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6630653Z /* assert on the output */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6630926Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6631988Z This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.6639692Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.7150312Z  [32m✓[39m __tests__/onboard.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 655[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:14.7151324Z      [33m[2m✓[22m[39m shows cancelled state when payment=cancelled query param present [33m 312[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:15.1300708Z  [32m✓[39m __tests__/components/MessageRenderer.test.tsx [2m([22m[2m28 tests[22m[2m)[22m[33m 1075[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:16.1066225Z [90mstderr[2m | __tests__/status/StatusDashboard.test.tsx[2m > [22m[2mStatusDashboard[2m > [22m[2mauto-refreshes every 30 seconds
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:16.1068570Z [22m[39mAn update to StatusDashboard inside a test was not wrapped in act(...).
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:16.1069181Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:16.1069760Z When testing, code that causes React state updates should be wrapped into act(...):
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:16.1070354Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:16.1070493Z act(() => {
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:16.1070875Z   /* fire events that update state */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:16.1071396Z });
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:16.1071736Z /* assert on the output */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:16.1071992Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:16.1077974Z This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:16.1078948Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:16.1079796Z      [33m[2m✓[22m[39m renders google_auth type as GoogleAuthCard [33m 305[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:16.2754405Z  [32m✓[39m __tests__/status/StatusDashboard.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[32m 290[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:17.2587837Z  [32m✓[39m __tests__/components/GoogleAuthCard.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 664[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:17.2589527Z      [33m[2m✓[22m[39m renders connect button [33m 352[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:18.4175116Z  [32m✓[39m __tests__/components/PaymentCard.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 794[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:18.9881289Z  [32m✓[39m __tests__/components/CmaProgressCard.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 423[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:20.1003420Z  [32m✓[39m __tests__/components/ChatWindow.test.tsx [2m([22m[2m42 tests[22m[2m)[22m[33m 6025[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:20.1043991Z      [33m[2m✓[22m[39m renders send button [33m 316[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:20.1074056Z      [33m[2m✓[22m[39m disables Send button while sending [33m 323[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:20.1154703Z      [33m[2m✓[22m[39m does not send a second message while first is still sending [33m 322[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:20.3838864Z  [32m✓[39m __tests__/components/SitePreview.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 602[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:20.3844951Z      [33m[2m✓[22m[39m calls onApprove when button clicked [33m 317[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.2005506Z [90mstderr[2m | __tests__/components/ColorPalette.test.tsx[2m > [22m[2mColorPalette[2m > [22m[2mallows changing primary color in editing mode
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.2024127Z [22m[39mAn update to ColorPalette inside a test was not wrapped in act(...).
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.2024892Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.2027177Z When testing, code that causes React state updates should be wrapped into act(...):
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.2027767Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.2028244Z act(() => {
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.2028665Z   /* fire events that update state */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.2029123Z });
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.2029495Z /* assert on the output */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.2029770Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.2030787Z This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.2031723Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.3667939Z [90mstderr[2m | __tests__/components/ColorPalette.test.tsx[2m > [22m[2mColorPalette[2m > [22m[2mallows changing accent color in editing mode
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.3688032Z [22m[39mAn update to ColorPalette inside a test was not wrapped in act(...).
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.3688636Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.3689203Z When testing, code that causes React state updates should be wrapped into act(...):
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.3689790Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.3689912Z act(() => {
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.3690274Z   /* fire events that update state */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.3690677Z });
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.3691484Z /* assert on the output */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.3691738Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.3692728Z This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.3694742Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.4471775Z  [32m✓[39m __tests__/components/ColorPalette.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 1084[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.4476177Z      [33m[2m✓[22m[39m shows color inputs when Customize clicked [33m 325[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.8467401Z [90mstderr[2m | __tests__/layout.test.tsx[2m > [22m[2mRootLayout[2m > [22m[2mrenders the brand name
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.8471153Z [22m[39mIn HTML, <html> cannot be a child of <div>.
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.8472740Z This will cause a hydration error.
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:21.8475943Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:22.6829725Z  [32m✓[39m __tests__/layout.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 886[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:22.6837166Z      [33m[2m✓[22m[39m renders the header with brand link only (no login link) [33m 418[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:23.4006614Z  [32m✓[39m __tests__/status/UptimeTracker.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 467[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:24.5986591Z  [32m✓[39m __tests__/components/ProfileCard.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 390[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:24.7922778Z  [32m✓[39m __tests__/landing.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 3086[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:24.7924771Z      [33m[2m✓[22m[39m displays the headline "Your business, automated by AI." [33m 893[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:24.7926061Z      [33m[2m✓[22m[39m renders the FeatureCards section [33m 455[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:24.7929200Z      [33m[2m✓[22m[39m renders the ComparisonTable section [33m 354[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:24.7930353Z      [33m[2m✓[22m[39m renders the FinalCta section [33m 409[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:24.7931755Z      [33m[2m✓[22m[39m navigates to /onboard with profileUrl query param on submit [33m 619[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:25.5905838Z  [32m✓[39m __tests__/components/CookieConsentBanner.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 699[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:25.5912733Z      [33m[2m✓[22m[39m renders when no consent has been given [33m 309[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:26.2927569Z  [32m✓[39m __tests__/components/GeometricStar.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 80[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:27.4305804Z  [32m✓[39m __tests__/components/ComparisonTable.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 441[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:27.4313504Z      [33m[2m✓[22m[39m renders a section heading [33m 324[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:27.5900771Z [90mstderr[2m | __tests__/static-pages.test.tsx[2m > [22m[2mGlobal Error page[2m > [22m[2mrenders error message and reset button
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:27.5902372Z [22m[39mIn HTML, <html> cannot be a child of <div>.
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:27.5907887Z This will cause a hydration error.
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:27.5908230Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:27.6690824Z  [32m✓[39m __tests__/static-pages.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1593[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:27.6692226Z      [33m[2m✓[22m[39m renders the heading and content [33m 566[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:27.6697337Z      [33m[2m✓[22m[39m renders the heading and content [33m 395[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:27.6698384Z      [33m[2m✓[22m[39m renders the heading and content [33m 319[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:28.3297572Z  [32m✓[39m __tests__/components/FeatureCards.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 697[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:28.3325116Z      [33m[2m✓[22m[39m renders a section heading [33m 585[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:29.1710888Z  [32m✓[39m __tests__/components/MessageBubble.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 82[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:29.6270204Z  [32m✓[39m __tests__/components/FinalCta.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 443[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:29.6316694Z      [33m[2m✓[22m[39m renders a call-to-action heading [33m 334[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.0985527Z [90mstderr[2m | __tests__/status/page.test.tsx[2m > [22m[2mStatusPage[2m > [22m[2mrenders page heading
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.0987580Z [22m[39mAn update to StatusDashboard inside a test was not wrapped in act(...).
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.0988199Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.0988794Z When testing, code that causes React state updates should be wrapped into act(...):
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.0989404Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.0989541Z act(() => {
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.0989929Z   /* fire events that update state */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.0990366Z });
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.0990707Z /* assert on the output */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.0990971Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.0992020Z This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.0993212Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1081633Z [90mstderr[2m | __tests__/status/page.test.tsx[2m > [22m[2mStatusPage[2m > [22m[2mrenders subtitle text
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1087987Z [22m[39mAn update to StatusDashboard inside a test was not wrapped in act(...).
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1090223Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1092366Z When testing, code that causes React state updates should be wrapped into act(...):
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1093630Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1093926Z act(() => {
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1095187Z   /* fire events that update state */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1117807Z });
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1118493Z /* assert on the output */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1118798Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1119865Z This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1120825Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1159204Z [90mstderr[2m | __tests__/status/page.test.tsx[2m > [22m[2mStatusPage[2m > [22m[2mincludes StatusDashboard component in loading state
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1160900Z [22m[39mAn update to StatusDashboard inside a test was not wrapped in act(...).
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1161533Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1162132Z When testing, code that causes React state updates should be wrapped into act(...):
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1162741Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1163088Z act(() => {
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1163491Z   /* fire events that update state */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1163945Z });
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1164283Z /* assert on the output */
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1164562Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1165597Z This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1166565Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1977064Z  [32m✓[39m __tests__/status/page.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 359[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.1978387Z      [33m[2m✓[22m[39m renders page heading [33m 340[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:30.7520622Z  [32m✓[39m __tests__/components/TrustStrip.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 53[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:31.1071116Z  [32m✓[39m __tests__/onboard-layout.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 51[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:31.5671660Z  [32m✓[39m __tests__/components/FeatureChecklist.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 66[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.2232711Z  [32m✓[39m __tests__/components/EqualHousingOpportunity.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 253[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.4660203Z  [32m✓[39m __tests__/components/LegalPageLayout.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 192[2mms[22m[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7597844Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7604031Z [2m Test Files [22m [1m[32m26 passed[39m[22m[90m (26)[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7605150Z [2m      Tests [22m [1m[32m259 passed[39m[22m[90m (259)[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7605937Z [2m   Start at [22m 23:08:12
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7607857Z [2m   Duration [22m 20.47s[2m (transform 1.17s, setup 2.68s, import 6.01s, tests 21.45s, environment 21.63s)[22m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7609494Z 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7633627Z [34m % [39m[2mCoverage report from [22m[33mv8[39m
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7669457Z -------------------|---------|----------|---------|---------|-------------------
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7671135Z File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7672105Z -------------------|---------|----------|---------|---------|-------------------
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7678293Z All files          |   98.78 |    97.14 |     100 |   99.73 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7679147Z  app               |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7680003Z   global-error.tsx |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7680881Z   layout.tsx       |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7681699Z   page.tsx         |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7682593Z  app/accessibility |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7683668Z   page.tsx         |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7684473Z  app/dmca          |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7685270Z   page.tsx         |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7686054Z  app/onboard       |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7686907Z   layout.tsx       |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7687694Z   page.tsx         |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7688475Z  app/privacy       |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7689282Z   page.tsx         |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7690105Z  app/status        |   92.95 |    85.18 |     100 |   98.46 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7690955Z   ...Dashboard.tsx |   91.07 |    82.97 |     100 |      98 | 60                
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7691814Z   ...meTracker.tsx |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7692630Z   page.tsx         |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7693588Z  app/terms         |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7694401Z   page.tsx         |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7695221Z  components        |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7696096Z   ...etricStar.tsx |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7696954Z  components/chat   |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7697834Z   ChatWindow.tsx   |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7698705Z   ...gressCard.tsx |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7699580Z   ColorPalette.tsx |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7700473Z   ...Checklist.tsx |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7701332Z   ...eAuthCard.tsx |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7702193Z   ...ageBubble.tsx |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7703243Z   ...eRenderer.tsx |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7704130Z   PaymentCard.tsx  |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7705010Z   ProfileCard.tsx  |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7706257Z   SitePreview.tsx  |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7707116Z  ...onents/landing |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7707968Z   ...isonTable.tsx |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7709072Z   FeatureCards.tsx |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7709888Z   FinalCta.tsx     |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7710722Z   TrustStrip.tsx   |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7711565Z  components/legal  |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7712412Z   ...entBanner.tsx |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7713537Z   ...portunity.tsx |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7714418Z   ...ageLayout.tsx |     100 |      100 |     100 |     100 |                   
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.7715380Z -------------------|---------|----------|---------|---------|-------------------
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.8171845Z ERROR: Coverage for lines (99.73%) does not meet global threshold (100%)
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.8173440Z ERROR: Coverage for statements (98.78%) does not meet global threshold (100%)
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.8174210Z ERROR: Coverage for branches (97.14%) does not meet global threshold (100%)
+Platform — lint, test, build	Test with coverage	2026-03-20T23:08:32.8476622Z ##[error]Process completed with exit code 1.
