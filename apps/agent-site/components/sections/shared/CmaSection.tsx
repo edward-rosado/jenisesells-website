@@ -51,8 +51,7 @@ export function CmaSection({
     }
 
     trackCmaConversion(tracking);
-    const emailParam = leadData.email ? `&email=${encodeURIComponent(leadData.email)}` : "";
-    window.location.href = `/thank-you?accountId=${encodeURIComponent(accountId)}${emailParam}`;
+    window.location.href = `/thank-you?accountId=${encodeURIComponent(accountId)}`;
   }
 
   return (

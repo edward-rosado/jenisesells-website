@@ -206,7 +206,7 @@ describe("CmaSection form submission", () => {
 
     expect(locationMock.href).toContain("/thank-you");
     expect(locationMock.href).toContain("test-agent");
-    expect(locationMock.href).toContain("email=alice%40test.com");
+    expect(locationMock.href).not.toContain("email=");
   });
 
   it("fires analytics conversion tracking on success", async () => {
