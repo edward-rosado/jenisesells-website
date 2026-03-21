@@ -303,7 +303,9 @@ Clients.Gws/                         Google Workspace CLI wrapper → implements
 - `IGDriveClient` (Domain) → `GDriveClient` (Clients.GDrive) — pure Drive API calls
 - `LeadStore`, `CmaStore`, etc. (DataServices) — routing logic that decides which provider to use
 - `InMemoryFileProvider` (Data) replaces `NoopFileStorageProvider` for testing
+- `LocalFileStorageProvider.cs` and `LocalStorageProvider.cs` are consolidated into a single `Data/LocalFileProvider.cs` (the best features of both: path traversal protection, atomic writes, logging)
 - The old `IFileStorageProvider` interface is **deleted** — it mixed routing with physical access
+- Tests: `LocalFileStorageProviderTests.cs` and `NoopFileStorageProviderTests.cs` are deleted; new tests written for `Data/LocalFileProvider` and `Data/InMemoryFileProvider`
 
 **Note on Google split:** The old `Clients.Google` is split into 3 projects because Drive, Gmail, and OAuth are different APIs with different auth patterns, different rate limits, and different use cases. Each gets its own Polly policies, HttpClient config, and options class.
 
@@ -613,6 +615,7 @@ tests/
     Features/Billing/                StripeWebhookEndpointTests, StripeServiceTests
     Features/Onboarding/Services/    OnboardingChatServiceTests, GoogleOAuthServiceTests
     Features/Onboarding/Tools/       ToolDispatcherTests, DeploySiteToolTests, ...
+    Health/                          HealthCheckTests (generic multi-check test)
     Infrastructure/                  PollyPolicyTests, RateLimitingTests
     Integration/                     MiddlewarePipelineTests, TestWebApplicationFactory
     ...
