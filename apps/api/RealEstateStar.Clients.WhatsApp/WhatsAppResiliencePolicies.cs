@@ -1,7 +1,9 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
+using Microsoft.Extensions.Logging;
 using Polly;
 
-namespace RealEstateStar.Api.Features.WhatsApp.Services;
+namespace RealEstateStar.Clients.WhatsApp;
 
 /// <summary>
 /// Resilience policies for the WhatsApp "Graph API" HttpClient.

@@ -39,8 +39,10 @@ global using RealEstateStar.Api.Features.Leads.Submit;
 global using RealEstateStar.Api.Features.Onboarding.Services;
 global using RealEstateStar.Api.Features.Onboarding.Tools;
 global using RealEstateStar.Api.Features.WhatsApp.Services;
-global using RealEstateStar.Api.Services.Gws;
 global using RealEstateStar.Api.Services.Storage;
+global using RealEstateStar.Clients.Gws;
+global using RealEstateStar.Clients.WhatsApp;
+global using RealEstateStar.Data;
 
 // Notifications
 global using RealEstateStar.Notifications.Leads;

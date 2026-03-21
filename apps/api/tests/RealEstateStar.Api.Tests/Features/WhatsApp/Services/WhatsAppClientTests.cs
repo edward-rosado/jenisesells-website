@@ -7,21 +7,21 @@ using RealEstateStar.Api.Tests.TestHelpers;
 
 namespace RealEstateStar.Api.Tests.Features.WhatsApp.Services;
 
-public class WhatsAppClientTests
+public class WhatsAppApiClientTests
 {
     private readonly Mock<IHttpClientFactory> _httpFactory = new();
     private readonly MockHttpMessageHandler _handler = new();
-    private readonly WhatsAppClient _sut;
+    private readonly WhatsAppApiClient _sut;
 
-    public WhatsAppClientTests()
+    public WhatsAppApiClientTests()
     {
         var httpClient = new HttpClient(_handler)
         {
             BaseAddress = new Uri("https://graph.facebook.com/v20.0/")
         };
         _httpFactory.Setup(f => f.CreateClient("WhatsApp")).Returns(httpClient);
-        _sut = new WhatsAppClient(_httpFactory.Object, "PHONE_ID", "ACCESS_TOKEN",
-            Mock.Of<ILogger<WhatsAppClient>>());
+        _sut = new WhatsAppApiClient(_httpFactory.Object, "PHONE_ID", "ACCESS_TOKEN",
+            Mock.Of<ILogger<WhatsAppApiClient>>());
     }
 
     [Fact]

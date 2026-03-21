@@ -26,8 +26,9 @@ using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Tools;
 using RealEstateStar.Api.Features.WhatsApp.Services;
-using RealEstateStar.Api.Services.Gws;
 using RealEstateStar.Api.Services.Storage;
+using RealEstateStar.Clients.Gws;
+using RealEstateStar.Clients.WhatsApp;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -154,7 +155,7 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddHostedService<TrialExpiryService>();
 
 // Google Workspace service (Drive, Docs, Sheets, Gmail)
-builder.Services.AddSingleton<IGwsService, GwsService>();
+builder.Services.AddSingleton<IGwsService, GwsCliRunner>();
 
 // --- Lead Feature Services ---
 
@@ -316,11 +317,11 @@ builder.Services.AddHttpClient("WhatsApp", client =>
 if (!string.IsNullOrEmpty(whatsAppPhoneNumberId))
 {
     builder.Services.AddSingleton<IWhatsAppSender>(sp =>
-        new WhatsAppClient(
+        new WhatsAppApiClient(
             sp.GetRequiredService<IHttpClientFactory>(),
             whatsAppPhoneNumberId,
             whatsAppAccessToken!,
-            sp.GetRequiredService<ILogger<WhatsAppClient>>()));
+            sp.GetRequiredService<ILogger<WhatsAppApiClient>>()));
     builder.Services.AddSingleton<WhatsAppIdempotencyStore>();
     builder.Services.AddSingleton<IWhatsAppNotifier, WhatsAppNotifier>();
 

@@ -1,13 +1,14 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Shared.Interfaces.Senders;
 
-namespace RealEstateStar.Api.Features.WhatsApp.Services;
+namespace RealEstateStar.Clients.WhatsApp;
 
-public class WhatsAppClient(
+public class WhatsAppApiClient(
     IHttpClientFactory httpClientFactory,
     string phoneNumberId,
     string accessToken,
-    ILogger<WhatsAppClient>? logger = null) : IWhatsAppSender
+    ILogger<WhatsAppApiClient>? logger = null) : IWhatsAppSender
 {
     public async Task<string> SendTemplateAsync(string toPhoneNumber, string templateName,
         List<(string type, string value)> parameters, CancellationToken ct)

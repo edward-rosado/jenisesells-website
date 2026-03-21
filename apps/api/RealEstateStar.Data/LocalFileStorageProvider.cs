@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
-namespace RealEstateStar.Api.Services.Storage;
+namespace RealEstateStar.Data;
 
 /// <summary>
 /// File-based implementation of IFileStorageProvider that writes to local disk.

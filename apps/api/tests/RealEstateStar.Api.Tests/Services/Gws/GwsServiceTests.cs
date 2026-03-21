@@ -9,7 +9,7 @@ public class GwsServiceTests
     [Fact]
     public void BuildLeadFolderPath_FormatsCorrectly()
     {
-        var result = GwsService.BuildLeadFolderPath("Jane Doe", "123 Main St, Edison NJ");
+        var result = LeadBriefFormatter.BuildLeadFolderPath("Jane Doe", "123 Main St, Edison NJ");
 
         result.Should().Be("Real Estate Star/1 - Leads/Jane Doe/123 Main St, Edison NJ");
     }
@@ -17,7 +17,7 @@ public class GwsServiceTests
     [Fact]
     public void BuildLeadBriefContent_IncludesAllSections()
     {
-        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        var content = LeadBriefFormatter.BuildLeadBriefContent(new LeadBriefData
         {
             LeadName = "Jane Doe",
             Address = "123 Main St, Edison NJ 08817",
@@ -69,7 +69,7 @@ public class GwsServiceTests
     [Fact]
     public void BuildLeadBriefContent_Uses1To3MonthsTimeline()
     {
-        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        var content = LeadBriefFormatter.BuildLeadBriefContent(new LeadBriefData
         {
             LeadName = "Bob Smith",
             Address = "456 Oak Ave, Edison NJ 08817",
@@ -93,7 +93,7 @@ public class GwsServiceTests
     [Fact]
     public void BuildLeadBriefContent_UsesDefaultTimeline()
     {
-        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        var content = LeadBriefFormatter.BuildLeadBriefContent(new LeadBriefData
         {
             LeadName = "Alice Jones",
             Address = "789 Elm St, Edison NJ 08817",
@@ -117,7 +117,7 @@ public class GwsServiceTests
     [Fact]
     public void BuildLeadBriefContent_OmitsNullOptionalSections()
     {
-        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        var content = LeadBriefFormatter.BuildLeadBriefContent(new LeadBriefData
         {
             LeadName = "Test User",
             Address = "100 Test St",
@@ -145,7 +145,7 @@ public class GwsServiceTests
     [Fact]
     public void BuildLeadBriefContent_IncludesOccupationOnly_WhenEmployerIsNull()
     {
-        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        var content = LeadBriefFormatter.BuildLeadBriefContent(new LeadBriefData
         {
             LeadName = "Solo Worker",
             Address = "100 Test St",
@@ -170,7 +170,7 @@ public class GwsServiceTests
     [Fact]
     public void BuildLeadBriefContent_IncludesEmployerOnly_WhenOccupationIsNull()
     {
-        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        var content = LeadBriefFormatter.BuildLeadBriefContent(new LeadBriefData
         {
             LeadName = "Corp Person",
             Address = "100 Test St",
@@ -195,7 +195,7 @@ public class GwsServiceTests
     [Fact]
     public void BuildLeadBriefContent_OmitsPropertyLine_WhenBedsOrBathsNull()
     {
-        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        var content = LeadBriefFormatter.BuildLeadBriefContent(new LeadBriefData
         {
             LeadName = "Test User",
             Address = "100 Test St",
@@ -222,7 +222,7 @@ public class GwsServiceTests
     [Fact]
     public void BuildLeadBriefContent_IncludesPropertyLine_WhenAllPropertyFieldsPresent()
     {
-        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        var content = LeadBriefFormatter.BuildLeadBriefContent(new LeadBriefData
         {
             LeadName = "Test User",
             Address = "100 Test St",
@@ -249,7 +249,7 @@ public class GwsServiceTests
     [Fact]
     public void BuildLeadBriefContent_OmitsPurchaseLine_WhenPurchaseDateOnly()
     {
-        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        var content = LeadBriefFormatter.BuildLeadBriefContent(new LeadBriefData
         {
             LeadName = "Test User",
             Address = "100 Test St",
@@ -274,7 +274,7 @@ public class GwsServiceTests
     [Fact]
     public void BuildLeadBriefContent_IncludesTaxAssessmentAndAnnualTax()
     {
-        var content = GwsService.BuildLeadBriefContent(new LeadBriefData
+        var content = LeadBriefFormatter.BuildLeadBriefContent(new LeadBriefData
         {
             LeadName = "Test User",
             Address = "100 Test St",
