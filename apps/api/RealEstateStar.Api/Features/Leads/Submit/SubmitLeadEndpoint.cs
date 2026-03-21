@@ -53,12 +53,17 @@ public class SubmitLeadEndpoint : IEndpoint
             });
         }
 
+        using var activity = LeadDiagnostics.ActivitySource.StartActivity("lead.submit");
+        activity?.SetTag("lead.agent_id", agentId);
+
         // 1. Validate agentId exists
         var agent = await accountConfig.GetAccountAsync(agentId, ct);
         if (agent is null) return Results.NotFound();
 
         // 2. Map request to domain
         var lead = request.ToLead(agentId);
+        activity?.SetTag("lead.id", lead.Id.ToString());
+        activity?.SetTag("lead.type", lead.LeadType.ToString());
 
         logger.LogInformation(
             "[LEAD-001] Lead received. LeadId: {LeadId}, AgentId: {AgentId}, Type: {LeadType}, Email: {EmailHash}",
@@ -87,6 +92,7 @@ public class SubmitLeadEndpoint : IEndpoint
 
         // 5. Enqueue background processing (enrichment, notification, home search)
         var correlationId = httpContext.Items[CorrelationIdMiddleware.CorrelationIdKey]?.ToString() ?? Guid.NewGuid().ToString();
+        activity?.SetTag("correlation.id", correlationId);
         var processingRequest = new LeadProcessingRequest(agentId, lead, correlationId);
 
         await processingChannel.Writer.WriteAsync(processingRequest, ct);
