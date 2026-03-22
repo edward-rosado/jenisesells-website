@@ -3,6 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ChatWindow } from "../ChatWindow";
 
+vi.mock("@sentry/nextjs", () => ({
+  addBreadcrumb: vi.fn(),
+  captureException: vi.fn(),
+}));
+
 describe("ChatWindow", () => {
   let fetchSpy: ReturnType<typeof vi.spyOn>;
 
@@ -897,4 +902,175 @@ describe("ChatWindow", () => {
       expect(screen.getByText("Hello")).toBeInTheDocument();
     });
   });
+
+  // ---- Sentry + GA4 telemetry ----
+
+  it("fires onboarding.session_created breadcrumb on mount", async () => {
+    const sentry = await import("@sentry/nextjs");
+
+    await act(async () => {
+      render(<ChatWindow sessionId="sess-abc" token="t1" initialMessages={[]} />);
+    });
+
+    expect(sentry.addBreadcrumb).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: "onboarding",
+        message: "onboarding.session_created",
+        data: { sessionId: "sess-abc" },
+      })
+    );
+  });
+
+  it("fires onboarding.message_sent breadcrumb on non-silent send", async () => {
+    mockFetchJsonOk({ response: "ok" });
+    const sentry = await import("@sentry/nextjs");
+    const user = userEvent.setup();
+
+    render(<ChatWindow sessionId="s1" token="t1" initialMessages={[]} />);
+
+    const input = screen.getByPlaceholderText(/Type a message/i);
+    await user.type(input, "Hello");
+    await user.click(screen.getByRole("button", { name: /Send/i }));
+
+    await waitFor(() => {
+      expect(sentry.addBreadcrumb).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "onboarding.message_sent" })
+      );
+    });
+  });
+
+  it("does NOT fire onboarding.message_sent for silent auto-send", async () => {
+    mockFetchJsonOk({ response: "Scraped!" });
+    const sentry = await import("@sentry/nextjs");
+    vi.mocked(sentry.addBreadcrumb).mockClear();
+
+    await act(async () => {
+      render(
+        <ChatWindow
+          sessionId="s1"
+          token="t1"
+          initialMessages={[]}
+          autoMessage="https://zillow.com/profile/test"
+        />
+      );
+    });
+
+    // Wait for auto-send to fire (session_created breadcrumb should appear)
+    await waitFor(() => expect(sentry.addBreadcrumb).toHaveBeenCalled());
+
+    const messageSentCalls = vi.mocked(sentry.addBreadcrumb).mock.calls.filter(
+      ([arg]) => arg.message === "onboarding.message_sent"
+    );
+    expect(messageSentCalls).toHaveLength(0);
+  });
+
+  it("fires onboarding.card_action breadcrumb on handleAction", async () => {
+    mockFetchJsonOk({ response: "Profile confirmed!" });
+    const sentry = await import("@sentry/nextjs");
+
+    render(
+      <ChatWindow
+        sessionId="s1"
+        token="t1"
+        initialMessages={[
+          {
+            role: "assistant",
+            content: "",
+            type: "profile_card",
+            metadata: { name: "Jane" },
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /looks right/i }));
+
+    await waitFor(() => {
+      expect(sentry.addBreadcrumb).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: "onboarding.card_action",
+          data: { action: "confirm_profile" },
+        })
+      );
+    });
+  });
+
+  it("fires onboarding.card_displayed and onboarding.payment_initiated when payment_card arrives via SSE", async () => {
+    const sentry = await import("@sentry/nextjs");
+    vi.mocked(sentry.addBreadcrumb).mockClear();
+
+    mockFetchSSE([
+      'data: "Ready to pay!"',
+      "event: card",
+      'data: [CARD:payment_card]{"checkoutUrl":"https://stripe.com/pay","price":"$900"}',
+      "data: [DONE]",
+    ]);
+
+    const user = userEvent.setup();
+    render(<ChatWindow sessionId="s1" token="t1" initialMessages={[]} />);
+
+    const input = screen.getByPlaceholderText(/Type a message/i);
+    await user.type(input, "proceed");
+    await user.click(screen.getByRole("button", { name: /Send/i }));
+
+    await waitFor(() => {
+      expect(sentry.addBreadcrumb).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "onboarding.card_displayed", data: { cardType: "payment_card" } })
+      );
+      expect(sentry.addBreadcrumb).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "onboarding.payment_initiated" })
+      );
+    });
+  });
+
+  it("fires onboarding.card_displayed but NOT onboarding.payment_initiated for non-payment cards", async () => {
+    const sentry = await import("@sentry/nextjs");
+    vi.mocked(sentry.addBreadcrumb).mockClear();
+
+    mockFetchSSE([
+      'data: "Profile ready!"',
+      "event: card",
+      'data: [CARD:profile_card]{"name":"Jane","brokerage":"RE/MAX"}',
+      "data: [DONE]",
+    ]);
+
+    const user = userEvent.setup();
+    render(<ChatWindow sessionId="s1" token="t1" initialMessages={[]} />);
+
+    const input = screen.getByPlaceholderText(/Type a message/i);
+    await user.type(input, "show profile");
+    await user.click(screen.getByRole("button", { name: /Send/i }));
+
+    await waitFor(() => {
+      expect(sentry.addBreadcrumb).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "onboarding.card_displayed", data: { cardType: "profile_card" } })
+      );
+    });
+
+    const paymentInitiatedCalls = vi.mocked(sentry.addBreadcrumb).mock.calls.filter(
+      ([arg]) => arg.message === "onboarding.payment_initiated"
+    );
+    expect(paymentInitiatedCalls).toHaveLength(0);
+  });
+
+  it("calls window.gtag when gtag is available on window", async () => {
+    mockFetchJsonOk({ response: "ok" });
+    const user = userEvent.setup();
+    const gtagSpy = vi.fn();
+    window.gtag = gtagSpy;
+
+    try {
+      render(<ChatWindow sessionId="s1" token="t1" initialMessages={[]} />);
+      const input = screen.getByPlaceholderText(/Type a message/i);
+      await user.type(input, "Hello");
+      await user.click(screen.getByRole("button", { name: /Send/i }));
+
+      await waitFor(() => {
+        expect(gtagSpy).toHaveBeenCalledWith("event", expect.any(String), expect.anything());
+      });
+    } finally {
+      delete window.gtag;
+    }
+  });
+
 });

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { MessageRenderer, type ChatMessageData } from "./MessageRenderer";
+import * as Sentry from "@sentry/nextjs";
 
 interface ChatWindowProps {
   sessionId: string;
@@ -12,6 +13,34 @@ interface ChatWindowProps {
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5135";
+
+declare global {
+  interface Window {
+    // GA4 global function injected by the gtag.js script
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
+/** Fire a GA4 custom event if gtag is available (no-ops when GA4 is not loaded). */
+function trackGA4(eventName: string, params?: Record<string, string>) {
+  if (typeof window !== "undefined" && typeof window.gtag === "function") {
+    window.gtag("event", eventName, params);
+  }
+}
+
+/** Add a Sentry breadcrumb and optionally fire a GA4 event. */
+function trackOnboarding(
+  event: string,
+  data?: Record<string, string>
+) {
+  Sentry.addBreadcrumb({
+    category: "onboarding",
+    message: event,
+    data,
+    level: "info",
+  });
+  trackGA4(event, data);
+}
 
 // Matches [CARD:type] followed by a JSON object
 const CARD_MARKER = /\[CARD:(\w+)\]/g;
@@ -105,6 +134,12 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
     scrollRef.current?.scrollTo?.(0, scrollRef.current.scrollHeight);
   }, [messages]);
 
+  // Track session created on mount
+  useEffect(() => {
+    trackOnboarding("onboarding.session_created", { sessionId });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Auto-send profileUrl on mount — silent (no user bubble)
   useEffect(() => {
     if (autoMessage && !autoSent.current) {
@@ -120,6 +155,7 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
     if (!opts?.silent) {
       const userMsg: ChatMessageData = { role: "user", content: text, msgId: nextMsgId() };
       setMessages((prev) => [...prev, userMsg]);
+      trackOnboarding("onboarding.message_sent");
     }
     setInput("");
     setSending(true);
@@ -231,6 +267,15 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
             const withoutPlaceholder = prev.slice(0, -1);
             return [...withoutPlaceholder, ...withIds];
           });
+          // Track card display events
+          for (const m of parsed) {
+            if (m.type) {
+              trackOnboarding("onboarding.card_displayed", { cardType: m.type });
+              if (m.type === "payment_card") {
+                trackOnboarding("onboarding.payment_initiated");
+              }
+            }
+          }
         }
       } else {
         const data = await res.json();
@@ -250,6 +295,11 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
 
   function handleAction(action: string, data?: unknown) {
     const text = data ? `[Action: ${action}] ${JSON.stringify(data)}` : `[Action: ${action}]`;
+    trackOnboarding("onboarding.card_action", { action });
+    /* v8 ignore next 3 — confirm_payment / payment_success reserved for future payment card */
+    if (action === "confirm_payment" || action === "payment_success") {
+      trackOnboarding("onboarding.completed");
+    }
     sendMessage(text, { silent: true });
   }
 
