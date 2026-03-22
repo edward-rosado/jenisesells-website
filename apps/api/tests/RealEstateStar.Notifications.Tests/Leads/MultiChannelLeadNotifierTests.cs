@@ -168,15 +168,15 @@ public class MultiChannelLeadNotifierTests
         var logger = new Mock<ILogger<MultiChannelLeadNotifier>>();
         var sut = new MultiChannelLeadNotifier(httpFactory.Object, gwsService.Object, configService.Object, logger.Object);
 
-        // Should NOT throw
+        // Should NOT throw — email still succeeds
         var act = async () => await sut.NotifyAgentAsync("jenise-buckalew", MakeLead(), MakeEnrichment(), MakeScore(), CancellationToken.None);
         await act.Should().NotThrowAsync();
 
-        // Should log warning with [LEAD-033]
+        // Should log warning with [NOTIFY-012]
         logger.Verify(l => l.Log(
             LogLevel.Warning,
             It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("LEAD-033")),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("NOTIFY-012")),
             It.IsAny<Exception>(),
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
 
@@ -187,7 +187,7 @@ public class MultiChannelLeadNotifierTests
     }
 
     [Fact]
-    public async Task NotifyAgentAsync_WhenEmailFails_LogsErrorButDoesNotThrow()
+    public async Task NotifyAgentAsync_WhenAllChannelsFail_Throws()
     {
         var httpFactory = new Mock<IHttpClientFactory>();
         var gwsService = new Mock<IGwsService>();
@@ -203,16 +203,17 @@ public class MultiChannelLeadNotifierTests
         var logger = new Mock<ILogger<MultiChannelLeadNotifier>>();
         var sut = new MultiChannelLeadNotifier(httpFactory.Object, gwsService.Object, configService.Object, logger.Object);
 
-        // Should NOT throw
+        // No chat webhook + email fails = ALL channels fail → should throw
         var act = async () => await sut.NotifyAgentAsync("jenise-buckalew", MakeLead(), MakeEnrichment(), MakeScore(), CancellationToken.None);
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*All notification channels failed*");
 
-        // Should log error with [LEAD-034]
+        // Should log error with [NOTIFY-004]
         logger.Verify(l => l.Log(
             LogLevel.Error,
             It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("LEAD-034")),
-            It.IsAny<Exception>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("NOTIFY-004")),
+            It.IsAny<Exception?>(),
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
 

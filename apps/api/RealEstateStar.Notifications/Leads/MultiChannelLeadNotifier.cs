@@ -22,19 +22,19 @@ public class MultiChannelLeadNotifier(
             string.IsNullOrWhiteSpace(agentEmail) ? "(empty)" : agentEmail,
             !string.IsNullOrWhiteSpace(webhookUrl));
 
-        var chatSuccess = false;
-        var emailSuccess = false;
+        var chatSent = false;
+        var emailSent = false;
 
-        var chatTask = SendChatAsync(webhookUrl, lead, enrichment, score, ct).ContinueWith(t => chatSuccess = t.IsCompletedSuccessfully, ct);
-        var emailTask = SendEmailAsync(agentEmail, lead, enrichment, score, ct).ContinueWith(t => emailSuccess = t.IsCompletedSuccessfully, ct);
+        try { await SendChatAsync(webhookUrl, lead, enrichment, score, ct); chatSent = !string.IsNullOrWhiteSpace(webhookUrl); }
+        catch (Exception) { /* logged inside SendChatAsync */ }
 
-        await chatTask;
-        await emailTask;
+        try { await SendEmailAsync(agentEmail, lead, enrichment, score, ct); emailSent = true; }
+        catch (Exception) { /* logged inside SendEmailAsync */ }
 
-        logger.LogInformation("[NOTIFY-003] Notification result for lead {LeadId}: ChatSent={ChatSuccess}, EmailSent={EmailSuccess}",
-            lead.Id, chatSuccess, emailSuccess);
+        logger.LogInformation("[NOTIFY-003] Notification result for lead {LeadId}: ChatSent={ChatSent}, EmailSent={EmailSent}",
+            lead.Id, chatSent, emailSent);
 
-        if (!chatSuccess && !emailSuccess)
+        if (!chatSent && !emailSent)
         {
             logger.LogError("[NOTIFY-004] ALL notification channels failed for lead {LeadId}, agent {AgentId}. Lead was saved but agent was NOT notified.", lead.Id, agentId);
             throw new InvalidOperationException($"All notification channels failed for lead {lead.Id}");
