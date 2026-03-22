@@ -638,29 +638,35 @@ public class SubmitLeadEndpointUnitTests
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task Handle_Returns500_WhenLeadStoreFails()
+    public async Task Handle_DeadLetters_WhenLeadStoreFails()
     {
         var m = CreateMocks();
         m.LeadStore
             .Setup(s => s.SaveAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new IOException("disk full"));
 
-        var act = () => CallHandle(m);
+        var result = await CallHandle(m);
 
-        await act.Should().ThrowAsync<IOException>();
+        result.Should().BeOfType<Accepted<SubmitLeadResponse>>();
+        m.DeadLetterStore.Verify(
+            d => d.RecordAsync(It.IsAny<Lead>(), "save", "disk full", It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
-    public async Task Handle_Returns500_WhenConsentLogFails()
+    public async Task Handle_DeadLetters_WhenConsentLogFails()
     {
         var m = CreateMocks();
         m.ConsentLog
             .Setup(c => c.RecordConsentAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new IOException("write failed"));
 
-        var act = () => CallHandle(m);
+        var result = await CallHandle(m);
 
-        await act.Should().ThrowAsync<IOException>();
+        result.Should().BeOfType<Accepted<SubmitLeadResponse>>();
+        m.DeadLetterStore.Verify(
+            d => d.RecordAsync(It.IsAny<Lead>(), "consent", "write failed", It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
