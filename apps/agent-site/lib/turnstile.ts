@@ -1,13 +1,13 @@
-export async function validateTurnstile(token: string): Promise<boolean> {
+export type TurnstileResult = { ok: true } | { ok: false; code: string; detail?: string };
+
+export async function validateTurnstile(token: string): Promise<TurnstileResult> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
   if (!secret) {
-    console.error("[SEC-002] TURNSTILE_SECRET_KEY is not set");
-    return false;
+    return { ok: false, code: "SEC-002", detail: "TURNSTILE_SECRET_KEY is not set" };
   }
 
   if (!token) {
-    console.error("[SEC-003] Turnstile token is empty");
-    return false;
+    return { ok: false, code: "SEC-003", detail: "Turnstile token is empty" };
   }
 
   const controller = new AbortController();
@@ -21,17 +21,18 @@ export async function validateTurnstile(token: string): Promise<boolean> {
     });
     const data = await res.json();
     if (!data.success) {
-      console.error("[SEC-004] Turnstile rejected token:", JSON.stringify({
-        success: data.success,
-        errorCodes: data["error-codes"],
-        hostname: data.hostname,
-        action: data.action,
-      }));
+      return {
+        ok: false,
+        code: "SEC-004",
+        detail: JSON.stringify({
+          errorCodes: data["error-codes"],
+          hostname: data.hostname,
+        }),
+      };
     }
-    return data.success === true;
+    return { ok: true };
   } catch (error) {
-    console.error("[SEC-001] Turnstile validation error:", error);
-    return false;
+    return { ok: false, code: "SEC-001", detail: String(error) };
   } finally {
     clearTimeout(timeoutId);
   }

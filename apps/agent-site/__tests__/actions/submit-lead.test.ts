@@ -40,7 +40,7 @@ describe("submitLead", () => {
     const { signAndForward } = await import("@/lib/hmac");
     const { submitLead } = await import("@/actions/submit-lead");
 
-    (validateTurnstile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);
+    (validateTurnstile as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, code: "SEC-004", detail: "test rejection" });
 
     const result = await submitLead(
       "agent-123",
@@ -48,7 +48,7 @@ describe("submitLead", () => {
       "bad-token",
     );
 
-    expect(result).toEqual({ error: "Verification failed. Please try again." });
+    expect(result).toEqual({ error: "Verification failed [SEC-004]: test rejection" });
     expect(signAndForward).not.toHaveBeenCalled();
   });
 
@@ -57,7 +57,7 @@ describe("submitLead", () => {
     const { signAndForward } = await import("@/lib/hmac");
     const { submitLead } = await import("@/actions/submit-lead");
 
-    (validateTurnstile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(true);
+    (validateTurnstile as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true });
     (signAndForward as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ leadId: "lead-abc-123", status: "received" }),
@@ -82,7 +82,7 @@ describe("submitLead", () => {
     const { signAndForward } = await import("@/lib/hmac");
     const { submitLead } = await import("@/actions/submit-lead");
 
-    (validateTurnstile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(true);
+    (validateTurnstile as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true });
     (signAndForward as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
       status: 500,
@@ -104,7 +104,7 @@ describe("submitLead", () => {
     const { submitLead } = await import("@/actions/submit-lead");
 
     const networkError = new Error("Network timeout");
-    (validateTurnstile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(true);
+    (validateTurnstile as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true });
     (signAndForward as ReturnType<typeof vi.fn>).mockRejectedValueOnce(networkError);
 
     const result = await submitLead(

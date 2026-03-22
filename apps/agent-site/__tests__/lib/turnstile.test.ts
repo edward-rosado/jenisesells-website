@@ -7,71 +7,49 @@ describe("validateTurnstile", () => {
     process.env.TURNSTILE_SECRET_KEY = "test-secret";
   });
 
-  it("returns true when Cloudflare responds with success", async () => {
+  it("returns ok when Cloudflare responds with success", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ success: true }),
     });
     const { validateTurnstile } = await import("@/lib/turnstile");
     const result = await validateTurnstile("test-token");
-    expect(result).toBe(true);
+    expect(result).toEqual({ ok: true });
   });
 
-  it("returns false when Cloudflare responds with failure", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: false }),
-    });
-    const { validateTurnstile } = await import("@/lib/turnstile");
-    const result = await validateTurnstile("bad-token");
-    expect(result).toBe(false);
-  });
-
-  it("returns false and logs error when fetch throws", async () => {
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    (fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("net"));
-    const { validateTurnstile } = await import("@/lib/turnstile");
-    const result = await validateTurnstile("token");
-    expect(result).toBe(false);
-    expect(spy).toHaveBeenCalledWith("[SEC-001] Turnstile validation error:", expect.any(Error));
-    spy.mockRestore();
-  });
-
-  it("returns false and logs SEC-002 when TURNSTILE_SECRET_KEY is not set", async () => {
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    delete process.env.TURNSTILE_SECRET_KEY;
-    const { validateTurnstile } = await import("@/lib/turnstile");
-    const result = await validateTurnstile("token");
-    expect(result).toBe(false);
-    expect(spy).toHaveBeenCalledWith("[SEC-002] TURNSTILE_SECRET_KEY is not set");
-    spy.mockRestore();
-  });
-
-  it("returns false and logs SEC-003 when token is empty", async () => {
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const { validateTurnstile } = await import("@/lib/turnstile");
-    const result = await validateTurnstile("");
-    expect(result).toBe(false);
-    expect(spy).toHaveBeenCalledWith("[SEC-003] Turnstile token is empty");
-    spy.mockRestore();
-  });
-
-  it("logs SEC-004 with error details when Cloudflare rejects token", async () => {
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+  it("returns SEC-004 when Cloudflare responds with failure", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ success: false, "error-codes": ["invalid-input-response"], hostname: "example.com" }),
     });
     const { validateTurnstile } = await import("@/lib/turnstile");
     const result = await validateTurnstile("bad-token");
-    expect(result).toBe(false);
-    expect(spy).toHaveBeenCalledWith("[SEC-004] Turnstile rejected token:", expect.stringContaining("invalid-input-response"));
-    spy.mockRestore();
+    expect(result).toMatchObject({ ok: false, code: "SEC-004" });
+    expect(result.ok === false && result.detail).toContain("invalid-input-response");
   });
 
-  it("aborts fetch after 15 seconds and returns false", async () => {
+  it("returns SEC-001 when fetch throws", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("net"));
+    const { validateTurnstile } = await import("@/lib/turnstile");
+    const result = await validateTurnstile("token");
+    expect(result).toMatchObject({ ok: false, code: "SEC-001" });
+  });
+
+  it("returns SEC-002 when TURNSTILE_SECRET_KEY is not set", async () => {
+    delete process.env.TURNSTILE_SECRET_KEY;
+    const { validateTurnstile } = await import("@/lib/turnstile");
+    const result = await validateTurnstile("token");
+    expect(result).toEqual({ ok: false, code: "SEC-002", detail: "TURNSTILE_SECRET_KEY is not set" });
+  });
+
+  it("returns SEC-003 when token is empty", async () => {
+    const { validateTurnstile } = await import("@/lib/turnstile");
+    const result = await validateTurnstile("");
+    expect(result).toEqual({ ok: false, code: "SEC-003", detail: "Turnstile token is empty" });
+  });
+
+  it("returns SEC-001 on abort after 15 seconds", async () => {
     vi.useFakeTimers();
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     (fetch as ReturnType<typeof vi.fn>).mockImplementation(
       (_url: string, init?: RequestInit) =>
         new Promise((_resolve, reject) => {
@@ -84,11 +62,8 @@ describe("validateTurnstile", () => {
 
     await vi.advanceTimersByTimeAsync(15_000);
     const result = await promise;
-    expect(result).toBe(false);
-    // DOMException is not a subclass of Error in all environments — use anything() for AbortError
-    expect(spy).toHaveBeenCalledWith("[SEC-001] Turnstile validation error:", expect.anything());
+    expect(result).toMatchObject({ ok: false, code: "SEC-001" });
 
-    spy.mockRestore();
     vi.useRealTimers();
   });
 });

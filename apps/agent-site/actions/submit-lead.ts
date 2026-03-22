@@ -14,8 +14,8 @@ export async function submitLead(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if ((formData as any).website) return { leadId: "fake-id", status: "received" };
 
-  const isHuman = await validateTurnstile(turnstileToken);
-  if (!isHuman) return { error: "Verification failed. Please try again." };
+  const turnstile = await validateTurnstile(turnstileToken);
+  if (!turnstile.ok) return { error: `Verification failed [${turnstile.code}]: ${turnstile.detail}` };
 
   try {
     const body = JSON.stringify(formData);
