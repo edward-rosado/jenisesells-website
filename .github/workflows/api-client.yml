@@ -1,0 +1,40 @@
+name: api-client
+
+on:
+  workflow_run:
+    workflows: [api]
+    types: [completed]
+    branches: [main]
+  push:
+    paths:
+      - 'packages/api-client/**'
+
+jobs:
+  generate:
+    if: "github.event.workflow_run.conclusion == 'success' || github.event_name == 'push'"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+
+      - run: npm ci --workspace=packages/api-client
+
+      - name: Download OpenAPI spec from API build
+        if: "github.event_name == 'workflow_run'"
+        uses: actions/download-artifact@v4
+        with:
+          name: openapi-spec
+          path: packages/api-client/
+
+      - run: npm run generate:ci --workspace=packages/api-client
+        continue-on-error: true
+
+      - name: Commit generated types
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packages/api-client/generated/
+          git diff --cached --quiet || git commit -m "chore: regenerate api-client types from OpenAPI spec"
+          git push
