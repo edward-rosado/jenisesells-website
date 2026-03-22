@@ -7,3 +7,5 @@ export { useFocusTrap } from "./use-focus-trap";
 export { useReducedMotion } from "./useReducedMotion";
 export { useScrollReveal } from "./useScrollReveal";
 export { useParallax } from "./useParallax";
+export { safeMailtoHref, safeTelHref } from "./safe-contact";
+export { signAndForward } from "./hmac";

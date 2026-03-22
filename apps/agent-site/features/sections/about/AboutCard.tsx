@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { AboutProps } from "@/features/sections/types";
 import { getDisplayName, getHeadshotUrl } from "@/features/sections/types";
-import { safeTelHref, safeMailtoHref } from "@/features/lead-capture/safe-contact";
+import { safeTelHref, safeMailtoHref } from "@/features/shared/safe-contact";
 
 export function AboutCard({ agent, data }: AboutProps) {
   const displayName = getDisplayName(agent);

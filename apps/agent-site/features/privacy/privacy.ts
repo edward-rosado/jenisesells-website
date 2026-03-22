@@ -1,6 +1,6 @@
 "use server";
 
-import { signAndForward } from "@/features/lead-capture/hmac";
+import { signAndForward } from "@/features/shared/hmac";
 
 export async function requestOptOut(
   agentId: string,

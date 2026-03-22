@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/features/lead-capture/hmac", () => ({
+vi.mock("@/features/shared/hmac", () => ({
   signAndForward: vi.fn(),
 }));
 
@@ -11,7 +11,7 @@ describe("requestOptOut", () => {
   });
 
   it("returns ok:true when API responds with success", async () => {
-    const { signAndForward } = await import("@/features/lead-capture/hmac");
+    const { signAndForward } = await import("@/features/shared/hmac");
     (signAndForward as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true });
     const { requestOptOut } = await import("@/features/privacy/privacy");
 
@@ -26,7 +26,7 @@ describe("requestOptOut", () => {
   });
 
   it("returns error when API responds with non-ok status", async () => {
-    const { signAndForward } = await import("@/features/lead-capture/hmac");
+    const { signAndForward } = await import("@/features/shared/hmac");
     (signAndForward as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, status: 400 });
     const { requestOptOut } = await import("@/features/privacy/privacy");
 
@@ -36,7 +36,7 @@ describe("requestOptOut", () => {
   });
 
   it("returns error when signAndForward throws", async () => {
-    const { signAndForward } = await import("@/features/lead-capture/hmac");
+    const { signAndForward } = await import("@/features/shared/hmac");
     (signAndForward as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("network error"));
     const { requestOptOut } = await import("@/features/privacy/privacy");
 
@@ -53,7 +53,7 @@ describe("requestDeletion", () => {
   });
 
   it("returns ok:true when API responds with success", async () => {
-    const { signAndForward } = await import("@/features/lead-capture/hmac");
+    const { signAndForward } = await import("@/features/shared/hmac");
     (signAndForward as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true });
     const { requestDeletion } = await import("@/features/privacy/privacy");
 
@@ -68,7 +68,7 @@ describe("requestDeletion", () => {
   });
 
   it("returns error when API responds with non-ok status", async () => {
-    const { signAndForward } = await import("@/features/lead-capture/hmac");
+    const { signAndForward } = await import("@/features/shared/hmac");
     (signAndForward as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, status: 400 });
     const { requestDeletion } = await import("@/features/privacy/privacy");
 
@@ -78,7 +78,7 @@ describe("requestDeletion", () => {
   });
 
   it("returns error when signAndForward throws", async () => {
-    const { signAndForward } = await import("@/features/lead-capture/hmac");
+    const { signAndForward } = await import("@/features/shared/hmac");
     (signAndForward as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("network error"));
     const { requestDeletion } = await import("@/features/privacy/privacy");
 
@@ -95,7 +95,7 @@ describe("requestSubscribe", () => {
   });
 
   it("returns ok:true when API responds with success", async () => {
-    const { signAndForward } = await import("@/features/lead-capture/hmac");
+    const { signAndForward } = await import("@/features/shared/hmac");
     (signAndForward as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true });
     const { requestSubscribe } = await import("@/features/privacy/privacy");
 
@@ -110,7 +110,7 @@ describe("requestSubscribe", () => {
   });
 
   it("returns error when API responds with non-ok status", async () => {
-    const { signAndForward } = await import("@/features/lead-capture/hmac");
+    const { signAndForward } = await import("@/features/shared/hmac");
     (signAndForward as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, status: 400 });
     const { requestSubscribe } = await import("@/features/privacy/privacy");
 
@@ -120,7 +120,7 @@ describe("requestSubscribe", () => {
   });
 
   it("returns error when signAndForward throws", async () => {
-    const { signAndForward } = await import("@/features/lead-capture/hmac");
+    const { signAndForward } = await import("@/features/shared/hmac");
     (signAndForward as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("network error"));
     const { requestSubscribe } = await import("@/features/privacy/privacy");
 

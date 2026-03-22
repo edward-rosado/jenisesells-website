@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { AccountConfig, NavigationConfig, ContactMethod } from "@/features/config/types";
 import { useFocusTrap } from "./use-focus-trap";
-import { safeMailtoHref, safeTelHref } from "@/features/lead-capture/safe-contact";
+import { safeMailtoHref, safeTelHref } from "@/features/shared/safe-contact";
 
 interface NavProps {
   account: AccountConfig;

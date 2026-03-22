@@ -1,6 +1,6 @@
 import type { AccountConfig, AgentConfig } from "@/features/config/types";
 import { EqualHousingNotice } from "@real-estate-star/legal";
-import { safeTelHref, safeMailtoHref } from "@/features/lead-capture/safe-contact";
+import { safeTelHref, safeMailtoHref } from "@/features/shared/safe-contact";
 
 interface FooterProps {
   agent: AccountConfig | AgentConfig;
