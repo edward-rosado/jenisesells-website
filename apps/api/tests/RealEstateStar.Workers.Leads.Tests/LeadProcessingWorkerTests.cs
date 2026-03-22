@@ -20,6 +20,7 @@ public class LeadProcessingWorkerTests
     private readonly Mock<ILeadEnricher> _enricher = new();
     private readonly Mock<ILeadNotifier> _notifier = new();
     private readonly Mock<IFailedNotificationStore> _failedNotificationStore = new();
+    private readonly Mock<IFileStorageProvider> _storage = new();
     private readonly BackgroundServiceHealthTracker _healthTracker = new();
     private readonly Mock<ILogger<LeadProcessingWorker>> _logger = new();
 
@@ -31,14 +32,28 @@ public class LeadProcessingWorkerTests
         TimeSpan.Zero,
     ];
 
-    private LeadProcessingWorker CreateWorker() =>
-        new(_channel, _leadStore.Object, _enricher.Object,
+    private LeadProcessingWorker CreateWorker()
+    {
+        // Default mock setups for checkpoint/resume pattern
+        _notifier.Setup(n => n.BuildSubject(It.IsAny<Lead>(), It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>()))
+            .Returns("Test Subject");
+        _notifier.Setup(n => n.BuildBody(It.IsAny<Lead>(), It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>()))
+            .Returns("Test Body");
+
+        // Storage: no checkpoint files exist by default (steps run fresh)
+        _storage.Setup(s => s.ReadDocumentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+        _storage.Setup(s => s.WriteDocumentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        return new(_channel, _leadStore.Object, _enricher.Object,
             _notifier.Object, _failedNotificationStore.Object,
-            new Mock<IFileStorageProvider>().Object,
+            _storage.Object,
             _cmaChannel, _homeSearchChannel, _healthTracker, _logger.Object)
         {
             RetryDelays = ZeroDelays,
         };
+    }
 
     private static Lead MakeLead(LeadType type = LeadType.Seller) => new()
     {
