@@ -49,3 +49,4 @@ Thumbs.db
 appsettings.*.local.json
 *.pfx
 *.p12
+apps/api/RealEstateStar.Api/data/
