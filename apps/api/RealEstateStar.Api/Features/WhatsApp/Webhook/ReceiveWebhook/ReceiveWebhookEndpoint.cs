@@ -24,7 +24,9 @@ public class ReceiveWebhookEndpoint : IEndpoint
             using var reader = new StreamReader(request.Body, Encoding.UTF8, leaveOpen: true);
             var rawBody = await reader.ReadToEndAsync(ct);
             var signature = request.Headers["X-Hub-Signature-256"].FirstOrDefault();
-            var appSecret = config["WhatsApp:AppSecret"]!;
+            var appSecret = config["WhatsApp:AppSecret"] ?? "";
+            if (string.IsNullOrEmpty(appSecret))
+                return Results.Unauthorized();
 
             return await Handle(rawBody, signature, appSecret, idempotencyStore, queue, audit, ct);
         }).DisableRateLimiting();

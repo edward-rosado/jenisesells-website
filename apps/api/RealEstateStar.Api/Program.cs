@@ -328,10 +328,14 @@ if (!string.IsNullOrEmpty(whatsAppPhoneNumberId))
 else
 {
     // Register null-object implementations so any endpoint that resolves
-    // IWhatsAppNotifier / IWhatsAppAuditService still compiles and
-    // fails gracefully at runtime with a clear log rather than a DI exception.
+    // IWhatsAppNotifier / IWhatsAppAuditService / IWebhookQueueService still
+    // compiles and fails gracefully at runtime with a clear log rather than
+    // a DI exception. WhatsAppIdempotencyStore is also registered here so
+    // ReceiveWebhookEndpoint can be resolved even when WhatsApp is disabled.
     builder.Services.AddSingleton<IWhatsAppNotifier, DisabledWhatsAppNotifier>();
     builder.Services.AddSingleton<IWhatsAppAuditService, DisabledWhatsAppAuditService>();
+    builder.Services.AddSingleton<IWebhookQueueService, DisabledWebhookQueueService>();
+    builder.Services.AddSingleton<WhatsAppIdempotencyStore>();
 }
 
 // ------------------------------------------------------------------

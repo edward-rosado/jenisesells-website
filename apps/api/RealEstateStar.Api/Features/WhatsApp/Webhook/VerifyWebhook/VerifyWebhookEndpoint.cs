@@ -13,7 +13,7 @@ public class VerifyWebhookEndpoint : IEndpoint
             [FromQuery(Name = "hub.verify_token")] string verifyToken,
             [FromQuery(Name = "hub.challenge")] string challenge,
             [FromServices] IConfiguration config) =>
-            Handle(mode, verifyToken, challenge, config["WhatsApp:VerifyToken"]!))
+            Handle(mode, verifyToken, challenge, config["WhatsApp:VerifyToken"] ?? ""))
             .DisableRateLimiting();
 
     internal static IResult Handle(string mode, string verifyToken, string challenge, string expectedToken)
