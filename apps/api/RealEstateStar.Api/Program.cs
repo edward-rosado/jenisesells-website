@@ -40,8 +40,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddStructuredLogging();
 builder.AddObservability();
 
-// Agent config
-var configPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "accounts");
+// Agent config — Docker image uses /app/config/accounts, local dev uses relative path to repo root
+var dockerConfigPath = Path.Combine(builder.Environment.ContentRootPath, "config", "accounts");
+var localConfigPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "accounts");
+var configPath = Directory.Exists(dockerConfigPath) ? dockerConfigPath : localConfigPath;
 builder.Services.AddSingleton<IAccountConfigService>(sp =>
     new AccountConfigService(configPath, sp.GetRequiredService<ILogger<AccountConfigService>>()));
 

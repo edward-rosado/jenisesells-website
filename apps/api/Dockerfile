@@ -50,6 +50,9 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 # Copy published app
 COPY --from=builder /app/publish .
 
+# Copy agent account configs (placed in build context by CI)
+COPY config-accounts/ /app/config/accounts/
+
 # Non-root user for security
 RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser

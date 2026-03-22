@@ -60,6 +60,9 @@ jobs:
       - name: Login to ACR
         run: az acr login --name ${{ env.ACR_NAME }}
 
+      - name: Copy config into Docker context
+        run: cp -r config/accounts apps/api/config-accounts
+
       - name: Build Docker image
         run: |
           docker build \
