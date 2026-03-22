@@ -62,14 +62,14 @@ public class DriveChangeMonitorTests
             .ReturnsAsync(json);
         _leadStore.Setup(s => s.GetByNameAsync(AgentId, "Jane Doe", It.IsAny<CancellationToken>()))
             .ReturnsAsync(lead);
-        _leadStore.Setup(s => s.UpdateStatusAsync(AgentId, lead.Id, LeadStatus.ActiveClient, It.IsAny<CancellationToken>()))
+        _leadStore.Setup(s => s.UpdateStatusAsync(lead, LeadStatus.ActiveClient, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var result = await _sut.PollAsync(AgentId, AgentEmail, Since, CancellationToken.None);
 
         result.StatusUpdated.Should().Be(1);
         result.Errors.Should().Be(0);
-        _leadStore.Verify(s => s.UpdateStatusAsync(AgentId, lead.Id, LeadStatus.ActiveClient, It.IsAny<CancellationToken>()), Times.Once);
+        _leadStore.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.ActiveClient, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -84,13 +84,13 @@ public class DriveChangeMonitorTests
             .ReturnsAsync(json);
         _leadStore.Setup(s => s.GetByNameAsync(AgentId, "Jane Doe", It.IsAny<CancellationToken>()))
             .ReturnsAsync(lead);
-        _leadStore.Setup(s => s.UpdateStatusAsync(AgentId, lead.Id, LeadStatus.UnderContract, It.IsAny<CancellationToken>()))
+        _leadStore.Setup(s => s.UpdateStatusAsync(lead, LeadStatus.UnderContract, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var result = await _sut.PollAsync(AgentId, AgentEmail, Since, CancellationToken.None);
 
         result.StatusUpdated.Should().Be(1);
-        _leadStore.Verify(s => s.UpdateStatusAsync(AgentId, lead.Id, LeadStatus.UnderContract, It.IsAny<CancellationToken>()), Times.Once);
+        _leadStore.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.UnderContract, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -105,13 +105,13 @@ public class DriveChangeMonitorTests
             .ReturnsAsync(json);
         _leadStore.Setup(s => s.GetByNameAsync(AgentId, "Jane Doe", It.IsAny<CancellationToken>()))
             .ReturnsAsync(lead);
-        _leadStore.Setup(s => s.UpdateStatusAsync(AgentId, lead.Id, LeadStatus.Closed, It.IsAny<CancellationToken>()))
+        _leadStore.Setup(s => s.UpdateStatusAsync(lead, LeadStatus.Closed, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var result = await _sut.PollAsync(AgentId, AgentEmail, Since, CancellationToken.None);
 
         result.StatusUpdated.Should().Be(1);
-        _leadStore.Verify(s => s.UpdateStatusAsync(AgentId, lead.Id, LeadStatus.Closed, It.IsAny<CancellationToken>()), Times.Once);
+        _leadStore.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.Closed, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -126,13 +126,13 @@ public class DriveChangeMonitorTests
             .ReturnsAsync(json);
         _leadStore.Setup(s => s.GetByNameAsync(AgentId, "Jane Doe", It.IsAny<CancellationToken>()))
             .ReturnsAsync(lead);
-        _leadStore.Setup(s => s.UpdateStatusAsync(AgentId, lead.Id, LeadStatus.Inactive, It.IsAny<CancellationToken>()))
+        _leadStore.Setup(s => s.UpdateStatusAsync(lead, LeadStatus.Inactive, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var result = await _sut.PollAsync(AgentId, AgentEmail, Since, CancellationToken.None);
 
         result.StatusUpdated.Should().Be(1);
-        _leadStore.Verify(s => s.UpdateStatusAsync(AgentId, lead.Id, LeadStatus.Inactive, It.IsAny<CancellationToken>()), Times.Once);
+        _leadStore.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.Inactive, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ── Delete event warning ───────────────────────────────────────────────────

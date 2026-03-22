@@ -6,7 +6,7 @@ public interface ILeadStore
     Task SaveAsync(Lead lead, CancellationToken ct);
     Task UpdateEnrichmentAsync(Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct);
     Task UpdateHomeSearchIdAsync(string agentId, Guid leadId, string homeSearchId, CancellationToken ct);
-    Task UpdateStatusAsync(string agentId, Guid leadId, LeadStatus status, CancellationToken ct);
+    Task UpdateStatusAsync(Lead lead, LeadStatus status, CancellationToken ct);
     Task UpdateMarketingOptInAsync(string agentId, Guid leadId, bool optedIn, CancellationToken ct);
     Task<Lead?> GetAsync(string agentId, Guid leadId, CancellationToken ct);
     Task<Lead?> GetByNameAsync(string agentId, string leadName, CancellationToken ct);

@@ -110,7 +110,7 @@ public class FileLeadStoreTests : IDisposable
         var lead = MakeLead();
         await _sut.SaveAsync(lead, CancellationToken.None);
 
-        await _sut.UpdateStatusAsync(AgentId, lead.Id, LeadStatus.Enriched, CancellationToken.None);
+        await _sut.UpdateStatusAsync(lead, LeadStatus.Enriched, CancellationToken.None);
 
         var profilePath = Path.Combine(_basePath, LeadPaths.LeadFolder(lead.FullName), "Lead Profile.md");
         var content = await File.ReadAllTextAsync(profilePath);
@@ -225,10 +225,12 @@ public class FileLeadStoreTests : IDisposable
     // ── Error paths ───────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task UpdateStatusAsync_ThrowsInvalidOperation_WhenLeadNotFound()
+    public async Task UpdateStatusAsync_DoesNotThrow_WhenLeadNotFound()
     {
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _sut.UpdateStatusAsync(AgentId, Guid.NewGuid(), LeadStatus.Enriched, CancellationToken.None));
+        var lead = MakeLead();
+        // No file saved — folder does not exist, so ReadDocumentAsync returns null
+        var ex = await Record.ExceptionAsync(() => _sut.UpdateStatusAsync(lead, LeadStatus.Enriched, CancellationToken.None));
+        Assert.Null(ex);
     }
 
     [Fact]

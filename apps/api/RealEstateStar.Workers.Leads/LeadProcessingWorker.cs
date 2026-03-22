@@ -88,7 +88,7 @@ public sealed class LeadProcessingWorker(
 
         // Mark complete
         lead.Status = LeadStatus.Complete;
-        try { await leadStore.UpdateStatusAsync(agentId, lead.Id, LeadStatus.Complete, ct); }
+        try { await leadStore.UpdateStatusAsync(lead, LeadStatus.Complete, ct); }
         catch (Exception ex) { logger.LogWarning(ex, "[WORKER-012] Failed to update status to Complete for lead {LeadId}", lead.Id); }
 
         var totalMs = Stopwatch.GetElapsedTime(pipelineStart).TotalMilliseconds;
@@ -122,7 +122,7 @@ public sealed class LeadProcessingWorker(
             await leadStore.UpdateEnrichmentAsync(lead, enrichment, score, ct);
 
             lead.Status = LeadStatus.Enriched;
-            await leadStore.UpdateStatusAsync(agentId, lead.Id, LeadStatus.Enriched, ct);
+            await leadStore.UpdateStatusAsync(lead, LeadStatus.Enriched, ct);
 
             LeadDiagnostics.LeadsEnriched.Add(1);
             logger.LogInformation(
@@ -157,7 +157,7 @@ public sealed class LeadProcessingWorker(
             await storage.WriteDocumentAsync(draftFolder, "Notification Draft.md", draft, ct);
 
             lead.Status = LeadStatus.EmailDrafted;
-            try { await leadStore.UpdateStatusAsync(agentId, lead.Id, LeadStatus.EmailDrafted, ct); }
+            try { await leadStore.UpdateStatusAsync(lead, LeadStatus.EmailDrafted, ct); }
             catch (Exception ex) { logger.LogWarning(ex, "[WORKER-025] Failed to update status to EmailDrafted for lead {LeadId}", lead.Id); }
 
             logger.LogInformation("[WORKER-024] Email draft saved for lead {LeadId}.", lead.Id);
@@ -186,7 +186,7 @@ public sealed class LeadProcessingWorker(
                 await notifier.NotifyAgentAsync(agentId, lead, enrichment, score, ct);
 
                 lead.Status = LeadStatus.Notified;
-                try { await leadStore.UpdateStatusAsync(agentId, lead.Id, LeadStatus.Notified, ct); }
+                try { await leadStore.UpdateStatusAsync(lead, LeadStatus.Notified, ct); }
                 catch (Exception ex) { logger.LogWarning(ex, "[WORKER-031] Failed to update status to Notified for lead {LeadId}", lead.Id); }
 
                 LeadDiagnostics.LeadsNotificationSent.Add(1);
