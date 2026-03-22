@@ -32,8 +32,11 @@ apps/
     RealEstateStar.Clients.Gws/        # GWS CLI wrapper
     tests/                             # 23 test projects (1:1 with production + Architecture.Tests + TestUtilities)
 packages/
-  shared-types/    # TypeScript types shared across apps
-  ui/              # Shared UI component library
+  domain/          # Types, interfaces, enums, correlation IDs — ZERO deps
+  api-client/      # Generated OpenAPI client + correlation ID injection → domain
+  forms/           # LeadForm, CMA hooks, validation → domain
+  legal/           # EqualHousingNotice, CookieConsent, LegalPageLayout → domain
+  analytics/       # Telemetry, error reporting, Web Vitals → domain
 skills/
   cma/             # Comparative Market Analysis generator
   contracts/       # State-specific contract drafting
@@ -61,6 +64,62 @@ Api            → everything (sole composition root)
 ```
 
 Every non-Api project has at most 2 deps. Domain defines ALL contracts. Api wires all implementations via DI. Architecture is enforced at compile-time (csproj refs) and CI-time (ArchUnit tests in `tests/RealEstateStar.Architecture.Tests/`).
+
+### Frontend Package Dependency Rules
+
+```
+domain         → nothing (types, interfaces, correlation IDs)
+api-client     → domain only
+forms          → domain only
+legal          → domain only
+analytics      → domain only
+```
+
+Every package has at most 1 internal dep (`domain`). Enforced by `scripts/validate-architecture.mjs` (CI) and `packages/domain/__tests__/architecture.test.ts` (test runner).
+
+### Frontend Feature Structure
+
+Both apps use `features/` folders with isolated modules:
+
+**Platform:** `onboarding`, `billing`, `landing`, `status`, `shared`
+**Agent-site:** `config`, `templates`, `sections`, `lead-capture`, `privacy`, `shared`
+
+Rules:
+- `app/` pages are thin composition roots — import from `features/`, no business logic
+- Features cannot cross-import (enforced by ESLint `no-restricted-imports`)
+- `features/shared/` can be imported by any feature; `shared/` cannot import from features
+- Agent-site exception: `templates/ → sections/` (subsection barrels only, NOT top-level `sections/index.ts`)
+- Barrel exports: named re-exports only (`export { X } from './X'`), never `export *`
+
+### Feature Scope Map
+
+#### Platform
+| Feature | Can Import From | Cannot Import From |
+|---------|----------------|-------------------|
+| onboarding | shared/, all packages | billing, landing, status |
+| billing | shared/, all packages | onboarding, landing, status |
+| landing | shared/, all packages | onboarding, billing, status |
+| status | shared/, all packages | onboarding, billing, landing |
+
+#### Agent-Site
+| Feature | Can Import From | Cannot Import From |
+|---------|----------------|-------------------|
+| config | all packages | templates, sections, lead-capture, privacy |
+| templates | sections subsection barrels, config, packages | lead-capture, privacy, shared |
+| sections | config, shared, all packages | templates, lead-capture, privacy |
+| lead-capture | config, shared, all packages | templates, sections, privacy |
+| privacy | config, shared, all packages | templates, sections, lead-capture |
+| shared | config, all packages | templates, sections, lead-capture, privacy |
+
+### Frontend Conventions
+
+- Section components use inline `style={}` with CSS custom properties for runtime branding (NOT Tailwind className)
+- Telemetry events use PascalCase enum (`Viewed`, `Started`, `Submitted`, `Succeeded`, `Failed`) matching backend `FormEvent`
+- Use `reportError()` from `@real-estate-star/analytics`, not `console.error`
+- Every API call includes `X-Correlation-ID` (auto-injected by api-client)
+- Analytics ownership: platform = our GA4 keys (env var), agent-site = BYOK from account.json
+- `generated/types.ts` in api-client is auto-generated — never hand-edit
+- Dynamic template loading via `next/dynamic` — each template is a separate chunk
 
 ## Multi-Tenant Architecture
 

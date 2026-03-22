@@ -9,7 +9,17 @@ Run these checks after writing code, before committing:
 - [ ] Every duplicate function name in the codebase has identical implementation — flag divergent copies
 - [ ] Every string used as an enum value has a constant or actual enum backing it
 
-## Observability Mandate
+## Frontend Observability
+For any frontend feature or user-facing action:
+
+- [ ] Every form/action has lifecycle telemetry: Viewed, Started, Submitted, Succeeded, Failed
+- [ ] Use `reportError()` from `@real-estate-star/analytics`, NEVER `console.error`
+- [ ] Telemetry event names use PascalCase matching backend `FormEvent` enum
+- [ ] API calls include `X-Correlation-ID` (auto-injected by api-client)
+- [ ] Error boundaries use `reportError()` not just `console.error`
+- [ ] Bundle size verified after adding dependencies (agent-site 3MB limit)
+
+## Backend Observability Mandate
 For any new feature with 3+ endpoints:
 
 - [ ] ActivitySource with spans for key operations
