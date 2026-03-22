@@ -46,7 +46,7 @@ export async function submitLead(
 
     if (!response.ok) {
       const text = await response.text().catch(() => "");
-      return { error: `API error [${response.status}]: ${text || response.statusText}` };
+      return { error: `API error [${response.status}]: ${text || response.statusText} | Payload: ${body}` };
     }
     return response.json();
   } catch (error) {
