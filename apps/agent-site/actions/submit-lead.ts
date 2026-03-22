@@ -5,6 +5,29 @@ import type { LeadFormData } from "@real-estate-star/shared-types";
 import { validateTurnstile } from "@/lib/turnstile";
 import { signAndForward } from "@/lib/hmac";
 
+function mapLeadType(leadTypes: string[]): string {
+  const buying = leadTypes.includes("buying");
+  const selling = leadTypes.includes("selling");
+  if (buying && selling) return "Both";
+  if (buying) return "Buyer";
+  return "Seller";
+}
+
+function toApiPayload(formData: LeadFormData) {
+  return {
+    leadType: mapLeadType(formData.leadTypes),
+    firstName: formData.firstName,
+    lastName: formData.lastName,
+    email: formData.email,
+    phone: formData.phone,
+    timeline: formData.timeline,
+    notes: formData.notes,
+    buyer: formData.buyer,
+    seller: formData.seller,
+    marketingConsent: formData.marketingConsent,
+  };
+}
+
 export async function submitLead(
   agentId: string,
   formData: LeadFormData,
@@ -18,7 +41,7 @@ export async function submitLead(
   if (!turnstile.ok) return { error: `Verification failed [${turnstile.code}]: ${turnstile.detail}` };
 
   try {
-    const body = JSON.stringify(formData);
+    const body = JSON.stringify(toApiPayload(formData));
     const response = await signAndForward(agentId, body);
 
     if (!response.ok) {
