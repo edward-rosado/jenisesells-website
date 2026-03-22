@@ -316,7 +316,8 @@ public class SubmitLeadEndpointUnitTests
         Mock<ILogger<SubmitLeadEndpoint>> Logger,
         Mock<IConsentAuditService> ConsentAudit,
         Mock<IComplianceConsentWriter> ComplianceWriter,
-        IOptions<ConsentHmacOptions> ConsentHmacOptions);
+        IOptions<ConsentHmacOptions> ConsentHmacOptions,
+        Mock<ILeadDeadLetterStore> DeadLetterStore);
 
     private static Mocks CreateMocks(AccountConfig? agent = null)
     {
@@ -350,7 +351,12 @@ public class SubmitLeadEndpointUnitTests
 
         var consentHmacOptions = Options.Create(new ConsentHmacOptions { Secret = "test-hmac-secret-32-bytes-xxxxx!" });
 
-        return new Mocks(accountConfig, leadStore, consentLog, channel, logger, consentAudit, complianceWriter, consentHmacOptions);
+        var deadLetterStore = new Mock<ILeadDeadLetterStore>();
+        deadLetterStore
+            .Setup(s => s.RecordAsync(It.IsAny<Lead>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        return new Mocks(accountConfig, leadStore, consentLog, channel, logger, consentAudit, complianceWriter, consentHmacOptions, deadLetterStore);
     }
 
     private static HttpContext MakeHttpContext(
@@ -380,6 +386,7 @@ public class SubmitLeadEndpointUnitTests
             m.ConsentAudit.Object,
             m.ComplianceWriter.Object,
             m.ConsentHmacOptions,
+            m.DeadLetterStore.Object,
             CancellationToken.None);
 
     // -------------------------------------------------------------------------

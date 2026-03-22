@@ -204,11 +204,15 @@ builder.Services.AddSingleton<IFileStorageProvider>(sp =>
         builder.Configuration["Storage:BasePath"] ?? Path.Combine(builder.Environment.ContentRootPath, "data")));
 
 // Lead feature services
-builder.Services.AddSingleton<ILeadStore, GDriveLeadStore>();
+builder.Services.AddSingleton<ILeadStore, LeadFileStore>();
 builder.Services.AddSingleton<IMarketingConsentLog, MarketingConsentLog>();
-builder.Services.AddSingleton<ILeadDataDeletion, GDriveLeadDataDeletion>();
+builder.Services.AddSingleton<ILeadDataDeletion, LeadDataDeletion>();
 builder.Services.AddSingleton<IDeletionAuditLog, DeletionAuditLog>();
 builder.Services.AddSingleton<ILeadNotifier, MultiChannelLeadNotifier>();
+builder.Services.AddSingleton<ILeadDeadLetterStore>(sp =>
+    new LeadDeadLetterStore(
+        Path.Combine(builder.Environment.ContentRootPath, "data", "dead-letter"),
+        sp.GetRequiredService<ILogger<LeadDeadLetterStore>>()));
 
 // Compliance consent triple-write services
 // IComplianceFileStorageProvider: service-account Drive in prod, local filesystem in dev

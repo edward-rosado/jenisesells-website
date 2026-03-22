@@ -6,22 +6,22 @@ using System.Text.Json;
 
 namespace RealEstateStar.DataServices.Tests.Leads;
 
-public class GDriveLeadDataDeletionTests
+public class LeadDataDeletionTests
 {
     private readonly Mock<ILeadStore> _leadStore = new();
     private readonly Mock<IMarketingConsentLog> _consentLog = new();
     private readonly Mock<IDeletionAuditLog> _auditLog = new();
     private readonly Mock<IFileStorageProvider> _storage = new();
     private readonly Mock<IGwsService> _gws = new();
-    private readonly Mock<ILogger<GDriveLeadDataDeletion>> _logger = new();
-    private readonly GDriveLeadDataDeletion _sut;
+    private readonly Mock<ILogger<LeadDataDeletion>> _logger = new();
+    private readonly LeadDataDeletion _sut;
 
     private const string AgentId = "jenise-buckalew";
     private const string LeadEmail = "jane.doe@example.com";
 
-    public GDriveLeadDataDeletionTests()
+    public LeadDataDeletionTests()
     {
-        _sut = new GDriveLeadDataDeletion(
+        _sut = new LeadDataDeletion(
             _leadStore.Object,
             _consentLog.Object,
             _auditLog.Object,
@@ -77,7 +77,7 @@ public class GDriveLeadDataDeletionTests
 
     private void SetupValidToken(string token, string email = LeadEmail, double hoursFromNow = 23)
     {
-        var tokenHash = GDriveLeadDataDeletion.ComputeTokenHash(token);
+        var tokenHash = LeadDataDeletion.ComputeTokenHash(token);
         var tokenFolder = LeadPaths.DeletionTokensFolder(AgentId);
         _storage.Setup(s => s.ReadDocumentAsync(tokenFolder, $"{tokenHash}.json", It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildValidTokenJson(email, hoursFromNow));
@@ -194,7 +194,7 @@ public class GDriveLeadDataDeletionTests
         storedContent.Should().Contain(LeadEmail, "stored data must include the email");
 
         // Verify filename is the hash of the token
-        var expectedHash = GDriveLeadDataDeletion.ComputeTokenHash(token);
+        var expectedHash = LeadDataDeletion.ComputeTokenHash(token);
         storedFileName.Should().Be($"{expectedHash}.json");
     }
 
@@ -379,8 +379,8 @@ public class GDriveLeadDataDeletionTests
     public async Task ComputeTokenHash_IsDeterministic()
     {
         var token = "my-test-token";
-        var hash1 = GDriveLeadDataDeletion.ComputeTokenHash(token);
-        var hash2 = GDriveLeadDataDeletion.ComputeTokenHash(token);
+        var hash1 = LeadDataDeletion.ComputeTokenHash(token);
+        var hash2 = LeadDataDeletion.ComputeTokenHash(token);
 
         hash1.Should().Be(hash2);
     }
@@ -388,8 +388,8 @@ public class GDriveLeadDataDeletionTests
     [Fact]
     public async Task ComputeTokenHash_DifferentTokensProduceDifferentHashes()
     {
-        var hash1 = GDriveLeadDataDeletion.ComputeTokenHash("token-a");
-        var hash2 = GDriveLeadDataDeletion.ComputeTokenHash("token-b");
+        var hash1 = LeadDataDeletion.ComputeTokenHash("token-a");
+        var hash2 = LeadDataDeletion.ComputeTokenHash("token-b");
 
         hash1.Should().NotBe(hash2);
     }

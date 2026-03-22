@@ -3,15 +3,15 @@ using Moq;
 
 namespace RealEstateStar.DataServices.Tests.Leads;
 
-public class GDriveLeadStoreTests
+public class LeadFileStoreTests
 {
     private readonly Mock<IFileStorageProvider> _storage = new(MockBehavior.Strict);
-    private readonly GDriveLeadStore _sut;
+    private readonly LeadFileStore _sut;
     private const string AgentId = "jenise-buckalew";
 
-    public GDriveLeadStoreTests()
+    public LeadFileStoreTests()
     {
-        _sut = new GDriveLeadStore(_storage.Object, NullLogger<GDriveLeadStore>.Instance);
+        _sut = new LeadFileStore(_storage.Object, NullLogger<LeadFileStore>.Instance);
     }
 
     // ── Test data ─────────────────────────────────────────────────────────────

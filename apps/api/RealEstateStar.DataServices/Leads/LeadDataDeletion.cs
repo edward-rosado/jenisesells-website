@@ -10,13 +10,13 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.DataServices.Leads;
 
-public class GDriveLeadDataDeletion(
+public class LeadDataDeletion(
     ILeadStore leadStore,
     IMarketingConsentLog consentLog,
     IDeletionAuditLog auditLog,
     IFileStorageProvider storage,
     IGwsService gwsService,
-    ILogger<GDriveLeadDataDeletion> logger) : ILeadDataDeletion
+    ILogger<LeadDataDeletion> logger) : ILeadDataDeletion
 {
     private const string TokenFolder = "Deletion Tokens";
     private static readonly TimeSpan TokenExpiry = TimeSpan.FromHours(24);

@@ -303,7 +303,7 @@ public class FileLeadStoreTests : IDisposable
         await _sut.SaveAsync(lead, CancellationToken.None);
         await _sut.UpdateMarketingOptInAsync(AgentId, lead.Id, true, CancellationToken.None);
 
-        // Verify the YAML key is snake_case (consistent with GDriveLeadStore and ParseLead)
+        // Verify the YAML key is snake_case (consistent with LeadFileStore and ParseLead)
         var profilePath = Path.Combine(_basePath, LeadPaths.LeadFolder(lead.FullName), "Lead Profile.md");
         var content = await File.ReadAllTextAsync(profilePath);
         Assert.Contains("marketing_opted_in: true", content);

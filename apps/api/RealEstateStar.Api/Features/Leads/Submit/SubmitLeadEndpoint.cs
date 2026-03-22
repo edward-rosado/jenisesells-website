@@ -33,6 +33,7 @@ public class SubmitLeadEndpoint : IEndpoint
         IConsentAuditService consentAudit,
         IComplianceConsentWriter complianceWriter,
         IOptions<ConsentHmacOptions> consentHmacOptions,
+        ILeadDeadLetterStore deadLetterStore,
         CancellationToken ct)
     {
         // Validate DataAnnotations on the request
@@ -80,12 +81,20 @@ public class SubmitLeadEndpoint : IEndpoint
             "[LEAD-001] Lead received. LeadId: {LeadId}, AgentId: {AgentId}, Type: {LeadType}, Email: {EmailHash}",
             lead.Id, agentId, lead.LeadType, HashEmail(lead.Email));
 
-        // 3. Save lead (must succeed before returning 202)
+        // 3. Save lead — dead letter if storage fails
         logger.LogInformation("[LEAD-001a] Saving lead {LeadId} via {StoreType}...", lead.Id, leadStore.GetType().Name);
-        await leadStore.SaveAsync(lead, ct);
-        logger.LogInformation("[LEAD-001b] Lead {LeadId} saved successfully.", lead.Id);
+        try
+        {
+            await leadStore.SaveAsync(lead, ct);
+            logger.LogInformation("[LEAD-001b] Lead {LeadId} saved successfully.", lead.Id);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[LEAD-001b-FAIL] Lead save failed for {LeadId}. Writing to dead letter.", lead.Id);
+            await deadLetterStore.RecordAsync(lead, "save", ex.Message, ct);
+        }
 
-        // 4. Record marketing consent (must succeed before returning 202)
+        // 4. Record marketing consent — dead letter if consent recording fails
         logger.LogInformation("[LEAD-001c] Recording consent for lead {LeadId}...", lead.Id);
         var consent = new MarketingConsent
         {
@@ -102,17 +111,25 @@ public class SubmitLeadEndpoint : IEndpoint
             Action = ConsentAction.OptIn,
             Source = ConsentSource.LeadForm,
         };
-        await consentLog.RecordConsentAsync(agentId, consent, ct);
-        logger.LogInformation("[LEAD-001d] Consent recorded for lead {LeadId}.", lead.Id);
+        try
+        {
+            await consentLog.RecordConsentAsync(agentId, consent, ct);
+            logger.LogInformation("[LEAD-001d] Consent recorded for lead {LeadId}.", lead.Id);
 
-        // Triple-write: agent Drive (existing) + compliance Drive + Azure Table
-        var hmacSignature = MarketingConsentLog.ComputeHmacSignature(consent, consentHmacOptions.Value.Secret);
-        logger.LogInformation("[LEAD-001e] Triple-write consent. ComplianceWriter: {WriterType}, ConsentAudit: {AuditType}",
-            complianceWriter.GetType().Name, consentAudit.GetType().Name);
-        await complianceWriter.WriteAsync(agentId, consent, hmacSignature, ct);  // Layer 2: RE* service-account Drive
-        await consentAudit.RecordAsync(agentId, consent, hmacSignature, ct);     // Layer 3: Azure Table
-        LeadDiagnostics.ConsentRecorded.Add(1);
-        logger.LogInformation("[LEAD-001f] All consent layers written for lead {LeadId}.", lead.Id);
+            // Triple-write: agent Drive (existing) + compliance Drive + Azure Table
+            var hmacSignature = MarketingConsentLog.ComputeHmacSignature(consent, consentHmacOptions.Value.Secret);
+            logger.LogInformation("[LEAD-001e] Triple-write consent. ComplianceWriter: {WriterType}, ConsentAudit: {AuditType}",
+                complianceWriter.GetType().Name, consentAudit.GetType().Name);
+            await complianceWriter.WriteAsync(agentId, consent, hmacSignature, ct);  // Layer 2: RE* service-account Drive
+            await consentAudit.RecordAsync(agentId, consent, hmacSignature, ct);     // Layer 3: Azure Table
+            LeadDiagnostics.ConsentRecorded.Add(1);
+            logger.LogInformation("[LEAD-001f] All consent layers written for lead {LeadId}.", lead.Id);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[LEAD-001d-FAIL] Consent recording failed for lead {LeadId}. Writing to dead letter.", lead.Id);
+            await deadLetterStore.RecordAsync(lead, "consent", ex.Message, ct);
+        }
 
         // 5. Enqueue background processing (enrichment, notification, home search)
         var correlationId = httpContext.Items[CorrelationIdMiddleware.CorrelationIdKey]?.ToString() ?? Guid.NewGuid().ToString();
