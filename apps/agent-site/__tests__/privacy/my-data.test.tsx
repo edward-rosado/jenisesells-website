@@ -16,6 +16,17 @@ vi.mock("@/features/privacy/privacy", () => ({
   requestExport: (...args: unknown[]) => mockRequestExport(...args),
 }));
 
+vi.mock("@/features/shared/telemetry", () => ({
+  trackFormEvent: vi.fn(),
+  EventType: {
+    Viewed: "Viewed",
+    Started: "Started",
+    Submitted: "Submitted",
+    Succeeded: "Succeeded",
+    Failed: "Failed",
+  },
+}));
+
 import MyDataPage, { generateMetadata } from "@/app/[handle]/privacy/my-data/page";
 
 describe("generateMetadata (my-data)", () => {

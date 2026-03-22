@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { requestDeletion } from "./privacy";
+import { trackFormEvent, EventType } from "@/features/shared/telemetry";
 
 interface DeleteRequestFormProps {
   agentId: string;
@@ -12,15 +13,30 @@ export function DeleteRequestForm({ agentId, initialEmail }: DeleteRequestFormPr
   const [email, setEmail] = useState(initialEmail);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    trackFormEvent(EventType.Viewed, agentId);
+  }, [agentId]);
+
+  function handleFirstFocus() {
+    if (!startedRef.current) {
+      startedRef.current = true;
+      trackFormEvent(EventType.Started, agentId);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) return;
+    trackFormEvent(EventType.Submitted, agentId);
     setStatus("loading");
     const result = await requestDeletion(agentId, email.trim());
     if (result.ok) {
+      trackFormEvent(EventType.Succeeded, agentId);
       setStatus("success");
     } else {
+      trackFormEvent(EventType.Failed, agentId, "server_error");
       setStatus("error");
       setErrorMessage(result.error ?? "Something went wrong. Please try again.");
     }
@@ -51,6 +67,7 @@ export function DeleteRequestForm({ agentId, initialEmail }: DeleteRequestFormPr
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          onFocus={handleFirstFocus}
           placeholder="your@email.com"
           required
           aria-required="true"

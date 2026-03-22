@@ -5,9 +5,21 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 const mockRequestSubscribe = vi.fn();
+const mockTrackFormEvent = vi.fn();
 
 vi.mock("@/features/privacy/privacy", () => ({
   requestSubscribe: (...args: unknown[]) => mockRequestSubscribe(...args),
+}));
+
+vi.mock("@/features/shared/telemetry", () => ({
+  trackFormEvent: (...args: unknown[]) => mockTrackFormEvent(...args),
+  EventType: {
+    Viewed: "Viewed",
+    Started: "Started",
+    Submitted: "Submitted",
+    Succeeded: "Succeeded",
+    Failed: "Failed",
+  },
 }));
 
 import { SubscribeForm } from "@/features/privacy/SubscribeForm";
@@ -67,5 +79,35 @@ describe("SubscribeForm", () => {
   it("renders without email display when email is empty", () => {
     render(<SubscribeForm agentId="test" email="" token="abc" />);
     expect(screen.queryByText(/re-subscribing email/i)).not.toBeInTheDocument();
+  });
+
+  it("fires Viewed event on mount", () => {
+    render(<SubscribeForm agentId="test" email="user@example.com" token="abc" />);
+    expect(mockTrackFormEvent).toHaveBeenCalledWith("Viewed", "test");
+  });
+
+  it("fires Started and Submitted events when button is clicked", async () => {
+    mockRequestSubscribe.mockResolvedValue({ ok: true });
+    render(<SubscribeForm agentId="test" email="user@example.com" token="abc" />);
+    fireEvent.click(screen.getByRole("button", { name: /confirm re-subscribe/i }));
+    await waitFor(() => expect(screen.getByRole("status")).toBeInTheDocument());
+    expect(mockTrackFormEvent).toHaveBeenCalledWith("Started", "test");
+    expect(mockTrackFormEvent).toHaveBeenCalledWith("Submitted", "test");
+  });
+
+  it("fires Succeeded event on successful re-subscribe", async () => {
+    mockRequestSubscribe.mockResolvedValue({ ok: true });
+    render(<SubscribeForm agentId="test" email="user@example.com" token="abc" />);
+    fireEvent.click(screen.getByRole("button", { name: /confirm re-subscribe/i }));
+    await waitFor(() => expect(screen.getByRole("status")).toBeInTheDocument());
+    expect(mockTrackFormEvent).toHaveBeenCalledWith("Succeeded", "test");
+  });
+
+  it("fires Failed event on failed re-subscribe", async () => {
+    mockRequestSubscribe.mockResolvedValue({ ok: false, error: "Token expired" });
+    render(<SubscribeForm agentId="test" email="user@example.com" token="abc" />);
+    fireEvent.click(screen.getByRole("button", { name: /confirm re-subscribe/i }));
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(mockTrackFormEvent).toHaveBeenCalledWith("Failed", "test", "server_error");
   });
 });

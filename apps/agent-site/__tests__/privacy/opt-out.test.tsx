@@ -16,6 +16,17 @@ vi.mock("@/features/privacy/privacy", () => ({
   requestOptOut: (...args: unknown[]) => mockRequestOptOut(...args),
 }));
 
+vi.mock("@/features/shared/telemetry", () => ({
+  trackFormEvent: vi.fn(),
+  EventType: {
+    Viewed: "Viewed",
+    Started: "Started",
+    Submitted: "Submitted",
+    Succeeded: "Succeeded",
+    Failed: "Failed",
+  },
+}));
+
 import OptOutPage, { generateMetadata } from "@/app/[handle]/privacy/opt-out/page";
 
 describe("generateMetadata (opt-out)", () => {

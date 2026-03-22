@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { requestSubscribe } from "./privacy";
+import { trackFormEvent, EventType } from "@/features/shared/telemetry";
 
 interface SubscribeFormProps {
   agentId: string;
@@ -12,13 +13,29 @@ interface SubscribeFormProps {
 export function SubscribeForm({ agentId, email, token }: SubscribeFormProps) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    trackFormEvent(EventType.Viewed, agentId);
+  }, [agentId]);
+
+  function handleFirstInteraction() {
+    if (!startedRef.current) {
+      startedRef.current = true;
+      trackFormEvent(EventType.Started, agentId);
+    }
+  }
 
   async function handleConfirm() {
+    handleFirstInteraction();
+    trackFormEvent(EventType.Submitted, agentId);
     setStatus("loading");
     const result = await requestSubscribe(agentId, email, token);
     if (result.ok) {
+      trackFormEvent(EventType.Succeeded, agentId);
       setStatus("success");
     } else {
+      trackFormEvent(EventType.Failed, agentId, "server_error");
       setStatus("error");
       setErrorMessage(result.error ?? "Something went wrong. Please try again.");
     }

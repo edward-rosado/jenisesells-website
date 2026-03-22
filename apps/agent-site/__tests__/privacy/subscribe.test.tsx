@@ -16,6 +16,17 @@ vi.mock("@/features/privacy/privacy", () => ({
   requestSubscribe: (...args: unknown[]) => mockRequestSubscribe(...args),
 }));
 
+vi.mock("@/features/shared/telemetry", () => ({
+  trackFormEvent: vi.fn(),
+  EventType: {
+    Viewed: "Viewed",
+    Started: "Started",
+    Submitted: "Submitted",
+    Succeeded: "Succeeded",
+    Failed: "Failed",
+  },
+}));
+
 import SubscribePage, { generateMetadata } from "@/app/[handle]/privacy/subscribe/page";
 
 describe("generateMetadata (subscribe)", () => {

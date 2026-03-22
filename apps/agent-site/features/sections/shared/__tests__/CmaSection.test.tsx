@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { CmaSection } from "../CmaSection";
 import type { ContactFormData } from "@/features/config/types";
-import { trackFormEvent } from "@/features/shared/telemetry";
+import { trackFormEvent, EventType } from "@/features/shared/telemetry";
 
 // Mock IntersectionObserver (not available in jsdom)
 const mockObserve = vi.fn();
@@ -23,6 +23,13 @@ vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
 // Mock telemetry so tests don't make network requests
 vi.mock("@/features/shared/telemetry", () => ({
   trackFormEvent: vi.fn(),
+  EventType: {
+    Viewed: "Viewed",
+    Started: "Started",
+    Submitted: "Submitted",
+    Succeeded: "Succeeded",
+    Failed: "Failed",
+  },
 }));
 
 // --- Mock submitLead server action ---
@@ -412,7 +419,7 @@ describe("CmaSection telemetry events", () => {
       );
     });
 
-    expect(vi.mocked(trackFormEvent)).toHaveBeenCalledWith("form.viewed", "test-agent");
+    expect(vi.mocked(trackFormEvent)).toHaveBeenCalledWith(EventType.Viewed, "test-agent");
     expect(mockDisconnect).toHaveBeenCalled();
   });
 
@@ -426,7 +433,7 @@ describe("CmaSection telemetry events", () => {
       );
     });
 
-    expect(vi.mocked(trackFormEvent)).not.toHaveBeenCalledWith("form.viewed", "test-agent");
+    expect(vi.mocked(trackFormEvent)).not.toHaveBeenCalledWith(EventType.Viewed, "test-agent");
   });
 
   it("tracks form.viewed only once even if intersected multiple times", () => {
@@ -445,7 +452,7 @@ describe("CmaSection telemetry events", () => {
       );
     });
 
-    const viewedCalls = vi.mocked(trackFormEvent).mock.calls.filter((c) => c[0] === "form.viewed");
+    const viewedCalls = vi.mocked(trackFormEvent).mock.calls.filter((c) => c[0] === EventType.Viewed);
     expect(viewedCalls).toHaveLength(1);
   });
 
@@ -454,7 +461,7 @@ describe("CmaSection telemetry events", () => {
 
     fireEvent.focusIn(screen.getByLabelText(/^first name/i));
 
-    expect(vi.mocked(trackFormEvent)).toHaveBeenCalledWith("form.started", "test-agent");
+    expect(vi.mocked(trackFormEvent)).toHaveBeenCalledWith(EventType.Started, "test-agent");
   });
 
   it("tracks form.started only once even if focused multiple times", () => {
@@ -464,7 +471,7 @@ describe("CmaSection telemetry events", () => {
     fireEvent.focusIn(input);
     fireEvent.focusIn(input);
 
-    const startedCalls = vi.mocked(trackFormEvent).mock.calls.filter((c) => c[0] === "form.started");
+    const startedCalls = vi.mocked(trackFormEvent).mock.calls.filter((c) => c[0] === EventType.Started);
     expect(startedCalls).toHaveLength(1);
   });
 });

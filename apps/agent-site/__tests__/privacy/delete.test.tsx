@@ -16,6 +16,17 @@ vi.mock("@/features/privacy/privacy", () => ({
   requestDeletion: (...args: unknown[]) => mockRequestDeletion(...args),
 }));
 
+vi.mock("@/features/shared/telemetry", () => ({
+  trackFormEvent: vi.fn(),
+  EventType: {
+    Viewed: "Viewed",
+    Started: "Started",
+    Submitted: "Submitted",
+    Succeeded: "Succeeded",
+    Failed: "Failed",
+  },
+}));
+
 import DeletePage, { generateMetadata } from "@/app/[handle]/privacy/delete/page";
 
 describe("generateMetadata (delete)", () => {

@@ -2,7 +2,7 @@
 
 import type { ContactFormData, AccountTracking } from "@/features/config/types";
 import { trackCmaConversion } from "@/features/shared/Analytics";
-import { trackFormEvent } from "@/features/shared/telemetry";
+import { trackFormEvent, EventType } from "@/features/shared/telemetry";
 import { LeadForm } from "@real-estate-star/forms";
 import type { LeadFormData } from "@real-estate-star/domain";
 import { Turnstile } from "@marsidev/react-turnstile";
@@ -41,7 +41,7 @@ export function CmaSection({
         for (const entry of entries) {
           if (entry.isIntersecting && !viewedRef.current) {
             viewedRef.current = true;
-            trackFormEvent("form.viewed", accountId);
+            trackFormEvent(EventType.Viewed, accountId);
             observer.disconnect();
           }
         }
@@ -56,12 +56,12 @@ export function CmaSection({
   function handleFirstFocus() {
     if (!startedRef.current) {
       startedRef.current = true;
-      trackFormEvent("form.started", accountId);
+      trackFormEvent(EventType.Started, accountId);
     }
   }
 
   async function handleSubmit(leadData: LeadFormData) {
-    trackFormEvent("form.submitted", accountId);
+    trackFormEvent(EventType.Submitted, accountId);
     setIsProcessing(true);
     setErrorMessage(null);
 
@@ -71,19 +71,19 @@ export function CmaSection({
       if (result.error) {
         setErrorMessage(result.error);
         console.error("[agent-site] Lead submission error:", result.error);
-        trackFormEvent("form.failed", accountId, "server_error");
+        trackFormEvent(EventType.Failed, accountId, "server_error");
         return;
       }
     } catch (err) {
       console.error("[agent-site] Lead submission failed:", err);
       setErrorMessage("Something went wrong. Please try again.");
-      trackFormEvent("form.failed", accountId, "network_error");
+      trackFormEvent(EventType.Failed, accountId, "network_error");
       return;
     } finally {
       setIsProcessing(false);
     }
 
-    trackFormEvent("form.succeeded", accountId);
+    trackFormEvent(EventType.Succeeded, accountId);
     trackCmaConversion(tracking);
     window.location.href = `/thank-you?accountId=${encodeURIComponent(accountId)}`;
   }

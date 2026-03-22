@@ -1,11 +1,8 @@
-type FormEvent =
-  | "form.viewed"
-  | "form.started"
-  | "form.submitted"
-  | "form.succeeded"
-  | "form.failed";
+import { EventType } from "@real-estate-star/analytics";
 
-export function trackFormEvent(event: FormEvent, agentId: string, errorType?: string): void {
+export { EventType };
+
+export function trackFormEvent(event: EventType, agentId: string, errorType?: string): void {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? process.env.LEAD_API_URL;
   if (!apiUrl) return;
 

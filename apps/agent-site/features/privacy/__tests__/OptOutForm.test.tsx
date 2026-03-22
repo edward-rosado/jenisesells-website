@@ -5,9 +5,21 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 const mockRequestOptOut = vi.fn();
+const mockTrackFormEvent = vi.fn();
 
 vi.mock("@/features/privacy/privacy", () => ({
   requestOptOut: (...args: unknown[]) => mockRequestOptOut(...args),
+}));
+
+vi.mock("@/features/shared/telemetry", () => ({
+  trackFormEvent: (...args: unknown[]) => mockTrackFormEvent(...args),
+  EventType: {
+    Viewed: "Viewed",
+    Started: "Started",
+    Submitted: "Submitted",
+    Succeeded: "Succeeded",
+    Failed: "Failed",
+  },
 }));
 
 import { OptOutForm } from "@/features/privacy/OptOutForm";
@@ -67,5 +79,35 @@ describe("OptOutForm", () => {
   it("renders without email display when email is empty", () => {
     render(<OptOutForm agentId="test" email="" token="abc" />);
     expect(screen.queryByText(/opting out email/i)).not.toBeInTheDocument();
+  });
+
+  it("fires Viewed event on mount", () => {
+    render(<OptOutForm agentId="test" email="user@example.com" token="abc" />);
+    expect(mockTrackFormEvent).toHaveBeenCalledWith("Viewed", "test");
+  });
+
+  it("fires Started and Submitted events when button is clicked", async () => {
+    mockRequestOptOut.mockResolvedValue({ ok: true });
+    render(<OptOutForm agentId="test" email="user@example.com" token="abc" />);
+    fireEvent.click(screen.getByRole("button", { name: /confirm opt out/i }));
+    await waitFor(() => expect(screen.getByRole("status")).toBeInTheDocument());
+    expect(mockTrackFormEvent).toHaveBeenCalledWith("Started", "test");
+    expect(mockTrackFormEvent).toHaveBeenCalledWith("Submitted", "test");
+  });
+
+  it("fires Succeeded event on successful opt-out", async () => {
+    mockRequestOptOut.mockResolvedValue({ ok: true });
+    render(<OptOutForm agentId="test" email="user@example.com" token="abc" />);
+    fireEvent.click(screen.getByRole("button", { name: /confirm opt out/i }));
+    await waitFor(() => expect(screen.getByRole("status")).toBeInTheDocument());
+    expect(mockTrackFormEvent).toHaveBeenCalledWith("Succeeded", "test");
+  });
+
+  it("fires Failed event on failed opt-out", async () => {
+    mockRequestOptOut.mockResolvedValue({ ok: false, error: "Token expired" });
+    render(<OptOutForm agentId="test" email="user@example.com" token="abc" />);
+    fireEvent.click(screen.getByRole("button", { name: /confirm opt out/i }));
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(mockTrackFormEvent).toHaveBeenCalledWith("Failed", "test", "server_error");
   });
 });

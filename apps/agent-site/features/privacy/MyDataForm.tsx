@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { requestExport } from "./privacy";
 import type { ExportData } from "./privacy";
+import { trackFormEvent, EventType } from "@/features/shared/telemetry";
 
 interface MyDataFormProps {
   agentId: string;
@@ -15,24 +16,40 @@ export function MyDataForm({ agentId, initialEmail, privacyHref }: MyDataFormPro
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "not-found" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [data, setData] = useState<ExportData[]>([]);
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    trackFormEvent(EventType.Viewed, agentId);
+  }, [agentId]);
+
+  function handleFirstFocus() {
+    if (!startedRef.current) {
+      startedRef.current = true;
+      trackFormEvent(EventType.Started, agentId);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = email.trim();
     if (!trimmed) return;
+    trackFormEvent(EventType.Submitted, agentId);
     setStatus("loading");
     setErrorMessage("");
     const result = await requestExport(agentId, trimmed);
     if (!result.ok) {
+      trackFormEvent(EventType.Failed, agentId, "server_error");
       setStatus("error");
       setErrorMessage(result.error ?? "Something went wrong. Please try again.");
       return;
     }
     if (!result.data || result.data.length === 0) {
+      trackFormEvent(EventType.Succeeded, agentId);
       setStatus("not-found");
       setData([]);
       return;
     }
+    trackFormEvent(EventType.Succeeded, agentId);
     setStatus("success");
     setData(result.data);
   }
@@ -49,6 +66,7 @@ export function MyDataForm({ agentId, initialEmail, privacyHref }: MyDataFormPro
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onFocus={handleFirstFocus}
             placeholder="your@email.com"
             required
             aria-required="true"
