@@ -75,16 +75,18 @@ public sealed class LeadProcessingWorker(
         // Step 1: Enrich (checkpoint: Research & Insights.md exists)
         var (enrichment, score) = await EnrichLeadAsync(agentId, lead, ct);
 
-        // Step 2: Draft + send notification (checkpoint: Notification Draft.md exists)
-        await NotifyAgentAsync(agentId, lead, enrichment, score, ct);
+        // Steps 2-4: Run in parallel — notification should not block CMA/home search
+        var notifyTask = NotifyAgentAsync(agentId, lead, enrichment, score, ct);
 
-        // Step 3: Dispatch to CMA pipeline for sellers
+        // Dispatch CMA and home search immediately after enrichment
         if (lead.LeadType is LeadType.Seller or LeadType.Both && lead.SellerDetails is not null)
             await DispatchCmaAsync(agentId, lead, enrichment, score, correlationId, ct);
 
-        // Step 4: Dispatch to home search pipeline for buyers
         if (lead.LeadType is LeadType.Buyer or LeadType.Both && lead.BuyerDetails is not null)
             await DispatchHomeSearchAsync(agentId, lead, correlationId, ct);
+
+        // Wait for notification to finish (retries may take minutes)
+        await notifyTask;
 
         // Mark complete
         lead.Status = LeadStatus.Complete;
