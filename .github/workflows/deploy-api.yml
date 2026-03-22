@@ -71,31 +71,47 @@ jobs:
         run: docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Update Container App secrets
+        env:
+          WA_PHONE: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+          WA_TOKEN: ${{ secrets.WHATSAPP_ACCESS_TOKEN }}
+          WA_SECRET: ${{ secrets.WHATSAPP_APP_SECRET }}
+          WA_VERIFY: ${{ secrets.WHATSAPP_VERIFY_TOKEN }}
+          WA_WABA: ${{ secrets.WHATSAPP_WABA_ID }}
+          AZ_STORAGE: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
         run: |
-          az containerapp secret set \
-            --name ${{ env.CONTAINER_APP_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --secrets \
-              "whatsapp-phone-number-id=${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}" \
-              "whatsapp-access-token=${{ secrets.WHATSAPP_ACCESS_TOKEN }}" \
-              "whatsapp-app-secret=${{ secrets.WHATSAPP_APP_SECRET }}" \
-              "whatsapp-verify-token=${{ secrets.WHATSAPP_VERIFY_TOKEN }}" \
-              "whatsapp-waba-id=${{ secrets.WHATSAPP_WABA_ID }}" \
-              "azure-storage-connection-string=${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}"
+          SECRETS=()
+          [ -n "$WA_PHONE" ]   && SECRETS+=("whatsapp-phone-number-id=$WA_PHONE")
+          [ -n "$WA_TOKEN" ]   && SECRETS+=("whatsapp-access-token=$WA_TOKEN")
+          [ -n "$WA_SECRET" ]  && SECRETS+=("whatsapp-app-secret=$WA_SECRET")
+          [ -n "$WA_VERIFY" ]  && SECRETS+=("whatsapp-verify-token=$WA_VERIFY")
+          [ -n "$WA_WABA" ]    && SECRETS+=("whatsapp-waba-id=$WA_WABA")
+          [ -n "$AZ_STORAGE" ] && SECRETS+=("azure-storage-connection-string=$AZ_STORAGE")
+          if [ ${#SECRETS[@]} -gt 0 ]; then
+            az containerapp secret set \
+              --name "$CONTAINER_APP_NAME" \
+              --resource-group "$RESOURCE_GROUP" \
+              --secrets "${SECRETS[@]}"
+          else
+            echo "No WhatsApp/storage secrets configured — skipping secret update"
+          fi
 
       - name: Deploy to Container App
+        env:
+          WA_PHONE: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+          AZ_STORAGE: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
         run: |
+          EXTRA_ENV_VARS=""
+          if [ -n "$WA_PHONE" ]; then
+            EXTRA_ENV_VARS="WhatsApp__PhoneNumberId=secretref:whatsapp-phone-number-id WhatsApp__AccessToken=secretref:whatsapp-access-token WhatsApp__AppSecret=secretref:whatsapp-app-secret WhatsApp__VerifyToken=secretref:whatsapp-verify-token WhatsApp__WabaId=secretref:whatsapp-waba-id"
+          fi
+          if [ -n "$AZ_STORAGE" ]; then
+            EXTRA_ENV_VARS="$EXTRA_ENV_VARS AzureStorage__ConnectionString=secretref:azure-storage-connection-string"
+          fi
           az containerapp update \
-            --name ${{ env.CONTAINER_APP_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            --set-env-vars \
-              "WhatsApp__PhoneNumberId=secretref:whatsapp-phone-number-id" \
-              "WhatsApp__AccessToken=secretref:whatsapp-access-token" \
-              "WhatsApp__AppSecret=secretref:whatsapp-app-secret" \
-              "WhatsApp__VerifyToken=secretref:whatsapp-verify-token" \
-              "WhatsApp__WabaId=secretref:whatsapp-waba-id" \
-              "AzureStorage__ConnectionString=secretref:azure-storage-connection-string"
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}" \
+            ${EXTRA_ENV_VARS:+--set-env-vars $EXTRA_ENV_VARS}
 
       - name: Verify deployment
         run: |
