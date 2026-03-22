@@ -21,7 +21,10 @@ export async function submitLead(
     const body = JSON.stringify(formData);
     const response = await signAndForward(agentId, body);
 
-    if (!response.ok) return { error: "Something went wrong. Please try again." };
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      return { error: `API error [${response.status}]: ${text || response.statusText}` };
+    }
     return response.json();
   } catch (error) {
     Sentry.captureException(error);
