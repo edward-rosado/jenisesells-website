@@ -17,11 +17,11 @@ public static class LeadMappers
         Notes = request.Notes,
         ReceivedAt = DateTime.UtcNow,
         Status = LeadStatus.Received,
-        SellerDetails = request.Seller is { } s ? MapSeller(s) : null,
-        BuyerDetails = request.Buyer is { } b ? MapBuyer(b) : null
+        SellerDetails = request.Seller is { } s ? MapSellerDetails(s) : null,
+        BuyerDetails = request.Buyer is { } b ? MapBuyerDetails(b) : null
     };
 
-    private static SellerDetails MapSeller(SellerDetailsRequest s) => new()
+    internal static SellerDetails MapSellerDetails(SellerDetailsRequest s) => new()
     {
         Address = s.Address,
         City = s.City,
@@ -32,7 +32,7 @@ public static class LeadMappers
         Sqft = s.Sqft
     };
 
-    private static BuyerDetails MapBuyer(BuyerDetailsRequest b)
+    internal static BuyerDetails MapBuyerDetails(BuyerDetailsRequest b)
     {
         var (city, state) = ParseCityState(b.DesiredArea);
         return new BuyerDetails

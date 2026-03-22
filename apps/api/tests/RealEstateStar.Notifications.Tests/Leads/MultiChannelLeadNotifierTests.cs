@@ -241,35 +241,43 @@ public class MultiChannelLeadNotifierTests
             null, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    // ─── Helper: create a notifier instance for testing pure formatting methods ──
+
+    private static MultiChannelLeadNotifier BuildSubject_CreateSut() =>
+        new(new Mock<IHttpClientFactory>().Object,
+            new Mock<IGwsService>().Object,
+            new Mock<IAccountConfigService>().Object,
+            new Mock<ILogger<MultiChannelLeadNotifier>>().Object);
+
     // ─── BuildSubject tests ───────────────────────────────────────────────────
 
     [Fact]
     public void BuildSubject_IncludesMotivationCategory()
     {
-        var subject = MultiChannelLeadNotifier.BuildSubject(MakeLead(), MakeEnrichment(), MakeScore());
+        var subject = BuildSubject_CreateSut().BuildSubject(MakeLead(), MakeEnrichment(), MakeScore());
         subject.Should().Contain("relocating");
     }
 
     [Fact]
     public void BuildSubject_IncludesScore()
     {
-        var subject = MultiChannelLeadNotifier.BuildSubject(MakeLead(), MakeEnrichment(), MakeScore());
+        var subject = BuildSubject_CreateSut().BuildSubject(MakeLead(), MakeEnrichment(), MakeScore());
         subject.Should().Contain("82");
     }
 
     [Fact]
     public void BuildSubject_IncludesLeadName()
     {
-        var subject = MultiChannelLeadNotifier.BuildSubject(MakeLead(), MakeEnrichment(), MakeScore());
+        var subject = BuildSubject_CreateSut().BuildSubject(MakeLead(), MakeEnrichment(), MakeScore());
         subject.Should().Contain("Jane Doe");
     }
 
-    // ─── BuildEmailBody tests ─────────────────────────────────────────────────
+    // ─── BuildBody tests ──────────────────────────────────────────────────────
 
     [Fact]
     public void BuildEmailBody_IncludesColdCallOpeners()
     {
-        var body = MultiChannelLeadNotifier.BuildEmailBody(MakeLead(), MakeEnrichment(), MakeScore());
+        var body = BuildSubject_CreateSut().BuildBody(MakeLead(), MakeEnrichment(), MakeScore());
         body.Should().Contain("Cold Call Openers");
         body.Should().Contain("Congratulations on the new opportunity!");
     }
@@ -291,7 +299,7 @@ public class MultiChannelLeadNotifierTests
             Status = LeadStatus.Enriched,
             SellerDetails = new SellerDetails { Address = "123 Main St", City = "Springfield", State = "NJ", Zip = "07081" }
         };
-        var body = MultiChannelLeadNotifier.BuildEmailBody(lead, MakeEnrichment(), MakeScore());
+        var body = BuildSubject_CreateSut().BuildBody(lead, MakeEnrichment(), MakeScore());
         body.Should().Contain("## Selling");
         body.Should().NotContain("## Buying");
     }
@@ -313,7 +321,7 @@ public class MultiChannelLeadNotifierTests
             Status = LeadStatus.Enriched,
             BuyerDetails = new BuyerDetails { City = "Kill Devil Hills", State = "NC" }
         };
-        var body = MultiChannelLeadNotifier.BuildEmailBody(lead, MakeEnrichment(), MakeScore());
+        var body = BuildSubject_CreateSut().BuildBody(lead, MakeEnrichment(), MakeScore());
         body.Should().Contain("## Buying");
         body.Should().NotContain("## Selling");
     }
@@ -321,12 +329,12 @@ public class MultiChannelLeadNotifierTests
     [Fact]
     public void BuildEmailBody_IncludesEnrichmentSummary()
     {
-        var body = MultiChannelLeadNotifier.BuildEmailBody(MakeLead(), MakeEnrichment(), MakeScore());
+        var body = BuildSubject_CreateSut().BuildBody(MakeLead(), MakeEnrichment(), MakeScore());
         body.Should().Contain("Enrichment Summary");
         body.Should().Contain("Relocating for a new job opportunity.");
     }
 
-    // ─── BuildEmailBody — optional seller fields ──────────────────────────────
+    // ─── BuildBody — optional seller fields ───────────────────────────────────
 
     [Fact]
     public void BuildEmailBody_SellerWithOptionalFields_IncludesPropertyTypeConditionAndAskingPrice()
@@ -355,14 +363,14 @@ public class MultiChannelLeadNotifierTests
             }
         };
 
-        var body = MultiChannelLeadNotifier.BuildEmailBody(lead, MakeEnrichment(), MakeScore());
+        var body = BuildSubject_CreateSut().BuildBody(lead, MakeEnrichment(), MakeScore());
 
         body.Should().Contain("Single Family");
         body.Should().Contain("Good");
         body.Should().Contain("450,000");
     }
 
-    // ─── BuildEmailBody — optional buyer fields ───────────────────────────────
+    // ─── BuildBody — optional buyer fields ────────────────────────────────────
 
     [Fact]
     public void BuildEmailBody_BuyerWithOptionalFields_IncludesMaxBudgetBedroomsBathroomsPropertyTypesAndMustHaves()
@@ -391,7 +399,7 @@ public class MultiChannelLeadNotifierTests
             }
         };
 
-        var body = MultiChannelLeadNotifier.BuildEmailBody(lead, MakeEnrichment(), MakeScore());
+        var body = BuildSubject_CreateSut().BuildBody(lead, MakeEnrichment(), MakeScore());
 
         body.Should().Contain("500,000");
         body.Should().Contain("3");        // bedrooms
@@ -405,7 +413,7 @@ public class MultiChannelLeadNotifierTests
     {
         var enrichment = MakeEnrichment() with { ColdCallOpeners = [] };
 
-        var body = MultiChannelLeadNotifier.BuildEmailBody(MakeLead(), enrichment, MakeScore());
+        var body = BuildSubject_CreateSut().BuildBody(MakeLead(), enrichment, MakeScore());
 
         body.Should().NotContain("Cold Call Openers");
     }

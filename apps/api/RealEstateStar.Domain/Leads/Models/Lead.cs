@@ -4,14 +4,14 @@ public class Lead
 {
     public required Guid Id { get; init; }
     public required string AgentId { get; init; }
-    public required LeadType LeadType { get; init; }
+    public required LeadType LeadType { get; set; }
     public required string FirstName { get; init; }
     public required string LastName { get; init; }
     public required string Email { get; init; }
     public required string Phone { get; init; }
     public required string Timeline { get; init; }
-    public SellerDetails? SellerDetails { get; init; }
-    public BuyerDetails? BuyerDetails { get; init; }
+    public SellerDetails? SellerDetails { get; set; }
+    public BuyerDetails? BuyerDetails { get; set; }
     public string? Notes { get; init; }
     public DateTime ReceivedAt { get; init; }
     public LeadStatus Status { get; set; }
@@ -23,4 +23,8 @@ public class Lead
     public bool? MarketingOptedIn { get; set; }
 
     public string FullName => $"{FirstName} {LastName}";
+
+    public void MergeType(LeadType newType) => LeadType = newType;
+    public void MergeSellerDetails(SellerDetails details) => SellerDetails = details;
+    public void MergeBuyerDetails(BuyerDetails details) => BuyerDetails = details;
 }

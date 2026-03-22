@@ -76,7 +76,7 @@ public class MultiChannelLeadNotifier(
         {
             logger.LogInformation("[NOTIFY-021] Sending email notification to {AgentEmail} for lead {LeadId}...", agentEmail, lead.Id);
             var subject = BuildSubject(lead, enrichment, score);
-            var body = BuildEmailBody(lead, enrichment, score);
+            var body = BuildBody(lead, enrichment, score);
             await gwsService.SendEmailAsync(agentEmail, agentEmail, subject, body, null, ct);
             logger.LogInformation("[NOTIFY-022] Email notification sent to {AgentEmail} for lead {LeadId}.", agentEmail, lead.Id);
         }
@@ -87,12 +87,12 @@ public class MultiChannelLeadNotifier(
         }
     }
 
-    internal static string BuildSubject(Lead lead, LeadEnrichment enrichment, LeadScore score)
+    public string BuildSubject(Lead lead, LeadEnrichment enrichment, LeadScore score)
         => $"New Lead: {lead.FullName} — {enrichment.MotivationCategory} (Score: {score.OverallScore})";
 
     // CAN-SPAM classification: transactional (agent receiving notification about their own incoming lead).
     // Not commercial marketing — no unsubscribe footer or physical address required.
-    internal static string BuildEmailBody(Lead lead, LeadEnrichment enrichment, LeadScore score)
+    public string BuildBody(Lead lead, LeadEnrichment enrichment, LeadScore score)
     {
         var sb = new StringBuilder();
 

@@ -83,6 +83,8 @@ file sealed class NoOpLeadNotifier : ILeadNotifier
 {
     public Task NotifyAgentAsync(string agentId, Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct) =>
         Task.CompletedTask;
+    public string BuildSubject(Lead l, LeadEnrichment e, LeadScore s) => "";
+    public string BuildBody(Lead l, LeadEnrichment e, LeadScore s) => "";
 }
 
 file sealed class NoOpHomeSearchProvider : IHomeSearchProvider

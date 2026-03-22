@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Workers.Cma;
 using RealEstateStar.Workers.HomeSearch;
 using RealEstateStar.Workers.Leads;
@@ -33,6 +34,7 @@ public class LeadProcessingWorkerTests
     private LeadProcessingWorker CreateWorker() =>
         new(_channel, _leadStore.Object, _enricher.Object,
             _notifier.Object, _failedNotificationStore.Object,
+            new Mock<IFileStorageProvider>().Object,
             _cmaChannel, _homeSearchChannel, _healthTracker, _logger.Object)
         {
             RetryDelays = ZeroDelays,

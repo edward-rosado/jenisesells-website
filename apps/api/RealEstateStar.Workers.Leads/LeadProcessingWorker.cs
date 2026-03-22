@@ -5,6 +5,7 @@ using RealEstateStar.Domain.Cma.Models;
 using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Workers.Cma;
 using RealEstateStar.Workers.HomeSearch;
 using RealEstateStar.Workers.Shared;
@@ -13,8 +14,8 @@ namespace RealEstateStar.Workers.Leads;
 
 /// <summary>
 /// Background service that processes leads from the <see cref="LeadProcessingChannel"/>.
-/// Runs enrichment and agent notification, then fans out to dedicated pipelines:
-/// <see cref="CmaProcessingWorker"/> for seller CMA and <see cref="HomeSearchProcessingWorker"/> for buyer home search.
+/// Uses checkpoint/resume: each step checks if its output already exists before re-running.
+/// This saves Claude tokens and ScraperAPI credits on retries.
 /// </summary>
 public sealed class LeadProcessingWorker(
     LeadProcessingChannel channel,
@@ -22,6 +23,7 @@ public sealed class LeadProcessingWorker(
     ILeadEnricher enricher,
     ILeadNotifier notifier,
     IFailedNotificationStore failedNotificationStore,
+    IFileStorageProvider storage,
     CmaProcessingChannel cmaChannel,
     HomeSearchProcessingChannel homeSearchChannel,
     BackgroundServiceHealthTracker healthTracker,
@@ -67,13 +69,13 @@ public sealed class LeadProcessingWorker(
         activity?.SetTag("correlation.id", correlationId);
 
         logger.LogInformation(
-            "[WORKER-010] Processing lead {LeadId} for agent {AgentId}. Type: {LeadType}. CorrelationId: {CorrelationId}",
-            lead.Id, agentId, lead.LeadType, correlationId);
+            "[WORKER-010] Processing lead {LeadId} for agent {AgentId}. Type: {LeadType}. Status: {Status}. CorrelationId: {CorrelationId}",
+            lead.Id, agentId, lead.LeadType, lead.Status, correlationId);
 
-        // Step 1: Enrich
+        // Step 1: Enrich (checkpoint: Research & Insights.md exists)
         var (enrichment, score) = await EnrichLeadAsync(agentId, lead, ct);
 
-        // Step 2: Notify agent
+        // Step 2: Draft + send notification (checkpoint: Notification Draft.md exists)
         await NotifyAgentAsync(agentId, lead, enrichment, score, ct);
 
         // Step 3: Dispatch to CMA pipeline for sellers
@@ -83,6 +85,11 @@ public sealed class LeadProcessingWorker(
         // Step 4: Dispatch to home search pipeline for buyers
         if (lead.LeadType is LeadType.Buyer or LeadType.Both && lead.BuyerDetails is not null)
             await DispatchHomeSearchAsync(agentId, lead, correlationId, ct);
+
+        // Mark complete
+        lead.Status = LeadStatus.Complete;
+        try { await leadStore.UpdateStatusAsync(agentId, lead.Id, LeadStatus.Complete, ct); }
+        catch (Exception ex) { logger.LogWarning(ex, "[WORKER-012] Failed to update status to Complete for lead {LeadId}", lead.Id); }
 
         var totalMs = Stopwatch.GetElapsedTime(pipelineStart).TotalMilliseconds;
         LeadDiagnostics.TotalPipelineDuration.Record(totalMs);
@@ -94,6 +101,17 @@ public sealed class LeadProcessingWorker(
 
     private async Task<(LeadEnrichment, LeadScore)> EnrichLeadAsync(string agentId, Lead lead, CancellationToken ct)
     {
+        // Checkpoint: if enrichment file exists, skip Claude + scraping
+        var enrichmentFolder = LeadPaths.LeadFolder(lead.FullName);
+        var existingEnrichment = await storage.ReadDocumentAsync(enrichmentFolder, "Research & Insights.md", ct);
+        if (existingEnrichment is not null && lead.Enrichment is not null)
+        {
+            logger.LogInformation(
+                "[WORKER-020-SKIP] Enrichment already exists for lead {LeadId}. Skipping Claude + scraping.",
+                lead.Id);
+            return (lead.Enrichment, lead.Score ?? LeadScore.Default("from checkpoint"));
+        }
+
         var enrichment = LeadEnrichment.Empty();
         var score = LeadScore.Default("enrichment not yet run");
         var sw = Stopwatch.GetTimestamp();
@@ -102,6 +120,9 @@ public sealed class LeadProcessingWorker(
         {
             (enrichment, score) = await enricher.EnrichAsync(lead, ct);
             await leadStore.UpdateEnrichmentAsync(lead, enrichment, score, ct);
+
+            lead.Status = LeadStatus.Enriched;
+            await leadStore.UpdateStatusAsync(agentId, lead.Id, LeadStatus.Enriched, ct);
 
             LeadDiagnostics.LeadsEnriched.Add(1);
             logger.LogInformation(
@@ -122,6 +143,31 @@ public sealed class LeadProcessingWorker(
 
     private async Task NotifyAgentAsync(string agentId, Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
     {
+        // Step 2a: Draft email (checkpoint: Notification Draft.md exists)
+        var draftFolder = LeadPaths.LeadFolder(lead.FullName);
+        var existingDraft = await storage.ReadDocumentAsync(draftFolder, "Notification Draft.md", ct);
+
+        if (existingDraft is null)
+        {
+            // Build and save the draft — this is the expensive part (building the email body)
+            var subject = notifier.BuildSubject(lead, enrichment, score);
+            var body = notifier.BuildBody(lead, enrichment, score);
+            var draft = $"---\nsubject: {EscapeYaml(subject)}\n---\n\n{body}";
+
+            await storage.WriteDocumentAsync(draftFolder, "Notification Draft.md", draft, ct);
+
+            lead.Status = LeadStatus.EmailDrafted;
+            try { await leadStore.UpdateStatusAsync(agentId, lead.Id, LeadStatus.EmailDrafted, ct); }
+            catch (Exception ex) { logger.LogWarning(ex, "[WORKER-025] Failed to update status to EmailDrafted for lead {LeadId}", lead.Id); }
+
+            logger.LogInformation("[WORKER-024] Email draft saved for lead {LeadId}.", lead.Id);
+        }
+        else
+        {
+            logger.LogInformation("[WORKER-024-SKIP] Email draft already exists for lead {LeadId}. Skipping draft creation.", lead.Id);
+        }
+
+        // Step 2b: Send notification (retry with dead letter)
         var sw = Stopwatch.GetTimestamp();
         Exception? lastException = null;
 
@@ -138,6 +184,10 @@ public sealed class LeadProcessingWorker(
                 }
 
                 await notifier.NotifyAgentAsync(agentId, lead, enrichment, score, ct);
+
+                lead.Status = LeadStatus.Notified;
+                try { await leadStore.UpdateStatusAsync(agentId, lead.Id, LeadStatus.Notified, ct); }
+                catch (Exception ex) { logger.LogWarning(ex, "[WORKER-031] Failed to update status to Notified for lead {LeadId}", lead.Id); }
 
                 LeadDiagnostics.LeadsNotificationSent.Add(1);
                 logger.LogInformation(
@@ -171,6 +221,13 @@ public sealed class LeadProcessingWorker(
         string agentId, Lead lead, LeadEnrichment enrichment,
         LeadScore score, string correlationId, CancellationToken ct)
     {
+        // Checkpoint: skip if CMA already completed
+        if (lead.Status >= LeadStatus.CmaComplete)
+        {
+            logger.LogInformation("[WORKER-040-SKIP] CMA already completed for lead {LeadId}.", lead.Id);
+            return;
+        }
+
         try
         {
             var cmaRequest = new CmaProcessingRequest(agentId, lead, enrichment, score, correlationId);
@@ -191,6 +248,13 @@ public sealed class LeadProcessingWorker(
     private async Task DispatchHomeSearchAsync(
         string agentId, Lead lead, string correlationId, CancellationToken ct)
     {
+        // Checkpoint: skip if home search already completed
+        if (lead.Status >= LeadStatus.SearchComplete)
+        {
+            logger.LogInformation("[WORKER-050-SKIP] Home search already completed for lead {LeadId}.", lead.Id);
+            return;
+        }
+
         try
         {
             var hsRequest = new HomeSearchProcessingRequest(agentId, lead, correlationId);
@@ -207,4 +271,7 @@ public sealed class LeadProcessingWorker(
                 lead.Id, correlationId);
         }
     }
+
+    private static string EscapeYaml(string value)
+        => value.Replace("\"", "\\\"").Replace("\n", " ");
 }
