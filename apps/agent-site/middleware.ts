@@ -13,6 +13,7 @@ function buildCspHeader(nonce: string): string {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https: https://maps.gstatic.com",
     `connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com https://*.sentry.io https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.facebook.com https://connect.facebook.net${apiConnectSrc}`,
+    "frame-src https://challenges.cloudflare.com",
     "frame-ancestors 'none'",
   ].join("; ");
 }

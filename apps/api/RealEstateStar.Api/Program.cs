@@ -442,11 +442,15 @@ builder.Services.AddCors(options =>
                     return uri.Host == "localhost" || uri.Host.EndsWith(".localhost");
                 }
 
-                // Allow Cloudflare Pages preview deploys (*.pages.dev)
-                if (Uri.TryCreate(origin, UriKind.Absolute, out var originUri) &&
-                    originUri.Host.EndsWith(".real-estate-star-agents.pages.dev", StringComparison.OrdinalIgnoreCase))
+                if (Uri.TryCreate(origin, UriKind.Absolute, out var originUri))
                 {
-                    return true;
+                    // Allow agent site subdomains (*.real-estate-star.com)
+                    if (originUri.Host.EndsWith(".real-estate-star.com", StringComparison.OrdinalIgnoreCase))
+                        return true;
+
+                    // Allow Cloudflare Pages preview deploys (*.pages.dev)
+                    if (originUri.Host.EndsWith(".real-estate-star-agents.pages.dev", StringComparison.OrdinalIgnoreCase))
+                        return true;
                 }
 
                 return false;

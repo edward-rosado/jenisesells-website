@@ -211,6 +211,14 @@ describe("middleware", () => {
     delete process.env.NEXT_PUBLIC_API_URL;
   });
 
+  it("includes frame-src for Turnstile in CSP", () => {
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
+    const response = middleware(req as never);
+    const csp = response.headers.get("Content-Security-Policy")!;
+    expect(csp).toContain("frame-src https://challenges.cloudflare.com");
+  });
+
   it("omits API URL from CSP when NEXT_PUBLIC_API_URL is not set", () => {
     delete process.env.NEXT_PUBLIC_API_URL;
     mockExtractAgentId.mockReturnValue("jenise-buckalew");
