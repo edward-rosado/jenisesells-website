@@ -1,3 +1,4 @@
+/** Result of server-side Turnstile token validation. */
 export type TurnstileResult = { ok: true } | { ok: false; code: string; detail?: string };
 
 export async function validateTurnstile(token: string): Promise<TurnstileResult> {
