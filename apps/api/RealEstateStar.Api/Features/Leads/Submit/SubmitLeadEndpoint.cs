@@ -62,8 +62,14 @@ public class SubmitLeadEndpoint : IEndpoint
         activity?.SetTag("lead.agent_id", agentId);
 
         // 1. Validate agentId exists
+        logger.LogInformation("[LEAD-000] Looking up agent config for {AgentId}. Store type: {StoreType}", agentId, leadStore.GetType().Name);
         var agent = await accountConfig.GetAccountAsync(agentId, ct);
-        if (agent is null) return Results.NotFound();
+        if (agent is null)
+        {
+            logger.LogWarning("[LEAD-000] Agent {AgentId} not found — returning 404", agentId);
+            return Results.NotFound();
+        }
+        logger.LogInformation("[LEAD-000] Agent {AgentId} found. Email: {AgentEmail}", agentId, agent.Agent?.Email ?? "(none)");
 
         // 2. Map request to domain
         var lead = request.ToLead(agentId);
@@ -75,9 +81,12 @@ public class SubmitLeadEndpoint : IEndpoint
             lead.Id, agentId, lead.LeadType, HashEmail(lead.Email));
 
         // 3. Save lead (must succeed before returning 202)
+        logger.LogInformation("[LEAD-001a] Saving lead {LeadId} via {StoreType}...", lead.Id, leadStore.GetType().Name);
         await leadStore.SaveAsync(lead, ct);
+        logger.LogInformation("[LEAD-001b] Lead {LeadId} saved successfully.", lead.Id);
 
         // 4. Record marketing consent (must succeed before returning 202)
+        logger.LogInformation("[LEAD-001c] Recording consent for lead {LeadId}...", lead.Id);
         var consent = new MarketingConsent
         {
             LeadId = lead.Id,
@@ -94,13 +103,16 @@ public class SubmitLeadEndpoint : IEndpoint
             Source = ConsentSource.LeadForm,
         };
         await consentLog.RecordConsentAsync(agentId, consent, ct);
+        logger.LogInformation("[LEAD-001d] Consent recorded for lead {LeadId}.", lead.Id);
 
         // Triple-write: agent Drive (existing) + compliance Drive + Azure Table
         var hmacSignature = MarketingConsentLog.ComputeHmacSignature(consent, consentHmacOptions.Value.Secret);
-        // Layer 1: Agent Drive CSV (already existing call above)
+        logger.LogInformation("[LEAD-001e] Triple-write consent. ComplianceWriter: {WriterType}, ConsentAudit: {AuditType}",
+            complianceWriter.GetType().Name, consentAudit.GetType().Name);
         await complianceWriter.WriteAsync(agentId, consent, hmacSignature, ct);  // Layer 2: RE* service-account Drive
         await consentAudit.RecordAsync(agentId, consent, hmacSignature, ct);     // Layer 3: Azure Table
         LeadDiagnostics.ConsentRecorded.Add(1);
+        logger.LogInformation("[LEAD-001f] All consent layers written for lead {LeadId}.", lead.Id);
 
         // 5. Enqueue background processing (enrichment, notification, home search)
         var correlationId = httpContext.Items[CorrelationIdMiddleware.CorrelationIdKey]?.ToString() ?? Guid.NewGuid().ToString();

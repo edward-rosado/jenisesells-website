@@ -44,6 +44,19 @@ builder.AddObservability();
 var dockerConfigPath = Path.Combine(builder.Environment.ContentRootPath, "config", "accounts");
 var localConfigPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "accounts");
 var configPath = Directory.Exists(dockerConfigPath) ? dockerConfigPath : localConfigPath;
+Console.WriteLine($"[STARTUP] ContentRootPath: {builder.Environment.ContentRootPath}");
+Console.WriteLine($"[STARTUP] DockerConfigPath exists: {Directory.Exists(dockerConfigPath)} ({dockerConfigPath})");
+Console.WriteLine($"[STARTUP] LocalConfigPath exists: {Directory.Exists(localConfigPath)} ({localConfigPath})");
+Console.WriteLine($"[STARTUP] Using configPath: {configPath}");
+if (Directory.Exists(configPath))
+{
+    var dirs = Directory.GetDirectories(configPath);
+    Console.WriteLine($"[STARTUP] Found {dirs.Length} agent config(s): {string.Join(", ", dirs.Select(Path.GetFileName))}");
+}
+else
+{
+    Console.Error.WriteLine($"[STARTUP-ERROR] Config directory does not exist: {configPath}");
+}
 builder.Services.AddSingleton<IAccountConfigService>(sp =>
     new AccountConfigService(configPath, sp.GetRequiredService<ILogger<AccountConfigService>>()));
 

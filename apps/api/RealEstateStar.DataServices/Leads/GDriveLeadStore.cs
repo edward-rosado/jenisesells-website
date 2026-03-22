@@ -17,11 +17,12 @@ public class GDriveLeadStore(IFileStorageProvider storage, ILogger<GDriveLeadSto
     public async Task SaveAsync(Lead lead, CancellationToken ct)
     {
         var folder = LeadPaths.LeadFolder(lead.FullName);
-        logger.LogInformation("[LDS-010] Saving lead {LeadId} to {Folder}", lead.Id, folder);
+        logger.LogInformation("[LDS-010] Saving lead {LeadId} to {Folder}. StorageProvider: {ProviderType}", lead.Id, folder, storage.GetType().Name);
         await storage.EnsureFolderExistsAsync(folder, ct);
+        logger.LogInformation("[LDS-010a] Folder ensured for lead {LeadId}. Writing document...", lead.Id);
         var content = LeadMarkdownRenderer.RenderLeadProfile(lead);
         await storage.WriteDocumentAsync(folder, LeadProfileFile, content, ct);
-        logger.LogInformation("[LDS-011] Lead {LeadId} saved successfully.", lead.Id);
+        logger.LogInformation("[LDS-011] Lead {LeadId} saved successfully to {Folder}.", lead.Id, folder);
     }
 
     public async Task UpdateEnrichmentAsync(string agentId, Guid leadId, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)

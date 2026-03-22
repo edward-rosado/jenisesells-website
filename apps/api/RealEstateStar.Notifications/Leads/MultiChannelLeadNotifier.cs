@@ -12,21 +12,42 @@ public class MultiChannelLeadNotifier(
 {
     public async Task NotifyAgentAsync(string agentId, Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
     {
+        logger.LogInformation("[NOTIFY-001] Starting agent notification for lead {LeadId}, agent {AgentId}", lead.Id, agentId);
+
         var config = await accountConfigService.GetAccountAsync(agentId, ct);
         var agentEmail = config?.Agent?.Email ?? "";
         var webhookUrl = config?.Integrations?.ChatWebhookUrl;
 
-        var chatTask = SendChatAsync(webhookUrl, lead, enrichment, score, ct);
-        var emailTask = SendEmailAsync(agentEmail, lead, enrichment, score, ct);
+        logger.LogInformation("[NOTIFY-002] Agent config loaded. Email: {AgentEmail}, WebhookConfigured: {HasWebhook}",
+            string.IsNullOrWhiteSpace(agentEmail) ? "(empty)" : agentEmail,
+            !string.IsNullOrWhiteSpace(webhookUrl));
+
+        var chatSuccess = false;
+        var emailSuccess = false;
+
+        var chatTask = SendChatAsync(webhookUrl, lead, enrichment, score, ct).ContinueWith(t => chatSuccess = t.IsCompletedSuccessfully, ct);
+        var emailTask = SendEmailAsync(agentEmail, lead, enrichment, score, ct).ContinueWith(t => emailSuccess = t.IsCompletedSuccessfully, ct);
 
         await chatTask;
         await emailTask;
+
+        logger.LogInformation("[NOTIFY-003] Notification result for lead {LeadId}: ChatSent={ChatSuccess}, EmailSent={EmailSuccess}",
+            lead.Id, chatSuccess, emailSuccess);
+
+        if (!chatSuccess && !emailSuccess)
+        {
+            logger.LogError("[NOTIFY-004] ALL notification channels failed for lead {LeadId}, agent {AgentId}. Lead was saved but agent was NOT notified.", lead.Id, agentId);
+            throw new InvalidOperationException($"All notification channels failed for lead {lead.Id}");
+        }
     }
 
     private async Task SendChatAsync(string? webhookUrl, Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(webhookUrl))
+        {
+            logger.LogInformation("[NOTIFY-010] Google Chat webhook not configured for lead {LeadId} — skipping.", lead.Id);
             return;
+        }
 
         try
         {
@@ -34,24 +55,35 @@ public class MultiChannelLeadNotifier(
             var client = httpClientFactory.CreateClient("GoogleChat");
             var response = await client.PostAsJsonAsync(webhookUrl, card, ct);
             response.EnsureSuccessStatusCode();
+            logger.LogInformation("[NOTIFY-011] Google Chat notification sent for lead {LeadId}.", lead.Id);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[LEAD-033] Google Chat webhook failed for agent {AgentId}, lead {LeadId}. Continuing to email.", lead.AgentId, lead.Id);
+            logger.LogWarning(ex, "[NOTIFY-012] Google Chat webhook failed for agent {AgentId}, lead {LeadId}.", lead.AgentId, lead.Id);
+            throw; // re-throw so chatSuccess stays false
         }
     }
 
     private async Task SendEmailAsync(string agentEmail, Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(agentEmail))
+        {
+            logger.LogWarning("[NOTIFY-020] Agent email is empty for lead {LeadId} — cannot send email notification.", lead.Id);
+            throw new InvalidOperationException("Agent email is empty");
+        }
+
         try
         {
+            logger.LogInformation("[NOTIFY-021] Sending email notification to {AgentEmail} for lead {LeadId}...", agentEmail, lead.Id);
             var subject = BuildSubject(lead, enrichment, score);
             var body = BuildEmailBody(lead, enrichment, score);
             await gwsService.SendEmailAsync(agentEmail, agentEmail, subject, body, null, ct);
+            logger.LogInformation("[NOTIFY-022] Email notification sent to {AgentEmail} for lead {LeadId}.", agentEmail, lead.Id);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[LEAD-034] Gmail notification failed for agent {AgentId}, lead {LeadId}.", lead.AgentId, lead.Id);
+            logger.LogError(ex, "[NOTIFY-023] Gmail notification failed for agent {AgentId}, lead {LeadId}. Email: {AgentEmail}", lead.AgentId, lead.Id, agentEmail);
+            throw; // re-throw so emailSuccess stays false
         }
     }
 
