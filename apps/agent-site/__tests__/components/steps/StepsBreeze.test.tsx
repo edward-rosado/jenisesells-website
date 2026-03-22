@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { StepsBreeze } from "@/components/sections/steps/StepsBreeze";
-import type { StepItem } from "@/lib/types";
+import type { StepItem } from "@/features/config/types";
 
 const STEPS: StepItem[] = [
   { number: 1, title: "Share Your Vision", description: "Tell us about your dream coastal home." },

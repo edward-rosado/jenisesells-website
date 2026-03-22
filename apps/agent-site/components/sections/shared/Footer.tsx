@@ -1,4 +1,4 @@
-import type { AccountConfig, AgentConfig } from "@/lib/types";
+import type { AccountConfig, AgentConfig } from "@/features/config/types";
 import { EqualHousingNotice } from "@real-estate-star/legal";
 import { safeTelHref, safeMailtoHref } from "@/lib/safe-contact";
 

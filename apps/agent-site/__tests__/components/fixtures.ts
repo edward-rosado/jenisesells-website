@@ -1,4 +1,4 @@
-import type { AccountConfig, AgentConfig, ContentConfig } from "@/lib/types";
+import type { AccountConfig, AgentConfig, ContentConfig } from "@/features/config/types";
 
 export const ACCOUNT: AccountConfig = {
   handle: "test-agent",

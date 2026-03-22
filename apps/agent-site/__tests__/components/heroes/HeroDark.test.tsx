@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { HeroDark } from "@/components/sections/heroes/HeroDark";
-import type { HeroData } from "@/lib/types";
+import type { HeroData } from "@/features/config/types";
 
 const heroData: HeroData = {
   headline: "Exceptional Homes for Exceptional Lives",

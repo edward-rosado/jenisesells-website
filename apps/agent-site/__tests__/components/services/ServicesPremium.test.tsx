@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render } from "@testing-library/react";
 import { ServicesPremium } from "@/components/sections/services/ServicesPremium";
-import type { FeatureItem } from "@/lib/types";
+import type { FeatureItem } from "@/features/config/types";
 
 // Mock hooks
 vi.mock("@/hooks/useScrollReveal", () => ({

@@ -4,7 +4,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { CmaSection } from "@/components/sections/shared/CmaSection";
-import type { ContactFormData } from "@/lib/types";
+import type { ContactFormData } from "@/features/config/types";
 import { trackFormEvent } from "@/lib/telemetry";
 
 // Mock IntersectionObserver (not available in jsdom)

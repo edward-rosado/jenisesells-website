@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesEstate } from "@/components/sections/services/ServicesEstate";
-import type { ServiceItem } from "@/lib/types";
+import type { ServiceItem } from "@/features/config/types";
 
 const ITEMS: ServiceItem[] = [
   {

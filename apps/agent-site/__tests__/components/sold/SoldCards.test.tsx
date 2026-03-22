@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { SoldCards } from "@/components/sections/sold/SoldCards";
-import type { GalleryItem } from "@/lib/types";
+import type { GalleryItem } from "@/features/config/types";
 
 const ITEMS: GalleryItem[] = [
   {

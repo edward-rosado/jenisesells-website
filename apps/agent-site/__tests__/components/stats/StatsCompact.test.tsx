@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { StatsCompact } from "@/components/sections/stats/StatsCompact";
-import type { StatItem } from "@/lib/types";
+import type { StatItem } from "@/features/config/types";
 
 const ITEMS: StatItem[] = [
   { value: "200+", label: "Deals Closed" },

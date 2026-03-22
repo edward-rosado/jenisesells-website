@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { loadAccountConfig, loadLegalContent } from "@/lib/config";
-import { loadNavConfig } from "@/lib/nav-config";
+import { loadAccountConfig, loadLegalContent } from "@/features/config/config";
+import { loadNavConfig } from "@/features/config/nav-config";
 import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
 import { MarkdownContent } from "@/components/legal/MarkdownContent";
 import { LEGAL_EFFECTIVE_DATE, getStateName } from "@/components/legal/constants";

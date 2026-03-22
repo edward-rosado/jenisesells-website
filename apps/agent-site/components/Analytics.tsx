@@ -1,5 +1,5 @@
 import Script from "next/script";
-import type { AccountTracking } from "@/lib/types";
+import type { AccountTracking } from "@/features/config/types";
 
 interface AnalyticsProps {
   tracking?: AccountTracking;

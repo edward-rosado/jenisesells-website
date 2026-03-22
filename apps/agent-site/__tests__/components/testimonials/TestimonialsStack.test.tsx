@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsStack } from "@/components/sections/testimonials/TestimonialsStack";
 import { FTC_DISCLAIMER } from "@/components/sections/types";
-import type { TestimonialItem } from "@/lib/types";
+import type { TestimonialItem } from "@/features/config/types";
 
 const ITEMS: TestimonialItem[] = [
   { text: "Kai found us the perfect loft in two weeks!", reviewer: "Mia Tanaka", rating: 5, source: "Zillow" },

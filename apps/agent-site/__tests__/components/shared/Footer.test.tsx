@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Footer } from "@/components/sections/shared/Footer";
 import { ACCOUNT, ACCOUNT_MINIMAL, AGENT_PROP } from "../fixtures";
-import type { AccountConfig } from "@/lib/types";
+import type { AccountConfig } from "@/features/config/types";
 
 describe("Footer", () => {
   it("renders the agent name", () => {

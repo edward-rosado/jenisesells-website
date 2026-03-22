@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { SoldGrid } from "@/components/sections/sold/SoldGrid";
-import type { GalleryItem } from "@/lib/types";
+import type { GalleryItem } from "@/features/config/types";
 
 const ITEMS: GalleryItem[] = [
   { address: "123 Main St", city: "Hoboken", state: "NJ", price: "$750,000" },

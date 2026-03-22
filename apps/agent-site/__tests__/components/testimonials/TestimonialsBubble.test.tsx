@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsBubble } from "@/components/sections/testimonials/TestimonialsBubble";
-import type { TestimonialItem } from "@/lib/types";
+import type { TestimonialItem } from "@/features/config/types";
 
 const ITEMS: TestimonialItem[] = [
   { reviewer: "Alice M.", text: "Wonderful experience!", rating: 5, source: "Zillow" },

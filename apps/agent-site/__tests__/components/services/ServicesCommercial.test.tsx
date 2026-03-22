@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesCommercial } from "@/components/sections/services/ServicesCommercial";
-import type { ServiceItem } from "@/lib/types";
+import type { ServiceItem } from "@/features/config/types";
 
 const ITEMS_FLAT: ServiceItem[] = [
   { title: "Acquisition Advisory", description: "Find the right asset." },

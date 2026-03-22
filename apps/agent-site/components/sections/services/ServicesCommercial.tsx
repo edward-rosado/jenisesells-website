@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ServicesProps } from "@/components/sections/types";
-import type { ServiceItem } from "@/lib/types";
+import type { ServiceItem } from "@/features/config/types";
 
 function groupByCategory(items: ServiceItem[]): Map<string | undefined, ServiceItem[]> {
   const map = new Map<string | undefined, ServiceItem[]>();

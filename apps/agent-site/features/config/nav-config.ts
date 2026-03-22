@@ -1,4 +1,4 @@
-// apps/agent-site/lib/nav-config.ts
+// apps/agent-site/features/config/nav-config.ts
 // Lightweight nav data loader — does NOT import the full content registry.
 // Use this in legal pages to avoid pulling content data into those route chunks.
 import type { NavigationConfig } from "./types";

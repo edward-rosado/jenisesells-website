@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { SoldCarousel } from "@/components/sections/sold/SoldCarousel";
-import type { SoldHomeItem } from "@/lib/types";
+import type { SoldHomeItem } from "@/features/config/types";
 
 // Mock matchMedia (not available in jsdom)
 function mockMatchMedia(matches: boolean) {

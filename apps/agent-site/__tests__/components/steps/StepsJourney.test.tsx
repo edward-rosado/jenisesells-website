@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { StepsJourney } from "@/components/sections/steps/StepsJourney";
-import type { StepItem } from "@/lib/types";
+import type { StepItem } from "@/features/config/types";
 
 const STEPS: StepItem[] = [
   { number: 1, title: "Share Your Story", description: "You'll tell us what matters most to you." },

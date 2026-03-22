@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { AboutHomestead } from "@/components/sections/about/AboutHomestead";
 import { ACCOUNT, ACCOUNT_MINIMAL } from "../fixtures";
-import type { AboutData } from "@/lib/types";
+import type { AboutData } from "@/features/config/types";
 
 const DATA: AboutData = {
   title: "About James",

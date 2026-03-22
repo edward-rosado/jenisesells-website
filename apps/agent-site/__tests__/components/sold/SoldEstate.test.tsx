@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { SoldEstate } from "@/components/sections/sold/SoldEstate";
-import type { SoldHomeItem } from "@/lib/types";
+import type { SoldHomeItem } from "@/features/config/types";
 
 const ITEMS: SoldHomeItem[] = [
   {

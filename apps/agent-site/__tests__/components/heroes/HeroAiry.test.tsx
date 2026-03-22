@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { HeroAiry } from "@/components/sections/heroes/HeroAiry";
-import type { HeroData } from "@/lib/types";
+import type { HeroData } from "@/features/config/types";
 
 const heroData: HeroData = {
   headline: "Gracious Living in Fairfield County",

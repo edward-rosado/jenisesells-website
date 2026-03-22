@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { StatsElegant } from "@/components/sections/stats/StatsElegant";
-import type { StatItem } from "@/lib/types";
+import type { StatItem } from "@/features/config/types";
 
 const ITEMS: StatItem[] = [
   { value: "$850M+", label: "Career Volume" },

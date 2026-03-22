@@ -1,4 +1,4 @@
-import type { AccountConfig, AgentConfig, ContentConfig, PageSections } from "@/lib/types";
+import type { AccountConfig, AgentConfig, ContentConfig, PageSections } from "@/features/config/types";
 
 export interface TemplateProps {
   account: AccountConfig;

@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsMinimal } from "@/components/sections/testimonials/TestimonialsMinimal";
-import type { TestimonialItem } from "@/lib/types";
+import type { TestimonialItem } from "@/features/config/types";
 
 const ITEMS: TestimonialItem[] = [
   { text: "Victoria helped us find our dream penthouse.", reviewer: "Alexandra P.", rating: 5, source: "Zillow" },

@@ -6,7 +6,7 @@ import {
   FTC_DISCLAIMER,
   type TestimonialsProps,
 } from "@/components/sections/types";
-import type { TestimonialItem } from "@/lib/types";
+import type { TestimonialItem } from "@/features/config/types";
 
 function TestimonialsRusticCard({ item }: { item: TestimonialItem }) {
   const [hover, setHover] = useState(false);

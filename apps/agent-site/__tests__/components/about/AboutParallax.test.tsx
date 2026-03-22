@@ -3,7 +3,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render } from "@testing-library/react";
 import { AboutParallax } from "@/components/sections/about/AboutParallax";
 import { ACCOUNT, AGENT_PROP } from "../fixtures";
-import type { AboutData } from "@/lib/types";
+import type { AboutData } from "@/features/config/types";
 
 vi.mock("@/hooks/useParallax", () => ({
   useParallax: vi.fn(),

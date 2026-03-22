@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { HeroCoastal } from "@/components/sections/heroes/HeroCoastal";
-import type { HeroData } from "@/lib/types";
+import type { HeroData } from "@/features/config/types";
 
 const heroData: HeroData = {
   headline: "Find Your Place by the Sea",

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { DeleteRequestForm } from "@/components/privacy/DeleteRequestForm";
-import { loadAccountConfig } from "@/lib/config";
+import { loadAccountConfig } from "@/features/config/config";
 
 interface PageProps {
   params: Promise<{ handle: string }>;

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import type { SoldHomesProps } from "@/components/sections/types";
-import type { GalleryItem } from "@/lib/types";
+import type { GalleryItem } from "@/features/config/types";
 
 function SoldMetricsCard({ item }: { item: GalleryItem }) {
   const [hover, setHover] = useState(false);

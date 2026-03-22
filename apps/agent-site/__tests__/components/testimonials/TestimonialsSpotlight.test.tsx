@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, act } from "@testing-library/react";
 import { TestimonialsSpotlight } from "@/components/sections/testimonials/TestimonialsSpotlight";
-import type { TestimonialItem } from "@/lib/types";
+import type { TestimonialItem } from "@/features/config/types";
 
 vi.mock("@/hooks/useReducedMotion", () => ({
   useReducedMotion: vi.fn(() => false),

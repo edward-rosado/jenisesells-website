@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { Analytics, trackCmaConversion } from "@/components/Analytics";
-import type { AccountTracking } from "@/lib/types";
+import type { AccountTracking } from "@/features/config/types";
 
 // Mock next/script to render a simple element we can query
 vi.mock("next/script", () => ({

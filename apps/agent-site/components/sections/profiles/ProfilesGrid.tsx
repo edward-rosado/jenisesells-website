@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ProfilesProps } from "@/components/sections/types";
-import type { ProfileItem } from "@/lib/types";
+import type { ProfileItem } from "@/features/config/types";
 
 function ProfilesGridCard({ item, accountId }: { item: ProfileItem; accountId?: string }) {
   const [hover, setHover] = useState(false);

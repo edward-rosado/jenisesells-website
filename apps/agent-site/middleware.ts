@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { extractAgentId, resolveAgentFromCustomDomain, isWwwCustomDomain, getAgentIds } from "@/lib/routing";
+import { extractAgentId, resolveAgentFromCustomDomain, isWwwCustomDomain, getAgentIds } from "@/features/config/routing";
 import { applySecurityHeaders, safeCspUrl } from "@/lib/security-headers";
 
 function buildCspHeader(nonce: string): string {

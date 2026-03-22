@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { AboutCoastal } from "@/components/sections/about/AboutCoastal";
 import { ACCOUNT } from "../fixtures";
-import type { AboutData } from "@/lib/types";
+import type { AboutData } from "@/features/config/types";
 
 const ACCOUNT_WITH_PHOTO = {
   ...ACCOUNT,

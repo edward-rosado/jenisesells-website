@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesElegant } from "@/components/sections/services/ServicesElegant";
-import type { ServiceItem } from "@/lib/types";
+import type { ServiceItem } from "@/features/config/types";
 
 const ITEMS: ServiceItem[] = [
   { title: "Private Portfolio Access", description: "Exclusive access to off-market properties." },

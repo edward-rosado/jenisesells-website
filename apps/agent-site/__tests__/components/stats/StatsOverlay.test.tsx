@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { StatsOverlay } from "@/components/sections/stats/StatsOverlay";
-import type { StatItem } from "@/lib/types";
+import type { StatItem } from "@/features/config/types";
 
 const ITEMS: StatItem[] = [
   { value: "$2.1B", label: "Total Volume" },

@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesRefined } from "@/components/sections/services/ServicesRefined";
-import type { ServiceItem } from "@/lib/types";
+import type { ServiceItem } from "@/features/config/types";
 
 const ITEMS: ServiceItem[] = [
   { title: "Market Valuation", description: "Precise pricing rooted in deep local expertise." },

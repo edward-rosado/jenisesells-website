@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { AboutCard } from "@/components/sections/about/AboutCard";
 import { ACCOUNT } from "../fixtures";
-import type { AboutData } from "@/lib/types";
+import type { AboutData } from "@/features/config/types";
 
 const ABOUT_DATA: AboutData = {
   bio: "I love helping families find their dream home.",

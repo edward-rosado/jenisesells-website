@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsRustic } from "@/components/sections/testimonials/TestimonialsRustic";
 import { FTC_DISCLAIMER } from "@/components/sections/types";
-import type { TestimonialItem } from "@/lib/types";
+import type { TestimonialItem } from "@/features/config/types";
 
 const ITEMS: TestimonialItem[] = [
   {

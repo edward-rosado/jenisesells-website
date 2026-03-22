@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { StepsPath } from "@/components/sections/steps/StepsPath";
-import type { StepItem } from "@/lib/types";
+import type { StepItem } from "@/features/config/types";
 
 const STEPS: StepItem[] = [
   { number: 1, title: "Consultation", description: "Meet with James to discuss your goals and budget." },

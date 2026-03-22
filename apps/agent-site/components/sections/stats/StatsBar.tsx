@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { StatsProps } from "@/components/sections/types";
-import type { StatItem } from "@/lib/types";
+import type { StatItem } from "@/features/config/types";
 
 function StatsBarItem({ item }: { item: StatItem }) {
   const [hover, setHover] = useState(false);

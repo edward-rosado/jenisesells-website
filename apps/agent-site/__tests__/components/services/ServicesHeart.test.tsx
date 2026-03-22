@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesHeart } from "@/components/sections/services/ServicesHeart";
-import type { ServiceItem } from "@/lib/types";
+import type { ServiceItem } from "@/features/config/types";
 
 const ITEMS: ServiceItem[] = [
   { title: "First-Time Buyer Guidance", description: "We'll hold your hand through every step." },

@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { StepsElegant } from "@/components/sections/steps/StepsElegant";
-import type { StepItem } from "@/lib/types";
+import type { StepItem } from "@/features/config/types";
 
 const STEPS: StepItem[] = [
   { number: 1, title: "Consultation", description: "We begin with a private consultation." },

@@ -10,7 +10,7 @@ import type {
   AboutData,
   ProfileItem,
   MarqueeItem,
-} from "@/lib/types";
+} from "@/features/config/types";
 
 export interface HeroProps {
   data: HeroData;

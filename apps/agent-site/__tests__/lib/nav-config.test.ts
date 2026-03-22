@@ -3,7 +3,7 @@
  */
 import { vi, describe, it, expect } from "vitest";
 
-vi.mock("@/lib/nav-registry", () => ({
+vi.mock("@/features/config/nav-registry", () => ({
   navData: {
     "test-account": {
       navigation: { items: [{ label: "About", href: "#about", enabled: true }] },
@@ -12,7 +12,7 @@ vi.mock("@/lib/nav-registry", () => ({
   },
 }));
 
-import { loadNavConfig } from "@/lib/nav-config";
+import { loadNavConfig } from "@/features/config/nav-config";
 
 describe("loadNavConfig", () => {
   it("returns navigation and enabledSections as Set for known handle", () => {

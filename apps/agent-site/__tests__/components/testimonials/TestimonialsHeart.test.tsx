@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsHeart } from "@/components/sections/testimonials/TestimonialsHeart";
-import type { TestimonialItem } from "@/lib/types";
+import type { TestimonialItem } from "@/features/config/types";
 
 const ITEMS: TestimonialItem[] = [
   { text: "They made buying our first home so easy.", reviewer: "The Park Family", rating: 5, source: "Zillow" },

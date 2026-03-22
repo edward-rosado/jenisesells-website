@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ServicesCoastal } from "@/components/sections/services/ServicesCoastal";
-import type { ServiceItem } from "@/lib/types";
+import type { ServiceItem } from "@/features/config/types";
 
 const ITEMS: ServiceItem[] = [
   { title: "Beach Home Search", description: "Find your perfect beachfront property." },

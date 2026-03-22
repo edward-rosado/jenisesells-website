@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { HeroCentered } from "@/components/sections/heroes/HeroCentered";
-import type { HeroData } from "@/lib/types";
+import type { HeroData } from "@/features/config/types";
 
 const BASE_DATA: HeroData = {
   headline: "Welcome Home",

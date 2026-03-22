@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render } from "@testing-library/react";
 import { HeroParallax } from "@/components/sections/heroes/HeroParallax";
-import type { HeroData } from "@/lib/types";
+import type { HeroData } from "@/features/config/types";
 
 // Mock hooks
 vi.mock("@/hooks/useParallax", () => ({

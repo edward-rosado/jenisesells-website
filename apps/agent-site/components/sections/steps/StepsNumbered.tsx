@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { StepsProps } from "@/components/sections/types";
-import type { StepItem } from "@/lib/types";
+import type { StepItem } from "@/features/config/types";
 
 function StepsNumberedItem({ step }: { step: StepItem }) {
   const [hover, setHover] = useState(false);

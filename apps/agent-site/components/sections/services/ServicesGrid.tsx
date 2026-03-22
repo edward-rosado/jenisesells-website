@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { FeaturesProps } from "@/components/sections/types";
-import type { ServiceItem } from "@/lib/types";
+import type { ServiceItem } from "@/features/config/types";
 
 function ServicesGridCard({ item }: { item: ServiceItem }) {
   const [hover, setHover] = useState(false);

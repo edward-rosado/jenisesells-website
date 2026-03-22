@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { TestimonialsGrid } from "@/components/sections/testimonials/TestimonialsGrid";
-import type { TestimonialItem } from "@/lib/types";
+import type { TestimonialItem } from "@/features/config/types";
 
 const ITEMS: TestimonialItem[] = [
   { text: "Amazing service!", reviewer: "Alice B.", rating: 5, source: "Zillow" },

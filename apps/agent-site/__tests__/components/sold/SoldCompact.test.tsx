@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { SoldCompact } from "@/components/sections/sold/SoldCompact";
-import type { SoldHomeItem } from "@/lib/types";
+import type { SoldHomeItem } from "@/features/config/types";
 
 const ITEMS: SoldHomeItem[] = [
   { address: "100 N 3rd St", city: "Brooklyn", state: "NY", price: "$850,000", image_url: "/sold/100-n3rd.jpg" },

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import type { AccountConfig, NavigationConfig, ContactMethod } from "@/lib/types";
+import type { AccountConfig, NavigationConfig, ContactMethod } from "@/features/config/types";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { safeMailtoHref, safeTelHref } from "@/lib/safe-contact";
 

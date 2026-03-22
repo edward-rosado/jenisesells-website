@@ -1,4 +1,4 @@
-import { accounts, accountContent, agentContent } from "@/lib/config-registry";
+import { accounts, accountContent, agentContent } from "@/features/config/config-registry";
 
 describe("Config validation", () => {
   const handles = Object.keys(accounts);

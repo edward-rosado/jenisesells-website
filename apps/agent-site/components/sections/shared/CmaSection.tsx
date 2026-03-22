@@ -1,6 +1,6 @@
 "use client";
 
-import type { ContactFormData, AccountTracking } from "@/lib/types";
+import type { ContactFormData, AccountTracking } from "@/features/config/types";
 import { trackCmaConversion } from "@/components/Analytics";
 import { trackFormEvent } from "@/lib/telemetry";
 import { LeadForm } from "@real-estate-star/forms";

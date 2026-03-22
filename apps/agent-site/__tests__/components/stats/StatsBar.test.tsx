@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { StatsBar } from "@/components/sections/stats/StatsBar";
-import type { StatItem } from "@/lib/types";
+import type { StatItem } from "@/features/config/types";
 
 const STATS: StatItem[] = [
   { value: "150+", label: "Homes Sold" },

@@ -1,4 +1,4 @@
-// apps/agent-site/lib/config.ts
+// apps/agent-site/features/config/config.ts
 import type { AccountConfig, AgentConfig, ContentConfig } from "./types";
 import { accounts, accountContent, agentConfigs, agentContent, legalContent } from "./config-registry";
 

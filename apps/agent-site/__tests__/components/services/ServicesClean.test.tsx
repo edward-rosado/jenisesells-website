@@ -5,7 +5,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ServicesClean } from "@/components/sections/services/ServicesClean";
-import type { FeatureItem } from "@/lib/types";
+import type { FeatureItem } from "@/features/config/types";
 
 const ITEMS: FeatureItem[] = [
   { title: "Market Analysis", description: "Deep market insights" },

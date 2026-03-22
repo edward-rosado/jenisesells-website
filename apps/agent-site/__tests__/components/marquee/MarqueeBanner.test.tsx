@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render } from "@testing-library/react";
 import { MarqueeBanner } from "@/components/sections/marquee/MarqueeBanner";
-import type { MarqueeItem } from "@/lib/types";
+import type { MarqueeItem } from "@/features/config/types";
 
 // Mock useReducedMotion
 vi.mock("@/hooks/useReducedMotion", () => ({

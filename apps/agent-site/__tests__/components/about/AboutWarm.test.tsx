@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { AboutWarm } from "@/components/sections/about/AboutWarm";
 import { ACCOUNT } from "../fixtures";
-import type { AboutData } from "@/lib/types";
+import type { AboutData } from "@/features/config/types";
 
 const ABOUT_DATA: AboutData = {
   bio: "We are Rachel & David Kim — a husband-and-wife team dedicated to helping families find their forever home.",

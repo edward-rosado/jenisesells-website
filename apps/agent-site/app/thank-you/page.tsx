@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { loadAccountConfig, loadAccountContent } from "@/lib/config";
-import { loadNavConfig } from "@/lib/nav-config";
-import { buildCssVariableStyle } from "@/lib/branding";
+import { loadAccountConfig, loadAccountContent } from "@/features/config/config";
+import { loadNavConfig } from "@/features/config/nav-config";
+import { buildCssVariableStyle } from "@/features/config/branding";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/sections";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import { safeTelHref } from "@/lib/safe-contact";
-import type { ThankYouData } from "@/lib/types";
+import type { ThankYouData } from "@/features/config/types";
 
 interface PageProps {
   searchParams: Promise<{ accountId?: string }>;

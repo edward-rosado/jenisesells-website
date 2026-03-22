@@ -8,7 +8,7 @@ import { ACCOUNT } from "../components/fixtures";
 const mockLoadAccountConfig = vi.fn();
 const mockRequestExport = vi.fn();
 
-vi.mock("@/lib/config", () => ({
+vi.mock("@/features/config/config", () => ({
   loadAccountConfig: (...args: unknown[]) => mockLoadAccountConfig(...args),
 }));
 

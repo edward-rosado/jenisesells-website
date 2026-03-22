@@ -1,5 +1,5 @@
-import type { AccountConfig, NavigationConfig } from "@/lib/types";
-import { buildCssVariableStyle } from "@/lib/branding";
+import type { AccountConfig, NavigationConfig } from "@/features/config/types";
+import { buildCssVariableStyle } from "@/features/config/branding";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/sections/shared/Footer";
 import { CookieConsentBanner } from "./CookieConsentBanner";

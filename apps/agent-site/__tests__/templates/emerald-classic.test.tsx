@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { EmeraldClassic } from "@/templates/emerald-classic";
 import { ACCOUNT, ACCOUNT_BROKER_ONLY, ACCOUNT_BROKERAGE_ONLY, AGENT_PROP, CONTENT, CONTENT_ALL_DISABLED } from "../components/fixtures";
-import type { ContentConfig } from "@/lib/types";
+import type { ContentConfig } from "@/features/config/types";
 
 vi.mock("@/hooks/useScrollReveal", () => ({ useScrollReveal: vi.fn(() => true) }));
 vi.mock("@/hooks/useReducedMotion", () => ({ useReducedMotion: vi.fn(() => false) }));
