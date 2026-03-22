@@ -4,7 +4,7 @@ import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 initOpenNextCloudflareForDev();
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@real-estate-star/ui", "@real-estate-star/shared-types"],
+  transpilePackages: ["@real-estate-star/domain", "@real-estate-star/forms", "@real-estate-star/legal", "@real-estate-star/analytics"],
   images: {
     unoptimized: true,
     dangerouslyAllowSVG: true,

@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "npm run generate:ci --workspace=packages/api-client",
     "dev": "next dev",
+    "prebuild": "npm run generate:ci --workspace=packages/api-client",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -16,8 +18,10 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
-    "@real-estate-star/ui": "*",
-    "@real-estate-star/shared-types": "*"
+    "@real-estate-star/analytics": "*",
+    "@real-estate-star/domain": "*",
+    "@real-estate-star/forms": "*",
+    "@real-estate-star/legal": "*"
   },
   "devDependencies": {
     "@opennextjs/cloudflare": "^1.17.1",

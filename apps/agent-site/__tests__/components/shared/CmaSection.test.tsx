@@ -33,7 +33,7 @@ vi.mock("@/actions/submit-lead", () => ({
 }));
 
 // Mock useGoogleMapsAutocomplete so it doesn't try to load Google Maps SDK
-vi.mock("@real-estate-star/ui/LeadForm/useGoogleMapsAutocomplete", () => ({
+vi.mock("@real-estate-star/forms/src/LeadForm/useGoogleMapsAutocomplete", () => ({
   useGoogleMapsAutocomplete: () => ({ loaded: false }),
 }));
 

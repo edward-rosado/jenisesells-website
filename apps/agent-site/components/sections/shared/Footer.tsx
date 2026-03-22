@@ -1,5 +1,5 @@
 import type { AccountConfig, AgentConfig } from "@/lib/types";
-import { EqualHousingNotice } from "@real-estate-star/ui";
+import { EqualHousingNotice } from "@real-estate-star/legal";
 import { safeTelHref, safeMailtoHref } from "@/lib/safe-contact";
 
 interface FooterProps {

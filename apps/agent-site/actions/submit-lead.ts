@@ -1,7 +1,7 @@
 "use server";
 
 import * as Sentry from "@sentry/nextjs";
-import type { LeadFormData } from "@real-estate-star/shared-types";
+import type { LeadFormData } from "@real-estate-star/domain";
 import { validateTurnstile } from "@/lib/turnstile";
 import { signAndForward } from "@/lib/hmac";
 

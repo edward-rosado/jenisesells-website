@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { LeadFormData } from "@real-estate-star/shared-types";
+import type { LeadFormData } from "@real-estate-star/domain";
 
 vi.mock("@/lib/turnstile", () => ({
   validateTurnstile: vi.fn(),

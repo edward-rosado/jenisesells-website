@@ -3,8 +3,8 @@
 import type { ContactFormData, AccountTracking } from "@/lib/types";
 import { trackCmaConversion } from "@/components/Analytics";
 import { trackFormEvent } from "@/lib/telemetry";
-import { LeadForm } from "@real-estate-star/ui";
-import type { LeadFormData } from "@real-estate-star/shared-types";
+import { LeadForm } from "@real-estate-star/forms";
+import type { LeadFormData } from "@real-estate-star/domain";
 import { Turnstile } from "@marsidev/react-turnstile";
 import type { ReactNode } from "react";
 import { Fragment, useEffect, useRef, useState } from "react";
