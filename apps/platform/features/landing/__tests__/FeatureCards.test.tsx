@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { FeatureCards } from "@/components/landing/FeatureCards";
+import { FeatureCards } from "@/features/landing/FeatureCards";
 
 describe("FeatureCards", () => {
   it("renders all 8 feature cards", () => {

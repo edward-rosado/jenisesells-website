@@ -1,5 +1,5 @@
 import ReactMarkdown from "react-markdown";
-import { GeometricStar } from "@/components/GeometricStar";
+import { GeometricStar } from "@/features/shared/GeometricStar";
 
 interface MessageBubbleProps {
   role: "user" | "assistant";

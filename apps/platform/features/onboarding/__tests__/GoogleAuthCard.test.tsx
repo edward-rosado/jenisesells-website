@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { GoogleAuthCard } from "../../components/chat/GoogleAuthCard";
+import { GoogleAuthCard } from "../GoogleAuthCard";
 
 describe("GoogleAuthCard", () => {
   const mockOnConnected = vi.fn();
@@ -172,7 +172,6 @@ describe("GoogleAuthCard", () => {
 
     unmount();
 
-    // Fire postMessage after unmount — callbacks should not be invoked
     fireEvent(
       window,
       new MessageEvent("message", {
@@ -200,15 +199,11 @@ describe("GoogleAuthCard", () => {
     );
 
     const button = screen.getByRole("button", { name: /connect with google/i });
-    // Rapid-fire three clicks
     await userEvent.click(button);
     await userEvent.click(button);
     await userEvent.click(button);
 
-    // window.open is called with the same named target "google-oauth",
-    // so the browser reuses the same popup window. Each call is valid.
     expect(openSpy).toHaveBeenCalledTimes(3);
-    // All calls use the same target name, ensuring idempotent popup reuse
     for (const call of openSpy.mock.calls) {
       expect(call[1]).toBe("google-oauth");
     }
@@ -217,7 +212,6 @@ describe("GoogleAuthCard", () => {
   });
 
   it("does not throw when failure postMessage received without onError prop", () => {
-    // Render without onError prop
     render(
       <GoogleAuthCard
         oauthUrl={oauthUrl}
@@ -226,7 +220,6 @@ describe("GoogleAuthCard", () => {
       />
     );
 
-    // Should not throw — onError?. optional chaining handles the missing prop
     expect(() => {
       fireEvent(
         window,
@@ -245,9 +238,6 @@ describe("GoogleAuthCard", () => {
   });
 
   it("defaults apiOrigin to NEXT_PUBLIC_API_URL when not provided", () => {
-    // The component reads process.env.NEXT_PUBLIC_API_URL via API_BASE constant.
-    // When apiOrigin prop is omitted, it falls back to new URL(API_BASE).origin.
-    // API_BASE defaults to "http://localhost:5135" when env var is not set.
     render(
       <GoogleAuthCard
         oauthUrl={oauthUrl}
@@ -255,7 +245,6 @@ describe("GoogleAuthCard", () => {
       />
     );
 
-    // Fire postMessage from the default origin (localhost:5135)
     fireEvent(
       window,
       new MessageEvent("message", {

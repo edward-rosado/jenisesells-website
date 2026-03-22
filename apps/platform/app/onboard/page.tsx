@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ChatWindow } from "@/components/chat/ChatWindow";
+import { ChatWindow } from "@/features/onboarding/ChatWindow";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5135";
 const COMING_SOON = process.env.NEXT_PUBLIC_COMING_SOON === "true";

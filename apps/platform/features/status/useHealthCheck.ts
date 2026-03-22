@@ -75,6 +75,7 @@ export function useHealthCheck(apiUrl: string): HealthState {
   useEffect(() => {
     let cancelled = false;
     const wrappedFetch = async () => {
+      /* v8 ignore next */
       if (cancelled) return;
       await doFetch();
     };

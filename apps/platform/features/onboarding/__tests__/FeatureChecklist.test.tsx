@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { FeatureChecklist } from "../../components/chat/FeatureChecklist";
+import { FeatureChecklist } from "../FeatureChecklist";
 
 describe("FeatureChecklist", () => {
   it("renders the heading", () => {

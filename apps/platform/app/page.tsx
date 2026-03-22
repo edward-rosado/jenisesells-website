@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FeatureCards } from "@/components/landing/FeatureCards";
-import { ComparisonTable } from "@/components/landing/ComparisonTable";
-import { TrustStrip } from "@/components/landing/TrustStrip";
-import { FinalCta } from "@/components/landing/FinalCta";
+import { FeatureCards } from "@/features/landing/FeatureCards";
+import { ComparisonTable } from "@/features/landing/ComparisonTable";
+import { TrustStrip } from "@/features/landing/TrustStrip";
+import { FinalCta } from "@/features/landing/FinalCta";
 
 export default function LandingPage() {
   const [profileUrl, setProfileUrl] = useState("");

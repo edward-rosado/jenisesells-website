@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { MessageBubble } from "../../components/chat/MessageBubble";
+import { MessageBubble } from "../MessageBubble";
 
 describe("MessageBubble", () => {
   it("renders user message with right alignment", () => {

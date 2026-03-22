@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { ComparisonTable } from "@/components/landing/ComparisonTable";
+import { ComparisonTable } from "@/features/landing/ComparisonTable";
 
 describe("ComparisonTable", () => {
   it("renders a section heading", () => {

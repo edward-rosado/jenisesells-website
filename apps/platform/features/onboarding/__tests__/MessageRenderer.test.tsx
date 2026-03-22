@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
-import { MessageRenderer } from "../../components/chat/MessageRenderer";
+import { MessageRenderer } from "../MessageRenderer";
 
 describe("MessageRenderer", () => {
   it("renders text messages as MessageBubble", () => {
@@ -111,8 +111,6 @@ describe("MessageRenderer", () => {
     expect(iframe).toHaveAttribute("src", "https://test.realestatestar.com#cma-form");
   });
 
-  // ---- Additional card type branch coverage ----
-
   it("renders color_palette type as ColorPalette", () => {
     render(
       <MessageRenderer
@@ -190,11 +188,8 @@ describe("MessageRenderer", () => {
         }}
       />
     );
-    // Should render without error even without onAction
     expect(screen.getByText("Bob")).toBeInTheDocument();
-    // Click the button to exercise the fallback noop function (line 26)
     await userEvent.click(screen.getByRole("button", { name: /looks right/i }));
-    // No error thrown — the noop handled the call
     expect(screen.getByText("Bob")).toBeInTheDocument();
   });
 
@@ -208,7 +203,6 @@ describe("MessageRenderer", () => {
         }}
       />
     );
-    // name defaults to "" when metadata is undefined
     expect(screen.getByRole("button", { name: /looks right/i })).toBeInTheDocument();
   });
 
@@ -219,7 +213,6 @@ describe("MessageRenderer", () => {
         isStreaming={true}
       />
     );
-    // The GeometricStar should have "thinking" animation when streaming
     expect(screen.getByText("Streaming...")).toBeInTheDocument();
   });
 
@@ -268,8 +261,6 @@ describe("MessageRenderer", () => {
     expect(screen.getByText(/pipeline encountered an error/i)).toBeInTheDocument();
   });
 
-  // ---- Callback invocation tests (cover arrow functions in switch cases) ----
-
   it("color_palette onConfirm callback invokes onAction with colors data", async () => {
     const onAction = vi.fn();
     render(
@@ -303,7 +294,6 @@ describe("MessageRenderer", () => {
       />
     );
 
-    // Simulate a postMessage from the trusted origin to trigger onConnected
     const apiOrigin = new URL(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5135").origin;
     window.dispatchEvent(
       new MessageEvent("message", {
@@ -361,8 +351,6 @@ describe("MessageRenderer", () => {
     expect(onAction).toHaveBeenCalledWith("approve_site");
   });
 
-  // ---- Fallback/default value branch coverage (nullish coalescing ??) ----
-
   it("color_palette uses default #000000 when metadata colors are missing", () => {
     render(
       <MessageRenderer
@@ -402,7 +390,6 @@ describe("MessageRenderer", () => {
         }}
       />
     );
-    // Empty siteUrl won't pass isSafePreviewUrl, so error is shown
     expect(screen.getByText("Unable to preview this URL")).toBeInTheDocument();
   });
 
@@ -417,7 +404,6 @@ describe("MessageRenderer", () => {
         }}
       />
     );
-    // status defaults to "complete" since the ?? "complete" fallback
     expect(screen.getByText("CMA Report Delivered")).toBeInTheDocument();
   });
 
@@ -432,7 +418,6 @@ describe("MessageRenderer", () => {
         }}
       />
     );
-    // price defaults to "$900" via PaymentCard default prop
     expect(screen.getByText("$900")).toBeInTheDocument();
   });
 
@@ -443,7 +428,6 @@ describe("MessageRenderer", () => {
           role: "assistant",
           content: "",
           type: "profile_card",
-          metadata: {},
         }}
         onAction={vi.fn()}
       />

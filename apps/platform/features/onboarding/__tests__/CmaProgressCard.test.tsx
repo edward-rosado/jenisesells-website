@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { CmaProgressCard } from "../../components/chat/CmaProgressCard";
+import { CmaProgressCard } from "../CmaProgressCard";
 
 const COMPLETE_STEPS = [
   { label: "Searching comparable sales", status: "done" as const },

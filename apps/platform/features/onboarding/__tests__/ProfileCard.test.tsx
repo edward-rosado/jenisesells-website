@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
-import { ProfileCard } from "../../components/chat/ProfileCard";
+import { ProfileCard } from "../ProfileCard";
 
 describe("ProfileCard", () => {
   it("renders agent name", () => {
@@ -28,8 +28,6 @@ describe("ProfileCard", () => {
     await userEvent.click(screen.getByRole("button", { name: /looks right/i }));
     expect(onConfirm).toHaveBeenCalledOnce();
   });
-
-  // ---- Additional branch coverage ----
 
   it("renders photo when photoUrl is provided", () => {
     render(

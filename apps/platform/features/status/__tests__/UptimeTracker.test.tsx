@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { UptimeTracker } from "@/app/status/UptimeTracker";
-import type { UptimeSample } from "@/app/status/useHealthCheck";
+import { UptimeTracker } from "@/features/status/UptimeTracker";
+import type { UptimeSample } from "@/features/status/useHealthCheck";
 
 function makeSample(
   status: UptimeSample["status"],

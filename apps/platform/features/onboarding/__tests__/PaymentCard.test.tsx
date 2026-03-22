@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
-import { PaymentCard } from "../../components/chat/PaymentCard";
+import { PaymentCard } from "../PaymentCard";
 
 describe("PaymentCard", () => {
   it("renders the default price when none provided", () => {
@@ -78,7 +78,6 @@ describe("PaymentCard", () => {
       screen.getByRole("button", { name: /start free trial/i })
     );
 
-    // Button should be gone, replaced by waiting text
     expect(screen.queryByRole("button", { name: /start free trial/i })).not.toBeInTheDocument();
     expect(screen.getByText(/waiting for payment confirmation/i)).toBeInTheDocument();
 
@@ -93,11 +92,8 @@ describe("PaymentCard", () => {
     render(<PaymentCard checkoutUrl="https://checkout.stripe.com/c/pay_abc" />);
     const button = screen.getByRole("button", { name: /start free trial/i });
 
-    // First click transitions to "opened" state, removing the button from DOM.
-    // Subsequent clicks can't happen because the button is gone.
     await userEvent.click(button);
 
-    // Button is now replaced by waiting text — no second click possible
     expect(screen.queryByRole("button", { name: /start free trial/i })).not.toBeInTheDocument();
     expect(windowOpen).toHaveBeenCalledTimes(1);
 
@@ -113,13 +109,11 @@ describe("PaymentCard", () => {
       <PaymentCard checkoutUrl="https://checkout.stripe.com/c/pay_abc" />
     );
 
-    // Button should have accessible name
     const button = screen.getByRole("button", { name: /start free trial/i });
     expect(button).toHaveAccessibleName();
 
     await userEvent.click(button);
 
-    // Waiting state text should be visible
     const waitingText = screen.getByText(/waiting for payment confirmation/i);
     expect(waitingText).toBeInTheDocument();
 
@@ -136,25 +130,18 @@ describe("PaymentCard", () => {
     expect(screen.getByText(/\$900 \u2014 one-time/)).toBeInTheDocument();
   });
 
-  // ---- Additional branch coverage: handleClick when no checkoutUrl ----
-
   it("does not call window.open when checkoutUrl is empty string (falsy)", () => {
     const windowOpen = vi
       .spyOn(window, "open")
       .mockImplementation(() => null);
 
-    // Render with empty string checkoutUrl — button is disabled, but we force
-    // the onClick handler by dispatching a native click event directly on the
-    // underlying DOM element, bypassing React's disabled check.
     render(<PaymentCard checkoutUrl="" />);
 
     const button = screen.getByRole("button", { name: /start free trial/i });
-    // Remove the disabled attribute temporarily to allow click dispatch
     button.removeAttribute("disabled");
     fireEvent.click(button);
 
     expect(windowOpen).not.toHaveBeenCalled();
-    // Should still show button (not transition to waiting state)
     expect(button).toBeInTheDocument();
 
     windowOpen.mockRestore();

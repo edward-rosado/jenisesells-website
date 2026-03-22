@@ -1,7 +1,7 @@
 import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ChatWindow } from "../../components/chat/ChatWindow";
+import { ChatWindow } from "../ChatWindow";
 
 describe("ChatWindow", () => {
   let fetchSpy: ReturnType<typeof vi.spyOn>;
@@ -710,10 +710,6 @@ describe("ChatWindow", () => {
   });
 
   it("handles SSE content that is only [Tool: ...] lines (no visible text)", async () => {
-    // This triggers lines 80-84 in parseAssistantContent:
-    // remaining after cleanToolLines is empty, so messages is still [],
-    // then we enter the "no cards found" block with original content.trim() truthy
-    // but cleanToolLines returns empty, so nothing is pushed.
     mockFetchSSE([
       'data: "[Tool: scrape_url] fetching"',
       "data: [DONE]",
@@ -732,7 +728,6 @@ describe("ChatWindow", () => {
   });
 
   it("handles SSE content with Tool lines and actual text (no cards found path)", async () => {
-    // This triggers the "no cards found" path where cleanToolLines produces text
     mockFetchSSE([
       'data: "[Tool: scrape_url] fetching\\nHere is your data"',
       "data: [DONE]",
@@ -751,9 +746,6 @@ describe("ChatWindow", () => {
   });
 
   it("handles content with CARD marker only (no JSON, no trailing text) — hits fallback path", async () => {
-    // Content is only "[CARD:x]" — card regex matches, extractJson returns null,
-    // remaining text is empty, messages is empty, but content.trim() is truthy
-    // => enters the "no cards found" fallback (lines 80-84)
     mockFetchSSE([
       'data: "[CARD:unknown]"',
       "data: [DONE]",
@@ -767,13 +759,11 @@ describe("ChatWindow", () => {
     await user.click(screen.getByRole("button", { name: /Send/i }));
 
     await waitFor(() => {
-      // The fallback pushes cleanToolLines(content) which is "[CARD:unknown]"
       expect(screen.getByText("[CARD:unknown]")).toBeInTheDocument();
     });
   });
 
   it("handles SSE with nested JSON in card markers (exercises extractJson depth tracking)", async () => {
-    // Nested JSON like {"a":{"b":1}} exercises the depth > 0 branch inside extractJson
     mockFetchSSE([
       'data: "[CARD:payment_card]{\\"checkoutUrl\\":\\"https://stripe.com\\",\\"nested\\":{\\"key\\":\\"val\\"}}"',
       "data: [DONE]",
@@ -792,7 +782,6 @@ describe("ChatWindow", () => {
   });
 
   it("handles SSE with string containing braces in JSON extraction", async () => {
-    // Test extractJson with strings containing { and } inside quotes
     mockFetchSSE([
       'data: "[CARD:payment_card]{\\"price\\":\\"$900 {tax included}\\"}"',
       "data: [DONE]",
@@ -829,11 +818,6 @@ describe("ChatWindow", () => {
   });
 
   it("handles card JSON with backslash-escaped quotes in extractJson", async () => {
-    // This exercises the escape/backslash branches (lines 27-28) in extractJson.
-    // SSE data is JSON-encoded. After JSON.parse:
-    //   [CARD:payment_card]{"note":"it\"s great"}
-    // extractJson then processes {"note":"it\"s great"}:
-    //   \ -> escape=true (line 28), " -> escape reset (line 27)
     mockFetchSSE([
       'data: "[CARD:payment_card]{\\"note\\":\\"it\\\\\\"s great\\"}"',
       "data: [DONE]",
@@ -852,9 +836,6 @@ describe("ChatWindow", () => {
   });
 
   it("handles response with null content-type header (fallback to empty string)", async () => {
-    // This covers the `?? ""` branch on line 145
-    // Create a mock response where headers.get("content-type") returns null
-    // Create response manually to avoid auto content-type
     fetchSpy.mockResolvedValueOnce({
       ok: true,
       headers: { get: (name: string) => name === "content-type" ? null : null } as unknown as Headers,
@@ -868,14 +849,12 @@ describe("ChatWindow", () => {
     await user.type(input, "test");
     await user.click(screen.getByRole("button", { name: /Send/i }));
 
-    // Without content-type, falls through to the else (JSON) branch
     await waitFor(() => {
       expect(screen.getByText("No content type")).toBeInTheDocument();
     });
   });
 
   it("renders initial messages without explicit msgId (uses index fallback)", () => {
-    // This covers the `msg.msgId ?? i` branch on line 263
     render(
       <ChatWindow
         sessionId="s1"

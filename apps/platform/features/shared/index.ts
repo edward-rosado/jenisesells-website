@@ -1,0 +1,1 @@
+export { GeometricStar } from "./GeometricStar";

@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { StatusDashboard } from "@/app/status/StatusDashboard";
+import { StatusDashboard } from "@/features/status/StatusDashboard";
 
 const mockHealthy = {
   status: "Healthy",
@@ -377,7 +377,7 @@ describe("StatusDashboard", () => {
 
   it("renders nothing when current is null after loading completes", async () => {
     // Mock the hook to return the defensive edge case
-    const useHealthCheckModule = await import("@/app/status/useHealthCheck");
+    const useHealthCheckModule = await import("@/features/status/useHealthCheck");
     const spy = vi.spyOn(useHealthCheckModule, "useHealthCheck").mockReturnValue({
       current: null,
       error: null,
@@ -402,5 +402,32 @@ describe("StatusDashboard", () => {
     expect(
       screen.getByText(/Stuck workers: LeadProcessingWorker/)
     ).toBeInTheDocument();
+  });
+
+  it("shows error when a non-Error object is thrown during fetch", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce("string-error");
+    render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByText("Unable to reach API")).toBeInTheDocument();
+    });
+  });
+
+  it("cancels interval fetch after component unmounts (exercises cancelled guard)", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    (fetch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ ok: true, json: async () => mockHealthy });
+
+    const { unmount } = render(<StatusDashboard />);
+    await waitFor(() => {
+      expect(screen.getByText("All Systems Operational")).toBeInTheDocument();
+    });
+
+    unmount();
+    // Advance past the 30s interval — wrappedFetch fires but cancelled=true, returns early
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    // fetch should NOT have been called a second time
+    expect(fetch as ReturnType<typeof vi.fn>).toHaveBeenCalledTimes(1);
   });
 });

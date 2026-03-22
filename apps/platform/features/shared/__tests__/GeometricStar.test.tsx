@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { GeometricStar } from "@/components/GeometricStar";
+import { GeometricStar } from "@/features/shared/GeometricStar";
 
 describe("GeometricStar", () => {
   it("renders an SVG element with correct dimensions", () => {

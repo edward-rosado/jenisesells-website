@@ -1,4 +1,4 @@
-import { StatusDashboard } from "./StatusDashboard";
+import { StatusDashboard } from "@/features/status/StatusDashboard";
 
 export const metadata = {
   title: "System Status — Real Estate Star",

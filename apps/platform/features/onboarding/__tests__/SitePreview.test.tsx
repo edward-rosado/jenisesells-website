@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
-import { SitePreview } from "../../components/chat/SitePreview";
+import { SitePreview } from "../SitePreview";
 
 describe("SitePreview", () => {
   it("renders an iframe with the site URL", () => {
@@ -96,8 +96,6 @@ describe("SitePreview", () => {
     const iframe = screen.getByTitle("Site preview");
     expect(iframe).toHaveAttribute("src", "https://my-site.pages.dev");
   });
-
-  // ---- Additional branch coverage: line 18 (URL parse catch block) ----
 
   it("shows error for completely invalid URL (triggers URL parse catch)", () => {
     render(<SitePreview siteUrl="not-a-url-at-all" onApprove={() => {}} />);

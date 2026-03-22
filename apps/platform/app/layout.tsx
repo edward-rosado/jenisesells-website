@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { GeometricStar } from "@/components/GeometricStar";
+import { GeometricStar } from "@/features/shared/GeometricStar";
 import { EqualHousingOpportunity } from "@/components/legal/EqualHousingOpportunity";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import "./globals.css";

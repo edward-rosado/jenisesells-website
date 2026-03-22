@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { TrustStrip } from "@/components/landing/TrustStrip";
+import { TrustStrip } from "@/features/landing/TrustStrip";
 
 describe("TrustStrip", () => {
   it("renders trust indicators", () => {
