@@ -37,11 +37,36 @@ describe("validateTurnstile", () => {
     spy.mockRestore();
   });
 
-  it("returns false when TURNSTILE_SECRET_KEY is not set", async () => {
+  it("returns false and logs SEC-002 when TURNSTILE_SECRET_KEY is not set", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     delete process.env.TURNSTILE_SECRET_KEY;
     const { validateTurnstile } = await import("@/lib/turnstile");
     const result = await validateTurnstile("token");
     expect(result).toBe(false);
+    expect(spy).toHaveBeenCalledWith("[SEC-002] TURNSTILE_SECRET_KEY is not set");
+    spy.mockRestore();
+  });
+
+  it("returns false and logs SEC-003 when token is empty", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { validateTurnstile } = await import("@/lib/turnstile");
+    const result = await validateTurnstile("");
+    expect(result).toBe(false);
+    expect(spy).toHaveBeenCalledWith("[SEC-003] Turnstile token is empty");
+    spy.mockRestore();
+  });
+
+  it("logs SEC-004 with error details when Cloudflare rejects token", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: false, "error-codes": ["invalid-input-response"], hostname: "example.com" }),
+    });
+    const { validateTurnstile } = await import("@/lib/turnstile");
+    const result = await validateTurnstile("bad-token");
+    expect(result).toBe(false);
+    expect(spy).toHaveBeenCalledWith("[SEC-004] Turnstile rejected token:", expect.stringContaining("invalid-input-response"));
+    spy.mockRestore();
   });
 
   it("aborts fetch after 15 seconds and returns false", async () => {
