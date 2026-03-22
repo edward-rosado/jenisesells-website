@@ -55,10 +55,12 @@ flowchart TD
 
     CheckDraft -->|"No"| Draft
     CheckDraft -->|"Yes"| SkipDraft
-    Draft --> Notify
-    SkipDraft --> Notify
+    Draft --> Parallel
+    SkipDraft --> Parallel
 
-    Notify --> Decision
+    Parallel["Parallel dispatch"]
+    Parallel --> Notify
+    Parallel --> Decision
 
     Decision -->|"Seller / Both"| CmaCh
     Decision -->|"Buyer / Both"| HsCh
@@ -87,6 +89,7 @@ flowchart TD
     style CheckDraft fill:#C8A951,color:#fff
     style Draft fill:#7B68EE,color:#fff
     style SkipDraft fill:#C8A951,color:#fff
+    style Parallel fill:#C8A951,color:#fff
     style Notify fill:#7B68EE,color:#fff
     style CmaCh fill:#7B68EE,color:#fff
     style CmaWorker fill:#7B68EE,color:#fff
