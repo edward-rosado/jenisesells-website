@@ -81,27 +81,33 @@ jobs:
           WA_VERIFY: ${{ secrets.WHATSAPP_VERIFY_TOKEN }}
           WA_WABA: ${{ secrets.WHATSAPP_WABA_ID }}
           AZ_STORAGE: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          HMAC_SECRET: ${{ secrets.LEAD_HMAC_SECRET }}
+          HMAC_API_KEY: ${{ secrets.LEAD_API_KEY }}
         run: |
           SECRETS=()
-          [ -n "$WA_PHONE" ]   && SECRETS+=("whatsapp-phone-number-id=$WA_PHONE")
-          [ -n "$WA_TOKEN" ]   && SECRETS+=("whatsapp-access-token=$WA_TOKEN")
-          [ -n "$WA_SECRET" ]  && SECRETS+=("whatsapp-app-secret=$WA_SECRET")
-          [ -n "$WA_VERIFY" ]  && SECRETS+=("whatsapp-verify-token=$WA_VERIFY")
-          [ -n "$WA_WABA" ]    && SECRETS+=("whatsapp-waba-id=$WA_WABA")
-          [ -n "$AZ_STORAGE" ] && SECRETS+=("azure-storage-connection-string=$AZ_STORAGE")
+          [ -n "$WA_PHONE" ]     && SECRETS+=("whatsapp-phone-number-id=$WA_PHONE")
+          [ -n "$WA_TOKEN" ]     && SECRETS+=("whatsapp-access-token=$WA_TOKEN")
+          [ -n "$WA_SECRET" ]    && SECRETS+=("whatsapp-app-secret=$WA_SECRET")
+          [ -n "$WA_VERIFY" ]    && SECRETS+=("whatsapp-verify-token=$WA_VERIFY")
+          [ -n "$WA_WABA" ]      && SECRETS+=("whatsapp-waba-id=$WA_WABA")
+          [ -n "$AZ_STORAGE" ]   && SECRETS+=("azure-storage-connection-string=$AZ_STORAGE")
+          [ -n "$HMAC_SECRET" ]  && SECRETS+=("hmac-secret=$HMAC_SECRET")
+          [ -n "$HMAC_API_KEY" ] && SECRETS+=("hmac-api-key=$HMAC_API_KEY")
           if [ ${#SECRETS[@]} -gt 0 ]; then
             az containerapp secret set \
               --name "$CONTAINER_APP_NAME" \
               --resource-group "$RESOURCE_GROUP" \
               --secrets "${SECRETS[@]}"
           else
-            echo "No WhatsApp/storage secrets configured — skipping secret update"
+            echo "No secrets configured — skipping secret update"
           fi
 
       - name: Deploy to Container App
         env:
           WA_PHONE: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
           AZ_STORAGE: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          HMAC_SECRET: ${{ secrets.LEAD_HMAC_SECRET }}
+          HMAC_API_KEY: ${{ secrets.LEAD_API_KEY }}
         run: |
           EXTRA_ENV_VARS=""
           if [ -n "$WA_PHONE" ]; then
@@ -109,6 +115,11 @@ jobs:
           fi
           if [ -n "$AZ_STORAGE" ]; then
             EXTRA_ENV_VARS="$EXTRA_ENV_VARS AzureStorage__ConnectionString=secretref:azure-storage-connection-string"
+          fi
+          if [ -n "$HMAC_SECRET" ]; then
+            EXTRA_ENV_VARS="$EXTRA_ENV_VARS Hmac__HmacSecret=secretref:hmac-secret"
+            # ApiKeys maps API key → agent handle; key contains the secret API key value
+            EXTRA_ENV_VARS="$EXTRA_ENV_VARS Hmac__ApiKeys__${HMAC_API_KEY}=jenise-buckalew"
           fi
           az containerapp update \
             --name "$CONTAINER_APP_NAME" \

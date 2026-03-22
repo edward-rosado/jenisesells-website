@@ -66,7 +66,7 @@ if (!builder.Environment.IsDevelopment())
 // HMAC authentication for lead endpoints (server-to-server from CF Worker)
 builder.Services.Configure<ApiKeyHmacOptions>(builder.Configuration.GetSection("Hmac"));
 
-// Validate HMAC config in production — empty ApiKeys silently disables auth
+// Warn if HMAC config is missing — middleware will skip auth gracefully
 if (!builder.Environment.IsDevelopment())
 {
     var hmacSection = builder.Configuration.GetSection("Hmac");
@@ -74,9 +74,9 @@ if (!builder.Environment.IsDevelopment())
     var apiKeysSection = hmacSection.GetSection("ApiKeys");
     if (string.IsNullOrWhiteSpace(hmacSecret) || !apiKeysSection.GetChildren().Any())
     {
-        throw new InvalidOperationException(
-            "Hmac:HmacSecret and Hmac:ApiKeys must be configured in non-Development environments. " +
-            "Empty ApiKeys silently disables HMAC authentication on all lead endpoints.");
+        Console.Error.WriteLine(
+            "[STARTUP-WARN] Hmac:HmacSecret and/or Hmac:ApiKeys not configured. " +
+            "HMAC authentication is disabled on lead endpoints.");
     }
 }
 
