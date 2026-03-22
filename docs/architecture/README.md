@@ -12,6 +12,9 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | [Template Rendering](template-rendering.md) | Config loading → template selection → section rendering → CSS variables |
 | [Data Model](data-model.md) | Agent config entity model, section types, file relationships |
 | [Skill Integration](skill-integration.md) | Config-driven skills, onboarding flow, field mapping |
+| [Frontend Package Dependencies](frontend-package-dependencies.md) | 5 shared packages, dependency rules, app composition |
+| [Agent-Site Feature Isolation](agent-site-feature-isolation.md) | 6 feature modules, allowed/blocked import directions |
+| [Observability Flow](observability-flow.md) | Telemetry, error tracking, correlation IDs frontend→backend |
 
 ## API Project Structure (21 Projects + 23 Test Projects)
 
