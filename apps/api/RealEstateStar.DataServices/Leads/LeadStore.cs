@@ -25,11 +25,8 @@ public class FileLeadStore(LocalStorageProvider storage, string basePath) : ILea
         await storage.WriteDocumentAsync(folder, LeadProfileFile, content, ct);
     }
 
-    public async Task UpdateEnrichmentAsync(string agentId, Guid leadId, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
+    public async Task UpdateEnrichmentAsync(Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
     {
-        var lead = await GetAsync(agentId, leadId, ct)
-            ?? throw new InvalidOperationException($"[FLS-001] Lead {leadId} not found for agent {agentId}.");
-
         lead.Enrichment = enrichment;
         lead.Score = score;
 

@@ -25,11 +25,9 @@ public class LeadFileStore(IFileStorageProvider storage, ILogger<LeadFileStore> 
         logger.LogInformation("[LDS-011] Lead {LeadId} saved successfully to {Folder}.", lead.Id, folder);
     }
 
-    public async Task UpdateEnrichmentAsync(string agentId, Guid leadId, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
+    public async Task UpdateEnrichmentAsync(Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
     {
-        logger.LogInformation("[LDS-012] Updating enrichment for lead {LeadId}. Score: {Score}", leadId, score.OverallScore);
-        var lead = await GetAsync(agentId, leadId, ct)
-            ?? throw new InvalidOperationException($"[LDS-001] Lead {leadId} not found for agent {agentId}.");
+        logger.LogInformation("[LDS-012] Updating enrichment for lead {LeadId}. Score: {Score}", lead.Id, score.OverallScore);
 
         lead.Enrichment = enrichment;
         lead.Score = score;
@@ -37,7 +35,7 @@ public class LeadFileStore(IFileStorageProvider storage, ILogger<LeadFileStore> 
         var folder = LeadPaths.LeadFolder(lead.FullName);
         var content = LeadMarkdownRenderer.RenderResearchInsights(lead);
         await storage.WriteDocumentAsync(folder, ResearchInsightsFile, content, ct);
-        logger.LogInformation("[LDS-013] Enrichment saved for lead {LeadId}.", leadId);
+        logger.LogInformation("[LDS-013] Enrichment saved for lead {LeadId}.", lead.Id);
     }
 
     public async Task UpdateHomeSearchIdAsync(string agentId, Guid leadId, string homeSearchId, CancellationToken ct)

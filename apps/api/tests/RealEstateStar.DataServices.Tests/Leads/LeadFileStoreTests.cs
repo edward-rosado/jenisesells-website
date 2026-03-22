@@ -87,21 +87,16 @@ public class LeadFileStoreTests
     {
         var lead = MakeLead();
         var folder = LeadPaths.LeadFolder(lead.FullName);
-        var profileDoc = MakeLeadProfileMarkdown(lead);
         var enrichment = LeadEnrichment.Empty() with { MotivationCategory = "relocating" };
         var score = LeadScore.Default("test");
         string? capturedFile = null;
         string? capturedContent = null;
 
-        _storage.Setup(s => s.ListDocumentsAsync(LeadPaths.LeadsFolder, It.IsAny<CancellationToken>()))
-            .ReturnsAsync([lead.FullName]);
-        _storage.Setup(s => s.ReadDocumentAsync(folder, "Lead Profile.md", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(profileDoc);
         _storage.Setup(s => s.WriteDocumentAsync(folder, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Callback<string, string, string, CancellationToken>((_, file, content, _) => { capturedFile = file; capturedContent = content; })
             .Returns(Task.CompletedTask);
 
-        await _sut.UpdateEnrichmentAsync(AgentId, lead.Id, enrichment, score, CancellationToken.None);
+        await _sut.UpdateEnrichmentAsync(lead, enrichment, score, CancellationToken.None);
 
         Assert.Equal("Research & Insights.md", capturedFile);
         Assert.NotNull(capturedContent);

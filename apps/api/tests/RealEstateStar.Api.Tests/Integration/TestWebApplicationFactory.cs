@@ -56,7 +56,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 file sealed class NoOpLeadStore : ILeadStore
 {
     public Task SaveAsync(Lead lead, CancellationToken ct) => Task.CompletedTask;
-    public Task UpdateEnrichmentAsync(string a, Guid i, LeadEnrichment e, LeadScore s, CancellationToken ct) => Task.CompletedTask;
+    public Task UpdateEnrichmentAsync(Lead l, LeadEnrichment e, LeadScore s, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateHomeSearchIdAsync(string a, Guid i, string h, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateStatusAsync(string a, Guid i, LeadStatus s, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateMarketingOptInAsync(string a, Guid i, bool o, CancellationToken ct) => Task.CompletedTask;

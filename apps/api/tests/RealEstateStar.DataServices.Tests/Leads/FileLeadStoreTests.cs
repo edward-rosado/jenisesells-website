@@ -79,7 +79,7 @@ public class FileLeadStoreTests : IDisposable
         var score = LeadScore.Default("no reason");
         var enrichmentPath = Path.Combine(_basePath, LeadPaths.LeadFolder(lead.FullName), "Research & Insights.md");
 
-        await _sut.UpdateEnrichmentAsync(AgentId, lead.Id, enrichment, score, CancellationToken.None);
+        await _sut.UpdateEnrichmentAsync(lead, enrichment, score, CancellationToken.None);
 
         Assert.True(File.Exists(enrichmentPath));
         var content = await File.ReadAllTextAsync(enrichmentPath);
@@ -236,16 +236,6 @@ public class FileLeadStoreTests : IDisposable
     {
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => _sut.UpdateHomeSearchIdAsync(AgentId, Guid.NewGuid(), "search-id", CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task UpdateEnrichmentAsync_ThrowsInvalidOperation_WhenLeadNotFound()
-    {
-        var enrichment = LeadEnrichment.Empty();
-        var score = LeadScore.Default("no reason");
-
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _sut.UpdateEnrichmentAsync(AgentId, Guid.NewGuid(), enrichment, score, CancellationToken.None));
     }
 
     // ── GetByEmailAsync ───────────────────────────────────────────────────────

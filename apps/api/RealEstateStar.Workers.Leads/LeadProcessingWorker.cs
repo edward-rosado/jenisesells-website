@@ -101,7 +101,7 @@ public sealed class LeadProcessingWorker(
         try
         {
             (enrichment, score) = await enricher.EnrichAsync(lead, ct);
-            await leadStore.UpdateEnrichmentAsync(agentId, lead.Id, enrichment, score, ct);
+            await leadStore.UpdateEnrichmentAsync(lead, enrichment, score, ct);
 
             LeadDiagnostics.LeadsEnriched.Add(1);
             logger.LogInformation(
