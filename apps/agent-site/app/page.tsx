@@ -56,7 +56,7 @@ export default async function AgentPage({ searchParams }: PageProps) {
     const content = loadAccountContent(handle, account);
 
     const cssVars = buildCssVariableStyle(account.branding);
-    const Template = getTemplate(resolveTemplateOverride(templateOverride) ?? account.template);
+    const Template = await getTemplate(resolveTemplateOverride(templateOverride) ?? account.template);
 
     const agentName = account.agent?.name ?? account.broker?.name ?? account.brokerage.name;
     const jsonLd = {

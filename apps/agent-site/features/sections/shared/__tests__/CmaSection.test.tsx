@@ -1,6 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
+import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { CmaSection } from "../CmaSection";
@@ -49,11 +50,20 @@ vi.mock("@/features/shared/Analytics", () => ({
   trackCmaConversion: vi.fn(),
 }));
 
-// Mock Turnstile
+// Mock Turnstile — must be declared before next/dynamic mock so the module is available
+// when the dynamic loader resolves it during import.
 vi.mock("@marsidev/react-turnstile", () => ({
   Turnstile: (props: { siteKey: string; onSuccess: (token: string) => void }) => (
     <div data-testid="turnstile-widget" data-site-key={props.siteKey} />
   ),
+}));
+
+// Mock next/dynamic: return a wrapper that renders the lazily-loaded component.
+// React.lazy requires a promise resolving to { default: Component }, so we wrap the loader.
+// Tests that assert on the dynamic Turnstile must wrap renders in act(async () => {}).
+vi.mock("next/dynamic", () => ({
+  default: (loader: () => Promise<React.ComponentType<unknown>>) =>
+    React.lazy(() => loader().then((Component) => ({ default: Component }))),
 }));
 
 const FORM_DATA: ContactFormData = {
@@ -370,9 +380,15 @@ describe("CmaSection Turnstile integration", () => {
     process.env = ORIGINAL_ENV;
   });
 
-  it("renders Turnstile widget when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set", () => {
+  it("renders Turnstile widget when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set", async () => {
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "test-site-key";
-    render(<CmaSection {...DEFAULT_PROPS} />);
+    await act(async () => {
+      render(
+        <React.Suspense fallback={null}>
+          <CmaSection {...DEFAULT_PROPS} />
+        </React.Suspense>
+      );
+    });
     expect(screen.getByTestId("turnstile-widget")).toBeInTheDocument();
     expect(screen.getByTestId("turnstile-widget")).toHaveAttribute("data-site-key", "test-site-key");
   });
@@ -391,9 +407,15 @@ describe("CmaSection Turnstile integration", () => {
     expect(submitButton).not.toBeDisabled();
   });
 
-  it("gates submit when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set but token not yet received", () => {
+  it("gates submit when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set but token not yet received", async () => {
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "test-site-key";
-    render(<CmaSection {...DEFAULT_PROPS} />);
+    await act(async () => {
+      render(
+        <React.Suspense fallback={null}>
+          <CmaSection {...DEFAULT_PROPS} />
+        </React.Suspense>
+      );
+    });
     // Token starts as null — submit should be disabled until Turnstile resolves
     const submitButton = screen.getByRole("button", { name: /Get My Free Home Value Report/ });
     expect(submitButton).toBeDisabled();

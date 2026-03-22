@@ -1,30 +1,23 @@
 import type { TemplateComponent } from "./types";
-import { EmeraldClassic } from "./emerald-classic";
-import { ModernMinimal } from "./modern-minimal";
-import { WarmCommunity } from "./warm-community";
-import { LuxuryEstate } from "./luxury-estate";
-import { UrbanLoft } from "./urban-loft";
-import { NewBeginnings } from "./new-beginnings";
-import { LightLuxury } from "./light-luxury";
-import { CountryEstate } from "./country-estate";
-import { CoastalLiving } from "./coastal-living";
-import { Commercial } from "./commercial";
 
 export type { TemplateProps, TemplateComponent } from "./types";
 
-export const TEMPLATES: Record<string, TemplateComponent> = {
-  "emerald-classic": EmeraldClassic,
-  "modern-minimal": ModernMinimal,
-  "warm-community": WarmCommunity,
-  "luxury-estate": LuxuryEstate,
-  "urban-loft": UrbanLoft,
-  "new-beginnings": NewBeginnings,
-  "light-luxury": LightLuxury,
-  "country-estate": CountryEstate,
-  "coastal-living": CoastalLiving,
-  "commercial": Commercial,
+type TemplateLoader = () => Promise<TemplateComponent>;
+
+export const TEMPLATE_LOADERS: Record<string, TemplateLoader> = {
+  "emerald-classic": () => import("./emerald-classic").then((m) => m.EmeraldClassic),
+  "modern-minimal": () => import("./modern-minimal").then((m) => m.ModernMinimal),
+  "warm-community": () => import("./warm-community").then((m) => m.WarmCommunity),
+  "luxury-estate": () => import("./luxury-estate").then((m) => m.LuxuryEstate),
+  "urban-loft": () => import("./urban-loft").then((m) => m.UrbanLoft),
+  "new-beginnings": () => import("./new-beginnings").then((m) => m.NewBeginnings),
+  "light-luxury": () => import("./light-luxury").then((m) => m.LightLuxury),
+  "country-estate": () => import("./country-estate").then((m) => m.CountryEstate),
+  "coastal-living": () => import("./coastal-living").then((m) => m.CoastalLiving),
+  "commercial": () => import("./commercial").then((m) => m.Commercial),
 };
 
-export function getTemplate(name: string): TemplateComponent {
-  return TEMPLATES[name] || EmeraldClassic;
+export async function getTemplate(name: string): Promise<TemplateComponent> {
+  const loader = TEMPLATE_LOADERS[name] ?? TEMPLATE_LOADERS["emerald-classic"];
+  return loader();
 }

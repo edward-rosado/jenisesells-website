@@ -1,6 +1,5 @@
 "use server";
 
-import * as Sentry from "@sentry/nextjs";
 import type { LeadFormData } from "@real-estate-star/domain";
 import { validateTurnstile } from "./turnstile";
 import { signAndForward } from "./hmac";
@@ -50,6 +49,7 @@ export async function submitLead(
     }
     return response.json();
   } catch (error) {
+    const Sentry = await import("@sentry/nextjs");
     Sentry.captureException(error);
     return { error: "Something went wrong. Please try again." };
   }

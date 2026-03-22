@@ -5,7 +5,12 @@ import { trackCmaConversion } from "@/features/shared/Analytics";
 import { trackFormEvent, EventType } from "@/features/shared/telemetry";
 import { LeadForm } from "@real-estate-star/forms";
 import type { LeadFormData } from "@real-estate-star/domain";
-import { Turnstile } from "@marsidev/react-turnstile";
+import dynamic from "next/dynamic";
+
+const Turnstile = dynamic(
+  () => import("@marsidev/react-turnstile").then((m) => m.Turnstile),
+  { ssr: false }
+);
 import type { ReactNode } from "react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { submitLead } from "@/features/lead-capture/submit-lead";

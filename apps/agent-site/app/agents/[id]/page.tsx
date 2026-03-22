@@ -74,7 +74,7 @@ export default async function AgentSubPage({ params, searchParams }: PageProps) 
   }
 
   const cssVars = buildCssVariableStyle(account.branding);
-  const TemplateComponent = getTemplate(account.template);
+  const TemplateComponent = await getTemplate(account.template);
 
   const jsonLd = {
     "@context": "https://schema.org",
