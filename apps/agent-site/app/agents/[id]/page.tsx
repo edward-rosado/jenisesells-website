@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { loadAccountConfig, loadAgentConfig, loadAgentContent } from "@/features/config/config";
 import { buildCssVariableStyle } from "@/features/config/branding";
-import { getTemplate } from "@/templates";
-import { Analytics } from "@/components/Analytics";
+import { getTemplate } from "@/features/templates";
+import { Analytics } from "@/features/shared/Analytics";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 
 interface PageProps {

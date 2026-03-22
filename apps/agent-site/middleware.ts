@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractAgentId, resolveAgentFromCustomDomain, isWwwCustomDomain, getAgentIds } from "@/features/config/routing";
-import { applySecurityHeaders, safeCspUrl } from "@/lib/security-headers";
+import { applySecurityHeaders, safeCspUrl } from "@/features/shared/security-headers";
 
 function buildCspHeader(nonce: string): string {
   const apiUrl = safeCspUrl(process.env.NEXT_PUBLIC_API_URL);

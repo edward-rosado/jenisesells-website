@@ -1,7 +1,7 @@
 import type { AccountConfig, NavigationConfig } from "@/features/config/types";
 import { buildCssVariableStyle } from "@/features/config/branding";
-import { Nav } from "@/components/Nav";
-import { Footer } from "@/components/sections/shared/Footer";
+import { Nav } from "@/features/shared/Nav";
+import { Footer } from "@/features/sections/shared/Footer";
 import { CookieConsentBanner } from "./CookieConsentBanner";
 import { MarkdownContent } from "./MarkdownContent";
 

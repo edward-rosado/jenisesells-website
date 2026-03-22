@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { useFocusTrap } from "@/lib/use-focus-trap";
+import { useFocusTrap } from "@/features/shared/use-focus-trap";
 
 function getConsentKey(accountId: string) {
   return `res-cookie-consent-${accountId}`;

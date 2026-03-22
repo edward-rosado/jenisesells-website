@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { MyDataForm } from "@/components/privacy/MyDataForm";
+import { MyDataForm } from "@/features/privacy/MyDataForm";
 import { loadAccountConfig } from "@/features/config/config";
 
 interface PageProps {

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DeleteRequestForm } from "@/components/privacy/DeleteRequestForm";
+import { DeleteRequestForm } from "@/features/privacy/DeleteRequestForm";
 import { loadAccountConfig } from "@/features/config/config";
 
 interface PageProps {

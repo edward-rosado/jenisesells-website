@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { OptOutForm } from "@/components/privacy/OptOutForm";
+import { OptOutForm } from "@/features/privacy/OptOutForm";
 import { loadAccountConfig } from "@/features/config/config";
 
 interface PageProps {

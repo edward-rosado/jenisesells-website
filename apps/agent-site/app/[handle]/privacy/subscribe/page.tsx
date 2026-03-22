@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SubscribeForm } from "@/components/privacy/SubscribeForm";
+import { SubscribeForm } from "@/features/privacy/SubscribeForm";
 import { loadAccountConfig } from "@/features/config/config";
 
 interface PageProps {

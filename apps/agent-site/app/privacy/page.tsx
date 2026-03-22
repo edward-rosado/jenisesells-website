@@ -5,7 +5,7 @@ import { loadNavConfig } from "@/features/config/nav-config";
 import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
 import { MarkdownContent } from "@/components/legal/MarkdownContent";
 import { LEGAL_EFFECTIVE_DATE, getStateName } from "@/components/legal/constants";
-import { safeMailtoHref } from "@/lib/safe-contact";
+import { safeMailtoHref } from "@/features/lead-capture/safe-contact";
 
 interface PageProps {
   searchParams: Promise<{ accountId?: string }>;

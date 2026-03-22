@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { loadAccountConfig, loadAccountContent, loadAgentConfig, loadAgentContent } from "@/features/config/config";
 import { loadNavConfig } from "@/features/config/nav-config";
 import { buildCssVariableStyle } from "@/features/config/branding";
-import { Nav } from "@/components/Nav";
-import { Footer } from "@/components/sections";
+import { Nav } from "@/features/shared/Nav";
+import { Footer } from "@/features/sections/shared";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import type { AccountConfig, AgentConfig, ThankYouData } from "@/features/config/types";
 

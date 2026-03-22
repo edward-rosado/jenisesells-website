@@ -12,7 +12,7 @@ vi.mock("@/features/config/config", () => ({
   loadAccountConfig: (...args: unknown[]) => mockLoadAccountConfig(...args),
 }));
 
-vi.mock("@/actions/privacy", () => ({
+vi.mock("@/features/privacy/privacy", () => ({
   requestSubscribe: (...args: unknown[]) => mockRequestSubscribe(...args),
 }));
 
