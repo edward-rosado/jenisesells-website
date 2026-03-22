@@ -88,17 +88,31 @@ public class SubmitLeadEndpoint : IEndpoint
                 lead.MergeType(LeadType.Both);
 
             // Merge seller/buyer details if newly provided
+            var hasNewDetails = false;
             if (request.Seller is not null && lead.SellerDetails is null)
+            {
                 lead.MergeSellerDetails(LeadMappers.MapSellerDetails(request.Seller));
+                hasNewDetails = true;
+            }
             if (request.Buyer is not null && lead.BuyerDetails is null)
+            {
                 lead.MergeBuyerDetails(LeadMappers.MapBuyerDetails(request.Buyer));
+                hasNewDetails = true;
+            }
 
-            // Reset status to re-run pipeline from enrichment (skips completed enrichment via worker checkpoint)
-            lead.Status = LeadStatus.Received;
+            // Only re-run pipeline if new data was added (new seller/buyer details or type change)
+            // Don't reset status if nothing changed — avoids re-running enrichment/scraping
+            if (!hasNewDetails && lead.LeadType == request.LeadType)
+            {
+                logger.LogInformation(
+                    "[LEAD-001-DEDUP] Lead already exists with same data. LeadId: {LeadId}, Status: {Status}. Skipping re-enqueue.",
+                    lead.Id, lead.Status);
+                return Results.Accepted($"/agents/{agentId}/leads/{lead.Id}", new SubmitLeadResponse(lead.Id, "already-exists"));
+            }
 
             logger.LogInformation(
-                "[LEAD-001] Lead updated (dedup). LeadId: {LeadId}, AgentId: {AgentId}, Type: {LeadType}, Email: {EmailHash}",
-                lead.Id, agentId, lead.LeadType, HashEmail(lead.Email));
+                "[LEAD-001] Lead updated (dedup). LeadId: {LeadId}, AgentId: {AgentId}, Type: {LeadType}, NewDetails: {HasNewDetails}, Email: {EmailHash}",
+                lead.Id, agentId, lead.LeadType, hasNewDetails, HashEmail(lead.Email));
         }
         else
         {
