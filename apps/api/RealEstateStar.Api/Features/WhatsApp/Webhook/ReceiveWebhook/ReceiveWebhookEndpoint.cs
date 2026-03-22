@@ -24,7 +24,7 @@ public class ReceiveWebhookEndpoint : IEndpoint
             using var reader = new StreamReader(request.Body, Encoding.UTF8, leaveOpen: true);
             var rawBody = await reader.ReadToEndAsync(ct);
             var signature = request.Headers["X-Hub-Signature-256"].FirstOrDefault();
-            var appSecret = config["WhatsApp:AppSecret"]!;
+            var appSecret = config["WhatsApp:AppSecret"];
 
             return await Handle(rawBody, signature, appSecret, idempotencyStore, queue, audit, ct);
         }).DisableRateLimiting();
@@ -32,13 +32,17 @@ public class ReceiveWebhookEndpoint : IEndpoint
     internal static async Task<IResult> Handle(
         string rawBody,
         string? signature,
-        string appSecret,
+        string? appSecret,
         WhatsAppIdempotencyStore idempotencyStore,
         IWebhookQueueService queue,
         IWhatsAppAuditService audit,
         CancellationToken ct)
     {
-        // Step 1: Validate HMAC-SHA256 signature
+        // Step 1: If WhatsApp not configured, reject immediately
+        if (string.IsNullOrEmpty(appSecret))
+            return Results.Unauthorized();
+
+        // Step 2: Validate HMAC-SHA256 signature
         if (!IsSignatureValid(rawBody, signature, appSecret))
             return Results.Unauthorized();
 
@@ -107,7 +111,7 @@ public class ReceiveWebhookEndpoint : IEndpoint
         return Results.Ok();
     }
 
-    private static bool IsSignatureValid(string rawBody, string? signature, string appSecret)
+    private static bool IsSignatureValid(string rawBody, string? signature, string? appSecret)
     {
         if (string.IsNullOrEmpty(signature))
             return false;
