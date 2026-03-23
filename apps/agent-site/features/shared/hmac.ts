@@ -1,3 +1,5 @@
+import { createApiClient } from "@real-estate-star/api-client";
+
 export async function signAndForward(agentId: string, body: string, path?: string): Promise<Response> {
   const apiKey = process.env.LEAD_API_KEY!;
   const hmacSecret = process.env.LEAD_HMAC_SECRET!;
@@ -22,17 +24,18 @@ export async function signAndForward(agentId: string, body: string, path?: strin
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15_000);
   try {
-    return await fetch(`${apiUrl}/${endpoint}`, {
-      method: "POST",
+    const client = createApiClient(apiUrl);
+    const result = await client.POST(`/${endpoint}` as never, {
+      body: JSON.parse(body),
       headers: {
         "Content-Type": "application/json",
         "X-API-Key": apiKey,
         "X-Signature": signature,
         "X-Timestamp": timestamp,
       },
-      body,
-      signal: controller.signal,
+      init: { signal: controller.signal },
     });
+    return result.response;
   } finally {
     clearTimeout(timeoutId);
   }
