@@ -324,21 +324,108 @@ Currently the endpoint chains: endpoint → lead worker → (CMA, HomeSearch). B
 
 ## Phase 2: Pipeline Context Pattern (Tasks 5-8)
 
-### Task 5: PipelineContext base + IPipelineStep
+### Task 5: PipelineWorker base class + PipelineContext
 
 **Files:**
 - Create: `apps/api/RealEstateStar.Workers.Shared/Context/PipelineContext.cs`
 - Create: `apps/api/RealEstateStar.Workers.Shared/Context/PipelineStepStatus.cs`
+- Create: `apps/api/RealEstateStar.Workers.Shared/PipelineWorker.cs`
 
-- [ ] **Step 1: Write PipelineContext**
+- [ ] **Step 1: Write PipelineWorker base class**
+
+```csharp
+// Workers.Shared/PipelineWorker.cs
+namespace RealEstateStar.Workers.Shared;
+
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using RealEstateStar.Workers.Shared.Context;
+
+/// <summary>
+/// Base class for all background pipeline workers. Enforces a consistent pattern:
+/// read from channel → build context → execute steps (checkpoint/resume) →
+/// health tracking → error handling.
+/// </summary>
+public abstract class PipelineWorker<TRequest, TContext>(
+    ProcessingChannelBase<TRequest> channel,
+    BackgroundServiceHealthTracker healthTracker,
+    ILogger logger) : BackgroundService
+    where TContext : PipelineContext
+{
+    protected abstract string WorkerName { get; }
+    protected abstract TContext CreateContext(TRequest request);
+    protected abstract Task ProcessAsync(TContext context, CancellationToken ct);
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        logger.LogInformation("[{Worker}-001] {Worker} started.", WorkerName, WorkerName);
+
+        await foreach (var request in channel.Reader.ReadAllAsync(stoppingToken))
+        {
+            var ctx = CreateContext(request);
+            try
+            {
+                await ProcessAsync(ctx, stoppingToken);
+                healthTracker.RecordActivity(WorkerName);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex,
+                    "[{Worker}-002] Unhandled error. CorrelationId: {CorrelationId}",
+                    WorkerName, ctx.CorrelationId);
+            }
+        }
+
+        logger.LogInformation("[{Worker}-003] {Worker} stopping.", WorkerName, WorkerName);
+    }
+
+    /// <summary>
+    /// Run a named step only if it hasn't already completed (checkpoint/resume).
+    /// Updates context step status on success/failure.
+    /// </summary>
+    protected async Task RunStepAsync(TContext ctx, string stepName, Func<Task> action, CancellationToken ct)
+    {
+        if (ctx.HasCompleted(stepName))
+        {
+            logger.LogInformation("[{Worker}] Skipping step '{Step}' — already completed. CorrelationId: {CorrelationId}",
+                WorkerName, stepName, ctx.CorrelationId);
+            return;
+        }
+
+        try
+        {
+            await action();
+            ctx.MarkCompleted(stepName);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex)
+        {
+            ctx.MarkFailed(stepName);
+            logger.LogError(ex, "[{Worker}] Step '{Step}' failed. CorrelationId: {CorrelationId}",
+                WorkerName, stepName, ctx.CorrelationId);
+            throw;
+        }
+    }
+}
+```
+
+The key contract:
+- **`CreateContext`**: Build a typed context from the channel request
+- **`ProcessAsync`**: Define pipeline steps using `RunStepAsync` for checkpoint/resume
+- **`RunStepAsync`**: Skips completed steps, updates status, logs consistently
+- **Base handles**: Channel read loop, health tracking, error logging, worker lifecycle
+
+- [ ] **Step 2: Write PipelineContext (base + generic)**
 
 ```csharp
 // Workers.Shared/Context/PipelineContext.cs
 namespace RealEstateStar.Workers.Shared.Context;
 
-public class PipelineContext<TRequest>
+/// <summary>
+/// Non-generic base so PipelineWorker can reference without knowing TRequest.
+/// </summary>
+public abstract class PipelineContext
 {
-    public required TRequest Request { get; init; }
     public required string AgentId { get; init; }
     public required string CorrelationId { get; init; }
     public Dictionary<string, object> Data { get; } = new();
@@ -361,6 +448,14 @@ public class PipelineContext<TRequest>
 
     public void MarkSkipped(string stepName) =>
         StepResults[stepName] = PipelineStepStatus.Skipped;
+}
+
+/// <summary>
+/// Generic context that carries the original request object.
+/// </summary>
+public abstract class PipelineContext<TRequest> : PipelineContext
+{
+    public required TRequest Request { get; init; }
 }
 ```
 
@@ -500,63 +595,65 @@ feat: add CmaPipelineContext and HomeSearchPipelineContext
 
 ---
 
-### Task 8: Migrate LeadProcessingWorker to use LeadPipelineContext
+### Task 8: Migrate LeadProcessingWorker to inherit PipelineWorker
 
 **Files:**
 - Modify: `apps/api/RealEstateStar.Workers.Leads/LeadProcessingWorker.cs`
 - Modify: `apps/api/RealEstateStar.Workers.Leads/LeadProcessingChannel.cs`
 - Modify: test files
 
-- [ ] **Step 1: Update LeadProcessingRequest to carry context**
+- [ ] **Step 1: Refactor LeadProcessingWorker to inherit PipelineWorker**
 
 ```csharp
-public sealed record LeadProcessingRequest(
-    string AgentId,
-    Lead Lead,
-    string CorrelationId,
-    LeadPipelineContext? Context = null);
-```
-
-- [ ] **Step 2: Refactor ProcessLeadAsync to build and pass context**
-
-```csharp
-private async Task ProcessLeadAsync(LeadProcessingRequest request, CancellationToken ct)
+public sealed class LeadProcessingWorker(
+    LeadProcessingChannel channel,
+    ILeadStore leadStore,
+    ILeadEnricher enricher,
+    ILeadNotifier notifier,
+    IFailedNotificationStore failedNotificationStore,
+    IFileStorageProvider storage,
+    BackgroundServiceHealthTracker healthTracker,
+    ILogger<LeadProcessingWorker> logger)
+    : PipelineWorker<LeadProcessingRequest, LeadPipelineContext>(channel, healthTracker, logger)
 {
-    var ctx = request.Context ?? new LeadPipelineContext
+    protected override string WorkerName => "LeadWorker";
+
+    protected override LeadPipelineContext CreateContext(LeadProcessingRequest request) => new()
     {
         Request = request.Lead,
         AgentId = request.AgentId,
         CorrelationId = request.CorrelationId,
     };
 
-    // Step 1: Enrich — skip if context already has enrichment
-    if (!ctx.HasCompleted(LeadPipelineContext.StepEnrich))
-        await EnrichLeadAsync(ctx, ct);
+    protected override async Task ProcessAsync(LeadPipelineContext ctx, CancellationToken ct)
+    {
+        await RunStepAsync(ctx, "enrich", () => EnrichAsync(ctx, ct), ct);
+        await RunStepAsync(ctx, "draft-email", () => DraftEmailAsync(ctx, ct), ct);
+        await RunStepAsync(ctx, "notify", () => NotifyAsync(ctx, ct), ct);
+    }
 
-    // Step 2: Draft + send notification
-    if (!ctx.HasCompleted(LeadPipelineContext.StepDraftEmail))
-        await DraftEmailAsync(ctx, ct);
+    private async Task EnrichAsync(LeadPipelineContext ctx, CancellationToken ct)
+    {
+        // Check checkpoint file
+        var (enrichment, score) = await enricher.EnrichAsync(ctx.Request, ct);
+        ctx.Enrichment = enrichment;
+        ctx.Score = score;
+        await leadStore.UpdateEnrichmentAsync(ctx.Request, enrichment, score, ct);
+    }
 
-    var notifyTask = NotifyAgentAsync(ctx, ct);
-
-    // Step 3-4: Dispatch CMA/HomeSearch in parallel
-    if (!ctx.HasCompleted(LeadPipelineContext.StepDispatchCma))
-        await DispatchCmaAsync(ctx, ct);
-    if (!ctx.HasCompleted(LeadPipelineContext.StepDispatchHomeSearch))
-        await DispatchHomeSearchAsync(ctx, ct);
-
-    await notifyTask;
+    private async Task DraftEmailAsync(LeadPipelineContext ctx, CancellationToken ct) { /* ... */ }
+    private async Task NotifyAsync(LeadPipelineContext ctx, CancellationToken ct) { /* ... */ }
 }
 ```
 
-Each step method updates `ctx.Enrichment`, `ctx.Score`, etc. instead of returning tuples.
+Every worker follows the same pattern: inherit `PipelineWorker`, define steps via `RunStepAsync`, store results in context.
 
-- [ ] **Step 3: Update tests**
-- [ ] **Step 4: Run all tests, verify pass**
-- [ ] **Step 5: Commit**
+- [ ] **Step 2: Update tests**
+- [ ] **Step 3: Run all tests, verify pass**
+- [ ] **Step 4: Commit**
 
 ```
-refactor: migrate LeadProcessingWorker to LeadPipelineContext
+refactor: migrate LeadProcessingWorker to PipelineWorker base class
 ```
 
 ---
