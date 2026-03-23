@@ -33,29 +33,40 @@ The current pipeline architecture has three critical gaps:
 
 ## Architecture Overview
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                      API Endpoint                             │
-│  validate → save → consent → fan-out to 3 channels           │
-└──────┬──────────────┬──────────────────┬─────────────────────┘
-       │              │                  │
-       ▼              ▼                  ▼
-  LeadChannel    CmaChannel      HomeSearchChannel
-       │              │                  │
-       ▼              ▼                  ▼
-┌──────────────┐┌──────────────┐┌──────────────────┐
-│ LeadWorker   ││ CmaWorker    ││ HomeSearchWorker  │
-│ extends      ││ extends      ││ extends           │
-│ PipelineWorker││ PipelineWorker││ PipelineWorker   │
-└──────────────┘└──────────────┘└──────────────────┘
-       │              │                  │
-       │    All use IScraperClient       │
-       │         (centralized)           │
-       ▼              ▼                  ▼
-┌──────────────────────────────────────────────────────────────┐
-│                    IScraperClient                             │
-│  OTel counters │ rate-limit circuit breaker │ configurable   │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Endpoint["API Endpoint<br/>validate → save → consent"]
+
+    LC["LeadChannel"]
+    CC["CmaChannel"]
+    HC["HomeSearchChannel"]
+
+    LW["LeadWorker<br/><i>extends PipelineWorker</i>"]
+    CW["CmaWorker<br/><i>extends PipelineWorker</i>"]
+    HW["HomeSearchWorker<br/><i>extends PipelineWorker</i>"]
+
+    SC["IScraperClient<br/>OTel counters · circuit breaker · configurable URLs"]
+
+    Endpoint -->|"fan-out"| LC
+    Endpoint -->|"fan-out"| CC
+    Endpoint -->|"fan-out"| HC
+
+    LC --> LW
+    CC --> CW
+    HC --> HW
+
+    LW --> SC
+    CW --> SC
+    HW --> SC
+
+    style Endpoint fill:#7B68EE,color:#fff
+    style LC fill:#7B68EE,color:#fff
+    style CC fill:#7B68EE,color:#fff
+    style HC fill:#7B68EE,color:#fff
+    style LW fill:#4A90D9,color:#fff
+    style CW fill:#4A90D9,color:#fff
+    style HW fill:#4A90D9,color:#fff
+    style SC fill:#2E7D32,color:#fff
 ```
 
 All three pipelines are **independent** — no data flows between them. The API endpoint fans out to all three channels simultaneously. Each worker runs its own pipeline with its own context.
@@ -73,74 +84,149 @@ Every pipeline gets a context object that carries:
 - Sub-step tracking for partial completion
 - Retry history with error details
 
-```
-PipelineContext (abstract base)
-├── AgentId, CorrelationId
-├── PipelineStartedAt / PipelineCompletedAt / PipelineDurationMs
-├── AttemptNumber, TotalFailures, LastFailedAt
-├── Data: Dictionary<string, object>    ← intermediate results
-├── Steps: Dictionary<string, StepRecord>
-│     └── StepRecord
-│           ├── Name, Status, StartedAt, CompletedAt, DurationMs
-│           ├── CompletedSubSteps: HashSet<string>
-│           └── ErrorHistory: List<ErrorEntry>
-├── Get<T>(key) / Set<T>(key, value)
-├── HasCompleted(step) / HasCompletedSubStep(step, subStep)
-└── MarkCompleted / MarkFailed / MarkSubStepCompleted
+```mermaid
+classDiagram
+    class PipelineContext {
+        <<abstract>>
+        +string AgentId
+        +string CorrelationId
+        +DateTime? PipelineStartedAt
+        +DateTime? PipelineCompletedAt
+        +double? PipelineDurationMs
+        +int AttemptNumber
+        +int TotalFailures
+        +DateTime? LastFailedAt
+        +Dictionary~string, object~ Data
+        +Dictionary~string, StepRecord~ Steps
+        +Get~T~(key) T?
+        +Set~T~(key, value)
+        +HasCompleted(step) bool
+        +HasCompletedSubStep(step, subStep) bool
+        +MarkCompleted(step)
+        +MarkFailed(step)
+        +MarkSubStepCompleted(step, subStep)
+    }
 
-PipelineContext<TRequest> : PipelineContext
-└── Request: TRequest
-```
+    class PipelineContext_T["PipelineContext&lt;TRequest&gt;"] {
+        <<abstract>>
+        +TRequest Request
+    }
 
-**Typed contexts per pipeline:**
+    class StepRecord {
+        +string Name
+        +PipelineStepStatus Status
+        +DateTime? StartedAt
+        +DateTime? CompletedAt
+        +double? DurationMs
+        +string? Error
+        +HashSet~string~ CompletedSubSteps
+        +List~ErrorEntry~ ErrorHistory
+    }
 
-```
-LeadPipelineContext : PipelineContext<Lead>
-├── Enrichment: LeadEnrichment?
-├── Score: LeadScore?
-├── EmailDraftSubject: string?
-└── EmailDraftBody: string?
+    class ErrorEntry {
+        +int Attempt
+        +DateTime Timestamp
+        +string StepName
+        +string Message
+        +string? StackTrace
+    }
 
-CmaPipelineContext : PipelineContext<Lead>
-├── Comps: List<Comp>?
-├── Analysis: CmaAnalysis?
-└── PdfBytes: byte[]?
+    class LeadPipelineContext {
+        +LeadEnrichment? Enrichment
+        +LeadScore? Score
+        +string? EmailDraftSubject
+        +string? EmailDraftBody
+    }
 
-HomeSearchPipelineContext : PipelineContext<Lead>
-└── Listings: List<Listing>?
+    class CmaPipelineContext {
+        +List~Comp~? Comps
+        +CmaAnalysis? Analysis
+        +byte[]? PdfBytes
+    }
+
+    class HomeSearchPipelineContext {
+        +List~Listing~? Listings
+    }
+
+    PipelineContext <|-- PipelineContext_T
+    PipelineContext_T <|-- LeadPipelineContext
+    PipelineContext_T <|-- CmaPipelineContext
+    PipelineContext_T <|-- HomeSearchPipelineContext
+    PipelineContext "1" *-- "*" StepRecord
+    StepRecord "1" *-- "*" ErrorEntry
 ```
 
 ### 2. PipelineWorker — The Shared Contract
 
 Every background service inherits from `PipelineWorker<TRequest, TContext>` which enforces:
 
+```mermaid
+classDiagram
+    class BackgroundService {
+        <<abstract>>
+        #ExecuteAsync(ct) Task
+    }
+
+    class PipelineWorker_T["PipelineWorker&lt;TRequest, TContext&gt;"] {
+        <<abstract>>
+        #string WorkerName*
+        #CreateContext(request) TContext*
+        #ProcessAsync(context, ct) Task*
+        #OnPermanentFailureAsync(context, ex, ct) Task
+        #RunStepAsync(ctx, stepName, action, ct) Task
+        #ExecuteAsync(ct) Task
+        -ExecuteWithRetryAsync(ctx, ct) Task
+        -FormatStepSummary(ctx) string
+    }
+
+    class LeadProcessingWorker {
+        #WorkerName = "LeadWorker"
+        #CreateContext(request) LeadPipelineContext
+        #ProcessAsync(ctx, ct) Task
+        -EnrichAsync(ctx, ct) Task
+        -DraftEmailAsync(ctx, ct) Task
+        -NotifyAsync(ctx, ct) Task
+    }
+
+    class CmaProcessingWorker {
+        #WorkerName = "CmaWorker"
+        #CreateContext(request) CmaPipelineContext
+        #ProcessAsync(ctx, ct) Task
+        -FetchCompsAsync(ctx, ct) Task
+        -AnalyzeAsync(ctx, ct) Task
+        -GeneratePdfAsync(ctx, ct) Task
+        -NotifySellerAsync(ctx, ct) Task
+    }
+
+    class HomeSearchProcessingWorker {
+        #WorkerName = "HomeSearchWorker"
+        #CreateContext(request) HomeSearchPipelineContext
+        #ProcessAsync(ctx, ct) Task
+        -FetchListingsAsync(ctx, ct) Task
+        -NotifyBuyerAsync(ctx, ct) Task
+    }
+
+    class PipelineRetryOptions {
+        +int MaxRetries = 3
+        +int BaseDelaySeconds = 30
+        +int MaxDelaySeconds = 600
+        +double BackoffMultiplier = 2.0
+        +GetDelay(attempt) TimeSpan
+    }
+
+    BackgroundService <|-- PipelineWorker_T
+    PipelineWorker_T <|-- LeadProcessingWorker
+    PipelineWorker_T <|-- CmaProcessingWorker
+    PipelineWorker_T <|-- HomeSearchProcessingWorker
+    PipelineWorker_T --> PipelineRetryOptions : uses
 ```
-PipelineWorker<TRequest, TContext> : BackgroundService
-│
-│  Subclass defines:
-├── WorkerName: string                           ← for log codes
-├── CreateContext(request): TContext              ← build typed context
-├── ProcessAsync(context, ct): Task              ← define pipeline steps
-├── OnPermanentFailureAsync(context, ex, ct)     ← dead letter hook
-│
-│  Base class provides:
-├── ExecuteAsync                                  ← channel read loop
-│     └── ExecuteWithRetryAsync                   ← exponential backoff
-│           ├── Tracks pipeline timing
-│           ├── Retries on failure (configurable)
-│           ├── Preserves context between retries (completed steps skipped)
-│           ├── Logs step summary on completion/failure
-│           └── Calls OnPermanentFailureAsync after max retries
-│
-├── RunStepAsync(ctx, stepName, action, ct)       ← checkpoint/resume
-│     ├── Skips if step already Completed
-│     ├── Resumes if step PartiallyCompleted
-│     ├── Records StartedAt / CompletedAt / DurationMs
-│     ├── On failure: marks PartiallyCompleted if sub-steps exist, else Failed
-│     └── Appends to ErrorHistory
-│
-└── FormatStepSummary(ctx)                        ← "enrich:Completed(23401ms), notify:Failed(90123ms)"
-```
+
+**Base class provides:**
+- **ExecuteAsync** — channel read loop
+- **ExecuteWithRetryAsync** — exponential backoff, preserves context between retries, logs step summary
+- **RunStepAsync** — checkpoint/resume per step (skips Completed, resumes PartiallyCompleted, records timing, appends to ErrorHistory)
+- **OnPermanentFailureAsync** — dead letter hook after all retries exhausted
+- **FormatStepSummary** — `"enrich:Completed(23401ms), notify:Failed(90123ms)"`
 
 **Retry behavior (configurable via appsettings):**
 
@@ -166,18 +252,41 @@ The context is preserved across retries. On retry, `RunStepAsync` skips complete
 
 **Sub-steps** are checkpoints within a step for expensive operations:
 
-```
-Step: "enrich"
-  Sub-steps:
-    [x] scrape-google     ← 8 ScraperAPI calls done, results in context
-    [x] call-claude       ← Claude API done, enrichment in context
-    [ ] save-file         ← file write failed (e.g., disk full)
+```mermaid
+flowchart LR
+    subgraph "Step: enrich (Attempt 1 — partial failure)"
+        S1["scrape-google<br/>8 ScraperAPI calls"]
+        S2["call-claude<br/>469 in / 924 out tokens"]
+        S3["save-file<br/>Write Research & Insights.md"]
+        S1 -->|"done ✓"| S2
+        S2 -->|"done ✓"| S3
+        S3 -->|"FAIL ✗<br/>disk full"| X["PartiallyCompleted"]
+    end
 
-On retry:
-  - HasCompletedSubStep("enrich", "scrape-google") → true → skip 8 API calls
-  - HasCompletedSubStep("enrich", "call-claude") → true → skip Claude call
-  - HasCompletedSubStep("enrich", "save-file") → false → retry file write only
+    style S1 fill:#2E7D32,color:#fff
+    style S2 fill:#2E7D32,color:#fff
+    style S3 fill:#D32F2F,color:#fff
+    style X fill:#C8A951,color:#fff
 ```
+
+```mermaid
+flowchart LR
+    subgraph "Step: enrich (Attempt 2 — resume)"
+        R1["scrape-google<br/>SKIP ✓ (in context)"]
+        R2["call-claude<br/>SKIP ✓ (in context)"]
+        R3["save-file<br/>RETRY → success ✓"]
+        R1 -->|"skip"| R2
+        R2 -->|"skip"| R3
+        R3 --> Done["Completed"]
+    end
+
+    style R1 fill:#C8A951,color:#fff
+    style R2 fill:#C8A951,color:#fff
+    style R3 fill:#2E7D32,color:#fff
+    style Done fill:#2E7D32,color:#fff
+```
+
+On retry, `HasCompletedSubStep("enrich", "scrape-google")` → `true` → skip 8 API calls. Same for Claude. Only the file write retries. **Zero wasted tokens or credits.**
 
 This is what saves money. A partial enrichment failure doesn't re-run Claude ($0.01+) or ScraperAPI (10 credits per rendered call).
 
@@ -363,62 +472,73 @@ internal static ReportType DetermineReportType(int compCount) =>
 
 ## Data Flow Example — Seller Lead (Happy Path)
 
-```
-1. User submits form → API endpoint
-2. Endpoint: validate → save Lead Profile.md → record consent → fan out:
-   ├─ LeadChannel.Write(lead)
-   └─ CmaChannel.Write(lead)
+```mermaid
+sequenceDiagram
+    actor User
+    participant EP as API Endpoint
+    participant LC as LeadChannel
+    participant CC as CmaChannel
+    participant LW as LeadWorker
+    participant CW as CmaWorker
+    participant Scraper as IScraperClient
+    participant Claude as Claude API
+    participant Disk as File Storage
+    participant DL as Dead Letter
 
-3. LeadProcessingWorker picks up from LeadChannel:
-   ctx = LeadPipelineContext { Request=lead, AgentId=..., CorrelationId=... }
-   Pipeline starts: 20:37:35.000
+    User->>EP: Submit form
+    EP->>EP: Validate + Save Lead Profile.md
+    EP->>EP: Record consent (triple-write)
 
-   RunStepAsync("enrich"):
-     Started: 20:37:35.001
-     Sub-step "scrape": 8 Google searches via IScraperClient (tracked)
-     Sub-step "call-claude": 469 input / 924 output tokens
-     Sub-step "save": Research & Insights.md written
-     Completed: 20:37:58.401 (23400ms)
-     ctx.Enrichment = { ... }
-     ctx.Score = { Overall: 62 }
+    par Fan-out (simultaneous)
+        EP->>LC: Write(lead)
+        EP->>CC: Write(lead)
+    end
 
-   RunStepAsync("draft-email"):
-     Started: 20:37:58.402
-     Subject + body built from ctx.Enrichment
-     Notification Draft.md saved
-     Completed: 20:37:58.414 (12ms)
-     ctx.EmailDraftBody = "..."
+    EP-->>User: 202 Accepted
 
-   RunStepAsync("notify"):
-     Started: 20:37:58.415
-     Gmail via gws CLI → FAIL: "No such file or directory"
-     PartiallyCompleted: 20:37:58.420 (5ms)
-     ErrorHistory: [{ attempt:1, step:"notify", message:"gws not found" }]
+    par LeadWorker (independent)
+        LC->>LW: Dequeue lead
+        Note over LW: ctx = LeadPipelineContext
 
-   → Retry attempt 2 (30s delay):
-     RunStepAsync("enrich") → SKIP (already Completed)
-     RunStepAsync("draft-email") → SKIP (already Completed)
-     RunStepAsync("notify") → FAIL again
-     ErrorHistory: [{ attempt:1, ... }, { attempt:2, ... }]
+        rect rgb(230, 245, 230)
+            Note over LW: RunStepAsync("enrich") — 23400ms
+            LW->>Scraper: 8 Google searches
+            Scraper-->>LW: HTML results
+            Note over LW: ctx.MarkSubStepCompleted("enrich", "scrape")
+            LW->>Claude: Enrich (469 in / 924 out tokens)
+            Claude-->>LW: Enrichment + Score: 62
+            Note over LW: ctx.MarkSubStepCompleted("enrich", "call-claude")
+            LW->>Disk: Save Research & Insights.md
+            Note over LW: ctx.MarkSubStepCompleted("enrich", "save")
+        end
 
-   → Retry attempt 3 (60s delay): same
-   → Retry attempt 4 (120s delay): same
-   → OnPermanentFailureAsync → dead letter JSON with full error trail
+        rect rgb(230, 245, 230)
+            Note over LW: RunStepAsync("draft-email") — 12ms
+            LW->>Disk: Save Notification Draft.md
+        end
 
-   Pipeline ends: 20:41:28.500 (233500ms)
-   Log: "LeadWorker-010: Pipeline failed. Steps: enrich:Completed(23400ms), draft-email:Completed(12ms), notify:Failed(210000ms)"
+        rect rgb(255, 230, 230)
+            Note over LW: RunStepAsync("notify") — FAIL
+            LW->>LW: gws CLI not found
+            Note over LW: Retry 2 (30s): enrich SKIP, draft SKIP, notify FAIL
+            Note over LW: Retry 3 (60s): notify FAIL
+            Note over LW: Retry 4 (120s): notify FAIL
+            LW->>DL: Permanent failure → dead letter JSON
+        end
 
-4. CmaProcessingWorker picks up from CmaChannel (runs in PARALLEL with lead):
-   ctx = CmaPipelineContext { Request=lead, AgentId=..., CorrelationId=... }
+    and CmaWorker (independent, parallel)
+        CC->>CW: Dequeue lead
+        Note over CW: ctx = CmaPipelineContext
 
-   RunStepAsync("fetch-comps"):
-     3 IScraperClient calls (Zillow, Redfin, Realtor) → tracked via OTel
-     Result: 0 comps (ScraperAPI limit reached → circuit breaker tripped)
+        rect rgb(255, 245, 230)
+            Note over CW: RunStepAsync("fetch-comps") — 350ms
+            CW->>Scraper: Zillow, Redfin, Realtor
+            Scraper-->>CW: 429 Rate Limited
+            Note over CW: Circuit breaker tripped — 0 comps
+        end
 
-   RunStepAsync("analyze"):
-     SKIP — no comps to analyze
-
-   Pipeline ends: "CmaWorker-010: Pipeline complete. Steps: fetch-comps:Completed(350ms)"
+        Note over CW: No comps → skip analyze + PDF
+    end
 ```
 
 ---
@@ -427,12 +547,28 @@ internal static ReportType DetermineReportType(int compCount) =>
 
 The new files follow the existing project dependency graph:
 
-```
-Domain           → nothing (IScraperClient interface lives here)
-Clients.Scraper  → Domain only (ScraperClient, ScraperOptions, ScraperDiagnostics)
-Workers.Shared   → Domain only (PipelineWorker, PipelineContext, StepRecord)
-Workers.*        → Domain + Workers.Shared
-Api              → everything (DI wiring)
+```mermaid
+flowchart BT
+    Domain["Domain<br/><i>IScraperClient, models, interfaces</i>"]
+    Scraper["Clients.Scraper<br/><i>ScraperClient, Options, Diagnostics</i>"]
+    Shared["Workers.Shared<br/><i>PipelineWorker, PipelineContext, StepRecord</i>"]
+    Workers["Workers.*<br/><i>Lead, CMA, HomeSearch workers</i>"]
+    Api["Api<br/><i>DI wiring, endpoints</i>"]
+
+    Scraper --> Domain
+    Shared --> Domain
+    Workers --> Domain
+    Workers --> Shared
+    Api --> Domain
+    Api --> Scraper
+    Api --> Shared
+    Api --> Workers
+
+    style Domain fill:#C8A951,color:#fff
+    style Scraper fill:#2E7D32,color:#fff
+    style Shared fill:#4A90D9,color:#fff
+    style Workers fill:#4A90D9,color:#fff
+    style Api fill:#7B68EE,color:#fff
 ```
 
 No new project-to-project dependencies. Architecture tests in `RealEstateStar.Architecture.Tests` continue to enforce this.
@@ -447,24 +583,39 @@ No new project-to-project dependencies. Architecture tests in `RealEstateStar.Ar
     "BaseUrl": "https://api.scraperapi.com",
     "RenderJavaScript": true,
     "TimeoutSeconds": 30,
-    "MonthlyLimitWarningPercent": 70,
-    "SourceUrls": {
-      "zillow": "https://www.zillow.com/homedetails/{slug}",
-      "redfin": "https://www.redfin.com/home/{slug}",
-      "realtor": "https://www.realtor.com/realestateandhomes-detail/{slug}",
-      "google": "https://www.google.com/search?q={query}"
-    }
+    "MonthlyLimitWarningPercent": 70
   },
   "Pipeline": {
-    "Retry": {
-      "MaxRetries": 3,
-      "BaseDelaySeconds": 30,
-      "MaxDelaySeconds": 600,
-      "BackoffMultiplier": 2.0
+    "Lead": {
+      "Retry": { "MaxRetries": 3, "BaseDelaySeconds": 30, "MaxDelaySeconds": 600, "BackoffMultiplier": 2.0 },
+      "Sources": {
+        "google": "https://www.google.com/search?q={query}"
+      }
+    },
+    "Cma": {
+      "Retry": { "MaxRetries": 3, "BaseDelaySeconds": 30, "MaxDelaySeconds": 600, "BackoffMultiplier": 2.0 },
+      "Sources": {
+        "zillow": "https://www.zillow.com/homedetails/{slug}",
+        "redfin": "https://www.redfin.com/home/{slug}",
+        "realtor": "https://www.realtor.com/realestateandhomes-detail/{slug}"
+      }
+    },
+    "HomeSearch": {
+      "Retry": { "MaxRetries": 2, "BaseDelaySeconds": 15, "MaxDelaySeconds": 300, "BackoffMultiplier": 2.0 },
+      "Sources": {
+        "zillow": "https://www.zillow.com/homes/{area}_rb/",
+        "redfin": "https://www.redfin.com/city/{area}",
+        "realtor": "https://www.realtor.com/realestateandhomes-search/{area}"
+      }
     }
   }
 }
 ```
+
+Each pipeline has its own:
+- **Retry policy** — CMA might need more retries than home search
+- **Source URLs** — swap or disable sources per pipeline without affecting others
+- Add/remove a source by editing config — no code changes needed
 
 ---
 
