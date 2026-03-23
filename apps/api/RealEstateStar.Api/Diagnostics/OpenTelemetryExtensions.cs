@@ -2,6 +2,7 @@ using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using RealEstateStar.Clients.Scraper;
 
 namespace RealEstateStar.Api.Diagnostics;
 
@@ -24,6 +25,7 @@ public static class OpenTelemetryExtensions
                 .AddSource(LeadDiagnostics.ServiceName)
                 .AddSource(CmaDiagnostics.ServiceName)
                 .AddSource(HomeSearchDiagnostics.ServiceName)
+                .AddSource(ScraperDiagnostics.ServiceName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>
@@ -36,6 +38,7 @@ public static class OpenTelemetryExtensions
                 .AddMeter(LeadDiagnostics.ServiceName)
                 .AddMeter(CmaDiagnostics.ServiceName)
                 .AddMeter(HomeSearchDiagnostics.ServiceName)
+                .AddMeter(ScraperDiagnostics.ServiceName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>
