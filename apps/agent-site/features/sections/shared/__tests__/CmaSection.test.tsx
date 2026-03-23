@@ -56,11 +56,12 @@ vi.mock("@real-estate-star/forms/src/LeadForm/useGooglePlacesAutocomplete", () =
 }));
 
 vi.mock("@real-estate-star/forms/src/LeadForm/AddressAutocomplete", () => ({
-  AddressAutocomplete: (props: any) => (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock
+  AddressAutocomplete: (props: Record<string, any>) => (
     <input
       id={props.id}
       value={props.query}
-      onChange={(e: any) => props.setQuery(e.target.value)}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.setQuery(e.target.value)}
       required={props.required}
       aria-required={props.required || undefined}
     />
