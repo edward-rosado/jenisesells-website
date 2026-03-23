@@ -1,4 +1,4 @@
-import { createApiClient } from "@real-estate-star/api-client";
+import { createCorrelationId } from "@real-estate-star/domain";
 
 export async function signAndForward(agentId: string, body: string, path?: string): Promise<Response> {
   const apiKey = process.env.LEAD_API_KEY!;
@@ -24,18 +24,18 @@ export async function signAndForward(agentId: string, body: string, path?: strin
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15_000);
   try {
-    const client = createApiClient(apiUrl);
-    const result = await client.POST(`/${endpoint}` as never, {
-      body: JSON.parse(body),
+    return await fetch(`${apiUrl}/${endpoint}`, {
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-API-Key": apiKey,
         "X-Signature": signature,
         "X-Timestamp": timestamp,
+        "X-Correlation-ID": createCorrelationId(),
       },
-      init: { signal: controller.signal },
+      body,
+      signal: controller.signal,
     });
-    return result.response;
   } finally {
     clearTimeout(timeoutId);
   }

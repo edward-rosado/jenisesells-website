@@ -1,6 +1,6 @@
 "use server";
 
-import { createApiClient } from "@real-estate-star/api-client";
+import { createCorrelationId } from "@real-estate-star/domain";
 import { signAndForward } from "@/features/shared/hmac";
 
 export async function requestOptOut(
@@ -72,17 +72,19 @@ export async function requestExport(
   const timeoutId = setTimeout(() => controller.abort(), 15_000);
   let response: Response;
   try {
-    const client = createApiClient(apiUrl);
-    const result = await client.GET(`/agents/${agentId}/leads/export` as never, {
-      params: { query: { email: encodedEmail } },
-      headers: {
-        "X-API-Key": apiKey,
-        "X-Signature": signature,
-        "X-Timestamp": timestamp,
+    response = await fetch(
+      `${apiUrl}/agents/${agentId}/leads/export?email=${encodedEmail}`,
+      {
+        method: "GET",
+        headers: {
+          "X-API-Key": apiKey,
+          "X-Signature": signature,
+          "X-Timestamp": timestamp,
+          "X-Correlation-ID": createCorrelationId(),
+        },
+        signal: controller.signal,
       },
-      init: { signal: controller.signal },
-    });
-    response = result.response;
+    );
   } catch {
     return { ok: false, error: "Something went wrong. Please try again." };
   } finally {
