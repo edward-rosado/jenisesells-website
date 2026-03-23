@@ -33,6 +33,7 @@ using RealEstateStar.Workers.Leads;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.WhatsApp;
 using RealEstateStar.Clients.Gws;
+using RealEstateStar.Clients.Scraper;
 using RealEstateStar.Clients.WhatsApp;
 using Serilog;
 
@@ -265,6 +266,10 @@ builder.Services.AddSingleton<ConsentTokenStore>(sp =>
     return new ConsentTokenStore(tableClient, sp.GetRequiredService<ILogger<ConsentTokenStore>>());
 });
 
+// Scraper client — centralized with OTel, circuit breaker, rate limiting
+builder.Services.Configure<ScraperOptions>(builder.Configuration.GetSection("Scraper"));
+builder.Services.AddSingleton<IScraperClient, ScraperClient>();
+
 // Background lead processing (replaces fire-and-forget Task.Run)
 builder.Services.AddSingleton<LeadProcessingChannel>();
 builder.Services.AddSingleton<CmaProcessingChannel>();
@@ -279,8 +284,9 @@ builder.Services.AddHttpClient(nameof(ScraperLeadEnricher))
 builder.Services.AddSingleton<ILeadEnricher>(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();
+    var scraperClient = sp.GetRequiredService<IScraperClient>();
     var logger = sp.GetRequiredService<ILogger<ScraperLeadEnricher>>();
-    return new ScraperLeadEnricher(factory, anthropicKey, scraperApiKey ?? "", logger);
+    return new ScraperLeadEnricher(factory, anthropicKey, scraperClient, logger);
 });
 
 // Home search — scraper-based (uses both nameof and "ScraperAPI" named clients)
@@ -289,7 +295,7 @@ builder.Services.AddHttpClient(nameof(ScraperHomeSearchProvider))
 builder.Services.AddSingleton<IHomeSearchProvider>(sp =>
     new ScraperHomeSearchProvider(
         sp.GetRequiredService<IHttpClientFactory>(),
-        scraperApiKey ?? "",
+        sp.GetRequiredService<IScraperClient>(),
         anthropicKey,
         sp.GetRequiredService<ILogger<ScraperHomeSearchProvider>>()));
 
@@ -305,19 +311,22 @@ builder.Services.AddSingleton<ICompAggregator>(sp =>
 builder.Services.AddSingleton<ICompSource>(sp =>
     new ScraperCompSource(
         sp.GetRequiredService<IHttpClientFactory>(),
-        scraperApiKey ?? "", anthropicKey,
+        sp.GetRequiredService<IScraperClient>(),
+        anthropicKey,
         CompSource.Zillow, "https://www.zillow.com/homedetails/{slug}",
         sp.GetRequiredService<ILogger<ScraperCompSource>>()));
 builder.Services.AddSingleton<ICompSource>(sp =>
     new ScraperCompSource(
         sp.GetRequiredService<IHttpClientFactory>(),
-        scraperApiKey ?? "", anthropicKey,
+        sp.GetRequiredService<IScraperClient>(),
+        anthropicKey,
         CompSource.Redfin, "https://www.redfin.com/homes/{slug}",
         sp.GetRequiredService<ILogger<ScraperCompSource>>()));
 builder.Services.AddSingleton<ICompSource>(sp =>
     new ScraperCompSource(
         sp.GetRequiredService<IHttpClientFactory>(),
-        scraperApiKey ?? "", anthropicKey,
+        sp.GetRequiredService<IScraperClient>(),
+        anthropicKey,
         CompSource.RealtorCom, "https://www.realtor.com/realestateandhomes-detail/{slug}",
         sp.GetRequiredService<ILogger<ScraperCompSource>>()));
 builder.Services.AddSingleton<ICmaAnalyzer>(sp =>

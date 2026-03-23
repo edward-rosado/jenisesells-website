@@ -3,16 +3,16 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.HomeSearch.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Workers.HomeSearch;
 
 public class ScraperHomeSearchProvider(
     IHttpClientFactory httpClientFactory,
-    string scraperApiKey,
+    IScraperClient scraperClient,
     string claudeApiKey,
-    ILogger<ScraperHomeSearchProvider>? logger = null) : IHomeSearchProvider
+    ILogger<ScraperHomeSearchProvider> logger) : IHomeSearchProvider
 {
-    private const string ScraperApiClientName = "ScraperAPI";
     private const string ClaudeApiUrl = "https://api.anthropic.com/v1/messages";
     private const string ClaudeModel = "claude-sonnet-4-6";
     private const int ClaudeMaxTokens = 4096;
@@ -41,7 +41,7 @@ public class ScraperHomeSearchProvider(
 
     public async Task<List<Listing>> SearchAsync(HomeSearchCriteria criteria, CancellationToken ct)
     {
-        logger?.LogInformation("[HSP-001] Starting home search for area={Area}", criteria.Area);
+        logger.LogInformation("[HSP-001] Starting home search for area={Area}", criteria.Area);
 
         var searchTasks = new[]
         {
@@ -53,14 +53,14 @@ public class ScraperHomeSearchProvider(
         var results = await Task.WhenAll(searchTasks);
 
         var allListings = results.SelectMany(r => r).ToList();
-        logger?.LogInformation("[HSP-002] Collected {Total} raw listings from all sources", allListings.Count);
+        logger.LogInformation("[HSP-002] Collected {Total} raw listings from all sources", allListings.Count);
 
         var deduplicated = Deduplicate(allListings);
-        logger?.LogInformation("[HSP-003] Deduplicated to {Count} unique listings", deduplicated.Count);
+        logger.LogInformation("[HSP-003] Deduplicated to {Count} unique listings", deduplicated.Count);
 
         if (deduplicated.Count == 0)
         {
-            logger?.LogWarning("[HSP-004] No listings found for area={Area}", criteria.Area);
+            logger.LogWarning("[HSP-004] No listings found for area={Area}", criteria.Area);
             return [];
         }
 
@@ -72,25 +72,21 @@ public class ScraperHomeSearchProvider(
     {
         try
         {
-            var scraperUrl = BuildScraperUrl(sourceUrl);
-            logger?.LogInformation("[HSP-010] Fetching {Source} listings from {Url}", sourceName, sourceUrl);
+            logger.LogInformation("[HSP-010] Fetching {Source} listings from {Url}", sourceName, sourceUrl);
 
-            var httpClient = httpClientFactory.CreateClient(ScraperApiClientName);
-            var html = await httpClient.GetStringAsync(scraperUrl, ct);
+            var html = await scraperClient.FetchAsync(sourceUrl, $"home-search-{sourceName}", "home-search", ct);
+            if (html is null) return [];
 
             var listings = ParseListings(html, criteria);
-            logger?.LogInformation("[HSP-011] Parsed {Count} listings from {Source}", listings.Count, sourceName);
+            logger.LogInformation("[HSP-011] Parsed {Count} listings from {Source}", listings.Count, sourceName);
             return listings;
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "[HSP-012] Source {Source} failed; continuing with other sources", sourceName);
+            logger.LogWarning(ex, "[HSP-012] Source {Source} failed; continuing with other sources", sourceName);
             return [];
         }
     }
-
-    internal string BuildScraperUrl(string targetUrl) =>
-        $"https://api.scraperapi.com/?api_key={scraperApiKey}&url={Uri.EscapeDataString(targetUrl)}&render=true";
 
     internal static string BuildZillowUrl(HomeSearchCriteria criteria)
     {
@@ -171,14 +167,14 @@ public class ScraperHomeSearchProvider(
         request.Headers.Add("x-api-key", claudeApiKey);
         request.Headers.Add("anthropic-version", "2023-06-01");
 
-        logger?.LogInformation("[HSP-020] Sending {Count} listings to Claude for curation", listings.Count);
+        logger.LogInformation("[HSP-020] Sending {Count} listings to Claude for curation", listings.Count);
 
         var httpClient = httpClientFactory.CreateClient(nameof(ScraperHomeSearchProvider));
         var response = await httpClient.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync(ct);
-        logger?.LogInformation("[HSP-021] Received curation response from Claude");
+        logger.LogInformation("[HSP-021] Received curation response from Claude");
 
         var doc = JsonDocument.Parse(responseJson);
         var content = doc.RootElement
