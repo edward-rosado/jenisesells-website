@@ -40,9 +40,32 @@ vi.mock("@/features/lead-capture/submit-lead", () => ({
   submitLead: (...args: unknown[]) => mockSubmitLead(...args),
 }));
 
-// Mock useGoogleMapsAutocomplete so it doesn't try to load Google Maps SDK
-vi.mock("@real-estate-star/forms/src/LeadForm/useGoogleMapsAutocomplete", () => ({
-  useGoogleMapsAutocomplete: () => ({ loaded: false }),
+// Mock useGooglePlacesAutocomplete so it doesn't try to load Google Maps SDK
+vi.mock("@real-estate-star/forms/src/LeadForm/useGooglePlacesAutocomplete", () => ({
+  useGooglePlacesAutocomplete: () => ({
+    loaded: false,
+    suggestions: [],
+    query: "",
+    setQuery: vi.fn(),
+    selectSuggestion: vi.fn().mockResolvedValue(undefined),
+    clearSuggestions: vi.fn(),
+    highlightedIndex: -1,
+    setHighlightedIndex: vi.fn(),
+    fetchError: null,
+  }),
+}));
+
+vi.mock("@real-estate-star/forms/src/LeadForm/AddressAutocomplete", () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock
+  AddressAutocomplete: (props: Record<string, any>) => (
+    <input
+      id={props.id}
+      value={props.query}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.setQuery(e.target.value)}
+      required={props.required}
+      aria-required={props.required || undefined}
+    />
+  ),
 }));
 
 // Mock Analytics

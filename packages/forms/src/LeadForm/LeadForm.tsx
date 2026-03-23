@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, type FormEvent } from "react";
+import { useState, useCallback, type FormEvent } from "react";
 import type {
   LeadFormData,
   LeadType,
@@ -9,7 +9,8 @@ import type {
   PreApprovalStatus,
   Timeline,
 } from "@real-estate-star/domain";
-import { useGoogleMapsAutocomplete } from "./useGoogleMapsAutocomplete";
+import { useGooglePlacesAutocomplete } from "./useGooglePlacesAutocomplete";
+import { AddressAutocomplete } from "./AddressAutocomplete";
 
 const TCPA_CONSENT_TEXT = (agentName: string) =>
   `By submitting this form, you consent to receive email communications from ${agentName} ` +
@@ -112,8 +113,6 @@ export function LeadForm({
     notes: "",
   });
 
-  const addressRef = useRef<HTMLInputElement>(null);
-
   const updateField = useCallback(
     (name: keyof FormFields, value: string) => {
       setFields((prev) => ({ ...prev, [name]: value }));
@@ -121,10 +120,10 @@ export function LeadForm({
     [],
   );
 
-  useGoogleMapsAutocomplete({
+  const autocomplete = useGooglePlacesAutocomplete({
     apiKey: googleMapsApiKey,
-    inputRef: addressRef,
-    /* v8 ignore start -- covered by useGoogleMapsAutocomplete.test.ts integration */
+    stateCode: defaultState,
+    /* v8 ignore start -- covered by useGooglePlacesAutocomplete.test.ts integration */
     onPlaceSelected: useCallback(
       (place: { address: string; city: string; state: string; zip: string }) => {
         if (place.state && place.state !== defaultState) {
@@ -138,6 +137,7 @@ export function LeadForm({
             sellerState: defaultState,
             zip: "",
           }));
+          autocomplete.setQuery("");
           return;
         }
         setValidationError(null);
@@ -522,7 +522,22 @@ export function LeadForm({
           <>
             <div style={fieldGroupStyle}>
               <label style={labelStyle} htmlFor="lf-address">Property Address{requiredMark}</label>
-              <input {...field("address", { ref: addressRef, required: true })} />
+              <AddressAutocomplete
+                query={autocomplete.query || fields.address}
+                setQuery={(value) => {
+                  autocomplete.setQuery(value);
+                  updateField("address", value);
+                }}
+                suggestions={autocomplete.suggestions}
+                highlightedIndex={autocomplete.highlightedIndex}
+                setHighlightedIndex={autocomplete.setHighlightedIndex}
+                selectSuggestion={autocomplete.selectSuggestion}
+                clearSuggestions={autocomplete.clearSuggestions}
+                fetchError={autocomplete.fetchError}
+                inputStyle={inputStyle}
+                required
+                id="lf-address"
+              />
             </div>
             <div className="res-lead-form-row">
               <div style={fieldGroupStyle}>

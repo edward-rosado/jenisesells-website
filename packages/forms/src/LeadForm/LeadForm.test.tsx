@@ -6,11 +6,33 @@ import type { LeadFormData } from "@real-estate-star/domain";
 
 let capturedOnPlaceSelected: ((place: { address: string; city: string; state: string; zip: string }) => void) | null = null;
 
-vi.mock("./useGoogleMapsAutocomplete", () => ({
-  useGoogleMapsAutocomplete: (opts: { onPlaceSelected: (place: { address: string; city: string; state: string; zip: string }) => void }) => {
+vi.mock("./useGooglePlacesAutocomplete", () => ({
+  useGooglePlacesAutocomplete: (opts: { onPlaceSelected: (place: { address: string; city: string; state: string; zip: string }) => void }) => {
     capturedOnPlaceSelected = opts.onPlaceSelected;
-    return { loaded: true };
+    return {
+      loaded: true,
+      suggestions: [],
+      query: "",
+      setQuery: vi.fn(),
+      selectSuggestion: vi.fn().mockResolvedValue(undefined),
+      clearSuggestions: vi.fn(),
+      highlightedIndex: -1,
+      setHighlightedIndex: vi.fn(),
+      fetchError: null,
+    };
   },
+}));
+
+vi.mock("./AddressAutocomplete", () => ({
+  AddressAutocomplete: (props: any) => (
+    <input
+      id={props.id}
+      value={props.query}
+      onChange={(e: any) => props.setQuery(e.target.value)}
+      required={props.required}
+      aria-required={props.required || undefined}
+    />
+  ),
 }));
 
 const defaultProps = {

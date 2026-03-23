@@ -34,6 +34,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
+      "@real-estate-star/forms": path.resolve(__dirname, "../../packages/forms/src"),
     },
   },
 });

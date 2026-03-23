@@ -2,7 +2,7 @@ name: api-client
 
 on:
   workflow_run:
-    workflows: [api]
+    workflows: [API]
     types: [completed]
     branches: [main]
   push:
@@ -23,15 +23,27 @@ jobs:
 
       - name: Download OpenAPI spec from API build
         if: "github.event_name == 'workflow_run'"
+        id: download
         uses: actions/download-artifact@v4
         with:
           name: openapi-spec
           path: packages/api-client/
-
-      - run: npm run generate:ci --workspace=packages/api-client
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
         continue-on-error: true
 
+      - name: Skip if no spec available
+        if: "github.event_name == 'workflow_run' && steps.download.outcome == 'failure'"
+        run: |
+          echo "No openapi-spec artifact found (API build may have been skipped). Nothing to regenerate."
+          exit 0
+
+      - name: Generate TypeScript types
+        if: "steps.download.outcome != 'failure'"
+        run: npm run generate:ci --workspace=packages/api-client
+
       - name: Commit generated types
+        if: "steps.download.outcome != 'failure'"
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
