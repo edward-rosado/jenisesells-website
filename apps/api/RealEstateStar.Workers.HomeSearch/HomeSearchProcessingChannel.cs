@@ -1,21 +1,11 @@
-using System.Threading.Channels;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Workers.HomeSearch;
 
-public sealed class HomeSearchProcessingChannel
+public sealed class HomeSearchProcessingChannel : ProcessingChannelBase<HomeSearchProcessingRequest>
 {
-    private readonly Channel<HomeSearchProcessingRequest> _channel =
-        Channel.CreateBounded<HomeSearchProcessingRequest>(new BoundedChannelOptions(50)
-        {
-            FullMode = BoundedChannelFullMode.Wait,
-            SingleReader = true,
-            SingleWriter = false
-        });
-
-    public ChannelWriter<HomeSearchProcessingRequest> Writer => _channel.Writer;
-    public ChannelReader<HomeSearchProcessingRequest> Reader => _channel.Reader;
-    public int Count => _channel.Reader.Count;
+    public HomeSearchProcessingChannel() : base(50) { }
 }
 
 public sealed record HomeSearchProcessingRequest(
