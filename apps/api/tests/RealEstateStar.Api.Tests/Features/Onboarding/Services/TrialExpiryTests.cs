@@ -34,9 +34,10 @@ public class TrialExpiryTests
         var service = new TrialExpiryService(
             mockStore.Object, mockStripe.Object, mockLogger.Object);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
         await service.StartAsync(cts.Token);
-        await Task.Delay(150);
+        // Wait for ExecuteAsync to run on the background thread — generous timeout for slow CI
+        await Task.Delay(500);
         await service.StopAsync(CancellationToken.None);
 
         // Verify "Trial expiry service started" was logged
