@@ -670,9 +670,10 @@ if (args.Contains("--export-openapi"))
     var outputPath = args.SkipWhile(a => a != "--export-openapi").Skip(1).FirstOrDefault()
         ?? "openapi.json";
     var documentProvider = app.Services.GetRequiredService<Microsoft.AspNetCore.OpenApi.IOpenApiDocumentProvider>();
-    using var stream = File.Create(outputPath);
-    await documentProvider.GetOpenApiDocumentAsync("v1", stream);
-    await stream.FlushAsync();
+    var document = await documentProvider.GetOpenApiDocumentAsync(CancellationToken.None);
+    var json = System.Text.Json.JsonSerializer.Serialize(document,
+        new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+    await File.WriteAllTextAsync(outputPath, json);
     Console.WriteLine($"OpenAPI spec written to {Path.GetFullPath(outputPath)}");
     return;
 }
