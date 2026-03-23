@@ -18,6 +18,15 @@ public static class CmaDiagnostics
     public static readonly Counter<long> CmaFailed = Meter.CreateCounter<long>(
         "cma.failed", description: "Number of CMA reports that failed");
 
+    public static readonly Counter<long> LlmTokensInput = Meter.CreateCounter<long>(
+        "cma.llm_tokens.input", description: "LLM input tokens consumed for CMA processing");
+
+    public static readonly Counter<long> LlmTokensOutput = Meter.CreateCounter<long>(
+        "cma.llm_tokens.output", description: "LLM output tokens consumed for CMA processing");
+
+    public static readonly Counter<double> LlmCostUsd = Meter.CreateCounter<double>(
+        "cma.llm_cost_usd", unit: "USD", description: "Estimated LLM cost for CMA processing");
+
     // Histograms
     public static readonly Histogram<double> CompsDuration = Meter.CreateHistogram<double>(
         "cma.comps_duration_ms", unit: "ms", description: "Duration of comparable sales fetch");

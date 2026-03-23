@@ -7,4 +7,5 @@ public class ScraperOptions
     public bool RenderJavaScript { get; init; } = true;
     public int TimeoutSeconds { get; init; } = 30;
     public int MonthlyLimitWarningPercent { get; init; } = 70;
+    public int CircuitBreakerResetSeconds { get; init; } = 600;
 }

@@ -18,6 +18,12 @@ public static class HomeSearchDiagnostics
     public static readonly Counter<long> SearchFailed = Meter.CreateCounter<long>(
         "home_search.failed", description: "Number of home searches that failed");
 
+    public static readonly Counter<long> LlmTokensInput = Meter.CreateCounter<long>(
+        "home_search.llm_tokens.input", description: "LLM input tokens consumed for home search");
+
+    public static readonly Counter<long> LlmTokensOutput = Meter.CreateCounter<long>(
+        "home_search.llm_tokens.output", description: "LLM output tokens consumed for home search");
+
     // Histograms
     public static readonly Histogram<double> FetchDuration = Meter.CreateHistogram<double>(
         "home_search.fetch_duration_ms", unit: "ms", description: "Duration of listing fetch");

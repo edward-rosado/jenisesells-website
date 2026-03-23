@@ -1,5 +1,8 @@
+using RealEstateStar.Domain.Onboarding;
 using RealEstateStar.Domain.Onboarding.Interfaces;
 using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Shared;
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -165,7 +168,9 @@ public partial class ProfileScraperService(
         request.Headers.Add("x-api-key", apiKey);
         request.Headers.Add("anthropic-version", "2023-06-01");
 
+        var callStart = Stopwatch.GetTimestamp();
         var response = await httpClient.SendAsync(request, ct);
+        var elapsedMs = Stopwatch.GetElapsedTime(callStart).TotalMilliseconds;
         if (!response.IsSuccessStatusCode)
         {
             var errorBody = await response.Content.ReadAsStringAsync(ct);
@@ -181,6 +186,15 @@ public partial class ProfileScraperService(
             .GetProperty("content")[0]
             .GetProperty("text")
             .GetString() ?? throw new InvalidOperationException("Empty response from Claude");
+
+        if (doc.RootElement.TryGetProperty("usage", out var usage))
+        {
+            var inputTokens = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
+            var outputTokens = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
+            ClaudeDiagnostics.RecordUsage("profile-scraper", Model, inputTokens, outputTokens, elapsedMs);
+            OnboardingDiagnostics.LlmTokensInput.Add(inputTokens);
+            OnboardingDiagnostics.LlmTokensOutput.Add(outputTokens);
+        }
 
         // Claude sometimes wraps JSON in markdown code fences despite being told not to
         var cleanContent = content.Trim();

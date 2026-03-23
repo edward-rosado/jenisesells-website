@@ -3,6 +3,8 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using RealEstateStar.Clients.Scraper;
+using RealEstateStar.Domain.WhatsApp;
+using RealEstateStar.Domain.Shared;
 
 namespace RealEstateStar.Api.Diagnostics;
 
@@ -26,6 +28,8 @@ public static class OpenTelemetryExtensions
                 .AddSource(CmaDiagnostics.ServiceName)
                 .AddSource(HomeSearchDiagnostics.ServiceName)
                 .AddSource(ScraperDiagnostics.ServiceName)
+                .AddSource(WhatsAppDiagnostics.ServiceName)
+                .AddSource(ClaudeDiagnostics.ServiceName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>
@@ -39,6 +43,8 @@ public static class OpenTelemetryExtensions
                 .AddMeter(CmaDiagnostics.ServiceName)
                 .AddMeter(HomeSearchDiagnostics.ServiceName)
                 .AddMeter(ScraperDiagnostics.ServiceName)
+                .AddMeter(WhatsAppDiagnostics.ServiceName)
+                .AddMeter(ClaudeDiagnostics.ServiceName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>

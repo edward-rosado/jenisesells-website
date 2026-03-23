@@ -1,8 +1,11 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.HomeSearch;
 using RealEstateStar.Domain.HomeSearch.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Workers.HomeSearch;
@@ -11,6 +14,7 @@ public class ScraperHomeSearchProvider(
     IHttpClientFactory httpClientFactory,
     IScraperClient scraperClient,
     string claudeApiKey,
+    Dictionary<string, string> sourceUrls,
     ILogger<ScraperHomeSearchProvider> logger) : IHomeSearchProvider
 {
     private const string ClaudeApiUrl = "https://api.anthropic.com/v1/messages";
@@ -43,12 +47,8 @@ public class ScraperHomeSearchProvider(
     {
         logger.LogInformation("[HSP-001] Starting home search for area={Area}", criteria.Area);
 
-        var searchTasks = new[]
-        {
-            FetchFromSourceAsync("Zillow",  BuildZillowUrl(criteria),  criteria, ct),
-            FetchFromSourceAsync("Redfin",  BuildRedfinUrl(criteria),  criteria, ct),
-            FetchFromSourceAsync("MLS",     BuildMlsUrl(criteria),     criteria, ct)
-        };
+        var searchTasks = sourceUrls.Select(kvp =>
+            FetchFromSourceAsync(kvp.Key, BuildSearchUrl(kvp.Value, criteria), criteria, ct)).ToArray();
 
         var results = await Task.WhenAll(searchTasks);
 
@@ -88,46 +88,32 @@ public class ScraperHomeSearchProvider(
         }
     }
 
-    internal static string BuildZillowUrl(HomeSearchCriteria criteria)
+    internal static string BuildSearchUrl(string template, HomeSearchCriteria criteria)
     {
-        var area = Uri.EscapeDataString(criteria.Area);
-        var url = $"https://www.zillow.com/homes/{area}_rb/";
+        var expanded = template
+            .Replace("{area}", Uri.EscapeDataString(criteria.Area))
+            .Replace("{minPrice}", criteria.MinPrice?.ToString() ?? "")
+            .Replace("{maxPrice}", criteria.MaxPrice?.ToString() ?? "")
+            .Replace("{minBeds}", criteria.MinBeds?.ToString() ?? "")
+            .Replace("{minBaths}", criteria.MinBaths?.ToString() ?? "");
 
-        var filters = new List<string>();
-        if (criteria.MinPrice.HasValue) filters.Add($"price-min={criteria.MinPrice.Value}");
-        if (criteria.MaxPrice.HasValue) filters.Add($"price-max={criteria.MaxPrice.Value}");
-        if (criteria.MinBeds.HasValue)  filters.Add($"beds-min={criteria.MinBeds.Value}");
-        if (criteria.MinBaths.HasValue) filters.Add($"baths-min={criteria.MinBaths.Value}");
+        // Split into base and query string, then drop params whose value is empty
+        var questionMark = expanded.IndexOf('?');
+        if (questionMark < 0) return expanded;
 
-        return filters.Count > 0 ? $"{url}?{string.Join("&", filters)}" : url;
-    }
+        var baseUrl = expanded[..questionMark];
+        var queryPart = expanded[(questionMark + 1)..];
 
-    internal static string BuildRedfinUrl(HomeSearchCriteria criteria)
-    {
-        var area = Uri.EscapeDataString(criteria.Area.Replace(" ", "-").ToLowerInvariant());
-        var url = $"https://www.redfin.com/city/{area}";
+        var cleanParams = queryPart
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Where(p =>
+            {
+                var eq = p.IndexOf('=');
+                return eq >= 0 && !string.IsNullOrEmpty(p[(eq + 1)..]);
+            });
 
-        var filters = new List<string>();
-        if (criteria.MinPrice.HasValue) filters.Add($"min_price={criteria.MinPrice.Value}");
-        if (criteria.MaxPrice.HasValue) filters.Add($"max_price={criteria.MaxPrice.Value}");
-        if (criteria.MinBeds.HasValue)  filters.Add($"num_beds={criteria.MinBeds.Value}");
-        if (criteria.MinBaths.HasValue) filters.Add($"num_baths={criteria.MinBaths.Value}");
-
-        return filters.Count > 0 ? $"{url}?{string.Join("&", filters)}" : url;
-    }
-
-    internal static string BuildMlsUrl(HomeSearchCriteria criteria)
-    {
-        var area = Uri.EscapeDataString(criteria.Area);
-        var url = $"https://www.realtor.com/realestateandhomes-search/{area}";
-
-        var filters = new List<string>();
-        if (criteria.MinPrice.HasValue) filters.Add($"price-min={criteria.MinPrice.Value}");
-        if (criteria.MaxPrice.HasValue) filters.Add($"price-max={criteria.MaxPrice.Value}");
-        if (criteria.MinBeds.HasValue)  filters.Add($"beds-min={criteria.MinBeds.Value}");
-        if (criteria.MinBaths.HasValue) filters.Add($"baths-min={criteria.MinBaths.Value}");
-
-        return filters.Count > 0 ? $"{url}?{string.Join("&", filters)}" : url;
+        var cleanQuery = string.Join("&", cleanParams);
+        return string.IsNullOrEmpty(cleanQuery) ? baseUrl : $"{baseUrl}?{cleanQuery}";
     }
 
     // Parses listing cards from scraped HTML. Real parsing would extract structured data from
@@ -170,7 +156,9 @@ public class ScraperHomeSearchProvider(
         logger.LogInformation("[HSP-020] Sending {Count} listings to Claude for curation", listings.Count);
 
         var httpClient = httpClientFactory.CreateClient(nameof(ScraperHomeSearchProvider));
+        var callStart = Stopwatch.GetTimestamp();
         var response = await httpClient.SendAsync(request, ct);
+        var elapsedMs = Stopwatch.GetElapsedTime(callStart).TotalMilliseconds;
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync(ct);
@@ -181,6 +169,15 @@ public class ScraperHomeSearchProvider(
             .GetProperty("content")[0]
             .GetProperty("text")
             .GetString() ?? throw new InvalidOperationException("[HSP-022] Empty response from Claude API");
+
+        if (doc.RootElement.TryGetProperty("usage", out var usage))
+        {
+            var inputTokens = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
+            var outputTokens = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
+            ClaudeDiagnostics.RecordUsage("home-search", ClaudeModel, inputTokens, outputTokens, elapsedMs);
+            HomeSearchDiagnostics.LlmTokensInput.Add(inputTokens);
+            HomeSearchDiagnostics.LlmTokensOutput.Add(outputTokens);
+        }
 
         return ParseCuratedListings(content);
     }

@@ -1,10 +1,13 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Cma;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared;
 
 namespace RealEstateStar.Workers.Cma;
 
@@ -73,6 +76,7 @@ public class ClaudeCmaAnalyzer(
         var httpClient = httpClientFactory.CreateClient("ClaudeCmaAnalyzer");
 
         HttpResponseMessage response;
+        var callStart = Stopwatch.GetTimestamp();
         try
         {
             response = await httpClient.SendAsync(request, ct);
@@ -95,6 +99,7 @@ public class ClaudeCmaAnalyzer(
                 $"[CMA-ANALYZE-001] Anthropic API returned {(int)response.StatusCode}: {errorBody}");
         }
 
+        var elapsedMs = Stopwatch.GetElapsedTime(callStart).TotalMilliseconds;
         var responseBody = await response.Content.ReadAsStringAsync(ct);
 
         logger.LogInformation(
@@ -110,6 +115,15 @@ public class ClaudeCmaAnalyzer(
                 .GetProperty("text")
                 .GetString()
                 ?? throw new JsonException("text field was null");
+
+            if (doc.RootElement.TryGetProperty("usage", out var usage))
+            {
+                var inputTokens = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
+                var outputTokens = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
+                ClaudeDiagnostics.RecordUsage("cma-analysis", Model, inputTokens, outputTokens, elapsedMs);
+                CmaDiagnostics.LlmTokensInput.Add(inputTokens);
+                CmaDiagnostics.LlmTokensOutput.Add(outputTokens);
+            }
         }
         catch (Exception ex) when (ex is JsonException or KeyNotFoundException or IndexOutOfRangeException)
         {

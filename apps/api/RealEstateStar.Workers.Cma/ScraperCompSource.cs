@@ -1,8 +1,11 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Cma;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
+using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Workers.Cma;
@@ -95,10 +98,13 @@ public class ScraperCompSource(
         claudeRequest.Headers.Add("anthropic-version", "2023-06-01");
 
         string responseJson;
+        double elapsedMs;
         try
         {
             var claudeClient = httpClientFactory.CreateClient(ClaudeClientName);
+            var callStart = Stopwatch.GetTimestamp();
             var response = await claudeClient.SendAsync(claudeRequest, ct);
+            elapsedMs = Stopwatch.GetElapsedTime(callStart).TotalMilliseconds;
             response.EnsureSuccessStatusCode();
             responseJson = await response.Content.ReadAsStringAsync(ct);
         }
@@ -113,6 +119,15 @@ public class ScraperCompSource(
             .GetProperty("content")[0]
             .GetProperty("text")
             .GetString() ?? "";
+
+        if (doc.RootElement.TryGetProperty("usage", out var usage))
+        {
+            var inputTokens = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
+            var outputTokens = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
+            ClaudeDiagnostics.RecordUsage("cma-comps", ClaudeModel, inputTokens, outputTokens, elapsedMs);
+            CmaDiagnostics.LlmTokensInput.Add(inputTokens);
+            CmaDiagnostics.LlmTokensOutput.Add(outputTokens);
+        }
 
         var comps = ParseComps(content, sourceName, logger);
         logger.LogInformation("[COMP-003] Parsed {Count} valid comps from {Source}", comps.Count, sourceName);
