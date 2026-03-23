@@ -18,6 +18,8 @@ using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.DataServices.Config;
 using RealEstateStar.Api.Tests.Integration;
+using RealEstateStar.Workers.Cma;
+using RealEstateStar.Workers.HomeSearch;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Submit;
 
@@ -315,6 +317,8 @@ public class SubmitLeadEndpointUnitTests
         Mock<ILeadStore> LeadStore,
         Mock<IMarketingConsentLog> ConsentLog,
         LeadProcessingChannel ProcessingChannel,
+        CmaProcessingChannel CmaChannel,
+        HomeSearchProcessingChannel HomeSearchChannel,
         Mock<ILogger<SubmitLeadEndpoint>> Logger,
         Mock<IConsentAuditService> ConsentAudit,
         Mock<IComplianceConsentWriter> ComplianceWriter,
@@ -339,6 +343,8 @@ public class SubmitLeadEndpointUnitTests
             .Returns(Task.CompletedTask);
 
         var channel = new LeadProcessingChannel();
+        var cmaChannel = new CmaProcessingChannel();
+        var homeSearchChannel = new HomeSearchProcessingChannel();
         var logger = new Mock<ILogger<SubmitLeadEndpoint>>();
 
         var consentAudit = new Mock<IConsentAuditService>();
@@ -358,7 +364,7 @@ public class SubmitLeadEndpointUnitTests
             .Setup(s => s.RecordAsync(It.IsAny<Lead>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        return new Mocks(accountConfig, leadStore, consentLog, channel, logger, consentAudit, complianceWriter, consentHmacOptions, deadLetterStore);
+        return new Mocks(accountConfig, leadStore, consentLog, channel, cmaChannel, homeSearchChannel, logger, consentAudit, complianceWriter, consentHmacOptions, deadLetterStore);
     }
 
     private static HttpContext MakeHttpContext(
@@ -383,6 +389,8 @@ public class SubmitLeadEndpointUnitTests
             m.LeadStore.Object,
             m.ConsentLog.Object,
             m.ProcessingChannel,
+            m.CmaChannel,
+            m.HomeSearchChannel,
             httpContext ?? MakeHttpContext(),
             m.Logger.Object,
             m.ConsentAudit.Object,

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Workers.HomeSearch;
 
 namespace RealEstateStar.Workers.HomeSearch.Tests;
@@ -44,7 +45,7 @@ public class ScraperHomeSearchProviderTests
         return JsonSerializer.Serialize(items);
     }
 
-    private static (ScraperHomeSearchProvider provider, Mock<HttpMessageHandler> scraperHandler, Mock<HttpMessageHandler> claudeHandler)
+    private static (ScraperHomeSearchProvider provider, Mock<IScraperClient> scraperClient, Mock<HttpMessageHandler> claudeHandler)
         CreateProvider(
             string scraperHtml = "<html></html>",
             IEnumerable<Listing>? curatedListings = null)
@@ -53,17 +54,11 @@ public class ScraperHomeSearchProviderTests
         var curatedJson = MakeCuratedListingsJson(listings);
         var claudeResponse = MakeClaudeApiResponse(curatedJson);
 
-        // Scraper handler returns empty HTML for all source requests
-        var scraperHandler = new Mock<HttpMessageHandler>();
-        scraperHandler.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.Host == "api.scraperapi.com"),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(scraperHtml)
-            });
+        // Scraper client returns HTML for all source requests
+        var scraperClient = new Mock<IScraperClient>();
+        scraperClient.Setup(s => s.IsAvailable).Returns(true);
+        scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(scraperHtml);
 
         // Claude handler returns curated listings
         var claudeHandler = new Mock<HttpMessageHandler>();
@@ -77,15 +72,14 @@ public class ScraperHomeSearchProviderTests
                 Content = new StringContent(claudeResponse)
             });
 
-        var scraperClient = new HttpClient(scraperHandler.Object);
-        var claudeClient  = new HttpClient(claudeHandler.Object);
+        var claudeClient = new HttpClient(claudeHandler.Object);
 
         var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient("ScraperAPI")).Returns(scraperClient);
         factory.Setup(f => f.CreateClient(nameof(ScraperHomeSearchProvider))).Returns(claudeClient);
 
-        var provider = new ScraperHomeSearchProvider(factory.Object, "test-scraper-key", "test-claude-key");
-        return (provider, scraperHandler, claudeHandler);
+        var logger = new Mock<ILogger<ScraperHomeSearchProvider>>();
+        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", logger.Object);
+        return (provider, scraperClient, claudeHandler);
     }
 
     // ─── SearchAsync: parallel source search ─────────────────────────────────────
@@ -93,16 +87,13 @@ public class ScraperHomeSearchProviderTests
     [Fact]
     public async Task SearchAsync_SearchesMultipleSources_InParallel()
     {
-        var requestUrls = new System.Collections.Concurrent.ConcurrentBag<string>();
+        var fetchedUrls = new System.Collections.Concurrent.ConcurrentBag<string>();
 
-        var scraperHandler = new Mock<HttpMessageHandler>();
-        scraperHandler.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.Host == "api.scraperapi.com"),
-                ItExpr.IsAny<CancellationToken>())
-            .Callback<HttpRequestMessage, CancellationToken>((req, _) => requestUrls.Add(req.RequestUri!.ToString()))
-            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("<html></html>") });
+        var scraperClient = new Mock<IScraperClient>();
+        scraperClient.Setup(s => s.IsAvailable).Returns(true);
+        scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string, string, CancellationToken>((url, _, _, _) => fetchedUrls.Add(url))
+            .ReturnsAsync("<html></html>");
 
         var curatedListings = new[] { MakeListing() };
         var curatedJson = MakeCuratedListingsJson(curatedListings);
@@ -112,24 +103,24 @@ public class ScraperHomeSearchProviderTests
         claudeHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.Host == "api.anthropic.com"),
+                ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeResponse) });
 
         var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient("ScraperAPI")).Returns(new HttpClient(scraperHandler.Object));
         factory.Setup(f => f.CreateClient(nameof(ScraperHomeSearchProvider))).Returns(new HttpClient(claudeHandler.Object));
 
-        var provider = new ScraperHomeSearchProvider(factory.Object, "test-scraper-key", "test-claude-key");
+        var logger = new Mock<ILogger<ScraperHomeSearchProvider>>();
+        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", logger.Object);
 
         await provider.SearchAsync(DefaultCriteria, CancellationToken.None);
 
-        // Should have hit all 3 sources via ScraperAPI
-        requestUrls.Should().HaveCount(3);
-        var urlList = requestUrls.ToList();
-        urlList.Should().Contain(u => u.Contains(Uri.EscapeDataString("zillow.com")));
-        urlList.Should().Contain(u => u.Contains(Uri.EscapeDataString("redfin.com")));
-        urlList.Should().Contain(u => u.Contains(Uri.EscapeDataString("realtor.com")));
+        // Should have hit all 3 sources via IScraperClient
+        fetchedUrls.Should().HaveCount(3);
+        var urlList = fetchedUrls.ToList();
+        urlList.Should().Contain(u => u.Contains("zillow.com"));
+        urlList.Should().Contain(u => u.Contains("redfin.com"));
+        urlList.Should().Contain(u => u.Contains("realtor.com"));
     }
 
     // ─── SearchAsync: deduplication ──────────────────────────────────────────────
@@ -171,32 +162,6 @@ public class ScraperHomeSearchProviderTests
     [Fact]
     public async Task SearchAsync_SendsListingsToClaude_ForCuration()
     {
-        string? capturedBody = null;
-
-        var scraperHandler = new Mock<HttpMessageHandler>();
-        scraperHandler.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("<html></html>") });
-
-        // ParseListings returns empty, so inject listings via Claude roundtrip won't test ParseListings.
-        // Instead verify that Claude is called and its response is used.
-        var curated = new[] { MakeListing("100 Curated St") };
-        var curatedJson = MakeCuratedListingsJson(curated);
-        var claudeResponse = MakeClaudeApiResponse(curatedJson);
-
-        var claudeHandler = new Mock<HttpMessageHandler>();
-        claudeHandler.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
-                capturedBody = await req.Content!.ReadAsStringAsync())
-            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeResponse) });
-
         // Feed one listing directly by making ParseListings testable via a subclass
         var listings = new List<Listing> { MakeListing("Injected Listing") };
         var promptData = ScraperHomeSearchProvider.BuildListingsPrompt(listings, DefaultCriteria);
@@ -215,10 +180,7 @@ public class ScraperHomeSearchProviderTests
 
         var (provider, _, claudeHandler) = CreateProvider(curatedListings: curated);
 
-        // ParseListings returns empty list from HTML — so we'll test the Claude path
-        // by verifying the final result matches the curated set when no raw listings exist.
-        // Since ParseListings returns [] and deduplicate would give 0, SearchAsync returns [] directly.
-        // To exercise the Claude path we test ParseCuratedListings directly.
+        // ParseListings returns empty list from HTML — so we test ParseCuratedListings directly.
         var curatedJson = MakeCuratedListingsJson(curated);
         var parsed = ScraperHomeSearchProvider.ParseCuratedListings(curatedJson);
 
@@ -232,18 +194,14 @@ public class ScraperHomeSearchProviderTests
     [Fact]
     public async Task SearchAsync_HandlesScrapingFailures_Gracefully()
     {
-        var scraperHandler = new Mock<HttpMessageHandler>();
-        scraperHandler.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
+        var scraperClient = new Mock<IScraperClient>();
+        scraperClient.Setup(s => s.IsAvailable).Returns(true);
+        scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Connection refused"));
 
         var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient("ScraperAPI")).Returns(new HttpClient(scraperHandler.Object));
-
-        var provider = new ScraperHomeSearchProvider(factory.Object, "test-scraper-key", "test-claude-key");
+        var logger = new Mock<ILogger<ScraperHomeSearchProvider>>();
+        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", logger.Object);
 
         // All 3 sources fail — no Claude call — returns empty list
         var result = await provider.SearchAsync(DefaultCriteria, CancellationToken.None);
@@ -255,26 +213,20 @@ public class ScraperHomeSearchProviderTests
     public async Task SearchAsync_ContinuesWithRemainingResults_WhenOneSourceFails()
     {
         var callCount = 0;
-        var scraperHandler = new Mock<HttpMessageHandler>();
-        scraperHandler.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
+        var scraperClient = new Mock<IScraperClient>();
+        scraperClient.Setup(s => s.IsAvailable).Returns(true);
+        scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() =>
             {
                 // First call fails, rest succeed with empty HTML
                 if (++callCount == 1)
-                    return new HttpResponseMessage(HttpStatusCode.InternalServerError);
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("<html></html>") };
+                    throw new HttpRequestException("source 1 failed");
+                return "<html></html>";
             });
 
-        // Since all sources return [] from ParseListings, deduplicate gives 0 → returns []
-        // Verify no exception is thrown even when one source errors
         var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient("ScraperAPI")).Returns(new HttpClient(scraperHandler.Object));
-
-        var provider = new ScraperHomeSearchProvider(factory.Object, "test-scraper-key", "test-claude-key");
+        var logger = new Mock<ILogger<ScraperHomeSearchProvider>>();
+        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", logger.Object);
 
         var act = async () => await provider.SearchAsync(DefaultCriteria, CancellationToken.None);
 
@@ -328,20 +280,6 @@ public class ScraperHomeSearchProviderTests
 
         url.Should().Contain("zillow.com");
         url.Should().NotContain("?");
-    }
-
-    [Fact]
-    public void BuildScraperUrl_WrapsTargetUrl_WithApiKey()
-    {
-        var provider = new ScraperHomeSearchProvider(
-            new Mock<IHttpClientFactory>().Object, "my-api-key", "claude-key");
-
-        var scraperUrl = provider.BuildScraperUrl("https://www.zillow.com/homes/NJ_rb/");
-
-        scraperUrl.Should().StartWith("https://api.scraperapi.com/");
-        scraperUrl.Should().Contain("api_key=my-api-key");
-        scraperUrl.Should().Contain("render=true");
-        scraperUrl.Should().Contain(Uri.EscapeDataString("https://www.zillow.com/homes/NJ_rb/"));
     }
 
     // ─── ParseCuratedListings ─────────────────────────────────────────────────────

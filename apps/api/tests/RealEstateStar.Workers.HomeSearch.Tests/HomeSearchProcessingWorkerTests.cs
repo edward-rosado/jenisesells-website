@@ -22,9 +22,19 @@ public class HomeSearchProcessingWorkerTests
     private static IConfiguration EmptyConfig() =>
         new ConfigurationBuilder().Build();
 
-    private HomeSearchProcessingWorker CreateWorker() =>
+    /// <summary>Creates a zero-delay retry config with given max retries (default 0 = no retries after first attempt).</summary>
+    private static IConfiguration ZeroDelayConfig(int maxRetries = 0) =>
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Pipeline:HomeSearch:Retry:MaxRetries"] = maxRetries.ToString(),
+                ["Pipeline:HomeSearch:Retry:BaseDelaySeconds"] = "0"
+            })
+            .Build();
+
+    private HomeSearchProcessingWorker CreateWorker(IConfiguration? config = null) =>
         new(_channel, _homeSearchProvider.Object, _homeSearchNotifier.Object, _leadStore.Object, _healthTracker, _logger.Object,
-            EmptyConfig());
+            config ?? EmptyConfig());
 
     private static Lead MakeLead() => new()
     {
@@ -132,7 +142,8 @@ public class HomeSearchProcessingWorkerTests
                 It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("smtp down"));
 
-        var worker = CreateWorker();
+        // Zero-delay retries so the test completes quickly
+        var worker = CreateWorker(ZeroDelayConfig());
         var cts = new CancellationTokenSource();
 
         await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
@@ -143,11 +154,12 @@ public class HomeSearchProcessingWorkerTests
 
         await act.Should().NotThrowAsync();
 
+        // The step failure is logged by PipelineWorker with "Step 'notify-buyer' Failed"
         _logger.Verify(
             l => l.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[HS-WORKER-031]")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Step 'notify-buyer' Failed")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -160,7 +172,8 @@ public class HomeSearchProcessingWorkerTests
             .Setup(p => p.SearchAsync(It.IsAny<HomeSearchCriteria>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("scraper unavailable"));
 
-        var worker = CreateWorker();
+        // Zero-delay retries so the test completes quickly
+        var worker = CreateWorker(ZeroDelayConfig());
         var cts = new CancellationTokenSource();
 
         await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
@@ -169,11 +182,12 @@ public class HomeSearchProcessingWorkerTests
         await worker.StartAsync(cts.Token);
         await worker.ExecuteTask!;
 
+        // The step failure is logged by PipelineWorker with "Step 'fetch-listings' Failed"
         _logger.Verify(
             l => l.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[HS-WORKER-002]")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Step 'fetch-listings' Failed")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);

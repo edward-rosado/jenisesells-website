@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Workers.Leads;
 
 namespace RealEstateStar.Workers.Leads.Tests;
@@ -103,18 +104,27 @@ public class ScraperLeadEnricherTests
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
 
+        var scraperClient = new Mock<IScraperClient>();
+        scraperClient.Setup(s => s.IsAvailable).Returns(true);
+        scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+
         var enricher = new ScraperLeadEnricher(
             factory.Object,
             "test-claude-key",
-            "test-scraper-key",
+            scraperClient.Object,
             NullLogger<ScraperLeadEnricher>.Instance);
 
         return (enricher, handler);
     }
 
-    /// <summary>Creates a factory with a custom per-request callback for capturing calls.</summary>
-    private static (ScraperLeadEnricher enricher, List<HttpRequestMessage> capturedRequests) CreateCapturingEnricher(
-        Func<HttpRequestMessage, CancellationToken, HttpResponseMessage> responseFactory)
+    /// <summary>
+    /// Creates a factory with a custom per-request callback for capturing Claude HTTP calls.
+    /// Scraper calls are handled by IScraperClient (abstracted away from HTTP).
+    /// </summary>
+    private static (ScraperLeadEnricher enricher, List<HttpRequestMessage> capturedClaudeRequests, Mock<IScraperClient> scraperClient) CreateCapturingEnricher(
+        Func<HttpRequestMessage, CancellationToken, HttpResponseMessage> claudeResponseFactory,
+        Func<string, string?, Task<string?>>? scraperResponseFactory = null)
     {
         var captured = new List<HttpRequestMessage>();
         var handler = new Mock<HttpMessageHandler>();
@@ -126,20 +136,34 @@ public class ScraperLeadEnricherTests
             .ReturnsAsync((HttpRequestMessage req, CancellationToken ct) =>
             {
                 lock (captured) captured.Add(req);
-                return responseFactory(req, ct);
+                return claudeResponseFactory(req, ct);
             });
 
         var client = new HttpClient(handler.Object);
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
 
+        var scraperClient = new Mock<IScraperClient>();
+        scraperClient.Setup(s => s.IsAvailable).Returns(true);
+        if (scraperResponseFactory is not null)
+        {
+            scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns<string, string, string, CancellationToken>((url, source, agentId, _) =>
+                    scraperResponseFactory(url, source));
+        }
+        else
+        {
+            scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((string?)null);
+        }
+
         var enricher = new ScraperLeadEnricher(
             factory.Object,
             "test-claude-key",
-            "test-scraper-key",
+            scraperClient.Object,
             NullLogger<ScraperLeadEnricher>.Instance);
 
-        return (enricher, captured);
+        return (enricher, captured, scraperClient);
     }
 
     // ---------------------------------------------------------------------------
@@ -153,12 +177,11 @@ public class ScraperLeadEnricherTests
         var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
 
         // Scrapers return empty, Claude returns valid response
-        var (enricher, _) = CreateCapturingEnricher((req, _) =>
+        var (enricher, _, _) = CreateCapturingEnricher((req, _) =>
         {
             // Claude API requests (POST to anthropic) return analysis JSON
             if (req.Method == HttpMethod.Post)
                 return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
-            // Scraper requests return empty content
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") };
         });
 
@@ -184,40 +207,22 @@ public class ScraperLeadEnricherTests
         var claudeJson = MakeValidClaudeJson();
         var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
 
-        var (enricher, capturedRequests) = CreateCapturingEnricher((req, _) =>
-        {
-            if (req.Method == HttpMethod.Post)
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("scraped content") };
-        });
+        var (enricher, _, scraperClient) = CreateCapturingEnricher(
+            claudeResponseFactory: (req, _) =>
+            {
+                if (req.Method == HttpMethod.Post)
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") };
+            },
+            scraperResponseFactory: (_, _) => Task.FromResult<string?>("scraped content"));
 
         var lead = MakeLead();
         await enricher.EnrichAsync(lead, CancellationToken.None);
 
-        // 8 scraper GET requests + 1 Claude POST request = 9 total
-        var getRequests = capturedRequests.Where(r => r.Method == HttpMethod.Get).ToList();
-        getRequests.Should().HaveCount(8, "should fire all 8 scraping sources");
-    }
-
-    [Fact]
-    public async Task EnrichAsync_IncludesScraperApiKeyInUrls()
-    {
-        var claudeJson = MakeValidClaudeJson();
-        var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
-
-        var (enricher, capturedRequests) = CreateCapturingEnricher((req, _) =>
-        {
-            if (req.Method == HttpMethod.Post)
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("scraped") };
-        });
-
-        var lead = MakeLead();
-        await enricher.EnrichAsync(lead, CancellationToken.None);
-
-        var getRequests = capturedRequests.Where(r => r.Method == HttpMethod.Get).ToList();
-        getRequests.Should().AllSatisfy(r =>
-            r.RequestUri!.ToString().Should().Contain("api_key=test-scraper-key"));
+        // Scraper client should have been called for all 8 sources
+        scraperClient.Verify(
+            s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(8));
     }
 
     // ---------------------------------------------------------------------------
@@ -231,18 +236,17 @@ public class ScraperLeadEnricherTests
         var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
 
         var callCount = 0;
-        var (enricher, capturedRequests) = CreateCapturingEnricher((req, _) =>
-        {
-            if (req.Method == HttpMethod.Post)
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
-
-            // Half of scraper requests fail
-            var count = Interlocked.Increment(ref callCount);
-            if (count % 2 == 0)
-                throw new HttpRequestException("Connection refused");
-
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("scraped content") };
-        });
+        var (enricher, capturedClaudeRequests, _) = CreateCapturingEnricher(
+            claudeResponseFactory: (req, _) =>
+                new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) },
+            scraperResponseFactory: (_, _) =>
+            {
+                // Half of scraper calls fail
+                var count = Interlocked.Increment(ref callCount);
+                if (count % 2 == 0)
+                    throw new HttpRequestException("Connection refused");
+                return Task.FromResult<string?>("scraped content");
+            });
 
         var lead = MakeLead();
         var (enrichment, score) = await enricher.EnrichAsync(lead, CancellationToken.None);
@@ -251,8 +255,8 @@ public class ScraperLeadEnricherTests
         enrichment.MotivationCategory.Should().NotBeNullOrEmpty();
         score.OverallScore.Should().BeGreaterThan(0);
 
-        // Claude was called exactly once (POST)
-        capturedRequests.Count(r => r.Method == HttpMethod.Post).Should().Be(1);
+        // Claude was called exactly once
+        capturedClaudeRequests.Count(r => r.Method == HttpMethod.Post).Should().Be(1);
     }
 
     [Fact]
@@ -261,13 +265,11 @@ public class ScraperLeadEnricherTests
         var claudeJson = MakeValidClaudeJson();
         var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
 
-        var (enricher, capturedRequests) = CreateCapturingEnricher((req, _) =>
-        {
-            if (req.Method == HttpMethod.Post)
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
-
-            throw new HttpRequestException("All scrapers down");
-        });
+        var (enricher, capturedClaudeRequests, _) = CreateCapturingEnricher(
+            claudeResponseFactory: (req, _) =>
+                new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) },
+            scraperResponseFactory: (_, _) =>
+                throw new HttpRequestException("All scrapers down"));
 
         var lead = MakeLead();
         var (enrichment, score) = await enricher.EnrichAsync(lead, CancellationToken.None);
@@ -275,7 +277,7 @@ public class ScraperLeadEnricherTests
         enrichment.MotivationCategory.Should().Be("Relocating");
 
         // Claude was still called
-        capturedRequests.Count(r => r.Method == HttpMethod.Post).Should().Be(1);
+        capturedClaudeRequests.Count(r => r.Method == HttpMethod.Post).Should().Be(1);
     }
 
     // ---------------------------------------------------------------------------
@@ -285,7 +287,7 @@ public class ScraperLeadEnricherTests
     [Fact]
     public async Task EnrichAsync_ReturnsEmptyAndDefault_WhenClaudeReturnsError()
     {
-        var (enricher, _) = CreateCapturingEnricher((req, _) =>
+        var (enricher, _, _) = CreateCapturingEnricher((req, _) =>
         {
             if (req.Method == HttpMethod.Post)
                 return new HttpResponseMessage(HttpStatusCode.InternalServerError)
@@ -307,7 +309,7 @@ public class ScraperLeadEnricherTests
     [Fact]
     public async Task EnrichAsync_ReturnsEmptyAndDefault_WhenClaudeThrows()
     {
-        var (enricher, _) = CreateCapturingEnricher((req, _) =>
+        var (enricher, _, _) = CreateCapturingEnricher((req, _) =>
         {
             if (req.Method == HttpMethod.Post)
                 throw new HttpRequestException("Network error");
@@ -332,7 +334,7 @@ public class ScraperLeadEnricherTests
         var fencedJson = $"```json\n{rawJson}\n```";
         var claudeApiResponse = WrapInClaudeApiResponse(fencedJson);
 
-        var (enricher, _) = CreateCapturingEnricher((req, _) =>
+        var (enricher, _, _) = CreateCapturingEnricher((req, _) =>
         {
             if (req.Method == HttpMethod.Post)
                 return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
@@ -404,7 +406,12 @@ public class ScraperLeadEnricherTests
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
 
-        var enricher = new ScraperLeadEnricher(factory.Object, "key", "scraper-key", mockLogger.Object);
+        var scraperClientForLog = new Mock<IScraperClient>();
+        scraperClientForLog.Setup(s => s.IsAvailable).Returns(true);
+        scraperClientForLog.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+
+        var enricher = new ScraperLeadEnricher(factory.Object, "key", scraperClientForLog.Object, mockLogger.Object);
         var lead = MakeLead();
         await enricher.EnrichAsync(lead, CancellationToken.None);
 
@@ -422,16 +429,18 @@ public class ScraperLeadEnricherTests
         var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
 
         string? capturedRequestBody = null;
-        var (enricher, capturedRequests) = CreateCapturingEnricher((req, _) =>
-        {
-            if (req.Method == HttpMethod.Post)
+        // Provide scraper content so that source XML tags appear in Claude prompt
+        var (enricher, _, _) = CreateCapturingEnricher(
+            claudeResponseFactory: (req, _) =>
             {
-                // Synchronously capture the body (we can't await in a sync lambda, so buffer)
-                capturedRequestBody = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
-            }
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("scraped data for linkedin") };
-        });
+                if (req.Method == HttpMethod.Post)
+                {
+                    capturedRequestBody = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
+                }
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") };
+            },
+            scraperResponseFactory: (url, source) => Task.FromResult<string?>("scraped data for " + source));
 
         var lead = MakeLead();
         await enricher.EnrichAsync(lead, CancellationToken.None);
@@ -451,7 +460,7 @@ public class ScraperLeadEnricherTests
         var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
 
         string? capturedRequestBody = null;
-        var (enricher, _) = CreateCapturingEnricher((req, _) =>
+        var (enricher, _, _) = CreateCapturingEnricher((req, _) =>
         {
             if (req.Method == HttpMethod.Post)
             {
@@ -573,7 +582,7 @@ public class ScraperLeadEnricherTests
         var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
 
         string? capturedRequestBody = null;
-        var (enricher, _) = CreateCapturingEnricher((req, _) =>
+        var (enricher, _, _) = CreateCapturingEnricher((req, _) =>
         {
             if (req.Method == HttpMethod.Post)
             {

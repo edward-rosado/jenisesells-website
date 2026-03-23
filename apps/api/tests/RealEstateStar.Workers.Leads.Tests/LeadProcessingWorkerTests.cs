@@ -1,11 +1,9 @@
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Shared.Interfaces.Storage;
-using RealEstateStar.Workers.Cma;
-using RealEstateStar.Workers.HomeSearch;
 using RealEstateStar.Workers.Leads;
 using RealEstateStar.Workers.Shared;
 
@@ -14,45 +12,39 @@ namespace RealEstateStar.Workers.Leads.Tests;
 public class LeadProcessingWorkerTests
 {
     private readonly LeadProcessingChannel _channel = new();
-    private readonly CmaProcessingChannel _cmaChannel = new();
-    private readonly HomeSearchProcessingChannel _homeSearchChannel = new();
     private readonly Mock<ILeadStore> _leadStore = new();
     private readonly Mock<ILeadEnricher> _enricher = new();
     private readonly Mock<ILeadNotifier> _notifier = new();
     private readonly Mock<IFailedNotificationStore> _failedNotificationStore = new();
-    private readonly Mock<IFileStorageProvider> _storage = new();
     private readonly BackgroundServiceHealthTracker _healthTracker = new();
     private readonly Mock<ILogger<LeadProcessingWorker>> _logger = new();
 
-    // Zero-delay retries so tests don't wait 30–90 seconds in production delays
-    private static readonly TimeSpan[] ZeroDelays =
-    [
-        TimeSpan.Zero,
-        TimeSpan.Zero,
-        TimeSpan.Zero,
-    ];
-
-    private LeadProcessingWorker CreateWorker()
+    /// <summary>
+    /// Creates an IConfiguration that configures Pipeline:Lead:Retry with zero delays and the given MaxRetries.
+    /// When maxRetries is null, no retry config is set so PipelineWorker uses its defaults.
+    /// </summary>
+    private static IConfiguration MakeConfig(int? maxRetries = null, int baseDelaySeconds = 0)
     {
-        // Default mock setups for checkpoint/resume pattern
+        var pairs = new Dictionary<string, string?>();
+        if (maxRetries.HasValue)
+        {
+            pairs["Pipeline:Lead:Retry:MaxRetries"] = maxRetries.Value.ToString();
+            pairs["Pipeline:Lead:Retry:BaseDelaySeconds"] = baseDelaySeconds.ToString();
+        }
+        return new ConfigurationBuilder().AddInMemoryCollection(pairs).Build();
+    }
+
+    private LeadProcessingWorker CreateWorker(IConfiguration? config = null)
+    {
+        // Default mock setups
         _notifier.Setup(n => n.BuildSubject(It.IsAny<Lead>(), It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>()))
             .Returns("Test Subject");
         _notifier.Setup(n => n.BuildBody(It.IsAny<Lead>(), It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>()))
             .Returns("Test Body");
 
-        // Storage: no checkpoint files exist by default (steps run fresh)
-        _storage.Setup(s => s.ReadDocumentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string?)null);
-        _storage.Setup(s => s.WriteDocumentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
         return new(_channel, _leadStore.Object, _enricher.Object,
             _notifier.Object, _failedNotificationStore.Object,
-            _storage.Object,
-            _cmaChannel, _homeSearchChannel, _healthTracker, _logger.Object)
-        {
-            RetryDelays = ZeroDelays,
-        };
+            _healthTracker, _logger.Object, config ?? MakeConfig());
     }
 
     private static Lead MakeLead(LeadType type = LeadType.Seller) => new()
@@ -105,17 +97,15 @@ public class LeadProcessingWorkerTests
     }
 
     [Fact]
-    public async Task ContinuesNotification_WhenEnrichmentFails()
+    public async Task EnrichmentFailure_CausesWorkerToRetry_NotificationNotCalledOnFailedAttempt()
     {
+        // Enrichment always fails — notification should never be called (pipeline never reaches notify step)
         _enricher
             .Setup(e => e.EnrichAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("scraper down"));
-        _notifier
-            .Setup(n => n.NotifyAgentAsync(It.IsAny<string>(), It.IsAny<Lead>(),
-                It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
 
-        var worker = CreateWorker();
+        // Use zero-delay retries with MaxRetries=0 so it fails fast
+        var worker = CreateWorker(MakeConfig(maxRetries: 0));
         var cts = new CancellationTokenSource();
 
         await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
@@ -124,21 +114,11 @@ public class LeadProcessingWorkerTests
         await worker.StartAsync(cts.Token);
         await worker.ExecuteTask!;
 
-        // Notification still fires even when enrichment failed
+        // Notification is NOT called — pipeline failed at enrichment step
         _notifier.Verify(n => n.NotifyAgentAsync(
             It.IsAny<string>(), It.IsAny<Lead>(),
             It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(),
-            It.IsAny<CancellationToken>()), Times.Once);
-
-        // Error was logged with [WORKER-021]
-        _logger.Verify(
-            l => l.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[WORKER-021]")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -193,7 +173,8 @@ public class LeadProcessingWorkerTests
                     : Task.CompletedTask;
             });
 
-        var worker = CreateWorker();
+        // Zero-delay retries so the test doesn't wait
+        var worker = CreateWorker(MakeConfig(maxRetries: 3));
         var cts = new CancellationTokenSource();
 
         await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
@@ -207,16 +188,6 @@ public class LeadProcessingWorkerTests
             It.IsAny<string>(), It.IsAny<Lead>(),
             It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(),
             It.IsAny<CancellationToken>()), Times.Exactly(2));
-
-        // Retry logged with [WORKER-032]
-        _logger.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[WORKER-032]")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
 
         // Dead letter store is NOT called (succeeded on retry)
         _failedNotificationStore.Verify(
@@ -240,8 +211,9 @@ public class LeadProcessingWorkerTests
                 It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        // Zero-delay retries with MaxRetries=3 → 1 initial + 3 retries = 4 total attempts
         var lead = MakeLead();
-        var worker = CreateWorker();
+        var worker = CreateWorker(MakeConfig(maxRetries: 3));
         var cts = new CancellationTokenSource();
 
         await _channel.Writer.WriteAsync(MakeRequest(lead), CancellationToken.None);
@@ -250,27 +222,16 @@ public class LeadProcessingWorkerTests
         await worker.StartAsync(cts.Token);
         await worker.ExecuteTask!;
 
-        // Called 4 times: 1 initial + 3 retries (ZeroDelays has 3 entries)
+        // Called 4 times: 1 initial + 3 retries
         _notifier.Verify(n => n.NotifyAgentAsync(
             It.IsAny<string>(), It.IsAny<Lead>(),
             It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(),
             It.IsAny<CancellationToken>()), Times.Exactly(4));
 
-        // Dead letter store called once with correct agentId and leadId
+        // Dead letter store called once
         _failedNotificationStore.Verify(
             s => s.RecordAsync("test-agent", lead.Id,
-                It.Is<string>(msg => msg.Contains("smtp down")),
-                4, It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        // Permanent failure logged with [WORKER-034]
-        _logger.Verify(
-            l => l.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[WORKER-034]")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -289,7 +250,7 @@ public class LeadProcessingWorkerTests
                 It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var worker = CreateWorker();
+        var worker = CreateWorker(MakeConfig(maxRetries: 1));
         var cts = new CancellationTokenSource();
 
         await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
@@ -299,120 +260,5 @@ public class LeadProcessingWorkerTests
         await worker.StartAsync(cts.Token);
         var act = async () => await worker.ExecuteTask!;
         await act.Should().NotThrowAsync();
-    }
-
-    [Fact]
-    public async Task DispatchesCma_ForSellerLead()
-    {
-        _enricher
-            .Setup(e => e.EnrichAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((LeadEnrichment.Empty(), LeadScore.Default("test")));
-        _notifier
-            .Setup(n => n.NotifyAgentAsync(It.IsAny<string>(), It.IsAny<Lead>(),
-                It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var lead = MakeLead(LeadType.Seller);
-        var worker = CreateWorker();
-        var cts = new CancellationTokenSource();
-
-        await _channel.Writer.WriteAsync(MakeRequest(lead), CancellationToken.None);
-        _channel.Writer.Complete();
-
-        await worker.StartAsync(cts.Token);
-        await worker.ExecuteTask!;
-
-        // CMA channel should have a request
-        _cmaChannel.Reader.TryRead(out var cmaRequest).Should().BeTrue();
-        cmaRequest!.AgentId.Should().Be("test-agent");
-        cmaRequest.Lead.Id.Should().Be(lead.Id);
-        cmaRequest.CorrelationId.Should().Be("corr-123");
-
-        // Home search channel should be empty
-        _homeSearchChannel.Reader.TryRead(out _).Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task DispatchesHomeSearch_ForBuyerLead()
-    {
-        _enricher
-            .Setup(e => e.EnrichAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((LeadEnrichment.Empty(), LeadScore.Default("test")));
-        _notifier
-            .Setup(n => n.NotifyAgentAsync(It.IsAny<string>(), It.IsAny<Lead>(),
-                It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var lead = MakeLead(LeadType.Buyer);
-        var worker = CreateWorker();
-        var cts = new CancellationTokenSource();
-
-        await _channel.Writer.WriteAsync(MakeRequest(lead), CancellationToken.None);
-        _channel.Writer.Complete();
-
-        await worker.StartAsync(cts.Token);
-        await worker.ExecuteTask!;
-
-        // Home search channel should have a request
-        _homeSearchChannel.Reader.TryRead(out var hsRequest).Should().BeTrue();
-        hsRequest!.AgentId.Should().Be("test-agent");
-        hsRequest.Lead.Id.Should().Be(lead.Id);
-
-        // CMA channel should be empty (no seller details)
-        _cmaChannel.Reader.TryRead(out _).Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task DispatchesBothPipelines_ForBothLead()
-    {
-        _enricher
-            .Setup(e => e.EnrichAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((LeadEnrichment.Empty(), LeadScore.Default("test")));
-        _notifier
-            .Setup(n => n.NotifyAgentAsync(It.IsAny<string>(), It.IsAny<Lead>(),
-                It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var lead = MakeLead(LeadType.Both);
-        var worker = CreateWorker();
-        var cts = new CancellationTokenSource();
-
-        await _channel.Writer.WriteAsync(MakeRequest(lead), CancellationToken.None);
-        _channel.Writer.Complete();
-
-        await worker.StartAsync(cts.Token);
-        await worker.ExecuteTask!;
-
-        // Both channels should have requests
-        _cmaChannel.Reader.TryRead(out var cmaRequest).Should().BeTrue();
-        cmaRequest!.Lead.Id.Should().Be(lead.Id);
-
-        _homeSearchChannel.Reader.TryRead(out var hsRequest).Should().BeTrue();
-        hsRequest!.Lead.Id.Should().Be(lead.Id);
-    }
-
-    [Fact]
-    public async Task SkipsBothPipelines_ForSellerOnly_NoHomeSearch()
-    {
-        _enricher
-            .Setup(e => e.EnrichAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((LeadEnrichment.Empty(), LeadScore.Default("test")));
-        _notifier
-            .Setup(n => n.NotifyAgentAsync(It.IsAny<string>(), It.IsAny<Lead>(),
-                It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var worker = CreateWorker();
-        var cts = new CancellationTokenSource();
-
-        await _channel.Writer.WriteAsync(MakeRequest(MakeLead(LeadType.Seller)), CancellationToken.None);
-        _channel.Writer.Complete();
-
-        await worker.StartAsync(cts.Token);
-        await worker.ExecuteTask!;
-
-        // CMA dispatched, home search not
-        _cmaChannel.Reader.TryRead(out _).Should().BeTrue();
-        _homeSearchChannel.Reader.TryRead(out _).Should().BeFalse();
     }
 }

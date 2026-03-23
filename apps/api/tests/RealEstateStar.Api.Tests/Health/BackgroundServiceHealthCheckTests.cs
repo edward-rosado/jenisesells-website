@@ -77,8 +77,7 @@ public class BackgroundServiceHealthCheckTests
 
         // Channel has an item queued
         await _cmaChannel.Writer.WriteAsync(
-            new CmaProcessingRequest("agent", MakeLead(), LeadEnrichment.Empty(),
-                LeadScore.Default("test"), "corr-1"), CancellationToken.None);
+            new CmaProcessingRequest("agent", MakeLead(), "corr-1"), CancellationToken.None);
 
         var check = CreateCheck();
         var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
@@ -95,8 +94,7 @@ public class BackgroundServiceHealthCheckTests
         await _leadChannel.Writer.WriteAsync(
             new LeadProcessingRequest("agent", MakeLead(), "corr-1"), CancellationToken.None);
         await _cmaChannel.Writer.WriteAsync(
-            new CmaProcessingRequest("agent", MakeLead(), LeadEnrichment.Empty(),
-                LeadScore.Default("test"), "corr-2"), CancellationToken.None);
+            new CmaProcessingRequest("agent", MakeLead(), "corr-2"), CancellationToken.None);
 
         var check = CreateCheck();
         var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
