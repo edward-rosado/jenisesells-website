@@ -3,18 +3,18 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
+using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Workers.Cma;
 
 public class ScraperCompSource(
     IHttpClientFactory httpClientFactory,
-    string scraperApiKey,
+    IScraperClient scraperClient,
     string claudeApiKey,
     CompSource sourceName,
     string baseUrlPattern,
     ILogger<ScraperCompSource> logger) : ICompSource
 {
-    private const string ScraperApiClientName = "ScraperAPI";
     private const string ClaudeClientName = "ScraperCompSource";
     private const string ClaudeApiUrl = "https://api.anthropic.com/v1/messages";
     private const string ClaudeModel = "claude-sonnet-4-6";
@@ -57,13 +57,13 @@ public class ScraperCompSource(
         logger.LogInformation("[COMP-001] Fetching comps from {Source} for address={Address}", sourceName, request.Address);
 
         var sourceUrl = BuildSourceUrl(request);
-        var scraperUrl = BuildScraperUrl(sourceUrl);
 
         string html;
         try
         {
-            var httpClient = httpClientFactory.CreateClient(ScraperApiClientName);
-            html = await httpClient.GetStringAsync(scraperUrl, ct);
+            var result = await scraperClient.FetchAsync(sourceUrl, sourceName.ToString(), "cma", ct);
+            if (result is null) return [];
+            html = result;
         }
         catch (Exception ex)
         {
@@ -118,9 +118,6 @@ public class ScraperCompSource(
         logger.LogInformation("[COMP-003] Parsed {Count} valid comps from {Source}", comps.Count, sourceName);
         return comps;
     }
-
-    internal string BuildScraperUrl(string targetUrl) =>
-        $"https://api.scraperapi.com/?api_key={scraperApiKey}&url={Uri.EscapeDataString(targetUrl)}&render=true";
 
     internal string BuildSourceUrl(CompSearchRequest request)
     {

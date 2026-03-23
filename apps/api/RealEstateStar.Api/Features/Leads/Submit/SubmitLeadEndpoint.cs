@@ -11,6 +11,8 @@ using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Domain.Privacy;
 using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Workers.Cma;
+using RealEstateStar.Workers.HomeSearch;
 using RealEstateStar.Workers.Leads;
 
 namespace RealEstateStar.Api.Features.Leads.Submit;
@@ -28,6 +30,8 @@ public class SubmitLeadEndpoint : IEndpoint
         ILeadStore leadStore,
         IMarketingConsentLog consentLog,
         LeadProcessingChannel processingChannel,
+        CmaProcessingChannel cmaChannel,
+        HomeSearchProcessingChannel homeSearchChannel,
         HttpContext httpContext,
         ILogger<SubmitLeadEndpoint> logger,
         IConsentAuditService consentAudit,
@@ -185,6 +189,14 @@ public class SubmitLeadEndpoint : IEndpoint
         var processingRequest = new LeadProcessingRequest(agentId, lead, correlationId);
 
         await processingChannel.Writer.WriteAsync(processingRequest, ct);
+
+        // Fan-out: dispatch CMA and home search independently
+        if (lead.LeadType is LeadType.Seller or LeadType.Both && lead.SellerDetails is not null)
+            await cmaChannel.Writer.WriteAsync(new CmaProcessingRequest(agentId, lead, correlationId), ct);
+
+        if (lead.LeadType is LeadType.Buyer or LeadType.Both && lead.BuyerDetails is not null)
+            await homeSearchChannel.Writer.WriteAsync(new HomeSearchProcessingRequest(agentId, lead, correlationId), ct);
+
         LeadDiagnostics.LeadsReceived.Add(1);
 
         logger.LogInformation(

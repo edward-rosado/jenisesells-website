@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.Cma.Interfaces;
@@ -22,9 +23,23 @@ public class CmaProcessingWorkerTests
     private readonly BackgroundServiceHealthTracker _healthTracker = new();
     private readonly Mock<ILogger<CmaProcessingWorker>> _logger = new();
 
-    private CmaProcessingWorker CreateWorker() =>
+    private static IConfiguration EmptyConfig() =>
+        new ConfigurationBuilder().Build();
+
+    /// <summary>Creates a zero-delay retry config with given max retries (default 0 = no retries after first attempt).</summary>
+    private static IConfiguration ZeroDelayConfig(int maxRetries = 0) =>
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Pipeline:Cma:Retry:MaxRetries"] = maxRetries.ToString(),
+                ["Pipeline:Cma:Retry:BaseDelaySeconds"] = "0"
+            })
+            .Build();
+
+    private CmaProcessingWorker CreateWorker(IConfiguration? config = null) =>
         new(_channel, _compAggregator.Object, _cmaAnalyzer.Object,
-            _pdfGenerator.Object, _cmaNotifier.Object, _accountConfigService.Object, _healthTracker, _logger.Object);
+            _pdfGenerator.Object, _cmaNotifier.Object, _accountConfigService.Object, _healthTracker, _logger.Object,
+            config ?? EmptyConfig());
 
     private static Lead MakeLead() => new()
     {
@@ -42,7 +57,7 @@ public class CmaProcessingWorkerTests
     private static CmaProcessingRequest MakeRequest(Lead? lead = null)
     {
         var l = lead ?? MakeLead();
-        return new CmaProcessingRequest("test-agent", l, LeadEnrichment.Empty(), LeadScore.Default("test"), "corr-123");
+        return new CmaProcessingRequest("test-agent", l, "corr-123");
     }
 
     private static List<Comp> MakeComps(int count) =>
@@ -169,7 +184,8 @@ public class CmaProcessingWorkerTests
                 It.IsAny<CmaAnalysis>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("smtp down"));
 
-        var worker = CreateWorker();
+        // Zero-delay retries so the test completes quickly
+        var worker = CreateWorker(ZeroDelayConfig());
         var cts = new CancellationTokenSource();
 
         await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
@@ -180,11 +196,12 @@ public class CmaProcessingWorkerTests
 
         await act.Should().NotThrowAsync();
 
+        // The step failure is logged by PipelineWorker with "Step 'notify-seller' Failed"
         _logger.Verify(
             l => l.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[CMA-WORKER-051]")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Step 'notify-seller' Failed")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -193,9 +210,7 @@ public class CmaProcessingWorkerTests
     [Fact]
     public void DetermineReportType_Comprehensive()
     {
-        var score = new LeadScore { OverallScore = 70, Factors = [], Explanation = "high" };
-
-        var result = CmaProcessingWorker.DetermineReportType(6, score);
+        var result = CmaProcessingWorker.DetermineReportType(6);
 
         result.Should().Be(ReportType.Comprehensive);
     }
@@ -203,9 +218,7 @@ public class CmaProcessingWorkerTests
     [Fact]
     public void DetermineReportType_Standard()
     {
-        var score = new LeadScore { OverallScore = 50, Factors = [], Explanation = "mid" };
-
-        var result = CmaProcessingWorker.DetermineReportType(4, score);
+        var result = CmaProcessingWorker.DetermineReportType(4);
 
         result.Should().Be(ReportType.Standard);
     }
@@ -213,9 +226,7 @@ public class CmaProcessingWorkerTests
     [Fact]
     public void DetermineReportType_Lean()
     {
-        var score = new LeadScore { OverallScore = 50, Factors = [], Explanation = "low" };
-
-        var result = CmaProcessingWorker.DetermineReportType(2, score);
+        var result = CmaProcessingWorker.DetermineReportType(2);
 
         result.Should().Be(ReportType.Lean);
     }
@@ -260,11 +271,11 @@ public class CmaProcessingWorkerTests
     }
 
     // ---------------------------------------------------------------------------
-    // AccountConfig not found — worker catches, logs [CMA-WORKER-002], does not crash
+    // AccountConfig not found — worker catches, logs step failure, does not crash
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task AccountConfigNotFound_LogsCmaWorker002_DoesNotCrash()
+    public async Task AccountConfigNotFound_LogsStepFailure_DoesNotCrash()
     {
         var comps = MakeComps(3);
         _compAggregator
@@ -274,12 +285,13 @@ public class CmaProcessingWorkerTests
             .Setup(a => a.AnalyzeAsync(It.IsAny<Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeAnalysis());
 
-        // Return null → triggers InvalidOperationException with [CMA-WORKER-012]
+        // Return null → GeneratePdfAsync throws InvalidOperationException
         _accountConfigService
             .Setup(a => a.GetAccountAsync("test-agent", It.IsAny<CancellationToken>()))
             .ReturnsAsync((AccountConfig?)null);
 
-        var worker = CreateWorker();
+        // Zero-delay retries so the test completes quickly
+        var worker = CreateWorker(ZeroDelayConfig());
         var cts = new CancellationTokenSource();
 
         await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
@@ -290,11 +302,12 @@ public class CmaProcessingWorkerTests
 
         await act.Should().NotThrowAsync();
 
+        // The generate-pdf step failure is logged by PipelineWorker with "Step 'generate-pdf' Failed"
         _logger.Verify(
             l => l.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[CMA-WORKER-002]")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Step 'generate-pdf' Failed")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
