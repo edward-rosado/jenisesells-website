@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createApiClient } from "@real-estate-star/api-client";
 
 export interface HealthEntry {
   status: "Healthy" | "Degraded" | "Unhealthy";
@@ -39,23 +40,21 @@ export function useHealthCheck(apiUrl: string): HealthState {
 
   const doFetch = useCallback(async () => {
     try {
-      const res = await fetch(`${apiUrl}/health/ready`, { cache: "no-store" });
-      if (!res.ok) {
+      const client = createApiClient(apiUrl);
+      const { data, error, response } = await client.GET("/health/ready", {
+        init: { cache: "no-store" },
+      });
+      if (error || !response.ok) {
         const sample: UptimeSample = { time: new Date(), status: "Error" };
         historyRef.current = [...historyRef.current, sample].slice(-MAX_HISTORY);
-        setState({
-          current: null,
-          error: `API returned ${res.status}`,
-          loading: false,
-          history: historyRef.current,
-        });
+        setState({ current: null, error: `API returned ${response?.status ?? "unknown"}`, loading: false, history: historyRef.current });
         return;
       }
-      const data: HealthResponse = await res.json();
-      const sample: UptimeSample = { time: new Date(), status: data.status };
+      const typedData = data as HealthResponse;
+      const sample: UptimeSample = { time: new Date(), status: typedData.status };
       historyRef.current = [...historyRef.current, sample].slice(-MAX_HISTORY);
       setState({
-        current: data,
+        current: typedData,
         error: null,
         loading: false,
         history: historyRef.current,

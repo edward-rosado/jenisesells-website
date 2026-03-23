@@ -64,6 +64,16 @@ const mockUnhealthyWorkers = {
   },
 };
 
+/** Build a minimal Response-like mock compatible with openapi-fetch (which reads headers.get). */
+function mockResponse(body: unknown, ok = true, status = 200) {
+  return {
+    ok,
+    status,
+    headers: { get: vi.fn().mockReturnValue(null) },
+    json: async () => body,
+  };
+}
+
 beforeEach(() => {
   global.fetch = vi.fn();
 });
@@ -74,10 +84,7 @@ afterEach(() => {
 
 describe("StatusDashboard", () => {
   it("renders all healthy services with green indicators", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockHealthy,
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse(mockHealthy));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByText("All Systems Operational")).toBeInTheDocument();
@@ -89,10 +96,7 @@ describe("StatusDashboard", () => {
   });
 
   it("renders degraded status with yellow indicator and description", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockDegraded,
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse(mockDegraded));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByText("Degraded Performance")).toBeInTheDocument();
@@ -119,10 +123,7 @@ describe("StatusDashboard", () => {
   });
 
   it("displays response time for each service", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockHealthy,
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse(mockHealthy));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByText("234ms")).toBeInTheDocument();
@@ -132,8 +133,8 @@ describe("StatusDashboard", () => {
   it("auto-refreshes every 30 seconds", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     (fetch as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ ok: true, json: async () => mockHealthy })
-      .mockResolvedValueOnce({ ok: true, json: async () => mockDegraded });
+      .mockResolvedValueOnce(mockResponse(mockHealthy))
+      .mockResolvedValueOnce(mockResponse(mockDegraded));
 
     render(<StatusDashboard />);
 
@@ -149,10 +150,7 @@ describe("StatusDashboard", () => {
   });
 
   it("renders error state when API returns non-ok status", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: false,
-      status: 503,
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse(null, false, 503));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByTestId("status-error")).toBeInTheDocument();
@@ -160,15 +158,12 @@ describe("StatusDashboard", () => {
   });
 
   it("renders service disruption for Unhealthy overall status", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        status: "Unhealthy",
-        entries: {
-          "scraper-api": { status: "Unhealthy", duration: "00:00:00.000", description: "Timeout" },
-        },
-      }),
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse({
+      status: "Unhealthy",
+      entries: {
+        "scraper-api": { status: "Unhealthy", duration: "00:00:00.000", description: "Timeout" },
+      },
+    }));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByText("Service Disruption")).toBeInTheDocument();
@@ -177,15 +172,12 @@ describe("StatusDashboard", () => {
   });
 
   it("renders raw duration when format does not match HH:MM:SS.ms", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        status: "Healthy",
-        entries: {
-          "test-service": { status: "Healthy", duration: "not-a-duration" },
-        },
-      }),
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse({
+      status: "Healthy",
+      entries: {
+        "test-service": { status: "Healthy", duration: "not-a-duration" },
+      },
+    }));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByText("not-a-duration")).toBeInTheDocument();
@@ -193,10 +185,7 @@ describe("StatusDashboard", () => {
   });
 
   it("renders uptime tracker with session history", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockHealthy,
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse(mockHealthy));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByText("1/1 checks OK")).toBeInTheDocument();
@@ -205,10 +194,7 @@ describe("StatusDashboard", () => {
   });
 
   it("separates core services from background workers", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockWithWorkers,
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse(mockWithWorkers));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByText("Core Services")).toBeInTheDocument();
@@ -219,10 +205,7 @@ describe("StatusDashboard", () => {
   });
 
   it("renders worker details with queue depth and last activity", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockWithWorkers,
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse(mockWithWorkers));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByTestId("worker-Lead")).toBeInTheDocument();
@@ -232,10 +215,7 @@ describe("StatusDashboard", () => {
   });
 
   it("shows queue depth with yellow highlight when non-zero", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockWithWorkers,
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse(mockWithWorkers));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByTestId("worker-Cma")).toBeInTheDocument();
@@ -248,10 +228,7 @@ describe("StatusDashboard", () => {
   });
 
   it("shows Never for workers that have no activity", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockWithWorkers,
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse(mockWithWorkers));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByTestId("worker-HomeSearch")).toBeInTheDocument();
@@ -281,10 +258,7 @@ describe("StatusDashboard", () => {
         },
       },
     };
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockRecentActivity,
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse(mockRecentActivity));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByTestId("worker-Lead")).toBeInTheDocument();
@@ -317,10 +291,7 @@ describe("StatusDashboard", () => {
         },
       },
     };
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockNonDateActivity,
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse(mockNonDateActivity));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByTestId("worker-Lead")).toBeInTheDocument();
@@ -344,10 +315,7 @@ describe("StatusDashboard", () => {
         },
       },
     };
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockNoData,
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse(mockNoData));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByTestId("worker-Lead")).toBeInTheDocument();
@@ -364,10 +332,7 @@ describe("StatusDashboard", () => {
         "claude-api": { status: "Healthy", duration: "fast" },
       },
     };
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockBadDuration,
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse(mockBadDuration));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByTestId("status-claude-api")).toBeInTheDocument();
@@ -391,10 +356,7 @@ describe("StatusDashboard", () => {
   });
 
   it("renders unhealthy workers with stuck description", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockUnhealthyWorkers,
-    });
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse(mockUnhealthyWorkers));
     render(<StatusDashboard />);
     await waitFor(() => {
       expect(screen.getByText("Service Disruption")).toBeInTheDocument();
@@ -415,7 +377,7 @@ describe("StatusDashboard", () => {
   it("cancels interval fetch after component unmounts (exercises cancelled guard)", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     (fetch as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ ok: true, json: async () => mockHealthy });
+      .mockResolvedValueOnce(mockResponse(mockHealthy));
 
     const { unmount } = render(<StatusDashboard />);
     await waitFor(() => {
