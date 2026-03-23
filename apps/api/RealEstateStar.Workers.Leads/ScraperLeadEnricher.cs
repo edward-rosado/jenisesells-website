@@ -11,6 +11,7 @@ public class ScraperLeadEnricher(
     IHttpClientFactory httpClientFactory,
     string claudeApiKey,
     IScraperClient scraperClient,
+    Dictionary<string, string> sourceUrls,
     ILogger<ScraperLeadEnricher> logger) : ILeadEnricher
 {
     private const string ClaudeApiUrl = "https://api.anthropic.com/v1/messages";
@@ -87,37 +88,46 @@ public class ScraperLeadEnricher(
 
         var scrapeTimeout = TimeSpan.FromSeconds(5);
 
-        var tasks = queries.Select(async kvp =>
+        var tasks = new List<Task<(string source, string content)>>();
+        foreach (var (engineName, urlTemplate) in sourceUrls)
         {
-            var (source, query) = kvp;
-            var googleUrl = $"https://www.google.com/search?q={Uri.EscapeDataString(query)}";
-
-            try
+            foreach (var (queryName, query) in queries)
             {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                cts.CancelAfter(scrapeTimeout);
-
-                var response = await scraperClient.FetchAsync(googleUrl, source, "enrichment", cts.Token);
-                if (response is null) return (source, content: "");
-                return (source, content: response);
+                var url = urlTemplate.Replace("{query}", Uri.EscapeDataString(query));
+                tasks.Add(FetchFromEngine(engineName, queryName, url, scrapeTimeout, lead.Id.ToString(), ct));
             }
-            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-            {
-                logger.LogDebug("[LEAD-020] Scrape source {Source} timed out for lead {LeadId}", source, lead.Id);
-                return (source, content: "");
-            }
-            catch (Exception ex)
-            {
-                logger.LogDebug(ex, "[LEAD-021] Scrape source {Source} failed for lead {LeadId}", source, lead.Id);
-                return (source, content: "");
-            }
-        });
+        }
 
         var results = await Task.WhenAll(tasks);
 
         return results
             .Where(r => !string.IsNullOrWhiteSpace(r.content))
             .ToDictionary(r => r.source, r => r.content);
+    }
+
+    private async Task<(string source, string content)> FetchFromEngine(
+        string engineName, string queryName, string url, TimeSpan timeout, string leadId, CancellationToken ct)
+    {
+        var sourceKey = $"{engineName}:{queryName}";
+        try
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(timeout);
+
+            var response = await scraperClient.FetchAsync(url, sourceKey, "enrichment", cts.Token);
+            if (response is null) return (sourceKey, content: "");
+            return (sourceKey, content: response);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            logger.LogDebug("[LEAD-020] Scrape source {Source} timed out for lead {LeadId}", sourceKey, leadId);
+            return (sourceKey, content: "");
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "[LEAD-021] Scrape source {Source} failed for lead {LeadId}", sourceKey, leadId);
+            return (sourceKey, content: "");
+        }
     }
 
     private static string BuildXmlPayload(Lead lead, Dictionary<string, string> scrapedData)

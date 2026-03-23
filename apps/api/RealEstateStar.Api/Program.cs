@@ -278,6 +278,14 @@ builder.Services.AddHostedService<LeadProcessingWorker>();
 builder.Services.AddHostedService<CmaProcessingWorker>();
 builder.Services.AddHostedService<HomeSearchProcessingWorker>();
 
+// Pipeline source URL config
+var leadSources = builder.Configuration.GetSection("Pipeline:Lead:Sources")
+    .Get<Dictionary<string, string>>() ?? new();
+var homeSearchSources = builder.Configuration.GetSection("Pipeline:HomeSearch:Sources")
+    .Get<Dictionary<string, string>>() ?? new();
+var cmaSources = builder.Configuration.GetSection("Pipeline:Cma:Sources")
+    .Get<Dictionary<string, string>>() ?? new();
+
 // Lead enrichment — typed HttpClient with Polly resilience
 builder.Services.AddHttpClient(nameof(ScraperLeadEnricher))
     .AddClaudeApiResilience(pollyLogger);
@@ -285,8 +293,8 @@ builder.Services.AddSingleton<ILeadEnricher>(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();
     var scraperClient = sp.GetRequiredService<IScraperClient>();
-    var logger = sp.GetRequiredService<ILogger<ScraperLeadEnricher>>();
-    return new ScraperLeadEnricher(factory, anthropicKey, scraperClient, logger);
+    var enricherLogger = sp.GetRequiredService<ILogger<ScraperLeadEnricher>>();
+    return new ScraperLeadEnricher(factory, anthropicKey, scraperClient, leadSources, enricherLogger);
 });
 
 // Home search — scraper-based (uses both nameof and "ScraperAPI" named clients)
@@ -297,6 +305,7 @@ builder.Services.AddSingleton<IHomeSearchProvider>(sp =>
         sp.GetRequiredService<IHttpClientFactory>(),
         sp.GetRequiredService<IScraperClient>(),
         anthropicKey,
+        homeSearchSources,
         sp.GetRequiredService<ILogger<ScraperHomeSearchProvider>>()));
 
 // CMA pipeline services
@@ -308,27 +317,21 @@ builder.Services.AddSingleton<ICompAggregator>(sp =>
     new CompAggregator(
         sp.GetServices<ICompSource>(),
         sp.GetRequiredService<ILogger<CompAggregator>>()));
-builder.Services.AddSingleton<ICompSource>(sp =>
-    new ScraperCompSource(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        sp.GetRequiredService<IScraperClient>(),
-        anthropicKey,
-        CompSource.Zillow, "https://www.zillow.com/homedetails/{slug}",
-        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
-builder.Services.AddSingleton<ICompSource>(sp =>
-    new ScraperCompSource(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        sp.GetRequiredService<IScraperClient>(),
-        anthropicKey,
-        CompSource.Redfin, "https://www.redfin.com/homes/{slug}",
-        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
-builder.Services.AddSingleton<ICompSource>(sp =>
-    new ScraperCompSource(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        sp.GetRequiredService<IScraperClient>(),
-        anthropicKey,
-        CompSource.RealtorCom, "https://www.realtor.com/realestateandhomes-detail/{slug}",
-        sp.GetRequiredService<ILogger<ScraperCompSource>>()));
+foreach (var (sourceName, urlPattern) in cmaSources)
+{
+    if (!Enum.TryParse<CompSource>(sourceName, ignoreCase: true, out var source))
+    {
+        Log.Warning("[STARTUP-060] Unknown comp source '{SourceName}' in config, skipping", sourceName);
+        continue;
+    }
+    builder.Services.AddSingleton<ICompSource>(sp =>
+        new ScraperCompSource(
+            sp.GetRequiredService<IHttpClientFactory>(),
+            sp.GetRequiredService<IScraperClient>(),
+            anthropicKey,
+            source, urlPattern,
+            sp.GetRequiredService<ILogger<ScraperCompSource>>()));
+}
 builder.Services.AddSingleton<ICmaAnalyzer>(sp =>
     new ClaudeCmaAnalyzer(
         sp.GetRequiredService<IHttpClientFactory>(),
