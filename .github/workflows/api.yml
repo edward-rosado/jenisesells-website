@@ -53,11 +53,11 @@ jobs:
           --logger "console;verbosity=minimal"
 
       - name: Export OpenAPI spec
+        env:
+          ASPNETCORE_ENVIRONMENT: OpenApiExport
         run: dotnet run --project apps/api/RealEstateStar.Api --no-build --configuration Release -- --export-openapi apps/api/openapi.json
-        continue-on-error: true
 
       - uses: actions/upload-artifact@v4
-        if: hashFiles('apps/api/openapi.json') != ''
         with:
           name: openapi-spec
           path: apps/api/openapi.json
