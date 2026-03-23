@@ -47,6 +47,7 @@ export function useHealthCheck(apiUrl: string): HealthState {
       if (error || !response.ok) {
         const sample: UptimeSample = { time: new Date(), status: "Error" };
         historyRef.current = [...historyRef.current, sample].slice(-MAX_HISTORY);
+        /* v8 ignore next -- response is always defined when openapi-fetch returns; defensive fallback */
         setState({ current: null, error: `API returned ${response?.status ?? "unknown"}`, loading: false, history: historyRef.current });
         return;
       }
