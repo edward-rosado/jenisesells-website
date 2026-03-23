@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createCorrelationId } from "@real-estate-star/domain";
 
 export interface HealthEntry {
   status: "Healthy" | "Degraded" | "Unhealthy";
@@ -39,16 +40,14 @@ export function useHealthCheck(apiUrl: string): HealthState {
 
   const doFetch = useCallback(async () => {
     try {
-      const res = await fetch(`${apiUrl}/health/ready`, { cache: "no-store" });
+      const res = await fetch(`${apiUrl}/health/ready`, {
+        cache: "no-store",
+        headers: { "X-Correlation-ID": createCorrelationId() },
+      });
       if (!res.ok) {
         const sample: UptimeSample = { time: new Date(), status: "Error" };
         historyRef.current = [...historyRef.current, sample].slice(-MAX_HISTORY);
-        setState({
-          current: null,
-          error: `API returned ${res.status}`,
-          loading: false,
-          history: historyRef.current,
-        });
+        setState({ current: null, error: `API returned ${res.status}`, loading: false, history: historyRef.current });
         return;
       }
       const data: HealthResponse = await res.json();

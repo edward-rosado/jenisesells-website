@@ -103,6 +103,46 @@ The project follows a structured pipeline:
 
 For full details on each step, see the rules in `.claude/rules/`.
 
+## Using the Typed API Client
+
+The `@real-estate-star/api-client` package provides a typed API client generated from the OpenAPI specification. Every request automatically includes an `X-Correlation-ID` header for end-to-end tracing in Grafana.
+
+### Regenerating Types Locally
+
+After making API changes, regenerate the types:
+
+```bash
+# Start the API (runs on port 5135)
+dotnet run --project apps/api/RealEstateStar.Api
+
+# In another terminal, regenerate types
+npm run generate --workspace=packages/api-client
+```
+
+This pulls the latest OpenAPI spec from the running API and regenerates `packages/api-client/src/types.ts`.
+
+### Two Usage Patterns
+
+**Platform (shared instance):**
+```typescript
+import { api } from "@/lib/api";
+const { data, error } = await api.GET("/health/ready");
+```
+
+**Agent-site (per-request HMAC headers):**
+```typescript
+import { createApiClient } from "@real-estate-star/api-client";
+const client = createApiClient(baseUrl);
+const { data, error } = await client.POST("/path" as never, {
+  headers: { "X-Signature": sig, "X-Timestamp": ts, "X-API-Key": key },
+  body: payload,
+});
+```
+
+### CI Auto-Updates
+
+The `api-client` GitHub Actions workflow automatically regenerates types whenever the API build produces a new OpenAPI spec. No manual action needed on main.
+
 ## Key Tools
 
 | Tool | Purpose |

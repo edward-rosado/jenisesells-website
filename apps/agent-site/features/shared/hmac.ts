@@ -1,3 +1,5 @@
+import { createCorrelationId } from "@real-estate-star/domain";
+
 export async function signAndForward(agentId: string, body: string, path?: string): Promise<Response> {
   const apiKey = process.env.LEAD_API_KEY!;
   const hmacSecret = process.env.LEAD_HMAC_SECRET!;
@@ -29,6 +31,7 @@ export async function signAndForward(agentId: string, body: string, path?: strin
         "X-API-Key": apiKey,
         "X-Signature": signature,
         "X-Timestamp": timestamp,
+        "X-Correlation-ID": createCorrelationId(),
       },
       body,
       signal: controller.signal,

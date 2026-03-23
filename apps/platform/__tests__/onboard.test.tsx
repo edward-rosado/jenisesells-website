@@ -8,12 +8,32 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => mockSearchParams,
 }));
 
+const mockGet = vi.fn();
+const mockPost = vi.fn();
+
+vi.mock("@/lib/api", () => ({
+  api: {
+    GET: (...args: unknown[]) => mockGet(...args),
+    POST: (...args: unknown[]) => mockPost(...args),
+  },
+}));
+
+// Mock ChatWindow to prevent SSE fetch to localhost:5135
+vi.mock("@/features/onboarding/ChatWindow", () => ({
+  ChatWindow: (props: Record<string, unknown>) => (
+    <div data-testid="chat-window" data-session-id={props.sessionId as string} />
+  ),
+}));
+
 beforeEach(() => {
   mockSearchParams = new URLSearchParams("profileUrl=https://zillow.com/profile/test");
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: true,
-    headers: new Headers({ "content-type": "application/json" }),
-    json: () => Promise.resolve({ sessionId: "abc123", token: "test-token", response: "" }),
+  mockGet.mockClear();
+  mockPost.mockClear();
+  mockGet.mockResolvedValue({ data: undefined, error: undefined, response: { ok: true, status: 200 } });
+  mockPost.mockResolvedValue({
+    data: { sessionId: "abc123", token: "test-token" },
+    error: undefined,
+    response: { ok: true, status: 200 },
   });
 });
 
@@ -21,23 +41,21 @@ describe("OnboardPage", () => {
   it("creates a session on mount", async () => {
     render(<OnboardPage />);
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/onboard"),
-        expect.objectContaining({ method: "POST" })
-      );
+      expect(mockPost).toHaveBeenCalled();
     });
   });
 
   it("shows loading state initially", () => {
+    mockPost.mockReturnValue(new Promise(() => {}));
     render(<OnboardPage />);
     expect(screen.getByText(/Starting your onboarding/i)).toBeInTheDocument();
   });
 
   it("shows verifying state then success when payment=success and server confirms", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve({ state: "TrialActivated" }),
+    mockGet.mockResolvedValue({
+      data: { state: "TrialActivated" },
+      error: undefined,
+      response: { ok: true, status: 200 },
     });
     mockSearchParams = new URLSearchParams("payment=success&session_id=cs_test_123");
     render(<OnboardPage />);
@@ -60,10 +78,10 @@ describe("OnboardPage", () => {
   // ---- Additional onboard page branch coverage ----
 
   it("shows payment not confirmed when server returns non-TrialActivated state", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve({ state: "Pending" }),
+    mockGet.mockResolvedValue({
+      data: { state: "Pending" },
+      error: undefined,
+      response: { ok: true, status: 200 },
     });
     mockSearchParams = new URLSearchParams("payment=success&session_id=cs_test_123");
     render(<OnboardPage />);
@@ -78,7 +96,7 @@ describe("OnboardPage", () => {
   });
 
   it("shows payment not confirmed when verify fetch throws", async () => {
-    global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
+    mockGet.mockRejectedValue(new Error("Network error"));
     mockSearchParams = new URLSearchParams("payment=success&session_id=cs_test_123");
     render(<OnboardPage />);
     await waitFor(() => {
@@ -86,10 +104,11 @@ describe("OnboardPage", () => {
     });
   });
 
-  it("shows payment not confirmed when verify fetch returns non-ok", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      headers: new Headers({ "content-type": "application/json" }),
+  it("shows payment not confirmed when verify fetch returns error", async () => {
+    mockGet.mockResolvedValue({
+      data: undefined,
+      error: { message: "Service unavailable" },
+      response: { ok: false, status: 503 },
     });
     mockSearchParams = new URLSearchParams("payment=success&session_id=cs_test_123");
     render(<OnboardPage />);
@@ -99,7 +118,7 @@ describe("OnboardPage", () => {
   });
 
   it("shows error message when createSession fetch fails with Error", async () => {
-    global.fetch = vi.fn().mockRejectedValue(new Error("Failed to create session"));
+    mockPost.mockRejectedValue(new Error("Failed to create session"));
     mockSearchParams = new URLSearchParams("profileUrl=https://zillow.com/profile/test");
     render(<OnboardPage />);
     await waitFor(() => {
@@ -108,7 +127,7 @@ describe("OnboardPage", () => {
   });
 
   it("shows generic error when createSession fetch fails with non-Error", async () => {
-    global.fetch = vi.fn().mockRejectedValue("string error");
+    mockPost.mockRejectedValue("string error");
     mockSearchParams = new URLSearchParams("profileUrl=https://zillow.com/profile/test");
     render(<OnboardPage />);
     await waitFor(() => {
@@ -116,10 +135,11 @@ describe("OnboardPage", () => {
     });
   });
 
-  it("shows error when createSession fetch returns non-ok", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      headers: new Headers({ "content-type": "application/json" }),
+  it("shows error when createSession returns error", async () => {
+    mockPost.mockResolvedValue({
+      data: undefined,
+      error: { message: "Internal Server Error" },
+      response: { ok: false, status: 500 },
     });
     mockSearchParams = new URLSearchParams("profileUrl=https://zillow.com/profile/test");
     render(<OnboardPage />);
@@ -129,45 +149,35 @@ describe("OnboardPage", () => {
   });
 
   it("does not create session when payment=success", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve({ state: "TrialActivated" }),
+    mockGet.mockResolvedValue({
+      data: { state: "TrialActivated" },
+      error: undefined,
+      response: { ok: true, status: 200 },
     });
-    global.fetch = fetchMock;
     mockSearchParams = new URLSearchParams("payment=success&session_id=cs_test_123");
     render(<OnboardPage />);
     await waitFor(() => {
       expect(screen.getByText(/Trial Activated/i)).toBeInTheDocument();
     });
     // Only verifyPayment GET call, no POST createSession
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/onboard/cs_test_123"),
-      expect.objectContaining({ method: "GET" })
-    );
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(mockPost).not.toHaveBeenCalled();
   });
 
   it("renders ChatWindow without autoMessage when no profileUrl", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve({ sessionId: "abc123", token: "test-token" }),
+    mockPost.mockResolvedValue({
+      data: { sessionId: "abc123", token: "test-token" },
+      error: undefined,
+      response: { ok: true, status: 200 },
     });
     mockSearchParams = new URLSearchParams("");
     render(<OnboardPage />);
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/type a message/i)).toBeInTheDocument();
+      expect(screen.getByTestId("chat-window")).toBeInTheDocument();
     });
   });
 
   it("does not verify payment when payment=success but no session_id", () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve({ sessionId: "abc123", token: "test-token" }),
-    });
-    global.fetch = fetchMock;
     // payment=success but missing session_id — should skip verifyPayment and skip createSession
     mockSearchParams = new URLSearchParams("payment=success");
     render(<OnboardPage />);

@@ -3,6 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageRenderer, type ChatMessageData } from "./MessageRenderer";
 import * as Sentry from "@sentry/nextjs";
+import type { paths } from "@real-estate-star/api-client";
+
+type ChatBody = paths["/onboard/{sessionId}/chat"]["post"]["requestBody"]["content"]["application/json"];
 
 interface ChatWindowProps {
   sessionId: string;
@@ -161,13 +164,16 @@ export function ChatWindow({ sessionId, token, initialMessages, autoMessage }: C
     setSending(true);
 
     try {
+      // SSE streaming endpoint — stays raw fetch because openapi-fetch
+      // parses JSON responses, but this endpoint returns text/event-stream.
+      const chatBody: ChatBody = { message: text };
       const res = await fetch(`${API_BASE}/onboard/${sessionId}/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify(chatBody),
       });
 
       if (!res.ok) {

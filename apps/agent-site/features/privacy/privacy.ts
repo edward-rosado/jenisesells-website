@@ -1,5 +1,6 @@
 "use server";
 
+import { createCorrelationId } from "@real-estate-star/domain";
 import { signAndForward } from "@/features/shared/hmac";
 
 export async function requestOptOut(
@@ -79,6 +80,7 @@ export async function requestExport(
           "X-API-Key": apiKey,
           "X-Signature": signature,
           "X-Timestamp": timestamp,
+          "X-Correlation-ID": createCorrelationId(),
         },
         signal: controller.signal,
       },

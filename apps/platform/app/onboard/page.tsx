@@ -4,8 +4,8 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ChatWindow } from "@/features/onboarding/ChatWindow";
+import { api } from "@/lib/api";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5135";
 const COMING_SOON = process.env.NEXT_PUBLIC_COMING_SOON === "true";
 
 function ComingSoon() {
@@ -51,13 +51,11 @@ function OnboardContent() {
 
     async function verifyPayment() {
       try {
-        const res = await fetch(`${API_BASE}/onboard/${sessionIdParam}`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
+        const { data, error } = await api.GET("/onboard/{sessionId}", {
+          params: { path: { sessionId: sessionIdParam! } },
         });
-        if (!res.ok) throw new Error("Failed to verify payment");
-        const data = await res.json();
-        setPaymentVerified(data.state === "TrialActivated");
+        if (error) throw new Error("Failed to verify payment");
+        setPaymentVerified((data as Record<string, unknown> | undefined)?.["state"] === "TrialActivated");
       } catch {
         setPaymentVerified(false);
       }
@@ -70,15 +68,13 @@ function OnboardContent() {
 
     async function createSession() {
       try {
-        const res = await fetch(`${API_BASE}/onboard`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ profileUrl }),
+        const { data, error } = await api.POST("/onboard", {
+          body: { profileUrl },
         });
-        if (!res.ok) throw new Error("Failed to create session");
-        const data = await res.json();
-        setSessionId(data.sessionId);
-        setSessionToken(data.token);
+        if (error) throw new Error("Failed to create session");
+        const typed = data as Record<string, unknown> | undefined;
+        setSessionId(typed?.["sessionId"] as string);
+        setSessionToken(typed?.["token"] as string);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
       }

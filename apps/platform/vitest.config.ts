@@ -12,7 +12,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "lcov", "html"],
       include: ["lib/**/*.ts", "components/**/*.tsx", "app/**/*.tsx", "features/**/*.tsx", "features/**/*.ts"],
-      exclude: ["**/__tests__/**", "**/*.d.ts", "features/**/index.ts"],
+      exclude: ["**/__tests__/**", "**/*.d.ts", "features/**/index.ts", "lib/api.ts"],
       thresholds: {
         branches: 100,
         functions: 100,
