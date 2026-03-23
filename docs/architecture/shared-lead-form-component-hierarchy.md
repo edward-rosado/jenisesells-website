@@ -7,7 +7,7 @@ flowchart TD
     subgraph Packages ["Shared Packages"]
         ST["@real-estate-star/shared-types<br/>LeadFormData, CmaSubmitRequest,<br/>CmaSubmitResponse, CmaStatusUpdate"]
         UI["@real-estate-star/ui<br/>LeadForm component<br/>useCmaSubmit hook<br/>submitCma API client"]
-        Hook["useGoogleMapsAutocomplete<br/>Lazy SDK loading + autocomplete"]
+        Hook["useGooglePlacesAutocomplete<br/>Lazy SDK loading + autocomplete"]
     end
 
     subgraph AgentSite ["Agent Site - apps/agent-site"]
