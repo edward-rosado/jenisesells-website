@@ -663,6 +663,20 @@ app.MapOpenApi();
 // --- All Endpoints ---
 app.MapEndpoints();
 
+// CLI: dotnet run -- --export-openapi [path]
+// Generates the OpenAPI spec JSON and exits without starting the HTTP server.
+if (args.Contains("--export-openapi"))
+{
+    var outputPath = args.SkipWhile(a => a != "--export-openapi").Skip(1).FirstOrDefault()
+        ?? "openapi.json";
+    var documentProvider = app.Services.GetRequiredService<Microsoft.AspNetCore.OpenApi.IOpenApiDocumentProvider>();
+    using var stream = File.Create(outputPath);
+    await documentProvider.GetOpenApiDocumentAsync("v1", stream);
+    await stream.FlushAsync();
+    Console.WriteLine($"OpenAPI spec written to {Path.GetFullPath(outputPath)}");
+    return;
+}
+
 app.Run();
 
 static async Task WriteHealthResponse(HttpContext context, HealthReport report)
