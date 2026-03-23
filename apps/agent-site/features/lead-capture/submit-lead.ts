@@ -1,8 +1,9 @@
 "use server";
 
 import type { LeadFormData } from "@real-estate-star/domain";
+import { createApiClient } from "@real-estate-star/api-client";
 import { validateTurnstile } from "./turnstile";
-import { signAndForward } from "./hmac";
+import { signRequest, getApiUrl } from "../shared/hmac";
 
 function mapLeadType(leadTypes: string[]): string {
   const buying = leadTypes.includes("buying");
@@ -39,18 +40,30 @@ export async function submitLead(
   const turnstile = await validateTurnstile(turnstileToken);
   if (!turnstile.ok) return { error: `Verification failed [${turnstile.code}]: ${turnstile.detail}` };
 
-  try {
-    const body = JSON.stringify(toApiPayload(formData));
-    const response = await signAndForward(agentId, body);
+  const body = JSON.stringify(toApiPayload(formData));
+  let cleanup: (() => void) | undefined;
 
-    if (!response.ok) {
+  try {
+    const { headers, signal, cleanup: c } = await signRequest(agentId, body);
+    cleanup = c;
+    const client = createApiClient(getApiUrl());
+    const { data, error, response } = await client.POST("/agents/{agentId}/leads", {
+      params: { path: { agentId } },
+      body: toApiPayload(formData),
+      headers,
+      init: { signal },
+    });
+
+    if (error || !response.ok) {
       const text = await response.text().catch(() => "");
       return { error: `API error [${response.status}]: ${text || response.statusText} | Payload: ${body}` };
     }
-    return response.json();
-  } catch (error) {
+    return (data ?? {}) as { leadId?: string; status?: string };
+  } catch (err) {
     const Sentry = await import("@sentry/nextjs");
-    Sentry.captureException(error);
+    Sentry.captureException(err);
     return { error: "Something went wrong. Please try again." };
+  } finally {
+    cleanup?.();
   }
 }
