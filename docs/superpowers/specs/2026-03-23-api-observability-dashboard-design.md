@@ -1,4 +1,4 @@
-# Scraper Improvements + Full-System Grafana Dashboard — Design Spec
+# API Observability Dashboard + Scraper Improvements — Design Spec
 
 **Author:** Eddie Rosado
 **Date:** 2026-03-23
@@ -10,11 +10,11 @@
 
 Three gaps remain after the pipeline context merge (PR #39):
 
-1. **Circuit breaker has no reset** — `ScraperClient._available` is set to `false` on HTTP 429 and never flipped back. A single rate limit event permanently disables scraping until container restart.
+1. **No visibility into system health** — 53 OTel metrics exist across 5 subsystems (Lead, CMA, HomeSearch, Scraper, WhatsApp) plus Onboarding, but there's no Grafana dashboard to visualize them. Claude API token usage and cost have no visibility at all.
 
-2. **Source URLs are hardcoded** — `appsettings.json` has per-pipeline `Sources` config (`Pipeline:Lead:Sources`, `Pipeline:Cma:Sources`, `Pipeline:HomeSearch:Sources`) but scraper consumers still hardcode Zillow/Redfin/Realtor/Google URLs. Swapping a source requires a code change and redeploy.
+2. **Circuit breaker has no reset** — `ScraperClient._available` is set to `false` on HTTP 429 and never flipped back. A single rate limit event permanently disables scraping until container restart.
 
-3. **No visibility into system health** — 53 OTel metrics exist across 5 subsystems (Lead, CMA, HomeSearch, Scraper, WhatsApp) plus Onboarding, but there's no Grafana dashboard to visualize them. Claude API token usage and cost have no visibility at all.
+3. **Source URLs are hardcoded** — `appsettings.json` has per-pipeline `Sources` config (`Pipeline:Lead:Sources`, `Pipeline:Cma:Sources`, `Pipeline:HomeSearch:Sources`) but scraper consumers still hardcode Zillow/Redfin/Realtor/Google URLs. Swapping a source requires a code change and redeploy.
 
 Additionally, `WhatsAppDiagnostics` is defined but not registered in `OpenTelemetryExtensions.cs`, so its 13 counters and 4 histograms are silently dropped.
 
@@ -22,16 +22,87 @@ Additionally, `WhatsAppDiagnostics` is defined but not registered in `OpenTeleme
 
 ## Goals
 
-- **Circuit breaker auto-resets** after a configurable cooldown (default 10 min)
-- **Source URLs read from config** — add/remove/swap a scraper source by editing `appsettings.json`
 - **Full-system Grafana dashboard** covering all 53+ metrics, importable via JSON
 - **WhatsApp metrics flow to Grafana** by registering the missing diagnostics
+- **Circuit breaker auto-resets** after a configurable cooldown (default 10 min)
+- **Source URLs read from config** — add/remove/swap a scraper source by editing `appsettings.json`
+
+---
+
+## Architecture Overview
+
+```mermaid
+flowchart TD
+    subgraph API["Real Estate Star API"]
+        EP["API Endpoints"]
+        LW["LeadWorker"]
+        CW["CmaWorker"]
+        HW["HomeSearchWorker"]
+        WW["WhatsAppWorker"]
+        OB["OnboardingService"]
+        SC["ScraperClient"]
+        CL["Claude API"]
+    end
+
+    subgraph Metrics["OTel Metrics (53+)"]
+        LD["LeadDiagnostics\n13 counters · 4 histograms"]
+        CD["CmaDiagnostics\n2 counters · 7 histograms"]
+        HD["HomeSearchDiagnostics\n2 counters · 6 histograms"]
+        SD["ScraperDiagnostics\n6 counters · 1 histogram"]
+        WD["WhatsAppDiagnostics\n13 counters · 4 histograms"]
+        OD["OnboardingDiagnostics\n2 counters"]
+    end
+
+    subgraph Pipeline["OTel Pipeline"]
+        OTLP["OTLP Exporter\ngrpc://localhost:4317"]
+        GA["Grafana Agent"]
+        GC["Grafana Cloud\n(Mimir)"]
+        DASH["Dashboard\n7 rows · 35+ panels"]
+    end
+
+    LW --> LD
+    CW --> CD
+    HW --> HD
+    SC --> SD
+    WW --> WD
+    OB --> OD
+
+    LD --> OTLP
+    CD --> OTLP
+    HD --> OTLP
+    SD --> OTLP
+    WD -.->|NOT REGISTERED| OTLP
+    OD --> OTLP
+
+    OTLP --> GA --> GC --> DASH
+
+    style WD fill:#D32F2F,color:#fff
+    style DASH fill:#2E7D32,color:#fff
+    style GC fill:#4A90D9,color:#fff
+```
+
+**Key issue:** WhatsAppDiagnostics (red) is defined but never registered — its metrics are silently dropped. This spec fixes that.
 
 ---
 
 ## Component Design
 
 ### 1. Circuit Breaker Reset
+
+```mermaid
+stateDiagram-v2
+    [*] --> Available: startup
+
+    Available --> RateLimited: HTTP 429 received\n_rateLimitedAtTicks = UtcNow.Ticks\n[SCRAPER-020]
+
+    RateLimited --> RateLimited: FetchAsync called\n(elapsed < resetDuration)\nreturn null [SCRAPER-010]
+
+    RateLimited --> Available: FetchAsync called\n(elapsed ≥ resetDuration)\n_rateLimitedAtTicks = 0\n[SCRAPER-050]
+
+    Available --> Available: FetchAsync succeeds\n[SCRAPER-001]
+
+    Available --> Available: FetchAsync fails (non-429)\n[SCRAPER-030/040]
+```
 
 **Current behavior:**
 ```
@@ -86,6 +157,40 @@ public bool IsAvailable
 - Reset re-enables fetching (after reset, next call makes an HTTP request)
 
 ### 2. Configurable Source URLs
+
+```mermaid
+flowchart LR
+    subgraph Config["appsettings.json"]
+        LS["Pipeline:Lead:Sources\ngoogle → {query}"]
+        CS["Pipeline:Cma:Sources\nzillow → {slug}\nredfin → {slug}\nrealtorcom → {slug}"]
+        HS["Pipeline:HomeSearch:Sources\nzillow → {area}+filters\nredfin → {area}+filters\nrealtor → {area}+filters"]
+    end
+
+    subgraph DI["Program.cs (DI)"]
+        LD["Dictionary&lt;string,string&gt;\nleadSources"]
+        CD["foreach → ICompSource\nper config entry"]
+        HD["Dictionary&lt;string,string&gt;\nhomeSearchSources"]
+    end
+
+    subgraph Consumers["Scraper Consumers"]
+        LE["ScraperLeadEnricher\n8 queries × N engines"]
+        SC["ScraperCompSource\n1 per source"]
+        HP["ScraperHomeSearchProvider\nN sources × BuildSearchUrl"]
+    end
+
+    SC2["IScraperClient\nFetchAsync()"]
+
+    LS --> LD --> LE
+    CS --> CD --> SC
+    HS --> HD --> HP
+
+    LE --> SC2
+    SC --> SC2
+    HP --> SC2
+
+    style Config fill:#C8A951,color:#fff
+    style SC2 fill:#2E7D32,color:#fff
+```
 
 Each scraper consumer reads its source URL templates from config instead of hardcoding them.
 
@@ -232,6 +337,86 @@ Plus `using RealEstateStar.Domain.WhatsApp;` at the top.
 **File:** `infra/grafana/real-estate-star-api-dashboard.json`
 
 **Datasource:** `${DS_METRICS}` — variable, user selects their Mimir/OTLP datasource on import. Queries use PromQL (Mimir is PromQL-compatible). OTel metric names use dots in code (e.g., `leads.received`) but are converted to underscores in Mimir (e.g., `leads_received`).
+
+```mermaid
+block-beta
+    columns 5
+
+    block:row1:5
+        columns 5
+        r1["Row 1: System Health"]
+        r1a["Onboarding\nsessions"]
+        r1b["State\ntransitions"]
+        r1c["Consent\nrecorded"]
+        r1d["Audit\nfailures"]
+    end
+
+    block:row2:5
+        columns 6
+        r2["Row 2: Lead Pipeline"]
+        r2a["Leads\nreceived"]
+        r2b["Enrichment\n✓/✗"]
+        r2c["Notify\n✓/✗"]
+        r2d["Step\ndurations"]
+        r2e["Form\nfunnel"]
+    end
+
+    block:row3:5
+        columns 5
+        r3["Row 3: CMA"]
+        r3a["Generated\n/ Failed"]
+        r3b["Comps\nfound"]
+        r3c["Step\ndurations"]
+        r3d["Total\nduration"]
+    end
+
+    block:row4:5
+        columns 5
+        r4["Row 4: Home Search"]
+        r4a["Completed\n/ Failed"]
+        r4b["Listings\nfound"]
+        r4c["Step\ndurations"]
+        r4d["Total\nduration"]
+    end
+
+    block:row5:5
+        columns 5
+        r5["Row 5: Claude / LLM"]
+        r5a["Input\ntokens"]
+        r5b["Output\ntokens"]
+        r5c["Cost\n(USD)"]
+        r5d["Token\nrate"]
+    end
+
+    block:row6:5
+        columns 6
+        r6["Row 6: ScraperAPI"]
+        r6a["Calls by\nsource"]
+        r6b["Success\n/ Fail"]
+        r6c["Rate\nlimited"]
+        r6d["Credits\nused"]
+        r6e["Duration\nheatmap"]
+    end
+
+    block:row7:5
+        columns 7
+        r7["Row 7: WhatsApp"]
+        r7a["Messages\nin/out"]
+        r7b["Dupes"]
+        r7c["Queue\nhealth"]
+        r7d["Webhook\nfails"]
+        r7e["Latency"]
+        r7f["Intent\n/ Audit"]
+    end
+
+    style row1 fill:#7B68EE,color:#fff
+    style row2 fill:#4A90D9,color:#fff
+    style row3 fill:#4A90D9,color:#fff
+    style row4 fill:#4A90D9,color:#fff
+    style row5 fill:#C8A951,color:#fff
+    style row6 fill:#2E7D32,color:#fff
+    style row7 fill:#7B68EE,color:#fff
+```
 
 **Dashboard layout — 7 rows:**
 
