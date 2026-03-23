@@ -106,28 +106,25 @@ builder.Services.AddSingleton<ISessionStore>(sp =>
         sp.GetRequiredService<ILogger<EncryptingSessionStoreDecorator>>()));
 builder.Services.AddSingleton<OnboardingStateMachine>();
 
-// When exporting OpenAPI spec, skip config validation — no secrets needed for schema generation
-var isOpenApiExport = args.Contains("--export-openapi");
-
 // Configuration keys
 var anthropicKey = builder.Configuration["Anthropic:ApiKey"]
-    ?? (isOpenApiExport ? "placeholder" : throw new InvalidOperationException("Anthropic:ApiKey configuration is required"));
+    ?? throw new InvalidOperationException("Anthropic:ApiKey configuration is required");
 var googleClientId = builder.Configuration["Google:ClientId"]
-    ?? (isOpenApiExport ? "placeholder" : throw new InvalidOperationException("Google:ClientId configuration is required"));
+    ?? throw new InvalidOperationException("Google:ClientId configuration is required");
 var googleClientSecret = builder.Configuration["Google:ClientSecret"]
-    ?? (isOpenApiExport ? "placeholder" : throw new InvalidOperationException("Google:ClientSecret configuration is required"));
+    ?? throw new InvalidOperationException("Google:ClientSecret configuration is required");
 var googleRedirectUri = builder.Configuration["Google:RedirectUri"]
-    ?? (isOpenApiExport ? "placeholder" : throw new InvalidOperationException("Google:RedirectUri configuration is required"));
+    ?? throw new InvalidOperationException("Google:RedirectUri configuration is required");
 
-// Stripe config validation (StripeService constructor validates details)
+// Stripe config validation
 _ = builder.Configuration["Stripe:SecretKey"]
-    ?? (isOpenApiExport ? "placeholder" : throw new InvalidOperationException("Stripe:SecretKey configuration is required"));
+    ?? throw new InvalidOperationException("Stripe:SecretKey configuration is required");
 _ = builder.Configuration["Stripe:WebhookSecret"]
-    ?? (isOpenApiExport ? "placeholder" : throw new InvalidOperationException("Stripe:WebhookSecret configuration is required"));
+    ?? throw new InvalidOperationException("Stripe:WebhookSecret configuration is required");
 _ = builder.Configuration["Stripe:PriceId"]
-    ?? (isOpenApiExport ? "placeholder" : throw new InvalidOperationException("Stripe:PriceId configuration is required"));
+    ?? throw new InvalidOperationException("Stripe:PriceId configuration is required");
 _ = builder.Configuration["Platform:BaseUrl"]
-    ?? (isOpenApiExport ? "http://placeholder" : throw new InvalidOperationException("Platform:BaseUrl configuration is required"));
+    ?? throw new InvalidOperationException("Platform:BaseUrl configuration is required");
 
 // Cloudflare config for site deployment
 var cloudflareOptions = new CloudflareOptions
@@ -671,7 +668,7 @@ app.MapEndpoints();
 
 // CLI: dotnet run -- --export-openapi [path]
 // Starts the server briefly, fetches the OpenAPI spec, writes to file, and exits.
-if (isOpenApiExport)
+if (args.Contains("--export-openapi"))
 {
     var outputPath = args.SkipWhile(a => a != "--export-openapi").Skip(1).FirstOrDefault()
         ?? "openapi.json";
