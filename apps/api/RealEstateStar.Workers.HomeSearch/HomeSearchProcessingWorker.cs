@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.HomeSearch;
 using RealEstateStar.Domain.HomeSearch.Interfaces;
@@ -14,8 +15,11 @@ public sealed class HomeSearchProcessingWorker(
     IHomeSearchNotifier homeSearchNotifier,
     ILeadStore leadStore,
     BackgroundServiceHealthTracker healthTracker,
-    ILogger<HomeSearchProcessingWorker> logger)
-    : PipelineWorker<HomeSearchProcessingRequest, HomeSearchPipelineContext>(channel, healthTracker, logger)
+    ILogger<HomeSearchProcessingWorker> logger,
+    IConfiguration configuration)
+    : PipelineWorker<HomeSearchProcessingRequest, HomeSearchPipelineContext>(
+        channel, healthTracker, logger,
+        configuration.GetSection("Pipeline:HomeSearch:Retry").Get<PipelineRetryOptions>())
 {
     protected override string WorkerName => "HomeSearchWorker";
 

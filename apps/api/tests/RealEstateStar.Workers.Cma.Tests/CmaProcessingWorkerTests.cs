@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.Cma.Interfaces;
@@ -22,9 +23,13 @@ public class CmaProcessingWorkerTests
     private readonly BackgroundServiceHealthTracker _healthTracker = new();
     private readonly Mock<ILogger<CmaProcessingWorker>> _logger = new();
 
+    private static IConfiguration EmptyConfig() =>
+        new ConfigurationBuilder().Build();
+
     private CmaProcessingWorker CreateWorker() =>
         new(_channel, _compAggregator.Object, _cmaAnalyzer.Object,
-            _pdfGenerator.Object, _cmaNotifier.Object, _accountConfigService.Object, _healthTracker, _logger.Object);
+            _pdfGenerator.Object, _cmaNotifier.Object, _accountConfigService.Object, _healthTracker, _logger.Object,
+            EmptyConfig());
 
     private static Lead MakeLead() => new()
     {
@@ -42,7 +47,7 @@ public class CmaProcessingWorkerTests
     private static CmaProcessingRequest MakeRequest(Lead? lead = null)
     {
         var l = lead ?? MakeLead();
-        return new CmaProcessingRequest("test-agent", l, LeadEnrichment.Empty(), LeadScore.Default("test"), "corr-123");
+        return new CmaProcessingRequest("test-agent", l, "corr-123");
     }
 
     private static List<Comp> MakeComps(int count) =>
@@ -193,9 +198,7 @@ public class CmaProcessingWorkerTests
     [Fact]
     public void DetermineReportType_Comprehensive()
     {
-        var score = new LeadScore { OverallScore = 70, Factors = [], Explanation = "high" };
-
-        var result = CmaProcessingWorker.DetermineReportType(6, score);
+        var result = CmaProcessingWorker.DetermineReportType(6);
 
         result.Should().Be(ReportType.Comprehensive);
     }
@@ -203,9 +206,7 @@ public class CmaProcessingWorkerTests
     [Fact]
     public void DetermineReportType_Standard()
     {
-        var score = new LeadScore { OverallScore = 50, Factors = [], Explanation = "mid" };
-
-        var result = CmaProcessingWorker.DetermineReportType(4, score);
+        var result = CmaProcessingWorker.DetermineReportType(4);
 
         result.Should().Be(ReportType.Standard);
     }
@@ -213,9 +214,7 @@ public class CmaProcessingWorkerTests
     [Fact]
     public void DetermineReportType_Lean()
     {
-        var score = new LeadScore { OverallScore = 50, Factors = [], Explanation = "low" };
-
-        var result = CmaProcessingWorker.DetermineReportType(2, score);
+        var result = CmaProcessingWorker.DetermineReportType(2);
 
         result.Should().Be(ReportType.Lean);
     }

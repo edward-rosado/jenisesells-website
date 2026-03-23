@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
@@ -20,8 +21,11 @@ public sealed class LeadProcessingWorker(
     ILeadNotifier notifier,
     IFailedNotificationStore failedNotificationStore,
     BackgroundServiceHealthTracker healthTracker,
-    ILogger<LeadProcessingWorker> logger)
-    : PipelineWorker<LeadProcessingRequest, LeadPipelineContext>(channel, healthTracker, logger)
+    ILogger<LeadProcessingWorker> logger,
+    IConfiguration configuration)
+    : PipelineWorker<LeadProcessingRequest, LeadPipelineContext>(
+        channel, healthTracker, logger,
+        configuration.GetSection("Pipeline:Lead:Retry").Get<PipelineRetryOptions>())
 {
     protected override string WorkerName => "LeadWorker";
 

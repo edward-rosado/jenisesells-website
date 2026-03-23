@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.HomeSearch.Interfaces;
@@ -18,8 +19,12 @@ public class HomeSearchProcessingWorkerTests
     private readonly BackgroundServiceHealthTracker _healthTracker = new();
     private readonly Mock<ILogger<HomeSearchProcessingWorker>> _logger = new();
 
+    private static IConfiguration EmptyConfig() =>
+        new ConfigurationBuilder().Build();
+
     private HomeSearchProcessingWorker CreateWorker() =>
-        new(_channel, _homeSearchProvider.Object, _homeSearchNotifier.Object, _leadStore.Object, _healthTracker, _logger.Object);
+        new(_channel, _homeSearchProvider.Object, _homeSearchNotifier.Object, _leadStore.Object, _healthTracker, _logger.Object,
+            EmptyConfig());
 
     private static Lead MakeLead() => new()
     {

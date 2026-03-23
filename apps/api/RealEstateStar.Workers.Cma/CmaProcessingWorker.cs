@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Cma;
 using RealEstateStar.Domain.Cma.Interfaces;
@@ -17,8 +18,11 @@ public sealed class CmaProcessingWorker(
     ICmaNotifier cmaNotifier,
     IAccountConfigService accountConfigService,
     BackgroundServiceHealthTracker healthTracker,
-    ILogger<CmaProcessingWorker> logger)
-    : PipelineWorker<CmaProcessingRequest, CmaPipelineContext>(channel, healthTracker, logger)
+    ILogger<CmaProcessingWorker> logger,
+    IConfiguration configuration)
+    : PipelineWorker<CmaProcessingRequest, CmaPipelineContext>(
+        channel, healthTracker, logger,
+        configuration.GetSection("Pipeline:Cma:Retry").Get<PipelineRetryOptions>())
 {
     protected override string WorkerName => "CmaWorker";
 
