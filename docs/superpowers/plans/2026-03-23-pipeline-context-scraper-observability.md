@@ -650,7 +650,23 @@ public class StepRecord
         : null;
     public string? Error { get; set; }
     public HashSet<string> CompletedSubSteps { get; } = [];
+
+    /// <summary>
+    /// Full history of errors across retries. Each entry is one attempt's failure.
+    /// On permanent failure, this gives you the complete picture of what went wrong each time.
+    /// </summary>
+    public List<ErrorEntry> ErrorHistory { get; } = [];
 }
+
+public record ErrorEntry(
+    int Attempt,
+    DateTime Timestamp,
+    string StepName,
+    string Message,
+    string? StackTrace);
+
+// Usage in PipelineWorker.RunStepAsync catch block:
+// step.ErrorHistory.Add(new ErrorEntry(ctx.AttemptNumber, DateTime.UtcNow, stepName, ex.Message, ex.StackTrace));
 ```
 
 - [ ] **Step 2: Commit**
