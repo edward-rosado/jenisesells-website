@@ -14,6 +14,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@real-estate-star/api-client": "*",
     "@real-estate-star/analytics": "*",
     "@real-estate-star/domain": "*",
     "@real-estate-star/forms": "*",
