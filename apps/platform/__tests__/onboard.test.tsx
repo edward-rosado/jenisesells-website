@@ -18,6 +18,13 @@ vi.mock("@/lib/api", () => ({
   },
 }));
 
+// Mock ChatWindow to prevent SSE fetch to localhost:5135
+vi.mock("@/features/onboarding/ChatWindow", () => ({
+  ChatWindow: (props: Record<string, unknown>) => (
+    <div data-testid="chat-window" data-session-id={props.sessionId as string} />
+  ),
+}));
+
 beforeEach(() => {
   mockSearchParams = new URLSearchParams("profileUrl=https://zillow.com/profile/test");
   mockGet.mockClear();
@@ -166,7 +173,7 @@ describe("OnboardPage", () => {
     mockSearchParams = new URLSearchParams("");
     render(<OnboardPage />);
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/type a message/i)).toBeInTheDocument();
+      expect(screen.getByTestId("chat-window")).toBeInTheDocument();
     });
   });
 
