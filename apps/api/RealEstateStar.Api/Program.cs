@@ -672,18 +672,19 @@ if (isOpenApiExport)
 {
     var outputPath = args.SkipWhile(a => a != "--export-openapi").Skip(1).FirstOrDefault()
         ?? "openapi.json";
-    _ = app.RunAsync();
+    var cts = new CancellationTokenSource();
+    _ = app.RunAsync(cts.Token);
     using var http = new HttpClient();
-    var addresses = app.Urls.FirstOrDefault() ?? "http://localhost:5135";
-    var specUrl = $"{addresses}/openapi/v1.json";
-    // Wait briefly for the server to start
-    for (var i = 0; i < 10; i++)
+    // Use the first configured URL from launchSettings or default
+    var specUrl = "http://localhost:5135/openapi/v1.json";
+    for (var i = 0; i < 20; i++)
     {
         try
         {
             var spec = await http.GetStringAsync(specUrl);
             await File.WriteAllTextAsync(outputPath, spec);
             Console.WriteLine($"OpenAPI spec written to {Path.GetFullPath(outputPath)}");
+            cts.Cancel();
             return;
         }
         catch (HttpRequestException)
@@ -692,6 +693,7 @@ if (isOpenApiExport)
         }
     }
     Console.Error.WriteLine("Failed to fetch OpenAPI spec after retries");
+    cts.Cancel();
     Environment.Exit(1);
 }
 
