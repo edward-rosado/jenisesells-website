@@ -632,7 +632,19 @@ public sealed record CmaProcessingRequest(
     string CorrelationId);
 ```
 
-- [ ] **Step 4: CmaProcessingWorker uses `LeadScore.Default()` for report type**
+- [ ] **Step 4: Simplify DetermineReportType — remove LeadScore entirely**
+
+```csharp
+internal static ReportType DetermineReportType(int compCount) =>
+    compCount switch
+    {
+        >= 6 => ReportType.Comprehensive,
+        >= 3 => ReportType.Standard,
+        _ => ReportType.Lean
+    };
+```
+
+Report type is driven by comp data quality, not lead motivation. A seller with 8 comps always gets Comprehensive regardless of score.
 - [ ] **Step 5: Update tests + architecture diagram**
 - [ ] **Step 6: Final commit**
 
