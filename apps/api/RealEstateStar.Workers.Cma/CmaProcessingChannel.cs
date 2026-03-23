@@ -1,26 +1,14 @@
-using System.Threading.Channels;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Workers.Cma;
 
-public sealed class CmaProcessingChannel
+public sealed class CmaProcessingChannel : ProcessingChannelBase<CmaProcessingRequest>
 {
-    private readonly Channel<CmaProcessingRequest> _channel =
-        Channel.CreateBounded<CmaProcessingRequest>(new BoundedChannelOptions(50)
-        {
-            FullMode = BoundedChannelFullMode.Wait,
-            SingleReader = true,
-            SingleWriter = false
-        });
-
-    public ChannelWriter<CmaProcessingRequest> Writer => _channel.Writer;
-    public ChannelReader<CmaProcessingRequest> Reader => _channel.Reader;
-    public int Count => _channel.Reader.Count;
+    public CmaProcessingChannel() : base(50) { }
 }
 
 public sealed record CmaProcessingRequest(
     string AgentId,
     Lead Lead,
-    LeadEnrichment Enrichment,
-    LeadScore Score,
     string CorrelationId);
