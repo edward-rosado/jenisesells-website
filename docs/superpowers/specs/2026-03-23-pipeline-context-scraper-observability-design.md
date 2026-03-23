@@ -583,24 +583,39 @@ No new project-to-project dependencies. Architecture tests in `RealEstateStar.Ar
     "BaseUrl": "https://api.scraperapi.com",
     "RenderJavaScript": true,
     "TimeoutSeconds": 30,
-    "MonthlyLimitWarningPercent": 70,
-    "SourceUrls": {
-      "zillow": "https://www.zillow.com/homedetails/{slug}",
-      "redfin": "https://www.redfin.com/home/{slug}",
-      "realtor": "https://www.realtor.com/realestateandhomes-detail/{slug}",
-      "google": "https://www.google.com/search?q={query}"
-    }
+    "MonthlyLimitWarningPercent": 70
   },
   "Pipeline": {
-    "Retry": {
-      "MaxRetries": 3,
-      "BaseDelaySeconds": 30,
-      "MaxDelaySeconds": 600,
-      "BackoffMultiplier": 2.0
+    "Lead": {
+      "Retry": { "MaxRetries": 3, "BaseDelaySeconds": 30, "MaxDelaySeconds": 600, "BackoffMultiplier": 2.0 },
+      "Sources": {
+        "google": "https://www.google.com/search?q={query}"
+      }
+    },
+    "Cma": {
+      "Retry": { "MaxRetries": 3, "BaseDelaySeconds": 30, "MaxDelaySeconds": 600, "BackoffMultiplier": 2.0 },
+      "Sources": {
+        "zillow": "https://www.zillow.com/homedetails/{slug}",
+        "redfin": "https://www.redfin.com/home/{slug}",
+        "realtor": "https://www.realtor.com/realestateandhomes-detail/{slug}"
+      }
+    },
+    "HomeSearch": {
+      "Retry": { "MaxRetries": 2, "BaseDelaySeconds": 15, "MaxDelaySeconds": 300, "BackoffMultiplier": 2.0 },
+      "Sources": {
+        "zillow": "https://www.zillow.com/homes/{area}_rb/",
+        "redfin": "https://www.redfin.com/city/{area}",
+        "realtor": "https://www.realtor.com/realestateandhomes-search/{area}"
+      }
     }
   }
 }
 ```
+
+Each pipeline has its own:
+- **Retry policy** — CMA might need more retries than home search
+- **Source URLs** — swap or disable sources per pipeline without affecting others
+- Add/remove a source by editing config — no code changes needed
 
 ---
 
