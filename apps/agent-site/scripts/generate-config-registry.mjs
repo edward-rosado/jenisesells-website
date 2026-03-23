@@ -5,8 +5,8 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ACCOUNTS_DIR = path.resolve(__dirname, "../../../config/accounts");
-const OUTPUT = path.resolve(__dirname, "../lib/config-registry.ts");
-const NAV_OUTPUT = path.resolve(__dirname, "../lib/nav-registry.ts");
+const OUTPUT = path.resolve(__dirname, "../features/config/config-registry.ts");
+const NAV_OUTPUT = path.resolve(__dirname, "../features/config/nav-registry.ts");
 
 const SKIP_PATTERN = /^bad-|\.schema\.json$/;
 

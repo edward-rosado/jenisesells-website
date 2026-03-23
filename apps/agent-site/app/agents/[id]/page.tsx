@@ -1,10 +1,10 @@
 import { createElement } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { loadAccountConfig, loadAgentConfig, loadAgentContent } from "@/lib/config";
-import { buildCssVariableStyle } from "@/lib/branding";
-import { getTemplate } from "@/templates";
-import { Analytics } from "@/components/Analytics";
+import { loadAccountConfig, loadAgentConfig, loadAgentContent } from "@/features/config/config";
+import { buildCssVariableStyle } from "@/features/config/branding";
+import { getTemplate } from "@/features/templates";
+import { Analytics } from "@/features/shared/Analytics";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 
 interface PageProps {
@@ -74,7 +74,7 @@ export default async function AgentSubPage({ params, searchParams }: PageProps) 
   }
 
   const cssVars = buildCssVariableStyle(account.branding);
-  const TemplateComponent = getTemplate(account.template);
+  const TemplateComponent = await getTemplate(account.template);
 
   const jsonLd = {
     "@context": "https://schema.org",

@@ -52,6 +52,16 @@ jobs:
           --results-directory apps/api/coverage
           --logger "console;verbosity=minimal"
 
+      - name: Export OpenAPI spec
+        run: dotnet run --project apps/api/RealEstateStar.Api -- --export-openapi
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openapi-spec
+          path: apps/api/openapi.json
+        if: hashFiles('apps/api/openapi.json') != ''
+
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         if: always()

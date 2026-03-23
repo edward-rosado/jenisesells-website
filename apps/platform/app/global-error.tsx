@@ -1,11 +1,19 @@
 "use client";
 
+import { useEffect } from "react";
+import { reportError } from "@real-estate-star/analytics";
+
 export default function GlobalError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    reportError(error, error.digest ? { digest: error.digest } : undefined);
+  }, [error]);
+
   return (
     <html>
       <body>

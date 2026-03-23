@@ -37,3 +37,23 @@ window.addEventListener("message", (e) => {
 - **`useEffect` with fetch** should check if the component is in a terminal state before firing repeated requests.
 
 - **Iframe `sandbox`** — never combine `allow-scripts` with `allow-same-origin` (allows the iframe to remove its own sandbox).
+
+## Feature Isolation
+
+- Features live in `features/{name}/` with barrel `index.ts` and colocated `__tests__/`
+- Features CANNOT cross-import — enforced by ESLint `no-restricted-imports`
+- `features/shared/` is the escape hatch for cross-feature utilities
+- Agent-site exception: `templates/` can import from `sections/` subsection barrels (NOT top-level `sections/index.ts`)
+
+## Import Patterns
+
+- Barrel exports: named re-exports only (`export { X } from './X'`), never `export *`
+- Templates: import from subsection barrels (`@/features/sections/heroes`), never top-level barrel
+- Dynamic imports for templates (`next/dynamic`), Turnstile (`ssr: false`), Sentry (lazy in catch)
+- `app/` route files: thin composition — import from features, no business logic
+
+## Styling
+
+- Agent-site section components use inline `style={}` with CSS custom properties for runtime branding
+- This is the correct pattern for white-label multi-tenant sites — NOT a migration target
+- Config-driven branding values (`var(--color-primary)`) are runtime values, not static styles

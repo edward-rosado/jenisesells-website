@@ -41,14 +41,14 @@ vi.mock("next/server", () => ({
   NextResponse: MockNextResponse,
 }));
 
-vi.mock("@/lib/routing", () => ({
+vi.mock("@/features/config/routing", () => ({
   extractAgentId: vi.fn(),
   resolveAgentFromCustomDomain: vi.fn(),
   isWwwCustomDomain: vi.fn(),
   getAgentIds: vi.fn(),
 }));
 
-import { extractAgentId, resolveAgentFromCustomDomain, isWwwCustomDomain, getAgentIds } from "@/lib/routing";
+import { extractAgentId, resolveAgentFromCustomDomain, isWwwCustomDomain, getAgentIds } from "@/features/config/routing";
 
 const mockExtractAgentId = vi.mocked(extractAgentId);
 const mockResolveCustomDomain = vi.mocked(resolveAgentFromCustomDomain);

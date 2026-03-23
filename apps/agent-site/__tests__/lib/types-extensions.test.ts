@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
-import type { SoldHomeItem, ServiceItem } from "@/lib/types";
+import type { SoldHomeItem, ServiceItem } from "@/features/config/types";
 
 describe("SoldHomeItem type extensions", () => {
   it("accepts optional commercial fields", () => {

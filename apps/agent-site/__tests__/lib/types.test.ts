@@ -9,7 +9,7 @@ import type {
   PageSections,
   ProfileItem,
   NavItem,
-} from "@/lib/types";
+} from "@/features/config/types";
 
 describe("types.ts — type smoke tests", () => {
   it("FeatureItem replaces ServiceItem", () => {

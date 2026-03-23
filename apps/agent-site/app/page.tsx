@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { loadAccountConfig, loadAccountContent } from "@/lib/config";
-import { buildCssVariableStyle } from "@/lib/branding";
-import { getTemplate } from "@/templates";
-import { Analytics } from "@/components/Analytics";
+import { loadAccountConfig, loadAccountContent } from "@/features/config/config";
+import { buildCssVariableStyle } from "@/features/config/branding";
+import { getTemplate } from "@/features/templates";
+import { Analytics } from "@/features/shared/Analytics";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 
 interface PageProps {
@@ -56,7 +56,7 @@ export default async function AgentPage({ searchParams }: PageProps) {
     const content = loadAccountContent(handle, account);
 
     const cssVars = buildCssVariableStyle(account.branding);
-    const Template = getTemplate(resolveTemplateOverride(templateOverride) ?? account.template);
+    const Template = await getTemplate(resolveTemplateOverride(templateOverride) ?? account.template);
 
     const agentName = account.agent?.name ?? account.broker?.name ?? account.brokerage.name;
     const jsonLd = {

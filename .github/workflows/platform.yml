@@ -5,13 +5,21 @@ on:
     branches: [main]
     paths:
       - 'apps/platform/**'
-      - 'packages/**'
+      - 'packages/domain/**'
+      - 'packages/forms/**'
+      - 'packages/legal/**'
+      - 'packages/analytics/**'
+      - 'packages/api-client/**'
       - '.github/workflows/platform.yml'
   pull_request:
     branches: [main, feat/lead-submission-api]
     paths:
       - 'apps/platform/**'
-      - 'packages/**'
+      - 'packages/domain/**'
+      - 'packages/forms/**'
+      - 'packages/legal/**'
+      - 'packages/analytics/**'
+      - 'packages/api-client/**'
       - '.github/workflows/platform.yml'
 
 jobs:
@@ -31,6 +39,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Validate architecture
+        run: node scripts/validate-architecture.mjs
 
       - name: Lint
         run: npm run lint --prefix apps/platform

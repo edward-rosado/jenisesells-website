@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { reportError } from "@real-estate-star/analytics";
 
 interface GlobalErrorProps {
   error: Error & { digest?: string };
@@ -9,7 +10,7 @@ interface GlobalErrorProps {
 
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
-    console.error("[agent-site] Global error:", error);
+    reportError(error, { context: "global-error-boundary" });
   }, [error]);
 
   return (

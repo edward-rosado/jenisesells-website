@@ -8,12 +8,23 @@ import { ACCOUNT } from "../components/fixtures";
 const mockLoadAccountConfig = vi.fn();
 const mockRequestDeletion = vi.fn();
 
-vi.mock("@/lib/config", () => ({
+vi.mock("@/features/config/config", () => ({
   loadAccountConfig: (...args: unknown[]) => mockLoadAccountConfig(...args),
 }));
 
-vi.mock("@/actions/privacy", () => ({
+vi.mock("@/features/privacy/privacy", () => ({
   requestDeletion: (...args: unknown[]) => mockRequestDeletion(...args),
+}));
+
+vi.mock("@/features/shared/telemetry", () => ({
+  trackFormEvent: vi.fn(),
+  EventType: {
+    Viewed: "Viewed",
+    Started: "Started",
+    Submitted: "Submitted",
+    Succeeded: "Succeeded",
+    Failed: "Failed",
+  },
 }));
 
 import DeletePage, { generateMetadata } from "@/app/[handle]/privacy/delete/page";

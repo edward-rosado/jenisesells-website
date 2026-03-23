@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { SubscribeForm } from "@/components/privacy/SubscribeForm";
-import { loadAccountConfig } from "@/lib/config";
+import { SubscribeForm } from "@/features/privacy/SubscribeForm";
+import { loadAccountConfig } from "@/features/config/config";
 
 interface PageProps {
   params: Promise<{ handle: string }>;

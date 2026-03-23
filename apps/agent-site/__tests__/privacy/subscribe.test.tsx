@@ -8,12 +8,23 @@ import { ACCOUNT } from "../components/fixtures";
 const mockLoadAccountConfig = vi.fn();
 const mockRequestSubscribe = vi.fn();
 
-vi.mock("@/lib/config", () => ({
+vi.mock("@/features/config/config", () => ({
   loadAccountConfig: (...args: unknown[]) => mockLoadAccountConfig(...args),
 }));
 
-vi.mock("@/actions/privacy", () => ({
+vi.mock("@/features/privacy/privacy", () => ({
   requestSubscribe: (...args: unknown[]) => mockRequestSubscribe(...args),
+}));
+
+vi.mock("@/features/shared/telemetry", () => ({
+  trackFormEvent: vi.fn(),
+  EventType: {
+    Viewed: "Viewed",
+    Started: "Started",
+    Submitted: "Submitted",
+    Succeeded: "Succeeded",
+    Failed: "Failed",
+  },
 }));
 
 import SubscribePage, { generateMetadata } from "@/app/[handle]/privacy/subscribe/page";

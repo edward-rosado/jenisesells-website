@@ -10,11 +10,11 @@ const mockLoadLegalContent = vi.fn();
 const mockLoadNavConfig = vi.fn();
 const mockNotFound = vi.fn(() => { throw new Error("NOT_FOUND"); });
 
-vi.mock("@/lib/config", () => ({
+vi.mock("@/features/config/config", () => ({
   loadAccountConfig: (...args: unknown[]) => mockLoadAccountConfig(...args),
   loadLegalContent: (...args: unknown[]) => mockLoadLegalContent(...args),
 }));
-vi.mock("@/lib/nav-config", () => ({
+vi.mock("@/features/config/nav-config", () => ({
   loadNavConfig: (...args: unknown[]) => mockLoadNavConfig(...args),
 }));
 vi.mock("next/navigation", () => ({ notFound: () => mockNotFound(), usePathname: () => "/terms", useSearchParams: () => new URLSearchParams() }));

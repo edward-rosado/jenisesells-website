@@ -8,12 +8,23 @@ import { ACCOUNT } from "../components/fixtures";
 const mockLoadAccountConfig = vi.fn();
 const mockRequestOptOut = vi.fn();
 
-vi.mock("@/lib/config", () => ({
+vi.mock("@/features/config/config", () => ({
   loadAccountConfig: (...args: unknown[]) => mockLoadAccountConfig(...args),
 }));
 
-vi.mock("@/actions/privacy", () => ({
+vi.mock("@/features/privacy/privacy", () => ({
   requestOptOut: (...args: unknown[]) => mockRequestOptOut(...args),
+}));
+
+vi.mock("@/features/shared/telemetry", () => ({
+  trackFormEvent: vi.fn(),
+  EventType: {
+    Viewed: "Viewed",
+    Started: "Started",
+    Submitted: "Submitted",
+    Succeeded: "Succeeded",
+    Failed: "Failed",
+  },
 }));
 
 import OptOutPage, { generateMetadata } from "@/app/[handle]/privacy/opt-out/page";

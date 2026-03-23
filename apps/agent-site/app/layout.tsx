@@ -1,4 +1,5 @@
 import "./globals.css";
+import { WebVitalsReporter } from "./WebVitalsReporter";
 
 export default function RootLayout({
   children,
@@ -18,6 +19,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <WebVitalsReporter />
         <a href="#main-content" className="skip-nav">
           Skip to main content
         </a>

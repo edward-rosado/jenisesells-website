@@ -7,7 +7,11 @@ on:
     paths:
       - 'apps/agent-site/**'
       - 'config/accounts/**'
-      - 'packages/**'
+      - 'packages/domain/**'
+      - 'packages/forms/**'
+      - 'packages/legal/**'
+      - 'packages/analytics/**'
+      - 'packages/api-client/**'
       - '.github/workflows/agent-site.yml'
   pull_request:
     branches: [main]
@@ -27,7 +31,11 @@ jobs:
             agent-site:
               - 'apps/agent-site/**'
               - 'config/accounts/**'
-              - 'packages/**'
+              - 'packages/domain/**'
+              - 'packages/forms/**'
+              - 'packages/legal/**'
+              - 'packages/analytics/**'
+              - 'packages/api-client/**'
               - '.github/workflows/agent-site.yml'
 
   lint-test-build:
@@ -49,6 +57,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate architecture
+        run: node scripts/validate-architecture.mjs
+
       - name: Generate config registry
         run: node apps/agent-site/scripts/generate-config-registry.mjs
 
@@ -67,6 +78,18 @@ jobs:
       - name: Build for Cloudflare (OpenNext)
         working-directory: apps/agent-site
         run: npx opennextjs-cloudflare build
+
+      - name: Check Worker bundle size
+        run: |
+          SIZE=$(wc -c < apps/agent-site/.open-next/worker.js)
+          echo "Worker bundle size: $SIZE bytes"
+          if [ "$SIZE" -gt 2621440 ]; then
+            echo "::warning::Worker bundle is over 2.5MB ($SIZE bytes). 3MB limit approaching."
+          fi
+          if [ "$SIZE" -gt 3145728 ]; then
+            echo "::error::Worker bundle exceeds 3MB limit ($SIZE bytes)."
+            exit 1
+          fi
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4

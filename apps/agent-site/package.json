@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "npm run generate:ci --workspace=packages/api-client 2>/dev/null || true",
     "dev": "next dev",
-    "prebuild": "node scripts/generate-config-registry.mjs",
+    "prebuild": "(npm run generate:ci --workspace=packages/api-client 2>/dev/null || true) && node scripts/generate-config-registry.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -17,8 +18,10 @@
   "dependencies": {
     "@marsidev/react-turnstile": "^1.4.2",
     "@opennextjs/cloudflare": "^1.0.0",
-    "@real-estate-star/shared-types": "*",
-    "@real-estate-star/ui": "*",
+    "@real-estate-star/analytics": "*",
+    "@real-estate-star/domain": "*",
+    "@real-estate-star/forms": "*",
+    "@real-estate-star/legal": "*",
     "@sentry/nextjs": "^10.45.0",
     "next": "16.1.6",
     "react": "19.2.3",

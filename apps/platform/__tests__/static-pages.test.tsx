@@ -1,12 +1,18 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 
 // Mock next/link for static pages that use it
 vi.mock("next/link", () => ({
   default: ({ children, href, ...props }: { children: React.ReactNode; href: string; [key: string]: unknown }) => (
     <a href={href} {...props}>{children}</a>
   ),
+}));
+
+vi.mock("@real-estate-star/analytics", () => ({
+  reportError: vi.fn(),
+  setErrorReporter: vi.fn(),
+  initWebVitals: vi.fn(),
 }));
 
 describe("Accessibility page", () => {
@@ -50,15 +56,47 @@ describe("Terms page", () => {
 });
 
 describe("Global Error page", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("renders error message and reset button", async () => {
     const mod = await import("../app/global-error");
     const GlobalError = mod.default;
     const mockReset = vi.fn();
-    render(
-      <GlobalError error={new Error("Test error")} reset={mockReset} />
-    );
+    await act(async () => {
+      render(
+        <GlobalError error={new Error("Test error")} reset={mockReset} />
+      );
+    });
     expect(screen.getByText("Something went wrong!")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /try again/i }));
     expect(mockReset).toHaveBeenCalledOnce();
+  });
+
+  it("calls reportError with the error on mount", async () => {
+    const { reportError } = await import("@real-estate-star/analytics");
+    const mod = await import("../app/global-error");
+    const GlobalError = mod.default;
+    const err = new Error("boom");
+
+    await act(async () => {
+      render(<GlobalError error={err} reset={vi.fn()} />);
+    });
+
+    expect(reportError).toHaveBeenCalledWith(err, undefined);
+  });
+
+  it("calls reportError with digest context when error.digest is set", async () => {
+    const { reportError } = await import("@real-estate-star/analytics");
+    const mod = await import("../app/global-error");
+    const GlobalError = mod.default;
+    const err = Object.assign(new Error("with digest"), { digest: "abc123" });
+
+    await act(async () => {
+      render(<GlobalError error={err} reset={vi.fn()} />);
+    });
+
+    expect(reportError).toHaveBeenCalledWith(err, { digest: "abc123" });
   });
 });

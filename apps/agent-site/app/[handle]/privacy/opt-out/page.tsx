@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { OptOutForm } from "@/components/privacy/OptOutForm";
-import { loadAccountConfig } from "@/lib/config";
+import { OptOutForm } from "@/features/privacy/OptOutForm";
+import { loadAccountConfig } from "@/features/config/config";
 
 interface PageProps {
   params: Promise<{ handle: string }>;

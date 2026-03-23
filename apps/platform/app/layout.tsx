@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { GeometricStar } from "@/components/GeometricStar";
+import { GeometricStar } from "@/features/shared/GeometricStar";
+import { GA4Script } from "@/features/shared/GA4Script";
+import { WebVitalsReporter } from "@/features/shared/WebVitalsReporter";
+import { SentryInit } from "@/features/shared/SentryInit";
 import { EqualHousingOpportunity } from "@/components/legal/EqualHousingOpportunity";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import "./globals.css";
@@ -79,6 +82,9 @@ export default function RootLayout({
           <p className="mt-1 text-gray-500 text-xs" data-testid="version">v1.0</p>
         </footer>
         <CookieConsentBanner />
+        <GA4Script />
+        <WebVitalsReporter />
+        <SentryInit />
       </body>
     </html>
   );
