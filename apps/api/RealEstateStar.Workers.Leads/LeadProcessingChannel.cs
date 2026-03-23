@@ -1,5 +1,5 @@
-using System.Threading.Channels;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Workers.Leads;
 
@@ -9,19 +9,9 @@ namespace RealEstateStar.Workers.Leads;
 /// Capacity of 100 provides backpressure — if the worker falls behind,
 /// the endpoint blocks briefly rather than flooding the thread pool.
 /// </summary>
-public sealed class LeadProcessingChannel
+public sealed class LeadProcessingChannel : ProcessingChannelBase<LeadProcessingRequest>
 {
-    private readonly Channel<LeadProcessingRequest> _channel =
-        Channel.CreateBounded<LeadProcessingRequest>(new BoundedChannelOptions(100)
-        {
-            FullMode = BoundedChannelFullMode.Wait,
-            SingleReader = true,
-            SingleWriter = false
-        });
-
-    public ChannelWriter<LeadProcessingRequest> Writer => _channel.Writer;
-    public ChannelReader<LeadProcessingRequest> Reader => _channel.Reader;
-    public int Count => _channel.Reader.Count;
+    public LeadProcessingChannel() : base(100) { }
 }
 
 /// <summary>
