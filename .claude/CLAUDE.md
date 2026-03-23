@@ -33,7 +33,7 @@ apps/
     tests/                             # 23 test projects (1:1 with production + Architecture.Tests + TestUtilities)
 packages/
   domain/          # Types, interfaces, enums, correlation IDs — ZERO deps
-  api-client/      # Generated OpenAPI client + correlation ID injection → domain
+  api-client/      # Typed API client (openapi-fetch + generated types)
   forms/           # LeadForm, CMA hooks, validation → domain
   legal/           # EqualHousingNotice, CookieConsent, LegalPageLayout → domain
   analytics/       # Telemetry, error reporting, Web Vitals → domain
@@ -157,6 +157,7 @@ When working on a skill, load the agent profile first:
 - **Skills**: Reference agent config with `{agent.*}` variable syntax
 - **Contracts**: State-specific templates live in `skills/contracts/templates/{STATE}/`
 - **No hardcoding**: Agent identity, branding, and compliance data always come from config
+- **API calls**: Platform uses shared `api` instance from `@/lib/api`. Agent-site passes HMAC headers per-request via `createApiClient()`. SSE streaming stays raw `fetch`. Correlation IDs are auto-injected.
 
 ## File Storage Abstraction
 
