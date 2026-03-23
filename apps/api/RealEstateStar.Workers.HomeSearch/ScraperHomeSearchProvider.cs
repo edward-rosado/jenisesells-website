@@ -1,8 +1,11 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.HomeSearch;
 using RealEstateStar.Domain.HomeSearch.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Workers.HomeSearch;
@@ -153,7 +156,9 @@ public class ScraperHomeSearchProvider(
         logger.LogInformation("[HSP-020] Sending {Count} listings to Claude for curation", listings.Count);
 
         var httpClient = httpClientFactory.CreateClient(nameof(ScraperHomeSearchProvider));
+        var callStart = Stopwatch.GetTimestamp();
         var response = await httpClient.SendAsync(request, ct);
+        var elapsedMs = Stopwatch.GetElapsedTime(callStart).TotalMilliseconds;
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync(ct);
@@ -164,6 +169,15 @@ public class ScraperHomeSearchProvider(
             .GetProperty("content")[0]
             .GetProperty("text")
             .GetString() ?? throw new InvalidOperationException("[HSP-022] Empty response from Claude API");
+
+        if (doc.RootElement.TryGetProperty("usage", out var usage))
+        {
+            var inputTokens = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
+            var outputTokens = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
+            ClaudeDiagnostics.RecordUsage("home-search", ClaudeModel, inputTokens, outputTokens, elapsedMs);
+            HomeSearchDiagnostics.LlmTokensInput.Add(inputTokens);
+            HomeSearchDiagnostics.LlmTokensOutput.Add(outputTokens);
+        }
 
         return ParseCuratedListings(content);
     }

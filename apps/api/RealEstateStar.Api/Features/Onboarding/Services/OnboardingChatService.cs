@@ -7,6 +7,8 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.Domain.Onboarding;
+using RealEstateStar.Domain.Shared;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 
@@ -40,7 +42,10 @@ public class OnboardingChatService(
         string? ToolName,
         string? ToolUseId,
         string ToolInputJson,
-        bool HasToolCall);
+        bool HasToolCall,
+        int InputTokens = 0,
+        int OutputTokens = 0,
+        double ElapsedMs = 0);
 
     public virtual async IAsyncEnumerable<string> StreamResponseAsync(
         OnboardingSession session,
@@ -237,6 +242,7 @@ public class OnboardingChatService(
         var httpClient = httpClientFactory.CreateClient(nameof(OnboardingChatService));
 
         HttpResponseMessage response;
+        var callStart = Stopwatch.GetTimestamp();
         try
         {
             response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
@@ -263,12 +269,15 @@ public class OnboardingChatService(
         var stream = await response.Content.ReadAsStreamAsync(ct);
         using var reader = new StreamReader(stream);
 
+        var elapsedMs = Stopwatch.GetElapsedTime(callStart).TotalMilliseconds;
         var textChunks = new List<string>();
         var fullText = new StringBuilder();
         string? toolName = null;
         string? toolUseId = null;
         var toolInput = new StringBuilder();
         var hasToolCall = false;
+        var inputTokens = 0;
+        var outputTokens = 0;
 
         string? line;
         while ((line = await reader.ReadLineAsync(ct)) is not null)
@@ -345,10 +354,36 @@ public class OnboardingChatService(
                     }
                     break;
                 }
+                case "message_delta":
+                {
+                    if (evt.RootElement.TryGetProperty("usage", out var streamUsage))
+                    {
+                        inputTokens = streamUsage.TryGetProperty("input_tokens", out var sit) ? sit.GetInt32() : inputTokens;
+                        outputTokens = streamUsage.TryGetProperty("output_tokens", out var sot) ? sot.GetInt32() : outputTokens;
+                    }
+                    break;
+                }
+                case "message_start":
+                {
+                    if (evt.RootElement.TryGetProperty("message", out var msg) &&
+                        msg.TryGetProperty("usage", out var startUsage))
+                    {
+                        inputTokens = startUsage.TryGetProperty("input_tokens", out var sit) ? sit.GetInt32() : inputTokens;
+                        outputTokens = startUsage.TryGetProperty("output_tokens", out var sot) ? sot.GetInt32() : outputTokens;
+                    }
+                    break;
+                }
                 case "message_stop":
                     logger.LogDebug("[STREAM-025] Message stop received for session {SessionId}", sessionId);
                     break;
             }
+        }
+
+        if (inputTokens > 0 || outputTokens > 0)
+        {
+            ClaudeDiagnostics.RecordUsage("onboarding", Model, inputTokens, outputTokens, elapsedMs);
+            OnboardingDiagnostics.LlmTokensInput.Add(inputTokens);
+            OnboardingDiagnostics.LlmTokensOutput.Add(outputTokens);
         }
 
         return new StreamCallResult(
@@ -357,7 +392,10 @@ public class OnboardingChatService(
             ToolName: toolName,
             ToolUseId: toolUseId,
             ToolInputJson: toolInput.ToString(),
-            HasToolCall: hasToolCall);
+            HasToolCall: hasToolCall,
+            InputTokens: inputTokens,
+            OutputTokens: outputTokens,
+            ElapsedMs: elapsedMs);
     }
 
     private static List<object> BuildMessages(OnboardingSession session, string userMessage)

@@ -1,8 +1,11 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Workers.Leads;
@@ -191,7 +194,9 @@ public class ScraperLeadEnricher(
         request.Headers.Add("anthropic-version", "2023-06-01");
 
         var httpClient = httpClientFactory.CreateClient(nameof(ScraperLeadEnricher));
+        var callStart = Stopwatch.GetTimestamp();
         var response = await httpClient.SendAsync(request, ct);
+        var elapsedMs = Stopwatch.GetElapsedTime(callStart).TotalMilliseconds;
 
         if (!response.IsSuccessStatusCode)
         {
@@ -209,13 +214,16 @@ public class ScraperLeadEnricher(
             .GetProperty("text")
             .GetString() ?? throw new InvalidOperationException("[LEAD-028] Empty response from Claude API");
 
-        // Log token usage
+        // Log token usage and emit metrics
         if (doc.RootElement.TryGetProperty("usage", out var usage))
         {
             var inputTokens = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
             var outputTokens = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
             logger.LogInformation("[LEAD-026] Claude enrichment token usage for lead {LeadId}: input={InputTokens} output={OutputTokens}",
                 lead.Id, inputTokens, outputTokens);
+            ClaudeDiagnostics.RecordUsage("lead", ClaudeModel, inputTokens, outputTokens, elapsedMs);
+            LeadDiagnostics.LlmTokensInput.Add(inputTokens);
+            LeadDiagnostics.LlmTokensOutput.Add(outputTokens);
         }
 
         var cleanContent = StripCodeFences(content);
