@@ -266,10 +266,17 @@ public interface IGmailSender
 - OTel counters: `gmail.sent`, `gmail.failed`, `gmail.token_missing`, `gmail.duration_ms` (tagged by agentId)
 - Log codes: `[GMAIL-001]` sent, `[GMAIL-010]` token not found, `[GMAIL-020]` refresh failed, `[GMAIL-030]` send failed
 
-**Error handling:**
-- No token found → increment `gmail.token_missing` counter, log `[GMAIL-010]`, return without sending (caller handles dead-letter). **This counter is the observable signal** that an agent needs to re-authenticate — visible in Grafana dashboard.
-- Token refresh fails → log `[GMAIL-020]`, return without sending
-- Send fails → log `[GMAIL-030]`, throw (caller retries via pipeline)
+**Error handling — two categories:**
+
+| Scenario | Behavior | Retry? |
+|----------|----------|--------|
+| No token found | Log `[GMAIL-010]`, increment `gmail.token_missing`, return success (no-op) | **No** — this is expected when agent hasn't onboarded OAuth yet. Email draft still written to Drive. |
+| Token refresh fails (revoked) | Log `[GMAIL-020]`, increment `gmail.token_missing`, return success (no-op) | **No** — same as above, agent needs to re-auth. Draft still written. |
+| Token found, send fails (API error) | Log `[GMAIL-030]`, increment `gmail.failed`, **throw** | **Yes** — pipeline retries. OAuth worked but Google API had a transient error. |
+
+The key principle: **missing OAuth is not a failure — it's a valid state.** An agent without OAuth simply doesn't get emails sent, but their email drafts are still written to Drive as compliance records. The `gmail.token_missing` counter in Grafana is the signal that the agent needs to connect their Google account.
+
+Only actual API errors (token was valid but send failed) trigger pipeline retries.
 
 ### 3. Drive API Client
 
@@ -470,7 +477,7 @@ flowchart TD
     NOPE["No agent token"]
     FALL["Try account token\n__account__:google"]
     HAS2{Found?}
-    DL["Dead letter\ngmail.token_missing++\n[GMAIL-010]"]
+    SKIP["Skip send (no-op)\ngmail.token_missing++\n[GMAIL-010]\nDraft still written to Drive"]
 
     REQ --> ACC --> TS --> HAS
     HAS -->|yes| EXP
@@ -481,10 +488,10 @@ flowchart TD
     RETRY -->|no| REREAD --> USE
     FALL --> HAS2
     HAS2 -->|yes| EXP
-    HAS2 -->|no| DL
+    HAS2 -->|no| SKIP
 
     style USE fill:#2E7D32,color:#fff
-    style DL fill:#D32F2F,color:#fff
+    style SKIP fill:#C8A951,color:#fff
 ```
 
 ---
