@@ -302,11 +302,12 @@ public interface IGDriveClient
 
 ```mermaid
 flowchart LR
-    subgraph Writer["FanOutDocumentStorage"]
-        W["WriteAsync(accountId, agentId, folder, file, content)"]
+    subgraph Writer["FanOutStorageProvider\nimplements IFileStorageProvider"]
+        W["WriteDocumentAsync(folder, file, content)"]
+        S["AppendRowAsync / ReadRowsAsync\n(Sheets — passthrough to IGwsService)"]
     end
 
-    subgraph Targets["Three-Tier Write"]
+    subgraph Targets["Three-Tier Document Write"]
         A["Agent Drive\nIGDriveClient\n(agent OAuth)"]
         B["Account Drive\nIGDriveClient\n(account OAuth)"]
         C["Platform Drive\nIGwsService\n(service account)"]
@@ -315,6 +316,7 @@ flowchart LR
     W -->|"1. Agent (best-effort)"| A
     W -->|"2. Account (best-effort)"| B
     W -->|"3. Platform (best-effort)"| C
+    S -->|"passthrough"| C
 
     A -->|fail| LOG["Log warning\ncontinue"]
     B -->|fail| LOG
@@ -325,30 +327,23 @@ flowchart LR
     style C fill:#2E7D32,color:#fff
 ```
 
-#### New Interface: IDocumentStorageProvider
+**No new interface.** `FanOutStorageProvider` implements the existing `IFileStorageProvider`:
 
-The existing `IFileStorageProvider` carries Google Sheets methods (`AppendRowAsync`, `ReadRowsAsync`, `RedactRowsAsync`) that don't apply to fan-out. A new narrower interface handles document-only operations:
-
-```csharp
-// Domain/Shared/Interfaces/Storage/IDocumentStorageProvider.cs
-public interface IDocumentStorageProvider
-{
-    Task WriteDocumentAsync(string accountId, string agentId, string folder,
-        string fileName, string content, CancellationToken ct);
-    Task WriteBinaryAsync(string accountId, string agentId, string folder,
-        string fileName, byte[] data, string mimeType, CancellationToken ct);
-    Task<string?> ReadDocumentAsync(string accountId, string agentId, string folder,
-        string fileName, CancellationToken ct);
-}
-```
-
-`IFileStorageProvider` stays unchanged — Sheets operations continue routing through `IGwsService` for platform-level compliance (consent audit, deletion log).
-
-**`FanOutDocumentStorage`** implements `IDocumentStorageProvider`:
-- Writes to all three tiers concurrently (`Task.WhenAll`)
-- **All tiers are best-effort** — failure at any tier logs a warning but doesn't fail the operation. Email send is the fatal operation in the notification pipeline, not document storage.
+- **Document methods** (`WriteDocumentAsync`, `ReadDocumentAsync`, etc.) → fan-out to Agent + Account + Platform Drive via `IGDriveClient` (agent/account) and `IGwsService` (platform)
+- **Sheets methods** (`AppendRowAsync`, `ReadRowsAsync`, `RedactRowsAsync`) → passthrough to `IGwsService` (platform only, same as today)
+- **All document tiers are best-effort** — failure at any tier logs a warning but doesn't fail the operation. Email send is the fatal operation in the notification pipeline, not document storage.
 - Each tier independently configurable (enabled/disabled in account config)
 - Missing tokens for a tier → skip that tier with a warning log
+
+**`accountId`/`agentId` resolution:** `FanOutStorageProvider` is constructed per-pipeline-context — the `accountId` and `agentId` are captured at construction time from the pipeline context. In `Program.cs`, it's registered as a factory that takes these from the request scope:
+
+```csharp
+// In each worker's CreateContext or ProcessAsync:
+var storageProvider = new FanOutStorageProvider(
+    gDriveClient, gwsService, accountId, agentId, logger);
+```
+
+This replaces the existing singleton `IFileStorageProvider` for pipeline workers. Non-pipeline callers (consent audit, deletion log) continue using the existing `IFileStorageProvider` singleton backed by `IGwsService`.
 
 ### 5. Email Record Storage
 
@@ -385,9 +380,9 @@ The email record write happens AFTER the send attempt, via `IDocumentStorageProv
 
 | Notifier | Before | After |
 |----------|--------|-------|
-| `MultiChannelLeadNotifier` | `gwsService.SendEmailAsync(agentEmail, ...)` | `gmailSender.SendAsync(accountId, agentId, ...)` + `documentStorage.WriteDocumentAsync(...)` |
-| `CmaSellerNotifier` | `gwsService.SendEmailAsync` + `gwsService.UploadFileAsync` | `gmailSender.SendWithAttachmentAsync(...)` + `documentStorage` for PDF + email record |
-| `HomeSearchBuyerNotifier` | `gwsService.SendEmailAsync` | `gmailSender.SendAsync(...)` + `documentStorage.WriteDocumentAsync(...)` |
+| `MultiChannelLeadNotifier` | `gwsService.SendEmailAsync(agentEmail, ...)` | `gmailSender.SendAsync(accountId, agentId, ...)` + `fanOutStorage.WriteDocumentAsync(...)` |
+| `CmaSellerNotifier` | `gwsService.SendEmailAsync` + `gwsService.UploadFileAsync` | `gmailSender.SendWithAttachmentAsync(...)` + `fanOutStorage` for PDF + email record |
+| `HomeSearchBuyerNotifier` | `gwsService.SendEmailAsync` | `gmailSender.SendAsync(...)` + `fanOutStorage.WriteDocumentAsync(...)` |
 
 **accountId resolution:** Each notifier already calls `accountConfigService.GetAccountAsync(agentId, ct)` to load agent config. A new `AccountId` field on `AccountConfig` provides the brokerage identifier. For single-agent brokerages (current state), `AccountId` defaults to the agent handle. This field is added to `account.json` and `agent.schema.json`.
 
@@ -503,7 +498,6 @@ flowchart TD
 | `Domain/Shared/Models/OAuthCredential.cs` | Immutable OAuth credential record (replaces GoogleTokens) |
 | `Domain/Shared/OAuthProviders.cs` | Provider name constants (`Google = "google"`) |
 | `Domain/Shared/Interfaces/Storage/ITokenStore.cs` | Token store contract with optimistic locking |
-| `Domain/Shared/Interfaces/Storage/IDocumentStorageProvider.cs` | Narrower document-only storage interface for fan-out |
 | `Domain/Shared/Interfaces/External/IGmailSender.cs` | Gmail send contract |
 | `Domain/Shared/Interfaces/External/IGDriveClient.cs` | Drive operations contract |
 | `Domain/Shared/GmailDiagnostics.cs` | Gmail OTel counters |
@@ -512,7 +506,7 @@ flowchart TD
 | `Clients.GDrive/GDriveApiClient.cs` | Drive API client with token refresh + optimistic locking |
 | `Clients.Azure/AzureTableTokenStore.cs` | Encrypted token store with ETag-based optimistic locking |
 | `TestUtilities/InMemoryTokenStore.cs` | In-memory token store for testing |
-| `DataServices/Storage/FanOutDocumentStorage.cs` | Three-tier document fan-out writes |
+| `DataServices/Storage/FanOutStorageProvider.cs` | IFileStorageProvider impl with three-tier fan-out |
 
 ### Modified Files
 
@@ -538,7 +532,7 @@ flowchart TD
 |-----------|-----|
 | `Clients.Gws/GwsCliRunner.cs` | Stays for platform Drive + Sheets + Docs operations |
 | `IGwsService` interface | Still used by consent audit, Drive monitoring, Sheets |
-| `IFileStorageProvider` | Stays for Sheets operations — fan-out uses new `IDocumentStorageProvider` |
+| `IFileStorageProvider` interface | Unchanged — `FanOutStorageProvider` implements it, Sheets methods passthrough to `IGwsService` |
 | WhatsApp notifications | Separate API, unrelated |
 | Google Chat webhook | HTTP POST, no OAuth |
 
