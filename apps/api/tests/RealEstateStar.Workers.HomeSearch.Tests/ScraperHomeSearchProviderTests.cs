@@ -77,8 +77,15 @@ public class ScraperHomeSearchProviderTests
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient(nameof(ScraperHomeSearchProvider))).Returns(claudeClient);
 
+        var sourceUrls = new Dictionary<string, string>
+        {
+            ["zillow"]  = "https://www.zillow.com/homes/{area}/?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}",
+            ["redfin"]  = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}&max_price={maxPrice}&num_beds={minBeds}&num_baths={minBaths}",
+            ["realtor"] = "https://www.realtor.com/realestateandhomes-search/{area}?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}"
+        };
+
         var logger = new Mock<ILogger<ScraperHomeSearchProvider>>();
-        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", logger.Object);
+        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", sourceUrls, logger.Object);
         return (provider, scraperClient, claudeHandler);
     }
 
@@ -110,8 +117,15 @@ public class ScraperHomeSearchProviderTests
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient(nameof(ScraperHomeSearchProvider))).Returns(new HttpClient(claudeHandler.Object));
 
+        var sourceUrls = new Dictionary<string, string>
+        {
+            ["zillow"]  = "https://www.zillow.com/homes/{area}/?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}",
+            ["redfin"]  = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}&max_price={maxPrice}&num_beds={minBeds}&num_baths={minBaths}",
+            ["realtor"] = "https://www.realtor.com/realestateandhomes-search/{area}?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}"
+        };
+
         var logger = new Mock<ILogger<ScraperHomeSearchProvider>>();
-        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", logger.Object);
+        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", sourceUrls, logger.Object);
 
         await provider.SearchAsync(DefaultCriteria, CancellationToken.None);
 
@@ -201,7 +215,13 @@ public class ScraperHomeSearchProviderTests
 
         var factory = new Mock<IHttpClientFactory>();
         var logger = new Mock<ILogger<ScraperHomeSearchProvider>>();
-        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", logger.Object);
+        var sourceUrls = new Dictionary<string, string>
+        {
+            ["zillow"]  = "https://www.zillow.com/homes/{area}/?price-min={minPrice}",
+            ["redfin"]  = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}",
+            ["realtor"] = "https://www.realtor.com/realestateandhomes-search/{area}?price-min={minPrice}"
+        };
+        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", sourceUrls, logger.Object);
 
         // All 3 sources fail — no Claude call — returns empty list
         var result = await provider.SearchAsync(DefaultCriteria, CancellationToken.None);
@@ -226,7 +246,13 @@ public class ScraperHomeSearchProviderTests
 
         var factory = new Mock<IHttpClientFactory>();
         var logger = new Mock<ILogger<ScraperHomeSearchProvider>>();
-        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", logger.Object);
+        var sourceUrls = new Dictionary<string, string>
+        {
+            ["zillow"]  = "https://www.zillow.com/homes/{area}/?price-min={minPrice}",
+            ["redfin"]  = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}",
+            ["realtor"] = "https://www.realtor.com/realestateandhomes-search/{area}?price-min={minPrice}"
+        };
+        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", sourceUrls, logger.Object);
 
         var act = async () => await provider.SearchAsync(DefaultCriteria, CancellationToken.None);
 
@@ -236,50 +262,56 @@ public class ScraperHomeSearchProviderTests
     // ─── URL construction ─────────────────────────────────────────────────────────
 
     [Fact]
-    public void BuildZillowUrl_IncludesAreaAndFilters()
+    public void BuildSearchUrl_SubstitutesArea()
     {
-        var url = ScraperHomeSearchProvider.BuildZillowUrl(DefaultCriteria);
-
-        url.Should().Contain("zillow.com");
-        url.Should().Contain("Old%20Bridge%2C%20NJ");
-        url.Should().Contain("price-min=300000");
-        url.Should().Contain("price-max=500000");
-        url.Should().Contain("beds-min=3");
-        url.Should().Contain("baths-min=2");
-    }
-
-    [Fact]
-    public void BuildRedfinUrl_IncludesAreaAndFilters()
-    {
-        var url = ScraperHomeSearchProvider.BuildRedfinUrl(DefaultCriteria);
-
-        url.Should().Contain("redfin.com");
-        url.Should().Contain("min_price=300000");
-        url.Should().Contain("max_price=500000");
-        url.Should().Contain("num_beds=3");
-        url.Should().Contain("num_baths=2");
-    }
-
-    [Fact]
-    public void BuildMlsUrl_IncludesAreaAndFilters()
-    {
-        var url = ScraperHomeSearchProvider.BuildMlsUrl(DefaultCriteria);
-
-        url.Should().Contain("realtor.com");
-        url.Should().Contain("price-min=300000");
-        url.Should().Contain("price-max=500000");
-        url.Should().Contain("beds-min=3");
-        url.Should().Contain("baths-min=2");
-    }
-
-    [Fact]
-    public void BuildZillowUrl_OmitsFilters_WhenCriteriaHasNone()
-    {
+        var template = "https://www.zillow.com/homes/{area}/";
         var criteria = new HomeSearchCriteria { Area = "Old Bridge, NJ" };
-        var url = ScraperHomeSearchProvider.BuildZillowUrl(criteria);
+
+        var url = ScraperHomeSearchProvider.BuildSearchUrl(template, criteria);
+
+        url.Should().Contain("Old%20Bridge%2C%20NJ");
+    }
+
+    [Fact]
+    public void BuildSearchUrl_SubstitutesAllFilterParams()
+    {
+        var template = "https://www.zillow.com/homes/{area}/?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}";
+
+        var url = ScraperHomeSearchProvider.BuildSearchUrl(template, DefaultCriteria);
+
+        url.Should().Contain("price-min=300000");
+        url.Should().Contain("price-max=500000");
+        url.Should().Contain("beds-min=3");
+        url.Should().Contain("baths-min=2");
+    }
+
+    [Fact]
+    public void BuildSearchUrl_RemovesEmptyFilterParams()
+    {
+        var template = "https://www.zillow.com/homes/{area}/?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}";
+        var criteria = new HomeSearchCriteria { Area = "Old Bridge, NJ" };
+
+        var url = ScraperHomeSearchProvider.BuildSearchUrl(template, criteria);
 
         url.Should().Contain("zillow.com");
         url.Should().NotContain("?");
+        url.Should().NotContain("price-min=");
+        url.Should().NotContain("beds-min=");
+    }
+
+    [Fact]
+    public void BuildSearchUrl_PreservesPerSourceParamNames()
+    {
+        var zillowTemplate = "https://www.zillow.com/homes/{area}/?price-min={minPrice}&beds-min={minBeds}";
+        var redfinTemplate  = "https://www.redfin.com/search?location={area}&min_price={minPrice}&num_beds={minBeds}";
+
+        var zillowUrl = ScraperHomeSearchProvider.BuildSearchUrl(zillowTemplate, DefaultCriteria);
+        var redfinUrl = ScraperHomeSearchProvider.BuildSearchUrl(redfinTemplate, DefaultCriteria);
+
+        zillowUrl.Should().Contain("price-min=300000");
+        zillowUrl.Should().Contain("beds-min=3");
+        redfinUrl.Should().Contain("min_price=300000");
+        redfinUrl.Should().Contain("num_beds=3");
     }
 
     // ─── ParseCuratedListings ─────────────────────────────────────────────────────

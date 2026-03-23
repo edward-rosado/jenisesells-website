@@ -109,10 +109,16 @@ public class ScraperLeadEnricherTests
         scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
 
+        var sourceUrls = new Dictionary<string, string>
+        {
+            ["google"] = "https://www.google.com/search?q={query}"
+        };
+
         var enricher = new ScraperLeadEnricher(
             factory.Object,
             "test-claude-key",
             scraperClient.Object,
+            sourceUrls,
             NullLogger<ScraperLeadEnricher>.Instance);
 
         return (enricher, handler);
@@ -157,10 +163,16 @@ public class ScraperLeadEnricherTests
                 .ReturnsAsync((string?)null);
         }
 
+        var sourceUrls = new Dictionary<string, string>
+        {
+            ["google"] = "https://www.google.com/search?q={query}"
+        };
+
         var enricher = new ScraperLeadEnricher(
             factory.Object,
             "test-claude-key",
             scraperClient.Object,
+            sourceUrls,
             NullLogger<ScraperLeadEnricher>.Instance);
 
         return (enricher, captured, scraperClient);
@@ -411,7 +423,12 @@ public class ScraperLeadEnricherTests
         scraperClientForLog.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
 
-        var enricher = new ScraperLeadEnricher(factory.Object, "key", scraperClientForLog.Object, mockLogger.Object);
+        var sourceUrls = new Dictionary<string, string>
+        {
+            ["google"] = "https://www.google.com/search?q={query}"
+        };
+
+        var enricher = new ScraperLeadEnricher(factory.Object, "key", scraperClientForLog.Object, sourceUrls, mockLogger.Object);
         var lead = MakeLead();
         await enricher.EnrichAsync(lead, CancellationToken.None);
 
@@ -447,7 +464,8 @@ public class ScraperLeadEnricherTests
 
         capturedRequestBody.Should().NotBeNull();
         var messageContent = ExtractMessageContent(capturedRequestBody!);
-        messageContent.Should().Contain("<source name=\"linkedin\">");
+        // With configurable source engines, keys are formatted as "{engine}:{queryName}"
+        messageContent.Should().Contain("<source name=\"google:linkedin\">");
         messageContent.Should().Contain("</source>");
         messageContent.Should().Contain("<lead_data>");
         messageContent.Should().Contain("</lead_data>");
