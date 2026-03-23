@@ -9,12 +9,13 @@ namespace RealEstateStar.Clients.Scraper.Tests;
 
 public class ScraperClientTests
 {
-    private static ScraperOptions DefaultOptions(bool renderJs = false) => new()
+    private static ScraperOptions DefaultOptions(bool renderJs = false, int circuitBreakerResetSeconds = 999999) => new()
     {
         ApiKey = "test-key",
         BaseUrl = "https://api.scraperapi.com",
         RenderJavaScript = renderJs,
-        TimeoutSeconds = 10
+        TimeoutSeconds = 10,
+        CircuitBreakerResetSeconds = circuitBreakerResetSeconds
     };
 
     private static (ScraperClient client, MockHttpMessageHandler handler, Mock<IHttpClientFactory> factory) BuildClient(
@@ -168,6 +169,51 @@ public class ScraperClientTests
         await client.FetchAsync("https://example.com", "source1", "agent1", CancellationToken.None);
 
         handler.LastRequest!.RequestUri!.ToString().Should().NotContain("render=true");
+    }
+
+    [Fact]
+    public async Task IsAvailable_ReturnsTrueAfterReset()
+    {
+        // Arrange: use 0s reset so the cooldown expires immediately
+        var opts = DefaultOptions(circuitBreakerResetSeconds: 0);
+        var (client, handler, _) = BuildClient(opts);
+        handler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+
+        await client.FetchAsync("https://example.com", "source1", "agent1", CancellationToken.None);
+
+        // Act: with 0s reset, IsAvailable should immediately flip back to true
+        client.IsAvailable.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task FetchAsync_ResetsAfterCooldown()
+    {
+        // Arrange: use 0s reset so the cooldown expires immediately
+        var opts = DefaultOptions(circuitBreakerResetSeconds: 0);
+        var handler = new MockHttpMessageHandler();
+
+        // Use a fresh HttpClient for each factory call so Timeout can be set again
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient("ScraperAPI"))
+               .Returns(() => new HttpClient(handler));
+
+        var options = Options.Create(opts);
+        var client = new ScraperClient(factory.Object, options, NullLogger<ScraperClient>.Instance);
+
+        // First call triggers 429
+        handler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+        await client.FetchAsync("https://example.com", "source1", "agent1", CancellationToken.None);
+
+        // Second call after 0s cooldown — should make a real HTTP request (not short-circuit)
+        handler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("<html>back online</html>")
+        };
+        var result = await client.FetchAsync("https://example.com", "source1", "agent1", CancellationToken.None);
+
+        result.Should().Be("<html>back online</html>");
+        // Two HTTP requests: 429 + the reset request
+        handler.Requests.Should().HaveCount(2);
     }
 
     // Helper handlers for exception scenarios
