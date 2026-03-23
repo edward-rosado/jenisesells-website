@@ -42,9 +42,11 @@ public class FileLeadStore(LocalStorageProvider storage, string basePath) : ILea
         await storage.UpdateDocumentAsync(folder, LeadProfileFile, updated, ct);
     }
 
-    public async Task UpdateStatusAsync(string agentId, Guid leadId, LeadStatus status, CancellationToken ct)
+    public async Task UpdateStatusAsync(Lead lead, LeadStatus status, CancellationToken ct)
     {
-        var (folder, doc) = await ReadLeadDocAsync(agentId, leadId, ct);
+        var folder = LeadPaths.LeadFolder(lead.FullName);
+        var doc = await storage.ReadDocumentAsync(folder, LeadProfileFile, ct);
+        if (doc is null) return;
         var updated = YamlFrontmatterParser.UpdateField(doc, "status", status.ToString());
         await storage.UpdateDocumentAsync(folder, LeadProfileFile, updated, ct);
     }

@@ -162,13 +162,42 @@ When working on a skill, load the agent profile first:
 
 The `IFileStorageProvider` interface (defined in `RealEstateStar.Domain`) abstracts lead storage across Google Drive and local file system. Implementations live in `RealEstateStar.Data`:
 
-- **Local** (`LocalFileProvider` in `RealEstateStar.Data`): Development/testing in `data/leads/{agent-id}/`
+- **Local** (`LocalStorageProvider` in `RealEstateStar.Data`): Development/testing and current production fallback
 - **In-Memory** (`InMemoryFileProvider` in `RealEstateStar.Data`): Unit testing
-- **Storage orchestration** (`LeadStore` in `RealEstateStar.DataServices`): Routes to GDrive or local based on config
-- **Google Drive** (`GDriveClient` in `RealEstateStar.Clients.GDrive`): Production storage in agent's Drive folder
-- **Configuration**: `Storage:UseLocal` (bool) in appsettings selects provider at startup
+- **Lead stores**: `LeadFileStore` and `LeadStore` in `RealEstateStar.DataServices` — use whatever `IFileStorageProvider` is injected
+- **Google Drive** (`GDriveClient` in `RealEstateStar.Clients.GDrive`): Future production storage in agent's Drive folder
 
 All lead files are markdown with YAML frontmatter. Frontmatter keys are validated against the Lead schema; user content goes in the markdown body.
+
+## Lead Pipeline Architecture
+
+The lead processing pipeline uses a **checkpoint/resume** pattern. Each step saves its output before proceeding. On retry, the worker checks if the output file exists and skips completed steps. This saves Claude tokens and ScraperAPI credits.
+
+```
+Form Submit → Turnstile → HMAC → API Endpoint
+  │
+  ├─ Dedup: check GetByEmailAsync → update existing or create new
+  ├─ Save Lead Profile.md
+  ├─ Record consent (CSV + compliance triple-write)
+  └─ Enqueue → Background Worker
+                  │
+                  ├─ Step 1: Enrich (checkpoint: Research & Insights.md)
+                  │   └─ Skip if file exists (saves Claude + ScraperAPI)
+                  ├─ Step 2: Draft email (checkpoint: Notification Draft.md)
+                  │   └─ Skip if file exists
+                  ├─ Step 3: Send notification (retry 3x → dead letter)
+                  ├─ Step 4: Dispatch CMA (sellers)
+                  └─ Step 5: Dispatch Home Search (buyers)
+```
+
+**Lead status progression:** `Received → Enriched → EmailDrafted → Notified → Complete`
+
+## Docker / Production Notes
+
+- **Agent config files** (`config/accounts/`) live at repo root, outside Docker build context (`apps/api/`). CI copies them into the build context before `docker build`.
+- **Program.cs** checks `/app/config/accounts` (Docker path) first, falls back to relative path for local dev.
+- **Startup validation**: Never throw on missing optional config — use warnings. Throwing prevents the container from starting and blocks ALL functionality.
+- **After deploy**: Always verify `latestReadyRevisionName == latestRevisionName` via `az containerapp show`.
 
 ## Docs
 

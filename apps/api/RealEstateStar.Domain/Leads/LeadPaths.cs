@@ -16,6 +16,9 @@ public static class LeadPaths
     public static string EnrichmentFile(string name)
         => $"{LeadFolder(name)}/Research & Insights.md";
 
+    public static string NotificationDraftFile(string name)
+        => $"{LeadFolder(name)}/Notification Draft.md";
+
     public static string HomeSearchFile(string name, DateTime date)
         => $"{LeadFolder(name)}/Home Search/{date:yyyy-MM-dd}-Home Search Results.md";
 

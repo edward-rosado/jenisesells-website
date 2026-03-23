@@ -28,10 +28,19 @@ public class LeadSubmissionMocks
     public Mock<ILeadStore> LeadStore { get; } = new();
     public Mock<IMarketingConsentLog> ConsentLog { get; } = new();
     public Mock<ILeadEnricher> Enricher { get; } = new();
-    public Mock<ILeadNotifier> Notifier { get; } = new();
+    public Mock<ILeadNotifier> Notifier { get; }
     public Mock<IHomeSearchProvider> HomeSearch { get; } = new();
     public Mock<ILeadDataDeletion> Deletion { get; } = new();
     public Mock<IDeletionAuditLog> AuditLog { get; } = new();
+
+    public LeadSubmissionMocks()
+    {
+        Notifier = new Mock<ILeadNotifier>();
+        Notifier.Setup(n => n.BuildSubject(It.IsAny<Lead>(), It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>()))
+            .Returns("Test Subject");
+        Notifier.Setup(n => n.BuildBody(It.IsAny<Lead>(), It.IsAny<LeadEnrichment>(), It.IsAny<LeadScore>()))
+            .Returns("Test Body");
+    }
 }
 
 /// <summary>

@@ -72,17 +72,65 @@ public class SubmitLeadEndpoint : IEndpoint
         }
         logger.LogInformation("[LEAD-000] Agent {AgentId} found. Email: {AgentEmail}", agentId, agent.Agent?.Email ?? "(none)");
 
-        // 2. Map request to domain
-        var lead = request.ToLead(agentId);
+        // 2. Dedup — check if lead with same email already exists
+        var existingLead = await leadStore.GetByEmailAsync(agentId, request.Email, ct);
+        Lead lead;
+        bool isUpdate;
+
+        if (existingLead is not null)
+        {
+            // Update existing lead with new details (e.g., adding seller to a buyer lead)
+            lead = existingLead;
+            isUpdate = true;
+
+            // Merge lead type: if they were Buyer and now submitting as Seller, upgrade to Both
+            if (lead.LeadType != request.LeadType && request.LeadType is not LeadType.Both)
+                lead.MergeType(LeadType.Both);
+
+            // Merge seller/buyer details if newly provided
+            var hasNewDetails = false;
+            if (request.Seller is not null && lead.SellerDetails is null)
+            {
+                lead.MergeSellerDetails(LeadMappers.MapSellerDetails(request.Seller));
+                hasNewDetails = true;
+            }
+            if (request.Buyer is not null && lead.BuyerDetails is null)
+            {
+                lead.MergeBuyerDetails(LeadMappers.MapBuyerDetails(request.Buyer));
+                hasNewDetails = true;
+            }
+
+            // Only re-run pipeline if new data was added (new seller/buyer details or type change)
+            // Don't reset status if nothing changed — avoids re-running enrichment/scraping
+            if (!hasNewDetails && lead.LeadType == request.LeadType)
+            {
+                logger.LogInformation(
+                    "[LEAD-001-DEDUP] Lead already exists with same data. LeadId: {LeadId}, Status: {Status}. Skipping re-enqueue.",
+                    lead.Id, lead.Status);
+                return Results.Accepted($"/agents/{agentId}/leads/{lead.Id}", new SubmitLeadResponse(lead.Id, "already-exists"));
+            }
+
+            logger.LogInformation(
+                "[LEAD-001] Lead updated (dedup). LeadId: {LeadId}, AgentId: {AgentId}, Type: {LeadType}, NewDetails: {HasNewDetails}, Email: {EmailHash}",
+                lead.Id, agentId, lead.LeadType, hasNewDetails, HashEmail(lead.Email));
+        }
+        else
+        {
+            lead = request.ToLead(agentId);
+            isUpdate = false;
+
+            logger.LogInformation(
+                "[LEAD-001] New lead received. LeadId: {LeadId}, AgentId: {AgentId}, Type: {LeadType}, Email: {EmailHash}",
+                lead.Id, agentId, lead.LeadType, HashEmail(lead.Email));
+        }
+
         activity?.SetTag("lead.id", lead.Id.ToString());
         activity?.SetTag("lead.type", lead.LeadType.ToString());
-
-        logger.LogInformation(
-            "[LEAD-001] Lead received. LeadId: {LeadId}, AgentId: {AgentId}, Type: {LeadType}, Email: {EmailHash}",
-            lead.Id, agentId, lead.LeadType, HashEmail(lead.Email));
+        activity?.SetTag("lead.is_update", isUpdate.ToString());
 
         // 3. Save lead — dead letter if storage fails
-        logger.LogInformation("[LEAD-001a] Saving lead {LeadId} via {StoreType}...", lead.Id, leadStore.GetType().Name);
+        logger.LogInformation("[LEAD-001a] {Action} lead {LeadId} via {StoreType}...",
+            isUpdate ? "Updating" : "Saving", lead.Id, leadStore.GetType().Name);
         try
         {
             await leadStore.SaveAsync(lead, ct);

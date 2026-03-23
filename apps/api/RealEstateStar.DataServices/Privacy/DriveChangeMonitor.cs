@@ -85,7 +85,7 @@ public class DriveChangeMonitor(
                     continue;
                 }
 
-                await leadStore.UpdateStatusAsync(agentId, lead.Id, status.Value, ct);
+                await leadStore.UpdateStatusAsync(lead, status.Value, ct);
                 statusUpdated++;
 
                 logger.LogInformation(

@@ -138,15 +138,13 @@ public class LeadFileStoreTests
         var profileDoc = MakeLeadProfileMarkdown(lead);
         string? capturedContent = null;
 
-        _storage.Setup(s => s.ListDocumentsAsync(LeadPaths.LeadsFolder, It.IsAny<CancellationToken>()))
-            .ReturnsAsync([lead.FullName]);
         _storage.Setup(s => s.ReadDocumentAsync(folder, "Lead Profile.md", It.IsAny<CancellationToken>()))
             .ReturnsAsync(profileDoc);
         _storage.Setup(s => s.UpdateDocumentAsync(folder, "Lead Profile.md", It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Callback<string, string, string, CancellationToken>((_, _, content, _) => capturedContent = content)
             .Returns(Task.CompletedTask);
 
-        await _sut.UpdateStatusAsync(AgentId, lead.Id, LeadStatus.Enriched, CancellationToken.None);
+        await _sut.UpdateStatusAsync(lead, LeadStatus.Enriched, CancellationToken.None);
 
         Assert.NotNull(capturedContent);
         Assert.Contains("status: Enriched", capturedContent);
@@ -298,15 +296,16 @@ public class LeadFileStoreTests
     // ── Error paths ───────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task UpdateStatusAsync_ThrowsInvalidOperation_WhenLeadNotFound()
+    public async Task UpdateStatusAsync_DoesNotThrow_WhenLeadDocumentMissing()
     {
-        var missingId = Guid.NewGuid();
+        var lead = MakeLead();
+        var folder = LeadPaths.LeadFolder(lead.FullName);
 
-        _storage.Setup(s => s.ListDocumentsAsync(LeadPaths.LeadsFolder, It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+        _storage.Setup(s => s.ReadDocumentAsync(folder, "Lead Profile.md", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _sut.UpdateStatusAsync(AgentId, missingId, LeadStatus.Enriched, CancellationToken.None));
+        var ex = await Record.ExceptionAsync(() => _sut.UpdateStatusAsync(lead, LeadStatus.Enriched, CancellationToken.None));
+        Assert.Null(ex);
     }
 
 }

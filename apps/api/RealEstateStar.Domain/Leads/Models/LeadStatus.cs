@@ -9,6 +9,7 @@ public enum LeadStatus
     Enriching,
     Enriched,
     EnrichmentFailed,
+    EmailDrafted,
     Notified,
     NotificationFailed,
     CmaComplete,

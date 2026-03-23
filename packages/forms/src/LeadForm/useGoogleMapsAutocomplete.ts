@@ -41,7 +41,7 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
   }
   loadPromise = new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&loading=async`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places`;
     script.async = true;
     script.onload = () => resolve();
     script.onerror = () => reject(new Error("Failed to load Google Maps SDK"));

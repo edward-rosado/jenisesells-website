@@ -1,9 +1,11 @@
 {
-  "plugins": [
-    "superpowers",
-    "everything-claude-code",
-    "figma"
-  ],
+  "permissions": {
+    "allow": [
+      "Edit(~/.claude/skills/learned/**)",
+      "Bash(az containerapp:*)",
+      "Bash(grep -v \"^$\")"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -20,5 +22,10 @@
         ]
       }
     ]
-  }
+  },
+  "plugins": [
+    "superpowers",
+    "everything-claude-code",
+    "figma"
+  ]
 }

@@ -52,7 +52,7 @@ file sealed class NoOpLeadStore : ILeadStore
     public Task SaveAsync(Lead lead, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateEnrichmentAsync(Lead l, LeadEnrichment e, LeadScore s, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateHomeSearchIdAsync(string a, Guid i, string h, CancellationToken ct) => Task.CompletedTask;
-    public Task UpdateStatusAsync(string a, Guid i, LeadStatus s, CancellationToken ct) => Task.CompletedTask;
+    public Task UpdateStatusAsync(Lead l, LeadStatus s, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateMarketingOptInAsync(string a, Guid i, bool o, CancellationToken ct) => Task.CompletedTask;
     public Task<Lead?> GetAsync(string a, Guid i, CancellationToken ct) => Task.FromResult<Lead?>(null);
     public Task<Lead?> GetByNameAsync(string a, string n, CancellationToken ct) => Task.FromResult<Lead?>(null);
@@ -77,6 +77,8 @@ file sealed class NoOpLeadNotifier : ILeadNotifier
 {
     public Task NotifyAgentAsync(string agentId, Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct) =>
         Task.CompletedTask;
+    public string BuildSubject(Lead l, LeadEnrichment e, LeadScore s) => "";
+    public string BuildBody(Lead l, LeadEnrichment e, LeadScore s) => "";
 }
 
 file sealed class NoOpHomeSearchProvider : IHomeSearchProvider
