@@ -44,13 +44,14 @@ flowchart TD
         CL["Claude API"]
     end
 
-    subgraph Metrics["OTel Metrics (53+)"]
+    subgraph Metrics["OTel Metrics (60+)"]
         LD["LeadDiagnostics\n13 counters · 4 histograms"]
-        CD["CmaDiagnostics\n2 counters · 7 histograms"]
-        HD["HomeSearchDiagnostics\n2 counters · 6 histograms"]
+        CD["CmaDiagnostics\n5 counters · 7 histograms"]
+        HD["HomeSearchDiagnostics\n4 counters · 6 histograms"]
         SD["ScraperDiagnostics\n6 counters · 1 histogram"]
         WD["WhatsAppDiagnostics\n13 counters · 4 histograms"]
-        OD["OnboardingDiagnostics\n2 counters"]
+        OD["OnboardingDiagnostics\n4 counters"]
+        CLD["ClaudeDiagnostics\n5 counters · 1 histogram\ntagged by pipeline + model"]
     end
 
     subgraph Pipeline["OTel Pipeline"]
@@ -67,16 +68,24 @@ flowchart TD
     WW --> WD
     OB --> OD
 
+    LW --> CLD
+    CW --> CLD
+    HW --> CLD
+    OB --> CLD
+    CL --> CLD
+
     LD --> OTLP
     CD --> OTLP
     HD --> OTLP
     SD --> OTLP
     WD -.->|NOT REGISTERED| OTLP
     OD --> OTLP
+    CLD -.->|NEW| OTLP
 
     OTLP --> GA --> GC --> DASH
 
     style WD fill:#D32F2F,color:#fff
+    style CLD fill:#C8A951,color:#fff
     style DASH fill:#2E7D32,color:#fff
     style GC fill:#4A90D9,color:#fff
 ```
@@ -320,17 +329,146 @@ var searchTasks = sourceUrls.Select(kvp =>
     FetchFromSourceAsync(kvp.Key, BuildSearchUrl(kvp.Value, criteria), criteria, ct));
 ```
 
-### 3. Register WhatsApp Diagnostics
+### 3. Centralized Claude Token Tracking
+
+```mermaid
+flowchart TD
+    subgraph Callers["6 Claude Callers"]
+        SLE["ScraperLeadEnricher\nsonnet · enrichment"]
+        CCA["ClaudeCmaAnalyzer\nsonnet · CMA analysis"]
+        SCS["ScraperCompSource ×3\nsonnet · comp extraction"]
+        SHP["ScraperHomeSearchProvider\nsonnet · listing curation"]
+        OCS["OnboardingChatService\nsonnet · chat (streaming)"]
+        PSS["ProfileScraperService\nhaiku · profile extraction"]
+    end
+
+    subgraph Centralized["ClaudeDiagnostics (NEW)"]
+        CT["claude.tokens.input\nclaude.tokens.output\nclaude.cost_usd\nclaude.calls_total\nclaude.calls_failed\nclaude.call_duration_ms"]
+    end
+
+    subgraph PerPipeline["Per-Pipeline Counters"]
+        LD2["LeadDiagnostics\nleads.llm_tokens.input\nleads.llm_tokens.output\nleads.llm_cost_usd"]
+        CD2["CmaDiagnostics\ncma.llm_tokens.input\ncma.llm_tokens.output\ncma.llm_cost_usd"]
+        HD2["HomeSearchDiagnostics\nhome_search.llm_tokens.input\nhome_search.llm_tokens.output"]
+        OD2["OnboardingDiagnostics\nonboarding.llm_tokens.input\nonboarding.llm_tokens.output"]
+    end
+
+    SLE --> CT
+    CCA --> CT
+    SCS --> CT
+    SHP --> CT
+    OCS --> CT
+    PSS --> CT
+
+    SLE --> LD2
+    CCA --> CD2
+    SCS --> CD2
+    SHP --> HD2
+    OCS --> OD2
+    PSS --> OD2
+
+    style Centralized fill:#C8A951,color:#fff
+    style PerPipeline fill:#4A90D9,color:#fff
+```
+
+**Two layers of Claude metrics:**
+
+1. **Centralized `ClaudeDiagnostics`** (new file: `Domain/Shared/ClaudeDiagnostics.cs`) — aggregate view of ALL Claude spend, tagged by `pipeline` and `model`:
+
+```csharp
+namespace RealEstateStar.Domain.Shared;
+
+public static class ClaudeDiagnostics
+{
+    public const string ServiceName = "RealEstateStar.Claude";
+    public static readonly ActivitySource ActivitySource = new(ServiceName, "1.0.0");
+    private static readonly Meter Meter = new(ServiceName, "1.0.0");
+
+    public static readonly Counter<long> TokensInput = Meter.CreateCounter<long>("claude.tokens.input");
+    public static readonly Counter<long> TokensOutput = Meter.CreateCounter<long>("claude.tokens.output");
+    public static readonly Counter<double> CostUsd = Meter.CreateCounter<double>("claude.cost_usd", unit: "USD");
+    public static readonly Counter<long> CallsTotal = Meter.CreateCounter<long>("claude.calls_total");
+    public static readonly Counter<long> CallsFailed = Meter.CreateCounter<long>("claude.calls_failed");
+    public static readonly Histogram<double> CallDuration = Meter.CreateHistogram<double>("claude.call_duration_ms");
+
+    /// <summary>
+    /// Record token usage to both centralized and caller-provided counters.
+    /// Cost estimation: sonnet = $3/MTok input + $15/MTok output, haiku = $0.80/MTok + $4/MTok.
+    /// </summary>
+    public static void RecordUsage(string pipeline, string model, int inputTokens, int outputTokens, double durationMs)
+    {
+        var tags = new TagList { { "pipeline", pipeline }, { "model", model } };
+
+        TokensInput.Add(inputTokens, tags);
+        TokensOutput.Add(outputTokens, tags);
+        CallsTotal.Add(1, tags);
+        CallDuration.Record(durationMs, tags);
+
+        // Cost estimation based on published pricing
+        var (inputRate, outputRate) = model switch
+        {
+            var m when m.Contains("haiku") => (0.80 / 1_000_000, 4.0 / 1_000_000),
+            _ => (3.0 / 1_000_000, 15.0 / 1_000_000) // sonnet default
+        };
+        CostUsd.Add(inputTokens * inputRate + outputTokens * outputRate, tags);
+    }
+
+    public static void RecordFailure(string pipeline, string model)
+    {
+        CallsFailed.Add(1, new TagList { { "pipeline", pipeline }, { "model", model } });
+    }
+}
+```
+
+2. **Per-pipeline counters** — added to each `*Diagnostics` class for drill-down in pipeline-specific rows:
+
+| Diagnostics class | New counters |
+|---|---|
+| `CmaDiagnostics` | `cma.llm_tokens.input`, `cma.llm_tokens.output`, `cma.llm_cost_usd` |
+| `HomeSearchDiagnostics` | `home_search.llm_tokens.input`, `home_search.llm_tokens.output` |
+| `OnboardingDiagnostics` | `onboarding.llm_tokens.input`, `onboarding.llm_tokens.output` |
+| `LeadDiagnostics` | Already has `leads.llm_tokens.input/output/cost` — no change |
+
+**6 callers to instrument:**
+
+| Caller | Pipeline tag | Model | Change needed |
+|---|---|---|---|
+| `ScraperLeadEnricher` | `lead` | `claude-sonnet-4-6` | Already parses tokens; add `ClaudeDiagnostics.RecordUsage` call |
+| `ClaudeCmaAnalyzer` | `cma-analysis` | `claude-sonnet-4-6` | Add token parsing from `usage` JSON + both counters |
+| `ScraperCompSource` (×3) | `cma-comps` | `claude-sonnet-4-6` | Add token parsing + both counters |
+| `ScraperHomeSearchProvider` | `home-search` | `claude-sonnet-4-6` | Add token parsing + both counters |
+| `OnboardingChatService` | `onboarding` | `claude-sonnet-4-6` | Streaming — parse `message_delta` event for usage + both counters |
+| `ProfileScraperService` | `profile-scraper` | `claude-haiku-4-5` | Add token parsing + both counters |
+
+**Token parsing pattern** (same in all callers — extract from Claude response JSON):
+```csharp
+if (doc.RootElement.TryGetProperty("usage", out var usage))
+{
+    var input = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
+    var output = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
+    ClaudeDiagnostics.RecordUsage("cma-analysis", "claude-sonnet-4-6", input, output, elapsedMs);
+    CmaDiagnostics.LlmTokensInput.Add(input);
+    CmaDiagnostics.LlmTokensOutput.Add(output);
+}
+```
+
+### 4. Register WhatsApp + Claude Diagnostics
 
 **File:** `Api/Diagnostics/OpenTelemetryExtensions.cs`
 
-Add two lines:
+Add four lines (two for WhatsApp, two for Claude):
 ```csharp
-.AddSource(WhatsAppDiagnostics.ServiceName)   // in WithTracing
+.AddSource(WhatsAppDiagnostics.ServiceName)    // in WithTracing
+.AddSource(ClaudeDiagnostics.ServiceName)      // in WithTracing
 .AddMeter(WhatsAppDiagnostics.ServiceName)     // in WithMetrics
+.AddMeter(ClaudeDiagnostics.ServiceName)       // in WithMetrics
 ```
 
-Plus `using RealEstateStar.Domain.WhatsApp;` at the top.
+Plus:
+```csharp
+using RealEstateStar.Domain.WhatsApp;
+using RealEstateStar.Domain.Shared;
+```
 
 ### 4. Grafana Dashboard
 
@@ -380,12 +518,14 @@ block-beta
     end
 
     block:row5:5
-        columns 5
+        columns 7
         r5["Row 5: Claude / LLM"]
-        r5a["Input\ntokens"]
-        r5b["Output\ntokens"]
-        r5c["Cost\n(USD)"]
-        r5d["Token\nrate"]
+        r5a["Tokens by\npipeline"]
+        r5b["Cost by\npipeline"]
+        r5c["Total cost\n(USD)"]
+        r5d["Calls by\nmodel"]
+        r5e["Failure\nrate"]
+        r5f["Call\nduration"]
     end
 
     block:row6:5
@@ -454,13 +594,15 @@ block-beta
 | Step durations | Multi-line time series | `home_search_fetch_duration_ms`, `home_search_curation_duration_ms`, `home_search_drive_duration_ms`, `home_search_email_duration_ms` |
 | Total duration | Histogram (p50/p95) | `home_search_total_duration_ms` |
 
-#### Row 5: Claude / LLM Usage
+#### Row 5: Claude / LLM Usage (centralized via ClaudeDiagnostics)
 | Panel | Type | Query |
 |-------|------|-------|
-| Input tokens | Time series | `rate(leads_llm_tokens_input[5m])` |
-| Output tokens | Time series | `rate(leads_llm_tokens_output[5m])` |
-| Estimated cost (USD) | Gauge with threshold | `leads_llm_cost_usd` (yellow at $5, red at $10) |
-| Token rate | Time series | `rate(leads_llm_tokens_input[1h]) + rate(leads_llm_tokens_output[1h])` |
+| Tokens by pipeline | Stacked time series | `rate(claude_tokens_input[5m])` + `rate(claude_tokens_output[5m])` grouped by `pipeline` |
+| Cost by pipeline | Stacked area | `rate(claude_cost_usd[5m])` grouped by `pipeline` |
+| Total cost (USD) | Gauge with threshold | `sum(claude_cost_usd)` (yellow at $5, red at $10) |
+| Calls by model | Pie chart | `claude_calls_total` grouped by `model` (sonnet vs haiku) |
+| Failure rate | Stat (red threshold) | `sum(rate(claude_calls_failed[5m])) / sum(rate(claude_calls_total[5m]))` |
+| Call duration by pipeline | Heatmap | `claude_call_duration_ms` grouped by `pipeline` |
 
 #### Row 6: ScraperAPI
 | Panel | Type | Query |
@@ -491,21 +633,29 @@ block-beta
 
 ## File Map
 
+### New Files
+| File | Purpose |
+|------|---------|
+| `Domain/Shared/ClaudeDiagnostics.cs` | Centralized Claude token/cost/call counters with `RecordUsage` helper |
+| `infra/grafana/real-estate-star-api-dashboard.json` | Full-system Grafana dashboard (importable JSON) |
+
 ### Modified Files
 | File | Change |
 |------|--------|
 | `Clients.Scraper/ScraperClient.cs` | Replace `_available` bool with `_rateLimitedAtTicks` long, add reset logic |
 | `Clients.Scraper/ScraperOptions.cs` | Add `CircuitBreakerResetSeconds` property |
-| `Workers.Leads/ScraperLeadEnricher.cs` | Accept `Dictionary<string, string> sourceUrls`, use template for search URL |
-| `Workers.HomeSearch/ScraperHomeSearchProvider.cs` | Accept `Dictionary<string, string> sourceUrls`, generic `BuildSearchUrl`, remove 3 hardcoded methods |
+| `Workers.Leads/ScraperLeadEnricher.cs` | Accept `Dictionary<string, string> sourceUrls`, add `ClaudeDiagnostics.RecordUsage` |
+| `Workers.Cma/ClaudeCmaAnalyzer.cs` | Add token parsing + `ClaudeDiagnostics.RecordUsage` + `CmaDiagnostics` LLM counters |
+| `Workers.Cma/ScraperCompSource.cs` | Add token parsing + `ClaudeDiagnostics.RecordUsage` + `CmaDiagnostics` LLM counters |
+| `Workers.HomeSearch/ScraperHomeSearchProvider.cs` | Accept `Dictionary<string, string> sourceUrls`, add token parsing + `ClaudeDiagnostics.RecordUsage` |
+| `Api/Features/Onboarding/Services/OnboardingChatService.cs` | Add streaming token parsing + `ClaudeDiagnostics.RecordUsage` |
+| `DataServices/Onboarding/ProfileScraperService.cs` | Add token parsing + `ClaudeDiagnostics.RecordUsage` |
+| `Domain/Cma/CmaDiagnostics.cs` | Add `cma.llm_tokens.input`, `cma.llm_tokens.output`, `cma.llm_cost_usd` |
+| `Domain/HomeSearch/HomeSearchDiagnostics.cs` | Add `home_search.llm_tokens.input`, `home_search.llm_tokens.output` |
+| `Domain/Onboarding/OnboardingDiagnostics.cs` | Add `onboarding.llm_tokens.input`, `onboarding.llm_tokens.output` |
 | `Api/Program.cs` | Read source URLs from config, pass to constructors, dynamic CompSource registration with TryParse |
 | `Api/appsettings.json` | Add `CircuitBreakerResetSeconds`, update HomeSearch source URLs to include filter placeholders |
-| `Api/Diagnostics/OpenTelemetryExtensions.cs` | Register WhatsAppDiagnostics source + meter |
-
-### New Files
-| File | Purpose |
-|------|---------|
-| `infra/grafana/real-estate-star-api-dashboard.json` | Full-system Grafana dashboard (importable JSON) |
+| `Api/Diagnostics/OpenTelemetryExtensions.cs` | Register WhatsAppDiagnostics + ClaudeDiagnostics source + meter |
 
 ---
 
@@ -514,4 +664,4 @@ block-beta
 - **Alerting rules** — Grafana alerting is a separate concern; dashboard provides visibility first
 - **Dashboard provisioning automation** — JSON import is sufficient for now
 - **Polly circuit breaker metrics** — Polly uses structured logging, not OTel; converting would be a larger effort
-- **Claude API cost tracking per-pipeline** — Currently only LeadDiagnostics tracks tokens; CMA and HomeSearch Claude calls don't emit token counters yet
+- **Shared Anthropic client extraction** — `OnboardingChatService` has a TODO (`LOW-6`) to extract a shared client; this spec instruments the existing callers without refactoring them
