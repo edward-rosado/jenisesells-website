@@ -44,6 +44,6 @@ export async function signRequest(agentId: string, body: string): Promise<{
 }
 
 /** Get the API base URL from environment. */
-export function getApiUrl(): string {
+export async function getApiUrl(): Promise<string> {
   return process.env.LEAD_API_URL!;
 }

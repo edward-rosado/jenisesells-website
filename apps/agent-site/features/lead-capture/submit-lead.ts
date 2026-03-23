@@ -46,7 +46,7 @@ export async function submitLead(
   try {
     const { headers, signal, cleanup: c } = await signRequest(agentId, body);
     cleanup = c;
-    const client = createApiClient(getApiUrl());
+    const client = createApiClient(await getApiUrl());
     const { data, error, response } = await client.POST("/agents/{agentId}/leads", {
       params: { path: { agentId } },
       body: toApiPayload(formData),

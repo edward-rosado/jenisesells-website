@@ -16,7 +16,7 @@ vi.mock("@/features/shared/hmac", () => ({
     signal: new AbortController().signal,
     cleanup: vi.fn(),
   }),
-  getApiUrl: () => "http://test-api",
+  getApiUrl: async () => "http://test-api",
 }));
 
 vi.mock("@sentry/nextjs", () => ({

@@ -13,7 +13,7 @@ export async function requestOptOut(
   try {
     const { headers, signal, cleanup: c } = await signRequest(agentId, body);
     cleanup = c;
-    const client = createApiClient(getApiUrl());
+    const client = createApiClient(await getApiUrl());
     const { error, response } = await client.POST("/agents/{agentId}/leads/opt-out", {
       params: { path: { agentId } },
       body: { email, token },
@@ -38,7 +38,7 @@ export async function requestDeletion(
   try {
     const { headers, signal, cleanup: c } = await signRequest(agentId, body);
     cleanup = c;
-    const client = createApiClient(getApiUrl());
+    const client = createApiClient(await getApiUrl());
     const { error, response } = await client.POST("/agents/{agentId}/leads/request-deletion", {
       params: { path: { agentId } },
       body: { email },
@@ -95,7 +95,7 @@ export async function requestExport(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15_000);
   try {
-    const client = createApiClient(getApiUrl());
+    const client = createApiClient(await getApiUrl());
     const { data, error, response } = await client.GET("/agents/{agentId}/leads/export", {
       params: { path: { agentId }, query: { email } },
       headers: {
@@ -125,7 +125,7 @@ export async function requestSubscribe(
   try {
     const { headers, signal, cleanup: c } = await signRequest(agentId, body);
     cleanup = c;
-    const client = createApiClient(getApiUrl());
+    const client = createApiClient(await getApiUrl());
     const { error, response } = await client.POST("/agents/{agentId}/leads/subscribe", {
       params: { path: { agentId } },
       body: { email, token },
