@@ -667,18 +667,32 @@ app.MapOpenApi();
 app.MapEndpoints();
 
 // CLI: dotnet run -- --export-openapi [path]
-// Generates the OpenAPI spec JSON and exits without starting the HTTP server.
-if (args.Contains("--export-openapi"))
+// Starts the server briefly, fetches the OpenAPI spec, writes to file, and exits.
+if (isOpenApiExport)
 {
     var outputPath = args.SkipWhile(a => a != "--export-openapi").Skip(1).FirstOrDefault()
         ?? "openapi.json";
-    var documentProvider = app.Services.GetRequiredService<Microsoft.AspNetCore.OpenApi.IOpenApiDocumentProvider>();
-    var document = await documentProvider.GetOpenApiDocumentAsync(CancellationToken.None);
-    var json = System.Text.Json.JsonSerializer.Serialize(document,
-        new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-    await File.WriteAllTextAsync(outputPath, json);
-    Console.WriteLine($"OpenAPI spec written to {Path.GetFullPath(outputPath)}");
-    return;
+    _ = app.RunAsync();
+    using var http = new HttpClient();
+    var addresses = app.Urls.FirstOrDefault() ?? "http://localhost:5135";
+    var specUrl = $"{addresses}/openapi/v1.json";
+    // Wait briefly for the server to start
+    for (var i = 0; i < 10; i++)
+    {
+        try
+        {
+            var spec = await http.GetStringAsync(specUrl);
+            await File.WriteAllTextAsync(outputPath, spec);
+            Console.WriteLine($"OpenAPI spec written to {Path.GetFullPath(outputPath)}");
+            return;
+        }
+        catch (HttpRequestException)
+        {
+            await Task.Delay(500);
+        }
+    }
+    Console.Error.WriteLine("Failed to fetch OpenAPI spec after retries");
+    Environment.Exit(1);
 }
 
 app.Run();
