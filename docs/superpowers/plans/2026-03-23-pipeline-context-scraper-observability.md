@@ -363,16 +363,23 @@ public abstract class PipelineWorker<TRequest, TContext>(
         await foreach (var request in channel.Reader.ReadAllAsync(stoppingToken))
         {
             var ctx = CreateContext(request);
+            ctx.PipelineStartedAt = DateTime.UtcNow;
             try
             {
                 await ProcessAsync(ctx, stoppingToken);
+                ctx.PipelineCompletedAt = DateTime.UtcNow;
                 healthTracker.RecordActivity(WorkerName);
+
+                logger.LogInformation(
+                    "[{Worker}-010] Pipeline complete. Duration: {DurationMs}ms. Steps: {StepSummary}. CorrelationId: {CorrelationId}",
+                    WorkerName, ctx.PipelineDurationMs, FormatStepSummary(ctx), ctx.CorrelationId);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                ctx.PipelineCompletedAt = DateTime.UtcNow;
                 logger.LogError(ex,
-                    "[{Worker}-002] Unhandled error. CorrelationId: {CorrelationId}",
-                    WorkerName, ctx.CorrelationId);
+                    "[{Worker}-002] Unhandled error after {DurationMs}ms. Steps: {StepSummary}. CorrelationId: {CorrelationId}",
+                    WorkerName, ctx.PipelineDurationMs, FormatStepSummary(ctx), ctx.CorrelationId);
             }
         }
 
@@ -381,31 +388,62 @@ public abstract class PipelineWorker<TRequest, TContext>(
 
     /// <summary>
     /// Run a named step only if it hasn't already completed (checkpoint/resume).
-    /// Updates context step status on success/failure.
+    /// Tracks start/end time, updates context step status.
+    /// For partially completed steps, the step's action checks ctx.HasCompletedSubStep()
+    /// to skip sub-work that was already done.
     /// </summary>
     protected async Task RunStepAsync(TContext ctx, string stepName, Func<Task> action, CancellationToken ct)
     {
-        if (ctx.HasCompleted(stepName))
+        var step = ctx.GetOrCreateStep(stepName);
+
+        if (step.Status == PipelineStepStatus.Completed)
         {
-            logger.LogInformation("[{Worker}] Skipping step '{Step}' — already completed. CorrelationId: {CorrelationId}",
-                WorkerName, stepName, ctx.CorrelationId);
+            logger.LogInformation("[{Worker}] Skipping '{Step}' — already completed ({DurationMs}ms). CorrelationId: {CorrelationId}",
+                WorkerName, stepName, step.DurationMs, ctx.CorrelationId);
             return;
         }
+
+        // PartiallyCompleted or Pending — run the step (action checks sub-steps internally)
+        if (step.Status == PipelineStepStatus.PartiallyCompleted)
+        {
+            logger.LogInformation("[{Worker}] Resuming '{Step}' — partially completed ({SubSteps} sub-steps done). CorrelationId: {CorrelationId}",
+                WorkerName, stepName, step.CompletedSubSteps.Count, ctx.CorrelationId);
+        }
+
+        step.StartedAt ??= DateTime.UtcNow; // preserve original start on resume
+        step.Status = PipelineStepStatus.InProgress;
 
         try
         {
             await action();
-            ctx.MarkCompleted(stepName);
+            step.Status = PipelineStepStatus.Completed;
+            step.CompletedAt = DateTime.UtcNow;
+
+            logger.LogInformation("[{Worker}] Step '{Step}' completed in {DurationMs}ms. CorrelationId: {CorrelationId}",
+                WorkerName, stepName, step.DurationMs, ctx.CorrelationId);
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
-            ctx.MarkFailed(stepName);
-            logger.LogError(ex, "[{Worker}] Step '{Step}' failed. CorrelationId: {CorrelationId}",
-                WorkerName, stepName, ctx.CorrelationId);
+            step.Status = step.CompletedSubSteps.Count > 0
+                ? PipelineStepStatus.PartiallyCompleted
+                : PipelineStepStatus.Failed;
+            step.CompletedAt = DateTime.UtcNow;
+            step.Error = ex.Message;
+
+            logger.LogError(ex, "[{Worker}] Step '{Step}' {Status} after {DurationMs}ms. SubSteps done: {SubSteps}. CorrelationId: {CorrelationId}",
+                WorkerName, stepName, step.Status, step.DurationMs, string.Join(",", step.CompletedSubSteps), ctx.CorrelationId);
             throw;
         }
     }
+
+    /// <summary>
+    /// Format step summary for pipeline completion log.
+    /// e.g. "enrich:Completed(23401ms), draft-email:Completed(12ms), notify:Failed(90123ms)"
+    /// </summary>
+    private static string FormatStepSummary(TContext ctx) =>
+        string.Join(", ", ctx.Steps.Values.Select(s =>
+            $"{s.Name}:{s.Status}({s.DurationMs?.ToString("F0") ?? "?"}ms)"));
 }
 ```
 
@@ -423,13 +461,27 @@ namespace RealEstateStar.Workers.Shared.Context;
 
 /// <summary>
 /// Non-generic base so PipelineWorker can reference without knowing TRequest.
+/// Tracks pipeline-level timing and per-step timing/status.
 /// </summary>
 public abstract class PipelineContext
 {
     public required string AgentId { get; init; }
     public required string CorrelationId { get; init; }
+
+    // Pipeline-level timing
+    public DateTime? PipelineStartedAt { get; set; }
+    public DateTime? PipelineCompletedAt { get; set; }
+    public double? PipelineDurationMs => PipelineStartedAt.HasValue && PipelineCompletedAt.HasValue
+        ? (PipelineCompletedAt.Value - PipelineStartedAt.Value).TotalMilliseconds
+        : null;
+
+    // Per-step tracking (ordered by insertion)
+    public Dictionary<string, StepRecord> Steps { get; } = new();
+
+    // Intermediate data — accumulated as steps complete
     public Dictionary<string, object> Data { get; } = new();
-    public Dictionary<string, PipelineStepStatus> StepResults { get; } = new();
+
+    // --- Data accessors ---
 
     public T? Get<T>(string key) where T : class =>
         Data.TryGetValue(key, out var value) ? value as T : null;
@@ -437,17 +489,40 @@ public abstract class PipelineContext
     public void Set<T>(string key, T value) where T : class =>
         Data[key] = value;
 
+    // --- Step tracking ---
+
+    public StepRecord GetOrCreateStep(string stepName)
+    {
+        if (!Steps.TryGetValue(stepName, out var record))
+        {
+            record = new StepRecord { Name = stepName };
+            Steps[stepName] = record;
+        }
+        return record;
+    }
+
     public bool HasCompleted(string stepName) =>
-        StepResults.TryGetValue(stepName, out var status) && status == PipelineStepStatus.Completed;
+        Steps.TryGetValue(stepName, out var s) && s.Status == PipelineStepStatus.Completed;
 
-    public void MarkCompleted(string stepName) =>
-        StepResults[stepName] = PipelineStepStatus.Completed;
+    public bool HasPartiallyCompleted(string stepName) =>
+        Steps.TryGetValue(stepName, out var s) && s.Status == PipelineStepStatus.PartiallyCompleted;
 
-    public void MarkFailed(string stepName) =>
-        StepResults[stepName] = PipelineStepStatus.Failed;
+    /// <summary>
+    /// Check if a specific sub-step within a step has been done.
+    /// Used for partial completion — e.g., "enrich" step has sub-steps
+    /// "scrape-google", "call-claude", "save-file". On retry, skip the
+    /// sub-steps that already completed.
+    /// </summary>
+    public bool HasCompletedSubStep(string stepName, string subStepName) =>
+        Steps.TryGetValue(stepName, out var s) && s.CompletedSubSteps.Contains(subStepName);
 
-    public void MarkSkipped(string stepName) =>
-        StepResults[stepName] = PipelineStepStatus.Skipped;
+    public void MarkSubStepCompleted(string stepName, string subStepName)
+    {
+        var step = GetOrCreateStep(stepName);
+        step.CompletedSubSteps.Add(subStepName);
+        if (step.Status == PipelineStepStatus.Pending)
+            step.Status = PipelineStepStatus.InProgress;
+    }
 }
 
 /// <summary>
@@ -463,7 +538,30 @@ public abstract class PipelineContext<TRequest> : PipelineContext
 // Workers.Shared/Context/PipelineStepStatus.cs
 namespace RealEstateStar.Workers.Shared.Context;
 
-public enum PipelineStepStatus { Pending, Completed, Failed, Skipped }
+public enum PipelineStepStatus { Pending, InProgress, PartiallyCompleted, Completed, Failed, Skipped }
+```
+
+```csharp
+// Workers.Shared/Context/StepRecord.cs
+namespace RealEstateStar.Workers.Shared.Context;
+
+/// <summary>
+/// Tracks timing and completion state for a single pipeline step.
+/// PartiallyCompleted means the step started, did some sub-work (saved in context),
+/// but didn't finish. On retry, the step checks context for what was already done.
+/// </summary>
+public class StepRecord
+{
+    public required string Name { get; init; }
+    public PipelineStepStatus Status { get; set; } = PipelineStepStatus.Pending;
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+    public double? DurationMs => StartedAt.HasValue && CompletedAt.HasValue
+        ? (CompletedAt.Value - StartedAt.Value).TotalMilliseconds
+        : null;
+    public string? Error { get; set; }
+    public HashSet<string> CompletedSubSteps { get; } = [];
+}
 ```
 
 - [ ] **Step 2: Commit**
@@ -634,15 +732,37 @@ public sealed class LeadProcessingWorker(
 
     private async Task EnrichAsync(LeadPipelineContext ctx, CancellationToken ct)
     {
-        // Check checkpoint file
-        var (enrichment, score) = await enricher.EnrichAsync(ctx.Request, ct);
-        ctx.Enrichment = enrichment;
-        ctx.Score = score;
-        await leadStore.UpdateEnrichmentAsync(ctx.Request, enrichment, score, ct);
+        // Sub-step: scrape (expensive — check if already done)
+        if (!ctx.HasCompletedSubStep("enrich", "scrape"))
+        {
+            var (enrichment, score) = await enricher.EnrichAsync(ctx.Request, ct);
+            ctx.Enrichment = enrichment;
+            ctx.Score = score;
+            ctx.MarkSubStepCompleted("enrich", "scrape");
+        }
+
+        // Sub-step: save to disk (idempotent but tracked)
+        if (!ctx.HasCompletedSubStep("enrich", "save"))
+        {
+            await leadStore.UpdateEnrichmentAsync(ctx.Request, ctx.Enrichment!, ctx.Score!, ct);
+            ctx.MarkSubStepCompleted("enrich", "save");
+        }
     }
 
-    private async Task DraftEmailAsync(LeadPipelineContext ctx, CancellationToken ct) { /* ... */ }
-    private async Task NotifyAsync(LeadPipelineContext ctx, CancellationToken ct) { /* ... */ }
+    private async Task DraftEmailAsync(LeadPipelineContext ctx, CancellationToken ct)
+    {
+        var subject = notifier.BuildSubject(ctx.Request, ctx.Enrichment!, ctx.Score!);
+        var body = notifier.BuildBody(ctx.Request, ctx.Enrichment!, ctx.Score!);
+        ctx.EmailDraftSubject = subject;
+        ctx.EmailDraftBody = body;
+        // Save draft to disk...
+    }
+
+    private async Task NotifyAsync(LeadPipelineContext ctx, CancellationToken ct)
+    {
+        // Uses ctx.EmailDraftSubject/Body — already built, no regeneration
+        await notifier.NotifyAgentAsync(ctx.AgentId, ctx.Request, ctx.Enrichment!, ctx.Score!, ct);
+    }
 }
 ```
 
