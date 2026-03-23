@@ -69,10 +69,7 @@ function mockResponse(body: unknown, ok = true, status = 200) {
   return {
     ok,
     status,
-    headers: { get: vi.fn().mockImplementation((name: string) => name.toLowerCase() === "content-type" ? "application/json" : null) },
     json: async () => body,
-    text: async () => JSON.stringify(body),
-    clone: function () { return this; },
   };
 }
 

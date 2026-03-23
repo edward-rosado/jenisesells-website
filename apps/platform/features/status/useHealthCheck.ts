@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { createApiClient } from "@real-estate-star/api-client";
+import { createCorrelationId } from "@real-estate-star/domain";
 
 export interface HealthEntry {
   status: "Healthy" | "Degraded" | "Unhealthy";
@@ -40,22 +40,21 @@ export function useHealthCheck(apiUrl: string): HealthState {
 
   const doFetch = useCallback(async () => {
     try {
-      const client = createApiClient(apiUrl);
-      const { data, error, response } = await client.GET("/health/ready", {
-        init: { cache: "no-store" },
+      const res = await fetch(`${apiUrl}/health/ready`, {
+        cache: "no-store",
+        headers: { "X-Correlation-ID": createCorrelationId() },
       });
-      if (error || !response.ok) {
+      if (!res.ok) {
         const sample: UptimeSample = { time: new Date(), status: "Error" };
         historyRef.current = [...historyRef.current, sample].slice(-MAX_HISTORY);
-        /* v8 ignore next -- response is always defined when openapi-fetch returns; defensive fallback */
-        setState({ current: null, error: `API returned ${response?.status ?? "unknown"}`, loading: false, history: historyRef.current });
+        setState({ current: null, error: `API returned ${res.status}`, loading: false, history: historyRef.current });
         return;
       }
-      const typedData = data as HealthResponse;
-      const sample: UptimeSample = { time: new Date(), status: typedData.status };
+      const data: HealthResponse = await res.json();
+      const sample: UptimeSample = { time: new Date(), status: data.status };
       historyRef.current = [...historyRef.current, sample].slice(-MAX_HISTORY);
       setState({
-        current: typedData,
+        current: data,
         error: null,
         loading: false,
         history: historyRef.current,
