@@ -5,7 +5,7 @@ import { createApiClient } from "@real-estate-star/api-client";
 import { validateTurnstile } from "./turnstile";
 import { signRequest, getApiUrl } from "../shared/hmac";
 
-function mapLeadType(leadTypes: string[]): string {
+function mapLeadType(leadTypes: string[]): "Buyer" | "Seller" | "Both" {
   const buying = leadTypes.includes("buying");
   const selling = leadTypes.includes("selling");
   if (buying && selling) return "Both";
@@ -49,7 +49,9 @@ export async function submitLead(
     const client = createApiClient(await getApiUrl());
     const { data, error, response } = await client.POST("/agents/{agentId}/leads", {
       params: { path: { agentId } },
-      body: toApiPayload(formData),
+      // Domain types are structurally compatible but not identical to generated API types
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      body: toApiPayload(formData) as any,
       headers,
       init: { signal },
     });
