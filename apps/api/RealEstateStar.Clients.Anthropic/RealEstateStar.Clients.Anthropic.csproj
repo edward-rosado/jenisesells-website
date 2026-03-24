@@ -8,6 +8,10 @@
     <InternalsVisibleTo Include="RealEstateStar.Clients.Anthropic.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />
   </ItemGroup>
 </Project>
