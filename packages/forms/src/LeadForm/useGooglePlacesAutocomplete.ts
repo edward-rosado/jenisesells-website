@@ -250,7 +250,7 @@ export function useGooglePlacesAutocomplete({
       const request: any = {
         input: query,
         includedRegionCodes: ["us"],
-        includedPrimaryTypes: ["address"],
+        includedPrimaryTypes: ["street_address"],
         sessionToken: sessionTokenRef.current,
       };
 
