@@ -1,5 +1,6 @@
 {
   "handle": "test-broker-agent",
+  "accountId": "test-broker-agent",
   "template": "luxury-estate",
   "branding": {
     "primary_color": "#2c3e50",
@@ -22,6 +23,9 @@
   },
   "location": {
     "state": "NJ",
-    "service_areas": ["Newark", "Montclair"]
+    "service_areas": [
+      "Newark",
+      "Montclair"
+    ]
   }
 }

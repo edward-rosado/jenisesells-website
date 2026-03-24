@@ -1,5 +1,6 @@
 {
   "handle": "test-light-luxury",
+  "accountId": "test-light-luxury",
   "template": "light-luxury",
   "branding": {
     "primary_color": "#2c2c2c",

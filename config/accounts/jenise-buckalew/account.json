@@ -1,5 +1,6 @@
 {
   "handle": "jenise-buckalew",
+  "accountId": "jenise-buckalew",
   "template": "emerald-classic",
   "branding": {
     "primary_color": "#1B5E20",
@@ -18,7 +19,7 @@
     "enabled": true,
     "id": "jenise-buckalew",
     "name": "Jenise Buckalew",
-    "title": "REALTOR®",
+    "title": "REALTOR\u00c2\u00ae",
     "phone": "(347) 393-5993",
     "email": "jenisesellsnj@gmail.com",
     "headshot_url": "/agents/jenise-buckalew/headshot.jpg",

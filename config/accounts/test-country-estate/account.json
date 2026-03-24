@@ -1,5 +1,6 @@
 {
   "handle": "test-country-estate",
+  "accountId": "test-country-estate",
   "template": "country-estate",
   "branding": {
     "primary_color": "#3e2723",
