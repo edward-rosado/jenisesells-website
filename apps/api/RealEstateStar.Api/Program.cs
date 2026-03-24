@@ -34,6 +34,9 @@ using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.WhatsApp;
 using RealEstateStar.Clients.Anthropic;
 using RealEstateStar.Clients.Azure;
+using RealEstateStar.Clients.GDocs;
+using RealEstateStar.Clients.GDrive;
+using RealEstateStar.Clients.GSheets;
 using RealEstateStar.Clients.Gmail;
 using RealEstateStar.Clients.GoogleOAuth;
 using RealEstateStar.Clients.Gws;
@@ -309,6 +312,11 @@ builder.Services.AddSingleton<IOAuthRefresher>(sp =>
         sp.GetRequiredService<ILogger<GoogleOAuthRefresher>>());
 });
 builder.Services.AddGmailSender();
+
+// Google Drive, Docs, Sheets API clients — all backed by IOAuthRefresher
+builder.Services.AddGDriveClient();
+builder.Services.AddGDocsClient();
+builder.Services.AddGSheetsClient();
 
 // Scraper client — centralized with OTel, circuit breaker, rate limiting
 builder.Services.Configure<ScraperOptions>(builder.Configuration.GetSection("Scraper"));
@@ -697,6 +705,9 @@ app.MapOpenApi();
 
 // --- All Endpoints ---
 app.MapEndpoints();
+
+// Agent transfer — placeholder until inter-agent handoff is implemented
+app.MapPost("/internal/agents/{agentId}/transfer", () => Results.StatusCode(501));
 
 // CLI: dotnet run -- --export-openapi [path]
 // Starts the server briefly, fetches the OpenAPI spec, writes to file, and exits.
