@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ChatWindow } from "@/features/onboarding/ChatWindow";
-import { api } from "@/lib/api";
+import { getApi } from "@/lib/api";
 
 const COMING_SOON = process.env.NEXT_PUBLIC_COMING_SOON === "true";
 
@@ -51,7 +51,7 @@ function OnboardContent() {
 
     async function verifyPayment() {
       try {
-        const { data, error } = await api.GET("/onboard/{sessionId}", {
+        const { data, error } = await getApi().GET("/onboard/{sessionId}", {
           params: { path: { sessionId: sessionIdParam! } },
         });
         if (error) throw new Error("Failed to verify payment");
@@ -68,7 +68,7 @@ function OnboardContent() {
 
     async function createSession() {
       try {
-        const { data, error } = await api.POST("/onboard", {
+        const { data, error } = await getApi().POST("/onboard", {
           body: { profileUrl },
         });
         if (error) throw new Error("Failed to create session");
