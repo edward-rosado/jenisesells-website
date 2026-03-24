@@ -94,6 +94,23 @@ public class AnthropicClientTests
             .WithMessage("*500*");
     }
 
+    [Theory]
+    [InlineData("{\"content\": [], \"usage\": {\"input_tokens\": 10, \"output_tokens\": 5}}")]
+    [InlineData("{\"invalid\": true}")]
+    public async Task SendAsync_ThrowsOnMalformedResponse(string malformedJson)
+    {
+        var (client, handler) = BuildClient();
+        handler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(malformedJson, Encoding.UTF8, "application/json")
+        };
+
+        var act = async () => await client.SendAsync(TestModel, "system", "user", 100, TestPipeline, CancellationToken.None);
+
+        // [CLAUDE-030] parse error path — should throw on malformed/missing content[0].text
+        await act.Should().ThrowAsync<Exception>();
+    }
+
     [Fact]
     public async Task SendAsync_ThrowsOnTimeout()
     {

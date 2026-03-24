@@ -4,6 +4,7 @@ using Moq;
 using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.ConnectGoogle;
 using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.Domain.Shared.Models;
 using Xunit;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.ConnectGoogle;
@@ -27,14 +28,14 @@ public class GoogleOAuthCallbackEndpointTests
             NullLogger<GoogleOAuthService>.Instance);
     }
 
-    private static GoogleTokens MakeTokens(string email = "agent@gmail.com", string name = "Jane Doe") => new()
+    private static OAuthCredential MakeTokens(string email = "agent@gmail.com", string name = "Jane Doe") => new()
     {
         AccessToken = "ya29.test",
         RefreshToken = "1//test",
         ExpiresAt = DateTime.UtcNow.AddHours(1),
         Scopes = ["gmail.send"],
-        GoogleEmail = email,
-        GoogleName = name,
+        Email = email,
+        Name = name,
     };
 
     private OnboardingSession MakeSession(string? profileEmail = null)
@@ -64,7 +65,7 @@ public class GoogleOAuthCallbackEndpointTests
             _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
 
         Assert.NotNull(session.GoogleTokens);
-        Assert.Equal("agent@gmail.com", session.GoogleTokens.GoogleEmail);
+        Assert.Equal("agent@gmail.com", session.GoogleTokens.Email);
         Assert.Equal(OnboardingState.DemoCma, session.CurrentState);
         _mockStore.Verify(s => s.SaveAsync(session, It.IsAny<CancellationToken>()), Times.Once);
     }

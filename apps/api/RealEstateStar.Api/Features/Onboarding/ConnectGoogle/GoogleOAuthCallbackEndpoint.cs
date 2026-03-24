@@ -62,11 +62,11 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
             var tokens = await oAuthService.ExchangeCodeAsync(code, ct);
 
             // SEC-6: Cross-validate Google email against scraped profile email
-            if (!IsEmailMatch(session.Profile?.Email, tokens.GoogleEmail))
+            if (!IsEmailMatch(session.Profile?.Email, tokens.Email))
             {
                 logger.LogWarning("[OAUTH-011] Google email mismatch for session {SessionId}. " +
                     "ProfileEmailHash={ProfileHash}, GoogleEmailHash={GoogleHash}",
-                    sessionId, HashEmail(session.Profile?.Email), HashEmail(tokens.GoogleEmail));
+                    sessionId, HashEmail(session.Profile?.Email), HashEmail(tokens.Email));
                 await sessionStore.SaveAsync(session, ct);
                 return Results.Content(
                     BuildCallbackHtml(false,
@@ -80,7 +80,7 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
             await sessionStore.SaveAsync(session, ct);
 
             return Results.Content(
-                BuildCallbackHtml(true, $"Connected as {tokens.GoogleName} ({tokens.GoogleEmail})", platformOrigin),
+                BuildCallbackHtml(true, $"Connected as {tokens.Name} ({tokens.Email})", platformOrigin),
                 "text/html");
         }
         catch (InvalidOperationException ex)

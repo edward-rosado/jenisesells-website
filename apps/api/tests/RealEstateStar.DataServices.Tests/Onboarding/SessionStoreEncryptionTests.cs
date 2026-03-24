@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging.Abstractions;
+using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.DataServices.Tests.Onboarding;
 
@@ -31,14 +32,14 @@ public class SessionStoreEncryptionTests : IDisposable
     private static OnboardingSession CreateSessionWithTokens()
     {
         var session = OnboardingSession.Create(null);
-        session.GoogleTokens = new GoogleTokens
+        session.GoogleTokens = new OAuthCredential
         {
             AccessToken = "test-access-token-12345",
             RefreshToken = "test-refresh-token-67890",
             ExpiresAt = DateTime.UtcNow.AddHours(1),
             Scopes = ["email", "drive"],
-            GoogleEmail = "test@gmail.com",
-            GoogleName = "Test User",
+            Email = "test@gmail.com",
+            Name = "Test User",
         };
         return session;
     }
@@ -185,7 +186,7 @@ public class SessionStoreEncryptionTests : IDisposable
         Assert.Equal(OnboardingState.ConnectGoogle, loaded!.CurrentState);
         Assert.Single(loaded.Messages);
         Assert.Equal("test message", loaded.Messages[0].Content);
-        Assert.Equal("test@gmail.com", loaded.GoogleTokens!.GoogleEmail);
+        Assert.Equal("test@gmail.com", loaded.GoogleTokens!.Email);
         Assert.Equal(["email", "drive"], loaded.GoogleTokens.Scopes);
     }
 }

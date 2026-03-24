@@ -5,6 +5,7 @@ using Moq;
 using Moq.Protected;
 using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.Domain.Shared.Models;
 using Xunit;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.Services;
@@ -89,8 +90,8 @@ public class GoogleOAuthServiceTests
 
         Assert.Equal("ya29.test-access", tokens.AccessToken);
         Assert.Equal("1//test-refresh", tokens.RefreshToken);
-        Assert.Equal("agent@gmail.com", tokens.GoogleEmail);
-        Assert.Equal("Jane Doe", tokens.GoogleName);
+        Assert.Equal("agent@gmail.com", tokens.Email);
+        Assert.Equal("Jane Doe", tokens.Name);
         Assert.False(tokens.IsExpired);
     }
 
@@ -141,20 +142,20 @@ public class GoogleOAuthServiceTests
         var factory = CreateFactory(handler);
         var service = new GoogleOAuthService(factory, ClientId, ClientSecret, RedirectUri, NullLogger<GoogleOAuthService>.Instance);
 
-        var tokens = new GoogleTokens
+        var tokens = new OAuthCredential
         {
             AccessToken = "ya29.old-access",
             RefreshToken = "1//test-refresh",
             ExpiresAt = DateTime.UtcNow.AddMinutes(-10),
             Scopes = ["gmail.send"],
-            GoogleEmail = "agent@gmail.com",
-            GoogleName = "Jane Doe",
+            Email = "agent@gmail.com",
+            Name = "Jane Doe",
         };
 
-        await service.RefreshAccessTokenAsync(tokens, CancellationToken.None);
+        var refreshed = await service.RefreshAccessTokenAsync(tokens, CancellationToken.None);
 
-        Assert.Equal("ya29.new-access", tokens.AccessToken);
-        Assert.False(tokens.IsExpired);
+        Assert.Equal("ya29.new-access", refreshed.AccessToken);
+        Assert.False(refreshed.IsExpired);
     }
 
     [Fact]
@@ -218,14 +219,14 @@ public class GoogleOAuthServiceTests
         var factory = CreateFactory(handler);
         var service = new GoogleOAuthService(factory, ClientId, ClientSecret, RedirectUri, NullLogger<GoogleOAuthService>.Instance);
 
-        var tokens = new GoogleTokens
+        var tokens = new OAuthCredential
         {
             AccessToken = "ya29.old",
             RefreshToken = "1//bad-refresh",
             ExpiresAt = DateTime.UtcNow.AddMinutes(-10),
             Scopes = ["gmail.send"],
-            GoogleEmail = "agent@gmail.com",
-            GoogleName = "Jane Doe",
+            Email = "agent@gmail.com",
+            Name = "Jane Doe",
         };
 
         await Assert.ThrowsAsync<InvalidOperationException>(

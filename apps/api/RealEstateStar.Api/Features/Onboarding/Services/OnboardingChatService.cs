@@ -513,7 +513,7 @@ public class OnboardingChatService(
         if (session.GoogleTokens is not null)
         {
             sb.AppendLine();
-            sb.AppendLine($"Google connected: {session.GoogleTokens.GoogleName} ({session.GoogleTokens.GoogleEmail})");
+            sb.AppendLine($"Google connected: {session.GoogleTokens.Name} ({session.GoogleTokens.Email})");
         }
 
         if (session.SiteUrl is not null)

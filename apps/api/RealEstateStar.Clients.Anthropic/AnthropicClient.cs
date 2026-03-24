@@ -100,8 +100,9 @@ internal sealed class AnthropicClient(
                 pipeline, model);
             throw;
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
+            logger.LogError(ex, "[CLAUDE-010] API error for {Pipeline}: {Message}", pipeline, ex.Message);
             ClaudeDiagnostics.RecordFailure(pipeline, model);
             throw;
         }
