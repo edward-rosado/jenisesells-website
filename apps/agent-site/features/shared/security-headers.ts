@@ -7,6 +7,7 @@ export function applySecurityHeaders(response: NextResponse): void {
     "Strict-Transport-Security",
     "max-age=63072000; includeSubDomains",
   );
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 }
 
 const SAFE_HTTPS_URL = /^https:\/\/[a-zA-Z0-9._:-]+$/;
