@@ -52,6 +52,11 @@ jobs:
           --results-directory apps/api/coverage
           --logger "console;verbosity=minimal"
 
+      - name: Verify Docker build
+        run: |
+          cp -r config/accounts apps/api/config-accounts
+          docker build -f apps/api/Dockerfile apps/api
+
       - name: Export OpenAPI spec
         env:
           ASPNETCORE_ENVIRONMENT: OpenApiExport
