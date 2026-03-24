@@ -5,6 +5,8 @@ using System.Web;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.DataServices.Onboarding;
 using RealEstateStar.Api.Infrastructure;
+using RealEstateStar.Domain.Shared;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Api.Features.Onboarding.ConnectGoogle;
 
@@ -22,6 +24,7 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
         ISessionStore sessionStore,
         GoogleOAuthService oAuthService,
         OnboardingStateMachine stateMachine,
+        ITokenStore tokenStore,
         IConfiguration configuration,
         ILogger<GoogleOAuthCallbackEndpoint> logger,
         CancellationToken ct)
@@ -77,6 +80,23 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
 
             session.GoogleTokens = tokens;
             stateMachine.Advance(session, OnboardingState.DemoCma);
+
+            // Persist to durable token store for future API calls (GDrive, Gmail, etc.)
+            // AgentConfigId is the agent identifier; single-agent brokerages use agentId as accountId
+            var agentId = session.AgentConfigId;
+            if (agentId is not null)
+            {
+                var accountId = agentId; // single-agent: accountId == agentId
+                await tokenStore.SaveAsync(
+                    tokens with { AccountId = accountId, AgentId = agentId },
+                    ct);
+                logger.LogInformation("[OAUTH-013] Persisted OAuth tokens to token store for agent {AgentId}", agentId);
+            }
+            else
+            {
+                logger.LogWarning("[OAUTH-014] AgentConfigId not set on session {SessionId} — skipping token store persist", sessionId);
+            }
+
             await sessionStore.SaveAsync(session, ct);
 
             return Results.Content(

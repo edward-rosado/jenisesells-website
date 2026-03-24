@@ -4,6 +4,7 @@ using Moq;
 using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.ConnectGoogle;
 using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Shared.Models;
 using Xunit;
 
@@ -13,6 +14,7 @@ public class GoogleOAuthCallbackEndpointTests
 {
     private readonly Mock<ISessionStore> _mockStore = new();
     private readonly Mock<GoogleOAuthService> _mockOAuth;
+    private readonly Mock<ITokenStore> _mockTokenStore = new();
     private readonly OnboardingStateMachine _sm = new();
     private readonly IConfiguration _configuration = new ConfigurationBuilder()
         .AddInMemoryCollection(new Dictionary<string, string?> { ["Platform:BaseUrl"] = "http://localhost:3000" })
@@ -26,6 +28,8 @@ public class GoogleOAuthCallbackEndpointTests
         _mockOAuth = new Mock<GoogleOAuthService>(
             factoryMock.Object, "client-id", "client-secret", "http://localhost:5000/oauth/google/callback",
             NullLogger<GoogleOAuthService>.Instance);
+        _mockTokenStore.Setup(t => t.SaveAsync(It.IsAny<OAuthCredential>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
     }
 
     private static OAuthCredential MakeTokens(string email = "agent@gmail.com", string name = "Jane Doe") => new()
@@ -38,13 +42,15 @@ public class GoogleOAuthCallbackEndpointTests
         Name = name,
     };
 
-    private OnboardingSession MakeSession(string? profileEmail = null)
+    private OnboardingSession MakeSession(string? profileEmail = null, string? agentConfigId = null)
     {
         var session = OnboardingSession.Create(null);
         session.CurrentState = OnboardingState.ConnectGoogle;
         session.OAuthNonce = "test-nonce";
         if (profileEmail is not null)
             session.Profile = new ScrapedProfile { Email = profileEmail };
+        if (agentConfigId is not null)
+            session.AgentConfigId = agentConfigId;
         _mockStore.Setup(s => s.LoadAsync(session.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(session);
         _mockStore.Setup(s => s.SaveAsync(session, It.IsAny<CancellationToken>()))
@@ -62,7 +68,7 @@ public class GoogleOAuthCallbackEndpointTests
 
         var result = await GoogleOAuthCallbackEndpoint.Handle(
             "auth-code", $"{session.Id}:test-nonce", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
 
         Assert.NotNull(session.GoogleTokens);
         Assert.Equal("agent@gmail.com", session.GoogleTokens.Email);
@@ -80,7 +86,7 @@ public class GoogleOAuthCallbackEndpointTests
 
         await GoogleOAuthCallbackEndpoint.Handle(
             "auth-code", $"{session.Id}:test-nonce", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
 
         Assert.Equal(OnboardingState.DemoCma, session.CurrentState);
         Assert.NotNull(session.GoogleTokens);
@@ -96,7 +102,7 @@ public class GoogleOAuthCallbackEndpointTests
 
         await GoogleOAuthCallbackEndpoint.Handle(
             "auth-code", $"{session.Id}:test-nonce", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
 
         Assert.Equal(OnboardingState.DemoCma, session.CurrentState);
         Assert.NotNull(session.GoogleTokens);
@@ -112,7 +118,7 @@ public class GoogleOAuthCallbackEndpointTests
 
         await GoogleOAuthCallbackEndpoint.Handle(
             "auth-code", $"{session.Id}:test-nonce", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
 
         Assert.Equal(OnboardingState.ConnectGoogle, session.CurrentState);
         Assert.Null(session.GoogleTokens);
@@ -129,7 +135,7 @@ public class GoogleOAuthCallbackEndpointTests
 
         await GoogleOAuthCallbackEndpoint.Handle(
             "auth-code", $"{session.Id}:test-nonce", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
 
         Assert.Equal(OnboardingState.DemoCma, session.CurrentState);
         Assert.NotNull(session.GoogleTokens);
@@ -145,7 +151,7 @@ public class GoogleOAuthCallbackEndpointTests
 
         await GoogleOAuthCallbackEndpoint.Handle(
             "auth-code", $"{session.Id}:test-nonce", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
 
         Assert.Equal(OnboardingState.DemoCma, session.CurrentState);
     }
@@ -158,7 +164,7 @@ public class GoogleOAuthCallbackEndpointTests
 
         var result = await GoogleOAuthCallbackEndpoint.Handle(
             "code", "bad-id:test-nonce", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
 
         Assert.NotNull(result);
     }
@@ -168,7 +174,7 @@ public class GoogleOAuthCallbackEndpointTests
     {
         var result = await GoogleOAuthCallbackEndpoint.Handle(
             null, "session-id", "access_denied",
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
 
         Assert.NotNull(result);
     }
@@ -182,7 +188,7 @@ public class GoogleOAuthCallbackEndpointTests
 
         var result = await GoogleOAuthCallbackEndpoint.Handle(
             "bad-code", $"{session.Id}:test-nonce", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
 
         Assert.Null(session.GoogleTokens);
     }
@@ -192,7 +198,7 @@ public class GoogleOAuthCallbackEndpointTests
     {
         var result = await GoogleOAuthCallbackEndpoint.Handle(
             null, "session-id:nonce", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
 
         Assert.NotNull(result);
     }
@@ -202,7 +208,7 @@ public class GoogleOAuthCallbackEndpointTests
     {
         var result = await GoogleOAuthCallbackEndpoint.Handle(
             "code", "no-colon-separator", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
 
         Assert.NotNull(result);
     }
@@ -214,7 +220,7 @@ public class GoogleOAuthCallbackEndpointTests
 
         var result = await GoogleOAuthCallbackEndpoint.Handle(
             "code", $"{session.Id}:wrong-nonce", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
 
         Assert.NotNull(result);
         Assert.Equal(OnboardingState.ConnectGoogle, session.CurrentState);
@@ -231,9 +237,45 @@ public class GoogleOAuthCallbackEndpointTests
 
         var result = await GoogleOAuthCallbackEndpoint.Handle(
             "code", $"{session.Id}:any-nonce", null,
-            _mockStore.Object, _mockOAuth.Object, _sm, _configuration, _logger, CancellationToken.None);
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
 
         Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task Handle_WithAgentConfigId_PersistsTokensToTokenStore()
+    {
+        var session = MakeSession(agentConfigId: "jenise-buckalew");
+        var tokens = MakeTokens();
+        _mockOAuth.Setup(o => o.ExchangeCodeAsync("auth-code", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokens);
+
+        await GoogleOAuthCallbackEndpoint.Handle(
+            "auth-code", $"{session.Id}:test-nonce", null,
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
+
+        _mockTokenStore.Verify(t => t.SaveAsync(
+            It.Is<OAuthCredential>(c =>
+                c.AccountId == "jenise-buckalew" &&
+                c.AgentId == "jenise-buckalew" &&
+                c.AccessToken == tokens.AccessToken),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WithoutAgentConfigId_SkipsTokenStorePersist()
+    {
+        var session = MakeSession(); // no AgentConfigId
+        var tokens = MakeTokens();
+        _mockOAuth.Setup(o => o.ExchangeCodeAsync("auth-code", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokens);
+
+        await GoogleOAuthCallbackEndpoint.Handle(
+            "auth-code", $"{session.Id}:test-nonce", null,
+            _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
+
+        _mockTokenStore.Verify(t => t.SaveAsync(It.IsAny<OAuthCredential>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
 
