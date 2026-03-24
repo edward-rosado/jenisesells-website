@@ -3,11 +3,14 @@
 import { createApiClient } from "@real-estate-star/api-client";
 import { signRequest, getApiUrl } from "@/features/shared/hmac";
 
+const VALID_AGENT_ID = /^[a-z0-9-]+$/;
+
 export async function requestOptOut(
   agentId: string,
   email: string,
   token: string,
 ): Promise<{ ok: boolean; error?: string }> {
+  if (!VALID_AGENT_ID.test(agentId)) return { ok: false, error: "Invalid request." };
   const body = JSON.stringify({ email, token });
   let cleanup: (() => void) | undefined;
   try {
@@ -33,6 +36,7 @@ export async function requestDeletion(
   agentId: string,
   email: string,
 ): Promise<{ ok: boolean; error?: string }> {
+  if (!VALID_AGENT_ID.test(agentId)) return { ok: false, error: "Invalid request." };
   const body = JSON.stringify({ email });
   let cleanup: (() => void) | undefined;
   try {
@@ -74,10 +78,11 @@ export async function requestExport(
   agentId: string,
   email: string,
 ): Promise<{ ok: boolean; data?: ExportData[]; error?: string }> {
+  if (!VALID_AGENT_ID.test(agentId)) return { ok: false, error: "Invalid request." };
   const apiKey = process.env.LEAD_API_KEY!;
   const hmacSecret = process.env.LEAD_HMAC_SECRET!;
   const timestamp = Math.floor(Date.now() / 1000).toString();
-  const body = "";
+  const body = JSON.stringify({ email });
   const message = `${timestamp}.${body}`;
 
   const key = await crypto.subtle.importKey(
@@ -120,6 +125,7 @@ export async function requestSubscribe(
   email: string,
   token: string,
 ): Promise<{ ok: boolean; error?: string }> {
+  if (!VALID_AGENT_ID.test(agentId)) return { ok: false, error: "Invalid request." };
   const body = JSON.stringify({ email, token });
   let cleanup: (() => void) | undefined;
   try {

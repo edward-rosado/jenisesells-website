@@ -67,6 +67,9 @@ function inlineFormat(text: string): string {
   // Italic
   result = result.replace(/\*(.+?)\*/g, "<em>$1</em>");
   // Links
-  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, href) => {
+    const safeHref = /^https?:\/\//i.test(href) || href.startsWith('/') || href.startsWith('#') ? href : '#';
+    return `<a href="${safeHref}">${text}</a>`;
+  });
   return result;
 }
