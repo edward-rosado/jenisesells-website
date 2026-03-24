@@ -119,7 +119,7 @@ public class GDocsApiClientTests
             ExpiresAt = DateTime.UtcNow.AddMinutes(-10),
             ETag = "old-etag"
         };
-        await store.SaveAsync(expiredCredential, CancellationToken.None);
+        await store.SaveAsync(expiredCredential, OAuthProviders.Google, CancellationToken.None);
 
         oauthHandler.ResponseToReturn = new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized)
         {
@@ -142,7 +142,7 @@ public class GDocsApiClientTests
             ExpiresAt = DateTime.UtcNow.AddMinutes(-10),
             ETag = "old-etag"
         };
-        await store.SaveAsync(expiredCredential, CancellationToken.None);
+        await store.SaveAsync(expiredCredential, OAuthProviders.Google, CancellationToken.None);
 
         oauthHandler.ResponseToReturn = new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized)
         {
@@ -165,7 +165,7 @@ public class GDocsApiClientTests
             ExpiresAt = DateTime.UtcNow.AddMinutes(-10),
             ETag = "old-etag"
         };
-        await store.SaveAsync(expiredCredential, CancellationToken.None);
+        await store.SaveAsync(expiredCredential, OAuthProviders.Google, CancellationToken.None);
 
         oauthHandler.ResponseToReturn = new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized)
         {

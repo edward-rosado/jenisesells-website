@@ -28,7 +28,7 @@ public class GoogleOAuthCallbackEndpointTests
         _mockOAuth = new Mock<GoogleOAuthService>(
             factoryMock.Object, "client-id", "client-secret", "http://localhost:5000/oauth/google/callback",
             NullLogger<GoogleOAuthService>.Instance);
-        _mockTokenStore.Setup(t => t.SaveAsync(It.IsAny<OAuthCredential>(), It.IsAny<CancellationToken>()))
+        _mockTokenStore.Setup(t => t.SaveAsync(It.IsAny<OAuthCredential>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
     }
 
@@ -259,6 +259,7 @@ public class GoogleOAuthCallbackEndpointTests
                 c.AccountId == "jenise-buckalew" &&
                 c.AgentId == "jenise-buckalew" &&
                 c.AccessToken == tokens.AccessToken),
+            RealEstateStar.Domain.Shared.OAuthProviders.Google,
             It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -275,7 +276,7 @@ public class GoogleOAuthCallbackEndpointTests
             "auth-code", $"{session.Id}:test-nonce", null,
             _mockStore.Object, _mockOAuth.Object, _sm, _mockTokenStore.Object, _configuration, _logger, CancellationToken.None);
 
-        _mockTokenStore.Verify(t => t.SaveAsync(It.IsAny<OAuthCredential>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockTokenStore.Verify(t => t.SaveAsync(It.IsAny<OAuthCredential>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
 

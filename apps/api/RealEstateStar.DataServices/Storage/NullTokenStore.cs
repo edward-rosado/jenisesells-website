@@ -12,10 +12,10 @@ public sealed class NullTokenStore : ITokenStore
     public Task<OAuthCredential?> GetAsync(string accountId, string agentId, string provider, CancellationToken ct) =>
         Task.FromResult<OAuthCredential?>(null);
 
-    public Task SaveAsync(OAuthCredential credential, CancellationToken ct) =>
+    public Task SaveAsync(OAuthCredential credential, string provider, CancellationToken ct) =>
         Task.CompletedTask;
 
-    public Task<bool> SaveIfUnchangedAsync(OAuthCredential credential, string etag, CancellationToken ct) =>
+    public Task<bool> SaveIfUnchangedAsync(OAuthCredential credential, string provider, string etag, CancellationToken ct) =>
         Task.FromResult(false);
 
     public Task DeleteAsync(string accountId, string agentId, string provider, CancellationToken ct) =>

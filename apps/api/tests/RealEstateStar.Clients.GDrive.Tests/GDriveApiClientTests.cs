@@ -3,6 +3,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using RealEstateStar.Clients.GDrive;
 using RealEstateStar.Clients.GoogleOAuth;
+using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.TestUtilities;
 
@@ -127,7 +128,7 @@ public class GDriveApiClientTests
     public async Task CreateFolderAsync_ReturnsEmpty_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
-        await store.SaveAsync(ExpiredCredential(), CancellationToken.None);
+        await store.SaveAsync(ExpiredCredential(), OAuthProviders.Google, CancellationToken.None);
         oauthHandler.ResponseToReturn = UnauthorizedResponse();
 
         var result = await client.CreateFolderAsync(AccountId, AgentId, "leads/2026", CancellationToken.None);
@@ -139,7 +140,7 @@ public class GDriveApiClientTests
     public async Task UploadFileAsync_ReturnsEmpty_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
-        await store.SaveAsync(ExpiredCredential(), CancellationToken.None);
+        await store.SaveAsync(ExpiredCredential(), OAuthProviders.Google, CancellationToken.None);
         oauthHandler.ResponseToReturn = UnauthorizedResponse();
 
         var result = await client.UploadFileAsync(
@@ -152,7 +153,7 @@ public class GDriveApiClientTests
     public async Task DownloadFileAsync_ReturnsNull_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
-        await store.SaveAsync(ExpiredCredential(), CancellationToken.None);
+        await store.SaveAsync(ExpiredCredential(), OAuthProviders.Google, CancellationToken.None);
         oauthHandler.ResponseToReturn = UnauthorizedResponse();
 
         var result = await client.DownloadFileAsync(
@@ -165,7 +166,7 @@ public class GDriveApiClientTests
     public async Task ListFilesAsync_ReturnsEmpty_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
-        await store.SaveAsync(ExpiredCredential(), CancellationToken.None);
+        await store.SaveAsync(ExpiredCredential(), OAuthProviders.Google, CancellationToken.None);
         oauthHandler.ResponseToReturn = UnauthorizedResponse();
 
         var result = await client.ListFilesAsync(AccountId, AgentId, FolderId, CancellationToken.None);

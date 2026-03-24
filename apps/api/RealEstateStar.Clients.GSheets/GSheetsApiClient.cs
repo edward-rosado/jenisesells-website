@@ -231,5 +231,5 @@ internal sealed class GSheetsApiClient(
     }
 
     private static SheetsService BuildSheetsService(Domain.Shared.Models.OAuthCredential credential) =>
-        new(GoogleCredentialFactory.BuildInitializer(credential));
+        new(RealEstateStar.Clients.GoogleOAuth.GoogleCredentialFactory.BuildInitializer(credential));
 }

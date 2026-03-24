@@ -251,5 +251,5 @@ internal sealed class GDocsApiClient(
     }
 
     private static DocsService BuildDocsService(Domain.Shared.Models.OAuthCredential credential) =>
-        new(GoogleCredentialFactory.BuildInitializer(credential));
+        new(RealEstateStar.Clients.GoogleOAuth.GoogleCredentialFactory.BuildInitializer(credential));
 }

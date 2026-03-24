@@ -19,17 +19,17 @@ public sealed class InMemoryTokenStore : ITokenStore
         return Task.FromResult<OAuthCredential?>(null);
     }
 
-    public Task SaveAsync(OAuthCredential credential, CancellationToken ct)
+    public Task SaveAsync(OAuthCredential credential, string provider, CancellationToken ct)
     {
-        var key = Key(credential.AccountId!, credential.AgentId!, OAuthProviders.Google);
+        var key = Key(credential.AccountId!, credential.AgentId!, provider);
         var newETag = Guid.NewGuid().ToString();
         _tokens[key] = (credential with { ETag = newETag }, newETag);
         return Task.CompletedTask;
     }
 
-    public Task<bool> SaveIfUnchangedAsync(OAuthCredential credential, string etag, CancellationToken ct)
+    public Task<bool> SaveIfUnchangedAsync(OAuthCredential credential, string provider, string etag, CancellationToken ct)
     {
-        var key = Key(credential.AccountId!, credential.AgentId!, OAuthProviders.Google);
+        var key = Key(credential.AccountId!, credential.AgentId!, provider);
         var newETag = Guid.NewGuid().ToString();
         var newEntry = (credential with { ETag = newETag }, newETag);
 

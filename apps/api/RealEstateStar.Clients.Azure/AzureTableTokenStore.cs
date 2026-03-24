@@ -73,14 +73,14 @@ public sealed class AzureTableTokenStore : ITokenStore
         }
     }
 
-    public async Task SaveAsync(OAuthCredential credential, CancellationToken ct)
+    public async Task SaveAsync(OAuthCredential credential, string provider, CancellationToken ct)
     {
         var sw = Stopwatch.StartNew();
         using var activity = TokenStoreDiagnostics.ActivitySource.StartActivity("TokenStore.Save");
         try
         {
             TokenStoreDiagnostics.Writes.Add(1);
-            var entity = MapToEntity(credential, OAuthProviders.Google);
+            var entity = MapToEntity(credential, provider);
             await _table.UpsertEntityAsync(entity, TableUpdateMode.Replace, ct);
             _logger.LogDebug("[TOKEN-002] Token saved for accountId={AccountId} agentId={AgentId}",
                 credential.AccountId, credential.AgentId);
@@ -97,14 +97,14 @@ public sealed class AzureTableTokenStore : ITokenStore
         }
     }
 
-    public async Task<bool> SaveIfUnchangedAsync(OAuthCredential credential, string etag, CancellationToken ct)
+    public async Task<bool> SaveIfUnchangedAsync(OAuthCredential credential, string provider, string etag, CancellationToken ct)
     {
         var sw = Stopwatch.StartNew();
         using var activity = TokenStoreDiagnostics.ActivitySource.StartActivity("TokenStore.SaveIfUnchanged");
         try
         {
             TokenStoreDiagnostics.Writes.Add(1);
-            var entity = MapToEntity(credential, OAuthProviders.Google);
+            var entity = MapToEntity(credential, provider);
             entity.ETag = new ETag(etag);
 
             await _table.UpdateEntityAsync(entity, entity.ETag, TableUpdateMode.Replace, ct);

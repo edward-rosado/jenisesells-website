@@ -89,6 +89,7 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
                 var accountId = agentId; // single-agent: accountId == agentId
                 await tokenStore.SaveAsync(
                     tokens with { AccountId = accountId, AgentId = agentId },
+                    OAuthProviders.Google,
                     ct);
                 logger.LogInformation("[OAUTH-013] Persisted OAuth tokens to token store for agent {AgentId}", agentId);
             }

@@ -37,12 +37,14 @@ public sealed class AnthropicClient(
         try
         {
             var client = httpClientFactory.CreateClient(ClientName);
-            client.DefaultRequestHeaders.Remove("x-api-key");
-            client.DefaultRequestHeaders.Add("x-api-key", apiKey);
-            client.DefaultRequestHeaders.Remove("anthropic-version");
-            client.DefaultRequestHeaders.Add("anthropic-version", AnthropicVersion);
 
-            var response = await client.PostAsJsonAsync("https://api.anthropic.com/v1/messages", requestBody, ct);
+            // Use per-request HttpRequestMessage to avoid mutating DefaultRequestHeaders,
+            // which is not thread-safe with a pooled HttpClient instance.
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages");
+            request.Headers.Add("x-api-key", apiKey);
+            request.Headers.Add("anthropic-version", AnthropicVersion);
+            request.Content = JsonContent.Create(requestBody);
+            var response = await client.SendAsync(request, ct);
 
             if (!response.IsSuccessStatusCode)
             {

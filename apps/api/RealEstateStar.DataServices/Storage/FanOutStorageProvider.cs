@@ -192,7 +192,17 @@ internal sealed class FanOutStorageProvider : IFileStorageProvider
         CancellationToken ct)
     {
         var all = await _gwsService.ReadSheetAsync(_platformEmail, sheetName, ct);
-        return all.Where(row => row.Contains(filterValue)).ToList();
+        if (all.Count == 0) return [];
+
+        // Find column index from header row
+        var headers = all[0];
+        var colIndex = headers.IndexOf(filterColumn);
+        if (colIndex < 0) return []; // Column not found
+
+        // Filter data rows (skip header) by the specific column
+        return all.Skip(1)
+            .Where(row => colIndex < row.Count && row[colIndex] == filterValue)
+            .ToList();
     }
 
     public async Task RedactRowsAsync(

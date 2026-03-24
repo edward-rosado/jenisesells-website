@@ -38,7 +38,7 @@ public sealed class AzureTableTokenStoreTests
         var credential = BuildCredential();
         using var cts = new CancellationTokenSource();
 
-        await store.SaveAsync(credential, cts.Token);
+        await store.SaveAsync(credential, OAuthProviders.Google, cts.Token);
         var result = await store.GetAsync("acct-1", "agent-1", OAuthProviders.Google, cts.Token);
 
         result.Should().NotBeNull();
@@ -54,7 +54,7 @@ public sealed class AzureTableTokenStoreTests
         var credential = BuildCredential();
         using var cts = new CancellationTokenSource();
 
-        await store.SaveAsync(credential, cts.Token);
+        await store.SaveAsync(credential, OAuthProviders.Google, cts.Token);
         var result = await store.GetAsync("acct-1", "agent-1", OAuthProviders.Google, cts.Token);
 
         result.Should().NotBeNull();
@@ -68,10 +68,10 @@ public sealed class AzureTableTokenStoreTests
         var credential = BuildCredential();
         using var cts = new CancellationTokenSource();
 
-        await store.SaveAsync(credential, cts.Token);
+        await store.SaveAsync(credential, OAuthProviders.Google, cts.Token);
 
         var staleETag = "stale-etag-does-not-match";
-        var result = await store.SaveIfUnchangedAsync(credential, staleETag, cts.Token);
+        var result = await store.SaveIfUnchangedAsync(credential, OAuthProviders.Google, staleETag, cts.Token);
 
         result.Should().BeFalse();
     }
@@ -83,13 +83,13 @@ public sealed class AzureTableTokenStoreTests
         var credential = BuildCredential();
         using var cts = new CancellationTokenSource();
 
-        await store.SaveAsync(credential, cts.Token);
+        await store.SaveAsync(credential, OAuthProviders.Google, cts.Token);
         var stored = await store.GetAsync("acct-1", "agent-1", OAuthProviders.Google, cts.Token);
         stored.Should().NotBeNull();
 
         var etag = stored!.ETag!;
         var updated = credential with { Name = "Updated Name" };
-        var result = await store.SaveIfUnchangedAsync(updated, etag, cts.Token);
+        var result = await store.SaveIfUnchangedAsync(updated, OAuthProviders.Google, etag, cts.Token);
 
         result.Should().BeTrue();
         var afterUpdate = await store.GetAsync("acct-1", "agent-1", OAuthProviders.Google, cts.Token);
@@ -103,7 +103,7 @@ public sealed class AzureTableTokenStoreTests
         var credential = BuildCredential();
         using var cts = new CancellationTokenSource();
 
-        await store.SaveAsync(credential, cts.Token);
+        await store.SaveAsync(credential, OAuthProviders.Google, cts.Token);
         await store.DeleteAsync("acct-1", "agent-1", OAuthProviders.Google, cts.Token);
         var result = await store.GetAsync("acct-1", "agent-1", OAuthProviders.Google, cts.Token);
 
@@ -129,7 +129,7 @@ public sealed class AzureTableTokenStoreTests
         using var cts = new CancellationTokenSource();
 
         // Save initial credential
-        await store.SaveAsync(credential, cts.Token);
+        await store.SaveAsync(credential, OAuthProviders.Google, cts.Token);
         var stored = await store.GetAsync("acct-1", "agent-1", OAuthProviders.Google, cts.Token);
         var sharedETag = stored!.ETag!;
 
@@ -137,8 +137,8 @@ public sealed class AzureTableTokenStoreTests
         var updatedA = credential with { AccessToken = "new-access-token-A" };
         var updatedB = credential with { AccessToken = "new-access-token-B" };
 
-        var task1 = store.SaveIfUnchangedAsync(updatedA, sharedETag, cts.Token);
-        var task2 = store.SaveIfUnchangedAsync(updatedB, sharedETag, cts.Token);
+        var task1 = store.SaveIfUnchangedAsync(updatedA, OAuthProviders.Google, sharedETag, cts.Token);
+        var task2 = store.SaveIfUnchangedAsync(updatedB, OAuthProviders.Google, sharedETag, cts.Token);
 
         var results = await Task.WhenAll(task1, task2);
 

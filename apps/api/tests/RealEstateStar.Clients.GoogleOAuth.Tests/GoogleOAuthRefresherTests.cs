@@ -60,7 +60,7 @@ public class GoogleOAuthRefresherTests
     {
         var (refresher, store, _) = BuildRefresher();
         var credential = ValidCredential(expired: false);
-        await store.SaveAsync(credential, CancellationToken.None);
+        await store.SaveAsync(credential, OAuthProviders.Google, CancellationToken.None);
 
         var result = await refresher.GetValidCredentialAsync(AccountId, AgentId, CancellationToken.None);
 
@@ -87,7 +87,7 @@ public class GoogleOAuthRefresherTests
         };
         var (refresher, store, _) = BuildRefresher(tokenResponse);
         var credential = ValidCredential(expired: true);
-        await store.SaveAsync(credential, CancellationToken.None);
+        await store.SaveAsync(credential, OAuthProviders.Google, CancellationToken.None);
 
         var result = await refresher.GetValidCredentialAsync(AccountId, AgentId, CancellationToken.None);
 
@@ -104,7 +104,7 @@ public class GoogleOAuthRefresherTests
         };
         var (refresher, store, _) = BuildRefresher(tokenResponse);
         var credential = ValidCredential(expired: true);
-        await store.SaveAsync(credential, CancellationToken.None);
+        await store.SaveAsync(credential, OAuthProviders.Google, CancellationToken.None);
 
         var result = await refresher.GetValidCredentialAsync(AccountId, AgentId, CancellationToken.None);
 
@@ -124,7 +124,7 @@ public class GoogleOAuthRefresherTests
 
         // Set up: store a credential with ETag "etag-stale"
         var credential = ValidCredential(expired: true);
-        await store.SaveAsync(credential, CancellationToken.None);
+        await store.SaveAsync(credential, OAuthProviders.Google, CancellationToken.None);
 
         // Simulate conflict: override ETag stored internally by saving again (different ETag)
         // Then directly test the ETag conflict path via RefreshTokenAsync + SaveIfUnchangedAsync
@@ -231,10 +231,10 @@ public class GoogleOAuthRefresherTests
         }
 
         // Always returns false to simulate ETag conflict
-        public Task<bool> SaveIfUnchangedAsync(OAuthCredential credential, string etag, CancellationToken ct)
+        public Task<bool> SaveIfUnchangedAsync(OAuthCredential credential, string provider, string etag, CancellationToken ct)
             => Task.FromResult(false);
 
-        public Task SaveAsync(OAuthCredential credential, CancellationToken ct) => Task.CompletedTask;
+        public Task SaveAsync(OAuthCredential credential, string provider, CancellationToken ct) => Task.CompletedTask;
         public Task DeleteAsync(string accountId, string agentId, string provider, CancellationToken ct) => Task.CompletedTask;
     }
 

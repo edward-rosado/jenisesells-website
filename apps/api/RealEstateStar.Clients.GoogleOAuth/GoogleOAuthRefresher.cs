@@ -55,7 +55,7 @@ public sealed class GoogleOAuthRefresher : IOAuthRefresher
         if (refreshed is null)
             return null;
 
-        var saved = await _tokenStore.SaveIfUnchangedAsync(refreshed, credential.ETag!, ct);
+        var saved = await _tokenStore.SaveIfUnchangedAsync(refreshed, OAuthProviders.Google, credential.ETag!, ct);
 
         if (!saved)
         {

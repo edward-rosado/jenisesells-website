@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using MimeKit;
 using RealEstateStar.Clients.Gmail;
 using RealEstateStar.Clients.GoogleOAuth;
+using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.TestUtilities;
 
@@ -89,7 +90,7 @@ public class GmailApiClientTests
             ExpiresAt = DateTime.UtcNow.AddMinutes(-10),
             ETag = "old-etag"
         };
-        await store.SaveAsync(expiredCredential, CancellationToken.None);
+        await store.SaveAsync(expiredCredential, OAuthProviders.Google, CancellationToken.None);
 
         // Refresh endpoint returns 401 (token revoked)
         oauthHandler.ResponseToReturn = new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized)
@@ -113,7 +114,7 @@ public class GmailApiClientTests
             ExpiresAt = DateTime.UtcNow.AddMinutes(-10),
             ETag = "old-etag"
         };
-        await store.SaveAsync(expiredCredential, CancellationToken.None);
+        await store.SaveAsync(expiredCredential, OAuthProviders.Google, CancellationToken.None);
 
         oauthHandler.ResponseToReturn = new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized)
         {

@@ -286,7 +286,7 @@ internal sealed class GDriveApiClient(
     }
 
     private static DriveService BuildDriveService(Domain.Shared.Models.OAuthCredential credential) =>
-        new(GoogleCredentialFactory.BuildInitializer(credential));
+        new(RealEstateStar.Clients.GoogleOAuth.GoogleCredentialFactory.BuildInitializer(credential));
 
     private static string EscapeQuery(string value) =>
         value.Replace("\\", "\\\\").Replace("'", "\\'");

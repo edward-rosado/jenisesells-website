@@ -222,14 +222,15 @@ public class FanOutStorageProviderTests
         _gwsService.Verify(g => g.AppendSheetRowAsync(PlatformEmail, sheetName, values, It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    // ── ReadRowsAsync ──────────────────────────────────────────────────────────
+    // ── ReadRowsAsync ──────────────────────────────────────────────
 
     [Fact]
-    public async Task ReadRowsAsync_FiltersRowsByValue()
+    public async Task ReadRowsAsync_FiltersRowsByColumn()
     {
         const string sheetName = "Consent Log";
         var allRows = new List<List<string>>
         {
+            new() { "date", "email", "law" },                                      // header row
             new() { "2026-03-23", "jane@example.com", "GDPR" },
             new() { "2026-03-23", "other@example.com", "CAN-SPAM" },
             new() { "2026-03-24", "jane@example.com", "GDPR" },
@@ -244,7 +245,58 @@ public class FanOutStorageProviderTests
         result.Should().AllSatisfy(row => row.Should().Contain("jane@example.com"));
     }
 
-    // ── RedactRowsAsync ────────────────────────────────────────────────────────
+    [Fact]
+    public async Task ReadRowsAsync_ReturnsEmpty_WhenColumnNotFound()
+    {
+        const string sheetName = "Consent Log";
+        var allRows = new List<List<string>>
+        {
+            new() { "date", "email", "law" },
+            new() { "2026-03-23", "jane@example.com", "GDPR" },
+        };
+
+        _gwsService.Setup(g => g.ReadSheetAsync(PlatformEmail, sheetName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(allRows);
+
+        var result = await _sut.ReadRowsAsync(sheetName, "nonexistent", "any-value", CancellationToken.None);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ReadRowsAsync_ReturnsEmpty_WhenSheetIsEmpty()
+    {
+        const string sheetName = "Consent Log";
+
+        _gwsService.Setup(g => g.ReadSheetAsync(PlatformEmail, sheetName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var result = await _sut.ReadRowsAsync(sheetName, "email", "jane@example.com", CancellationToken.None);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ReadRowsAsync_DoesNotIncludeHeaderRow_InResults()
+    {
+        const string sheetName = "Consent Log";
+        var allRows = new List<List<string>>
+        {
+            new() { "date", "email", "law" },    // header - should never be returned
+            new() { "2026-03-23", "date", "GDPR" }, // data row where value happens to equal a header name
+        };
+
+        _gwsService.Setup(g => g.ReadSheetAsync(PlatformEmail, sheetName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(allRows);
+
+        // Filter on "email" column for value "date" - matches only data row
+        var result = await _sut.ReadRowsAsync(sheetName, "email", "date", CancellationToken.None);
+
+        result.Should().HaveCount(1);
+        result[0][0].Should().Be("2026-03-23"); // confirms data row, not header
+    }
+
+// ── RedactRowsAsync ────────────────────────────────────────────────────────
 
     [Fact]
     public async Task RedactRowsAsync_PassesToGwsService()
