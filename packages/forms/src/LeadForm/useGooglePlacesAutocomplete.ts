@@ -87,7 +87,7 @@ function loadGoogleMapsBootstrap(apiKey: string): Promise<void> {
     };
     const script = document.createElement("script");
     script.async = true;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&loading=async&libraries=places&callback=${callbackName}`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&callback=${callbackName}`;
     script.onerror = () => {
       delete (window as any)[callbackName];
       console.error(LOG_PREFIX, "Failed to load bootstrap script");
