@@ -17,7 +17,7 @@ namespace RealEstateStar.DataServices.Storage;
 /// Sheet methods (Append/Read/Redact) pass through to IGwsService using
 /// the platform spreadsheet convention.
 /// </summary>
-internal sealed class FanOutStorageProvider : IFileStorageProvider
+public sealed class FanOutStorageProvider : IFileStorageProvider
 {
     private const string AccountTierAgentId = "__account__";
 

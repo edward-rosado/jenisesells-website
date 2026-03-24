@@ -231,33 +231,43 @@ builder.Services.AddSingleton<IGwsService, GwsCliRunner>();
 
 // --- Lead Feature Services ---
 
-// Platform document store — Azure Blob Storage (durable, no OAuth/CLI required).
-// Provides the Platform tier for FanOutStorageProvider — replaces IGwsService for document operations.
-// When AzureStorage:ConnectionString is absent (local dev), the singleton is not registered.
-// FanOutStorageProvider factories should check for this service and fall back to a local stub as needed.
-var blobConnStr = builder.Configuration["AzureStorage:ConnectionString"];
-if (!string.IsNullOrEmpty(blobConnStr))
+// Platform-tier document storage: Azure Blob when connection string is available, local filesystem fallback.
+// This is the durable storage backend for the Platform tier in FanOutStorageProvider.
+var storageConnStr = builder.Configuration["AzureStorage:ConnectionString"];
+if (!string.IsNullOrEmpty(storageConnStr))
 {
-    builder.Services.AddSingleton<AzureBlobDocumentStore>(sp =>
-    {
-        var container = new Azure.Storage.Blobs.BlobContainerClient(blobConnStr, "lead-documents");
-        return new AzureBlobDocumentStore(container, sp.GetRequiredService<ILogger<AzureBlobDocumentStore>>());
-    });
+    builder.Services.AddSingleton(sp =>
+        new AzureBlobDocumentStore(
+            new Azure.Storage.Blobs.BlobContainerClient(storageConnStr, "lead-documents"),
+            sp.GetRequiredService<ILogger<AzureBlobDocumentStore>>()));
+    Log.Information("[STARTUP-080] Platform document store: AzureBlobDocumentStore (container: lead-documents)");
 }
 else
 {
-    Log.Warning("[STARTUP-080] AzureStorage:ConnectionString not configured — AzureBlobDocumentStore (Platform tier) is disabled");
+    Log.Warning("[STARTUP-081] AzureStorage:ConnectionString not configured — Platform tier using LocalStorageProvider");
 }
 
-// Storage provider — local by default, GDrive requires per-request agentEmail (scoped)
-// GDriveStorageProvider needs agentEmail from route, so it's resolved per-request via endpoint logic.
-// For DI container, register LocalStorageProvider as the default singleton.
+// FanOutStorageProvider: three-tier fan-out (Agent Drive + Account Drive + Platform Blob/Local).
+// Registered as IFileStorageProvider so all lead storage flows through fan-out.
 builder.Services.AddSingleton<IFileStorageProvider>(sp =>
-    new LocalStorageProvider(
-        builder.Configuration["Storage:BasePath"] ?? Path.Combine(builder.Environment.ContentRootPath, "data")));
+{
+    // Platform tier: prefer AzureBlobDocumentStore, fall back to LocalStorageProvider
+    var platformStore = sp.GetService<AzureBlobDocumentStore>() as IDocumentStorageProvider
+        ?? new LocalStorageProvider(
+            builder.Configuration["Storage:BasePath"] ?? Path.Combine(builder.Environment.ContentRootPath, "data"));
 
-// Forward the narrower interfaces to the single IFileStorageProvider instance
-// so services depending on IDocumentStorageProvider or ISheetStorageProvider resolve correctly.
+    return new FanOutStorageProvider(
+        sp.GetRequiredService<IGDriveClient>(),
+        sp.GetRequiredService<IGSheetsClient>(),
+        sp.GetRequiredService<IGwsService>(),
+        platformStore,
+        "platform",  // accountId — platform-level, not per-agent
+        "platform",  // agentId — platform-level
+        "",          // platformEmail — no longer needed for document ops, only sheets
+        sp.GetRequiredService<ILogger<FanOutStorageProvider>>());
+});
+
+// Forward the narrower interfaces to FanOutStorageProvider
 builder.Services.AddSingleton<IDocumentStorageProvider>(sp => sp.GetRequiredService<IFileStorageProvider>());
 builder.Services.AddSingleton<ISheetStorageProvider>(sp => sp.GetRequiredService<IFileStorageProvider>());
 
