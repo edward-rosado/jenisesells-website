@@ -73,7 +73,9 @@ public class GoogleOAuthCallbackEndpointTests
         Assert.NotNull(session.GoogleTokens);
         Assert.Equal("agent@gmail.com", session.GoogleTokens.Email);
         Assert.Equal(OnboardingState.DemoCma, session.CurrentState);
-        _mockStore.Verify(s => s.SaveAsync(session, It.IsAny<CancellationToken>()), Times.Once);
+        // SaveAsync is called twice: once to durably invalidate the nonce before code exchange (S5),
+        // and once at the end to persist the final session state with tokens.
+        _mockStore.Verify(s => s.SaveAsync(session, It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]

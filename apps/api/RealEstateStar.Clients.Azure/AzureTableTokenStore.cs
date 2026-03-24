@@ -27,7 +27,7 @@ internal sealed class OAuthTokenEntity : ITableEntity
 
 public sealed class AzureTableTokenStore : ITokenStore
 {
-    private const string DataProtectionPurpose = "OAuthTokenStore.v1";
+    private const string DataProtectionPurpose = "RealEstateStar.OAuthTokenStore.Google.v1";
 
     private readonly TableClient _table;
     private readonly IDataProtector _protector;
@@ -59,6 +59,12 @@ public sealed class AzureTableTokenStore : ITokenStore
 
             var entity = response.Value;
             var credential = MapToCredential(entity, accountId, agentId);
+            if (credential is null)
+            {
+                _logger.LogError("[TOKEN-021] Decryption failure for token at accountId={AccountId} agentId={AgentId} provider={Provider} — treating as missing to avoid using corrupt token",
+                    accountId, agentId, provider);
+                return null;
+            }
             return credential;
         }
         catch (Exception ex)
@@ -176,12 +182,21 @@ public sealed class AzureTableTokenStore : ITokenStore
         };
     }
 
-    private OAuthCredential MapToCredential(OAuthTokenEntity entity, string accountId, string agentId)
+    private OAuthCredential? MapToCredential(OAuthTokenEntity entity, string accountId, string agentId)
     {
+        var accessToken = Unprotect(entity.AccessToken);
+        var refreshToken = Unprotect(entity.RefreshToken);
+
+        // If either token field fails to decrypt, return null so GetAsync treats the credential
+        // as missing. This is safer than returning corrupt bytes as an access token — a null
+        // credential triggers the "no token" path (re-auth), not a broken API call.
+        if (accessToken is null || refreshToken is null)
+            return null;
+
         return new OAuthCredential
         {
-            AccessToken = Unprotect(entity.AccessToken),
-            RefreshToken = Unprotect(entity.RefreshToken),
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
             ExpiresAt = entity.ExpiresAt,
             Scopes = entity.Scopes.Split(' ', StringSplitOptions.RemoveEmptyEntries),
             Email = entity.Email,
@@ -194,17 +209,19 @@ public sealed class AzureTableTokenStore : ITokenStore
 
     private string Protect(string plaintext) => _protector.Protect(plaintext);
 
-    private string Unprotect(string ciphertext)
+    private string? Unprotect(string ciphertext)
     {
         try
         {
             return _protector.Unprotect(ciphertext);
         }
-        catch (CryptographicException)
+        catch (CryptographicException ex)
         {
-            // Graceful plaintext fallback — token was stored before encryption was applied
-            _logger.LogWarning("[TOKEN-020] Failed to decrypt token value; using raw plaintext fallback");
-            return ciphertext;
+            // [TOKEN-021] Do NOT fall back to raw ciphertext — passing encrypted bytes as an
+            // access token would cause silent API failures. Return null so the caller can
+            // treat the credential as missing and require re-authentication.
+            _logger.LogError(ex, "[TOKEN-021] Failed to decrypt token value — treating as missing. This may indicate DPAPI key rotation or data corruption.");
+            return null;
         }
     }
 }

@@ -86,9 +86,19 @@ public sealed class GoogleOAuthRefresher : IOAuthRefresher
             if (!response.IsSuccessStatusCode)
             {
                 var errorBody = await response.Content.ReadAsStringAsync(ct);
+
+                // Parse only the error code — never log the full body which may contain sensitive data
+                string? errorCode;
+                try
+                {
+                    using var errorDoc = JsonDocument.Parse(errorBody);
+                    errorCode = errorDoc.RootElement.TryGetProperty("error", out var e) ? e.GetString() : "unknown";
+                }
+                catch { errorCode = "non-json-response"; }
+
                 _logger.LogWarning(
-                    "[OAUTH-020] Token refresh failed for account {AccountId}, agent {AgentId}. Status: {Status}, Body: {Body}",
-                    credential.AccountId, credential.AgentId, (int)response.StatusCode, errorBody);
+                    "[OAUTH-020] Token refresh failed for {AccountId}/{AgentId}. Status: {Status}, Error: {ErrorCode}",
+                    credential.AccountId, credential.AgentId, (int)response.StatusCode, errorCode);
                 return null;
             }
 

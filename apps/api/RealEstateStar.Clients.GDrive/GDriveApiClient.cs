@@ -148,7 +148,7 @@ internal sealed class GDriveApiClient(
 
             // Find file by name within the folder
             var listRequest = service.Files.List();
-            listRequest.Q = $"name = '{EscapeQuery(fileName)}' and '{folderId}' in parents and trashed = false";
+            listRequest.Q = $"name = '{EscapeQuery(fileName)}' and '{EscapeQuery(folderId)}' in parents and trashed = false";
             listRequest.Fields = "files(id)";
             var listResult = await listRequest.ExecuteAsync(ct);
 
@@ -238,7 +238,7 @@ internal sealed class GDriveApiClient(
             GDriveDiagnostics.Operations.Add(1);
 
             var listRequest = service.Files.List();
-            listRequest.Q = $"'{folderId}' in parents and trashed = false";
+            listRequest.Q = $"'{EscapeQuery(folderId)}' in parents and trashed = false";
             listRequest.Fields = "files(name)";
             var result = await listRequest.ExecuteAsync(ct);
 
