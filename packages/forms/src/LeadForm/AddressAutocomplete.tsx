@@ -114,75 +114,50 @@ export function AddressAutocomplete({
     });
   }
 
-  const dropdownStyle: CSSProperties = {
-    maxHeight: 220,
-    overflowY: "auto",
-    listStyle: "none",
-    margin: 0,
-    padding: 0,
-  };
-
-  const itemStyle = (isHighlighted: boolean): CSSProperties => ({
-    padding: "10px 14px",
-    cursor: "pointer",
-    fontSize: 14,
-    background: isHighlighted ? "#f0f0f0" : "transparent",
-    borderBottom: "1px solid #f5f5f5",
-    textAlign: "left",
-    listStyle: "none",
-  });
-
-  const attributionStyle: CSSProperties = {
-    padding: "6px 14px",
-    fontSize: 11,
-    color: "#999",
-    textAlign: "right",
-    background: "#fafafa",
-  };
-
   return (
-    <div ref={containerRef} style={{ position: "relative" }}>
-      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-        <span
-          style={{
-            position: "absolute",
-            left: 12,
-            top: "50%",
-            transform: "translateY(-50%)",
-            pointerEvents: "none",
-            display: "flex",
-          }}
-        >
-          <LocationIcon />
-        </span>
-        <input
-          ref={inputRef}
-          id={id}
-          role="combobox"
-          aria-expanded={isOpen}
-          aria-controls={LISTBOX_ID}
-          aria-autocomplete="list"
-          aria-activedescendant={highlightedIndex >= 0 ? optionId(highlightedIndex) : undefined}
-          aria-required={required || undefined}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onBlur={() => {
-            // Delay to allow click on dropdown item to fire first
-            setTimeout(() => {
-              if (!containerRef.current?.contains(document.activeElement)) {
-                clearSuggestions();
-              }
-            }, 150);
-          }}
-          onKeyDown={handleKeyDown}
-          required={required}
-          disabled={disabled}
-          style={{
-            ...inputStyle,
-            paddingLeft: 36,
-          }}
-        />
-      </div>
+    <div ref={containerRef} style={{ position: "relative", width: "100%" }}>
+      <span
+        style={{
+          position: "absolute",
+          left: 12,
+          top: 0,
+          height: inputStyle.padding ? undefined : 46,
+          display: "flex",
+          alignItems: "center",
+          pointerEvents: "none",
+          zIndex: 1,
+        }}
+      >
+        <LocationIcon />
+      </span>
+      <input
+        ref={inputRef}
+        id={id}
+        role="combobox"
+        aria-expanded={isOpen}
+        aria-controls={LISTBOX_ID}
+        aria-autocomplete="list"
+        aria-activedescendant={highlightedIndex >= 0 ? optionId(highlightedIndex) : undefined}
+        aria-required={required || undefined}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onBlur={() => {
+          setTimeout(() => {
+            if (!containerRef.current?.contains(document.activeElement)) {
+              clearSuggestions();
+            }
+          }, 150);
+        }}
+        onKeyDown={handleKeyDown}
+        required={required}
+        disabled={disabled}
+        style={{
+          ...inputStyle,
+          paddingLeft: 36,
+          width: "100%",
+          boxSizing: "border-box",
+        }}
+      />
 
       {isOpen && (
         <div style={{
@@ -201,7 +176,7 @@ export function AddressAutocomplete({
           <ul
             id={LISTBOX_ID}
             role="listbox"
-            style={dropdownStyle}
+            style={{ maxHeight: 220, overflowY: "auto", listStyle: "none", margin: 0, padding: 0 }}
           >
             {suggestions.map((s) => (
               <li
@@ -212,13 +187,21 @@ export function AddressAutocomplete({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleItemClick(s.index)}
                 onMouseEnter={() => setHighlightedIndex(s.index)}
-                style={itemStyle(s.index === highlightedIndex)}
+                style={{
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                  fontSize: 14,
+                  background: s.index === highlightedIndex ? "#f0f0f0" : "transparent",
+                  borderBottom: "1px solid #f5f5f5",
+                  textAlign: "left",
+                  listStyle: "none",
+                }}
               >
                 {s.text}
               </li>
             ))}
           </ul>
-          <div style={attributionStyle} aria-hidden="true">
+          <div style={{ padding: "6px 14px", fontSize: 11, color: "#999", textAlign: "right", background: "#fafafa", borderTop: "1px solid #f0f0f0" }} aria-hidden="true">
             Powered by Google
           </div>
         </div>
