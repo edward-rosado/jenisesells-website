@@ -125,7 +125,11 @@ export function AddressAutocomplete({
     boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
     zIndex: 1000,
     marginTop: 4,
-    overflow: "hidden",
+    maxHeight: 240,
+    overflowY: "auto",
+    listStyle: "none",
+    margin: 0,
+    padding: 0,
   };
 
   const itemStyle = (isHighlighted: boolean): CSSProperties => ({
@@ -135,6 +139,7 @@ export function AddressAutocomplete({
     background: isHighlighted ? "#f0f0f0" : "transparent",
     borderBottom: "1px solid #f5f5f5",
     textAlign: "left",
+    listStyle: "none",
   });
 
   const attributionStyle: CSSProperties = {
