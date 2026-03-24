@@ -73,7 +73,14 @@ builder.Services.AddSingleton<IAccountConfigService>(sp =>
 var dpBuilder = builder.Services.AddDataProtection()
     .SetApplicationName("RealEstateStar");
 
-if (!builder.Environment.IsDevelopment())
+if (builder.Environment.IsDevelopment())
+{
+    // Persist DPAPI keys in dev so encrypted tokens survive restarts.
+    // Without this, keys are ephemeral and tokens become undecryptable on restart.
+    dpBuilder.PersistKeysToFileSystem(new DirectoryInfo(
+        Path.Combine(builder.Environment.ContentRootPath, ".dpapi-keys")));
+}
+else
 {
     var kvUri = builder.Configuration["AzureKeyVault:VaultUri"];
     var blobUri = builder.Configuration["DataProtection:BlobUri"];
@@ -173,7 +180,8 @@ builder.Services.AddSingleton<IProfileScraperService>(sp =>
         scraperApiKey,
         sp.GetRequiredService<IDnsResolver>(),
         sp.GetRequiredService<ILogger<ProfileScraperService>>()));
-builder.Services.AddHttpClient(nameof(GoogleOAuthService));
+builder.Services.AddHttpClient(nameof(GoogleOAuthService))
+    .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddSingleton(sp =>
     new GoogleOAuthService(
         sp.GetRequiredService<IHttpClientFactory>(),
@@ -288,6 +296,9 @@ builder.Services.AddSingleton<ITokenStore>(sp =>
     var connStr = builder.Configuration["AzureStorage:ConnectionString"];
     if (string.IsNullOrEmpty(connStr))
     {
+        if (!builder.Environment.IsDevelopment())
+            throw new InvalidOperationException("AzureStorage:ConnectionString is required for OAuth token persistence in non-development environments.");
+
         Log.Warning("[STARTUP-070] AzureStorage:ConnectionString not configured — ITokenStore using NullTokenStore (no OAuth token persistence)");
         return new NullTokenStore();
     }
@@ -300,7 +311,10 @@ builder.Services.AddSingleton<ITokenStore>(sp =>
 });
 
 // Gmail API client — IGmailSender backed by GmailApiClient (needs IOAuthRefresher)
-builder.Services.AddHttpClient("GoogleOAuth");
+builder.Services.AddHttpClient("GoogleOAuth", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
 builder.Services.AddSingleton<IOAuthRefresher>(sp =>
 {
     var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("GoogleOAuth");

@@ -48,6 +48,9 @@ appsettings.Development.json
 *.pfx
 *.p12
 
+# Dev DPAPI keys — ephemeral per-machine, never commit
+.dpapi-keys/
+
 # Agent credentials (never commit)
 config/agents/*.credentials.json
 
