@@ -1,5 +1,4 @@
 using System.Net.Http.Json;
-using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
@@ -76,7 +75,7 @@ public class MultiChannelLeadNotifier(
 
         try
         {
-            logger.LogInformation("[NOTIFY-021] Sending email notification to {AgentEmailHash} for lead {LeadId}...", HashEmail(agentEmail), lead.Id);
+            logger.LogInformation("[NOTIFY-021] Sending email notification to {AgentEmailHash} for lead {LeadId}...", NotificationHelpers.HashEmail(agentEmail), lead.Id);
             await gmailSender.SendAsync(accountId, agentId, agentEmail, subject, body, ct);
             logger.LogInformation("[NOTIFY-022] Email notification sent for lead {LeadId}.", lead.Id);
         }
@@ -111,26 +110,17 @@ public class MultiChannelLeadNotifier(
         sb.AppendLine("---");
         sb.AppendLine($"leadId: {lead.Id}");
         sb.AppendLine($"sentAt: {DateTime.UtcNow:o}");
-        sb.AppendLine($"subject: \"{EscapeYaml(subject)}\"");
-        sb.AppendLine($"recipientEmailHash: {HashEmail(lead.AgentId)}");
+        sb.AppendLine($"subject: \"{NotificationHelpers.EscapeYaml(subject)}\"");
+        sb.AppendLine($"recipientEmailHash: {NotificationHelpers.HashEmail(lead.AgentId)}");
         sb.AppendLine($"sent: {sent.ToString().ToLowerInvariant()}");
         if (error is not null)
-            sb.AppendLine($"error: \"{EscapeYaml(error)}\"");
+            sb.AppendLine($"error: \"{NotificationHelpers.EscapeYaml(error)}\"");
         sb.AppendLine("---");
         sb.AppendLine();
         sb.AppendLine(body);
 
         return sb.ToString();
     }
-
-    private static string HashEmail(string value)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value.Trim().ToLowerInvariant()));
-        return Convert.ToHexString(bytes)[..12].ToLowerInvariant();
-    }
-
-    private static string EscapeYaml(string value)
-        => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
     public string BuildSubject(Lead lead, LeadEnrichment enrichment, LeadScore score)
         => $"New Lead: {lead.FullName} — {enrichment.MotivationCategory} (Score: {score.OverallScore})";

@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Globalization;
-using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
@@ -36,7 +35,7 @@ public class CmaSellerNotifier(
         var emailSw = Stopwatch.GetTimestamp();
         logger.LogInformation(
             "[CMA-NOTIFY-001] Sending CMA email to {RecipientHash} for lead {LeadId}, agent {AgentId}. CorrelationId: {CorrelationId}",
-            HashEmail(lead.Email), lead.Id, agentId, correlationId);
+            NotificationHelpers.HashEmail(lead.Email), lead.Id, agentId, correlationId);
 
         try
         {
@@ -118,8 +117,8 @@ public class CmaSellerNotifier(
         sb.AppendLine("---");
         sb.AppendLine($"leadId: {lead.Id}");
         sb.AppendLine($"sentAt: {DateTime.UtcNow:o}");
-        sb.AppendLine($"subject: \"{EscapeYaml(subject)}\"");
-        sb.AppendLine($"recipientEmailHash: {HashEmail(lead.Email)}");
+        sb.AppendLine($"subject: \"{NotificationHelpers.EscapeYaml(subject)}\"");
+        sb.AppendLine($"recipientEmailHash: {NotificationHelpers.HashEmail(lead.Email)}");
         sb.AppendLine($"correlationId: {correlationId}");
         sb.AppendLine("---");
         sb.AppendLine();
@@ -127,15 +126,6 @@ public class CmaSellerNotifier(
 
         return sb.ToString();
     }
-
-    private static string HashEmail(string email)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(email.Trim().ToLowerInvariant()));
-        return Convert.ToHexString(bytes)[..12].ToLowerInvariant();
-    }
-
-    private static string EscapeYaml(string value)
-        => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
     private static readonly CultureInfo UsFormat = new("en-US");
 

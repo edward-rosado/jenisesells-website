@@ -117,16 +117,28 @@ internal sealed class FanOutStorageProvider : IFileStorageProvider
 
     public async Task DeleteDocumentAsync(string folder, string fileName, CancellationToken ct)
     {
+        // KNOWN LIMITATION (M1): IGDriveClient.DeleteFileAsync expects an opaque Google Drive file ID,
+        // not a path. IFileStorageProvider works with folder+fileName paths, so the Drive tiers below
+        // pass a synthetic "folder/fileName" string that the real Drive API will reject (404).
+        // Fix: add IGDriveClient.DeleteFileByNameAsync(accountId, agentId, folderId, fileName, ct)
+        // that does a Files.List query (name = '...' in parents) to resolve the ID before deleting,
+        // mirroring the pattern in DownloadFileAsync. Until then, Drive delete is a no-op in production.
+        _logger.LogWarning(
+            "[FANOUT-020] DeleteDocumentAsync for {Folder}/{FileName}: Drive tiers use a path as fileId (known limitation). " +
+            "Delete will succeed for Local/GWS tiers but will fail silently for GDrive tiers until IGDriveClient.DeleteFileByNameAsync is implemented.",
+            folder, fileName);
+
         var tasks = new[]
         {
             ExecuteTierAsync("Agent", async () =>
             {
-                // DeleteFileAsync takes a fileId; we treat folder/fileName as the fileId path for Drive
+                // TODO: Replace with DeleteFileByNameAsync once IGDriveClient supports name-based lookup.
                 var fileId = $"{folder}/{fileName}";
                 await _driveClient.DeleteFileAsync(_accountId, _agentId, fileId, ct);
             }),
             ExecuteTierAsync("Account", async () =>
             {
+                // TODO: Replace with DeleteFileByNameAsync once IGDriveClient supports name-based lookup.
                 var fileId = $"{folder}/{fileName}";
                 await _driveClient.DeleteFileAsync(_accountId, AccountTierAgentId, fileId, ct);
             }),

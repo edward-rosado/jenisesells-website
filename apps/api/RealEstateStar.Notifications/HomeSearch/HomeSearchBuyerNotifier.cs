@@ -27,7 +27,7 @@ public class HomeSearchBuyerNotifier(
         var emailSw = Stopwatch.GetTimestamp();
         logger.LogInformation(
             "[HS-NOTIFY-001] Sending home search email to {RecipientHash} for lead {LeadId}, agent {AgentId}. CorrelationId: {CorrelationId}",
-            HashEmail(lead.Email), lead.Id, agentId, correlationId);
+            NotificationHelpers.HashEmail(lead.Email), lead.Id, agentId, correlationId);
 
         try
         {
@@ -75,10 +75,4 @@ public class HomeSearchBuyerNotifier(
         }
     }
 
-    private static string HashEmail(string email)
-    {
-        var bytes = System.Security.Cryptography.SHA256.HashData(
-            System.Text.Encoding.UTF8.GetBytes(email.Trim().ToLowerInvariant()));
-        return Convert.ToHexString(bytes)[..12].ToLowerInvariant();
-    }
 }
