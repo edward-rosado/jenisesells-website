@@ -10,11 +10,16 @@ public static class GDriveClientExtensions
     /// Registers <see cref="IGDriveClient"/> using the internal <see cref="GDriveApiClient"/> implementation.
     /// Requires <see cref="IOAuthRefresher"/> to be registered first.
     /// </summary>
-    public static IServiceCollection AddGDriveClient(this IServiceCollection services)
+    public static IServiceCollection AddGDriveClient(
+        this IServiceCollection services,
+        string clientId,
+        string clientSecret)
     {
         services.AddSingleton<IGDriveClient>(sp =>
             new GDriveApiClient(
                 sp.GetRequiredService<IOAuthRefresher>(),
+                clientId,
+                clientSecret,
                 sp.GetRequiredService<ILogger<GDriveApiClient>>()));
         return services;
     }

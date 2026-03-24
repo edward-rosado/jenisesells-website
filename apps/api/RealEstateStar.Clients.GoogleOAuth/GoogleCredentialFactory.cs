@@ -26,7 +26,13 @@ public static class GoogleCredentialFactory
     /// <see cref="Domain.Shared.Interfaces.Storage.ITokenStore"/>, so a no-op
     /// <see cref="IDataStore"/> is used.
     /// </summary>
-    public static BaseClientService.Initializer BuildInitializer(OAuthCredential credential)
+    /// <param name="credential">The OAuth credential containing access/refresh tokens.</param>
+    /// <param name="clientId">The Google OAuth client ID. Required for token refresh by the Google SDK.</param>
+    /// <param name="clientSecret">The Google OAuth client secret. Required for token refresh by the Google SDK.</param>
+    public static BaseClientService.Initializer BuildInitializer(
+        OAuthCredential credential,
+        string clientId,
+        string clientSecret)
     {
         var tokenResponse = new TokenResponse
         {
@@ -40,8 +46,8 @@ public static class GoogleCredentialFactory
         {
             ClientSecrets = new ClientSecrets
             {
-                ClientId = "placeholder",
-                ClientSecret = "placeholder"
+                ClientId = clientId,
+                ClientSecret = clientSecret
             },
             Scopes = credential.Scopes,
             DataStore = NullDataStore.Instance

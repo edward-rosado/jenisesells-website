@@ -10,11 +10,16 @@ public static class GSheetsClientExtensions
     /// Registers <see cref="IGSheetsClient"/> using the internal <see cref="GSheetsApiClient"/> implementation.
     /// Requires <see cref="IOAuthRefresher"/> to be registered first.
     /// </summary>
-    public static IServiceCollection AddGSheetsClient(this IServiceCollection services)
+    public static IServiceCollection AddGSheetsClient(
+        this IServiceCollection services,
+        string clientId,
+        string clientSecret)
     {
         services.AddSingleton<IGSheetsClient>(sp =>
             new GSheetsApiClient(
                 sp.GetRequiredService<IOAuthRefresher>(),
+                clientId,
+                clientSecret,
                 sp.GetRequiredService<ILogger<GSheetsApiClient>>()));
         return services;
     }

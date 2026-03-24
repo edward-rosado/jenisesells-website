@@ -21,7 +21,7 @@ public class CmaSellerNotifier(
         CancellationToken ct)
     {
         var agent = await accountConfigService.GetAccountAsync(agentId, ct);
-        var accountId = agent?.AccountId ?? agentId;
+        var accountId = NotificationHelpers.ResolveAccountId(agent, agentId);
         var agentName = agent?.Agent?.Name ?? agentId;
         var agentPhone = agent?.Agent?.Phone ?? "";
 

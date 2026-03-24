@@ -9,6 +9,8 @@ namespace RealEstateStar.Clients.GSheets;
 
 internal sealed class GSheetsApiClient(
     IOAuthRefresher refresher,
+    string clientId,
+    string clientSecret,
     ILogger<GSheetsApiClient> logger) : IGSheetsClient
 {
     public async Task AppendRowAsync(
@@ -19,15 +21,9 @@ internal sealed class GSheetsApiClient(
         List<string> values,
         CancellationToken ct)
     {
-        var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
-        if (credential is null)
-        {
-            logger.LogWarning(
-                "[GSHEETS-010] No valid token for account {AccountId}, agent {AgentId}. Skipping append.",
-                accountId, agentId);
-            GSheetsDiagnostics.TokenMissing.Add(1);
+        var service = await BuildServiceAsync(accountId, agentId, ct);
+        if (service is null)
             return;
-        }
 
         var sw = Stopwatch.GetTimestamp();
         using var activity = GSheetsDiagnostics.ActivitySource.StartActivity("gsheets.append");
@@ -35,7 +31,6 @@ internal sealed class GSheetsApiClient(
 
         try
         {
-            var service = BuildSheetsService(credential);
             var range = $"{sheetName}!A1";
             var valueRange = new ValueRange
             {
@@ -71,15 +66,9 @@ internal sealed class GSheetsApiClient(
         string sheetName,
         CancellationToken ct)
     {
-        var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
-        if (credential is null)
-        {
-            logger.LogWarning(
-                "[GSHEETS-010] No valid token for account {AccountId}, agent {AgentId}. Skipping read.",
-                accountId, agentId);
-            GSheetsDiagnostics.TokenMissing.Add(1);
+        var service = await BuildServiceAsync(accountId, agentId, ct);
+        if (service is null)
             return [];
-        }
 
         var sw = Stopwatch.GetTimestamp();
         using var activity = GSheetsDiagnostics.ActivitySource.StartActivity("gsheets.read");
@@ -87,7 +76,6 @@ internal sealed class GSheetsApiClient(
 
         try
         {
-            var service = BuildSheetsService(credential);
             var range = $"{sheetName}";
             var request = service.Spreadsheets.Values.Get(spreadsheetId, range);
             var response = await request.ExecuteAsync(ct);
@@ -127,15 +115,9 @@ internal sealed class GSheetsApiClient(
         string redactedMarker,
         CancellationToken ct)
     {
-        var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
-        if (credential is null)
-        {
-            logger.LogWarning(
-                "[GSHEETS-010] No valid token for account {AccountId}, agent {AgentId}. Skipping redact.",
-                accountId, agentId);
-            GSheetsDiagnostics.TokenMissing.Add(1);
+        var service = await BuildServiceAsync(accountId, agentId, ct);
+        if (service is null)
             return;
-        }
 
         var sw = Stopwatch.GetTimestamp();
         using var activity = GSheetsDiagnostics.ActivitySource.StartActivity("gsheets.redact");
@@ -143,7 +125,6 @@ internal sealed class GSheetsApiClient(
 
         try
         {
-            var service = BuildSheetsService(credential);
 
             // Read the sheet to find headers and matching rows
             var range = $"{sheetName}";
@@ -170,8 +151,8 @@ internal sealed class GSheetsApiClient(
                 GSheetsDiagnostics.Operations.Add(1);
                 GSheetsDiagnostics.Duration.Record(elapsed);
                 logger.LogInformation(
-                    "[GSHEETS-003] Filter column '{FilterColumn}' not found in sheet {SheetName}. Duration: {Duration}ms",
-                    filterColumn, sheetName, elapsed);
+                    "[GSHEETS-003] Filter column '{FilterColumn}' not found in sheet {SheetName} for account {AccountId}, agent {AgentId}. Duration: {Duration}ms",
+                    filterColumn, sheetName, accountId, agentId, elapsed);
                 return;
             }
 
@@ -230,6 +211,24 @@ internal sealed class GSheetsApiClient(
         }
     }
 
-    private static SheetsService BuildSheetsService(Domain.Shared.Models.OAuthCredential credential) =>
-        new(RealEstateStar.Clients.GoogleOAuth.GoogleCredentialFactory.BuildInitializer(credential));
+    private async Task<SheetsService?> BuildServiceAsync(
+        string accountId,
+        string agentId,
+        CancellationToken ct)
+    {
+        var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
+        if (credential is null)
+        {
+            logger.LogWarning(
+                "[GSHEETS-010] No valid token for account {AccountId}, agent {AgentId}. Skipping operation.",
+                accountId, agentId);
+            GSheetsDiagnostics.TokenMissing.Add(1);
+            return null;
+        }
+
+        return BuildSheetsService(credential);
+    }
+
+    private SheetsService BuildSheetsService(Domain.Shared.Models.OAuthCredential credential) =>
+        new(RealEstateStar.Clients.GoogleOAuth.GoogleCredentialFactory.BuildInitializer(credential, clientId, clientSecret));
 }

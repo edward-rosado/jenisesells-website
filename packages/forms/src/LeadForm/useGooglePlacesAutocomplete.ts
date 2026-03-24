@@ -72,10 +72,11 @@ function loadGoogleMapsBootstrap(apiKey: string): Promise<void> {
 
   console.info(LOG_PREFIX, "Loading Google Maps bootstrap script");
   loadPromise = new Promise<void>((resolve, reject) => {
-    const script = document.createElement("script");
-    script.async = true;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&loading=async&libraries=places`;
-    script.onload = () => {
+    // With loading=async, importLibrary may not be available at onload.
+    // Use the callback parameter to know when the API is fully initialized.
+    const callbackName = "__googleMapsInitialized";
+    (window as any)[callbackName] = () => {
+      delete (window as any)[callbackName];
       if ((window as any).google?.maps?.importLibrary) {
         console.info(LOG_PREFIX, "Bootstrap loaded successfully");
         resolve();
@@ -84,7 +85,11 @@ function loadGoogleMapsBootstrap(apiKey: string): Promise<void> {
         reject(new Error("Google Maps loaded but importLibrary not available"));
       }
     };
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&callback=${callbackName}`;
     script.onerror = () => {
+      delete (window as any)[callbackName];
       console.error(LOG_PREFIX, "Failed to load bootstrap script");
       loadPromise = null;
       reject(new Error("Failed to load Google Maps SDK"));
@@ -245,7 +250,7 @@ export function useGooglePlacesAutocomplete({
       const request: any = {
         input: query,
         includedRegionCodes: ["us"],
-        includedPrimaryTypes: ["address"],
+        includedPrimaryTypes: ["street_address"],
         sessionToken: sessionTokenRef.current,
       };
 

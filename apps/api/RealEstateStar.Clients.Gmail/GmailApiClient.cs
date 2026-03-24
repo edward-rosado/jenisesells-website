@@ -11,6 +11,8 @@ namespace RealEstateStar.Clients.Gmail;
 
 internal sealed class GmailApiClient(
     IOAuthRefresher refresher,
+    string clientId,
+    string clientSecret,
     ILogger<GmailApiClient> logger) : IGmailSender
 {
     public async Task SendAsync(
@@ -21,15 +23,9 @@ internal sealed class GmailApiClient(
         string htmlBody,
         CancellationToken ct)
     {
-        var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
+        var credential = await GetCredentialAsync(accountId, agentId, ct);
         if (credential is null)
-        {
-            logger.LogWarning(
-                "[GMAIL-010] No valid token for account {AccountId}, agent {AgentId}. Skipping send.",
-                accountId, agentId);
-            GmailDiagnostics.TokenMissing.Add(1);
             return;
-        }
 
         var message = BuildMimeMessage(credential.Email, to, subject, htmlBody);
         await SendMessageAsync(credential, message, accountId, agentId, ct);
@@ -45,15 +41,9 @@ internal sealed class GmailApiClient(
         string fileName,
         CancellationToken ct)
     {
-        var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
+        var credential = await GetCredentialAsync(accountId, agentId, ct);
         if (credential is null)
-        {
-            logger.LogWarning(
-                "[GMAIL-010] No valid token for account {AccountId}, agent {AgentId}. Skipping send with attachment.",
-                accountId, agentId);
-            GmailDiagnostics.TokenMissing.Add(1);
             return;
-        }
 
         var message = BuildMimeMessage(credential.Email, to, subject, htmlBody, attachmentBytes, fileName);
         await SendMessageAsync(credential, message, accountId, agentId, ct);
@@ -132,6 +122,23 @@ internal sealed class GmailApiClient(
         return new Message { Raw = raw };
     }
 
-    private static GmailService BuildGmailService(Domain.Shared.Models.OAuthCredential credential) =>
-        new(GoogleCredentialFactory.BuildInitializer(credential));
+    private async Task<Domain.Shared.Models.OAuthCredential?> GetCredentialAsync(
+        string accountId,
+        string agentId,
+        CancellationToken ct)
+    {
+        var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
+        if (credential is null)
+        {
+            logger.LogWarning(
+                "[GMAIL-010] No valid token for account {AccountId}, agent {AgentId}. Skipping operation.",
+                accountId, agentId);
+            GmailDiagnostics.TokenMissing.Add(1);
+        }
+
+        return credential;
+    }
+
+    private GmailService BuildGmailService(Domain.Shared.Models.OAuthCredential credential) =>
+        new(GoogleCredentialFactory.BuildInitializer(credential, clientId, clientSecret));
 }

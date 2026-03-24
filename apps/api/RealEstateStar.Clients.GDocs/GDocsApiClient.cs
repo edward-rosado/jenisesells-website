@@ -9,6 +9,8 @@ namespace RealEstateStar.Clients.GDocs;
 
 internal sealed class GDocsApiClient(
     IOAuthRefresher refresher,
+    string clientId,
+    string clientSecret,
     ILogger<GDocsApiClient> logger) : IGDocsClient
 {
     public async Task<string> CreateDocumentAsync(
@@ -18,15 +20,9 @@ internal sealed class GDocsApiClient(
         string content,
         CancellationToken ct)
     {
-        var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
-        if (credential is null)
-        {
-            logger.LogWarning(
-                "[GDOCS-010] No valid token for account {AccountId}, agent {AgentId}. Skipping CreateDocument.",
-                accountId, agentId);
-            GDocsDiagnostics.TokenMissing.Add(1);
+        var service = await BuildServiceAsync(accountId, agentId, ct);
+        if (service is null)
             return string.Empty;
-        }
 
         var sw = Stopwatch.GetTimestamp();
         using var activity = GDocsDiagnostics.ActivitySource.StartActivity("gdocs.create");
@@ -34,7 +30,6 @@ internal sealed class GDocsApiClient(
 
         try
         {
-            var service = BuildDocsService(credential);
 
             // Create the document with a title
             var createRequest = service.Documents.Create(new Document { Title = title });
@@ -73,15 +68,9 @@ internal sealed class GDocsApiClient(
         string documentId,
         CancellationToken ct)
     {
-        var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
-        if (credential is null)
-        {
-            logger.LogWarning(
-                "[GDOCS-010] No valid token for account {AccountId}, agent {AgentId}. Skipping ReadDocument.",
-                accountId, agentId);
-            GDocsDiagnostics.TokenMissing.Add(1);
+        var service = await BuildServiceAsync(accountId, agentId, ct);
+        if (service is null)
             return null;
-        }
 
         var sw = Stopwatch.GetTimestamp();
         using var activity = GDocsDiagnostics.ActivitySource.StartActivity("gdocs.read");
@@ -90,7 +79,6 @@ internal sealed class GDocsApiClient(
 
         try
         {
-            var service = BuildDocsService(credential);
             var document = await service.Documents.Get(documentId).ExecuteAsync(ct);
             var text = ExtractPlainText(document);
 
@@ -121,15 +109,9 @@ internal sealed class GDocsApiClient(
         string content,
         CancellationToken ct)
     {
-        var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
-        if (credential is null)
-        {
-            logger.LogWarning(
-                "[GDOCS-010] No valid token for account {AccountId}, agent {AgentId}. Skipping UpdateDocument.",
-                accountId, agentId);
-            GDocsDiagnostics.TokenMissing.Add(1);
+        var service = await BuildServiceAsync(accountId, agentId, ct);
+        if (service is null)
             return;
-        }
 
         var sw = Stopwatch.GetTimestamp();
         using var activity = GDocsDiagnostics.ActivitySource.StartActivity("gdocs.update");
@@ -138,7 +120,6 @@ internal sealed class GDocsApiClient(
 
         try
         {
-            var service = BuildDocsService(credential);
 
             // Get current document to find the end index for clearing
             var document = await service.Documents.Get(documentId).ExecuteAsync(ct);
@@ -250,6 +231,24 @@ internal sealed class GDocsApiClient(
         return (int)(lastElement.EndIndex ?? 1) - 1;
     }
 
-    private static DocsService BuildDocsService(Domain.Shared.Models.OAuthCredential credential) =>
-        new(RealEstateStar.Clients.GoogleOAuth.GoogleCredentialFactory.BuildInitializer(credential));
+    private async Task<DocsService?> BuildServiceAsync(
+        string accountId,
+        string agentId,
+        CancellationToken ct)
+    {
+        var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
+        if (credential is null)
+        {
+            logger.LogWarning(
+                "[GDOCS-010] No valid token for account {AccountId}, agent {AgentId}. Skipping operation.",
+                accountId, agentId);
+            GDocsDiagnostics.TokenMissing.Add(1);
+            return null;
+        }
+
+        return BuildDocsService(credential);
+    }
+
+    private DocsService BuildDocsService(Domain.Shared.Models.OAuthCredential credential) =>
+        new(RealEstateStar.Clients.GoogleOAuth.GoogleCredentialFactory.BuildInitializer(credential, clientId, clientSecret));
 }

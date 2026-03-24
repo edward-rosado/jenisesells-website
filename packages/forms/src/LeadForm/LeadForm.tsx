@@ -514,7 +514,7 @@ export function LeadForm({
           marginBottom: isSelling ? 16 : 0,
           maxHeight: isSelling ? "800px" : "0",
           opacity: isSelling ? 1 : 0,
-          overflow: "hidden",
+          overflow: isSelling ? "visible" : "hidden",
           transition: "all 300ms ease",
         }}
       >

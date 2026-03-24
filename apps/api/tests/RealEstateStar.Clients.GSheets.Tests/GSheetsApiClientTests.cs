@@ -46,7 +46,7 @@ public class GSheetsApiClientTests
         var httpClient = new HttpClient(oauthHandler);
         var refresher = new GoogleOAuthRefresher(
             store, ClientId, ClientSecret, httpClient, NullLogger<GoogleOAuthRefresher>.Instance);
-        var client = new GSheetsApiClient(refresher, NullLogger<GSheetsApiClient>.Instance);
+        var client = new GSheetsApiClient(refresher, ClientId, ClientSecret, NullLogger<GSheetsApiClient>.Instance);
         return (client, store, oauthHandler);
     }
 

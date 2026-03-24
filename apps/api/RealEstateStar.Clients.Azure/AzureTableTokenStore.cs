@@ -42,7 +42,7 @@ public sealed class AzureTableTokenStore : ITokenStore
 
     public async Task<OAuthCredential?> GetAsync(string accountId, string agentId, string provider, CancellationToken ct)
     {
-        var sw = Stopwatch.StartNew();
+        var sw = Stopwatch.GetTimestamp();
         using var activity = TokenStoreDiagnostics.ActivitySource.StartActivity("TokenStore.Get");
         try
         {
@@ -75,13 +75,13 @@ public sealed class AzureTableTokenStore : ITokenStore
         }
         finally
         {
-            TokenStoreDiagnostics.Duration.Record(sw.Elapsed.TotalMilliseconds);
+            TokenStoreDiagnostics.Duration.Record(Stopwatch.GetElapsedTime(sw).TotalMilliseconds);
         }
     }
 
     public async Task SaveAsync(OAuthCredential credential, string provider, CancellationToken ct)
     {
-        var sw = Stopwatch.StartNew();
+        var sw = Stopwatch.GetTimestamp();
         using var activity = TokenStoreDiagnostics.ActivitySource.StartActivity("TokenStore.Save");
         try
         {
@@ -99,13 +99,13 @@ public sealed class AzureTableTokenStore : ITokenStore
         }
         finally
         {
-            TokenStoreDiagnostics.Duration.Record(sw.Elapsed.TotalMilliseconds);
+            TokenStoreDiagnostics.Duration.Record(Stopwatch.GetElapsedTime(sw).TotalMilliseconds);
         }
     }
 
     public async Task<bool> SaveIfUnchangedAsync(OAuthCredential credential, string provider, string etag, CancellationToken ct)
     {
-        var sw = Stopwatch.StartNew();
+        var sw = Stopwatch.GetTimestamp();
         using var activity = TokenStoreDiagnostics.ActivitySource.StartActivity("TokenStore.SaveIfUnchanged");
         try
         {
@@ -133,13 +133,13 @@ public sealed class AzureTableTokenStore : ITokenStore
         }
         finally
         {
-            TokenStoreDiagnostics.Duration.Record(sw.Elapsed.TotalMilliseconds);
+            TokenStoreDiagnostics.Duration.Record(Stopwatch.GetElapsedTime(sw).TotalMilliseconds);
         }
     }
 
     public async Task DeleteAsync(string accountId, string agentId, string provider, CancellationToken ct)
     {
-        var sw = Stopwatch.StartNew();
+        var sw = Stopwatch.GetTimestamp();
         using var activity = TokenStoreDiagnostics.ActivitySource.StartActivity("TokenStore.Delete");
         try
         {
@@ -161,7 +161,7 @@ public sealed class AzureTableTokenStore : ITokenStore
         }
         finally
         {
-            TokenStoreDiagnostics.Duration.Record(sw.Elapsed.TotalMilliseconds);
+            TokenStoreDiagnostics.Duration.Record(Stopwatch.GetElapsedTime(sw).TotalMilliseconds);
         }
     }
 

@@ -9,6 +9,8 @@ namespace RealEstateStar.Clients.GDrive;
 
 internal sealed class GDriveApiClient(
     IOAuthRefresher refresher,
+    string clientId,
+    string clientSecret,
     ILogger<GDriveApiClient> logger) : IGDriveClient
 {
     private const string FolderMimeType = "application/vnd.google-apps.folder";
@@ -285,9 +287,9 @@ internal sealed class GDriveApiClient(
         return BuildDriveService(credential);
     }
 
-    private static DriveService BuildDriveService(Domain.Shared.Models.OAuthCredential credential) =>
-        new(RealEstateStar.Clients.GoogleOAuth.GoogleCredentialFactory.BuildInitializer(credential));
+    private DriveService BuildDriveService(Domain.Shared.Models.OAuthCredential credential) =>
+        new(RealEstateStar.Clients.GoogleOAuth.GoogleCredentialFactory.BuildInitializer(credential, clientId, clientSecret));
 
-    private static string EscapeQuery(string value) =>
+    internal static string EscapeQuery(string value) =>
         value.Replace("\\", "\\\\").Replace("'", "\\'");
 }

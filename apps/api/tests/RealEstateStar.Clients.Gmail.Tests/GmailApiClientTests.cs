@@ -47,7 +47,7 @@ public class GmailApiClientTests
         var httpClient = new HttpClient(oauthHandler);
         var refresher = new GoogleOAuthRefresher(
             store, ClientId, ClientSecret, httpClient, NullLogger<GoogleOAuthRefresher>.Instance);
-        var client = new GmailApiClient(refresher, NullLogger<GmailApiClient>.Instance);
+        var client = new GmailApiClient(refresher, ClientId, ClientSecret, NullLogger<GmailApiClient>.Instance);
         return (client, store, oauthHandler);
     }
 

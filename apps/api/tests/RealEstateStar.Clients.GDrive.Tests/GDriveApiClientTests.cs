@@ -47,7 +47,7 @@ public class GDriveApiClientTests
         var httpClient = new HttpClient(oauthHandler);
         var refresher = new GoogleOAuthRefresher(
             store, ClientId, ClientSecret, httpClient, NullLogger<GoogleOAuthRefresher>.Instance);
-        var client = new GDriveApiClient(refresher, NullLogger<GDriveApiClient>.Instance);
+        var client = new GDriveApiClient(refresher, ClientId, ClientSecret, NullLogger<GDriveApiClient>.Instance);
         return (client, store, oauthHandler);
     }
 
@@ -197,6 +197,43 @@ public class GDriveApiClientTests
         // All missing-token paths return gracefully
         download.Should().BeNull();
         list.Should().BeEmpty();
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // EscapeQuery — internal static helper, unit-testable
+    // ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public void EscapeQuery_EscapesBackslash()
+    {
+        var result = GDriveApiClient.EscapeQuery(@"a\b");
+
+        result.Should().Be(@"a\\b");
+    }
+
+    [Fact]
+    public void EscapeQuery_EscapesSingleQuote()
+    {
+        var result = GDriveApiClient.EscapeQuery("it's");
+
+        result.Should().Be(@"it\'s");
+    }
+
+    [Fact]
+    public void EscapeQuery_HandlesNoSpecialChars()
+    {
+        var result = GDriveApiClient.EscapeQuery("normal");
+
+        result.Should().Be("normal");
+    }
+
+    [Fact]
+    public void EscapeQuery_EscapesBothBackslashAndSingleQuote()
+    {
+        var result = GDriveApiClient.EscapeQuery(@"it\'s");
+
+        // Backslash escaped first, then single quote — \' becomes \\\' (three chars → four)
+        result.Should().Be(@"it\\\'s");
     }
 
     // ──────────────────────────────────────────────────────────

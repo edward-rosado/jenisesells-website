@@ -88,6 +88,8 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
             var agentId = session.AgentConfigId;
             if (agentId is not null)
             {
+                // TODO: When multi-agent brokerages are supported, resolve accountId from AccountConfig
+                // instead of using agentId. See: docs/superpowers/specs/2026-03-23-google-api-clients-token-persistence-design.md
                 var accountId = agentId; // single-agent: accountId == agentId
                 await tokenStore.SaveAsync(
                     tokens with { AccountId = accountId, AgentId = agentId },

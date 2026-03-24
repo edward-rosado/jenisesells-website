@@ -10,11 +10,16 @@ public static class GmailClientExtensions
     /// Registers <see cref="IGmailSender"/> using the internal <see cref="GmailApiClient"/> implementation.
     /// Requires <see cref="IOAuthRefresher"/> to be registered first.
     /// </summary>
-    public static IServiceCollection AddGmailSender(this IServiceCollection services)
+    public static IServiceCollection AddGmailSender(
+        this IServiceCollection services,
+        string clientId,
+        string clientSecret)
     {
         services.AddSingleton<IGmailSender>(sp =>
             new GmailApiClient(
                 sp.GetRequiredService<IOAuthRefresher>(),
+                clientId,
+                clientSecret,
                 sp.GetRequiredService<ILogger<GmailApiClient>>()));
         return services;
     }

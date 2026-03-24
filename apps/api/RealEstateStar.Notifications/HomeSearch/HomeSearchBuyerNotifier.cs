@@ -17,7 +17,7 @@ public class HomeSearchBuyerNotifier(
         CancellationToken ct)
     {
         var agent = await accountConfigService.GetAccountAsync(agentId, ct);
-        var accountId = agent?.AccountId ?? agentId;
+        var accountId = NotificationHelpers.ResolveAccountId(agent, agentId);
         var agentName = agent?.Agent?.Name ?? agentId;
 
         var subject = $"Your Personalized Home Search Results \u2013 {lead.BuyerDetails?.City}, {lead.BuyerDetails?.State}";

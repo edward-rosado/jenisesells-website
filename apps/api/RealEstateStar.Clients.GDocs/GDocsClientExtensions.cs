@@ -10,11 +10,16 @@ public static class GDocsClientExtensions
     /// Registers <see cref="IGDocsClient"/> using the internal <see cref="GDocsApiClient"/> implementation.
     /// Requires <see cref="IOAuthRefresher"/> to be registered first.
     /// </summary>
-    public static IServiceCollection AddGDocsClient(this IServiceCollection services)
+    public static IServiceCollection AddGDocsClient(
+        this IServiceCollection services,
+        string clientId,
+        string clientSecret)
     {
         services.AddSingleton<IGDocsClient>(sp =>
             new GDocsApiClient(
                 sp.GetRequiredService<IOAuthRefresher>(),
+                clientId,
+                clientSecret,
                 sp.GetRequiredService<ILogger<GDocsApiClient>>()));
         return services;
     }

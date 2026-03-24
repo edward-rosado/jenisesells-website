@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.DataServices.Storage;
@@ -352,47 +353,39 @@ public class FanOutStorageProviderTests
     }
 
     // ── DeleteDocumentAsync ────────────────────────────────────────────────────
+    // Drive tiers are intentionally skipped — Drive delete requires a file ID, not a path.
+    // Only the Platform tier (IGwsService) is invoked until IGDriveClient.DeleteFileByNameAsync
+    // is implemented (see TODO in FanOutStorageProvider.DeleteDocumentAsync).
 
     [Fact]
-    public async Task DeleteDocumentAsync_DeletesFromAllThreeTiers()
+    public async Task DeleteDocumentAsync_OnlyInvokesPlatformTier()
     {
         const string folder = "1 - Leads/Jane Doe";
         const string fileName = "Lead Profile.md";
-        var fileId = $"{folder}/{fileName}";
 
-        _driveClient.Setup(d => d.DeleteFileAsync(AccountId, AgentId, fileId, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        _driveClient.Setup(d => d.DeleteFileAsync(AccountId, AccountTierAgentId, fileId, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
         _gwsService.Setup(g => g.DeleteDocAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         await _sut.DeleteDocumentAsync(folder, fileName, CancellationToken.None);
 
-        _driveClient.Verify(d => d.DeleteFileAsync(AccountId, AgentId, fileId, It.IsAny<CancellationToken>()), Times.Once);
-        _driveClient.Verify(d => d.DeleteFileAsync(AccountId, AccountTierAgentId, fileId, It.IsAny<CancellationToken>()), Times.Once);
+        // Drive tiers must NOT be called — they cannot delete by path
+        _driveClient.Verify(d => d.DeleteFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         _gwsService.Verify(g => g.DeleteDocAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task DeleteDocumentAsync_ContinuesOnTierFailure()
+    public async Task DeleteDocumentAsync_DoesNotThrow_WhenPlatformTierFails()
     {
         const string folder = "1 - Leads/Jane Doe";
         const string fileName = "Lead Profile.md";
-        var fileId = $"{folder}/{fileName}";
 
-        _driveClient.Setup(d => d.DeleteFileAsync(AccountId, AgentId, fileId, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("Agent Drive unavailable"));
-        _driveClient.Setup(d => d.DeleteFileAsync(AccountId, AccountTierAgentId, fileId, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
         _gwsService.Setup(g => g.DeleteDocAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ThrowsAsync(new InvalidOperationException("Platform unavailable"));
 
-        // Should not throw
-        await _sut.DeleteDocumentAsync(folder, fileName, CancellationToken.None);
+        // Platform failure is swallowed by ExecuteTierAsync (best-effort)
+        var act = async () => await _sut.DeleteDocumentAsync(folder, fileName, CancellationToken.None);
 
-        _driveClient.Verify(d => d.DeleteFileAsync(AccountId, AccountTierAgentId, fileId, It.IsAny<CancellationToken>()), Times.Once);
-        _gwsService.Verify(g => g.DeleteDocAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()), Times.Once);
+        await act.Should().NotThrowAsync();
     }
 
     // ── ListDocumentsAsync ─────────────────────────────────────────────────────

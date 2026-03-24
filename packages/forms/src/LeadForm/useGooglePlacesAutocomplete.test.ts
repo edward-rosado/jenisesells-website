@@ -185,7 +185,7 @@ describe("useGooglePlacesAutocomplete", () => {
       expect.objectContaining({
         input: "123 Main",
         includedRegionCodes: ["us"],
-        includedPrimaryTypes: ["address"],
+        includedPrimaryTypes: ["street_address"],
         locationRestriction: expect.objectContaining({ north: 41.3574 }),
         sessionToken: expect.anything(),
       }),
@@ -486,7 +486,7 @@ describe("useGooglePlacesAutocomplete", () => {
     const script = document.head.querySelector("script");
     if (script) {
       await act(async () => {
-        script.onload!(new Event("load"));
+        (window as any).__googleMapsInitialized();
       });
     }
 
@@ -562,10 +562,10 @@ describe("useGooglePlacesAutocomplete", () => {
     const script = document.head.querySelector("script");
     expect(script).not.toBeNull();
 
-    // Simulate script load WITHOUT setting up google.maps.importLibrary
+    // Simulate callback WITHOUT setting up google.maps.importLibrary
     (window as any).google = { maps: {} };
     await act(async () => {
-      script!.onload!(new Event("load"));
+      (window as any).__googleMapsInitialized();
     });
 
     expect(result.current.loaded).toBe(false);
@@ -675,7 +675,7 @@ describe("useGooglePlacesAutocomplete", () => {
     expect(scripts.length).toBe(1);
 
     await act(async () => {
-      script!.onload!(new Event("load"));
+      (window as any).__googleMapsInitialized();
     });
 
     // Both hooks should end up loaded

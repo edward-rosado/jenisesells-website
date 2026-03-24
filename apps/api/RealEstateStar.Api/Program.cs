@@ -311,12 +311,12 @@ builder.Services.AddSingleton<IOAuthRefresher>(sp =>
         httpClient,
         sp.GetRequiredService<ILogger<GoogleOAuthRefresher>>());
 });
-builder.Services.AddGmailSender();
+builder.Services.AddGmailSender(googleClientId, googleClientSecret);
 
 // Google Drive, Docs, Sheets API clients — all backed by IOAuthRefresher
-builder.Services.AddGDriveClient();
-builder.Services.AddGDocsClient();
-builder.Services.AddGSheetsClient();
+builder.Services.AddGDriveClient(googleClientId, googleClientSecret);
+builder.Services.AddGDocsClient(googleClientId, googleClientSecret);
+builder.Services.AddGSheetsClient(googleClientId, googleClientSecret);
 
 // Scraper client — centralized with OTel, circuit breaker, rate limiting
 builder.Services.Configure<ScraperOptions>(builder.Configuration.GetSection("Scraper"));
@@ -519,8 +519,8 @@ builder.Services.AddCors(options =>
                     if (originUri.Host.EndsWith(".real-estate-star.com", StringComparison.OrdinalIgnoreCase))
                         return true;
 
-                    // Allow Cloudflare Pages preview deploys (*.pages.dev)
-                    if (originUri.Host.EndsWith(".real-estate-star-agents.pages.dev", StringComparison.OrdinalIgnoreCase))
+                    // Allow Cloudflare Workers preview deploys (*.workers.dev)
+                    if (originUri.Host.EndsWith(".workers.dev", StringComparison.OrdinalIgnoreCase))
                         return true;
                 }
 

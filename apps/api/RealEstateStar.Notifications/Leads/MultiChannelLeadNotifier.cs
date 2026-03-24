@@ -17,7 +17,7 @@ public class MultiChannelLeadNotifier(
         logger.LogInformation("[NOTIFY-001] Starting agent notification for lead {LeadId}, agent {AgentId}", lead.Id, agentId);
 
         var config = await accountConfigService.GetAccountAsync(agentId, ct);
-        var accountId = config?.AccountId ?? agentId;
+        var accountId = NotificationHelpers.ResolveAccountId(config, agentId);
         var agentEmail = config?.Agent?.Email ?? "";
         var webhookUrl = config?.Integrations?.ChatWebhookUrl;
 

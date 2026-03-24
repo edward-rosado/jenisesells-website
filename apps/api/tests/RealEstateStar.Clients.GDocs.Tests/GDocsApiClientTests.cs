@@ -46,7 +46,7 @@ public class GDocsApiClientTests
         var httpClient = new HttpClient(oauthHandler);
         var refresher = new GoogleOAuthRefresher(
             store, ClientId, ClientSecret, httpClient, NullLogger<GoogleOAuthRefresher>.Instance);
-        var client = new GDocsApiClient(refresher, NullLogger<GDocsApiClient>.Instance);
+        var client = new GDocsApiClient(refresher, ClientId, ClientSecret, NullLogger<GDocsApiClient>.Instance);
         return (client, store, oauthHandler);
     }
 
