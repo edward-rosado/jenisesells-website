@@ -25,6 +25,7 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
         GoogleOAuthService oAuthService,
         OnboardingStateMachine stateMachine,
         ITokenStore tokenStore,
+        IAccountConfigService accountConfigService,
         IConfiguration configuration,
         ILogger<GoogleOAuthCallbackEndpoint> logger,
         CancellationToken ct)
@@ -88,9 +89,8 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
             var agentId = session.AgentConfigId;
             if (agentId is not null)
             {
-                // TODO: When multi-agent brokerages are supported, resolve accountId from AccountConfig
-                // instead of using agentId. See: docs/superpowers/specs/2026-03-23-google-api-clients-token-persistence-design.md
-                var accountId = agentId; // single-agent: accountId == agentId
+                var agentConfig = await accountConfigService.GetAccountAsync(agentId, ct);
+                var accountId = agentConfig?.AccountId ?? agentId;
                 await tokenStore.SaveAsync(
                     tokens with { AccountId = accountId, AgentId = agentId },
                     OAuthProviders.Google,

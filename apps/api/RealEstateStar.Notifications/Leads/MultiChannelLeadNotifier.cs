@@ -8,7 +8,7 @@ namespace RealEstateStar.Notifications.Leads;
 public class MultiChannelLeadNotifier(
     IHttpClientFactory httpClientFactory,
     IGmailSender gmailSender,
-    IFileStorageProvider fanOutStorage,
+    IDocumentStorageProvider fanOutStorage,
     IAccountConfigService accountConfigService,
     ILogger<MultiChannelLeadNotifier> logger) : ILeadNotifier
 {

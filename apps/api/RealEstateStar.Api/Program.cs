@@ -228,6 +228,11 @@ builder.Services.AddSingleton<IFileStorageProvider>(sp =>
     new LocalStorageProvider(
         builder.Configuration["Storage:BasePath"] ?? Path.Combine(builder.Environment.ContentRootPath, "data")));
 
+// Forward the narrower interfaces to the single IFileStorageProvider instance
+// so services depending on IDocumentStorageProvider or ISheetStorageProvider resolve correctly.
+builder.Services.AddSingleton<IDocumentStorageProvider>(sp => sp.GetRequiredService<IFileStorageProvider>());
+builder.Services.AddSingleton<ISheetStorageProvider>(sp => sp.GetRequiredService<IFileStorageProvider>());
+
 // Lead feature services
 builder.Services.AddSingleton<ILeadStore, LeadFileStore>();
 builder.Services.AddSingleton<IMarketingConsentLog, MarketingConsentLog>();

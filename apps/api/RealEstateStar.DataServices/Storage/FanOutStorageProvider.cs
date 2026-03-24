@@ -117,16 +117,13 @@ internal sealed class FanOutStorageProvider : IFileStorageProvider
 
     public async Task DeleteDocumentAsync(string folder, string fileName, CancellationToken ct)
     {
-        // TODO: Drive delete requires file ID lookup. Add IGDriveClient.DeleteFileByNameAsync
-        // to resolve name→ID before delete. Skipping Drive tiers until then.
-        // Agent and Account tiers skipped — only Platform tier (IGwsService) supports path-based delete.
-        _logger.LogWarning(
-            "[FANOUT-020] DeleteDocumentAsync for {Folder}/{FileName}: Drive tiers skipped — Drive delete " +
-            "requires a file ID, not a path. Only the Platform tier (IGwsService) is invoked. " +
-            "Implement IGDriveClient.DeleteFileByNameAsync to enable Drive delete.",
-            folder, fileName);
-
-        await ExecuteTierAsync("Platform", () => _gwsService.DeleteDocAsync(_platformEmail, folder, fileName, ct));
+        var tasks = new List<Task>
+        {
+            ExecuteTierAsync("Agent", () => _driveClient.DeleteFileByNameAsync(_accountId, _agentId, folder, fileName, ct)),
+            ExecuteTierAsync("Account", () => _driveClient.DeleteFileByNameAsync(_accountId, AccountTierAgentId, folder, fileName, ct)),
+            ExecuteTierAsync("Platform", () => _gwsService.DeleteDocAsync(_platformEmail, folder, fileName, ct))
+        };
+        await Task.WhenAll(tasks);
     }
 
     public async Task<List<string>> ListDocumentsAsync(string folder, CancellationToken ct)

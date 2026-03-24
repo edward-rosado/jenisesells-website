@@ -45,11 +45,11 @@ public class HomeSearchBuyerNotifierTests
         }
     };
 
-    private (HomeSearchBuyerNotifier sut, Mock<IGmailSender> gmailSender, Mock<IFileStorageProvider> fanOutStorage)
+    private (HomeSearchBuyerNotifier sut, Mock<IGmailSender> gmailSender, Mock<IDocumentStorageProvider> fanOutStorage)
         BuildSut(Mock<IAccountConfigService>? configService = null, ILogger<HomeSearchBuyerNotifier>? logger = null)
     {
         var gmailSender = new Mock<IGmailSender>();
-        var fanOutStorage = new Mock<IFileStorageProvider>();
+        var fanOutStorage = new Mock<IDocumentStorageProvider>();
         configService ??= new Mock<IAccountConfigService>();
         var sut = new HomeSearchBuyerNotifier(
             gmailSender.Object,

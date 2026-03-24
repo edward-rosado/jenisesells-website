@@ -4,7 +4,7 @@ using RealEstateStar.DataServices.Leads;
 
 namespace RealEstateStar.Api.Health;
 
-public class GoogleDriveHealthCheck(IFileStorageProvider fileStorageProvider) : IHealthCheck
+public class GoogleDriveHealthCheck(IDocumentStorageProvider fileStorageProvider) : IHealthCheck
 {
     private const string HealthCheckFolder = "_health";
 

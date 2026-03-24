@@ -5,7 +5,7 @@ namespace RealEstateStar.Notifications.HomeSearch;
 
 public class HomeSearchBuyerNotifier(
     IGmailSender gmailSender,
-    IFileStorageProvider fanOutStorage,
+    IDocumentStorageProvider fanOutStorage,
     IAccountConfigService accountConfigService,
     ILogger<HomeSearchBuyerNotifier> logger) : IHomeSearchNotifier
 {

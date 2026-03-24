@@ -14,7 +14,7 @@ public class LeadDataDeletion(
     ILeadStore leadStore,
     IMarketingConsentLog consentLog,
     IDeletionAuditLog auditLog,
-    IFileStorageProvider storage,
+    IDocumentStorageProvider storage,
     IGwsService gwsService,
     ILogger<LeadDataDeletion> logger) : ILeadDataDeletion
 {

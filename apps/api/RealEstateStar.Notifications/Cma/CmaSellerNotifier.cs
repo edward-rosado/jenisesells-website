@@ -8,7 +8,7 @@ namespace RealEstateStar.Notifications.Cma;
 
 public class CmaSellerNotifier(
     IGmailSender gmailSender,
-    IFileStorageProvider fanOutStorage,
+    IDocumentStorageProvider fanOutStorage,
     IAccountConfigService accountConfigService,
     ILogger<CmaSellerNotifier> logger) : ICmaNotifier
 {
