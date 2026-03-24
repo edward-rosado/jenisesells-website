@@ -30,4 +30,5 @@ global using RealEstateStar.DataServices.Config;
 global using RealEstateStar.DataServices.Leads;
 global using RealEstateStar.DataServices.Onboarding;
 global using RealEstateStar.DataServices.Privacy;
+global using RealEstateStar.DataServices.Storage;
 global using RealEstateStar.DataServices.WhatsApp;

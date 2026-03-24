@@ -31,6 +31,9 @@ global using RealEstateStar.Domain.WhatsApp.Models;
 global using RealEstateStar.Domain.WhatsApp.Interfaces;
 global using RealEstateStar.Domain.WhatsApp;
 
+// Shared diagnostics
+global using RealEstateStar.Domain.Shared;
+
 // Onboarding
 global using RealEstateStar.Domain.Onboarding.Models;
 global using RealEstateStar.Domain.Onboarding.Interfaces;
