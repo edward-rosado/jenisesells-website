@@ -16,6 +16,10 @@ vi.mock("@/lib/api", () => ({
     GET: (...args: unknown[]) => mockGet(...args),
     POST: (...args: unknown[]) => mockPost(...args),
   },
+  getApi: () => ({
+    GET: (...args: unknown[]) => mockGet(...args),
+    POST: (...args: unknown[]) => mockPost(...args),
+  }),
 }));
 
 // Mock ChatWindow to prevent SSE fetch to localhost:5135

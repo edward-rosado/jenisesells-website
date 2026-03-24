@@ -142,8 +142,7 @@ describe("submitLead", () => {
 
     const result = await submitLead("agent-123", validFormData, "valid-token");
 
-    expect(result.error).toContain("API error [400]");
-    expect(result.error).toContain("Invalid email");
+    expect(result.error).toBe("Submission failed. Please try again or contact us directly.");
   });
 
   it("returns generic error when signRequest throws", async () => {
