@@ -50,3 +50,4 @@ appsettings.*.local.json
 *.pfx
 *.p12
 apps/api/RealEstateStar.Api/data/
+apps/api/RealEstateStar.Api/data/
