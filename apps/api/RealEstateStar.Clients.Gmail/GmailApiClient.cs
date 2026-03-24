@@ -8,14 +8,13 @@ using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using Microsoft.Extensions.Logging;
 using MimeKit;
-using RealEstateStar.Clients.GoogleOAuth;
 using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Clients.Gmail;
 
 internal sealed class GmailApiClient(
-    GoogleOAuthRefresher refresher,
+    IOAuthRefresher refresher,
     ILogger<GmailApiClient> logger) : IGmailSender
 {
     public async Task SendAsync(

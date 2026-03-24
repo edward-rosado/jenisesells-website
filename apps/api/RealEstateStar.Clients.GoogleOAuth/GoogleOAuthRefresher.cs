@@ -2,12 +2,13 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Shared;
+using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.Clients.GoogleOAuth;
 
-public sealed class GoogleOAuthRefresher
+public sealed class GoogleOAuthRefresher : IOAuthRefresher
 {
     private readonly ITokenStore _tokenStore;
     private readonly string _clientId;

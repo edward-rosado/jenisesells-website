@@ -7,14 +7,13 @@ using Google.Apis.Docs.v1.Data;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Clients.GoogleOAuth;
 using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Clients.GDocs;
 
 internal sealed class GDocsApiClient(
-    GoogleOAuthRefresher refresher,
+    IOAuthRefresher refresher,
     ILogger<GDocsApiClient> logger) : IGDocsClient
 {
     public async Task<string> CreateDocumentAsync(

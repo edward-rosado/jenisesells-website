@@ -7,14 +7,13 @@ using Google.Apis.Drive.v3.Data;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Clients.GoogleOAuth;
 using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Clients.GDrive;
 
 internal sealed class GDriveApiClient(
-    GoogleOAuthRefresher refresher,
+    IOAuthRefresher refresher,
     ILogger<GDriveApiClient> logger) : IGDriveClient
 {
     private const string FolderMimeType = "application/vnd.google-apps.folder";
