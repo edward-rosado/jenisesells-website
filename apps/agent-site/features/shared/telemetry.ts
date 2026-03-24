@@ -3,7 +3,7 @@ import { EventType } from "@real-estate-star/analytics";
 export { EventType };
 
 export function trackFormEvent(event: EventType, agentId: string, errorType?: string): void {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? process.env.LEAD_API_URL;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   if (!apiUrl) return;
 
   fetch(`${apiUrl}/telemetry`, {
