@@ -1,11 +1,6 @@
 using System.Diagnostics;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Auth.OAuth2.Flows;
-using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Docs.v1;
 using Google.Apis.Docs.v1.Data;
-using Google.Apis.Services;
-using Google.Apis.Util.Store;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
@@ -66,7 +61,7 @@ internal sealed class GDocsApiClient(
         {
             GDocsDiagnostics.Failed.Add(1);
             logger.LogError(ex,
-                "[GDOCS-030] CreateDocument failed for account {AccountId}, agent {AgentId}",
+                "[GDOCS-031] CreateDocument failed for account {AccountId}, agent {AgentId}",
                 accountId, agentId);
             throw;
         }
@@ -104,7 +99,7 @@ internal sealed class GDocsApiClient(
             GDocsDiagnostics.Duration.Record(durationMs);
 
             logger.LogInformation(
-                "[GDOCS-001] Document read for account {AccountId}, agent {AgentId}. DocumentId: {DocumentId}, Duration: {Duration}ms",
+                "[GDOCS-002] Document read for account {AccountId}, agent {AgentId}. DocumentId: {DocumentId}, Duration: {Duration}ms",
                 accountId, agentId, documentId, durationMs);
 
             return text;
@@ -113,7 +108,7 @@ internal sealed class GDocsApiClient(
         {
             GDocsDiagnostics.Failed.Add(1);
             logger.LogError(ex,
-                "[GDOCS-030] ReadDocument failed for account {AccountId}, agent {AgentId}, documentId {DocumentId}",
+                "[GDOCS-032] ReadDocument failed for account {AccountId}, agent {AgentId}, documentId {DocumentId}",
                 accountId, agentId, documentId);
             throw;
         }
@@ -187,14 +182,14 @@ internal sealed class GDocsApiClient(
             GDocsDiagnostics.Duration.Record(durationMs);
 
             logger.LogInformation(
-                "[GDOCS-001] Document updated for account {AccountId}, agent {AgentId}. DocumentId: {DocumentId}, Duration: {Duration}ms",
+                "[GDOCS-003] Document updated for account {AccountId}, agent {AgentId}. DocumentId: {DocumentId}, Duration: {Duration}ms",
                 accountId, agentId, documentId, durationMs);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             GDocsDiagnostics.Failed.Add(1);
             logger.LogError(ex,
-                "[GDOCS-030] UpdateDocument failed for account {AccountId}, agent {AgentId}, documentId {DocumentId}",
+                "[GDOCS-033] UpdateDocument failed for account {AccountId}, agent {AgentId}, documentId {DocumentId}",
                 accountId, agentId, documentId);
             throw;
         }
@@ -255,44 +250,6 @@ internal sealed class GDocsApiClient(
         return (int)(lastElement.EndIndex ?? 1) - 1;
     }
 
-    private static DocsService BuildDocsService(Domain.Shared.Models.OAuthCredential credential)
-    {
-        // Build UserCredential manually from OAuthCredential without GoogleWebAuthorizationBroker
-        // (which requires interactive browser flow). We use a no-op IDataStore.
-        var tokenResponse = new TokenResponse
-        {
-            AccessToken = credential.AccessToken,
-            RefreshToken = credential.RefreshToken,
-            ExpiresInSeconds = (long)Math.Max(0, (credential.ExpiresAt - DateTime.UtcNow).TotalSeconds),
-            IssuedUtc = DateTime.UtcNow
-        };
-
-        var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
-        {
-            ClientSecrets = new ClientSecrets
-            {
-                ClientId = "placeholder",
-                ClientSecret = "placeholder"
-            },
-            Scopes = credential.Scopes,
-            DataStore = new GDocsNullDataStore()
-        });
-
-        var userCredential = new UserCredential(flow, credential.Email, tokenResponse);
-
-        return new DocsService(new BaseClientService.Initializer
-        {
-            HttpClientInitializer = userCredential,
-            ApplicationName = "RealEstateStar"
-        });
-    }
-}
-
-/// <summary>No-op IDataStore — token lifecycle is managed by ITokenStore, not Google's data store.</summary>
-internal sealed class GDocsNullDataStore : IDataStore
-{
-    public Task StoreAsync<T>(string key, T value) => Task.CompletedTask;
-    public Task DeleteAsync<T>(string key) => Task.CompletedTask;
-    public Task<T> GetAsync<T>(string key) => Task.FromResult(default(T)!);
-    public Task ClearAsync() => Task.CompletedTask;
+    private static DocsService BuildDocsService(Domain.Shared.Models.OAuthCredential credential) =>
+        new(GoogleCredentialFactory.BuildInitializer(credential));
 }

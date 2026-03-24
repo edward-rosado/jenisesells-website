@@ -1,11 +1,6 @@
 using System.Diagnostics;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Auth.OAuth2.Flows;
-using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Drive.v3;
 using Google.Apis.Drive.v3.Data;
-using Google.Apis.Services;
-using Google.Apis.Util.Store;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
@@ -60,7 +55,7 @@ internal sealed class GDriveApiClient(
         {
             GDriveDiagnostics.Failed.Add(1);
             logger.LogError(ex,
-                "[GDRIVE-030] CreateFolder failed for account {AccountId}, agent {AgentId}",
+                "[GDRIVE-031] CreateFolder failed for account {AccountId}, agent {AgentId}",
                 accountId, agentId);
             throw;
         }
@@ -117,7 +112,7 @@ internal sealed class GDriveApiClient(
             GDriveDiagnostics.Duration.Record(durationMs);
 
             logger.LogInformation(
-                "[GDRIVE-001] File uploaded for account {AccountId}, agent {AgentId}. FileId: {FileId}, Duration: {Duration}ms",
+                "[GDRIVE-003] Binary uploaded for account {AccountId}, agent {AgentId}. FileId: {FileId}, Duration: {Duration}ms",
                 accountId, agentId, fileId, durationMs);
 
             return fileId;
@@ -126,7 +121,7 @@ internal sealed class GDriveApiClient(
         {
             GDriveDiagnostics.Failed.Add(1);
             logger.LogError(ex,
-                "[GDRIVE-030] UploadBinary failed for account {AccountId}, agent {AgentId}",
+                "[GDRIVE-032] UploadBinary failed for account {AccountId}, agent {AgentId}",
                 accountId, agentId);
             throw;
         }
@@ -172,7 +167,7 @@ internal sealed class GDriveApiClient(
             GDriveDiagnostics.Duration.Record(durationMs);
 
             logger.LogInformation(
-                "[GDRIVE-001] File downloaded for account {AccountId}, agent {AgentId}. FileId: {FileId}, Duration: {Duration}ms",
+                "[GDRIVE-004] File downloaded for account {AccountId}, agent {AgentId}. FileId: {FileId}, Duration: {Duration}ms",
                 accountId, agentId, fileId, durationMs);
 
             return content;
@@ -181,7 +176,7 @@ internal sealed class GDriveApiClient(
         {
             GDriveDiagnostics.Failed.Add(1);
             logger.LogError(ex,
-                "[GDRIVE-030] DownloadFile failed for account {AccountId}, agent {AgentId}",
+                "[GDRIVE-033] DownloadFile failed for account {AccountId}, agent {AgentId}",
                 accountId, agentId);
             throw;
         }
@@ -211,14 +206,14 @@ internal sealed class GDriveApiClient(
             GDriveDiagnostics.Duration.Record(durationMs);
 
             logger.LogInformation(
-                "[GDRIVE-001] File deleted for account {AccountId}, agent {AgentId}. FileId: {FileId}, Duration: {Duration}ms",
+                "[GDRIVE-005] File deleted for account {AccountId}, agent {AgentId}. FileId: {FileId}, Duration: {Duration}ms",
                 accountId, agentId, fileId, durationMs);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             GDriveDiagnostics.Failed.Add(1);
             logger.LogError(ex,
-                "[GDRIVE-030] DeleteFile failed for account {AccountId}, agent {AgentId}",
+                "[GDRIVE-034] DeleteFile failed for account {AccountId}, agent {AgentId}",
                 accountId, agentId);
             throw;
         }
@@ -257,7 +252,7 @@ internal sealed class GDriveApiClient(
             GDriveDiagnostics.Duration.Record(durationMs);
 
             logger.LogInformation(
-                "[GDRIVE-001] Files listed for account {AccountId}, agent {AgentId}. Count: {Count}, Duration: {Duration}ms",
+                "[GDRIVE-006] Files listed for account {AccountId}, agent {AgentId}. Count: {Count}, Duration: {Duration}ms",
                 accountId, agentId, names.Count, durationMs);
 
             return names;
@@ -266,7 +261,7 @@ internal sealed class GDriveApiClient(
         {
             GDriveDiagnostics.Failed.Add(1);
             logger.LogError(ex,
-                "[GDRIVE-030] ListFiles failed for account {AccountId}, agent {AgentId}",
+                "[GDRIVE-035] ListFiles failed for account {AccountId}, agent {AgentId}",
                 accountId, agentId);
             throw;
         }
@@ -290,47 +285,9 @@ internal sealed class GDriveApiClient(
         return BuildDriveService(credential);
     }
 
-    private static DriveService BuildDriveService(Domain.Shared.Models.OAuthCredential credential)
-    {
-        // Build UserCredential manually from OAuthCredential without GoogleWebAuthorizationBroker
-        // (which requires interactive browser flow). We use a no-op IDataStore.
-        var tokenResponse = new TokenResponse
-        {
-            AccessToken = credential.AccessToken,
-            RefreshToken = credential.RefreshToken,
-            ExpiresInSeconds = (long)Math.Max(0, (credential.ExpiresAt - DateTime.UtcNow).TotalSeconds),
-            IssuedUtc = DateTime.UtcNow
-        };
-
-        var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
-        {
-            ClientSecrets = new ClientSecrets
-            {
-                ClientId = "placeholder",
-                ClientSecret = "placeholder"
-            },
-            Scopes = credential.Scopes,
-            DataStore = new NullDataStore()
-        });
-
-        var userCredential = new UserCredential(flow, credential.Email, tokenResponse);
-
-        return new DriveService(new BaseClientService.Initializer
-        {
-            HttpClientInitializer = userCredential,
-            ApplicationName = "RealEstateStar"
-        });
-    }
+    private static DriveService BuildDriveService(Domain.Shared.Models.OAuthCredential credential) =>
+        new(GoogleCredentialFactory.BuildInitializer(credential));
 
     private static string EscapeQuery(string value) =>
         value.Replace("\\", "\\\\").Replace("'", "\\'");
-}
-
-/// <summary>No-op IDataStore — token lifecycle is managed by ITokenStore, not Google's data store.</summary>
-internal sealed class NullDataStore : IDataStore
-{
-    public Task StoreAsync<T>(string key, T value) => Task.CompletedTask;
-    public Task DeleteAsync<T>(string key) => Task.CompletedTask;
-    public Task<T> GetAsync<T>(string key) => Task.FromResult(default(T)!);
-    public Task ClearAsync() => Task.CompletedTask;
 }

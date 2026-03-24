@@ -1,11 +1,6 @@
 using System.Diagnostics;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Auth.OAuth2.Flows;
-using Google.Apis.Auth.OAuth2.Responses;
-using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
-using Google.Apis.Util.Store;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
@@ -63,7 +58,7 @@ internal sealed class GSheetsApiClient(
         {
             GSheetsDiagnostics.Failed.Add(1);
             logger.LogError(ex,
-                "[GSHEETS-030] Sheets append failed for account {AccountId}, agent {AgentId}, sheet {SheetName}",
+                "[GSHEETS-031] Sheets append failed for account {AccountId}, agent {AgentId}, sheet {SheetName}",
                 accountId, agentId, sheetName);
             throw;
         }
@@ -102,7 +97,7 @@ internal sealed class GSheetsApiClient(
             GSheetsDiagnostics.Duration.Record(durationMs);
 
             logger.LogInformation(
-                "[GSHEETS-001] Rows read for account {AccountId}, agent {AgentId}, sheet {SheetName}. Duration: {Duration}ms",
+                "[GSHEETS-002] Rows read for account {AccountId}, agent {AgentId}, sheet {SheetName}. Duration: {Duration}ms",
                 accountId, agentId, sheetName, durationMs);
 
             if (response.Values is null)
@@ -116,7 +111,7 @@ internal sealed class GSheetsApiClient(
         {
             GSheetsDiagnostics.Failed.Add(1);
             logger.LogError(ex,
-                "[GSHEETS-030] Sheets read failed for account {AccountId}, agent {AgentId}, sheet {SheetName}",
+                "[GSHEETS-032] Sheets read failed for account {AccountId}, agent {AgentId}, sheet {SheetName}",
                 accountId, agentId, sheetName);
             throw;
         }
@@ -161,7 +156,7 @@ internal sealed class GSheetsApiClient(
                 GSheetsDiagnostics.Operations.Add(1);
                 GSheetsDiagnostics.Duration.Record(elapsed);
                 logger.LogInformation(
-                    "[GSHEETS-001] No rows to redact for account {AccountId}, agent {AgentId}, sheet {SheetName}. Duration: {Duration}ms",
+                    "[GSHEETS-003] No rows to redact for account {AccountId}, agent {AgentId}, sheet {SheetName}. Duration: {Duration}ms",
                     accountId, agentId, sheetName, elapsed);
                 return;
             }
@@ -175,7 +170,7 @@ internal sealed class GSheetsApiClient(
                 GSheetsDiagnostics.Operations.Add(1);
                 GSheetsDiagnostics.Duration.Record(elapsed);
                 logger.LogInformation(
-                    "[GSHEETS-001] Filter column '{FilterColumn}' not found in sheet {SheetName}. Duration: {Duration}ms",
+                    "[GSHEETS-003] Filter column '{FilterColumn}' not found in sheet {SheetName}. Duration: {Duration}ms",
                     filterColumn, sheetName, elapsed);
                 return;
             }
@@ -222,57 +217,19 @@ internal sealed class GSheetsApiClient(
             GSheetsDiagnostics.Duration.Record(durationMs);
 
             logger.LogInformation(
-                "[GSHEETS-001] Redacted {Count} rows for account {AccountId}, agent {AgentId}, sheet {SheetName}. Duration: {Duration}ms",
+                "[GSHEETS-003] Redacted {Count} rows for account {AccountId}, agent {AgentId}, sheet {SheetName}. Duration: {Duration}ms",
                 batchData.Count, accountId, agentId, sheetName, durationMs);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             GSheetsDiagnostics.Failed.Add(1);
             logger.LogError(ex,
-                "[GSHEETS-030] Sheets redact failed for account {AccountId}, agent {AgentId}, sheet {SheetName}",
+                "[GSHEETS-033] Sheets redact failed for account {AccountId}, agent {AgentId}, sheet {SheetName}",
                 accountId, agentId, sheetName);
             throw;
         }
     }
 
-    private static SheetsService BuildSheetsService(Domain.Shared.Models.OAuthCredential credential)
-    {
-        // Build UserCredential manually from OAuthCredential without GoogleWebAuthorizationBroker
-        // (which requires interactive browser flow). We use a no-op IDataStore.
-        var tokenResponse = new TokenResponse
-        {
-            AccessToken = credential.AccessToken,
-            RefreshToken = credential.RefreshToken,
-            ExpiresInSeconds = (long)Math.Max(0, (credential.ExpiresAt - DateTime.UtcNow).TotalSeconds),
-            IssuedUtc = DateTime.UtcNow
-        };
-
-        var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
-        {
-            ClientSecrets = new ClientSecrets
-            {
-                ClientId = "placeholder",
-                ClientSecret = "placeholder"
-            },
-            Scopes = credential.Scopes,
-            DataStore = new GSheetsNullDataStore()
-        });
-
-        var userCredential = new UserCredential(flow, credential.Email, tokenResponse);
-
-        return new SheetsService(new BaseClientService.Initializer
-        {
-            HttpClientInitializer = userCredential,
-            ApplicationName = "RealEstateStar"
-        });
-    }
-}
-
-/// <summary>No-op IDataStore — token lifecycle is managed by ITokenStore, not Google's data store.</summary>
-internal sealed class GSheetsNullDataStore : IDataStore
-{
-    public Task StoreAsync<T>(string key, T value) => Task.CompletedTask;
-    public Task DeleteAsync<T>(string key) => Task.CompletedTask;
-    public Task<T> GetAsync<T>(string key) => Task.FromResult(default(T)!);
-    public Task ClearAsync() => Task.CompletedTask;
+    private static SheetsService BuildSheetsService(Domain.Shared.Models.OAuthCredential credential) =>
+        new(GoogleCredentialFactory.BuildInitializer(credential));
 }

@@ -8,6 +8,8 @@
     <InternalsVisibleTo Include="RealEstateStar.Clients.GoogleOAuth.Tests" />
     <InternalsVisibleTo Include="RealEstateStar.Clients.Gmail" />
     <InternalsVisibleTo Include="RealEstateStar.Clients.GDrive" />
+    <InternalsVisibleTo Include="RealEstateStar.Clients.GDocs" />
+    <InternalsVisibleTo Include="RealEstateStar.Clients.GSheets" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />
