@@ -9,12 +9,12 @@ namespace RealEstateStar.DataServices.Storage;
 /// <summary>
 /// Three-tier fan-out storage provider.
 /// Document methods (Write/Read/Update/Delete/List/EnsureFolder) fan out to:
-///   Agent Drive  — IGDriveClient (accountId, agentId)
+///   Agent Drive   — IGDriveClient (accountId, agentId)
 ///   Account Drive — IGDriveClient (accountId, "__account__")
-///   Platform Drive — IGwsService (gws CLI, platform service account)
+///   Platform Blob — IDocumentStorageProvider (Azure Blob Storage)
 /// All document tiers are best-effort: failure at any tier logs a warning but
 /// does not fail the overall operation.
-/// Sheet methods (Append/Read/Redact) pass through to IGSheetsClient using
+/// Sheet methods (Append/Read/Redact) pass through to IGwsService using
 /// the platform spreadsheet convention.
 /// </summary>
 internal sealed class FanOutStorageProvider : IFileStorageProvider
@@ -24,6 +24,7 @@ internal sealed class FanOutStorageProvider : IFileStorageProvider
     private readonly IGDriveClient _driveClient;
     private readonly IGSheetsClient _sheetsClient;
     private readonly IGwsService _gwsService;
+    private readonly IDocumentStorageProvider _platformStore;
     private readonly string _accountId;
     private readonly string _agentId;
     private readonly string _platformEmail;
@@ -33,6 +34,7 @@ internal sealed class FanOutStorageProvider : IFileStorageProvider
         IGDriveClient driveClient,
         IGSheetsClient sheetsClient,
         IGwsService gwsService,
+        IDocumentStorageProvider platformStore,
         string accountId,
         string agentId,
         string platformEmail,
@@ -41,6 +43,7 @@ internal sealed class FanOutStorageProvider : IFileStorageProvider
         _driveClient = driveClient;
         _sheetsClient = sheetsClient;
         _gwsService = gwsService;
+        _platformStore = platformStore;
         _accountId = accountId;
         _agentId = agentId;
         _platformEmail = platformEmail;
@@ -58,7 +61,7 @@ internal sealed class FanOutStorageProvider : IFileStorageProvider
         {
             ExecuteTierAsync("Agent", () => _driveClient.UploadFileAsync(_accountId, _agentId, folder, fileName, content, ct)),
             ExecuteTierAsync("Account", () => _driveClient.UploadFileAsync(_accountId, AccountTierAgentId, folder, fileName, content, ct)),
-            ExecuteTierAsync("Platform", () => _gwsService.UploadFileAsync(_platformEmail, folder, fileName, ct)),
+            ExecuteTierAsync("Platform", () => _platformStore.WriteDocumentAsync(folder, fileName, content, ct)),
         };
 
         await Task.WhenAll(tasks);
@@ -90,7 +93,7 @@ internal sealed class FanOutStorageProvider : IFileStorageProvider
 
         try
         {
-            return await _gwsService.DownloadDocAsync(_platformEmail, folder, fileName, ct);
+            return await _platformStore.ReadDocumentAsync(folder, fileName, ct);
         }
         catch (Exception ex)
         {
@@ -108,7 +111,7 @@ internal sealed class FanOutStorageProvider : IFileStorageProvider
         {
             ExecuteTierAsync("Agent", () => _driveClient.UploadFileAsync(_accountId, _agentId, folder, fileName, content, ct)),
             ExecuteTierAsync("Account", () => _driveClient.UploadFileAsync(_accountId, AccountTierAgentId, folder, fileName, content, ct)),
-            ExecuteTierAsync("Platform", () => _gwsService.UpdateDocAsync(_platformEmail, folder, fileName, content, ct)),
+            ExecuteTierAsync("Platform", () => _platformStore.UpdateDocumentAsync(folder, fileName, content, ct)),
         };
 
         await Task.WhenAll(tasks);
@@ -121,7 +124,7 @@ internal sealed class FanOutStorageProvider : IFileStorageProvider
         {
             ExecuteTierAsync("Agent", () => _driveClient.DeleteFileByNameAsync(_accountId, _agentId, folder, fileName, ct)),
             ExecuteTierAsync("Account", () => _driveClient.DeleteFileByNameAsync(_accountId, AccountTierAgentId, folder, fileName, ct)),
-            ExecuteTierAsync("Platform", () => _gwsService.DeleteDocAsync(_platformEmail, folder, fileName, ct))
+            ExecuteTierAsync("Platform", () => _platformStore.DeleteDocumentAsync(folder, fileName, ct)),
         };
         await Task.WhenAll(tasks);
     }
@@ -149,7 +152,7 @@ internal sealed class FanOutStorageProvider : IFileStorageProvider
 
         try
         {
-            return await _gwsService.ListFilesAsync(_platformEmail, folder, ct);
+            return await _platformStore.ListDocumentsAsync(folder, ct);
         }
         catch (Exception ex)
         {
@@ -199,7 +202,7 @@ internal sealed class FanOutStorageProvider : IFileStorageProvider
         {
             ExecuteTierAsync("Agent", () => _driveClient.CreateFolderAsync(_accountId, _agentId, folder, ct)),
             ExecuteTierAsync("Account", () => _driveClient.CreateFolderAsync(_accountId, AccountTierAgentId, folder, ct)),
-            ExecuteTierAsync("Platform", () => _gwsService.CreateDriveFolderAsync(_platformEmail, folder, ct)),
+            ExecuteTierAsync("Platform", () => _platformStore.EnsureFolderExistsAsync(folder, ct)),
         };
 
         await Task.WhenAll(tasks);
