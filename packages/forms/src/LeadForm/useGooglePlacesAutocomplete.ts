@@ -160,7 +160,7 @@ interface UsageCounters {
 const usage: UsageCounters = { sessions: 0, suggestionRequests: 0, placeDetailRequests: 0, errors: 0 };
 
 function logBillable(event: string, detail: string) {
-  console.info(LOG_PREFIX, `💲 BILLABLE: ${event} — ${detail}`, `| totals: ${usage.sessions} sessions, ${usage.suggestionRequests} suggestion reqs, ${usage.placeDetailRequests} detail reqs`);
+  console.debug(LOG_PREFIX, `💲 BILLABLE: ${event} — ${detail}`, `| totals: ${usage.sessions} sessions, ${usage.suggestionRequests} suggestion reqs, ${usage.placeDetailRequests} detail reqs`);
 }
 
 /* v8 ignore next 5 -- browser-only debug helper */
