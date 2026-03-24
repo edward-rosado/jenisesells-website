@@ -296,10 +296,10 @@ builder.Services.AddSingleton<ITokenStore>(sp =>
     var connStr = builder.Configuration["AzureStorage:ConnectionString"];
     if (string.IsNullOrEmpty(connStr))
     {
-        if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName != "OpenApiExport")
-            throw new InvalidOperationException("AzureStorage:ConnectionString is required for OAuth token persistence in non-development environments.");
-
-        Log.Warning("[STARTUP-070] AzureStorage:ConnectionString not configured — ITokenStore using NullTokenStore (no OAuth token persistence)");
+        // TODO: Once Azure Table Storage is provisioned, add AzureStorage__ConnectionString
+        // to container env vars and convert this warning to a throw for non-dev environments.
+        Log.Warning("[STARTUP-070] AzureStorage:ConnectionString not configured — using NullTokenStore. " +
+            "OAuth tokens will NOT be persisted. Set AzureStorage:ConnectionString to enable.");
         return new NullTokenStore();
     }
 
