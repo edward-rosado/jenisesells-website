@@ -34,6 +34,8 @@ using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.WhatsApp;
 using RealEstateStar.Clients.Anthropic;
 using RealEstateStar.Clients.Azure;
+using RealEstateStar.Clients.Gmail;
+using RealEstateStar.Clients.GoogleOAuth;
 using RealEstateStar.Clients.Gws;
 using RealEstateStar.Clients.Scraper;
 using RealEstateStar.Clients.WhatsApp;
@@ -292,6 +294,21 @@ builder.Services.AddSingleton<ITokenStore>(sp =>
         sp.GetRequiredService<IDataProtectionProvider>(),
         sp.GetRequiredService<ILogger<AzureTableTokenStore>>());
 });
+
+// Gmail API client — IGmailSender backed by GmailApiClient (needs IOAuthRefresher)
+builder.Services.AddSingleton<IOAuthRefresher>(sp =>
+{
+    var googleClientId = builder.Configuration["Google:ClientId"] ?? "";
+    var googleClientSecret = builder.Configuration["Google:ClientSecret"] ?? "";
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("GoogleOAuth");
+    return new GoogleOAuthRefresher(
+        sp.GetRequiredService<ITokenStore>(),
+        googleClientId,
+        googleClientSecret,
+        httpClient,
+        sp.GetRequiredService<ILogger<GoogleOAuthRefresher>>());
+});
+builder.Services.AddGmailSender();
 
 // Scraper client — centralized with OTel, circuit breaker, rate limiting
 builder.Services.Configure<ScraperOptions>(builder.Configuration.GetSection("Scraper"));

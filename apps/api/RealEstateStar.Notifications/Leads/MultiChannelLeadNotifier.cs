@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
@@ -6,7 +7,8 @@ namespace RealEstateStar.Notifications.Leads;
 
 public class MultiChannelLeadNotifier(
     IHttpClientFactory httpClientFactory,
-    IGwsService gwsService,
+    IGmailSender gmailSender,
+    IFileStorageProvider fanOutStorage,
     IAccountConfigService accountConfigService,
     ILogger<MultiChannelLeadNotifier> logger) : ILeadNotifier
 {
@@ -15,6 +17,7 @@ public class MultiChannelLeadNotifier(
         logger.LogInformation("[NOTIFY-001] Starting agent notification for lead {LeadId}, agent {AgentId}", lead.Id, agentId);
 
         var config = await accountConfigService.GetAccountAsync(agentId, ct);
+        var accountId = config?.AccountId ?? agentId;
         var agentEmail = config?.Agent?.Email ?? "";
         var webhookUrl = config?.Integrations?.ChatWebhookUrl;
 
@@ -28,7 +31,7 @@ public class MultiChannelLeadNotifier(
         try { await SendChatAsync(webhookUrl, lead, enrichment, score, ct); chatSent = !string.IsNullOrWhiteSpace(webhookUrl); }
         catch (Exception) { /* logged inside SendChatAsync */ }
 
-        try { await SendEmailAsync(agentEmail, lead, enrichment, score, ct); emailSent = true; }
+        try { await SendEmailAsync(accountId, agentId, agentEmail, lead, enrichment, score, ct); emailSent = true; }
         catch (Exception) { /* logged inside SendEmailAsync */ }
 
         logger.LogInformation("[NOTIFY-003] Notification result for lead {LeadId}: ChatSent={ChatSent}, EmailSent={EmailSent}",
@@ -64,28 +67,70 @@ public class MultiChannelLeadNotifier(
         }
     }
 
-    private async Task SendEmailAsync(string agentEmail, Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
+    private async Task SendEmailAsync(string accountId, string agentId, string agentEmail, Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(agentEmail))
-        {
-            logger.LogWarning("[NOTIFY-020] Agent email is empty for lead {LeadId} — cannot send email notification.", lead.Id);
-            throw new InvalidOperationException("Agent email is empty");
-        }
+        var subject = BuildSubject(lead, enrichment, score);
+        var body = BuildBody(lead, enrichment, score);
+
+        string? sendError = null;
 
         try
         {
-            logger.LogInformation("[NOTIFY-021] Sending email notification to {AgentEmail} for lead {LeadId}...", agentEmail, lead.Id);
-            var subject = BuildSubject(lead, enrichment, score);
-            var body = BuildBody(lead, enrichment, score);
-            await gwsService.SendEmailAsync(agentEmail, agentEmail, subject, body, null, ct);
-            logger.LogInformation("[NOTIFY-022] Email notification sent to {AgentEmail} for lead {LeadId}.", agentEmail, lead.Id);
+            logger.LogInformation("[NOTIFY-021] Sending email notification to {AgentEmailHash} for lead {LeadId}...", HashEmail(agentEmail), lead.Id);
+            await gmailSender.SendAsync(accountId, agentId, agentEmail, subject, body, ct);
+            logger.LogInformation("[NOTIFY-022] Email notification sent for lead {LeadId}.", lead.Id);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[NOTIFY-023] Gmail notification failed for agent {AgentId}, lead {LeadId}. Email: {AgentEmail}", lead.AgentId, lead.Id, agentEmail);
+            sendError = ex.Message;
+            logger.LogError(ex, "[NOTIFY-023] Gmail notification failed for agent {AgentId}, lead {LeadId}.", agentId, lead.Id);
             throw; // re-throw so emailSuccess stays false
         }
+        finally
+        {
+            // Write email record to Drive — non-fatal
+            try
+            {
+                var sent = sendError is null;
+                var record = BuildEmailRecord(lead, subject, body, sent, sendError);
+                var leadFolder = LeadPaths.LeadFolder(lead.FullName);
+                var fileName = $"{DateTime.UtcNow:yyyy-MM-dd-HHmmss}-Lead Notification.md";
+                await fanOutStorage.WriteDocumentAsync($"{leadFolder}/Communications", fileName, record, ct);
+            }
+            catch (Exception storageEx)
+            {
+                logger.LogError(storageEx, "[NOTIFY-024] Failed to write email record for lead {LeadId}, agent {AgentId}.", lead.Id, agentId);
+            }
+        }
     }
+
+    internal static string BuildEmailRecord(Lead lead, string subject, string body, bool sent, string? error)
+    {
+        var sb = new StringBuilder();
+
+        sb.AppendLine("---");
+        sb.AppendLine($"leadId: {lead.Id}");
+        sb.AppendLine($"sentAt: {DateTime.UtcNow:o}");
+        sb.AppendLine($"subject: \"{EscapeYaml(subject)}\"");
+        sb.AppendLine($"recipientEmailHash: {HashEmail(lead.AgentId)}");
+        sb.AppendLine($"sent: {sent.ToString().ToLowerInvariant()}");
+        if (error is not null)
+            sb.AppendLine($"error: \"{EscapeYaml(error)}\"");
+        sb.AppendLine("---");
+        sb.AppendLine();
+        sb.AppendLine(body);
+
+        return sb.ToString();
+    }
+
+    private static string HashEmail(string value)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value.Trim().ToLowerInvariant()));
+        return Convert.ToHexString(bytes)[..12].ToLowerInvariant();
+    }
+
+    private static string EscapeYaml(string value)
+        => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
     public string BuildSubject(Lead lead, LeadEnrichment enrichment, LeadScore score)
         => $"New Lead: {lead.FullName} — {enrichment.MotivationCategory} (Score: {score.OverallScore})";

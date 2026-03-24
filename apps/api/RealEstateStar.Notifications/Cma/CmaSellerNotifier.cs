@@ -7,7 +7,8 @@ using Microsoft.Extensions.Logging;
 namespace RealEstateStar.Notifications.Cma;
 
 public class CmaSellerNotifier(
-    IGwsService gwsService,
+    IGmailSender gmailSender,
+    IFileStorageProvider fanOutStorage,
     IAccountConfigService accountConfigService,
     ILogger<CmaSellerNotifier> logger) : ICmaNotifier
 {
@@ -20,7 +21,7 @@ public class CmaSellerNotifier(
         CancellationToken ct)
     {
         var agent = await accountConfigService.GetAccountAsync(agentId, ct);
-        var agentEmail = agent?.Agent?.Email ?? "";
+        var accountId = agent?.AccountId ?? agentId;
         var agentName = agent?.Agent?.Name ?? agentId;
         var agentPhone = agent?.Agent?.Phone ?? "";
 
@@ -31,7 +32,7 @@ public class CmaSellerNotifier(
         var subject = $"Your Comparative Market Analysis \u2013 {fullAddress}";
         var body = BuildEmailBody(lead, analysis, agentName, agentPhone);
 
-        // Step 1: Send email — failure is fatal; caller decides whether to retry
+        // Step 1: Send email with PDF attachment — failure is fatal; caller decides whether to retry
         var emailSw = Stopwatch.GetTimestamp();
         logger.LogInformation(
             "[CMA-NOTIFY-001] Sending CMA email to {RecipientHash} for lead {LeadId}, agent {AgentId}. CorrelationId: {CorrelationId}",
@@ -39,7 +40,9 @@ public class CmaSellerNotifier(
 
         try
         {
-            await gwsService.SendEmailAsync(agentEmail, lead.Email, subject, body, pdfPath, ct);
+            var pdfBytes = await File.ReadAllBytesAsync(pdfPath, ct);
+            var pdfFileName = Path.GetFileName(pdfPath);
+            await gmailSender.SendWithAttachmentAsync(accountId, agentId, lead.Email, subject, body, pdfBytes, pdfFileName, ct);
             CmaDiagnostics.EmailDuration.Record(Stopwatch.GetElapsedTime(emailSw).TotalMilliseconds);
 
             logger.LogInformation(
@@ -55,30 +58,7 @@ public class CmaSellerNotifier(
             throw;
         }
 
-        // Step 2: Upload PDF to Drive — failure is non-fatal
-        var driveSw = Stopwatch.GetTimestamp();
-        logger.LogInformation(
-            "[CMA-NOTIFY-003] Uploading PDF to Drive for lead {LeadId}. Folder: {Folder}. CorrelationId: {CorrelationId}",
-            lead.Id, cmaFolder, correlationId);
-
-        try
-        {
-            await gwsService.UploadFileAsync(agentEmail, cmaFolder, pdfPath, ct);
-            CmaDiagnostics.DriveDuration.Record(Stopwatch.GetElapsedTime(driveSw).TotalMilliseconds);
-
-            logger.LogInformation(
-                "[CMA-NOTIFY-004] Upload complete for lead {LeadId}. Duration: {DurationMs}ms. CorrelationId: {CorrelationId}",
-                lead.Id, Stopwatch.GetElapsedTime(driveSw).TotalMilliseconds, correlationId);
-        }
-        catch (Exception ex)
-        {
-            CmaDiagnostics.DriveDuration.Record(Stopwatch.GetElapsedTime(driveSw).TotalMilliseconds);
-            logger.LogError(ex,
-                "[CMA-NOTIFY-008] Drive upload failed for lead {LeadId}, agent {AgentId}. CorrelationId: {CorrelationId}",
-                lead.Id, agentId, correlationId);
-        }
-
-        // Step 3: Store communication record — failure is non-fatal
+        // Step 2: Store communication record via fan-out — failure is non-fatal
         logger.LogInformation(
             "[CMA-NOTIFY-005] Storing communication record for lead {LeadId}. CorrelationId: {CorrelationId}",
             lead.Id, correlationId);
@@ -86,7 +66,9 @@ public class CmaSellerNotifier(
         try
         {
             var emailRecord = BuildEmailRecord(lead, subject, body, correlationId);
-            await gwsService.CreateDocAsync(agentEmail, cmaFolder, "CMA Email Record", emailRecord, ct);
+            var fileName = $"{DateTime.UtcNow:yyyy-MM-dd-HHmmss}-CMA Email Record.md";
+            await fanOutStorage.WriteDocumentAsync(cmaFolder, fileName, emailRecord, ct);
+            CmaDiagnostics.DriveDuration.Record(0); // record a nominal zero since drive is now fan-out
 
             logger.LogInformation(
                 "[CMA-NOTIFY-006] Communication stored for lead {LeadId}. CorrelationId: {CorrelationId}",
