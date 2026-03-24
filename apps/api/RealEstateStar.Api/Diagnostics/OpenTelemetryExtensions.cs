@@ -18,6 +18,8 @@ public static class OpenTelemetryExtensions
     {
         var otlpEndpoint = new Uri(
             builder.Configuration["Otel:Endpoint"] ?? DefaultOtlpEndpoint);
+        var otlpHeaders = builder.Configuration["Otel:Headers"] ?? "";
+        var useHttpProtobuf = !string.IsNullOrEmpty(otlpHeaders);
 
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource => resource
@@ -41,7 +43,9 @@ public static class OpenTelemetryExtensions
                 .AddOtlpExporter(options =>
                 {
                     options.Endpoint = otlpEndpoint;
-                    options.Protocol = OtlpExportProtocol.Grpc;
+                    options.Protocol = useHttpProtobuf ? OtlpExportProtocol.HttpProtobuf : OtlpExportProtocol.Grpc;
+                    if (!string.IsNullOrEmpty(otlpHeaders))
+                        options.Headers = otlpHeaders;
                 }))
             .WithMetrics(metrics => metrics
                 .AddMeter(OnboardingSourceName)
@@ -62,7 +66,9 @@ public static class OpenTelemetryExtensions
                 .AddOtlpExporter(options =>
                 {
                     options.Endpoint = otlpEndpoint;
-                    options.Protocol = OtlpExportProtocol.Grpc;
+                    options.Protocol = useHttpProtobuf ? OtlpExportProtocol.HttpProtobuf : OtlpExportProtocol.Grpc;
+                    if (!string.IsNullOrEmpty(otlpHeaders))
+                        options.Headers = otlpHeaders;
                 }));
 
         return builder;
