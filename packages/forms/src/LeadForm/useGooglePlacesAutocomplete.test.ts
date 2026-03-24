@@ -185,7 +185,7 @@ describe("useGooglePlacesAutocomplete", () => {
       expect.objectContaining({
         input: "123 Main",
         includedRegionCodes: ["us"],
-        includedPrimaryTypes: ["address"],
+        includedPrimaryTypes: ["street_address"],
         locationRestriction: expect.objectContaining({ north: 41.3574 }),
         sessionToken: expect.anything(),
       }),
