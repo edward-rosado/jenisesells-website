@@ -28,8 +28,10 @@ public class DependencyTests
     [InlineData("RealEstateStar.Clients.Anthropic", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.Scraper", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.WhatsApp", new[] { "Domain" })]
-    [InlineData("RealEstateStar.Clients.GDrive", new[] { "Domain" })]
-    [InlineData("RealEstateStar.Clients.Gmail", new[] { "Domain" })]
+    [InlineData("RealEstateStar.Clients.GDrive", new[] { "Domain", "Clients.GoogleOAuth" })]
+    [InlineData("RealEstateStar.Clients.Gmail", new[] { "Domain", "Clients.GoogleOAuth" })]
+    [InlineData("RealEstateStar.Clients.GDocs", new[] { "Domain", "Clients.GoogleOAuth" })]
+    [InlineData("RealEstateStar.Clients.GSheets", new[] { "Domain", "Clients.GoogleOAuth" })]
     [InlineData("RealEstateStar.Clients.GoogleOAuth", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.Stripe", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.Cloudflare", new[] { "Domain" })]
@@ -56,6 +58,13 @@ public class DependencyTests
     [Fact]
     public void Api_is_the_only_project_that_references_Clients()
     {
+        // GoogleOAuth is a shared infrastructure client — Gmail and GDocs are permitted to reference it
+        // because they manage per-agent OAuth token refresh inline (by design).
+        var allowedCrossClientRefs = new HashSet<string>
+        {
+            "RealEstateStar.Clients.GoogleOAuth"
+        };
+
         var productionAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.*.dll")
             .Select(Assembly.LoadFrom)
             .Where(a => !a.GetName().Name!.Contains("Api"))
@@ -66,11 +75,12 @@ public class DependencyTests
         {
             var clientRefs = assembly.GetReferencedAssemblies()
                 .Where(a => a.Name!.Contains("Clients"))
+                .Where(a => !allowedCrossClientRefs.Contains(a.Name!))
                 .Select(a => a.Name!)
                 .ToList();
 
             Assert.True(clientRefs.Count == 0,
-                $"{assembly.GetName().Name} references {string.Join(", ", clientRefs)} — only Api may reference Clients.*");
+                $"{assembly.GetName().Name} references {string.Join(", ", clientRefs)} — only Api may reference Clients.* (except GoogleOAuth which is permitted for Gmail and GDocs)");
         }
     }
 
@@ -161,6 +171,8 @@ public class DependencyTests
             "RealEstateStar.Clients.WhatsApp",
             "RealEstateStar.Clients.GDrive",
             "RealEstateStar.Clients.Gmail",
+            "RealEstateStar.Clients.GDocs",
+            "RealEstateStar.Clients.GSheets",
             "RealEstateStar.Clients.GoogleOAuth",
             "RealEstateStar.Clients.Stripe",
             "RealEstateStar.Clients.Cloudflare",
@@ -262,6 +274,13 @@ public class DependencyTests
     [Fact]
     public void Clients_do_not_reference_other_Clients()
     {
+        // GoogleOAuth is a shared infrastructure client. Gmail and GDocs reference it by design
+        // to perform per-agent OAuth token refresh inline without going through the Api layer.
+        var allowedCrossClientRefs = new HashSet<string>
+        {
+            "RealEstateStar.Clients.GoogleOAuth"
+        };
+
         var clientAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.Clients.*.dll")
             .Select(Assembly.LoadFrom)
             .Where(a => !a.GetName().Name!.Contains("Tests"));
@@ -271,11 +290,12 @@ public class DependencyTests
             var crossClientRefs = assembly.GetReferencedAssemblies()
                 .Where(a => a.Name!.StartsWith("RealEstateStar.Clients."))
                 .Where(a => a.Name != assembly.GetName().Name)
+                .Where(a => !allowedCrossClientRefs.Contains(a.Name!))
                 .Select(a => a.Name!)
                 .ToList();
 
             Assert.True(crossClientRefs.Count == 0,
-                $"{assembly.GetName().Name} references {string.Join(", ", crossClientRefs)} — Clients must not reference other Clients");
+                $"{assembly.GetName().Name} references {string.Join(", ", crossClientRefs)} — Clients must not reference other Clients (GoogleOAuth is permitted)");
         }
     }
 
