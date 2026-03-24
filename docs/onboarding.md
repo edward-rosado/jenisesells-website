@@ -255,7 +255,24 @@ Real Estate Star uses Cloudflare Turnstile to prevent bot lead submissions:
 
 The `turnstile_site_key` is public and embedded in the agent site; the `turnstile_secret_key` is kept private on the API and used during lead submission validation.
 
-### 5. Validate the Agent Profile
+### 5. OAuth Token Persistence
+
+During the onboarding flow, agents authorize Real Estate Star to access their Gmail and Google Drive. After authorization:
+
+- Tokens are saved to `ITokenStore` (backed by Azure Table Storage via `AzureTableTokenStore` in `Clients.Azure`).
+- Tokens survive session cleanup — they are **not** stored in-memory or in the onboarding session. The agent does not need to re-authorize on the next login.
+- Tokens are stored with **DPAPI encryption** at rest.
+
+When a Google API client (Gmail, Drive, Docs, Sheets) needs to make a call on behalf of an agent:
+
+1. It calls `IOAuthRefresher.GetValidTokenAsync(handle, type)`.
+2. The refresher reads the token from `ITokenStore` (Azure Table).
+3. If the token is expired (or expiring within 5 minutes), `GoogleOAuthRefresher` automatically calls the Google OAuth2 endpoint to exchange the refresh token for a new access token.
+4. The new token is saved back with **optimistic locking** (`SaveIfUnchangedAsync` checks the Azure Table ETag). If two concurrent requests both refresh at the same time, the second writer re-reads the winner's token rather than overwriting it.
+
+This means once an agent connects their Google account during onboarding, all subsequent API operations are fully automatic — no re-auth prompts, no token management needed in feature code.
+
+### 6. Validate the Agent Profile
 
 After configuring all fields, validate the profile against the schema:
 

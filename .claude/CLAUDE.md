@@ -24,7 +24,9 @@ apps/
     RealEstateStar.Clients.WhatsApp/   # WhatsApp API client
     RealEstateStar.Clients.GDrive/     # Google Drive client
     RealEstateStar.Clients.Gmail/      # Gmail client
-    RealEstateStar.Clients.GoogleOAuth/ # Google OAuth client
+    RealEstateStar.Clients.GDocs/      # Google Docs API client
+    RealEstateStar.Clients.GSheets/    # Google Sheets API client
+    RealEstateStar.Clients.GoogleOAuth/ # Shared OAuth token refresh (IOAuthRefresher impl)
     RealEstateStar.Clients.Stripe/     # Stripe client
     RealEstateStar.Clients.Cloudflare/ # Cloudflare client
     RealEstateStar.Clients.Turnstile/  # Turnstile client
