@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.DataServices.Storage;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.DataServices.Tests.Storage;
 
@@ -15,6 +16,7 @@ public class FanOutStorageProviderTests
     private readonly Mock<IGDriveClient> _driveClient = new(MockBehavior.Strict);
     private readonly Mock<IGSheetsClient> _sheetsClient = new(MockBehavior.Strict);
     private readonly Mock<IGwsService> _gwsService = new(MockBehavior.Strict);
+    private readonly Mock<IDocumentStorageProvider> _platformStore = new(MockBehavior.Strict);
     private readonly Mock<ILogger> _logger = new();
     private readonly FanOutStorageProvider _sut;
 
@@ -24,6 +26,7 @@ public class FanOutStorageProviderTests
             _driveClient.Object,
             _sheetsClient.Object,
             _gwsService.Object,
+            _platformStore.Object,
             AccountId,
             AgentId,
             PlatformEmail,
@@ -43,14 +46,14 @@ public class FanOutStorageProviderTests
             .ReturnsAsync("file-agent-id");
         _driveClient.Setup(d => d.UploadFileAsync(AccountId, AccountTierAgentId, folder, fileName, content, It.IsAny<CancellationToken>()))
             .ReturnsAsync("file-account-id");
-        _gwsService.Setup(g => g.UploadFileAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()))
-            .ReturnsAsync("file-platform-id");
+        _platformStore.Setup(p => p.WriteDocumentAsync(folder, fileName, content, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         await _sut.WriteDocumentAsync(folder, fileName, content, CancellationToken.None);
 
         _driveClient.Verify(d => d.UploadFileAsync(AccountId, AgentId, folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
         _driveClient.Verify(d => d.UploadFileAsync(AccountId, AccountTierAgentId, folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
-        _gwsService.Verify(g => g.UploadFileAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()), Times.Once);
+        _platformStore.Verify(p => p.WriteDocumentAsync(folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -64,14 +67,14 @@ public class FanOutStorageProviderTests
             .ThrowsAsync(new InvalidOperationException("Agent Drive unavailable"));
         _driveClient.Setup(d => d.UploadFileAsync(AccountId, AccountTierAgentId, folder, fileName, content, It.IsAny<CancellationToken>()))
             .ReturnsAsync("file-account-id");
-        _gwsService.Setup(g => g.UploadFileAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()))
-            .ReturnsAsync("file-platform-id");
+        _platformStore.Setup(p => p.WriteDocumentAsync(folder, fileName, content, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         // Should not throw
         await _sut.WriteDocumentAsync(folder, fileName, content, CancellationToken.None);
 
         _driveClient.Verify(d => d.UploadFileAsync(AccountId, AccountTierAgentId, folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
-        _gwsService.Verify(g => g.UploadFileAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()), Times.Once);
+        _platformStore.Verify(p => p.WriteDocumentAsync(folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -85,18 +88,18 @@ public class FanOutStorageProviderTests
             .ReturnsAsync("file-agent-id");
         _driveClient.Setup(d => d.UploadFileAsync(AccountId, AccountTierAgentId, folder, fileName, content, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Account Drive unavailable"));
-        _gwsService.Setup(g => g.UploadFileAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()))
-            .ReturnsAsync("file-platform-id");
+        _platformStore.Setup(p => p.WriteDocumentAsync(folder, fileName, content, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         // Should not throw
         await _sut.WriteDocumentAsync(folder, fileName, content, CancellationToken.None);
 
         _driveClient.Verify(d => d.UploadFileAsync(AccountId, AgentId, folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
-        _gwsService.Verify(g => g.UploadFileAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()), Times.Once);
+        _platformStore.Verify(p => p.WriteDocumentAsync(folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task WriteDocumentAsync_ContinuesOnPlatformDriveFailure()
+    public async Task WriteDocumentAsync_ContinuesOnPlatformStoreFailure()
     {
         const string folder = "1 - Leads/Jane Doe";
         const string fileName = "Lead Profile.md";
@@ -106,8 +109,8 @@ public class FanOutStorageProviderTests
             .ReturnsAsync("file-agent-id");
         _driveClient.Setup(d => d.UploadFileAsync(AccountId, AccountTierAgentId, folder, fileName, content, It.IsAny<CancellationToken>()))
             .ReturnsAsync("file-account-id");
-        _gwsService.Setup(g => g.UploadFileAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("Platform Drive unavailable"));
+        _platformStore.Setup(p => p.WriteDocumentAsync(folder, fileName, content, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Blob Storage unavailable"));
 
         // Should not throw
         await _sut.WriteDocumentAsync(folder, fileName, content, CancellationToken.None);
@@ -132,7 +135,7 @@ public class FanOutStorageProviderTests
 
         result.Should().Be(content);
         _driveClient.Verify(d => d.DownloadFileAsync(AccountId, AccountTierAgentId, folder, fileName, It.IsAny<CancellationToken>()), Times.Never);
-        _gwsService.Verify(g => g.DownloadDocAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _platformStore.Verify(p => p.ReadDocumentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -150,7 +153,7 @@ public class FanOutStorageProviderTests
         var result = await _sut.ReadDocumentAsync(folder, fileName, CancellationToken.None);
 
         result.Should().Be(content);
-        _gwsService.Verify(g => g.DownloadDocAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _platformStore.Verify(p => p.ReadDocumentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -164,7 +167,7 @@ public class FanOutStorageProviderTests
             .ThrowsAsync(new InvalidOperationException("Agent Drive unavailable"));
         _driveClient.Setup(d => d.DownloadFileAsync(AccountId, AccountTierAgentId, folder, fileName, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Account Drive unavailable"));
-        _gwsService.Setup(g => g.DownloadDocAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()))
+        _platformStore.Setup(p => p.ReadDocumentAsync(folder, fileName, It.IsAny<CancellationToken>()))
             .ReturnsAsync(content);
 
         var result = await _sut.ReadDocumentAsync(folder, fileName, CancellationToken.None);
@@ -182,8 +185,8 @@ public class FanOutStorageProviderTests
             .ThrowsAsync(new InvalidOperationException("Agent Drive unavailable"));
         _driveClient.Setup(d => d.DownloadFileAsync(AccountId, AccountTierAgentId, folder, fileName, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Account Drive unavailable"));
-        _gwsService.Setup(g => g.DownloadDocAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("Platform Drive unavailable"));
+        _platformStore.Setup(p => p.ReadDocumentAsync(folder, fileName, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Blob Storage unavailable"));
 
         var result = await _sut.ReadDocumentAsync(folder, fileName, CancellationToken.None);
 
@@ -323,14 +326,14 @@ public class FanOutStorageProviderTests
             .ReturnsAsync("folder-agent-id");
         _driveClient.Setup(d => d.CreateFolderAsync(AccountId, AccountTierAgentId, folder, It.IsAny<CancellationToken>()))
             .ReturnsAsync("folder-account-id");
-        _gwsService.Setup(g => g.CreateDriveFolderAsync(PlatformEmail, folder, It.IsAny<CancellationToken>()))
-            .ReturnsAsync("folder-platform-id");
+        _platformStore.Setup(p => p.EnsureFolderExistsAsync(folder, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         await _sut.EnsureFolderExistsAsync(folder, CancellationToken.None);
 
         _driveClient.Verify(d => d.CreateFolderAsync(AccountId, AgentId, folder, It.IsAny<CancellationToken>()), Times.Once);
         _driveClient.Verify(d => d.CreateFolderAsync(AccountId, AccountTierAgentId, folder, It.IsAny<CancellationToken>()), Times.Once);
-        _gwsService.Verify(g => g.CreateDriveFolderAsync(PlatformEmail, folder, It.IsAny<CancellationToken>()), Times.Once);
+        _platformStore.Verify(p => p.EnsureFolderExistsAsync(folder, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -342,35 +345,36 @@ public class FanOutStorageProviderTests
             .ThrowsAsync(new InvalidOperationException("Agent Drive unavailable"));
         _driveClient.Setup(d => d.CreateFolderAsync(AccountId, AccountTierAgentId, folder, It.IsAny<CancellationToken>()))
             .ReturnsAsync("folder-account-id");
-        _gwsService.Setup(g => g.CreateDriveFolderAsync(PlatformEmail, folder, It.IsAny<CancellationToken>()))
-            .ReturnsAsync("folder-platform-id");
+        _platformStore.Setup(p => p.EnsureFolderExistsAsync(folder, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         // Should not throw
         await _sut.EnsureFolderExistsAsync(folder, CancellationToken.None);
 
         _driveClient.Verify(d => d.CreateFolderAsync(AccountId, AccountTierAgentId, folder, It.IsAny<CancellationToken>()), Times.Once);
-        _gwsService.Verify(g => g.CreateDriveFolderAsync(PlatformEmail, folder, It.IsAny<CancellationToken>()), Times.Once);
+        _platformStore.Verify(p => p.EnsureFolderExistsAsync(folder, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ── DeleteDocumentAsync ────────────────────────────────────────────────────
-    // Drive tiers are intentionally skipped — Drive delete requires a file ID, not a path.
-    // Only the Platform tier (IGwsService) is invoked until IGDriveClient.DeleteFileByNameAsync
-    // is implemented (see TODO in FanOutStorageProvider.DeleteDocumentAsync).
 
     [Fact]
-    public async Task DeleteDocumentAsync_OnlyInvokesPlatformTier()
+    public async Task DeleteDocumentAsync_InvokesAllThreeTiers()
     {
         const string folder = "1 - Leads/Jane Doe";
         const string fileName = "Lead Profile.md";
 
-        _gwsService.Setup(g => g.DeleteDocAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()))
+        _driveClient.Setup(d => d.DeleteFileByNameAsync(AccountId, AgentId, folder, fileName, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _driveClient.Setup(d => d.DeleteFileByNameAsync(AccountId, AccountTierAgentId, folder, fileName, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _platformStore.Setup(p => p.DeleteDocumentAsync(folder, fileName, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         await _sut.DeleteDocumentAsync(folder, fileName, CancellationToken.None);
 
-        // Drive tiers must NOT be called — they cannot delete by path
-        _driveClient.Verify(d => d.DeleteFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-        _gwsService.Verify(g => g.DeleteDocAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()), Times.Once);
+        _driveClient.Verify(d => d.DeleteFileByNameAsync(AccountId, AgentId, folder, fileName, It.IsAny<CancellationToken>()), Times.Once);
+        _driveClient.Verify(d => d.DeleteFileByNameAsync(AccountId, AccountTierAgentId, folder, fileName, It.IsAny<CancellationToken>()), Times.Once);
+        _platformStore.Verify(p => p.DeleteDocumentAsync(folder, fileName, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -379,10 +383,13 @@ public class FanOutStorageProviderTests
         const string folder = "1 - Leads/Jane Doe";
         const string fileName = "Lead Profile.md";
 
-        _gwsService.Setup(g => g.DeleteDocAsync(PlatformEmail, folder, fileName, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("Platform unavailable"));
+        _driveClient.Setup(d => d.DeleteFileByNameAsync(AccountId, AgentId, folder, fileName, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _driveClient.Setup(d => d.DeleteFileByNameAsync(AccountId, AccountTierAgentId, folder, fileName, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _platformStore.Setup(p => p.DeleteDocumentAsync(folder, fileName, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Blob Storage unavailable"));
 
-        // Platform failure is swallowed by ExecuteTierAsync (best-effort)
         var act = async () => await _sut.DeleteDocumentAsync(folder, fileName, CancellationToken.None);
 
         await act.Should().NotThrowAsync();
@@ -422,6 +429,24 @@ public class FanOutStorageProviderTests
     }
 
     [Fact]
+    public async Task ListDocumentsAsync_FallsBackToPlatformOnAgentAndAccountFailure()
+    {
+        const string folder = "1 - Leads/Jane Doe";
+        var files = new List<string> { "Lead Profile.md" };
+
+        _driveClient.Setup(d => d.ListFilesAsync(AccountId, AgentId, folder, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Agent Drive unavailable"));
+        _driveClient.Setup(d => d.ListFilesAsync(AccountId, AccountTierAgentId, folder, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Account Drive unavailable"));
+        _platformStore.Setup(p => p.ListDocumentsAsync(folder, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(files);
+
+        var result = await _sut.ListDocumentsAsync(folder, CancellationToken.None);
+
+        result.Should().BeEquivalentTo(files);
+    }
+
+    [Fact]
     public async Task ListDocumentsAsync_ReturnsEmpty_WhenAllTiersFail()
     {
         const string folder = "1 - Leads/Jane Doe";
@@ -430,8 +455,8 @@ public class FanOutStorageProviderTests
             .ThrowsAsync(new InvalidOperationException("Agent Drive unavailable"));
         _driveClient.Setup(d => d.ListFilesAsync(AccountId, AccountTierAgentId, folder, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Account Drive unavailable"));
-        _gwsService.Setup(g => g.ListFilesAsync(PlatformEmail, folder, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("Platform Drive unavailable"));
+        _platformStore.Setup(p => p.ListDocumentsAsync(folder, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Blob Storage unavailable"));
 
         var result = await _sut.ListDocumentsAsync(folder, CancellationToken.None);
 
@@ -451,13 +476,13 @@ public class FanOutStorageProviderTests
             .ReturnsAsync("file-agent-id");
         _driveClient.Setup(d => d.UploadFileAsync(AccountId, AccountTierAgentId, folder, fileName, content, It.IsAny<CancellationToken>()))
             .ReturnsAsync("file-account-id");
-        _gwsService.Setup(g => g.UpdateDocAsync(PlatformEmail, folder, fileName, content, It.IsAny<CancellationToken>()))
+        _platformStore.Setup(p => p.UpdateDocumentAsync(folder, fileName, content, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         await _sut.UpdateDocumentAsync(folder, fileName, content, CancellationToken.None);
 
         _driveClient.Verify(d => d.UploadFileAsync(AccountId, AgentId, folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
         _driveClient.Verify(d => d.UploadFileAsync(AccountId, AccountTierAgentId, folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
-        _gwsService.Verify(g => g.UpdateDocAsync(PlatformEmail, folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
+        _platformStore.Verify(p => p.UpdateDocumentAsync(folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
     }
 }
