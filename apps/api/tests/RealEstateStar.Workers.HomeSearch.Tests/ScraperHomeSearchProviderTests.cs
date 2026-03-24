@@ -1,12 +1,11 @@
-using System.Net;
-using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Moq.Protected;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Workers.HomeSearch;
+using System.Text.Json;
 
 namespace RealEstateStar.Workers.HomeSearch.Tests;
 
@@ -21,11 +20,15 @@ public class ScraperHomeSearchProviderTests
         MinBaths = 2
     };
 
+    private static readonly Dictionary<string, string> DefaultSourceUrls = new()
+    {
+        ["zillow"]  = "https://www.zillow.com/homes/{area}/?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}",
+        ["redfin"]  = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}&max_price={maxPrice}&num_beds={minBeds}&num_baths={minBaths}",
+        ["realtor"] = "https://www.realtor.com/realestateandhomes-search/{area}?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}"
+    };
+
     private static Listing MakeListing(string address = "123 Main St", string city = "Old Bridge") =>
         new(address, city, "NJ", "08857", 400_000m, 3, 2m, 1500, "Great neighborhood", "https://example.com/1");
-
-    private static string MakeClaudeApiResponse(string json) =>
-        $$"""{"content":[{"text":{{JsonSerializer.Serialize(json)}}}]}""";
 
     private static string MakeCuratedListingsJson(IEnumerable<Listing> listings)
     {
@@ -45,48 +48,39 @@ public class ScraperHomeSearchProviderTests
         return JsonSerializer.Serialize(items);
     }
 
-    private static (ScraperHomeSearchProvider provider, Mock<IScraperClient> scraperClient, Mock<HttpMessageHandler> claudeHandler)
+    private static (ScraperHomeSearchProvider provider, Mock<IScraperClient> scraperClient, Mock<IAnthropicClient> anthropicClient)
         CreateProvider(
             string scraperHtml = "<html></html>",
-            IEnumerable<Listing>? curatedListings = null)
+            IEnumerable<Listing>? curatedListings = null,
+            Exception? anthropicException = null)
     {
         var listings = curatedListings?.ToList() ?? [MakeListing()];
         var curatedJson = MakeCuratedListingsJson(listings);
-        var claudeResponse = MakeClaudeApiResponse(curatedJson);
 
-        // Scraper client returns HTML for all source requests
         var scraperClient = new Mock<IScraperClient>();
         scraperClient.Setup(s => s.IsAvailable).Returns(true);
         scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(scraperHtml);
 
-        // Claude handler returns curated listings
-        var claudeHandler = new Mock<HttpMessageHandler>();
-        claudeHandler.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.Host == "api.anthropic.com"),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(claudeResponse)
-            });
-
-        var claudeClient = new HttpClient(claudeHandler.Object);
-
-        var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient(nameof(ScraperHomeSearchProvider))).Returns(claudeClient);
-
-        var sourceUrls = new Dictionary<string, string>
+        var anthropicClient = new Mock<IAnthropicClient>();
+        if (anthropicException is not null)
         {
-            ["zillow"]  = "https://www.zillow.com/homes/{area}/?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}",
-            ["redfin"]  = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}&max_price={maxPrice}&num_beds={minBeds}&num_baths={minBaths}",
-            ["realtor"] = "https://www.realtor.com/realestateandhomes-search/{area}?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}"
-        };
+            anthropicClient.Setup(c => c.SendAsync(
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                    It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(anthropicException);
+        }
+        else
+        {
+            anthropicClient.Setup(c => c.SendAsync(
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                    It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new AnthropicResponse(curatedJson, 100, 200, 500));
+        }
 
         var logger = new Mock<ILogger<ScraperHomeSearchProvider>>();
-        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", sourceUrls, logger.Object);
-        return (provider, scraperClient, claudeHandler);
+        var provider = new ScraperHomeSearchProvider(anthropicClient.Object, scraperClient.Object, DefaultSourceUrls, logger.Object);
+        return (provider, scraperClient, anthropicClient);
     }
 
     // ─── SearchAsync: parallel source search ─────────────────────────────────────
@@ -102,30 +96,15 @@ public class ScraperHomeSearchProviderTests
             .Callback<string, string, string, CancellationToken>((url, _, _, _) => fetchedUrls.Add(url))
             .ReturnsAsync("<html></html>");
 
-        var curatedListings = new[] { MakeListing() };
-        var curatedJson = MakeCuratedListingsJson(curatedListings);
-        var claudeResponse = MakeClaudeApiResponse(curatedJson);
-
-        var claudeHandler = new Mock<HttpMessageHandler>();
-        claudeHandler.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeResponse) });
-
-        var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient(nameof(ScraperHomeSearchProvider))).Returns(new HttpClient(claudeHandler.Object));
-
-        var sourceUrls = new Dictionary<string, string>
-        {
-            ["zillow"]  = "https://www.zillow.com/homes/{area}/?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}",
-            ["redfin"]  = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}&max_price={maxPrice}&num_beds={minBeds}&num_baths={minBaths}",
-            ["realtor"] = "https://www.realtor.com/realestateandhomes-search/{area}?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}"
-        };
+        var curatedJson = MakeCuratedListingsJson([MakeListing()]);
+        var anthropicClient = new Mock<IAnthropicClient>();
+        anthropicClient.Setup(c => c.SendAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AnthropicResponse(curatedJson, 100, 200, 500));
 
         var logger = new Mock<ILogger<ScraperHomeSearchProvider>>();
-        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", sourceUrls, logger.Object);
+        var provider = new ScraperHomeSearchProvider(anthropicClient.Object, scraperClient.Object, DefaultSourceUrls, logger.Object);
 
         await provider.SearchAsync(DefaultCriteria, CancellationToken.None);
 
@@ -174,7 +153,7 @@ public class ScraperHomeSearchProviderTests
     // ─── SearchAsync: sends to Claude for curation ───────────────────────────────
 
     [Fact]
-    public async Task SearchAsync_SendsListingsToClaude_ForCuration()
+    public void SearchAsync_SendsListingsToClaude_ForCuration()
     {
         // Feed one listing directly by making ParseListings testable via a subclass
         var listings = new List<Listing> { MakeListing("Injected Listing") };
@@ -191,8 +170,6 @@ public class ScraperHomeSearchProviderTests
             MakeListing("10 Claude Pick Rd"),
             MakeListing("20 Claude Pick Rd")
         };
-
-        var (provider, _, claudeHandler) = CreateProvider(curatedListings: curated);
 
         // ParseListings returns empty list from HTML — so we test ParseCuratedListings directly.
         var curatedJson = MakeCuratedListingsJson(curated);
@@ -213,7 +190,7 @@ public class ScraperHomeSearchProviderTests
         scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Connection refused"));
 
-        var factory = new Mock<IHttpClientFactory>();
+        var anthropicClient = new Mock<IAnthropicClient>();
         var logger = new Mock<ILogger<ScraperHomeSearchProvider>>();
         var sourceUrls = new Dictionary<string, string>
         {
@@ -221,7 +198,7 @@ public class ScraperHomeSearchProviderTests
             ["redfin"]  = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}",
             ["realtor"] = "https://www.realtor.com/realestateandhomes-search/{area}?price-min={minPrice}"
         };
-        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", sourceUrls, logger.Object);
+        var provider = new ScraperHomeSearchProvider(anthropicClient.Object, scraperClient.Object, sourceUrls, logger.Object);
 
         // All 3 sources fail — no Claude call — returns empty list
         var result = await provider.SearchAsync(DefaultCriteria, CancellationToken.None);
@@ -244,7 +221,12 @@ public class ScraperHomeSearchProviderTests
                 return "<html></html>";
             });
 
-        var factory = new Mock<IHttpClientFactory>();
+        var anthropicClient = new Mock<IAnthropicClient>();
+        anthropicClient.Setup(c => c.SendAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AnthropicResponse("[]", 10, 5, 100));
+
         var logger = new Mock<ILogger<ScraperHomeSearchProvider>>();
         var sourceUrls = new Dictionary<string, string>
         {
@@ -252,7 +234,7 @@ public class ScraperHomeSearchProviderTests
             ["redfin"]  = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}",
             ["realtor"] = "https://www.realtor.com/realestateandhomes-search/{area}?price-min={minPrice}"
         };
-        var provider = new ScraperHomeSearchProvider(factory.Object, scraperClient.Object, "test-claude-key", sourceUrls, logger.Object);
+        var provider = new ScraperHomeSearchProvider(anthropicClient.Object, scraperClient.Object, sourceUrls, logger.Object);
 
         var act = async () => await provider.SearchAsync(DefaultCriteria, CancellationToken.None);
 

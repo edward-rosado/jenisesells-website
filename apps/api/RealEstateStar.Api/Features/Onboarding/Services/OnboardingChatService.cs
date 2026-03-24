@@ -12,7 +12,6 @@ using RealEstateStar.Domain.Shared;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 
-// TODO: LOW-6 — Extract shared Anthropic API client into a common AnthropicClient service
 public class OnboardingChatService(
     IHttpClientFactory httpClientFactory,
     string apiKey,

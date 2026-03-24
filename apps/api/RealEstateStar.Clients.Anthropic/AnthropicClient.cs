@@ -8,7 +8,7 @@ using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.Clients.Anthropic;
 
-internal sealed class AnthropicClient(
+public sealed class AnthropicClient(
     IHttpClientFactory httpClientFactory,
     string apiKey,
     ILogger<AnthropicClient> logger) : IAnthropicClient

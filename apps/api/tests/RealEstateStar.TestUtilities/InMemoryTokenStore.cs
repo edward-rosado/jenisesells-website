@@ -30,26 +30,22 @@ public sealed class InMemoryTokenStore : ITokenStore
     public Task<bool> SaveIfUnchangedAsync(OAuthCredential credential, string etag, CancellationToken ct)
     {
         var key = Key(credential.AccountId!, credential.AgentId!, OAuthProviders.Google);
-
         var newETag = Guid.NewGuid().ToString();
+        var newEntry = (credential with { ETag = newETag }, newETag);
 
-        var updated = false;
-        _tokens.AddOrUpdate(
-            key,
-            addValueFactory: _ =>
-            {
-                updated = true;
-                return (credential with { ETag = newETag }, newETag);
-            },
-            updateValueFactory: (_, existing) =>
-            {
-                if (existing.ETag != etag)
-                    return existing;
-                updated = true;
-                return (credential with { ETag = newETag }, newETag);
-            });
+        // Atomic compare-and-swap: only update if current entry has matching etag
+        while (true)
+        {
+            if (!_tokens.TryGetValue(key, out var current))
+                return Task.FromResult(false); // Key doesn't exist
 
-        return Task.FromResult(updated);
+            if (current.ETag != etag)
+                return Task.FromResult(false); // ETag mismatch
+
+            // Attempt atomic update; if it fails (another thread modified), retry
+            if (_tokens.TryUpdate(key, newEntry, current))
+                return Task.FromResult(true); // Successfully swapped
+        }
     }
 
     public Task DeleteAsync(string accountId, string agentId, string provider, CancellationToken ct)

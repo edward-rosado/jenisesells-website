@@ -1,11 +1,9 @@
-using System.Net;
-using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using Moq.Protected;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Workers.Leads;
 
 namespace RealEstateStar.Workers.Leads.Tests;
@@ -44,16 +42,6 @@ public class ScraperLeadEnricherTests
         BuyerDetails = buyerDetails,
     };
 
-    /// <summary>Deserializes the Claude API request body and extracts the user message content string.</summary>
-    private static string ExtractMessageContent(string requestBodyJson)
-    {
-        using var doc = JsonDocument.Parse(requestBodyJson);
-        return doc.RootElement
-            .GetProperty("messages")[0]
-            .GetProperty("content")
-            .GetString() ?? "";
-    }
-
     private static string MakeValidClaudeJson(
         string motivationCategory = "Relocating",
         int overallScore = 75) => $$"""
@@ -78,79 +66,37 @@ public class ScraperLeadEnricherTests
         }
         """;
 
-    private static string WrapInClaudeApiResponse(string analysisJson, int inputTokens = 100, int outputTokens = 200)
-    {
-        var serializedText = JsonSerializer.Serialize(analysisJson);
-        return "{\"content\":[{\"text\":" + serializedText + "}],\"usage\":{\"input_tokens\":" + inputTokens + ",\"output_tokens\":" + outputTokens + "}}";
-    }
-
     // ---------------------------------------------------------------------------
     // Factory helpers
     // ---------------------------------------------------------------------------
 
-    /// <summary>Creates a factory where ALL requests return the same response.</summary>
-    private static (ScraperLeadEnricher enricher, Mock<HttpMessageHandler> handler) CreateEnricher(
-        HttpStatusCode status, string content)
+    private static (ScraperLeadEnricher enricher, Mock<IAnthropicClient> anthropicClient, Mock<IScraperClient> scraperClient)
+        CreateEnricher(
+            AnthropicResponse? anthropicResponse = null,
+            Exception? anthropicException = null,
+            Func<string, string?, Task<string?>>? scraperResponseFactory = null)
     {
-        var handler = new Mock<HttpMessageHandler>();
-        handler.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage { StatusCode = status, Content = new StringContent(content) });
+        var anthropicClient = new Mock<IAnthropicClient>();
 
-        var client = new HttpClient(handler.Object);
-        var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
-
-        var scraperClient = new Mock<IScraperClient>();
-        scraperClient.Setup(s => s.IsAvailable).Returns(true);
-        scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string?)null);
-
-        var sourceUrls = new Dictionary<string, string>
+        if (anthropicException is not null)
         {
-            ["google"] = "https://www.google.com/search?q={query}"
-        };
-
-        var enricher = new ScraperLeadEnricher(
-            factory.Object,
-            "test-claude-key",
-            scraperClient.Object,
-            sourceUrls,
-            NullLogger<ScraperLeadEnricher>.Instance);
-
-        return (enricher, handler);
-    }
-
-    /// <summary>
-    /// Creates a factory with a custom per-request callback for capturing Claude HTTP calls.
-    /// Scraper calls are handled by IScraperClient (abstracted away from HTTP).
-    /// </summary>
-    private static (ScraperLeadEnricher enricher, List<HttpRequestMessage> capturedClaudeRequests, Mock<IScraperClient> scraperClient) CreateCapturingEnricher(
-        Func<HttpRequestMessage, CancellationToken, HttpResponseMessage> claudeResponseFactory,
-        Func<string, string?, Task<string?>>? scraperResponseFactory = null)
-    {
-        var captured = new List<HttpRequestMessage>();
-        var handler = new Mock<HttpMessageHandler>();
-        handler.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync((HttpRequestMessage req, CancellationToken ct) =>
-            {
-                lock (captured) captured.Add(req);
-                return claudeResponseFactory(req, ct);
-            });
-
-        var client = new HttpClient(handler.Object);
-        var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
+            anthropicClient.Setup(c => c.SendAsync(
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                    It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(anthropicException);
+        }
+        else
+        {
+            var response = anthropicResponse ?? new AnthropicResponse(MakeValidClaudeJson(), 100, 200, 500);
+            anthropicClient.Setup(c => c.SendAsync(
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                    It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(response);
+        }
 
         var scraperClient = new Mock<IScraperClient>();
         scraperClient.Setup(s => s.IsAvailable).Returns(true);
+
         if (scraperResponseFactory is not null)
         {
             scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -169,13 +115,12 @@ public class ScraperLeadEnricherTests
         };
 
         var enricher = new ScraperLeadEnricher(
-            factory.Object,
-            "test-claude-key",
+            anthropicClient.Object,
             scraperClient.Object,
             sourceUrls,
             NullLogger<ScraperLeadEnricher>.Instance);
 
-        return (enricher, captured, scraperClient);
+        return (enricher, anthropicClient, scraperClient);
     }
 
     // ---------------------------------------------------------------------------
@@ -185,17 +130,8 @@ public class ScraperLeadEnricherTests
     [Fact]
     public async Task EnrichAsync_ReturnsParsedEnrichmentAndScore_WhenClaudeResponds()
     {
-        var claudeJson = MakeValidClaudeJson(motivationCategory: "Relocating", overallScore: 75);
-        var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
-
-        // Scrapers return empty, Claude returns valid response
-        var (enricher, _, _) = CreateCapturingEnricher((req, _) =>
-        {
-            // Claude API requests (POST to anthropic) return analysis JSON
-            if (req.Method == HttpMethod.Post)
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") };
-        });
+        var json = MakeValidClaudeJson(motivationCategory: "Relocating", overallScore: 75);
+        var (enricher, _, _) = CreateEnricher(new AnthropicResponse(json, 100, 200, 500));
 
         var lead = MakeLead();
         var (enrichment, score) = await enricher.EnrichAsync(lead, CancellationToken.None);
@@ -216,16 +152,7 @@ public class ScraperLeadEnricherTests
     [Fact]
     public async Task EnrichAsync_FiresAllEightScrapingQueriesInParallel()
     {
-        var claudeJson = MakeValidClaudeJson();
-        var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
-
-        var (enricher, _, scraperClient) = CreateCapturingEnricher(
-            claudeResponseFactory: (req, _) =>
-            {
-                if (req.Method == HttpMethod.Post)
-                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") };
-            },
+        var (enricher, _, scraperClient) = CreateEnricher(
             scraperResponseFactory: (_, _) => Task.FromResult<string?>("scraped content"));
 
         var lead = MakeLead();
@@ -244,16 +171,10 @@ public class ScraperLeadEnricherTests
     [Fact]
     public async Task EnrichAsync_HandlesPartialScraperFailures_StillCallsClaude()
     {
-        var claudeJson = MakeValidClaudeJson();
-        var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
-
         var callCount = 0;
-        var (enricher, capturedClaudeRequests, _) = CreateCapturingEnricher(
-            claudeResponseFactory: (req, _) =>
-                new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) },
+        var (enricher, anthropicClient, _) = CreateEnricher(
             scraperResponseFactory: (_, _) =>
             {
-                // Half of scraper calls fail
                 var count = Interlocked.Increment(ref callCount);
                 if (count % 2 == 0)
                     throw new HttpRequestException("Connection refused");
@@ -263,23 +184,20 @@ public class ScraperLeadEnricherTests
         var lead = MakeLead();
         var (enrichment, score) = await enricher.EnrichAsync(lead, CancellationToken.None);
 
-        // Should still return valid enrichment from Claude
         enrichment.MotivationCategory.Should().NotBeNullOrEmpty();
         score.OverallScore.Should().BeGreaterThan(0);
 
         // Claude was called exactly once
-        capturedClaudeRequests.Count(r => r.Method == HttpMethod.Post).Should().Be(1);
+        anthropicClient.Verify(
+            c => c.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
     public async Task EnrichAsync_WhenAllScrapersFail_StillCallsClaudeWithMinimalData()
     {
-        var claudeJson = MakeValidClaudeJson();
-        var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
-
-        var (enricher, capturedClaudeRequests, _) = CreateCapturingEnricher(
-            claudeResponseFactory: (req, _) =>
-                new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) },
+        var (enricher, anthropicClient, _) = CreateEnricher(
             scraperResponseFactory: (_, _) =>
                 throw new HttpRequestException("All scrapers down"));
 
@@ -289,7 +207,10 @@ public class ScraperLeadEnricherTests
         enrichment.MotivationCategory.Should().Be("Relocating");
 
         // Claude was still called
-        capturedClaudeRequests.Count(r => r.Method == HttpMethod.Post).Should().Be(1);
+        anthropicClient.Verify(
+            c => c.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     // ---------------------------------------------------------------------------
@@ -297,17 +218,22 @@ public class ScraperLeadEnricherTests
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task EnrichAsync_ReturnsEmptyAndDefault_WhenClaudeReturnsError()
+    public async Task EnrichAsync_ReturnsEmptyAndDefault_WhenClaudeThrows()
     {
-        var (enricher, _, _) = CreateCapturingEnricher((req, _) =>
-        {
-            if (req.Method == HttpMethod.Post)
-                return new HttpResponseMessage(HttpStatusCode.InternalServerError)
-                {
-                    Content = new StringContent("Internal Server Error")
-                };
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") };
-        });
+        var (enricher, _, _) = CreateEnricher(
+            anthropicException: new HttpRequestException("Network error"));
+
+        var lead = MakeLead();
+        var (enrichment, score) = await enricher.EnrichAsync(lead, CancellationToken.None);
+
+        enrichment.Should().BeEquivalentTo(LeadEnrichment.Empty());
+        score.Explanation.Should().Be("enrichment unavailable");
+    }
+
+    [Fact]
+    public async Task EnrichAsync_ReturnsEmptyAndDefault_WhenClaudeReturnsInvalidJson()
+    {
+        var (enricher, _, _) = CreateEnricher(new AnthropicResponse("not valid json", 10, 5, 100));
 
         var lead = MakeLead();
         var (enrichment, score) = await enricher.EnrichAsync(lead, CancellationToken.None);
@@ -318,65 +244,6 @@ public class ScraperLeadEnricherTests
         score.Explanation.Should().Be("enrichment unavailable");
     }
 
-    [Fact]
-    public async Task EnrichAsync_ReturnsEmptyAndDefault_WhenClaudeThrows()
-    {
-        var (enricher, _, _) = CreateCapturingEnricher((req, _) =>
-        {
-            if (req.Method == HttpMethod.Post)
-                throw new HttpRequestException("Network error");
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") };
-        });
-
-        var lead = MakeLead();
-        var (enrichment, score) = await enricher.EnrichAsync(lead, CancellationToken.None);
-
-        enrichment.Should().BeEquivalentTo(LeadEnrichment.Empty());
-        score.Explanation.Should().Be("enrichment unavailable");
-    }
-
-    // ---------------------------------------------------------------------------
-    // Markdown code fence stripping
-    // ---------------------------------------------------------------------------
-
-    [Fact]
-    public async Task EnrichAsync_StripsMarkdownCodeFences_BeforeParsing()
-    {
-        var rawJson = MakeValidClaudeJson();
-        var fencedJson = $"```json\n{rawJson}\n```";
-        var claudeApiResponse = WrapInClaudeApiResponse(fencedJson);
-
-        var (enricher, _, _) = CreateCapturingEnricher((req, _) =>
-        {
-            if (req.Method == HttpMethod.Post)
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") };
-        });
-
-        var lead = MakeLead();
-        var (enrichment, score) = await enricher.EnrichAsync(lead, CancellationToken.None);
-
-        enrichment.MotivationCategory.Should().Be("Relocating");
-        score.OverallScore.Should().Be(75);
-    }
-
-    [Theory]
-    [InlineData("```json\n{}\n```")]
-    [InlineData("```\n{}\n```")]
-    public void StripCodeFences_RemovesFenceMarkers(string input)
-    {
-        var result = ScraperLeadEnricher.StripCodeFences(input);
-        result.Should().Be("{}");
-    }
-
-    [Fact]
-    public void StripCodeFences_ReturnsUnchanged_WhenNoFences()
-    {
-        var json = """{"key": "value"}""";
-        var result = ScraperLeadEnricher.StripCodeFences(json);
-        result.Should().Be(json);
-    }
-
     // ---------------------------------------------------------------------------
     // Token usage logging
     // ---------------------------------------------------------------------------
@@ -384,9 +251,7 @@ public class ScraperLeadEnricherTests
     [Fact]
     public async Task EnrichAsync_LogsTokenUsageWithLead026Code()
     {
-        var claudeJson = MakeValidClaudeJson();
-        var claudeApiResponse = WrapInClaudeApiResponse(claudeJson, inputTokens: 500, outputTokens: 300);
-
+        var json = MakeValidClaudeJson();
         var logMessages = new List<string>();
         var mockLogger = new Mock<Microsoft.Extensions.Logging.ILogger<ScraperLeadEnricher>>();
         mockLogger
@@ -403,32 +268,23 @@ public class ScraperLeadEnricherTests
                     if (msg is not null) logMessages.Add(msg);
                 });
 
-        var handler = new Mock<HttpMessageHandler>();
-        handler.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
-                req.Method == HttpMethod.Post
-                    ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) }
-                    : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") });
+        var anthropicClient = new Mock<IAnthropicClient>();
+        anthropicClient.Setup(c => c.SendAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AnthropicResponse(json, 500, 300, 1000));
 
-        var client = new HttpClient(handler.Object);
-        var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
-
-        var scraperClientForLog = new Mock<IScraperClient>();
-        scraperClientForLog.Setup(s => s.IsAvailable).Returns(true);
-        scraperClientForLog.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        var scraperClient = new Mock<IScraperClient>();
+        scraperClient.Setup(s => s.IsAvailable).Returns(true);
+        scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
 
-        var sourceUrls = new Dictionary<string, string>
-        {
-            ["google"] = "https://www.google.com/search?q={query}"
-        };
+        var enricher = new ScraperLeadEnricher(
+            anthropicClient.Object,
+            scraperClient.Object,
+            new Dictionary<string, string> { ["google"] = "https://www.google.com/search?q={query}" },
+            mockLogger.Object);
 
-        var enricher = new ScraperLeadEnricher(factory.Object, "key", scraperClientForLog.Object, sourceUrls, mockLogger.Object);
         var lead = MakeLead();
         await enricher.EnrichAsync(lead, CancellationToken.None);
 
@@ -442,60 +298,67 @@ public class ScraperLeadEnricherTests
     [Fact]
     public async Task EnrichAsync_XmlWrapsSourceData_InUserMessage()
     {
-        var claudeJson = MakeValidClaudeJson();
-        var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
+        string? capturedUserMessage = null;
+        var anthropicClient = new Mock<IAnthropicClient>();
+        anthropicClient.Setup(c => c.SendAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string, string, int, string, CancellationToken>(
+                (_, _, userMsg, _, _, _) => capturedUserMessage = userMsg)
+            .ReturnsAsync(new AnthropicResponse(MakeValidClaudeJson(), 100, 200, 500));
 
-        string? capturedRequestBody = null;
-        // Provide scraper content so that source XML tags appear in Claude prompt
-        var (enricher, _, _) = CreateCapturingEnricher(
-            claudeResponseFactory: (req, _) =>
-            {
-                if (req.Method == HttpMethod.Post)
-                {
-                    capturedRequestBody = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
-                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
-                }
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") };
-            },
-            scraperResponseFactory: (url, source) => Task.FromResult<string?>("scraped data for " + source));
+        var scraperClient = new Mock<IScraperClient>();
+        scraperClient.Setup(s => s.IsAvailable).Returns(true);
+        scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns<string, string, string, CancellationToken>((_, source, _, _) =>
+                Task.FromResult<string?>("scraped data for " + source));
+
+        var enricher = new ScraperLeadEnricher(
+            anthropicClient.Object,
+            scraperClient.Object,
+            new Dictionary<string, string> { ["google"] = "https://www.google.com/search?q={query}" },
+            NullLogger<ScraperLeadEnricher>.Instance);
 
         var lead = MakeLead();
         await enricher.EnrichAsync(lead, CancellationToken.None);
 
-        capturedRequestBody.Should().NotBeNull();
-        var messageContent = ExtractMessageContent(capturedRequestBody!);
-        // With configurable source engines, keys are formatted as "{engine}:{queryName}"
-        messageContent.Should().Contain("<source name=\"google:linkedin\">");
-        messageContent.Should().Contain("</source>");
-        messageContent.Should().Contain("<lead_data>");
-        messageContent.Should().Contain("</lead_data>");
+        capturedUserMessage.Should().NotBeNull();
+        capturedUserMessage.Should().Contain("<source name=\"google:linkedin\">");
+        capturedUserMessage.Should().Contain("</source>");
+        capturedUserMessage.Should().Contain("<lead_data>");
+        capturedUserMessage.Should().Contain("</lead_data>");
     }
 
     [Fact]
     public async Task EnrichAsync_EscapesXmlSpecialChars_InLeadData()
     {
-        var claudeJson = MakeValidClaudeJson();
-        var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
+        string? capturedUserMessage = null;
+        var anthropicClient = new Mock<IAnthropicClient>();
+        anthropicClient.Setup(c => c.SendAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string, string, int, string, CancellationToken>(
+                (_, _, userMsg, _, _, _) => capturedUserMessage = userMsg)
+            .ReturnsAsync(new AnthropicResponse(MakeValidClaudeJson(), 100, 200, 500));
 
-        string? capturedRequestBody = null;
-        var (enricher, _, _) = CreateCapturingEnricher((req, _) =>
-        {
-            if (req.Method == HttpMethod.Post)
-            {
-                capturedRequestBody = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
-            }
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") };
-        });
+        var scraperClient = new Mock<IScraperClient>();
+        scraperClient.Setup(s => s.IsAvailable).Returns(true);
+        scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+
+        var enricher = new ScraperLeadEnricher(
+            anthropicClient.Object,
+            scraperClient.Object,
+            new Dictionary<string, string> { ["google"] = "https://www.google.com/search?q={query}" },
+            NullLogger<ScraperLeadEnricher>.Instance);
 
         // Lead with XML-injection-attempt name
         var lead = MakeLead(firstName: "<script>", lastName: "alert('xss')</script>");
         await enricher.EnrichAsync(lead, CancellationToken.None);
 
-        capturedRequestBody.Should().NotBeNull();
-        var messageContent = ExtractMessageContent(capturedRequestBody!);
-        messageContent.Should().NotContain("<script>");
-        messageContent.Should().Contain("&lt;script&gt;");
+        capturedUserMessage.Should().NotBeNull();
+        capturedUserMessage.Should().NotContain("<script>");
+        capturedUserMessage.Should().Contain("&lt;script&gt;");
     }
 
     // ---------------------------------------------------------------------------
@@ -596,19 +459,25 @@ public class ScraperLeadEnricherTests
     [Fact]
     public async Task EnrichAsync_UsesLocationFromBuyerDetails_WhenNoSellerDetails()
     {
-        var claudeJson = MakeValidClaudeJson();
-        var claudeApiResponse = WrapInClaudeApiResponse(claudeJson);
+        string? capturedUserMessage = null;
+        var anthropicClient = new Mock<IAnthropicClient>();
+        anthropicClient.Setup(c => c.SendAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string, string, int, string, CancellationToken>(
+                (_, _, userMsg, _, _, _) => capturedUserMessage = userMsg)
+            .ReturnsAsync(new AnthropicResponse(MakeValidClaudeJson(), 100, 200, 500));
 
-        string? capturedRequestBody = null;
-        var (enricher, _, _) = CreateCapturingEnricher((req, _) =>
-        {
-            if (req.Method == HttpMethod.Post)
-            {
-                capturedRequestBody = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(claudeApiResponse) };
-            }
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") };
-        });
+        var scraperClient = new Mock<IScraperClient>();
+        scraperClient.Setup(s => s.IsAvailable).Returns(true);
+        scraperClient.Setup(s => s.FetchAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+
+        var enricher = new ScraperLeadEnricher(
+            anthropicClient.Object,
+            scraperClient.Object,
+            new Dictionary<string, string> { ["google"] = "https://www.google.com/search?q={query}" },
+            NullLogger<ScraperLeadEnricher>.Instance);
 
         var buyerLead = MakeLead(
             omitSellerDetails: true,
@@ -616,9 +485,8 @@ public class ScraperLeadEnricherTests
 
         await enricher.EnrichAsync(buyerLead, CancellationToken.None);
 
-        capturedRequestBody.Should().NotBeNull();
-        var messageContent = ExtractMessageContent(capturedRequestBody!);
-        messageContent.Should().Contain("Princeton");
-        messageContent.Should().Contain("NJ");
+        capturedUserMessage.Should().NotBeNull();
+        capturedUserMessage.Should().Contain("Princeton");
+        capturedUserMessage.Should().Contain("NJ");
     }
 }

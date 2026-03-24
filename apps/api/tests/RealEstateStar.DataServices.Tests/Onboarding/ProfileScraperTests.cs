@@ -2,13 +2,17 @@ using System.Net;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
+using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Models;
 using Xunit;
 
 namespace RealEstateStar.DataServices.Tests.Onboarding;
 
 public class ProfileScraperTests
 {
-    private static IHttpClientFactory CreateMockFactory(HttpStatusCode status, string content)
+    // Creates a mock IHttpClientFactory that returns a fixed HTTP response (used for page fetch).
+    private static IHttpClientFactory CreatePageFetchFactory(HttpStatusCode status, string content)
     {
         var handler = new Mock<HttpMessageHandler>();
         handler.Protected()
@@ -27,35 +31,7 @@ public class ProfileScraperTests
         return factory.Object;
     }
 
-    /// <summary>
-    /// Creates a mock factory that returns different responses for sequential HTTP calls.
-    /// First call returns the page HTML, second call returns the Claude API response.
-    /// </summary>
-    private static IHttpClientFactory CreateSequentialMockFactory(
-        HttpStatusCode pageStatus, string pageContent,
-        HttpStatusCode claudeStatus, string claudeContent)
-    {
-        var callCount = 0;
-        var handler = new Mock<HttpMessageHandler>();
-        handler.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(() =>
-            {
-                var count = Interlocked.Increment(ref callCount);
-                return count == 1
-                    ? new HttpResponseMessage { StatusCode = pageStatus, Content = new StringContent(pageContent) }
-                    : new HttpResponseMessage { StatusCode = claudeStatus, Content = new StringContent(claudeContent) };
-            });
-        var client = new HttpClient(handler.Object);
-        var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
-        return factory.Object;
-    }
-
-    private static IHttpClientFactory CreateThrowingFactory()
+    private static IHttpClientFactory CreateThrowingPageFetchFactory()
     {
         var handler = new Mock<HttpMessageHandler>();
         handler.Protected()
@@ -68,6 +44,29 @@ public class ProfileScraperTests
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
         return factory.Object;
+    }
+
+    private static IAnthropicClient CreateAnthropicClient(string responseJson) =>
+        CreateAnthropicClient(new AnthropicResponse(responseJson, 100, 200, 500));
+
+    private static IAnthropicClient CreateAnthropicClient(AnthropicResponse response)
+    {
+        var mock = new Mock<IAnthropicClient>();
+        mock.Setup(c => c.SendAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
+        return mock.Object;
+    }
+
+    private static IAnthropicClient CreateThrowingAnthropicClient(Exception ex)
+    {
+        var mock = new Mock<IAnthropicClient>();
+        mock.Setup(c => c.SendAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(ex);
+        return mock.Object;
     }
 
     private static IDnsResolver CreateMockDnsResolver(params IPAddress[] addresses)
@@ -88,12 +87,41 @@ public class ProfileScraperTests
 
     private static readonly IPAddress PublicIp = IPAddress.Parse("104.18.32.7");
 
+    // Helper to build a scraper with the given page-fetch response and Claude response JSON
+    private static ProfileScraperService MakeScraper(
+        string pageHtml,
+        string claudeResponseJson,
+        string? scraperApiKey = null) =>
+        new(
+            CreatePageFetchFactory(HttpStatusCode.OK, pageHtml),
+            CreateAnthropicClient(claudeResponseJson),
+            scraperApiKey,
+            CreateMockDnsResolver(PublicIp),
+            NullLogger<ProfileScraperService>.Instance);
+
+    // Helper for scraper where Claude throws
+    private static ProfileScraperService MakeScraperWithFailingClaude(
+        string pageHtml,
+        Exception claudeEx,
+        string? scraperApiKey = null) =>
+        new(
+            CreatePageFetchFactory(HttpStatusCode.OK, pageHtml),
+            CreateThrowingAnthropicClient(claudeEx),
+            scraperApiKey,
+            CreateMockDnsResolver(PublicIp),
+            NullLogger<ProfileScraperService>.Instance);
+
     [Fact]
     public async Task ScrapeAsync_FetchFailure_ReturnsNull()
     {
-        var factory = CreateThrowingFactory();
+        var anthropicClient = CreateAnthropicClient("{}");
         var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreateThrowingPageFetchFactory(),
+            anthropicClient,
+            null,
+            dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/nobody", CancellationToken.None);
 
@@ -103,9 +131,14 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_EmptyPage_ReturnsNull()
     {
-        var factory = CreateMockFactory(HttpStatusCode.OK, "<html><body></body></html>");
+        var anthropicClient = CreateAnthropicClient("{}");
         var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, "<html><body></body></html>"),
+            anthropicClient,
+            null,
+            dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/empty", CancellationToken.None);
 
@@ -115,11 +148,14 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_ValidPage_FallsBackOnClaudeFailure()
     {
-        // When Claude API call fails (bad key), scraper returns partial profile as fallback
         var html = "<html><body><h1>Jane Doe</h1><p>RE/MAX agent serving New Jersey with 15 years experience and 200 homes sold in the tri-state area.</p></body></html>";
-        var factory = CreateMockFactory(HttpStatusCode.OK, html);
         var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "invalid-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, html),
+            CreateThrowingAnthropicClient(new HttpRequestException("Anthropic API error")),
+            null,
+            dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/jane-doe", CancellationToken.None);
 
@@ -132,9 +168,12 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_DnsResolvesToLoopback_ReturnsNull()
     {
-        var factory = CreateMockFactory(HttpStatusCode.OK, "should not reach");
         var dns = CreateMockDnsResolver(IPAddress.Parse("127.0.0.1"));
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, "should not reach"),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/test", CancellationToken.None);
 
@@ -144,9 +183,12 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_DnsResolvesToPrivate10_ReturnsNull()
     {
-        var factory = CreateMockFactory(HttpStatusCode.OK, "should not reach");
         var dns = CreateMockDnsResolver(IPAddress.Parse("10.0.0.1"));
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, "should not reach"),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/test", CancellationToken.None);
 
@@ -156,9 +198,12 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_DnsResolvesToLinkLocal169_ReturnsNull()
     {
-        var factory = CreateMockFactory(HttpStatusCode.OK, "should not reach");
         var dns = CreateMockDnsResolver(IPAddress.Parse("169.254.169.254"));
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, "should not reach"),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/test", CancellationToken.None);
 
@@ -168,9 +213,12 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_DnsResolvesToPrivate172_ReturnsNull()
     {
-        var factory = CreateMockFactory(HttpStatusCode.OK, "should not reach");
         var dns = CreateMockDnsResolver(IPAddress.Parse("172.16.0.1"));
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, "should not reach"),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/test", CancellationToken.None);
 
@@ -180,9 +228,12 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_DnsResolvesToPrivate192_ReturnsNull()
     {
-        var factory = CreateMockFactory(HttpStatusCode.OK, "should not reach");
         var dns = CreateMockDnsResolver(IPAddress.Parse("192.168.1.1"));
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, "should not reach"),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/test", CancellationToken.None);
 
@@ -192,9 +243,12 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_DnsResolvesToIpv6Loopback_ReturnsNull()
     {
-        var factory = CreateMockFactory(HttpStatusCode.OK, "should not reach");
-        var dns = CreateMockDnsResolver(IPAddress.IPv6Loopback); // ::1
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var dns = CreateMockDnsResolver(IPAddress.IPv6Loopback);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, "should not reach"),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/test", CancellationToken.None);
 
@@ -204,9 +258,12 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_DnsResolvesToIpv6UniqueLocal_ReturnsNull()
     {
-        var factory = CreateMockFactory(HttpStatusCode.OK, "should not reach");
         var dns = CreateMockDnsResolver(IPAddress.Parse("fd00::1"));
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, "should not reach"),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/test", CancellationToken.None);
 
@@ -216,9 +273,12 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_DnsResolvesToIpv6LinkLocal_ReturnsNull()
     {
-        var factory = CreateMockFactory(HttpStatusCode.OK, "should not reach");
         var dns = CreateMockDnsResolver(IPAddress.Parse("fe80::1"));
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, "should not reach"),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/test", CancellationToken.None);
 
@@ -228,10 +288,12 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_DnsResolvesToIpv4MappedPrivate_ReturnsNull()
     {
-        var factory = CreateMockFactory(HttpStatusCode.OK, "should not reach");
-        // ::ffff:10.0.0.1 — IPv4-mapped IPv6 with private IPv4
         var dns = CreateMockDnsResolver(IPAddress.Parse("10.0.0.1").MapToIPv6());
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, "should not reach"),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/test", CancellationToken.None);
 
@@ -241,11 +303,14 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_DnsResolvesToPublicIp_Proceeds()
     {
-        // Valid page but Claude call fails — should still reach the fallback, proving DNS check passed
         var html = "<html><body><h1>Jane Doe</h1><p>RE/MAX agent serving New Jersey with 15 years experience and 200 homes sold in the tri-state area.</p></body></html>";
-        var factory = CreateMockFactory(HttpStatusCode.OK, html);
         var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "invalid-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        // Claude throws — should fall back to partial profile (proving DNS check passed)
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, html),
+            CreateThrowingAnthropicClient(new HttpRequestException("invalid key")),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/test", CancellationToken.None);
 
@@ -255,10 +320,12 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_DnsResolvesToMixedPublicAndPrivate_ReturnsNull()
     {
-        // If any resolved address is private, block the request
-        var factory = CreateMockFactory(HttpStatusCode.OK, "should not reach");
         var dns = CreateMockDnsResolver(PublicIp, IPAddress.Parse("10.0.0.1"));
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, "should not reach"),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/test", CancellationToken.None);
 
@@ -268,9 +335,12 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_DnsResolutionFails_ReturnsNull()
     {
-        var factory = CreateMockFactory(HttpStatusCode.OK, "should not reach");
         var dns = CreateThrowingDnsResolver();
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, "should not reach"),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/test", CancellationToken.None);
 
@@ -280,9 +350,12 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_DnsResolvesToNoAddresses_ReturnsNull()
     {
-        var factory = CreateMockFactory(HttpStatusCode.OK, "should not reach");
-        var dns = CreateMockDnsResolver(); // empty array
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var dns = CreateMockDnsResolver(); // empty
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, "should not reach"),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/test", CancellationToken.None);
 
@@ -314,13 +387,13 @@ public class ProfileScraperTests
     }
 
     [Theory]
-    [InlineData("fd00::1", true)]       // unique local
-    [InlineData("fdff::1", true)]       // unique local range
-    [InlineData("fe80::1", true)]       // link-local
-    [InlineData("fe80::abcd", true)]    // link-local
+    [InlineData("fd00::1", true)]
+    [InlineData("fdff::1", true)]
+    [InlineData("fe80::1", true)]
+    [InlineData("fe80::abcd", true)]
     [InlineData("::1", false)]          // loopback — handled by IPAddress.IsLoopback, not IsPrivateIp
-    [InlineData("2001:db8::1", false)]  // documentation range, but public
-    [InlineData("2607:f8b0:4004:800::200e", false)] // Google public
+    [InlineData("2001:db8::1", false)]
+    [InlineData("2607:f8b0:4004:800::200e", false)]
     public void IsPrivateIp_IPv6(string ipStr, bool expected)
     {
         var ip = IPAddress.Parse(ipStr);
@@ -353,8 +426,11 @@ public class ProfileScraperTests
     public async Task ValidateDnsResolutionAsync_PublicIp_ReturnsNull()
     {
         var dns = CreateMockDnsResolver(PublicIp);
-        var factory = CreateMockFactory(HttpStatusCode.OK, "");
-        var scraper = new ProfileScraperService(factory, "k", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, ""),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ValidateDnsResolutionAsync("zillow.com", CancellationToken.None);
 
@@ -365,8 +441,11 @@ public class ProfileScraperTests
     public async Task ValidateDnsResolutionAsync_PrivateIp_ReturnsError()
     {
         var dns = CreateMockDnsResolver(IPAddress.Parse("10.0.0.1"));
-        var factory = CreateMockFactory(HttpStatusCode.OK, "");
-        var scraper = new ProfileScraperService(factory, "k", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, ""),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ValidateDnsResolutionAsync("zillow.com", CancellationToken.None);
 
@@ -378,8 +457,11 @@ public class ProfileScraperTests
     public async Task ValidateDnsResolutionAsync_DnsFailure_ReturnsError()
     {
         var dns = CreateThrowingDnsResolver();
-        var factory = CreateMockFactory(HttpStatusCode.OK, "");
-        var scraper = new ProfileScraperService(factory, "k", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, ""),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ValidateDnsResolutionAsync("nonexistent.example", CancellationToken.None);
 
@@ -390,9 +472,12 @@ public class ProfileScraperTests
     [Fact]
     public async Task ValidateDnsResolutionAsync_EmptyAddresses_ReturnsError()
     {
-        var dns = CreateMockDnsResolver();
-        var factory = CreateMockFactory(HttpStatusCode.OK, "");
-        var scraper = new ProfileScraperService(factory, "k", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var dns = CreateMockDnsResolver(); // empty array
+        var scraper = new ProfileScraperService(
+            CreatePageFetchFactory(HttpStatusCode.OK, ""),
+            CreateAnthropicClient("{}"),
+            null, dns,
+            NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ValidateDnsResolutionAsync("zillow.com", CancellationToken.None);
 
@@ -452,7 +537,6 @@ public class ProfileScraperTests
         var html = """<html><body><script type="application/ld+json">{&quot;name&quot;:&quot;Jane&quot;}</script><p>Content here.</p></body></html>""";
         var result = ProfileScraperService.ExtractPageContent(html);
 
-        // HtmlDecode should convert &quot; to "
         Assert.Contains("\"name\"", result);
     }
 
@@ -512,17 +596,11 @@ public class ProfileScraperTests
         }
         """;
 
-    private static string WrapClaudeResponse(string json) =>
-        $$"""{"content":[{"type":"text","text":{{System.Text.Json.JsonSerializer.Serialize(json)}}}]}""";
-
     [Fact]
     public async Task ScrapeAsync_FullHappyPath_ReturnsCompleteProfile()
     {
         var pageHtml = "<html><body><h1>Jane Doe</h1><p>RE/MAX agent serving New Jersey with 15 years experience and 200 homes sold in the tri-state area. She is great.</p></body></html>";
-        var claudeResponse = WrapClaudeResponse(ValidClaudeProfileJson);
-        var factory = CreateSequentialMockFactory(HttpStatusCode.OK, pageHtml, HttpStatusCode.OK, claudeResponse);
-        var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = MakeScraper(pageHtml, ValidClaudeProfileJson);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/jane-doe", CancellationToken.None);
 
@@ -555,14 +633,12 @@ public class ProfileScraperTests
         Assert.Equal("https://instagram.com/janedoe", result.InstagramUrl);
         Assert.Equal("https://linkedin.com/in/janedoe", result.LinkedInUrl);
 
-        // Testimonials: null text entries are filtered out
         Assert.NotNull(result.Testimonials);
         Assert.Single(result.Testimonials!);
         Assert.Equal("Bob", result.Testimonials![0].ReviewerName);
         Assert.Equal("Great agent!", result.Testimonials[0].Text);
         Assert.Equal(5.0, result.Testimonials[0].Rating);
 
-        // Recent sales: null address entries are filtered out
         Assert.NotNull(result.RecentSales);
         Assert.Single(result.RecentSales!);
         Assert.Equal("456 Oak Ave", result.RecentSales![0].Address);
@@ -573,11 +649,7 @@ public class ProfileScraperTests
     public async Task ScrapeAsync_ClaudeReturnsErrorProperty_ReturnsNull()
     {
         var pageHtml = "<html><body><h1>Not an Agent</h1><p>This page is not a real estate agent profile but has enough text content to pass.</p></body></html>";
-        var claudeJson = """{"error": "not_agent_profile"}""";
-        var claudeResponse = WrapClaudeResponse(claudeJson);
-        var factory = CreateSequentialMockFactory(HttpStatusCode.OK, pageHtml, HttpStatusCode.OK, claudeResponse);
-        var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = MakeScraper(pageHtml, """{"error": "not_agent_profile"}""");
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/not-agent", CancellationToken.None);
 
@@ -587,12 +659,11 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_ClaudeReturnsMarkdownFences_StripsThemCorrectly()
     {
+        // AnthropicClient strips fences before returning Content — test that the
+        // already-stripped JSON is parsed correctly
         var pageHtml = "<html><body><h1>Agent Test</h1><p>Enough text content to pass the minimum length check for profile extraction.</p></body></html>";
-        var fencedJson = "```json\n{\"name\":\"Fenced Agent\",\"bio\":\"Test bio\"}\n```";
-        var claudeResponse = WrapClaudeResponse(fencedJson);
-        var factory = CreateSequentialMockFactory(HttpStatusCode.OK, pageHtml, HttpStatusCode.OK, claudeResponse);
-        var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        // Simulate what AnthropicClient returns AFTER stripping fences
+        var scraper = MakeScraper(pageHtml, """{"name":"Fenced Agent","bio":"Test bio"}""");
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/fenced", CancellationToken.None);
 
@@ -601,33 +672,16 @@ public class ProfileScraperTests
     }
 
     [Fact]
-    public async Task ScrapeAsync_ClaudeReturnsCodeFenceWithoutTrailingFence_StripsLeadingFence()
-    {
-        var pageHtml = "<html><body><h1>Agent Test</h1><p>Enough text content to pass the minimum length check for profile extraction.</p></body></html>";
-        // Code fence without trailing ``` (just leading)
-        var fencedJson = "```json\n{\"name\":\"Partial Fence\",\"bio\":\"Test bio\"}";
-        var claudeResponse = WrapClaudeResponse(fencedJson);
-        var factory = CreateSequentialMockFactory(HttpStatusCode.OK, pageHtml, HttpStatusCode.OK, claudeResponse);
-        var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
-
-        var result = await scraper.ScrapeAsync("https://zillow.com/profile/partial-fence", CancellationToken.None);
-
-        Assert.NotNull(result);
-        Assert.Equal("Partial Fence", result!.Name);
-    }
-
-    [Fact]
     public async Task ScrapeAsync_ClaudeReturnsNonSuccessStatus_FallsBackToPartialProfile()
     {
+        // Simulate AnthropicClient throwing (which it does on non-2xx)
         var pageHtml = "<html><body><h1>Agent</h1><p>Enough content for the minimum length requirement to pass successfully.</p></body></html>";
-        var factory = CreateSequentialMockFactory(HttpStatusCode.OK, pageHtml, HttpStatusCode.TooManyRequests, "rate limited");
-        var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = MakeScraperWithFailingClaude(
+            pageHtml,
+            new HttpRequestException("Anthropic API returned 429: rate limited"));
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/rate-limited", CancellationToken.None);
 
-        // Falls back to partial profile with Bio containing the URL
         Assert.NotNull(result);
         Assert.Contains("zillow.com", result!.Bio);
     }
@@ -635,10 +689,8 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_WithScraperApiKey_UsesProxyUrl()
     {
-        // Verify ScraperAPI proxy path is used when scraperApiKey is provided
         string? capturedUrl = null;
         var handler = new Mock<HttpMessageHandler>();
-        var callCount = 0;
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -646,29 +698,20 @@ public class ProfileScraperTests
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
             {
-                var count = Interlocked.Increment(ref callCount);
-                if (count == 1)
-                {
-                    capturedUrl = req.RequestUri?.ToString();
-                    return new HttpResponseMessage
-                    {
-                        StatusCode = HttpStatusCode.OK,
-                        Content = new StringContent("<html><body><h1>Agent</h1><p>Lots of content here for the length check to pass successfully.</p></body></html>")
-                    };
-                }
-                // Claude API call — return valid profile
+                capturedUrl = req.RequestUri?.ToString();
                 return new HttpResponseMessage
                 {
                     StatusCode = HttpStatusCode.OK,
-                    Content = new StringContent(WrapClaudeResponse("""{"name":"Proxy Agent","bio":"Via proxy"}"""))
+                    Content = new StringContent("<html><body><h1>Agent</h1><p>Lots of content here for the length check to pass successfully.</p></body></html>")
                 };
             });
         var client = new HttpClient(handler.Object);
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
 
+        var anthropicClient = CreateAnthropicClient("""{"name":"Proxy Agent","bio":"Via proxy"}""");
         var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory.Object, "test-key", "scraper-api-key-123", dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = new ProfileScraperService(factory.Object, anthropicClient, "scraper-api-key-123", dns, NullLogger<ProfileScraperService>.Instance);
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/proxy-test", CancellationToken.None);
 
@@ -681,13 +724,9 @@ public class ProfileScraperTests
     [Fact]
     public async Task ScrapeAsync_LongPageContent_TruncatesTo15000()
     {
-        // Build page with >15000 chars of visible text
         var longText = new string('A', 16000);
         var pageHtml = $"<html><body><p>{longText}</p></body></html>";
-        var claudeResponse = WrapClaudeResponse("""{"name":"Truncated Agent","bio":"Truncated"}""");
-        var factory = CreateSequentialMockFactory(HttpStatusCode.OK, pageHtml, HttpStatusCode.OK, claudeResponse);
-        var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = MakeScraper(pageHtml, """{"name":"Truncated Agent","bio":"Truncated"}""");
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/long-page", CancellationToken.None);
 
@@ -699,11 +738,7 @@ public class ProfileScraperTests
     public async Task ScrapeAsync_ClaudeReturnsNullFields_HandlesGracefully()
     {
         var pageHtml = "<html><body><h1>Minimal Agent</h1><p>This page has just enough content for the minimum length check.</p></body></html>";
-        var minimalJson = """{"name":null,"phone":null,"email":null,"bio":null,"testimonials":null,"recentSales":null}""";
-        var claudeResponse = WrapClaudeResponse(minimalJson);
-        var factory = CreateSequentialMockFactory(HttpStatusCode.OK, pageHtml, HttpStatusCode.OK, claudeResponse);
-        var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = MakeScraper(pageHtml, """{"name":null,"phone":null,"email":null,"bio":null,"testimonials":null,"recentSales":null}""");
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/minimal", CancellationToken.None);
 
@@ -718,11 +753,7 @@ public class ProfileScraperTests
     public async Task ScrapeAsync_ClaudeReturnsEmptyTestimonialsArray_ReturnsEmptyArray()
     {
         var pageHtml = "<html><body><h1>Agent</h1><p>Enough content for the length check to succeed in testing.</p></body></html>";
-        var json = """{"name":"Test","testimonials":[],"recentSales":[]}""";
-        var claudeResponse = WrapClaudeResponse(json);
-        var factory = CreateSequentialMockFactory(HttpStatusCode.OK, pageHtml, HttpStatusCode.OK, claudeResponse);
-        var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = MakeScraper(pageHtml, """{"name":"Test","testimonials":[],"recentSales":[]}""");
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/empty-arrays", CancellationToken.None);
 
@@ -737,12 +768,7 @@ public class ProfileScraperTests
     public async Task ScrapeAsync_ClaudeReturnsNonArrayTestimonials_ReturnsNull()
     {
         var pageHtml = "<html><body><h1>Agent</h1><p>Enough content for the length check to succeed in testing.</p></body></html>";
-        // testimonials is a string instead of array
-        var json = """{"name":"Test","testimonials":"not an array","recentSales":"also not array"}""";
-        var claudeResponse = WrapClaudeResponse(json);
-        var factory = CreateSequentialMockFactory(HttpStatusCode.OK, pageHtml, HttpStatusCode.OK, claudeResponse);
-        var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = MakeScraper(pageHtml, """{"name":"Test","testimonials":"not an array","recentSales":"also not array"}""");
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/non-array", CancellationToken.None);
 
@@ -755,12 +781,7 @@ public class ProfileScraperTests
     public async Task ScrapeAsync_ClaudeReturnsNonNumericStats_ReturnsNullForStats()
     {
         var pageHtml = "<html><body><h1>Agent</h1><p>Enough content for the length check to succeed in testing.</p></body></html>";
-        // Stats fields are strings instead of numbers
-        var json = """{"name":"Test","yearsExperience":"fifteen","homesSold":"many","avgRating":"high","reviewCount":"lots","avgListPrice":"expensive"}""";
-        var claudeResponse = WrapClaudeResponse(json);
-        var factory = CreateSequentialMockFactory(HttpStatusCode.OK, pageHtml, HttpStatusCode.OK, claudeResponse);
-        var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = MakeScraper(pageHtml, """{"name":"Test","yearsExperience":"fifteen","homesSold":"many","avgRating":"high","reviewCount":"lots","avgListPrice":"expensive"}""");
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/non-numeric", CancellationToken.None);
 
@@ -776,11 +797,7 @@ public class ProfileScraperTests
     public async Task ScrapeAsync_ClaudeReturnsNonArrayServiceAreas_ReturnsNull()
     {
         var pageHtml = "<html><body><h1>Agent</h1><p>Enough content for the length check to succeed in testing.</p></body></html>";
-        var json = """{"name":"Test","serviceAreas":"Newark","specialties":"Buyer","designations":"CRS","languages":"English"}""";
-        var claudeResponse = WrapClaudeResponse(json);
-        var factory = CreateSequentialMockFactory(HttpStatusCode.OK, pageHtml, HttpStatusCode.OK, claudeResponse);
-        var dns = CreateMockDnsResolver(PublicIp);
-        var scraper = new ProfileScraperService(factory, "test-key", null, dns, NullLogger<ProfileScraperService>.Instance);
+        var scraper = MakeScraper(pageHtml, """{"name":"Test","serviceAreas":"Newark","specialties":"Buyer","designations":"CRS","languages":"English"}""");
 
         var result = await scraper.ScrapeAsync("https://zillow.com/profile/non-array-fields", CancellationToken.None);
 
@@ -812,7 +829,6 @@ public class ProfileScraperTests
     [Fact]
     public void ValidateUrl_PublicIpInHost_ReturnsDirectIpError()
     {
-        // Public IPs are valid but not allowed — should get the "direct IP" error
         var result = ProfileScraperService.ValidateUrl("https://8.8.8.8/profile");
         Assert.NotNull(result);
         Assert.Contains("Direct IP addresses are not allowed", result);
@@ -844,21 +860,21 @@ public class ProfileScraperTests
     [Fact]
     public void IsPrivateIp_Ipv6PublicAddress_ReturnsFalse()
     {
-        var ip = IPAddress.Parse("2001:4860:4860::8888"); // Google DNS IPv6
+        var ip = IPAddress.Parse("2001:4860:4860::8888");
         Assert.False(ProfileScraperService.IsPrivateIp(ip));
     }
 
     [Fact]
     public void IsPrivateIp_Ipv4MappedIpv6_PublicAddress_ReturnsFalse()
     {
-        var ip = IPAddress.Parse("8.8.8.8").MapToIPv6(); // ::ffff:8.8.8.8
+        var ip = IPAddress.Parse("8.8.8.8").MapToIPv6();
         Assert.False(ProfileScraperService.IsPrivateIp(ip));
     }
 
     [Fact]
     public void IsPrivateIp_Ipv4MappedIpv6_PrivateAddress_ReturnsTrue()
     {
-        var ip = IPAddress.Parse("192.168.1.1").MapToIPv6(); // ::ffff:192.168.1.1
+        var ip = IPAddress.Parse("192.168.1.1").MapToIPv6();
         Assert.True(ProfileScraperService.IsPrivateIp(ip));
     }
 }
