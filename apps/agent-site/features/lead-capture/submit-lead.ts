@@ -58,7 +58,8 @@ export async function submitLead(
 
     if (error || !response.ok) {
       const text = await response.text().catch(() => "");
-      return { error: `API error [${response.status}]: ${text || response.statusText} | Payload: ${body}` };
+      console.error("[submit-lead] API error", response.status, text, "payload:", body);
+      return { error: "Submission failed. Please try again or contact us directly." };
     }
     return (data ?? {}) as { leadId?: string; status?: string };
   } catch (err) {
