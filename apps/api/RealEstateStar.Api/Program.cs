@@ -13,6 +13,7 @@ using RealEstateStar.DataServices.Config;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.DataServices.Storage;
 using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.DataServices.WhatsApp;
 using RealEstateStar.Domain.Notifications.Interfaces;
@@ -299,10 +300,9 @@ builder.Services.AddSingleton<ITokenStore>(sp =>
 });
 
 // Gmail API client — IGmailSender backed by GmailApiClient (needs IOAuthRefresher)
+builder.Services.AddHttpClient("GoogleOAuth");
 builder.Services.AddSingleton<IOAuthRefresher>(sp =>
 {
-    var googleClientId = builder.Configuration["Google:ClientId"] ?? "";
-    var googleClientSecret = builder.Configuration["Google:ClientSecret"] ?? "";
     var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("GoogleOAuth");
     return new GoogleOAuthRefresher(
         sp.GetRequiredService<ITokenStore>(),

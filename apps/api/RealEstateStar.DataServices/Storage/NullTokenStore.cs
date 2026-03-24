@@ -1,7 +1,7 @@
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Shared.Models;
 
-namespace RealEstateStar.DataServices.Onboarding;
+namespace RealEstateStar.DataServices.Storage;
 
 /// <summary>
 /// Null-object implementation used when Azure Storage is not configured (e.g., local development).

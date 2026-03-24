@@ -1,5 +1,6 @@
 using RealEstateStar.Domain.Leads.Models;
 using System.Globalization;
+using System.Net;
 using System.Text;
 
 namespace RealEstateStar.Domain.HomeSearch.Markdown;
@@ -66,24 +67,27 @@ public static class HomeSearchMarkdownRenderer
 
     public static string RenderEmailBody(Lead lead, List<Listing> listings, string agentName)
     {
+        // HtmlEncode all user/AI-supplied fields — this body is sent as htmlBody to Gmail.
+        static string H(string? s) => WebUtility.HtmlEncode(s ?? string.Empty);
+
         var sb = new StringBuilder();
-        sb.AppendLine($"Hi {lead.FirstName},");
+        sb.AppendLine($"Hi {H(lead.FirstName)},");
         sb.AppendLine();
-        sb.AppendLine($"Thank you for reaching out! Based on what you're looking for — a home in {lead.BuyerDetails?.City}, {lead.BuyerDetails?.State} — I've found {listings.Count} listings I think you'll love.");
+        sb.AppendLine($"Thank you for reaching out! Based on what you're looking for — a home in {H(lead.BuyerDetails?.City)}, {H(lead.BuyerDetails?.State)} — I've found {listings.Count} listings I think you'll love.");
         sb.AppendLine();
 
         foreach (var listing in listings)
         {
             sb.AppendLine($"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             sb.AppendLine();
-            sb.AppendLine($"📍 {listing.Address}, {listing.City}, {listing.State} {listing.Zip}");
+            sb.AppendLine($"📍 {H(listing.Address)}, {H(listing.City)}, {H(listing.State)} {H(listing.Zip)}");
             sb.AppendLine($"   {FormatUsd(listing.Price)} | {listing.Beds} bed | {listing.Baths} bath{(listing.Sqft.HasValue ? $" | {listing.Sqft.Value.ToString("N0", UsFormat)} sqft" : "")}");
 
             if (listing.WhyThisFits is not null)
-                sb.AppendLine($"   → \"{listing.WhyThisFits}\"");
+                sb.AppendLine($"   → \"{H(listing.WhyThisFits)}\"");
 
             if (listing.ListingUrl is not null)
-                sb.AppendLine($"   View: {listing.ListingUrl}");
+                sb.AppendLine($"   View: {H(listing.ListingUrl)}");
 
             sb.AppendLine();
         }
@@ -91,7 +95,7 @@ public static class HomeSearchMarkdownRenderer
         sb.AppendLine("Want to schedule a tour or see more options? Just reply to this email.");
         sb.AppendLine();
         sb.AppendLine($"Best,");
-        sb.AppendLine(agentName);
+        sb.AppendLine(H(agentName));
 
         return sb.ToString();
     }

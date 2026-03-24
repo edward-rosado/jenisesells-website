@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -129,30 +130,33 @@ public class MultiChannelLeadNotifier(
     // Not commercial marketing — no unsubscribe footer or physical address required.
     public string BuildBody(Lead lead, LeadEnrichment enrichment, LeadScore score)
     {
+        // HtmlEncode all user-supplied fields — this body is sent as htmlBody to Gmail.
+        static string H(string? s) => WebUtility.HtmlEncode(s ?? string.Empty);
+
         var sb = new StringBuilder();
 
-        sb.AppendLine($"# New Lead: {lead.FullName}");
+        sb.AppendLine($"# New Lead: {H(lead.FullName)}");
         sb.AppendLine();
         sb.AppendLine($"**Score:** {score.OverallScore} / 100");
-        sb.AppendLine($"**Motivation:** {enrichment.MotivationCategory}");
-        sb.AppendLine($"**Lead Type:** {lead.LeadType}");
+        sb.AppendLine($"**Motivation:** {H(enrichment.MotivationCategory)}");
+        sb.AppendLine($"**Lead Type:** {H(lead.LeadType.ToString())}");
         sb.AppendLine($"**Received:** {lead.ReceivedAt:MMMM d, yyyy h:mm tt} UTC");
         sb.AppendLine();
 
         // Contact
         sb.AppendLine("## Contact");
-        sb.AppendLine($"- **Email:** {lead.Email}");
-        sb.AppendLine($"- **Phone:** {lead.Phone}");
-        sb.AppendLine($"- **Timeline:** {lead.Timeline}");
+        sb.AppendLine($"- **Email:** {H(lead.Email)}");
+        sb.AppendLine($"- **Phone:** {H(lead.Phone)}");
+        sb.AppendLine($"- **Timeline:** {H(lead.Timeline)}");
         sb.AppendLine();
 
         // Seller section — only when seller details are present
         if (lead.SellerDetails is { } s)
         {
             sb.AppendLine("## Selling");
-            sb.AppendLine($"- **Address:** {s.Address}, {s.City}, {s.State} {s.Zip}");
-            if (s.PropertyType is not null) sb.AppendLine($"- **Property Type:** {s.PropertyType}");
-            if (s.Condition is not null)    sb.AppendLine($"- **Condition:** {s.Condition}");
+            sb.AppendLine($"- **Address:** {H(s.Address)}, {H(s.City)}, {H(s.State)} {H(s.Zip)}");
+            if (s.PropertyType is not null) sb.AppendLine($"- **Property Type:** {H(s.PropertyType)}");
+            if (s.Condition is not null)    sb.AppendLine($"- **Condition:** {H(s.Condition)}");
             if (s.AskingPrice is not null)  sb.AppendLine($"- **Asking Price:** ${s.AskingPrice.Value:N0}");
             sb.AppendLine();
         }
@@ -161,24 +165,24 @@ public class MultiChannelLeadNotifier(
         if (lead.BuyerDetails is { } b)
         {
             sb.AppendLine("## Buying");
-            sb.AppendLine($"- **Desired Area:** {b.City}, {b.State}");
+            sb.AppendLine($"- **Desired Area:** {H(b.City)}, {H(b.State)}");
             if (b.MaxBudget is not null)              sb.AppendLine($"- **Max Budget:** ${b.MaxBudget.Value:N0}");
             if (b.Bedrooms is not null)               sb.AppendLine($"- **Bedrooms:** {b.Bedrooms}");
             if (b.Bathrooms is not null)              sb.AppendLine($"- **Bathrooms:** {b.Bathrooms}");
-            if (b.PropertyTypes is { Count: > 0 })   sb.AppendLine($"- **Property Types:** {string.Join(", ", b.PropertyTypes)}");
-            if (b.MustHaves is { Count: > 0 })       sb.AppendLine($"- **Must-Haves:** {string.Join(", ", b.MustHaves)}");
+            if (b.PropertyTypes is { Count: > 0 })   sb.AppendLine($"- **Property Types:** {string.Join(", ", b.PropertyTypes.Select(H))}");
+            if (b.MustHaves is { Count: > 0 })       sb.AppendLine($"- **Must-Haves:** {string.Join(", ", b.MustHaves.Select(H))}");
             sb.AppendLine();
         }
 
         // Enrichment summary
         sb.AppendLine("## Enrichment Summary");
-        sb.AppendLine($"**Motivation Analysis:** {enrichment.MotivationAnalysis}");
+        sb.AppendLine($"**Motivation Analysis:** {H(enrichment.MotivationAnalysis)}");
         sb.AppendLine();
-        sb.AppendLine($"**Professional Background:** {enrichment.ProfessionalBackground}");
+        sb.AppendLine($"**Professional Background:** {H(enrichment.ProfessionalBackground)}");
         sb.AppendLine();
-        sb.AppendLine($"**Financial Indicators:** {enrichment.FinancialIndicators}");
+        sb.AppendLine($"**Financial Indicators:** {H(enrichment.FinancialIndicators)}");
         sb.AppendLine();
-        sb.AppendLine($"**Timeline Pressure:** {enrichment.TimelinePressure}");
+        sb.AppendLine($"**Timeline Pressure:** {H(enrichment.TimelinePressure)}");
         sb.AppendLine();
 
         // Cold call openers
@@ -186,7 +190,7 @@ public class MultiChannelLeadNotifier(
         {
             sb.AppendLine("## Cold Call Openers");
             foreach (var opener in enrichment.ColdCallOpeners)
-                sb.AppendLine($"- {opener}");
+                sb.AppendLine($"- {H(opener)}");
             sb.AppendLine();
         }
 

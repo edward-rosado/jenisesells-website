@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
@@ -83,13 +84,16 @@ public class CmaSellerNotifier(
 
     internal static string BuildEmailBody(Lead lead, CmaAnalysis analysis, string agentName, string agentPhone)
     {
+        // HtmlEncode all user/agent/AI-supplied fields — this body is sent as htmlBody to Gmail.
+        static string H(string? s) => WebUtility.HtmlEncode(s ?? string.Empty);
+
         var sd = lead.SellerDetails!;
-        var fullAddress = $"{sd.Address}, {sd.City}, {sd.State} {sd.Zip}";
+        var fullAddress = $"{H(sd.Address)}, {H(sd.City)}, {H(sd.State)} {H(sd.Zip)}";
         var sb = new StringBuilder();
 
-        sb.AppendLine($"Hi {lead.FirstName},");
+        sb.AppendLine($"Hi {H(lead.FirstName)},");
         sb.AppendLine();
-        sb.AppendLine($"Thank you for reaching out! {agentName} has prepared a Comparative Market Analysis for your property at {fullAddress}.");
+        sb.AppendLine($"Thank you for reaching out! {H(agentName)} has prepared a Comparative Market Analysis for your property at {fullAddress}.");
         sb.AppendLine();
         sb.AppendLine("Based on recent comparable sales in your area, here is the estimated value range:");
         sb.AppendLine();
@@ -97,15 +101,15 @@ public class CmaSellerNotifier(
         sb.AppendLine($"  Mid:  {FormatUsd(analysis.ValueMid)}");
         sb.AppendLine($"  High: {FormatUsd(analysis.ValueHigh)}");
         sb.AppendLine();
-        sb.AppendLine($"Market trend: {analysis.MarketTrend}");
+        sb.AppendLine($"Market trend: {H(analysis.MarketTrend)}");
         sb.AppendLine($"Median days on market: {analysis.MedianDaysOnMarket} days");
         sb.AppendLine();
         sb.AppendLine("Your full CMA report is attached as a PDF.");
         sb.AppendLine();
-        sb.AppendLine($"Ready to discuss your options? Reply to this email or call {agentPhone} — we would love to walk you through the findings.");
+        sb.AppendLine($"Ready to discuss your options? Reply to this email or call {H(agentPhone)} — we would love to walk you through the findings.");
         sb.AppendLine();
         sb.AppendLine($"Best,");
-        sb.AppendLine(agentName);
+        sb.AppendLine(H(agentName));
 
         return sb.ToString();
     }
