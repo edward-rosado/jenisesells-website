@@ -515,8 +515,7 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(allowedOrigins)
-            .SetIsOriginAllowed(origin =>
+        policy.SetIsOriginAllowed(origin =>
             {
                 if (allowedOrigins.Contains(origin)) return true;
 
