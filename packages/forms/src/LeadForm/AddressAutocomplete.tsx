@@ -115,17 +115,7 @@ export function AddressAutocomplete({
   }
 
   const dropdownStyle: CSSProperties = {
-    position: "absolute",
-    top: "100%",
-    left: 0,
-    right: 0,
-    background: "#fff",
-    border: "1px solid #e0e0e0",
-    borderRadius: 8,
-    boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-    zIndex: 1000,
-    marginTop: 4,
-    maxHeight: 240,
+    maxHeight: 220,
     overflowY: "auto",
     listStyle: "none",
     margin: 0,
@@ -195,29 +185,43 @@ export function AddressAutocomplete({
       </div>
 
       {isOpen && (
-        <ul
-          id={LISTBOX_ID}
-          role="listbox"
-          style={dropdownStyle}
-        >
-          {suggestions.map((s) => (
-            <li
-              key={s.placeId || s.index}
-              id={optionId(s.index)}
-              role="option"
-              aria-selected={s.index === highlightedIndex}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => handleItemClick(s.index)}
-              onMouseEnter={() => setHighlightedIndex(s.index)}
-              style={itemStyle(s.index === highlightedIndex)}
-            >
-              {s.text}
-            </li>
-          ))}
-          <li style={attributionStyle} aria-hidden="true">
+        <div style={{
+          position: "absolute",
+          top: "100%",
+          left: 0,
+          right: 0,
+          background: "#fff",
+          border: "1px solid #e0e0e0",
+          borderRadius: 8,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+          zIndex: 1000,
+          marginTop: 4,
+          overflow: "hidden",
+        }}>
+          <ul
+            id={LISTBOX_ID}
+            role="listbox"
+            style={dropdownStyle}
+          >
+            {suggestions.map((s) => (
+              <li
+                key={s.placeId || s.index}
+                id={optionId(s.index)}
+                role="option"
+                aria-selected={s.index === highlightedIndex}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleItemClick(s.index)}
+                onMouseEnter={() => setHighlightedIndex(s.index)}
+                style={itemStyle(s.index === highlightedIndex)}
+              >
+                {s.text}
+              </li>
+            ))}
+          </ul>
+          <div style={attributionStyle} aria-hidden="true">
             Powered by Google
-          </li>
-        </ul>
+          </div>
+        </div>
       )}
 
       {fetchError && (
