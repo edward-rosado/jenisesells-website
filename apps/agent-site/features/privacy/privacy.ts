@@ -1,7 +1,7 @@
 "use server";
 
-import { createCorrelationId } from "@real-estate-star/domain";
-import { signAndForward } from "@/features/shared/hmac";
+import { createApiClient } from "@real-estate-star/api-client";
+import { signRequest, getApiUrl } from "@/features/shared/hmac";
 
 export async function requestOptOut(
   agentId: string,
@@ -9,14 +9,24 @@ export async function requestOptOut(
   token: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const body = JSON.stringify({ email, token });
-  let response: Response;
+  let cleanup: (() => void) | undefined;
   try {
-    response = await signAndForward(agentId, body, `agents/${agentId}/leads/opt-out`);
+    const { headers, signal, cleanup: c } = await signRequest(agentId, body);
+    cleanup = c;
+    const client = createApiClient(await getApiUrl());
+    const { error, response } = await client.POST("/agents/{agentId}/leads/opt-out", {
+      params: { path: { agentId } },
+      body: { email, token },
+      headers,
+      init: { signal },
+    });
+    if (error || !response.ok) return { ok: false, error: "Something went wrong. Please try again." };
+    return { ok: true };
   } catch {
     return { ok: false, error: "Something went wrong. Please try again." };
+  } finally {
+    cleanup?.();
   }
-  if (!response.ok) return { ok: false, error: "Something went wrong. Please try again." };
-  return { ok: true };
 }
 
 export async function requestDeletion(
@@ -24,14 +34,24 @@ export async function requestDeletion(
   email: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const body = JSON.stringify({ email });
-  let response: Response;
+  let cleanup: (() => void) | undefined;
   try {
-    response = await signAndForward(agentId, body, `agents/${agentId}/leads/request-deletion`);
+    const { headers, signal, cleanup: c } = await signRequest(agentId, body);
+    cleanup = c;
+    const client = createApiClient(await getApiUrl());
+    const { error, response } = await client.POST("/agents/{agentId}/leads/request-deletion", {
+      params: { path: { agentId } },
+      body: { email },
+      headers,
+      init: { signal },
+    });
+    if (error || !response.ok) return { ok: false, error: "Something went wrong. Please try again." };
+    return { ok: true };
   } catch {
     return { ok: false, error: "Something went wrong. Please try again." };
+  } finally {
+    cleanup?.();
   }
-  if (!response.ok) return { ok: false, error: "Something went wrong. Please try again." };
-  return { ok: true };
 }
 
 export interface ExportData {
@@ -44,13 +64,18 @@ export interface ExportData {
   status?: string;
 }
 
+/**
+ * Data export uses a DIFFERENT HMAC key derivation than the other endpoints.
+ * signRequest derives key as hmacSecret:agentId.
+ * requestExport signs with raw hmacSecret (no agentId suffix).
+ * This is intentional — do NOT refactor to use signRequest.
+ */
 export async function requestExport(
   agentId: string,
   email: string,
 ): Promise<{ ok: boolean; data?: ExportData[]; error?: string }> {
   const apiKey = process.env.LEAD_API_KEY!;
   const hmacSecret = process.env.LEAD_HMAC_SECRET!;
-  const apiUrl = process.env.LEAD_API_URL!;
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const body = "";
   const message = `${timestamp}.${body}`;
@@ -67,38 +92,26 @@ export async function requestExport(
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("")}`;
 
-  const encodedEmail = encodeURIComponent(email);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15_000);
-  let response: Response;
   try {
-    response = await fetch(
-      `${apiUrl}/agents/${agentId}/leads/export?email=${encodedEmail}`,
-      {
-        method: "GET",
-        headers: {
-          "X-API-Key": apiKey,
-          "X-Signature": signature,
-          "X-Timestamp": timestamp,
-          "X-Correlation-ID": createCorrelationId(),
-        },
-        signal: controller.signal,
+    const client = createApiClient(await getApiUrl());
+    const { data, error, response } = await client.GET("/agents/{agentId}/leads/export", {
+      params: { path: { agentId }, query: { email } },
+      headers: {
+        "X-API-Key": apiKey,
+        "X-Signature": signature,
+        "X-Timestamp": timestamp,
       },
-    );
+      init: { signal: controller.signal },
+    });
+    if (response.status === 404) return { ok: true, data: [] };
+    if (error || !response.ok) return { ok: false, error: "Something went wrong. Please try again." };
+    return { ok: true, data: (data ?? []) as ExportData[] };
   } catch {
     return { ok: false, error: "Something went wrong. Please try again." };
   } finally {
     clearTimeout(timeoutId);
-  }
-
-  if (response.status === 404) return { ok: true, data: [] };
-  if (!response.ok) return { ok: false, error: "Something went wrong. Please try again." };
-
-  try {
-    const data = (await response.json()) as ExportData[];
-    return { ok: true, data };
-  } catch {
-    return { ok: false, error: "Failed to parse response data." };
   }
 }
 
@@ -108,12 +121,22 @@ export async function requestSubscribe(
   token: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const body = JSON.stringify({ email, token });
-  let response: Response;
+  let cleanup: (() => void) | undefined;
   try {
-    response = await signAndForward(agentId, body, `agents/${agentId}/leads/subscribe`);
+    const { headers, signal, cleanup: c } = await signRequest(agentId, body);
+    cleanup = c;
+    const client = createApiClient(await getApiUrl());
+    const { error, response } = await client.POST("/agents/{agentId}/leads/subscribe", {
+      params: { path: { agentId } },
+      body: { email, token },
+      headers,
+      init: { signal },
+    });
+    if (error || !response.ok) return { ok: false, error: "Something went wrong. Please try again." };
+    return { ok: true };
   } catch {
     return { ok: false, error: "Something went wrong. Please try again." };
+  } finally {
+    cleanup?.();
   }
-  if (!response.ok) return { ok: false, error: "Something went wrong. Please try again." };
-  return { ok: true };
 }

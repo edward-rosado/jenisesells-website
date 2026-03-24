@@ -1,9 +1,18 @@
-import { createCorrelationId } from "@real-estate-star/domain";
+"use server";
 
-export async function signAndForward(agentId: string, body: string, path?: string): Promise<Response> {
+/**
+ * Compute HMAC-SHA256 signature headers for agent API calls.
+ * Returns the signed headers — callers pass them to the typed API client.
+ *
+ * Key derivation: hmacSecret:agentId (per-agent isolation).
+ */
+export async function signRequest(agentId: string, body: string): Promise<{
+  headers: Record<string, string>;
+  signal: AbortSignal;
+  cleanup: () => void;
+}> {
   const apiKey = process.env.LEAD_API_KEY!;
   const hmacSecret = process.env.LEAD_HMAC_SECRET!;
-  const apiUrl = process.env.LEAD_API_URL!;
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const message = `${timestamp}.${body}`;
 
@@ -20,23 +29,21 @@ export async function signAndForward(agentId: string, body: string, path?: strin
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("")}`;
 
-  const endpoint = path ?? `agents/${agentId}/leads`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15_000);
-  try {
-    return await fetch(`${apiUrl}/${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-API-Key": apiKey,
-        "X-Signature": signature,
-        "X-Timestamp": timestamp,
-        "X-Correlation-ID": createCorrelationId(),
-      },
-      body,
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timeoutId);
-  }
+
+  return {
+    headers: {
+      "X-API-Key": apiKey,
+      "X-Signature": signature,
+      "X-Timestamp": timestamp,
+    },
+    signal: controller.signal,
+    cleanup: () => clearTimeout(timeoutId),
+  };
+}
+
+/** Get the API base URL from environment. */
+export async function getApiUrl(): Promise<string> {
+  return process.env.LEAD_API_URL!;
 }
