@@ -82,7 +82,7 @@ export async function requestExport(
   const apiKey = process.env.LEAD_API_KEY!;
   const hmacSecret = process.env.LEAD_HMAC_SECRET!;
   const timestamp = Math.floor(Date.now() / 1000).toString();
-  const body = "";
+  const body = JSON.stringify({ email });
   const message = `${timestamp}.${body}`;
 
   const key = await crypto.subtle.importKey(
