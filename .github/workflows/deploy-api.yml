@@ -118,8 +118,13 @@ jobs:
           AZ_STORAGE: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
           HMAC_SECRET: ${{ secrets.LEAD_HMAC_SECRET }}
           HMAC_API_KEY: ${{ secrets.LEAD_API_KEY }}
+          OTEL_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+          OTEL_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
         run: |
           EXTRA_ENV_VARS=""
+          if [ -n "$OTEL_ENDPOINT" ]; then
+            EXTRA_ENV_VARS="$EXTRA_ENV_VARS Otel__Endpoint=$OTEL_ENDPOINT Otel__Headers=$OTEL_HEADERS"
+          fi
           if [ -n "$WA_PHONE" ]; then
             EXTRA_ENV_VARS="WhatsApp__PhoneNumberId=secretref:whatsapp-phone-number-id WhatsApp__AccessToken=secretref:whatsapp-access-token WhatsApp__AppSecret=secretref:whatsapp-app-secret WhatsApp__VerifyToken=secretref:whatsapp-verify-token WhatsApp__WabaId=secretref:whatsapp-waba-id"
           fi

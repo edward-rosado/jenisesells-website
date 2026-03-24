@@ -49,6 +49,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddStructuredLogging();
 builder.AddObservability();
 
+// Observability validation — fail fast if OTel exports to localhost in production
+var otelEndpoint = builder.Configuration["Otel:Endpoint"] ?? "";
+if (!builder.Environment.IsDevelopment() && !args.Contains("--export-openapi")
+    && (otelEndpoint.Contains("localhost") || otelEndpoint.Contains("127.0.0.1")))
+{
+    throw new InvalidOperationException(
+        $"Otel:Endpoint is '{otelEndpoint}' — telemetry would be lost in production. " +
+        "Set OTEL_EXPORTER_OTLP_ENDPOINT secret in GitHub Actions to point to Grafana Cloud.");
+}
+
 // Agent config — Docker image uses /app/config/accounts, local dev uses relative path to repo root
 var dockerConfigPath = Path.Combine(builder.Environment.ContentRootPath, "config", "accounts");
 var localConfigPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "accounts");
@@ -220,6 +230,24 @@ builder.Services.AddHostedService<TrialExpiryService>();
 builder.Services.AddSingleton<IGwsService, GwsCliRunner>();
 
 // --- Lead Feature Services ---
+
+// Platform document store — Azure Blob Storage (durable, no OAuth/CLI required).
+// Provides the Platform tier for FanOutStorageProvider — replaces IGwsService for document operations.
+// When AzureStorage:ConnectionString is absent (local dev), the singleton is not registered.
+// FanOutStorageProvider factories should check for this service and fall back to a local stub as needed.
+var blobConnStr = builder.Configuration["AzureStorage:ConnectionString"];
+if (!string.IsNullOrEmpty(blobConnStr))
+{
+    builder.Services.AddSingleton<AzureBlobDocumentStore>(sp =>
+    {
+        var container = new Azure.Storage.Blobs.BlobContainerClient(blobConnStr, "lead-documents");
+        return new AzureBlobDocumentStore(container, sp.GetRequiredService<ILogger<AzureBlobDocumentStore>>());
+    });
+}
+else
+{
+    Log.Warning("[STARTUP-080] AzureStorage:ConnectionString not configured — AzureBlobDocumentStore (Platform tier) is disabled");
+}
 
 // Storage provider — local by default, GDrive requires per-request agentEmail (scoped)
 // GDriveStorageProvider needs agentEmail from route, so it's resolved per-request via endpoint logic.
