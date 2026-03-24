@@ -84,13 +84,13 @@ public class MultiChannelLeadNotifierTests
     private static MultiChannelLeadNotifier CreateSut(
         IHttpClientFactory? httpFactory = null,
         IGmailSender? gmailSender = null,
-        IFileStorageProvider? fanOutStorage = null,
+        IDocumentStorageProvider? fanOutStorage = null,
         IAccountConfigService? configService = null,
         ILogger<MultiChannelLeadNotifier>? logger = null) =>
         new(
             httpFactory ?? new Mock<IHttpClientFactory>().Object,
             gmailSender ?? new Mock<IGmailSender>().Object,
-            fanOutStorage ?? new Mock<IFileStorageProvider>().Object,
+            fanOutStorage ?? new Mock<IDocumentStorageProvider>().Object,
             configService ?? new Mock<IAccountConfigService>().Object,
             logger ?? new Mock<ILogger<MultiChannelLeadNotifier>>().Object);
 

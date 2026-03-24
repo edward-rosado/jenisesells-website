@@ -7,7 +7,7 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.DataServices.Leads;
 
-public class LeadFileStore(IFileStorageProvider storage, ILogger<LeadFileStore> logger) : ILeadStore
+public class LeadFileStore(IDocumentStorageProvider storage, ILogger<LeadFileStore> logger) : ILeadStore
 {
     private const string LeadProfileFile = "Lead Profile.md";
     private const string ResearchInsightsFile = "Research & Insights.md";

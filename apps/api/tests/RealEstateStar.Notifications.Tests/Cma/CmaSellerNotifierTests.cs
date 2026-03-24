@@ -70,11 +70,11 @@ public class CmaSellerNotifierTests : IDisposable
         }
     };
 
-    private (CmaSellerNotifier sut, Mock<IGmailSender> gmailSender, Mock<IFileStorageProvider> fanOutStorage)
+    private (CmaSellerNotifier sut, Mock<IGmailSender> gmailSender, Mock<IDocumentStorageProvider> fanOutStorage)
         BuildSut(Mock<IAccountConfigService>? configService = null, ILogger<CmaSellerNotifier>? logger = null)
     {
         var gmailSender = new Mock<IGmailSender>();
-        var fanOutStorage = new Mock<IFileStorageProvider>();
+        var fanOutStorage = new Mock<IDocumentStorageProvider>();
         configService ??= new Mock<IAccountConfigService>();
         var sut = new CmaSellerNotifier(
             gmailSender.Object,

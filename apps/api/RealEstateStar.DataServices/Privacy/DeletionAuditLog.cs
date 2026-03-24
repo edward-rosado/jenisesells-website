@@ -5,7 +5,7 @@ namespace RealEstateStar.DataServices.Privacy;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
-public sealed class DeletionAuditLog(IFileStorageProvider storage, ILogger<DeletionAuditLog> logger) : IDeletionAuditLog
+public sealed class DeletionAuditLog(ISheetStorageProvider storage, ILogger<DeletionAuditLog> logger) : IDeletionAuditLog
 {
     public Task RecordInitiationAsync(string agentId, Guid leadId, string email, CancellationToken ct)
     {

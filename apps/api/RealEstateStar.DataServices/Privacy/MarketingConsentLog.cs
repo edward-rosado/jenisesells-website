@@ -9,7 +9,7 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 namespace RealEstateStar.DataServices.Privacy;
 
 public class MarketingConsentLog(
-    IFileStorageProvider fileStorageProvider,
+    ISheetStorageProvider fileStorageProvider,
     IOptions<ConsentHmacOptions> hmacOptions,
     ILogger<MarketingConsentLog> logger) : IMarketingConsentLog
 {

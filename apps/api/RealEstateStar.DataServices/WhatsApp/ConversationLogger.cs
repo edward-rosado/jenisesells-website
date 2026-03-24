@@ -5,7 +5,7 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 namespace RealEstateStar.DataServices.WhatsApp;
 
 public class ConversationLogger(
-    IFileStorageProvider storage,
+    IDocumentStorageProvider storage,
     ILogger<ConversationLogger> logger) : IConversationLogger
 {
     private const string FileName = "conversation.md";

@@ -221,6 +221,58 @@ internal sealed class GDriveApiClient(
         }
     }
 
+    public async Task DeleteFileByNameAsync(
+        string accountId,
+        string agentId,
+        string folderId,
+        string fileName,
+        CancellationToken ct)
+    {
+        var service = await BuildServiceAsync(accountId, agentId, ct);
+        if (service is null)
+            return;
+
+        var sw = Stopwatch.GetTimestamp();
+        using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.delete_by_name");
+        activity?.SetTag("gdrive.account_id", accountId);
+
+        try
+        {
+            GDriveDiagnostics.Operations.Add(1);
+
+            var listRequest = service.Files.List();
+            listRequest.Q = $"name = '{EscapeQuery(fileName)}' and '{EscapeQuery(folderId)}' in parents and trashed = false";
+            listRequest.Fields = "files(id)";
+            var listResult = await listRequest.ExecuteAsync(ct);
+
+            var fileId = listResult.Files?.FirstOrDefault()?.Id;
+            if (fileId is null)
+            {
+                logger.LogDebug(
+                    "[GDRIVE-007] File not found for delete by name. Account: {AccountId}, Agent: {AgentId}, Folder: {FolderId}, File: {FileName}",
+                    accountId, agentId, folderId, fileName);
+                return;
+            }
+
+            await service.Files.Delete(fileId).ExecuteAsync(ct);
+
+            var durationMs = Stopwatch.GetElapsedTime(sw).TotalMilliseconds;
+            GDriveDiagnostics.Duration.Record(durationMs);
+
+            logger.LogInformation(
+                "[GDRIVE-008] File deleted by name for account {AccountId}, agent {AgentId}. FileId: {FileId}, Duration: {Duration}ms",
+                accountId, agentId, fileId, durationMs);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            GDriveDiagnostics.Failed.Add(1);
+            logger.LogError(ex,
+                "[GDRIVE-037] DeleteFileByName failed for account {AccountId}, agent {AgentId}",
+                accountId, agentId);
+            throw;
+        }
+    }
+
     public async Task<List<string>> ListFilesAsync(
         string accountId,
         string agentId,
