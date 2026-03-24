@@ -479,8 +479,8 @@ builder.Services.AddCors(options =>
                     if (originUri.Host.EndsWith(".real-estate-star.com", StringComparison.OrdinalIgnoreCase))
                         return true;
 
-                    // Allow Cloudflare Pages preview deploys (*.pages.dev)
-                    if (originUri.Host.EndsWith(".real-estate-star-agents.pages.dev", StringComparison.OrdinalIgnoreCase))
+                    // Allow Cloudflare Workers preview deploys (*.workers.dev)
+                    if (originUri.Host.EndsWith(".workers.dev", StringComparison.OrdinalIgnoreCase))
                         return true;
                 }
 
