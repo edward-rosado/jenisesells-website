@@ -1,25 +1,23 @@
 using RealEstateStar.Domain.Onboarding;
 using RealEstateStar.Domain.Onboarding.Interfaces;
 using RealEstateStar.Domain.Onboarding.Models;
-using RealEstateStar.Domain.Shared;
-using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.DataServices.Onboarding;
 
 public partial class ProfileScraperService(
     IHttpClientFactory httpClientFactory,
-    string apiKey,
+    IAnthropicClient anthropicClient,
     string? scraperApiKey,
     IDnsResolver dnsResolver,
     ILogger<ProfileScraperService> logger) : IProfileScraperService
 {
-    private const string ApiUrl = "https://api.anthropic.com/v1/messages";
     private const string Model = "claude-haiku-4-5-20251001";
     private const int MaxTokens = 4096;
 
@@ -82,8 +80,6 @@ public partial class ProfileScraperService(
         - For bio, get the COMPLETE text, not a truncated version.
         - If the page is not a real estate agent profile, return {"error": "not_agent_profile"}.
         """;
-
-    // TODO: LOW-6 — Extract shared Anthropic API client into a common AnthropicClient service
 
     public async Task<ScrapedProfile?> ScrapeAsync(string url, CancellationToken ct)
     {
@@ -149,66 +145,13 @@ public partial class ProfileScraperService(
 
     private async Task<ScrapedProfile?> ExtractWithClaudeAsync(string pageText, CancellationToken ct)
     {
-        var httpClient = httpClientFactory.CreateClient(nameof(ProfileScraperService));
-        var requestBody = JsonSerializer.Serialize(new
-        {
-            model = Model,
-            max_tokens = MaxTokens,
-            system = ExtractionPrompt,
-            messages = new[]
-            {
-                new { role = "user", content = $"<page_text>\n{pageText}\n</page_text>" }
-            }
-        });
+        var userMessage = $"<page_text>\n{pageText}\n</page_text>";
+        var response = await anthropicClient.SendAsync(Model, ExtractionPrompt, userMessage, MaxTokens, "profile-scraper", ct);
 
-        var request = new HttpRequestMessage(HttpMethod.Post, ApiUrl)
-        {
-            Content = new StringContent(requestBody, Encoding.UTF8, "application/json")
-        };
-        request.Headers.Add("x-api-key", apiKey);
-        request.Headers.Add("anthropic-version", "2023-06-01");
+        OnboardingDiagnostics.LlmTokensInput.Add(response.InputTokens);
+        OnboardingDiagnostics.LlmTokensOutput.Add(response.OutputTokens);
 
-        var callStart = Stopwatch.GetTimestamp();
-        var response = await httpClient.SendAsync(request, ct);
-        var elapsedMs = Stopwatch.GetElapsedTime(callStart).TotalMilliseconds;
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorBody = await response.Content.ReadAsStringAsync(ct);
-            logger.LogError("[SCRAPE-010] Anthropic API returned {StatusCode} for profile extraction. Body: {ErrorBody}",
-                (int)response.StatusCode, errorBody);
-            throw new HttpRequestException(
-                $"[SCRAPE-010] Anthropic API returned {(int)response.StatusCode}: {errorBody}");
-        }
-
-        var responseJson = await response.Content.ReadAsStringAsync(ct);
-        var doc = JsonDocument.Parse(responseJson);
-        var content = doc.RootElement
-            .GetProperty("content")[0]
-            .GetProperty("text")
-            .GetString() ?? throw new InvalidOperationException("Empty response from Claude");
-
-        if (doc.RootElement.TryGetProperty("usage", out var usage))
-        {
-            var inputTokens = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
-            var outputTokens = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
-            ClaudeDiagnostics.RecordUsage("profile-scraper", Model, inputTokens, outputTokens, elapsedMs);
-            OnboardingDiagnostics.LlmTokensInput.Add(inputTokens);
-            OnboardingDiagnostics.LlmTokensOutput.Add(outputTokens);
-        }
-
-        // Claude sometimes wraps JSON in markdown code fences despite being told not to
-        var cleanContent = content.Trim();
-        if (cleanContent.StartsWith("```"))
-        {
-            var firstNewline = cleanContent.IndexOf('\n');
-            if (firstNewline >= 0)
-                cleanContent = cleanContent[(firstNewline + 1)..];
-            if (cleanContent.EndsWith("```"))
-                cleanContent = cleanContent[..^3];
-            cleanContent = cleanContent.Trim();
-        }
-
-        var extracted = JsonDocument.Parse(cleanContent);
+        var extracted = JsonDocument.Parse(response.Content);
         var root = extracted.RootElement;
 
         if (root.TryGetProperty("error", out _))

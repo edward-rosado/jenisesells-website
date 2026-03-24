@@ -1,5 +1,6 @@
 {
   "handle": "test-emerald",
+  "accountId": "test-emerald",
   "template": "emerald-classic",
   "branding": {
     "primary_color": "#1B5E20",
@@ -18,7 +19,7 @@
     "enabled": true,
     "id": "test-emerald",
     "name": "Patricia Collins",
-    "title": "REALTOR®",
+    "title": "REALTOR\u00c2\u00ae",
     "phone": "(732) 555-0303",
     "email": "patricia@evergreenhomes.com",
     "headshot_url": "/agents/test-emerald/headshot.jpg",

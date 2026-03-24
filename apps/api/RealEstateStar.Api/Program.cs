@@ -13,6 +13,7 @@ using RealEstateStar.DataServices.Config;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.DataServices.Storage;
 using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.DataServices.WhatsApp;
 using RealEstateStar.Domain.Notifications.Interfaces;
@@ -32,6 +33,13 @@ using RealEstateStar.Workers.HomeSearch;
 using RealEstateStar.Workers.Leads;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.WhatsApp;
+using RealEstateStar.Clients.Anthropic;
+using RealEstateStar.Clients.Azure;
+using RealEstateStar.Clients.GDocs;
+using RealEstateStar.Clients.GDrive;
+using RealEstateStar.Clients.GSheets;
+using RealEstateStar.Clients.Gmail;
+using RealEstateStar.Clients.GoogleOAuth;
 using RealEstateStar.Clients.Gws;
 using RealEstateStar.Clients.Scraper;
 using RealEstateStar.Clients.WhatsApp;
@@ -65,7 +73,14 @@ builder.Services.AddSingleton<IAccountConfigService>(sp =>
 var dpBuilder = builder.Services.AddDataProtection()
     .SetApplicationName("RealEstateStar");
 
-if (!builder.Environment.IsDevelopment())
+if (builder.Environment.IsDevelopment())
+{
+    // Persist DPAPI keys in dev so encrypted tokens survive restarts.
+    // Without this, keys are ephemeral and tokens become undecryptable on restart.
+    dpBuilder.PersistKeysToFileSystem(new DirectoryInfo(
+        Path.Combine(builder.Environment.ContentRootPath, ".dpapi-keys")));
+}
+else
 {
     var kvUri = builder.Configuration["AzureKeyVault:VaultUri"];
     var blobUri = builder.Configuration["DataProtection:BlobUri"];
@@ -146,18 +161,27 @@ if (string.IsNullOrEmpty(scraperApiKey))
 var pollyLoggerFactory = LoggerFactory.Create(lb => lb.AddSerilog(Log.Logger));
 var pollyLogger = pollyLoggerFactory.CreateLogger("Polly");
 
+// Shared Anthropic client — all Claude callers use this singleton via IAnthropicClient
+builder.Services.AddHttpClient("Anthropic")
+    .AddClaudeApiResilience(pollyLogger);
+builder.Services.AddSingleton<IAnthropicClient>(sp =>
+    new AnthropicClient(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        anthropicKey,
+        sp.GetRequiredService<ILogger<AnthropicClient>>()));
+
 builder.Services.AddHttpClient(nameof(ProfileScraperService))
-    .AddClaudeApiResilience(pollyLogger)
     .AddScraperApiResilience(pollyLogger);
 builder.Services.AddSingleton<IDnsResolver, SystemDnsResolver>();
 builder.Services.AddSingleton<IProfileScraperService>(sp =>
     new ProfileScraperService(
         sp.GetRequiredService<IHttpClientFactory>(),
-        anthropicKey,
+        sp.GetRequiredService<IAnthropicClient>(),
         scraperApiKey,
         sp.GetRequiredService<IDnsResolver>(),
         sp.GetRequiredService<ILogger<ProfileScraperService>>()));
-builder.Services.AddHttpClient(nameof(GoogleOAuthService));
+builder.Services.AddHttpClient(nameof(GoogleOAuthService))
+    .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddSingleton(sp =>
     new GoogleOAuthService(
         sp.GetRequiredService<IHttpClientFactory>(),
@@ -266,6 +290,48 @@ builder.Services.AddSingleton<ConsentTokenStore>(sp =>
     return new ConsentTokenStore(tableClient, sp.GetRequiredService<ILogger<ConsentTokenStore>>());
 });
 
+// OAuth token store (Azure Table; null fallback when not configured — skips persist in local dev)
+builder.Services.AddSingleton<ITokenStore>(sp =>
+{
+    var connStr = builder.Configuration["AzureStorage:ConnectionString"];
+    if (string.IsNullOrEmpty(connStr))
+    {
+        if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName != "OpenApiExport")
+            throw new InvalidOperationException("AzureStorage:ConnectionString is required for OAuth token persistence in non-development environments.");
+
+        Log.Warning("[STARTUP-070] AzureStorage:ConnectionString not configured — ITokenStore using NullTokenStore (no OAuth token persistence)");
+        return new NullTokenStore();
+    }
+
+    var tableClient = new Azure.Data.Tables.TableClient(connStr, "oauthtokens");
+    return new AzureTableTokenStore(
+        tableClient,
+        sp.GetRequiredService<IDataProtectionProvider>(),
+        sp.GetRequiredService<ILogger<AzureTableTokenStore>>());
+});
+
+// Gmail API client — IGmailSender backed by GmailApiClient (needs IOAuthRefresher)
+builder.Services.AddHttpClient("GoogleOAuth", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+builder.Services.AddSingleton<IOAuthRefresher>(sp =>
+{
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("GoogleOAuth");
+    return new GoogleOAuthRefresher(
+        sp.GetRequiredService<ITokenStore>(),
+        googleClientId,
+        googleClientSecret,
+        httpClient,
+        sp.GetRequiredService<ILogger<GoogleOAuthRefresher>>());
+});
+builder.Services.AddGmailSender(googleClientId, googleClientSecret);
+
+// Google Drive, Docs, Sheets API clients — all backed by IOAuthRefresher
+builder.Services.AddGDriveClient(googleClientId, googleClientSecret);
+builder.Services.AddGDocsClient(googleClientId, googleClientSecret);
+builder.Services.AddGSheetsClient(googleClientId, googleClientSecret);
+
 // Scraper client — centralized with OTel, circuit breaker, rate limiting
 builder.Services.Configure<ScraperOptions>(builder.Configuration.GetSection("Scraper"));
 builder.Services.AddSingleton<IScraperClient, ScraperClient>();
@@ -286,33 +352,23 @@ var homeSearchSources = builder.Configuration.GetSection("Pipeline:HomeSearch:So
 var cmaSources = builder.Configuration.GetSection("Pipeline:Cma:Sources")
     .Get<Dictionary<string, string>>() ?? new();
 
-// Lead enrichment — typed HttpClient with Polly resilience
-builder.Services.AddHttpClient(nameof(ScraperLeadEnricher))
-    .AddClaudeApiResilience(pollyLogger);
+// Lead enrichment
 builder.Services.AddSingleton<ILeadEnricher>(sp =>
-{
-    var factory = sp.GetRequiredService<IHttpClientFactory>();
-    var scraperClient = sp.GetRequiredService<IScraperClient>();
-    var enricherLogger = sp.GetRequiredService<ILogger<ScraperLeadEnricher>>();
-    return new ScraperLeadEnricher(factory, anthropicKey, scraperClient, leadSources, enricherLogger);
-});
+    new ScraperLeadEnricher(
+        sp.GetRequiredService<IAnthropicClient>(),
+        sp.GetRequiredService<IScraperClient>(),
+        leadSources,
+        sp.GetRequiredService<ILogger<ScraperLeadEnricher>>()));
 
-// Home search — scraper-based (uses both nameof and "ScraperAPI" named clients)
-builder.Services.AddHttpClient(nameof(ScraperHomeSearchProvider))
-    .AddClaudeApiResilience(pollyLogger);
+// Home search
 builder.Services.AddSingleton<IHomeSearchProvider>(sp =>
     new ScraperHomeSearchProvider(
-        sp.GetRequiredService<IHttpClientFactory>(),
+        sp.GetRequiredService<IAnthropicClient>(),
         sp.GetRequiredService<IScraperClient>(),
-        anthropicKey,
         homeSearchSources,
         sp.GetRequiredService<ILogger<ScraperHomeSearchProvider>>()));
 
 // CMA pipeline services
-builder.Services.AddHttpClient(nameof(ScraperCompSource))
-    .AddClaudeApiResilience(pollyLogger);
-builder.Services.AddHttpClient(nameof(ClaudeCmaAnalyzer))
-    .AddClaudeApiResilience(pollyLogger);
 builder.Services.AddSingleton<ICompAggregator>(sp =>
     new CompAggregator(
         sp.GetServices<ICompSource>(),
@@ -326,16 +382,14 @@ foreach (var (sourceName, urlPattern) in cmaSources)
     }
     builder.Services.AddSingleton<ICompSource>(sp =>
         new ScraperCompSource(
-            sp.GetRequiredService<IHttpClientFactory>(),
+            sp.GetRequiredService<IAnthropicClient>(),
             sp.GetRequiredService<IScraperClient>(),
-            anthropicKey,
             source, urlPattern,
             sp.GetRequiredService<ILogger<ScraperCompSource>>()));
 }
 builder.Services.AddSingleton<ICmaAnalyzer>(sp =>
     new ClaudeCmaAnalyzer(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        anthropicKey,
+        sp.GetRequiredService<IAnthropicClient>(),
         sp.GetRequiredService<ILogger<ClaudeCmaAnalyzer>>()));
 builder.Services.AddSingleton<ICmaPdfGenerator, CmaPdfGenerator>();
 builder.Services.AddSingleton<ICmaNotifier, CmaSellerNotifier>();
@@ -665,6 +719,9 @@ app.MapOpenApi();
 
 // --- All Endpoints ---
 app.MapEndpoints();
+
+// Agent transfer — placeholder until inter-agent handoff is implemented
+app.MapPost("/internal/agents/{agentId}/transfer", () => Results.StatusCode(501));
 
 // CLI: dotnet run -- --export-openapi [path]
 // Starts the server briefly, fetches the OpenAPI spec, writes to file, and exits.

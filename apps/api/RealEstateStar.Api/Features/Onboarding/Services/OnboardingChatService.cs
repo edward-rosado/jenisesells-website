@@ -12,7 +12,6 @@ using RealEstateStar.Domain.Shared;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 
-// TODO: LOW-6 — Extract shared Anthropic API client into a common AnthropicClient service
 public class OnboardingChatService(
     IHttpClientFactory httpClientFactory,
     string apiKey,
@@ -513,7 +512,7 @@ public class OnboardingChatService(
         if (session.GoogleTokens is not null)
         {
             sb.AppendLine();
-            sb.AppendLine($"Google connected: {session.GoogleTokens.GoogleName} ({session.GoogleTokens.GoogleEmail})");
+            sb.AppendLine($"Google connected: {session.GoogleTokens.Name} ({session.GoogleTokens.Email})");
         }
 
         if (session.SiteUrl is not null)

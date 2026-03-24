@@ -1,5 +1,6 @@
 {
   "handle": "test-new-beginnings",
+  "accountId": "test-new-beginnings",
   "template": "new-beginnings",
   "branding": {
     "primary_color": "#2d4a3e",

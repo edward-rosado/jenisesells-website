@@ -44,6 +44,8 @@
     <ProjectReference Include="..\RealEstateStar.Clients.WhatsApp\RealEstateStar.Clients.WhatsApp.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients.GDrive\RealEstateStar.Clients.GDrive.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients.Gmail\RealEstateStar.Clients.Gmail.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Clients.GDocs\RealEstateStar.Clients.GDocs.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Clients.GSheets\RealEstateStar.Clients.GSheets.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients.GoogleOAuth\RealEstateStar.Clients.GoogleOAuth.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients.Stripe\RealEstateStar.Clients.Stripe.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients.Cloudflare\RealEstateStar.Clients.Cloudflare.csproj" />

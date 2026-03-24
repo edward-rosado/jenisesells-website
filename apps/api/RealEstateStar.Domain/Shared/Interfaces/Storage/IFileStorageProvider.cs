@@ -1,3 +1,6 @@
+// TODO: Consider splitting into IDocumentStorageProvider and ISheetStorageProvider
+// to respect Interface Segregation. Document methods fan out differently from sheet methods.
+
 namespace RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 public interface IFileStorageProvider

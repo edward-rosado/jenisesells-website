@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 
@@ -37,7 +38,7 @@ public class GoogleOAuthService(
         return (url, nonce);
     }
 
-    public virtual async Task<GoogleTokens> ExchangeCodeAsync(string code, CancellationToken ct)
+    public virtual async Task<OAuthCredential> ExchangeCodeAsync(string code, CancellationToken ct)
     {
         var httpClient = httpClientFactory.CreateClient(nameof(GoogleOAuthService));
         var tokenRequest = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -79,18 +80,18 @@ public class GoogleOAuthService(
 
         logger.LogInformation("[OAUTH-012] Google OAuth completed for user");
 
-        return new GoogleTokens
+        return new OAuthCredential
         {
             AccessToken = accessToken,
             RefreshToken = refreshToken,
             ExpiresAt = DateTime.UtcNow.AddSeconds(expiresIn),
             Scopes = Scopes,
-            GoogleEmail = email,
-            GoogleName = name,
+            Email = email,
+            Name = name,
         };
     }
 
-    public virtual async Task RefreshAccessTokenAsync(GoogleTokens tokens, CancellationToken ct)
+    public virtual async Task<OAuthCredential> RefreshAccessTokenAsync(OAuthCredential tokens, CancellationToken ct)
     {
         var httpClient = httpClientFactory.CreateClient(nameof(GoogleOAuthService));
         var refreshRequest = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -113,10 +114,15 @@ public class GoogleOAuthService(
         var json = await response.Content.ReadAsStringAsync(ct);
         var data = JsonDocument.Parse(json).RootElement;
 
-        tokens.AccessToken = data.GetProperty("access_token").GetString()!;
-        tokens.ExpiresAt = DateTime.UtcNow.AddSeconds(data.GetProperty("expires_in").GetInt32());
+        var refreshed = tokens with
+        {
+            AccessToken = data.GetProperty("access_token").GetString()!,
+            ExpiresAt = DateTime.UtcNow.AddSeconds(data.GetProperty("expires_in").GetInt32()),
+        };
 
-        logger.LogInformation("Refreshed Google access token for {EmailHash}", HashEmail(tokens.GoogleEmail));
+        logger.LogInformation("Refreshed Google access token for {EmailHash}", HashEmail(refreshed.Email));
+
+        return refreshed;
     }
 
     internal static string HashEmail(string? email)

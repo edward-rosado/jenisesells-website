@@ -1,5 +1,6 @@
 {
   "handle": "test-warm",
+  "accountId": "test-warm",
   "template": "warm-community",
   "branding": {
     "primary_color": "#5D1A1A",
@@ -18,7 +19,7 @@
     "enabled": true,
     "id": "test-warm",
     "name": "Maria Santiago",
-    "title": "REALTOR®",
+    "title": "REALTOR\u00c2\u00ae",
     "phone": "(512) 555-0202",
     "email": "maria@hillcountryrealty.com",
     "headshot_url": "/agents/test-warm/headshot.jpg",
@@ -27,7 +28,7 @@
       "English",
       "Spanish"
     ],
-    "tagline": "Your Neighbor. Your REALTOR®."
+    "tagline": "Your Neighbor. Your REALTOR\u00c2\u00ae."
   },
   "location": {
     "state": "TX",

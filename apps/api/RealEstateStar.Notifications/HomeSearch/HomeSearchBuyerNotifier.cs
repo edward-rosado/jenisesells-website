@@ -4,7 +4,8 @@ using Microsoft.Extensions.Logging;
 namespace RealEstateStar.Notifications.HomeSearch;
 
 public class HomeSearchBuyerNotifier(
-    IGwsService gwsService,
+    IGmailSender gmailSender,
+    IFileStorageProvider fanOutStorage,
     IAccountConfigService accountConfigService,
     ILogger<HomeSearchBuyerNotifier> logger) : IHomeSearchNotifier
 {
@@ -16,7 +17,7 @@ public class HomeSearchBuyerNotifier(
         CancellationToken ct)
     {
         var agent = await accountConfigService.GetAccountAsync(agentId, ct);
-        var agentEmail = agent?.Agent?.Email ?? "";
+        var accountId = NotificationHelpers.ResolveAccountId(agent, agentId);
         var agentName = agent?.Agent?.Name ?? agentId;
 
         var subject = $"Your Personalized Home Search Results \u2013 {lead.BuyerDetails?.City}, {lead.BuyerDetails?.State}";
@@ -26,11 +27,11 @@ public class HomeSearchBuyerNotifier(
         var emailSw = Stopwatch.GetTimestamp();
         logger.LogInformation(
             "[HS-NOTIFY-001] Sending home search email to {RecipientHash} for lead {LeadId}, agent {AgentId}. CorrelationId: {CorrelationId}",
-            HashEmail(lead.Email), lead.Id, agentId, correlationId);
+            NotificationHelpers.HashEmail(lead.Email), lead.Id, agentId, correlationId);
 
         try
         {
-            await gwsService.SendEmailAsync(agentEmail, lead.Email, subject, body, null, ct);
+            await gmailSender.SendAsync(accountId, agentId, lead.Email, subject, body, ct);
             HomeSearchDiagnostics.EmailDuration.Record(Stopwatch.GetElapsedTime(emailSw).TotalMilliseconds);
 
             logger.LogInformation(
@@ -46,19 +47,19 @@ public class HomeSearchBuyerNotifier(
             throw;
         }
 
-        // Step 2: Store listings in Drive — failure is non-fatal
+        // Step 2: Store listings via fan-out storage — failure is non-fatal
         var driveSw = Stopwatch.GetTimestamp();
         var folder = $"{LeadPaths.LeadFolder(lead.FullName)}/Home Search";
-        var fileName = $"{DateTime.UtcNow:yyyy-MM-dd}-Home Search Results";
+        var fileName = $"{DateTime.UtcNow:yyyy-MM-dd}-Home Search Results.md";
         var content = HomeSearchMarkdownRenderer.RenderListings(lead, listings, agentName);
 
         logger.LogInformation(
-            "[HS-NOTIFY-003] Storing in Drive for lead {LeadId}. Folder: {Folder}. CorrelationId: {CorrelationId}",
+            "[HS-NOTIFY-003] Storing in fan-out storage for lead {LeadId}. Folder: {Folder}. CorrelationId: {CorrelationId}",
             lead.Id, folder, correlationId);
 
         try
         {
-            await gwsService.CreateDocAsync(agentEmail, folder, fileName, content, ct);
+            await fanOutStorage.WriteDocumentAsync(folder, fileName, content, ct);
             HomeSearchDiagnostics.DriveDuration.Record(Stopwatch.GetElapsedTime(driveSw).TotalMilliseconds);
 
             logger.LogInformation(
@@ -69,15 +70,9 @@ public class HomeSearchBuyerNotifier(
         {
             HomeSearchDiagnostics.DriveDuration.Record(Stopwatch.GetElapsedTime(driveSw).TotalMilliseconds);
             logger.LogError(ex,
-                "[HS-NOTIFY-006] Drive storage failed for lead {LeadId}, agent {AgentId}. CorrelationId: {CorrelationId}",
+                "[HS-NOTIFY-006] Fan-out storage failed for lead {LeadId}, agent {AgentId}. CorrelationId: {CorrelationId}",
                 lead.Id, agentId, correlationId);
         }
     }
 
-    private static string HashEmail(string email)
-    {
-        var bytes = System.Security.Cryptography.SHA256.HashData(
-            System.Text.Encoding.UTF8.GetBytes(email.Trim().ToLowerInvariant()));
-        return Convert.ToHexString(bytes)[..12].ToLowerInvariant();
-    }
 }

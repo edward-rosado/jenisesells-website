@@ -6,8 +6,16 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="RealEstateStar.Clients.GoogleOAuth.Tests" />
+    <InternalsVisibleTo Include="RealEstateStar.Clients.Gmail" />
+    <InternalsVisibleTo Include="RealEstateStar.Clients.GDrive" />
+    <InternalsVisibleTo Include="RealEstateStar.Clients.GDocs" />
+    <InternalsVisibleTo Include="RealEstateStar.Clients.GSheets" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
   </ItemGroup>
 </Project>

@@ -1,6 +1,4 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using Moq;
 
 namespace RealEstateStar.Notifications.Tests.Leads;
 
@@ -81,6 +79,21 @@ public class MultiChannelLeadNotifierTests
         }
     };
 
+    // ─── Shared factory helper ─────────────────────────────────────────────────
+
+    private static MultiChannelLeadNotifier CreateSut(
+        IHttpClientFactory? httpFactory = null,
+        IGmailSender? gmailSender = null,
+        IFileStorageProvider? fanOutStorage = null,
+        IAccountConfigService? configService = null,
+        ILogger<MultiChannelLeadNotifier>? logger = null) =>
+        new(
+            httpFactory ?? new Mock<IHttpClientFactory>().Object,
+            gmailSender ?? new Mock<IGmailSender>().Object,
+            fanOutStorage ?? new Mock<IFileStorageProvider>().Object,
+            configService ?? new Mock<IAccountConfigService>().Object,
+            logger ?? new Mock<ILogger<MultiChannelLeadNotifier>>().Object);
+
     // ─── Tests ────────────────────────────────────────────────────────────────
 
     [Fact]
@@ -91,13 +104,11 @@ public class MultiChannelLeadNotifierTests
         var httpFactory = new Mock<IHttpClientFactory>();
         httpFactory.Setup(f => f.CreateClient("GoogleChat")).Returns(httpClient);
 
-        var gwsService = new Mock<IGwsService>();
         var configService = new Mock<IAccountConfigService>();
         configService.Setup(c => c.GetAccountAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeConfig(chatWebhookUrl: "https://chat.googleapis.com/webhook/test"));
 
-        var sut = new MultiChannelLeadNotifier(httpFactory.Object, gwsService.Object, configService.Object,
-            new Mock<ILogger<MultiChannelLeadNotifier>>().Object);
+        var sut = CreateSut(httpFactory: httpFactory.Object, configService: configService.Object);
 
         await sut.NotifyAgentAsync("jenise-buckalew", MakeLead(), MakeEnrichment(), MakeScore(), CancellationToken.None);
 
@@ -113,13 +124,11 @@ public class MultiChannelLeadNotifierTests
         var httpFactory = new Mock<IHttpClientFactory>();
         httpFactory.Setup(f => f.CreateClient("GoogleChat")).Returns(httpClient);
 
-        var gwsService = new Mock<IGwsService>();
         var configService = new Mock<IAccountConfigService>();
         configService.Setup(c => c.GetAccountAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeConfig(chatWebhookUrl: null));
 
-        var sut = new MultiChannelLeadNotifier(httpFactory.Object, gwsService.Object, configService.Object,
-            new Mock<ILogger<MultiChannelLeadNotifier>>().Object);
+        var sut = CreateSut(httpFactory: httpFactory.Object, configService: configService.Object);
 
         await sut.NotifyAgentAsync("jenise-buckalew", MakeLead(), MakeEnrichment(), MakeScore(), CancellationToken.None);
 
@@ -129,23 +138,21 @@ public class MultiChannelLeadNotifierTests
     [Fact]
     public async Task NotifyAgentAsync_AlwaysSendsEmail()
     {
-        var httpFactory = new Mock<IHttpClientFactory>();
-        var gwsService = new Mock<IGwsService>();
+        var gmailSender = new Mock<IGmailSender>();
         var configService = new Mock<IAccountConfigService>();
         configService.Setup(c => c.GetAccountAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeConfig());
 
-        var sut = new MultiChannelLeadNotifier(httpFactory.Object, gwsService.Object, configService.Object,
-            new Mock<ILogger<MultiChannelLeadNotifier>>().Object);
+        var sut = CreateSut(gmailSender: gmailSender.Object, configService: configService.Object);
 
         await sut.NotifyAgentAsync("jenise-buckalew", MakeLead(), MakeEnrichment(), MakeScore(), CancellationToken.None);
 
-        gwsService.Verify(g => g.SendEmailAsync(
+        gmailSender.Verify(g => g.SendAsync(
             It.IsAny<string>(),
             It.IsAny<string>(),
             It.IsAny<string>(),
             It.IsAny<string>(),
-            null,
+            It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -160,13 +167,17 @@ public class MultiChannelLeadNotifierTests
         var httpFactory = new Mock<IHttpClientFactory>();
         httpFactory.Setup(f => f.CreateClient("GoogleChat")).Returns(httpClient);
 
-        var gwsService = new Mock<IGwsService>();
+        var gmailSender = new Mock<IGmailSender>();
         var configService = new Mock<IAccountConfigService>();
         configService.Setup(c => c.GetAccountAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeConfig(chatWebhookUrl: "https://chat.googleapis.com/webhook/test"));
 
         var logger = new Mock<ILogger<MultiChannelLeadNotifier>>();
-        var sut = new MultiChannelLeadNotifier(httpFactory.Object, gwsService.Object, configService.Object, logger.Object);
+        var sut = CreateSut(
+            httpFactory: httpFactory.Object,
+            gmailSender: gmailSender.Object,
+            configService: configService.Object,
+            logger: logger.Object);
 
         // Should NOT throw — email still succeeds
         var act = async () => await sut.NotifyAgentAsync("jenise-buckalew", MakeLead(), MakeEnrichment(), MakeScore(), CancellationToken.None);
@@ -181,19 +192,18 @@ public class MultiChannelLeadNotifierTests
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
 
         // Should still send email
-        gwsService.Verify(g => g.SendEmailAsync(
+        gmailSender.Verify(g => g.SendAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-            null, It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task NotifyAgentAsync_WhenAllChannelsFail_Throws()
     {
-        var httpFactory = new Mock<IHttpClientFactory>();
-        var gwsService = new Mock<IGwsService>();
-        gwsService.Setup(g => g.SendEmailAsync(
+        var gmailSender = new Mock<IGmailSender>();
+        gmailSender.Setup(g => g.SendAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                null, It.IsAny<CancellationToken>()))
+                It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("email send failed"));
 
         var configService = new Mock<IAccountConfigService>();
@@ -201,7 +211,10 @@ public class MultiChannelLeadNotifierTests
             .ReturnsAsync(MakeConfig());
 
         var logger = new Mock<ILogger<MultiChannelLeadNotifier>>();
-        var sut = new MultiChannelLeadNotifier(httpFactory.Object, gwsService.Object, configService.Object, logger.Object);
+        var sut = CreateSut(
+            gmailSender: gmailSender.Object,
+            configService: configService.Object,
+            logger: logger.Object);
 
         // No chat webhook + email fails = ALL channels fail → should throw
         var act = async () => await sut.NotifyAgentAsync("jenise-buckalew", MakeLead(), MakeEnrichment(), MakeScore(), CancellationToken.None);
@@ -225,50 +238,44 @@ public class MultiChannelLeadNotifierTests
         var httpFactory = new Mock<IHttpClientFactory>();
         httpFactory.Setup(f => f.CreateClient("GoogleChat")).Returns(httpClient);
 
-        var gwsService = new Mock<IGwsService>();
+        var gmailSender = new Mock<IGmailSender>();
         var configService = new Mock<IAccountConfigService>();
         configService.Setup(c => c.GetAccountAsync("jenise-buckalew", It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeConfig(chatWebhookUrl: "https://chat.googleapis.com/webhook/test"));
 
-        var sut = new MultiChannelLeadNotifier(httpFactory.Object, gwsService.Object, configService.Object,
-            new Mock<ILogger<MultiChannelLeadNotifier>>().Object);
+        var sut = CreateSut(
+            httpFactory: httpFactory.Object,
+            gmailSender: gmailSender.Object,
+            configService: configService.Object);
 
         await sut.NotifyAgentAsync("jenise-buckalew", MakeLead(), MakeEnrichment(), MakeScore(), CancellationToken.None);
 
         handler.Requests.Should().HaveCount(1);
-        gwsService.Verify(g => g.SendEmailAsync(
+        gmailSender.Verify(g => g.SendAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-            null, It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
-
-    // ─── Helper: create a notifier instance for testing pure formatting methods ──
-
-    private static MultiChannelLeadNotifier BuildSubject_CreateSut() =>
-        new(new Mock<IHttpClientFactory>().Object,
-            new Mock<IGwsService>().Object,
-            new Mock<IAccountConfigService>().Object,
-            new Mock<ILogger<MultiChannelLeadNotifier>>().Object);
 
     // ─── BuildSubject tests ───────────────────────────────────────────────────
 
     [Fact]
     public void BuildSubject_IncludesMotivationCategory()
     {
-        var subject = BuildSubject_CreateSut().BuildSubject(MakeLead(), MakeEnrichment(), MakeScore());
+        var subject = CreateSut().BuildSubject(MakeLead(), MakeEnrichment(), MakeScore());
         subject.Should().Contain("relocating");
     }
 
     [Fact]
     public void BuildSubject_IncludesScore()
     {
-        var subject = BuildSubject_CreateSut().BuildSubject(MakeLead(), MakeEnrichment(), MakeScore());
+        var subject = CreateSut().BuildSubject(MakeLead(), MakeEnrichment(), MakeScore());
         subject.Should().Contain("82");
     }
 
     [Fact]
     public void BuildSubject_IncludesLeadName()
     {
-        var subject = BuildSubject_CreateSut().BuildSubject(MakeLead(), MakeEnrichment(), MakeScore());
+        var subject = CreateSut().BuildSubject(MakeLead(), MakeEnrichment(), MakeScore());
         subject.Should().Contain("Jane Doe");
     }
 
@@ -277,7 +284,7 @@ public class MultiChannelLeadNotifierTests
     [Fact]
     public void BuildEmailBody_IncludesColdCallOpeners()
     {
-        var body = BuildSubject_CreateSut().BuildBody(MakeLead(), MakeEnrichment(), MakeScore());
+        var body = CreateSut().BuildBody(MakeLead(), MakeEnrichment(), MakeScore());
         body.Should().Contain("Cold Call Openers");
         body.Should().Contain("Congratulations on the new opportunity!");
     }
@@ -299,7 +306,7 @@ public class MultiChannelLeadNotifierTests
             Status = LeadStatus.Enriched,
             SellerDetails = new SellerDetails { Address = "123 Main St", City = "Springfield", State = "NJ", Zip = "07081" }
         };
-        var body = BuildSubject_CreateSut().BuildBody(lead, MakeEnrichment(), MakeScore());
+        var body = CreateSut().BuildBody(lead, MakeEnrichment(), MakeScore());
         body.Should().Contain("## Selling");
         body.Should().NotContain("## Buying");
     }
@@ -321,7 +328,7 @@ public class MultiChannelLeadNotifierTests
             Status = LeadStatus.Enriched,
             BuyerDetails = new BuyerDetails { City = "Kill Devil Hills", State = "NC" }
         };
-        var body = BuildSubject_CreateSut().BuildBody(lead, MakeEnrichment(), MakeScore());
+        var body = CreateSut().BuildBody(lead, MakeEnrichment(), MakeScore());
         body.Should().Contain("## Buying");
         body.Should().NotContain("## Selling");
     }
@@ -329,7 +336,7 @@ public class MultiChannelLeadNotifierTests
     [Fact]
     public void BuildEmailBody_IncludesEnrichmentSummary()
     {
-        var body = BuildSubject_CreateSut().BuildBody(MakeLead(), MakeEnrichment(), MakeScore());
+        var body = CreateSut().BuildBody(MakeLead(), MakeEnrichment(), MakeScore());
         body.Should().Contain("Enrichment Summary");
         body.Should().Contain("Relocating for a new job opportunity.");
     }
@@ -363,7 +370,7 @@ public class MultiChannelLeadNotifierTests
             }
         };
 
-        var body = BuildSubject_CreateSut().BuildBody(lead, MakeEnrichment(), MakeScore());
+        var body = CreateSut().BuildBody(lead, MakeEnrichment(), MakeScore());
 
         body.Should().Contain("Single Family");
         body.Should().Contain("Good");
@@ -399,7 +406,7 @@ public class MultiChannelLeadNotifierTests
             }
         };
 
-        var body = BuildSubject_CreateSut().BuildBody(lead, MakeEnrichment(), MakeScore());
+        var body = CreateSut().BuildBody(lead, MakeEnrichment(), MakeScore());
 
         body.Should().Contain("500,000");
         body.Should().Contain("3");        // bedrooms
@@ -413,7 +420,7 @@ public class MultiChannelLeadNotifierTests
     {
         var enrichment = MakeEnrichment() with { ColdCallOpeners = [] };
 
-        var body = BuildSubject_CreateSut().BuildBody(MakeLead(), enrichment, MakeScore());
+        var body = CreateSut().BuildBody(MakeLead(), enrichment, MakeScore());
 
         body.Should().NotContain("Cold Call Openers");
     }

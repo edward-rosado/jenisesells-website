@@ -1,23 +1,19 @@
-using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Workers.Leads;
 
 public class ScraperLeadEnricher(
-    IHttpClientFactory httpClientFactory,
-    string claudeApiKey,
+    IAnthropicClient anthropicClient,
     IScraperClient scraperClient,
     Dictionary<string, string> sourceUrls,
     ILogger<ScraperLeadEnricher> logger) : ILeadEnricher
 {
-    private const string ClaudeApiUrl = "https://api.anthropic.com/v1/messages";
     private const string ClaudeModel = "claude-sonnet-4-6";
     private const int MaxTokens = 4096;
 
@@ -175,75 +171,14 @@ public class ScraperLeadEnricher(
     private async Task<(LeadEnrichment Enrichment, LeadScore Score)> CallClaudeAsync(
         Lead lead, string xmlPayload, CancellationToken ct)
     {
-        var requestBody = JsonSerializer.Serialize(new
-        {
-            model = ClaudeModel,
-            max_tokens = MaxTokens,
-            system = SystemPrompt,
-            messages = new[]
-            {
-                new { role = "user", content = xmlPayload }
-            }
-        });
+        var response = await anthropicClient.SendAsync(ClaudeModel, SystemPrompt, xmlPayload, MaxTokens, "lead", ct);
 
-        var request = new HttpRequestMessage(HttpMethod.Post, ClaudeApiUrl)
-        {
-            Content = new StringContent(requestBody, Encoding.UTF8, "application/json")
-        };
-        request.Headers.Add("x-api-key", claudeApiKey);
-        request.Headers.Add("anthropic-version", "2023-06-01");
+        logger.LogInformation("[LEAD-026] Claude enrichment token usage for lead {LeadId}: input={InputTokens} output={OutputTokens}",
+            lead.Id, response.InputTokens, response.OutputTokens);
+        LeadDiagnostics.LlmTokensInput.Add(response.InputTokens);
+        LeadDiagnostics.LlmTokensOutput.Add(response.OutputTokens);
 
-        var httpClient = httpClientFactory.CreateClient(nameof(ScraperLeadEnricher));
-        var callStart = Stopwatch.GetTimestamp();
-        var response = await httpClient.SendAsync(request, ct);
-        var elapsedMs = Stopwatch.GetElapsedTime(callStart).TotalMilliseconds;
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorBody = await response.Content.ReadAsStringAsync(ct);
-            logger.LogError("[LEAD-027] Claude API returned {StatusCode} for lead {LeadId}. Body: {ErrorBody}",
-                (int)response.StatusCode, lead.Id, errorBody);
-            throw new HttpRequestException($"[LEAD-027] Claude API returned {(int)response.StatusCode}");
-        }
-
-        var responseJson = await response.Content.ReadAsStringAsync(ct);
-        var doc = JsonDocument.Parse(responseJson);
-
-        var content = doc.RootElement
-            .GetProperty("content")[0]
-            .GetProperty("text")
-            .GetString() ?? throw new InvalidOperationException("[LEAD-028] Empty response from Claude API");
-
-        // Log token usage and emit metrics
-        if (doc.RootElement.TryGetProperty("usage", out var usage))
-        {
-            var inputTokens = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
-            var outputTokens = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
-            logger.LogInformation("[LEAD-026] Claude enrichment token usage for lead {LeadId}: input={InputTokens} output={OutputTokens}",
-                lead.Id, inputTokens, outputTokens);
-            ClaudeDiagnostics.RecordUsage("lead", ClaudeModel, inputTokens, outputTokens, elapsedMs);
-            LeadDiagnostics.LlmTokensInput.Add(inputTokens);
-            LeadDiagnostics.LlmTokensOutput.Add(outputTokens);
-        }
-
-        var cleanContent = StripCodeFences(content);
-        return ParseClaudeResponse(cleanContent);
-    }
-
-    internal static string StripCodeFences(string content)
-    {
-        var trimmed = content.TrimStart();
-        if (!trimmed.StartsWith("```")) return content;
-
-        var firstNewline = trimmed.IndexOf('\n');
-        if (firstNewline < 0) return content;
-
-        var inner = trimmed[(firstNewline + 1)..];
-        var lastFence = inner.LastIndexOf("```");
-        if (lastFence >= 0)
-            inner = inner[..lastFence];
-
-        return inner.Trim();
+        return ParseClaudeResponse(response.Content);
     }
 
     internal static (LeadEnrichment Enrichment, LeadScore Score) ParseClaudeResponse(string json)

@@ -18,6 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../RealEstateStar.Clients.Gmail/RealEstateStar.Clients.Gmail.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients.GoogleOAuth/RealEstateStar.Clients.GoogleOAuth.csproj" />
     <ProjectReference Include="../RealEstateStar.TestUtilities/RealEstateStar.TestUtilities.csproj" />
   </ItemGroup>
 </Project>

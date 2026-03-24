@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -7,16 +6,14 @@ using RealEstateStar.Domain.Cma;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Shared;
+using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Workers.Cma;
 
 public class ClaudeCmaAnalyzer(
-    IHttpClientFactory httpClientFactory,
-    string apiKey,
+    IAnthropicClient anthropicClient,
     ILogger<ClaudeCmaAnalyzer> logger) : ICmaAnalyzer
 {
-    private const string ApiUrl = "https://api.anthropic.com/v1/messages";
     private const string Model = "claude-sonnet-4-6";
     private const int MaxTokens = 4096;
     private const int MaxNarrativeLength = 2000;
@@ -50,99 +47,24 @@ public class ClaudeCmaAnalyzer(
             "[CMA-ANALYZE-001] Sending analysis request for lead {LeadId}, {CompCount} comps",
             lead.Id, comps.Count);
 
-        var requestBody = new Dictionary<string, object>
-        {
-            ["model"] = Model,
-            ["max_tokens"] = MaxTokens,
-            ["system"] = SystemPrompt,
-            ["messages"] = new[]
-            {
-                new Dictionary<string, string>
-                {
-                    ["role"] = "user",
-                    ["content"] = prompt
-                }
-            }
-        };
-
-        var json = JsonSerializer.Serialize(requestBody);
-        var request = new HttpRequestMessage(HttpMethod.Post, ApiUrl)
-        {
-            Content = new StringContent(json, Encoding.UTF8, "application/json")
-        };
-        request.Headers.Add("x-api-key", apiKey);
-        request.Headers.Add("anthropic-version", "2023-06-01");
-
-        var httpClient = httpClientFactory.CreateClient("ClaudeCmaAnalyzer");
-
-        HttpResponseMessage response;
-        var callStart = Stopwatch.GetTimestamp();
-        try
-        {
-            response = await httpClient.SendAsync(request, ct);
-        }
-        catch (HttpRequestException ex)
-        {
-            logger.LogError(ex,
-                "[CMA-ANALYZE-001] HTTP request to Anthropic API failed for lead {LeadId}. ExType={ExType}, Message={ExMessage}",
-                lead.Id, ex.GetType().Name, ex.Message);
-            throw;
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorBody = await response.Content.ReadAsStringAsync(ct);
-            logger.LogError(
-                "[CMA-ANALYZE-001] Anthropic API returned {StatusCode} for lead {LeadId}. Body: {ErrorBody}",
-                (int)response.StatusCode, lead.Id, errorBody);
-            throw new HttpRequestException(
-                $"[CMA-ANALYZE-001] Anthropic API returned {(int)response.StatusCode}: {errorBody}");
-        }
-
-        var elapsedMs = Stopwatch.GetElapsedTime(callStart).TotalMilliseconds;
-        var responseBody = await response.Content.ReadAsStringAsync(ct);
+        var response = await anthropicClient.SendAsync(Model, SystemPrompt, prompt, MaxTokens, "cma-analysis", ct);
 
         logger.LogInformation(
             "[CMA-ANALYZE-002] Received response for lead {LeadId}, {Length} chars",
-            lead.Id, responseBody.Length);
+            lead.Id, response.Content.Length);
 
-        string contentJson;
-        try
-        {
-            using var doc = JsonDocument.Parse(responseBody);
-            contentJson = doc.RootElement
-                .GetProperty("content")[0]
-                .GetProperty("text")
-                .GetString()
-                ?? throw new JsonException("text field was null");
-
-            if (doc.RootElement.TryGetProperty("usage", out var usage))
-            {
-                var inputTokens = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
-                var outputTokens = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
-                ClaudeDiagnostics.RecordUsage("cma-analysis", Model, inputTokens, outputTokens, elapsedMs);
-                CmaDiagnostics.LlmTokensInput.Add(inputTokens);
-                CmaDiagnostics.LlmTokensOutput.Add(outputTokens);
-            }
-        }
-        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or IndexOutOfRangeException)
-        {
-            logger.LogError(ex,
-                "[CMA-ANALYZE-003] Failed to extract text from Anthropic response for lead {LeadId}",
-                lead.Id);
-            throw new InvalidOperationException(
-                $"[CMA-ANALYZE-003] Unexpected Anthropic response shape for lead {lead.Id}", ex);
-        }
+        CmaDiagnostics.LlmTokensInput.Add(response.InputTokens);
+        CmaDiagnostics.LlmTokensOutput.Add(response.OutputTokens);
 
         try
         {
-            return ParseResponse(contentJson);
+            return ParseResponse(response.Content);
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {
             logger.LogError(ex,
                 "[CMA-ANALYZE-003] Failed to parse CMA JSON for lead {LeadId}. Content: {Content}",
-                lead.Id, contentJson);
+                lead.Id, response.Content);
             throw;
         }
     }

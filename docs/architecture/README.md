@@ -15,6 +15,11 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | [Frontend Package Dependencies](frontend-package-dependencies.md) | 5 shared packages, dependency rules, app composition |
 | [Agent-Site Feature Isolation](agent-site-feature-isolation.md) | 6 feature modules, allowed/blocked import directions |
 | [Observability Flow](observability-flow.md) | Telemetry, error tracking, correlation IDs frontend→backend |
+| [Google API Token Flow](google-api-token-flow.md) | Three-tier identity model, token persistence, client consumption |
+| [OAuth Token Lifecycle](oauth-token-lifecycle.md) | Token resolution with optimistic concurrency (Mermaid) |
+| [Fan-Out Storage](fan-out-storage.md) | Three-tier document writes: Agent + Account + Platform Drive |
+| [Notification Email Flow](notification-email-flow.md) | Pipeline → Notifier → Gmail API → Fan-Out storage (Mermaid) |
+| [Google Client Dependency Graph](google-client-dependency-graph.md) | Interface ownership + DI wiring (Mermaid) |
 
 ## API Project Structure (21 Projects + 23 Test Projects)
 

@@ -1,13 +1,14 @@
 using System.Diagnostics;
 using System.Globalization;
-using System.Security.Cryptography;
+using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace RealEstateStar.Notifications.Cma;
 
 public class CmaSellerNotifier(
-    IGwsService gwsService,
+    IGmailSender gmailSender,
+    IFileStorageProvider fanOutStorage,
     IAccountConfigService accountConfigService,
     ILogger<CmaSellerNotifier> logger) : ICmaNotifier
 {
@@ -20,7 +21,7 @@ public class CmaSellerNotifier(
         CancellationToken ct)
     {
         var agent = await accountConfigService.GetAccountAsync(agentId, ct);
-        var agentEmail = agent?.Agent?.Email ?? "";
+        var accountId = NotificationHelpers.ResolveAccountId(agent, agentId);
         var agentName = agent?.Agent?.Name ?? agentId;
         var agentPhone = agent?.Agent?.Phone ?? "";
 
@@ -31,15 +32,17 @@ public class CmaSellerNotifier(
         var subject = $"Your Comparative Market Analysis \u2013 {fullAddress}";
         var body = BuildEmailBody(lead, analysis, agentName, agentPhone);
 
-        // Step 1: Send email — failure is fatal; caller decides whether to retry
+        // Step 1: Send email with PDF attachment — failure is fatal; caller decides whether to retry
         var emailSw = Stopwatch.GetTimestamp();
         logger.LogInformation(
             "[CMA-NOTIFY-001] Sending CMA email to {RecipientHash} for lead {LeadId}, agent {AgentId}. CorrelationId: {CorrelationId}",
-            HashEmail(lead.Email), lead.Id, agentId, correlationId);
+            NotificationHelpers.HashEmail(lead.Email), lead.Id, agentId, correlationId);
 
         try
         {
-            await gwsService.SendEmailAsync(agentEmail, lead.Email, subject, body, pdfPath, ct);
+            var pdfBytes = await File.ReadAllBytesAsync(pdfPath, ct);
+            var pdfFileName = Path.GetFileName(pdfPath);
+            await gmailSender.SendWithAttachmentAsync(accountId, agentId, lead.Email, subject, body, pdfBytes, pdfFileName, ct);
             CmaDiagnostics.EmailDuration.Record(Stopwatch.GetElapsedTime(emailSw).TotalMilliseconds);
 
             logger.LogInformation(
@@ -55,30 +58,7 @@ public class CmaSellerNotifier(
             throw;
         }
 
-        // Step 2: Upload PDF to Drive — failure is non-fatal
-        var driveSw = Stopwatch.GetTimestamp();
-        logger.LogInformation(
-            "[CMA-NOTIFY-003] Uploading PDF to Drive for lead {LeadId}. Folder: {Folder}. CorrelationId: {CorrelationId}",
-            lead.Id, cmaFolder, correlationId);
-
-        try
-        {
-            await gwsService.UploadFileAsync(agentEmail, cmaFolder, pdfPath, ct);
-            CmaDiagnostics.DriveDuration.Record(Stopwatch.GetElapsedTime(driveSw).TotalMilliseconds);
-
-            logger.LogInformation(
-                "[CMA-NOTIFY-004] Upload complete for lead {LeadId}. Duration: {DurationMs}ms. CorrelationId: {CorrelationId}",
-                lead.Id, Stopwatch.GetElapsedTime(driveSw).TotalMilliseconds, correlationId);
-        }
-        catch (Exception ex)
-        {
-            CmaDiagnostics.DriveDuration.Record(Stopwatch.GetElapsedTime(driveSw).TotalMilliseconds);
-            logger.LogError(ex,
-                "[CMA-NOTIFY-008] Drive upload failed for lead {LeadId}, agent {AgentId}. CorrelationId: {CorrelationId}",
-                lead.Id, agentId, correlationId);
-        }
-
-        // Step 3: Store communication record — failure is non-fatal
+        // Step 2: Store communication record via fan-out — failure is non-fatal
         logger.LogInformation(
             "[CMA-NOTIFY-005] Storing communication record for lead {LeadId}. CorrelationId: {CorrelationId}",
             lead.Id, correlationId);
@@ -86,7 +66,9 @@ public class CmaSellerNotifier(
         try
         {
             var emailRecord = BuildEmailRecord(lead, subject, body, correlationId);
-            await gwsService.CreateDocAsync(agentEmail, cmaFolder, "CMA Email Record", emailRecord, ct);
+            var fileName = $"{DateTime.UtcNow:yyyy-MM-dd-HHmmss}-CMA Email Record.md";
+            await fanOutStorage.WriteDocumentAsync(cmaFolder, fileName, emailRecord, ct);
+            CmaDiagnostics.DriveDuration.Record(0); // record a nominal zero since drive is now fan-out
 
             logger.LogInformation(
                 "[CMA-NOTIFY-006] Communication stored for lead {LeadId}. CorrelationId: {CorrelationId}",
@@ -102,13 +84,16 @@ public class CmaSellerNotifier(
 
     internal static string BuildEmailBody(Lead lead, CmaAnalysis analysis, string agentName, string agentPhone)
     {
+        // HtmlEncode all user/agent/AI-supplied fields — this body is sent as htmlBody to Gmail.
+        static string H(string? s) => WebUtility.HtmlEncode(s ?? string.Empty);
+
         var sd = lead.SellerDetails!;
-        var fullAddress = $"{sd.Address}, {sd.City}, {sd.State} {sd.Zip}";
+        var fullAddress = $"{H(sd.Address)}, {H(sd.City)}, {H(sd.State)} {H(sd.Zip)}";
         var sb = new StringBuilder();
 
-        sb.AppendLine($"Hi {lead.FirstName},");
+        sb.AppendLine($"Hi {H(lead.FirstName)},");
         sb.AppendLine();
-        sb.AppendLine($"Thank you for reaching out! {agentName} has prepared a Comparative Market Analysis for your property at {fullAddress}.");
+        sb.AppendLine($"Thank you for reaching out! {H(agentName)} has prepared a Comparative Market Analysis for your property at {fullAddress}.");
         sb.AppendLine();
         sb.AppendLine("Based on recent comparable sales in your area, here is the estimated value range:");
         sb.AppendLine();
@@ -116,15 +101,15 @@ public class CmaSellerNotifier(
         sb.AppendLine($"  Mid:  {FormatUsd(analysis.ValueMid)}");
         sb.AppendLine($"  High: {FormatUsd(analysis.ValueHigh)}");
         sb.AppendLine();
-        sb.AppendLine($"Market trend: {analysis.MarketTrend}");
+        sb.AppendLine($"Market trend: {H(analysis.MarketTrend)}");
         sb.AppendLine($"Median days on market: {analysis.MedianDaysOnMarket} days");
         sb.AppendLine();
         sb.AppendLine("Your full CMA report is attached as a PDF.");
         sb.AppendLine();
-        sb.AppendLine($"Ready to discuss your options? Reply to this email or call {agentPhone} — we would love to walk you through the findings.");
+        sb.AppendLine($"Ready to discuss your options? Reply to this email or call {H(agentPhone)} — we would love to walk you through the findings.");
         sb.AppendLine();
         sb.AppendLine($"Best,");
-        sb.AppendLine(agentName);
+        sb.AppendLine(H(agentName));
 
         return sb.ToString();
     }
@@ -136,8 +121,8 @@ public class CmaSellerNotifier(
         sb.AppendLine("---");
         sb.AppendLine($"leadId: {lead.Id}");
         sb.AppendLine($"sentAt: {DateTime.UtcNow:o}");
-        sb.AppendLine($"subject: \"{EscapeYaml(subject)}\"");
-        sb.AppendLine($"recipientEmailHash: {HashEmail(lead.Email)}");
+        sb.AppendLine($"subject: \"{NotificationHelpers.EscapeYaml(subject)}\"");
+        sb.AppendLine($"recipientEmailHash: {NotificationHelpers.HashEmail(lead.Email)}");
         sb.AppendLine($"correlationId: {correlationId}");
         sb.AppendLine("---");
         sb.AppendLine();
@@ -145,15 +130,6 @@ public class CmaSellerNotifier(
 
         return sb.ToString();
     }
-
-    private static string HashEmail(string email)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(email.Trim().ToLowerInvariant()));
-        return Convert.ToHexString(bytes)[..12].ToLowerInvariant();
-    }
-
-    private static string EscapeYaml(string value)
-        => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
     private static readonly CultureInfo UsFormat = new("en-US");
 

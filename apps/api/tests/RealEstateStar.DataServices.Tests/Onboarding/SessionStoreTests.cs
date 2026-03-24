@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using RealEstateStar.Domain.Shared.Models;
 using Xunit;
 
 namespace RealEstateStar.DataServices.Tests.Onboarding;
@@ -114,19 +115,19 @@ public class SessionStoreTests : IDisposable
     public async Task SaveAndLoad_PreservesGoogleTokens()
     {
         var session = OnboardingSession.Create(null);
-        session.GoogleTokens = new GoogleTokens
+        session.GoogleTokens = new OAuthCredential
         {
             AccessToken = "at",
             RefreshToken = "rt",
             ExpiresAt = DateTime.UtcNow.AddHours(1),
             Scopes = ["email"],
-            GoogleEmail = "j@g.com",
-            GoogleName = "Jane",
+            Email = "j@g.com",
+            Name = "Jane",
         };
         await _store.SaveAsync(session, CancellationToken.None);
         var loaded = await _store.LoadAsync(session.Id, CancellationToken.None);
         Assert.NotNull(loaded!.GoogleTokens);
-        Assert.Equal("j@g.com", loaded.GoogleTokens!.GoogleEmail);
+        Assert.Equal("j@g.com", loaded.GoogleTokens!.Email);
     }
 
     [Fact]

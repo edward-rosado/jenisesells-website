@@ -11,6 +11,11 @@
       "pattern": "^[a-z0-9-]+$",
       "description": "URL-safe slug identifier for the agent"
     },
+    "accountId": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Optional account partition identifier for multi-agent brokerages. Defaults to agent handle when absent."
+    },
     "identity": {
       "type": "object",
       "required": ["name", "email", "phone"],

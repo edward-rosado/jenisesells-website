@@ -28,8 +28,14 @@ public class DependencyTests
     [InlineData("RealEstateStar.Clients.Anthropic", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.Scraper", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.WhatsApp", new[] { "Domain" })]
-    [InlineData("RealEstateStar.Clients.GDrive", new[] { "Domain" })]
-    [InlineData("RealEstateStar.Clients.Gmail", new[] { "Domain" })]
+    // GoogleOAuth is the shared Google-credential infrastructure layer for Google API clients —
+    // the same relationship that Workers.Shared has to Workers.*. Each Google client depends on
+    // GoogleOAuth; no other cross-client dependency is permitted (enforced by
+    // Clients_do_not_reference_other_Clients below, which explicitly exempts GoogleOAuth).
+    [InlineData("RealEstateStar.Clients.GDrive", new[] { "Domain", "Clients.GoogleOAuth" })]
+    [InlineData("RealEstateStar.Clients.Gmail", new[] { "Domain", "Clients.GoogleOAuth" })]
+    [InlineData("RealEstateStar.Clients.GDocs", new[] { "Domain", "Clients.GoogleOAuth" })]
+    [InlineData("RealEstateStar.Clients.GSheets", new[] { "Domain", "Clients.GoogleOAuth" })]
     [InlineData("RealEstateStar.Clients.GoogleOAuth", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.Stripe", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.Cloudflare", new[] { "Domain" })]
@@ -56,6 +62,19 @@ public class DependencyTests
     [Fact]
     public void Api_is_the_only_project_that_references_Clients()
     {
+        // GoogleOAuth is the shared Google-credential infrastructure layer — the same relationship
+        // that Workers.Shared has to Workers.*. Gmail, GDrive, GDocs, and GSheets may reference
+        // GoogleOAuth (for GoogleCredentialFactory); no other non-Api project may reference any
+        // Clients.* assembly.
+        const string sharedGoogleInfra = "RealEstateStar.Clients.GoogleOAuth";
+        var googleApiClients = new HashSet<string>
+        {
+            "RealEstateStar.Clients.Gmail",
+            "RealEstateStar.Clients.GDrive",
+            "RealEstateStar.Clients.GDocs",
+            "RealEstateStar.Clients.GSheets"
+        };
+
         var productionAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.*.dll")
             .Select(Assembly.LoadFrom)
             .Where(a => !a.GetName().Name!.Contains("Api"))
@@ -64,13 +83,16 @@ public class DependencyTests
 
         foreach (var assembly in productionAssemblies)
         {
+            var assemblyName = assembly.GetName().Name!;
             var clientRefs = assembly.GetReferencedAssemblies()
                 .Where(a => a.Name!.Contains("Clients"))
+                // Google API clients are allowed to reference the shared GoogleOAuth infrastructure
+                .Where(a => !(googleApiClients.Contains(assemblyName) && a.Name == sharedGoogleInfra))
                 .Select(a => a.Name!)
                 .ToList();
 
             Assert.True(clientRefs.Count == 0,
-                $"{assembly.GetName().Name} references {string.Join(", ", clientRefs)} — only Api may reference Clients.*");
+                $"{assemblyName} references {string.Join(", ", clientRefs)} — only Api may reference Clients.* (GoogleOAuth is the only permitted shared infrastructure dep for Google API clients)");
         }
     }
 
@@ -161,6 +183,8 @@ public class DependencyTests
             "RealEstateStar.Clients.WhatsApp",
             "RealEstateStar.Clients.GDrive",
             "RealEstateStar.Clients.Gmail",
+            "RealEstateStar.Clients.GDocs",
+            "RealEstateStar.Clients.GSheets",
             "RealEstateStar.Clients.GoogleOAuth",
             "RealEstateStar.Clients.Stripe",
             "RealEstateStar.Clients.Cloudflare",
@@ -262,20 +286,35 @@ public class DependencyTests
     [Fact]
     public void Clients_do_not_reference_other_Clients()
     {
+        // GoogleOAuth is the shared Google-credential infrastructure layer — the same relationship
+        // that Workers.Shared has to Workers.*. Gmail, GDrive, GDocs, and GSheets may reference
+        // GoogleOAuth (for GoogleCredentialFactory); no other cross-client dependency is allowed.
+        const string sharedGoogleInfra = "RealEstateStar.Clients.GoogleOAuth";
+        var googleApiClients = new HashSet<string>
+        {
+            "RealEstateStar.Clients.Gmail",
+            "RealEstateStar.Clients.GDrive",
+            "RealEstateStar.Clients.GDocs",
+            "RealEstateStar.Clients.GSheets"
+        };
+
         var clientAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.Clients.*.dll")
             .Select(Assembly.LoadFrom)
             .Where(a => !a.GetName().Name!.Contains("Tests"));
 
         foreach (var assembly in clientAssemblies)
         {
+            var assemblyName = assembly.GetName().Name!;
             var crossClientRefs = assembly.GetReferencedAssemblies()
                 .Where(a => a.Name!.StartsWith("RealEstateStar.Clients."))
-                .Where(a => a.Name != assembly.GetName().Name)
+                .Where(a => a.Name != assemblyName)
+                // Google API clients are allowed to reference the shared GoogleOAuth infrastructure
+                .Where(a => !(googleApiClients.Contains(assemblyName) && a.Name == sharedGoogleInfra))
                 .Select(a => a.Name!)
                 .ToList();
 
             Assert.True(crossClientRefs.Count == 0,
-                $"{assembly.GetName().Name} references {string.Join(", ", crossClientRefs)} — Clients must not reference other Clients");
+                $"{assemblyName} references {string.Join(", ", crossClientRefs)} — Clients must not reference other Clients (GoogleOAuth is the only permitted shared infrastructure dep for Google API clients)");
         }
     }
 

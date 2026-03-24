@@ -10,6 +10,11 @@ public class AccountConfig
     [JsonPropertyName("handle")]
     public string Handle { get; init; } = "";
 
+    [JsonPropertyName("accountId")]
+    public string? RawAccountId { get; init; }
+
+    public string AccountId => RawAccountId ?? Handle;
+
     [JsonPropertyName("template")]
     public string? Template { get; init; }
 

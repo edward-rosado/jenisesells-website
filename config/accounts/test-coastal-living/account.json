@@ -1,5 +1,6 @@
 {
   "handle": "test-coastal-living",
+  "accountId": "test-coastal-living",
   "template": "coastal-living",
   "branding": {
     "primary_color": "#2c7a7b",

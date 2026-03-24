@@ -255,7 +255,79 @@ Real Estate Star uses Cloudflare Turnstile to prevent bot lead submissions:
 
 The `turnstile_site_key` is public and embedded in the agent site; the `turnstile_secret_key` is kept private on the API and used during lead submission validation.
 
-### 5. Validate the Agent Profile
+### 5. OAuth Token Persistence
+
+During the onboarding flow, agents authorize Real Estate Star to access their Gmail and Google Drive. After authorization:
+
+- Tokens are saved to `ITokenStore` (backed by Azure Table Storage via `AzureTableTokenStore` in `Clients.Azure`).
+- Tokens survive session cleanup — they are **not** stored in-memory or in the onboarding session. The agent does not need to re-authorize on the next login.
+- Tokens are stored with **DPAPI encryption** at rest.
+
+When a Google API client (Gmail, Drive, Docs, Sheets) needs to make a call on behalf of an agent:
+
+1. It calls `IOAuthRefresher.GetValidTokenAsync(handle, type)`.
+2. The refresher reads the token from `ITokenStore` (Azure Table).
+3. If the token is expired (or expiring within 5 minutes), `GoogleOAuthRefresher` automatically calls the Google OAuth2 endpoint to exchange the refresh token for a new access token.
+4. The new token is saved back with **optimistic locking** (`SaveIfUnchangedAsync` checks the Azure Table ETag). If two concurrent requests both refresh at the same time, the second writer re-reads the winner's token rather than overwriting it.
+
+This means once an agent connects their Google account during onboarding, all subsequent API operations are fully automatic — no re-auth prompts, no token management needed in feature code.
+
+#### Local Development Setup (Azurite)
+
+In development, `ITokenStore` uses `NullTokenStore` (silent no-op) when `AzureStorage:ConnectionString` is absent. To test token persistence locally:
+
+1. **Install Azurite** (Azure Storage emulator):
+   ```bash
+   npm install -g azurite
+   ```
+
+2. **Start Azurite**:
+   ```bash
+   azurite --silent --location .azurite --debug .azurite/debug.log
+   ```
+
+3. **Set the connection string** in `appsettings.Development.json` or user secrets:
+   ```json
+   {
+     "AzureStorage": {
+       "ConnectionString": "UseDevelopmentStorage=true"
+     }
+   }
+   ```
+
+4. **Verify** — on startup, the API logs `ITokenStore → AzureTableTokenStore (table: oauthtokens)`. If you see `ITokenStore → NullTokenStore`, the connection string is missing.
+
+#### Usage Examples
+
+**Sending email as an agent** (in a notifier or worker):
+```csharp
+// IGmailSender injected via DI — tokens resolved automatically
+await gmailSender.SendAsync(accountId, agentId, recipientEmail, subject, htmlBody, ct);
+// No-ops gracefully if agent hasn't connected Google (gmail.token_missing counter increments)
+```
+
+**Uploading to agent's Drive** (in a worker or storage provider):
+```csharp
+// IGDriveClient injected via DI
+var fileId = await driveClient.UploadFileAsync(accountId, agentId, folderId, "report.md", content, ct);
+// Returns empty string if no token — best-effort, never throws on missing auth
+```
+
+**Reading tokens directly** (for diagnostics or admin):
+```csharp
+// ITokenStore injected via DI
+var credential = await tokenStore.GetAsync(accountId, agentId, OAuthProviders.Google, ct);
+if (credential is null) { /* agent hasn't onboarded OAuth */ }
+else if (credential.IsExpired) { /* token needs refresh — IOAuthRefresher handles this */ }
+```
+
+**Token store key structure**:
+| Identity | PartitionKey | RowKey | Example |
+|----------|-------------|--------|---------|
+| Agent | `{accountId}` | `{agentId}:google` | PK=`jenise-buckalew`, RK=`jenise-buckalew:google` |
+| Account | `{accountId}` | `__account__:google` | PK=`jenise-buckalew`, RK=`__account__:google` |
+
+### 6. Validate the Agent Profile
 
 After configuring all fields, validate the profile against the schema:
 

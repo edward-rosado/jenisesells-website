@@ -1,55 +1,56 @@
+using RealEstateStar.Domain.Shared.Models;
 using Xunit;
 
 namespace RealEstateStar.Domain.Tests.Onboarding;
 
 // TODO: LOW-8 — Add boundary test for exactly 5-minute expiry buffer
-public class GoogleTokensTests
+public class OAuthCredentialTests
 {
     [Fact]
     public void IsExpired_WhenPastExpiry_ReturnsTrue()
     {
-        var tokens = new GoogleTokens
+        var credential = new OAuthCredential
         {
             AccessToken = "access",
             RefreshToken = "refresh",
             ExpiresAt = DateTime.UtcNow.AddMinutes(-5),
             Scopes = ["gmail.send"],
-            GoogleEmail = "test@gmail.com",
-            GoogleName = "Test User",
+            Email = "test@gmail.com",
+            Name = "Test User",
         };
 
-        Assert.True(tokens.IsExpired);
+        Assert.True(credential.IsExpired);
     }
 
     [Fact]
     public void IsExpired_WhenBeforeExpiry_ReturnsFalse()
     {
-        var tokens = new GoogleTokens
+        var credential = new OAuthCredential
         {
             AccessToken = "access",
             RefreshToken = "refresh",
             ExpiresAt = DateTime.UtcNow.AddHours(1),
             Scopes = ["gmail.send"],
-            GoogleEmail = "test@gmail.com",
-            GoogleName = "Test User",
+            Email = "test@gmail.com",
+            Name = "Test User",
         };
 
-        Assert.False(tokens.IsExpired);
+        Assert.False(credential.IsExpired);
     }
 
     [Fact]
     public void IsExpired_WhenWithin5MinBuffer_ReturnsTrue()
     {
-        var tokens = new GoogleTokens
+        var credential = new OAuthCredential
         {
             AccessToken = "access",
             RefreshToken = "refresh",
             ExpiresAt = DateTime.UtcNow.AddMinutes(3),
             Scopes = ["gmail.send"],
-            GoogleEmail = "test@gmail.com",
-            GoogleName = "Test User",
+            Email = "test@gmail.com",
+            Name = "Test User",
         };
 
-        Assert.True(tokens.IsExpired);
+        Assert.True(credential.IsExpired);
     }
 }

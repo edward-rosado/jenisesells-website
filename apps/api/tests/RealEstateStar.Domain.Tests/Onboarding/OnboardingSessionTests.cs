@@ -1,3 +1,4 @@
+using RealEstateStar.Domain.Shared.Models;
 using Xunit;
 
 namespace RealEstateStar.Domain.Tests.Onboarding;
@@ -52,17 +53,17 @@ public class OnboardingSessionTests
     public void GoogleTokens_CanBeSet()
     {
         var session = OnboardingSession.Create(null);
-        session.GoogleTokens = new GoogleTokens
+        session.GoogleTokens = new OAuthCredential
         {
             AccessToken = "access",
             RefreshToken = "refresh",
             ExpiresAt = DateTime.UtcNow.AddHours(1),
             Scopes = ["gmail.send"],
-            GoogleEmail = "test@gmail.com",
-            GoogleName = "Test User",
+            Email = "test@gmail.com",
+            Name = "Test User",
         };
 
         Assert.NotNull(session.GoogleTokens);
-        Assert.Equal("test@gmail.com", session.GoogleTokens.GoogleEmail);
+        Assert.Equal("test@gmail.com", session.GoogleTokens.Email);
     }
 }

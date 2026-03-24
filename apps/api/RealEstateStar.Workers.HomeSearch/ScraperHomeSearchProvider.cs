@@ -1,23 +1,19 @@
-using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.HomeSearch;
 using RealEstateStar.Domain.HomeSearch.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Workers.HomeSearch;
 
 public class ScraperHomeSearchProvider(
-    IHttpClientFactory httpClientFactory,
+    IAnthropicClient anthropicClient,
     IScraperClient scraperClient,
-    string claudeApiKey,
     Dictionary<string, string> sourceUrls,
     ILogger<ScraperHomeSearchProvider> logger) : IHomeSearchProvider
 {
-    private const string ClaudeApiUrl = "https://api.anthropic.com/v1/messages";
     private const string ClaudeModel = "claude-sonnet-4-6";
     private const int ClaudeMaxTokens = 4096;
 
@@ -134,52 +130,17 @@ public class ScraperHomeSearchProvider(
         List<Listing> listings, HomeSearchCriteria criteria, CancellationToken ct)
     {
         var listingsData = BuildListingsPrompt(listings, criteria);
-
-        var requestBody = JsonSerializer.Serialize(new
-        {
-            model = ClaudeModel,
-            max_tokens = ClaudeMaxTokens,
-            system = CurationSystemPrompt,
-            messages = new[]
-            {
-                new { role = "user", content = $"<search_criteria>\n{BuildCriteriaDescription(criteria)}\n</search_criteria>\n\n<listings>\n{listingsData}\n</listings>\n\nCurate the top listings and return ONLY valid JSON matching the schema." }
-            }
-        });
-
-        var request = new HttpRequestMessage(HttpMethod.Post, ClaudeApiUrl)
-        {
-            Content = new StringContent(requestBody, Encoding.UTF8, "application/json")
-        };
-        request.Headers.Add("x-api-key", claudeApiKey);
-        request.Headers.Add("anthropic-version", "2023-06-01");
+        var userMessage = $"<search_criteria>\n{BuildCriteriaDescription(criteria)}\n</search_criteria>\n\n<listings>\n{listingsData}\n</listings>\n\nCurate the top listings and return ONLY valid JSON matching the schema.";
 
         logger.LogInformation("[HSP-020] Sending {Count} listings to Claude for curation", listings.Count);
 
-        var httpClient = httpClientFactory.CreateClient(nameof(ScraperHomeSearchProvider));
-        var callStart = Stopwatch.GetTimestamp();
-        var response = await httpClient.SendAsync(request, ct);
-        var elapsedMs = Stopwatch.GetElapsedTime(callStart).TotalMilliseconds;
-        response.EnsureSuccessStatusCode();
+        var response = await anthropicClient.SendAsync(ClaudeModel, CurationSystemPrompt, userMessage, ClaudeMaxTokens, "home-search", ct);
 
-        var responseJson = await response.Content.ReadAsStringAsync(ct);
         logger.LogInformation("[HSP-021] Received curation response from Claude");
+        HomeSearchDiagnostics.LlmTokensInput.Add(response.InputTokens);
+        HomeSearchDiagnostics.LlmTokensOutput.Add(response.OutputTokens);
 
-        var doc = JsonDocument.Parse(responseJson);
-        var content = doc.RootElement
-            .GetProperty("content")[0]
-            .GetProperty("text")
-            .GetString() ?? throw new InvalidOperationException("[HSP-022] Empty response from Claude API");
-
-        if (doc.RootElement.TryGetProperty("usage", out var usage))
-        {
-            var inputTokens = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
-            var outputTokens = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
-            ClaudeDiagnostics.RecordUsage("home-search", ClaudeModel, inputTokens, outputTokens, elapsedMs);
-            HomeSearchDiagnostics.LlmTokensInput.Add(inputTokens);
-            HomeSearchDiagnostics.LlmTokensOutput.Add(outputTokens);
-        }
-
-        return ParseCuratedListings(content);
+        return ParseCuratedListings(response.Content);
     }
 
     internal static string BuildCriteriaDescription(HomeSearchCriteria criteria)

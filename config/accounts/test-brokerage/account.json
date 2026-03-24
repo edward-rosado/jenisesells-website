@@ -1,5 +1,6 @@
 {
   "handle": "test-brokerage",
+  "accountId": "test-brokerage",
   "template": "commercial",
   "branding": {
     "primary_color": "#1a1a2e",
@@ -22,6 +23,10 @@
   },
   "location": {
     "state": "NJ",
-    "service_areas": ["Summit", "Short Hills", "Chatham"]
+    "service_areas": [
+      "Summit",
+      "Short Hills",
+      "Chatham"
+    ]
   }
 }

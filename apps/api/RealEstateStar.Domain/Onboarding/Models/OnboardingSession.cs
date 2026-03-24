@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.Domain.Onboarding.Models;
 
@@ -9,7 +10,7 @@ public sealed class OnboardingSession
     public OnboardingState CurrentState { get; set; } = OnboardingState.ScrapeProfile;
     public string? ProfileUrl { get; init; }
     public ScrapedProfile? Profile { get; set; }
-    public GoogleTokens? GoogleTokens { get; set; }
+    public OAuthCredential? GoogleTokens { get; set; }
     public List<ChatMessage> Messages { get; init; } = [];
     public string? AgentConfigId { get; set; }
     public string? StripeSetupIntentId { get; set; }

@@ -1,5 +1,6 @@
 {
   "handle": "test-modern",
+  "accountId": "test-modern",
   "template": "modern-minimal",
   "branding": {
     "primary_color": "#1A237E",

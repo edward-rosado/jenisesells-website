@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.DataServices.Onboarding;
-using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.Domain.Shared.Models;
 using Xunit;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.Services;
@@ -1014,14 +1014,14 @@ public class ChatServiceBranchCoverageTests
         factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(handler));
 
         var session = OnboardingSession.Create(null);
-        session.GoogleTokens = new GoogleTokens
+        session.GoogleTokens = new OAuthCredential
         {
             AccessToken = "access-token",
             RefreshToken = "refresh-token",
             ExpiresAt = DateTime.UtcNow.AddHours(1),
             Scopes = ["email", "profile"],
-            GoogleEmail = "jenise@gmail.com",
-            GoogleName = "Jenise Buckalew"
+            Email = "jenise@gmail.com",
+            Name = "Jenise Buckalew"
         };
 
         var service = new OnboardingChatService(

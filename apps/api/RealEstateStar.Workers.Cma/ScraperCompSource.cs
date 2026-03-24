@@ -1,25 +1,21 @@
-using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Cma;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
-using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.Workers.Cma;
 
 public class ScraperCompSource(
-    IHttpClientFactory httpClientFactory,
+    IAnthropicClient anthropicClient,
     IScraperClient scraperClient,
-    string claudeApiKey,
     CompSource sourceName,
     string baseUrlPattern,
     ILogger<ScraperCompSource> logger) : ICompSource
 {
-    private const string ClaudeClientName = "ScraperCompSource";
-    private const string ClaudeApiUrl = "https://api.anthropic.com/v1/messages";
     private const string ClaudeModel = "claude-sonnet-4-6";
     private const int ClaudeMaxTokens = 4096;
 
@@ -79,34 +75,10 @@ public class ScraperCompSource(
         var criteriaDescription = BuildCriteriaDescription(request);
         var userMessage = $"<search_criteria>\n{criteriaDescription}\n</search_criteria>\n\n<html_content>\n{html}\n</html_content>\n\nExtract comparable sales and return ONLY valid JSON matching the schema.";
 
-        var requestBody = JsonSerializer.Serialize(new
-        {
-            model = ClaudeModel,
-            max_tokens = ClaudeMaxTokens,
-            system = ExtractionSystemPrompt,
-            messages = new[]
-            {
-                new { role = "user", content = userMessage }
-            }
-        });
-
-        var claudeRequest = new HttpRequestMessage(HttpMethod.Post, ClaudeApiUrl)
-        {
-            Content = new StringContent(requestBody, Encoding.UTF8, "application/json")
-        };
-        claudeRequest.Headers.Add("x-api-key", claudeApiKey);
-        claudeRequest.Headers.Add("anthropic-version", "2023-06-01");
-
-        string responseJson;
-        double elapsedMs;
+        AnthropicResponse claudeResponse;
         try
         {
-            var claudeClient = httpClientFactory.CreateClient(ClaudeClientName);
-            var callStart = Stopwatch.GetTimestamp();
-            var response = await claudeClient.SendAsync(claudeRequest, ct);
-            elapsedMs = Stopwatch.GetElapsedTime(callStart).TotalMilliseconds;
-            response.EnsureSuccessStatusCode();
-            responseJson = await response.Content.ReadAsStringAsync(ct);
+            claudeResponse = await anthropicClient.SendAsync(ClaudeModel, ExtractionSystemPrompt, userMessage, ClaudeMaxTokens, "cma-comps", ct);
         }
         catch (Exception ex)
         {
@@ -114,22 +86,10 @@ public class ScraperCompSource(
             return [];
         }
 
-        var doc = JsonDocument.Parse(responseJson);
-        var content = doc.RootElement
-            .GetProperty("content")[0]
-            .GetProperty("text")
-            .GetString() ?? "";
+        CmaDiagnostics.LlmTokensInput.Add(claudeResponse.InputTokens);
+        CmaDiagnostics.LlmTokensOutput.Add(claudeResponse.OutputTokens);
 
-        if (doc.RootElement.TryGetProperty("usage", out var usage))
-        {
-            var inputTokens = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
-            var outputTokens = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
-            ClaudeDiagnostics.RecordUsage("cma-comps", ClaudeModel, inputTokens, outputTokens, elapsedMs);
-            CmaDiagnostics.LlmTokensInput.Add(inputTokens);
-            CmaDiagnostics.LlmTokensOutput.Add(outputTokens);
-        }
-
-        var comps = ParseComps(content, sourceName, logger);
+        var comps = ParseComps(claudeResponse.Content, sourceName, logger);
         logger.LogInformation("[COMP-003] Parsed {Count} valid comps from {Source}", comps.Count, sourceName);
         return comps;
     }

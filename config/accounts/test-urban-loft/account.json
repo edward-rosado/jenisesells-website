@@ -1,5 +1,6 @@
 {
   "handle": "test-urban-loft",
+  "accountId": "test-urban-loft",
   "template": "urban-loft",
   "branding": {
     "primary_color": "#1a1a2e",

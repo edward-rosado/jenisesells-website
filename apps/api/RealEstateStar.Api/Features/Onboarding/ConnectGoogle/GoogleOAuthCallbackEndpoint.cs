@@ -5,6 +5,8 @@ using System.Web;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.DataServices.Onboarding;
 using RealEstateStar.Api.Infrastructure;
+using RealEstateStar.Domain.Shared;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Api.Features.Onboarding.ConnectGoogle;
 
@@ -22,6 +24,7 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
         ISessionStore sessionStore,
         GoogleOAuthService oAuthService,
         OnboardingStateMachine stateMachine,
+        ITokenStore tokenStore,
         IConfiguration configuration,
         ILogger<GoogleOAuthCallbackEndpoint> logger,
         CancellationToken ct)
@@ -54,20 +57,22 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
             return Results.Content(BuildCallbackHtml(false, "Invalid OAuth state", platformOrigin), "text/html");
         }
 
-        // Clear nonce after use (single-use)
+        // Clear nonce after use (single-use) and persist immediately so a replay attempt
+        // on a second concurrent request will see null and be rejected, even if the code
+        // exchange below is still in flight.
         session.OAuthNonce = null;
+        await sessionStore.SaveAsync(session, ct);
 
         try
         {
             var tokens = await oAuthService.ExchangeCodeAsync(code, ct);
 
             // SEC-6: Cross-validate Google email against scraped profile email
-            if (!IsEmailMatch(session.Profile?.Email, tokens.GoogleEmail))
+            if (!IsEmailMatch(session.Profile?.Email, tokens.Email))
             {
                 logger.LogWarning("[OAUTH-011] Google email mismatch for session {SessionId}. " +
                     "ProfileEmailHash={ProfileHash}, GoogleEmailHash={GoogleHash}",
-                    sessionId, HashEmail(session.Profile?.Email), HashEmail(tokens.GoogleEmail));
-                await sessionStore.SaveAsync(session, ct);
+                    sessionId, HashEmail(session.Profile?.Email), HashEmail(tokens.Email));
                 return Results.Content(
                     BuildCallbackHtml(false,
                         "Google account email does not match your profile email. Please sign in with the correct Google account.",
@@ -77,17 +82,36 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
 
             session.GoogleTokens = tokens;
             stateMachine.Advance(session, OnboardingState.DemoCma);
+
+            // Persist to durable token store for future API calls (GDrive, Gmail, etc.)
+            // AgentConfigId is the agent identifier; single-agent brokerages use agentId as accountId
+            var agentId = session.AgentConfigId;
+            if (agentId is not null)
+            {
+                // TODO: When multi-agent brokerages are supported, resolve accountId from AccountConfig
+                // instead of using agentId. See: docs/superpowers/specs/2026-03-23-google-api-clients-token-persistence-design.md
+                var accountId = agentId; // single-agent: accountId == agentId
+                await tokenStore.SaveAsync(
+                    tokens with { AccountId = accountId, AgentId = agentId },
+                    OAuthProviders.Google,
+                    ct);
+                logger.LogInformation("[OAUTH-013] Persisted OAuth tokens to token store for agent {AgentId}", agentId);
+            }
+            else
+            {
+                logger.LogWarning("[OAUTH-014] AgentConfigId not set on session {SessionId} — skipping token store persist", sessionId);
+            }
+
             await sessionStore.SaveAsync(session, ct);
 
             return Results.Content(
-                BuildCallbackHtml(true, $"Connected as {tokens.GoogleName} ({tokens.GoogleEmail})", platformOrigin),
+                BuildCallbackHtml(true, $"Connected as {tokens.Name} ({tokens.Email})", platformOrigin),
                 "text/html");
         }
         catch (InvalidOperationException ex)
         {
             logger.LogError(ex, "[OAUTH-010] Google token exchange failed for session {SessionId}. ExType={ExType}",
                 sessionId, ex.GetType().Name);
-            await sessionStore.SaveAsync(session, ct);
             return Results.Content(BuildCallbackHtml(false, "Failed to connect Google account", platformOrigin), "text/html");
         }
     }
