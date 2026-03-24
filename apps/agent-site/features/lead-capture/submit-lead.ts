@@ -5,6 +5,8 @@ import { createApiClient } from "@real-estate-star/api-client";
 import { validateTurnstile } from "./turnstile";
 import { signRequest, getApiUrl } from "../shared/hmac";
 
+const VALID_AGENT_ID = /^[a-z0-9-]+$/;
+
 function mapLeadType(leadTypes: string[]): "Buyer" | "Seller" | "Both" {
   const buying = leadTypes.includes("buying");
   const selling = leadTypes.includes("selling");
@@ -33,6 +35,8 @@ export async function submitLead(
   formData: LeadFormData,
   turnstileToken: string,
 ): Promise<{ leadId?: string; status?: string; error?: string }> {
+  if (!VALID_AGENT_ID.test(agentId)) return { error: "Invalid request." };
+
   // Honeypot: filled means bot (defense in depth — LeadForm also blocks bot submissions client-side)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if ((formData as any).website) return { leadId: "fake-id", status: "received" };
