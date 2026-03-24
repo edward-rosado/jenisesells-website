@@ -21,6 +21,8 @@ COPY ["RealEstateStar.Clients.WhatsApp/RealEstateStar.Clients.WhatsApp.csproj", 
 COPY ["RealEstateStar.Clients.GDrive/RealEstateStar.Clients.GDrive.csproj", "RealEstateStar.Clients.GDrive/"]
 COPY ["RealEstateStar.Clients.Gmail/RealEstateStar.Clients.Gmail.csproj", "RealEstateStar.Clients.Gmail/"]
 COPY ["RealEstateStar.Clients.GoogleOAuth/RealEstateStar.Clients.GoogleOAuth.csproj", "RealEstateStar.Clients.GoogleOAuth/"]
+COPY ["RealEstateStar.Clients.GDocs/RealEstateStar.Clients.GDocs.csproj", "RealEstateStar.Clients.GDocs/"]
+COPY ["RealEstateStar.Clients.GSheets/RealEstateStar.Clients.GSheets.csproj", "RealEstateStar.Clients.GSheets/"]
 COPY ["RealEstateStar.Clients.Stripe/RealEstateStar.Clients.Stripe.csproj", "RealEstateStar.Clients.Stripe/"]
 COPY ["RealEstateStar.Clients.Cloudflare/RealEstateStar.Clients.Cloudflare.csproj", "RealEstateStar.Clients.Cloudflare/"]
 COPY ["RealEstateStar.Clients.Turnstile/RealEstateStar.Clients.Turnstile.csproj", "RealEstateStar.Clients.Turnstile/"]
