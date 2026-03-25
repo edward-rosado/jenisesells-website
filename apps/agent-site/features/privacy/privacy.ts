@@ -2,8 +2,11 @@
 
 import { createApiClient } from "@real-estate-star/api-client";
 import { signRequest, getApiUrl } from "@/features/shared/hmac";
+import { checkRateLimit } from "@/features/shared/rate-limit";
 
 const VALID_AGENT_ID = /^[a-z0-9-]+$/;
+const RATE_LIMIT_MAX = 5; // 5 requests per minute per email per action
+const RATE_LIMIT_WINDOW_MS = 60_000;
 
 export async function requestOptOut(
   agentId: string,
@@ -11,6 +14,8 @@ export async function requestOptOut(
   token: string,
 ): Promise<{ ok: boolean; error?: string }> {
   if (!VALID_AGENT_ID.test(agentId)) return { ok: false, error: "Invalid request." };
+  const { allowed } = await checkRateLimit("opt-out", email, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
+  if (!allowed) return { ok: false, error: "Too many requests. Please try again later." };
   const body = JSON.stringify({ email, token });
   let cleanup: (() => void) | undefined;
   try {
@@ -37,6 +42,8 @@ export async function requestDeletion(
   email: string,
 ): Promise<{ ok: boolean; error?: string }> {
   if (!VALID_AGENT_ID.test(agentId)) return { ok: false, error: "Invalid request." };
+  const { allowed } = await checkRateLimit("deletion", email, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
+  if (!allowed) return { ok: false, error: "Too many requests. Please try again later." };
   const body = JSON.stringify({ email });
   let cleanup: (() => void) | undefined;
   try {
@@ -79,6 +86,8 @@ export async function requestExport(
   email: string,
 ): Promise<{ ok: boolean; data?: ExportData[]; error?: string }> {
   if (!VALID_AGENT_ID.test(agentId)) return { ok: false, error: "Invalid request." };
+  const { allowed } = await checkRateLimit("export", email, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
+  if (!allowed) return { ok: false, error: "Too many requests. Please try again later." };
   const apiKey = process.env.LEAD_API_KEY!;
   const hmacSecret = process.env.LEAD_HMAC_SECRET!;
   const timestamp = Math.floor(Date.now() / 1000).toString();
@@ -126,6 +135,8 @@ export async function requestSubscribe(
   token: string,
 ): Promise<{ ok: boolean; error?: string }> {
   if (!VALID_AGENT_ID.test(agentId)) return { ok: false, error: "Invalid request." };
+  const { allowed } = await checkRateLimit("subscribe", email, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
+  if (!allowed) return { ok: false, error: "Too many requests. Please try again later." };
   const body = JSON.stringify({ email, token });
   let cleanup: (() => void) | undefined;
   try {

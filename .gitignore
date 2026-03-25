@@ -57,6 +57,9 @@ config/agents/*.credentials.json
 # Generated config registry (rebuilt at build time)
 apps/agent-site/lib/config-registry.ts
 
+# OpenAPI spec (generated in CI from API build artifact, never committed)
+packages/api-client/openapi.json
+
 .superpowers/
 
 # Coverage reports

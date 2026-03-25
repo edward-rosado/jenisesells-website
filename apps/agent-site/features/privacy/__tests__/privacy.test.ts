@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { resetRateLimits } from "@/features/shared/rate-limit";
 
 const mockPost = vi.fn();
 const mockGet = vi.fn();
@@ -16,9 +17,10 @@ vi.mock("@/features/shared/hmac", () => ({
 }));
 
 describe("requestOptOut", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
+    await resetRateLimits();
   });
 
   it("returns ok:true when API responds with success", async () => {
@@ -66,9 +68,10 @@ describe("requestOptOut", () => {
 });
 
 describe("requestDeletion", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
+    await resetRateLimits();
   });
 
   it("returns ok:true when API responds with success", async () => {
@@ -116,9 +119,10 @@ describe("requestDeletion", () => {
 });
 
 describe("requestSubscribe", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
+    await resetRateLimits();
   });
 
   it("returns ok:true when API responds with success", async () => {
@@ -166,9 +170,10 @@ describe("requestSubscribe", () => {
 });
 
 describe("requestExport", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
+    await resetRateLimits();
     vi.stubEnv("LEAD_API_KEY", "test-api-key");
     vi.stubEnv("LEAD_HMAC_SECRET", "test-secret");
     vi.stubEnv("LEAD_API_URL", "http://test-api");
@@ -227,5 +232,72 @@ describe("requestExport", () => {
     const result = await requestExport("agent-123", "user@example.com");
 
     expect(result).toEqual({ ok: false, error: "Something went wrong. Please try again." });
+  });
+});
+
+describe("rate limiting", () => {
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    await resetRateLimits();
+  });
+
+  it("blocks requestOptOut after 5 rapid calls", async () => {
+    mockPost.mockResolvedValue({ data: {}, error: null, response: { ok: true, status: 200 } });
+    const { requestOptOut } = await import("@/features/privacy/privacy");
+
+    for (let i = 0; i < 5; i++) {
+      const result = await requestOptOut("agent-123", "spam@example.com", "token");
+      expect(result.ok).toBe(true);
+    }
+    const blocked = await requestOptOut("agent-123", "spam@example.com", "token");
+    expect(blocked).toEqual({ ok: false, error: "Too many requests. Please try again later." });
+  });
+
+  it("blocks requestDeletion after 5 rapid calls", async () => {
+    mockPost.mockResolvedValue({ data: {}, error: null, response: { ok: true, status: 200 } });
+    const { requestDeletion } = await import("@/features/privacy/privacy");
+
+    for (let i = 0; i < 5; i++) {
+      await requestDeletion("agent-123", "spam@example.com");
+    }
+    const blocked = await requestDeletion("agent-123", "spam@example.com");
+    expect(blocked).toEqual({ ok: false, error: "Too many requests. Please try again later." });
+  });
+
+  it("blocks requestExport after 5 rapid calls", async () => {
+    vi.stubEnv("LEAD_API_KEY", "test-api-key");
+    vi.stubEnv("LEAD_HMAC_SECRET", "test-secret");
+    mockGet.mockResolvedValue({ data: [], error: null, response: { ok: true, status: 200 } });
+    const { requestExport } = await import("@/features/privacy/privacy");
+
+    for (let i = 0; i < 5; i++) {
+      await requestExport("agent-123", "spam@example.com");
+    }
+    const blocked = await requestExport("agent-123", "spam@example.com");
+    expect(blocked).toEqual({ ok: false, error: "Too many requests. Please try again later." });
+  });
+
+  it("blocks requestSubscribe after 5 rapid calls", async () => {
+    mockPost.mockResolvedValue({ data: {}, error: null, response: { ok: true, status: 200 } });
+    const { requestSubscribe } = await import("@/features/privacy/privacy");
+
+    for (let i = 0; i < 5; i++) {
+      await requestSubscribe("agent-123", "spam@example.com", "token");
+    }
+    const blocked = await requestSubscribe("agent-123", "spam@example.com", "token");
+    expect(blocked).toEqual({ ok: false, error: "Too many requests. Please try again later." });
+  });
+
+  it("allows different emails even when one is blocked", async () => {
+    mockPost.mockResolvedValue({ data: {}, error: null, response: { ok: true, status: 200 } });
+    const { requestOptOut } = await import("@/features/privacy/privacy");
+
+    for (let i = 0; i < 5; i++) {
+      await requestOptOut("agent-123", "spam@example.com", "token");
+    }
+    // Different email should still work
+    const result = await requestOptOut("agent-123", "legit@example.com", "token");
+    expect(result.ok).toBe(true);
   });
 });
