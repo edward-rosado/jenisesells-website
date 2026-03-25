@@ -160,19 +160,42 @@ jobs:
 
           echo "Deployed URL: https://${FQDN}"
 
-          # Wait for the new revision to become ready
+          # Phase 1: Wait for container to be alive
+          echo "--- Phase 1: Liveness check ---"
           for i in $(seq 1 30); do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${FQDN}/health/live" || true)
             if [ "$STATUS" = "200" ]; then
-              echo "Health check passed"
-              exit 0
+              echo "Liveness check passed"
+              break
             fi
-            echo "Attempt $i/30: health check returned $STATUS, retrying in 10s..."
+            echo "Attempt $i/30: liveness returned $STATUS, retrying in 10s..."
             sleep 10
+            if [ "$i" = "30" ]; then
+              echo "Liveness check failed after 30 attempts"
+              exit 1
+            fi
           done
 
-          echo "Health check failed after 30 attempts"
-          exit 1
+          # Phase 2: Check readiness (includes OTLP, Claude API, etc.)
+          echo "--- Phase 2: Readiness check ---"
+          READY_RESPONSE=$(curl -s "https://${FQDN}/health/ready" || true)
+          READY_STATUS=$(echo "$READY_RESPONSE" | jq -r '.status // "unknown"' 2>/dev/null || echo "parse_error")
+          echo "Readiness response: $READY_RESPONSE"
+
+          if [ "$READY_STATUS" = "Unhealthy" ]; then
+            echo "::error::Readiness check UNHEALTHY — critical dependencies are broken"
+            # Extract which checks failed
+            echo "$READY_RESPONSE" | jq -r '.entries | to_entries[] | select(.value.status == "Unhealthy") | "  UNHEALTHY: \(.key) — \(.value.description)"' 2>/dev/null || true
+            exit 1
+          fi
+
+          if [ "$READY_STATUS" = "Degraded" ]; then
+            echo "::warning::Readiness check DEGRADED — some dependencies need attention"
+            echo "$READY_RESPONSE" | jq -r '.entries | to_entries[] | select(.value.status == "Degraded") | "  DEGRADED: \(.key) — \(.value.description)"' 2>/dev/null || true
+            # Degraded = deploy succeeds but with warning
+          fi
+
+          echo "Deployment verified: $READY_STATUS"
 
       - name: Rollback on failure
         if: failure()

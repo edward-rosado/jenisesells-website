@@ -545,6 +545,7 @@ builder.Services.AddSignalR();
 // Health checks
 builder.Services.AddSingleton<BackgroundServiceHealthTracker>();
 builder.Services.AddHealthChecks()
+    .AddCheck<OtlpExportHealthCheck>("otlp_export", tags: ["ready"])
     .AddCheck<ClaudeApiHealthCheck>("claude_api", tags: ["ready"])
     .AddCheck<GoogleDriveHealthCheck>("google_drive", tags: ["ready"])
     .AddCheck<ScraperApiHealthCheck>("scraper_api", tags: ["ready"])
