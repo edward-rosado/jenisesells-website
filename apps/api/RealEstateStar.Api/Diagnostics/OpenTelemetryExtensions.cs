@@ -16,10 +16,16 @@ public static class OpenTelemetryExtensions
 
     public static WebApplicationBuilder AddObservability(this WebApplicationBuilder builder)
     {
-        var otlpEndpoint = new Uri(
-            builder.Configuration["Otel:Endpoint"] ?? DefaultOtlpEndpoint);
+        var rawEndpoint = builder.Configuration["Otel:Endpoint"] ?? DefaultOtlpEndpoint;
         var otlpHeaders = builder.Configuration["Otel:Headers"] ?? "";
         var useHttpProtobuf = !string.IsNullOrEmpty(otlpHeaders);
+
+        // Ensure trailing slash so Uri combination appends paths correctly
+        // Without it: new Uri("https://host/otlp", "v1/traces") → /v1/traces (wrong)
+        // With it:    new Uri("https://host/otlp/", "v1/traces") → /otlp/v1/traces (correct)
+        var otlpBase = new Uri(rawEndpoint.TrimEnd('/') + "/");
+        var tracesEndpoint = useHttpProtobuf ? new Uri(otlpBase, "v1/traces") : otlpBase;
+        var metricsEndpoint = useHttpProtobuf ? new Uri(otlpBase, "v1/metrics") : otlpBase;
 
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource => resource
@@ -42,7 +48,7 @@ public static class OpenTelemetryExtensions
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>
                 {
-                    options.Endpoint = otlpEndpoint;
+                    options.Endpoint = tracesEndpoint;
                     options.Protocol = useHttpProtobuf ? OtlpExportProtocol.HttpProtobuf : OtlpExportProtocol.Grpc;
                     if (!string.IsNullOrEmpty(otlpHeaders))
                         options.Headers = otlpHeaders;
@@ -65,7 +71,7 @@ public static class OpenTelemetryExtensions
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>
                 {
-                    options.Endpoint = otlpEndpoint;
+                    options.Endpoint = metricsEndpoint;
                     options.Protocol = useHttpProtobuf ? OtlpExportProtocol.HttpProtobuf : OtlpExportProtocol.Grpc;
                     if (!string.IsNullOrEmpty(otlpHeaders))
                         options.Headers = otlpHeaders;
