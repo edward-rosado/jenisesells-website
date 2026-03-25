@@ -13,31 +13,36 @@ namespace RealEstateStar.Architecture.Tests;
 /// Verifies that all Domain interfaces have concrete implementations registered in DI.
 /// Catches the class of bug where a new service is created but never wired in Program.cs.
 /// </summary>
-public class DiRegistrationTests : IClassFixture<WebApplicationFactory<Program>>
+public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory>
 {
     private readonly IServiceProvider _services;
 
-    public DiRegistrationTests(WebApplicationFactory<Program> factory)
+    public DiRegistrationTests(TestFactory factory)
     {
-        // Build the service provider without starting the host (avoids needing real connections).
-        // Override config to prevent startup failures from missing secrets.
-        var app = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureAppConfiguration((ctx, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["Google:ClientId"] = "test",
-                    ["Google:ClientSecret"] = "test",
-                    ["Google:RedirectUri"] = "http://localhost/oauth/callback",
-                    ["Anthropic:ApiKey"] = "test",
-                    ["Hmac:HmacSecret"] = "test-secret-at-least-32-characters-long!!",
-                    ["ASPNETCORE_ENVIRONMENT"] = "Development",
-                });
-            });
-        });
+        _services = factory.Services;
+    }
 
-        _services = app.Services;
+    /// <summary>
+    /// Custom factory that sets required config values as environment variables
+    /// BEFORE the host builder runs, so Program.cs sees them during startup.
+    /// </summary>
+    public class TestFactory : WebApplicationFactory<Program>
+    {
+        protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
+        {
+            // Override ALL required config keys so Program.cs doesn't throw in CI
+            builder.UseSetting("Google:ClientId", "test");
+            builder.UseSetting("Google:ClientSecret", "test");
+            builder.UseSetting("Google:RedirectUri", "http://localhost/oauth/callback");
+            builder.UseSetting("Anthropic:ApiKey", "test");
+            builder.UseSetting("Stripe:SecretKey", "sk_test_fake");
+            builder.UseSetting("Stripe:WebhookSecret", "whsec_test_fake");
+            builder.UseSetting("Stripe:PriceId", "price_test_fake");
+            builder.UseSetting("Platform:BaseUrl", "http://localhost:3000");
+            builder.UseSetting("Hmac:HmacSecret", "test-secret-at-least-32-characters-long!!");
+            builder.UseSetting("Hmac:ApiKeys:test-key", "test-agent");
+            builder.UseSetting("ASPNETCORE_ENVIRONMENT", "Development");
+        }
     }
 
     /// <summary>
@@ -72,7 +77,6 @@ public class DiRegistrationTests : IClassFixture<WebApplicationFactory<Program>>
     {
         var service = _services.GetRequiredService<IFileStorageProvider>();
 
-        // FanOutStorageProvider is the production implementation — not LocalStorageProvider
         Assert.Equal("FanOutStorageProvider", service.GetType().Name);
     }
 
