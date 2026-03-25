@@ -123,7 +123,7 @@ jobs:
         run: |
           EXTRA_ENV_VARS=""
           if [ -n "$OTEL_ENDPOINT" ]; then
-            EXTRA_ENV_VARS="$EXTRA_ENV_VARS Otel__Endpoint=$OTEL_ENDPOINT Otel__Headers=$OTEL_HEADERS"
+            EXTRA_ENV_VARS="$EXTRA_ENV_VARS Otel__Endpoint=$OTEL_ENDPOINT"
           fi
           if [ -n "$WA_PHONE" ]; then
             EXTRA_ENV_VARS="WhatsApp__PhoneNumberId=secretref:whatsapp-phone-number-id WhatsApp__AccessToken=secretref:whatsapp-access-token WhatsApp__AppSecret=secretref:whatsapp-app-secret WhatsApp__VerifyToken=secretref:whatsapp-verify-token WhatsApp__WabaId=secretref:whatsapp-waba-id"
@@ -141,6 +141,14 @@ jobs:
             --resource-group "$RESOURCE_GROUP" \
             --image "$ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}" \
             ${EXTRA_ENV_VARS:+--set-env-vars $EXTRA_ENV_VARS}
+
+          # Set OTel headers separately — value contains spaces that get mangled in EXTRA_ENV_VARS
+          if [ -n "$OTEL_HEADERS" ]; then
+            az containerapp update \
+              --name "$CONTAINER_APP_NAME" \
+              --resource-group "$RESOURCE_GROUP" \
+              --set-env-vars "Otel__Headers=$OTEL_HEADERS"
+          fi
 
       - name: Verify deployment
         run: |
