@@ -32,18 +32,22 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
         continue-on-error: true
 
-      - name: Skip if no spec available
-        if: "github.event_name == 'workflow_run' && steps.download.outcome == 'failure'"
+      - name: Check if spec is available
+        id: check-spec
         run: |
-          echo "No openapi-spec artifact found (API build may have been skipped). Nothing to regenerate."
-          exit 0
+          if [ -f packages/api-client/openapi.json ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "No openapi.json found — skipping type generation."
+          fi
 
       - name: Generate TypeScript types
-        if: "steps.download.outcome != 'failure'"
+        if: "steps.check-spec.outputs.available == 'true'"
         run: npm run generate:ci --workspace=packages/api-client
 
       - name: Commit generated types
-        if: "steps.download.outcome != 'failure'"
+        if: "steps.check-spec.outputs.available == 'true'"
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
