@@ -10,7 +10,7 @@ namespace RealEstateStar.Api.Diagnostics;
 
 public static class OpenTelemetryExtensions
 {
-    private const string ServiceName = "RealEstateStar.Api";
+    private const string ServiceName = "real-estate-star-api";
     private const string OnboardingSourceName = "RealEstateStar.Onboarding";
     private const string DefaultOtlpEndpoint = "http://localhost:4317";
 
