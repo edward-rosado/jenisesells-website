@@ -30,11 +30,15 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
     {
         protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
         {
-            // These override any config source — highest priority
-            builder.UseSetting("Google:ClientId", "test-client-id");
-            builder.UseSetting("Google:ClientSecret", "test-client-secret");
+            // Override ALL required config keys so Program.cs doesn't throw in CI
+            builder.UseSetting("Google:ClientId", "test");
+            builder.UseSetting("Google:ClientSecret", "test");
             builder.UseSetting("Google:RedirectUri", "http://localhost/oauth/callback");
-            builder.UseSetting("Anthropic:ApiKey", "test-api-key");
+            builder.UseSetting("Anthropic:ApiKey", "test");
+            builder.UseSetting("Stripe:SecretKey", "sk_test_fake");
+            builder.UseSetting("Stripe:WebhookSecret", "whsec_test_fake");
+            builder.UseSetting("Stripe:PriceId", "price_test_fake");
+            builder.UseSetting("Platform:BaseUrl", "http://localhost:3000");
             builder.UseSetting("Hmac:HmacSecret", "test-secret-at-least-32-characters-long!!");
             builder.UseSetting("Hmac:ApiKeys:test-key", "test-agent");
             builder.UseSetting("ASPNETCORE_ENVIRONMENT", "Development");
