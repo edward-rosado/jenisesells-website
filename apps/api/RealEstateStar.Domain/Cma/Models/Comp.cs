@@ -7,7 +7,8 @@ public enum CompSource
 {
     Zillow,
     RealtorCom,
-    Redfin
+    Redfin,
+    RentCast
 }
 
 public class Comp
