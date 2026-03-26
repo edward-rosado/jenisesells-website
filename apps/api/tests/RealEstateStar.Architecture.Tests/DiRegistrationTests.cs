@@ -5,6 +5,7 @@ using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Notifications.Interfaces;
+using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Privacy.Interfaces;
 
 namespace RealEstateStar.Architecture.Tests;
@@ -41,6 +42,7 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
             builder.UseSetting("Platform:BaseUrl", "http://localhost:3000");
             builder.UseSetting("Hmac:HmacSecret", "test-secret-at-least-32-characters-long!!");
             builder.UseSetting("Hmac:ApiKeys:test-key", "test-agent");
+            builder.UseSetting("RentCast:ApiKey", "test-rentcast-key");
             builder.UseSetting("ASPNETCORE_ENVIRONMENT", "Development");
         }
     }
@@ -65,6 +67,7 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
     [InlineData(typeof(ILeadNotifier))]
     [InlineData(typeof(ILeadDataDeletion))]
     [InlineData(typeof(IMarketingConsentLog))]
+    [InlineData(typeof(IRentCastClient))]
     public void Domain_interface_resolves_from_DI(Type interfaceType)
     {
         var service = _services.GetService(interfaceType);

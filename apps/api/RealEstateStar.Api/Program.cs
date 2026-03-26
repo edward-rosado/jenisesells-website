@@ -41,8 +41,10 @@ using RealEstateStar.Clients.GSheets;
 using RealEstateStar.Clients.Gmail;
 using RealEstateStar.Clients.GoogleOAuth;
 using RealEstateStar.Clients.Gws;
+using RealEstateStar.Clients.RentCast;
 using RealEstateStar.Clients.Scraper;
 using RealEstateStar.Clients.WhatsApp;
+using RealEstateStar.Domain.Cma.Interfaces;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -392,8 +394,6 @@ var leadSources = builder.Configuration.GetSection("Pipeline:Lead:Sources")
     .Get<Dictionary<string, string>>() ?? new();
 var homeSearchSources = builder.Configuration.GetSection("Pipeline:HomeSearch:Sources")
     .Get<Dictionary<string, string>>() ?? new();
-var cmaSources = builder.Configuration.GetSection("Pipeline:Cma:Sources")
-    .Get<Dictionary<string, string>>() ?? new();
 
 // Lead enrichment
 builder.Services.AddSingleton<ILeadEnricher>(sp =>
@@ -411,25 +411,27 @@ builder.Services.AddSingleton<IHomeSearchProvider>(sp =>
         homeSearchSources,
         sp.GetRequiredService<ILogger<ScraperHomeSearchProvider>>()));
 
+// RentCast client — structured comp data for CMA pipeline
+builder.Services.Configure<RentCastOptions>(builder.Configuration.GetSection("RentCast"));
+builder.Services.AddSingleton<IRentCastClient, RentCastClient>();
+builder.Services.AddHttpClient("RentCast")
+    .AddRentCastResilience(pollyLogger);
+
+// CMA comp source — single RentCast source replaces three-scraper loop
+builder.Services.AddSingleton<ICompSource, RentCastCompSource>();
+
+var rentCastKey = builder.Configuration["RentCast:ApiKey"];
+if (!string.IsNullOrWhiteSpace(rentCastKey))
+    Log.Information("[STARTUP-090] RentCast API configured. Monthly limit warning threshold: {Percent}%",
+        builder.Configuration.GetValue<int>("RentCast:MonthlyLimitWarningPercent", 80));
+else
+    Log.Warning("[STARTUP-091] RentCast:ApiKey not configured — CMA comp fetch will return empty results");
+
 // CMA pipeline services
 builder.Services.AddSingleton<ICompAggregator>(sp =>
     new CompAggregator(
         sp.GetServices<ICompSource>(),
         sp.GetRequiredService<ILogger<CompAggregator>>()));
-foreach (var (sourceName, urlPattern) in cmaSources)
-{
-    if (!Enum.TryParse<CompSource>(sourceName, ignoreCase: true, out var source))
-    {
-        Log.Warning("[STARTUP-060] Unknown comp source '{SourceName}' in config, skipping", sourceName);
-        continue;
-    }
-    builder.Services.AddSingleton<ICompSource>(sp =>
-        new ScraperCompSource(
-            sp.GetRequiredService<IAnthropicClient>(),
-            sp.GetRequiredService<IScraperClient>(),
-            source, urlPattern,
-            sp.GetRequiredService<ILogger<ScraperCompSource>>()));
-}
 builder.Services.AddSingleton<ICmaAnalyzer>(sp =>
     new ClaudeCmaAnalyzer(
         sp.GetRequiredService<IAnthropicClient>(),
@@ -549,6 +551,7 @@ builder.Services.AddHealthChecks()
     .AddCheck<ClaudeApiHealthCheck>("claude_api", tags: ["ready"])
     .AddCheck<GoogleDriveHealthCheck>("google_drive", tags: ["ready"])
     .AddCheck<ScraperApiHealthCheck>("scraper_api", tags: ["ready"])
+    .AddCheck<RentCastHealthCheck>("rentcast_api", tags: ["ready"])
     .AddCheck<TurnstileHealthCheck>("turnstile", tags: ["ready"])
     .AddCheck<BackgroundServiceHealthCheck>("background_workers", tags: ["ready", "workers"]);
 

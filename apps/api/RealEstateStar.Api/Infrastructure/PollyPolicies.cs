@@ -210,4 +210,55 @@ public static class PollyPolicies
 
         return builder;
     }
+
+    /// <summary>
+    /// RentCast API: 1x retry (5s, jitter) + circuit breaker (5 failures / 60s → 1 min break).
+    /// Log codes: [RENTCAST-030] retry, [RENTCAST-031] CB opened, [RENTCAST-032] CB closed.
+    /// </summary>
+    public static IHttpClientBuilder AddRentCastResilience(this IHttpClientBuilder builder, ILogger logger)
+    {
+        builder.AddResilienceHandler("rentcast-api", pipeline =>
+        {
+            pipeline.AddRetry(new HttpRetryStrategyOptions
+            {
+                MaxRetryAttempts = 1,
+                BackoffType = DelayBackoffType.Constant,
+                Delay = TimeSpan.FromSeconds(5),
+                UseJitter = true,
+                OnRetry = args =>
+                {
+                    logger.LogWarning(
+                        "[RENTCAST-030] RentCast retry {Attempt}/{MaxAttempts} after {DelayMs}ms. Status: {Status}. Error: {Error}",
+                        args.AttemptNumber + 1, 1,
+                        args.RetryDelay.TotalMilliseconds,
+                        args.Outcome.Result?.StatusCode,
+                        args.Outcome.Exception?.Message);
+                    return ValueTask.CompletedTask;
+                }
+            });
+
+            pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+            {
+                FailureRatio = 1.0,
+                MinimumThroughput = 5,
+                SamplingDuration = TimeSpan.FromSeconds(60),
+                BreakDuration = TimeSpan.FromMinutes(1),
+                OnOpened = args =>
+                {
+                    logger.LogError(
+                        "[RENTCAST-031] RentCast API circuit OPEN for {BreakDurationSec}s. Last error: {Error}",
+                        args.BreakDuration.TotalSeconds,
+                        args.Outcome.Exception?.Message ?? args.Outcome.Result?.StatusCode.ToString());
+                    return ValueTask.CompletedTask;
+                },
+                OnClosed = _ =>
+                {
+                    logger.LogInformation("[RENTCAST-032] RentCast API circuit CLOSED — resuming normal traffic.");
+                    return ValueTask.CompletedTask;
+                }
+            });
+        });
+
+        return builder;
+    }
 }

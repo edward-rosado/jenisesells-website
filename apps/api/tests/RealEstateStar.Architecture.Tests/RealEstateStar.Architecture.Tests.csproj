@@ -41,6 +41,7 @@
     <ProjectReference Include="../../RealEstateStar.Clients.Turnstile/RealEstateStar.Clients.Turnstile.csproj" />
     <ProjectReference Include="../../RealEstateStar.Clients.Azure/RealEstateStar.Clients.Azure.csproj" />
     <ProjectReference Include="../../RealEstateStar.Clients.Gws/RealEstateStar.Clients.Gws.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients.RentCast/RealEstateStar.Clients.RentCast.csproj" />
     <ProjectReference Include="../../RealEstateStar.Api/RealEstateStar.Api.csproj" />
     <ProjectReference Include="../RealEstateStar.TestUtilities/RealEstateStar.TestUtilities.csproj" />
   </ItemGroup>
