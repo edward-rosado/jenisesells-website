@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="RealEstateStar.Api" />
     <InternalsVisibleTo Include="RealEstateStar.Clients.RentCast.Tests" />
   </ItemGroup>
   <ItemGroup>
