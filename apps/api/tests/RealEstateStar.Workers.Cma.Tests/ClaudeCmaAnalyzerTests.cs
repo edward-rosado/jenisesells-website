@@ -100,6 +100,81 @@ public class ClaudeCmaAnalyzerTests
         prompt.Should().Contain("Comp 2");
     }
 
+    [Fact]
+    public void BuildPrompt_RecentComp_AnnotatesWithRecentLabel()
+    {
+        var lead = MakeLead();
+        var comp = new Comp
+        {
+            Address = "456 Oak Ave",
+            SalePrice = 520_000m,
+            SaleDate = new DateOnly(2025, 2, 10),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 1850,
+            DistanceMiles = 0.4,
+            Source = CompSource.Zillow,
+            IsRecent = true
+        };
+
+        var prompt = ClaudeCmaAnalyzer.BuildPrompt(lead, [comp]);
+
+        prompt.Should().Contain("[Recent]");
+        prompt.Should().NotContain("[Older sale");
+    }
+
+    [Fact]
+    public void BuildPrompt_OlderComp_AnnotatesWithMonthsAgoLabel()
+    {
+        var lead = MakeLead();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var saleDate = today.AddMonths(-9);
+        var comp = new Comp
+        {
+            Address = "456 Oak Ave",
+            SalePrice = 520_000m,
+            SaleDate = saleDate,
+            Beds = 3,
+            Baths = 2,
+            Sqft = 1850,
+            DistanceMiles = 0.4,
+            Source = CompSource.RentCast,
+            IsRecent = false
+        };
+
+        var prompt = ClaudeCmaAnalyzer.BuildPrompt(lead, [comp]);
+
+        prompt.Should().Contain("[Older sale — 9 months ago]");
+        prompt.Should().NotContain("[Recent]");
+    }
+
+    [Fact]
+    public void BuildPrompt_DoesNotIncludeSourceLine()
+    {
+        var lead = MakeLead();
+        var comps = new List<Comp>
+        {
+            MakeComp("456 Oak Ave"),
+            new Comp
+            {
+                Address = "789 Pine Rd",
+                SalePrice = 510_000m,
+                SaleDate = new DateOnly(2025, 1, 15),
+                Beds = 3,
+                Baths = 2,
+                Sqft = 1800,
+                DistanceMiles = 0.5,
+                Source = CompSource.RentCast
+            }
+        };
+
+        var prompt = ClaudeCmaAnalyzer.BuildPrompt(lead, comps);
+
+        prompt.Should().NotContain("Source:");
+        prompt.Should().NotContain("RentCast");
+        prompt.Should().NotContain("Zillow");
+    }
+
     // ---------------------------------------------------------------------------
     // ParseResponse — happy path
     // ---------------------------------------------------------------------------
