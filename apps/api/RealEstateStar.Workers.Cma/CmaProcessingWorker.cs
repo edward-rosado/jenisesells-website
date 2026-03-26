@@ -104,6 +104,9 @@ public sealed class CmaProcessingWorker(
             var fileName = $"{DateTime.UtcNow:yyyy-MM-dd}-CMA-Report.pdf.b64";
             var pdfBytes = await File.ReadAllBytesAsync(pdfPath, ct);
 
+            // Record PDF size metric
+            CmaDiagnostics.PdfSizeBytes.Record(pdfBytes.Length);
+
             // Store as base64 since IDocumentStorageProvider only supports text content.
             // The .b64 extension signals this needs base64-decoding to get the original PDF.
             await documentStorage.WriteDocumentAsync(folder, fileName, Convert.ToBase64String(pdfBytes), ct);
