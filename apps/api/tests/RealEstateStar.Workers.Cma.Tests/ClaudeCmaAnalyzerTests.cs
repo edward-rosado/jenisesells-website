@@ -406,18 +406,14 @@ public class ClaudeCmaAnalyzerTests
     {
         // The content after "```" has no newline — firstNewline will be -1,
         // so the fence-stripping inner branch is NOT taken.
-        // The string does NOT start with "```" once we look at it carefully,
-        // but if we craft it so it DOES start with "```" but has no newline:
-        // "```{...}" — firstNewline = -1, so we skip the slice.
-        // However the resulting cleaned string would be "```{...}" which
-        // is invalid JSON, so we expect a JsonException.
+        // The JSON extraction fallback finds the '{' and extracts valid JSON.
         var json = "```" + MakeValidJson().Replace('\n', ' ');
 
-        var act = () => ClaudeCmaAnalyzer.ParseResponse(json);
+        var result = ClaudeCmaAnalyzer.ParseResponse(json);
 
-        // Either it throws a parse error (the false branch path) OR
-        // a JsonException because "```{...}" isn't valid JSON.
-        act.Should().Throw<Exception>();
+        // The fallback successfully extracts JSON from the malformed input
+        result.Should().NotBeNull();
+        result.ValueLow.Should().BeGreaterThan(0);
     }
 
     [Fact]
