@@ -24,6 +24,7 @@ public class CmaProcessingWorkerTests
     private readonly Mock<IDocumentStorageProvider> _documentStorage = new();
     private readonly BackgroundServiceHealthTracker _healthTracker = new();
     private readonly Mock<ILogger<CmaProcessingWorker>> _logger = new();
+    private readonly Mock<IImageResolver> _imageResolver = new();
 
     private static IConfiguration EmptyConfig() =>
         new ConfigurationBuilder().Build();
@@ -50,7 +51,8 @@ public class CmaProcessingWorkerTests
     private CmaProcessingWorker CreateWorker(IConfiguration? config = null, RentCastCompSource? rentCastCompSource = null) =>
         new(_channel, _compAggregator.Object, rentCastCompSource ?? MakeRentCastCompSource(),
             _cmaAnalyzer.Object, _pdfGenerator.Object, _cmaNotifier.Object, _accountConfigService.Object,
-            _documentStorage.Object, _healthTracker, _logger.Object, config ?? EmptyConfig());
+            _documentStorage.Object, _healthTracker, _logger.Object, config ?? EmptyConfig(),
+            _imageResolver.Object);
 
     private static Lead MakeLead() => new()
     {
@@ -99,6 +101,11 @@ public class CmaProcessingWorkerTests
             .Setup(a => a.GetAccountAsync("test-agent", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AccountConfig { Agent = new AccountAgent { Name = "Test Agent", Email = "agent@test.com" } });
 
+    private void SetupImageResolver(byte[]? bytes = null) =>
+        _imageResolver
+            .Setup(r => r.ResolveAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(bytes);
+
     [Fact]
     public async Task ProcessesCma_FullPipeline_WhenCompsFound()
     {
@@ -113,9 +120,11 @@ public class CmaProcessingWorkerTests
             .Setup(a => a.AnalyzeAsync(It.IsAny<Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(analysis);
         SetupAccountConfig();
+        SetupImageResolver();
         _pdfGenerator
             .Setup(g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
-                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<byte[]?>(), It.IsAny<byte[]?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(pdfPath);
         _cmaNotifier
             .Setup(n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),
@@ -139,7 +148,7 @@ public class CmaProcessingWorkerTests
             Times.Once);
         _pdfGenerator.Verify(
             g => g.GenerateAsync(It.IsAny<Lead>(), analysis, comps, It.IsAny<AccountConfig>(),
-                It.IsAny<ReportType>(), It.IsAny<CancellationToken>()),
+                It.IsAny<ReportType>(), It.IsAny<byte[]?>(), It.IsAny<byte[]?>(), It.IsAny<CancellationToken>()),
             Times.Once);
         _cmaNotifier.Verify(
             n => n.NotifySellerAsync("test-agent", It.IsAny<Lead>(), pdfPath, analysis, "corr-123", It.IsAny<CancellationToken>()),
@@ -167,7 +176,8 @@ public class CmaProcessingWorkerTests
             Times.Never);
         _pdfGenerator.Verify(
             g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
-                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()),
+                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<byte[]?>(), It.IsAny<byte[]?>(),
+                It.IsAny<CancellationToken>()),
             Times.Never);
         _cmaNotifier.Verify(
             n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),
@@ -186,9 +196,11 @@ public class CmaProcessingWorkerTests
             .Setup(a => a.AnalyzeAsync(It.IsAny<Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeAnalysis());
         SetupAccountConfig();
+        SetupImageResolver();
         _pdfGenerator
             .Setup(g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
-                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<byte[]?>(), It.IsAny<byte[]?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync("/tmp/cma-test.pdf");
         _cmaNotifier
             .Setup(n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),
@@ -268,9 +280,11 @@ public class CmaProcessingWorkerTests
             .Setup(a => a.AnalyzeAsync(It.IsAny<Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeAnalysis());
         SetupAccountConfig();
+        SetupImageResolver();
         _pdfGenerator
             .Setup(g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
-                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<byte[]?>(), It.IsAny<byte[]?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(tempFile); // return a real file path that exists
         _cmaNotifier
             .Setup(n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),
@@ -334,6 +348,59 @@ public class CmaProcessingWorkerTests
     }
 
     // ---------------------------------------------------------------------------
+    // Image resolver — failure is non-fatal
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task ImageResolverFailure_IsNonFatal_PipelineCompletes()
+    {
+        var comps = MakeComps(3);
+        var analysis = MakeAnalysis();
+        var pdfPath = "/tmp/cma-test.pdf";
+
+        _compAggregator
+            .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(comps);
+        _cmaAnalyzer
+            .Setup(a => a.AnalyzeAsync(It.IsAny<Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(analysis);
+        SetupAccountConfig();
+
+        // Image resolver throws — should be swallowed
+        _imageResolver
+            .Setup(r => r.ResolveAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("network error"));
+
+        _pdfGenerator
+            .Setup(g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
+                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<byte[]?>(), It.IsAny<byte[]?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(pdfPath);
+        _cmaNotifier
+            .Setup(n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),
+                It.IsAny<CmaAnalysis>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var worker = CreateWorker();
+        var cts = new CancellationTokenSource();
+
+        await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
+        _channel.Writer.Complete();
+
+        await worker.StartAsync(cts.Token);
+        var act = async () => await worker.ExecuteTask!;
+
+        // Pipeline should not crash even if image resolution fails
+        await act.Should().NotThrowAsync();
+
+        // PDF was still generated (with null image bytes)
+        _pdfGenerator.Verify(
+            g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
+                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), null, null, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    // ---------------------------------------------------------------------------
     // EnrichSubjectAsync — fills missing beds/baths/sqft from RentCast subject
     // ---------------------------------------------------------------------------
 
@@ -374,9 +441,11 @@ public class CmaProcessingWorkerTests
             .Callback<Lead, List<Comp>, CancellationToken>((lead, _, _) => capturedLead = lead)
             .ReturnsAsync(MakeAnalysis());
         SetupAccountConfig();
+        SetupImageResolver();
         _pdfGenerator
             .Setup(g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
-                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<byte[]?>(), It.IsAny<byte[]?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync("/tmp/cma-test.pdf");
         _cmaNotifier
             .Setup(n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),
@@ -419,9 +488,11 @@ public class CmaProcessingWorkerTests
             .Callback<Lead, List<Comp>, CancellationToken>((lead, _, _) => capturedLead = lead)
             .ReturnsAsync(MakeAnalysis());
         SetupAccountConfig();
+        SetupImageResolver();
         _pdfGenerator
             .Setup(g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
-                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<byte[]?>(), It.IsAny<byte[]?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync("/tmp/cma-test.pdf");
         _cmaNotifier
             .Setup(n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),
@@ -464,9 +535,11 @@ public class CmaProcessingWorkerTests
             .Callback<Lead, List<Comp>, CancellationToken>((lead, _, _) => capturedLead = lead)
             .ReturnsAsync(MakeAnalysis());
         SetupAccountConfig();
+        SetupImageResolver();
         _pdfGenerator
             .Setup(g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
-                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<byte[]?>(), It.IsAny<byte[]?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync("/tmp/cma-test.pdf");
         _cmaNotifier
             .Setup(n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),
@@ -508,9 +581,11 @@ public class CmaProcessingWorkerTests
             .Callback<Lead, List<Comp>, CancellationToken>((lead, _, _) => capturedLead = lead)
             .ReturnsAsync(MakeAnalysis());
         SetupAccountConfig();
+        SetupImageResolver();
         _pdfGenerator
             .Setup(g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
-                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<byte[]?>(), It.IsAny<byte[]?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync("/tmp/cma-test.pdf");
         _cmaNotifier
             .Setup(n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),
@@ -551,9 +626,11 @@ public class CmaProcessingWorkerTests
             .Callback<Lead, List<Comp>, CancellationToken>((lead, _, _) => capturedLead = lead)
             .ReturnsAsync(MakeAnalysis());
         SetupAccountConfig();
+        SetupImageResolver();
         _pdfGenerator
             .Setup(g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
-                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<byte[]?>(), It.IsAny<byte[]?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync("/tmp/cma-test.pdf");
         _cmaNotifier
             .Setup(n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),

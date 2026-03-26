@@ -443,6 +443,14 @@ builder.Services.AddSingleton<ICmaPdfGenerator, CmaPdfGenerator>();
 builder.Services.AddSingleton<ICmaNotifier, CmaSellerNotifier>();
 builder.Services.AddSingleton<IHomeSearchNotifier, HomeSearchBuyerNotifier>();
 
+// Image resolver — local-first (agent-site public dir → live site HTTP fallback)
+builder.Services.AddHttpClient("image-resolver", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("RealEstateStar-CmaPdfGenerator/1.0");
+});
+builder.Services.AddSingleton<IImageResolver, LocalFirstImageResolver>();
+
 // Named HttpClients used by services with hardcoded client names
 builder.Services.AddHttpClient("ScraperAPI")
     .AddScraperApiResilience(pollyLogger);
