@@ -17,6 +17,7 @@ public sealed class CmaProcessingWorker(
     ICmaPdfGenerator pdfGenerator,
     ICmaNotifier cmaNotifier,
     IAccountConfigService accountConfigService,
+    IDocumentStorageProvider documentStorage,
     BackgroundServiceHealthTracker healthTracker,
     ILogger<CmaProcessingWorker> logger,
     IConfiguration configuration)
@@ -51,6 +52,7 @@ public sealed class CmaProcessingWorker(
 
         await RunStepAsync(ctx, CmaPipelineContext.StepAnalyze, () => AnalyzeAsync(ctx, ct), ct);
         await RunStepAsync(ctx, CmaPipelineContext.StepGeneratePdf, () => GeneratePdfAsync(ctx, ct), ct);
+        await StorePdfAsync(ctx, ct);
         await RunStepAsync(ctx, CmaPipelineContext.StepNotifySeller, () => NotifySellerAsync(ctx, ct), ct);
 
         CmaDiagnostics.CmaGenerated.Add(1);
@@ -88,6 +90,35 @@ public sealed class CmaProcessingWorker(
         var reportType = DetermineReportType(ctx.Comps!.Count);
         var pdfPath = await pdfGenerator.GenerateAsync(ctx.Request, ctx.Analysis!, ctx.Comps!, accountConfig, reportType, ct);
         ctx.Set("pdf-path", pdfPath);
+    }
+
+    private async Task StorePdfAsync(CmaPipelineContext ctx, CancellationToken ct)
+    {
+        var pdfPath = ctx.Get<string>("pdf-path");
+        if (pdfPath is null || !File.Exists(pdfPath)) return;
+
+        try
+        {
+            var seller = ctx.Request.SellerDetails!;
+            var folder = $"Real Estate Star/1 - Leads/{ctx.Request.FullName}/{seller.Address}, {seller.City}, {seller.State} {seller.Zip}";
+            var fileName = $"{DateTime.UtcNow:yyyy-MM-dd}-CMA-Report.pdf.b64";
+            var pdfBytes = await File.ReadAllBytesAsync(pdfPath, ct);
+
+            // Store as base64 since IDocumentStorageProvider only supports text content.
+            // The .b64 extension signals this needs base64-decoding to get the original PDF.
+            await documentStorage.WriteDocumentAsync(folder, fileName, Convert.ToBase64String(pdfBytes), ct);
+
+            logger.LogInformation(
+                "[CmaWorker-020] CMA PDF stored. Lead: {LeadId}, Size: {SizeKB}KB",
+                ctx.Request.Id, pdfBytes.Length / 1024);
+        }
+        catch (Exception ex)
+        {
+            // Best-effort — don't fail the pipeline if storage fails
+            logger.LogWarning(ex,
+                "[CmaWorker-021] Failed to store CMA PDF. Lead: {LeadId}",
+                ctx.Request.Id);
+        }
     }
 
     private async Task NotifySellerAsync(CmaPipelineContext ctx, CancellationToken ct)

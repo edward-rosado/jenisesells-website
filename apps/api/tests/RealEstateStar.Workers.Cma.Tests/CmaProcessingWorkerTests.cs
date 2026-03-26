@@ -20,6 +20,7 @@ public class CmaProcessingWorkerTests
     private readonly Mock<ICmaPdfGenerator> _pdfGenerator = new();
     private readonly Mock<ICmaNotifier> _cmaNotifier = new();
     private readonly Mock<IAccountConfigService> _accountConfigService = new();
+    private readonly Mock<IDocumentStorageProvider> _documentStorage = new();
     private readonly BackgroundServiceHealthTracker _healthTracker = new();
     private readonly Mock<ILogger<CmaProcessingWorker>> _logger = new();
 
@@ -38,7 +39,7 @@ public class CmaProcessingWorkerTests
 
     private CmaProcessingWorker CreateWorker(IConfiguration? config = null) =>
         new(_channel, _compAggregator.Object, _cmaAnalyzer.Object,
-            _pdfGenerator.Object, _cmaNotifier.Object, _accountConfigService.Object, _healthTracker, _logger.Object,
+            _pdfGenerator.Object, _cmaNotifier.Object, _accountConfigService.Object, _documentStorage.Object, _healthTracker, _logger.Object,
             config ?? EmptyConfig());
 
     private static Lead MakeLead() => new()
