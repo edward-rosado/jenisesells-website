@@ -15,13 +15,20 @@
 ## Spawn Pattern
 
 ```
-Phase 1: Launch Tasks 1–4 in parallel (4 agents) — Domain models + interfaces
-Phase 2: Launch Tasks 5–8 in parallel (4 agents) — Workers refactored + PDF worker + scoring
-Phase 3: Launch Tasks 9–11 in parallel (3 agents) — Orchestrator + email template + WhatsApp
-Phase 4: Launch Tasks 12–14 in parallel (3 agents) — DI wiring + cleanup + architecture tests
-Phase 5: Launch Task 15 (1 agent) — Diagnostics + Grafana dashboard
-Phase 6: Launch Task 16 (1 agent) — End-to-end integration test
+Phase 1: Launch Tasks 1–5 in parallel (5 agents) — Domain models + interfaces (including IAgentNotifier, ILeadEmailDrafter)
+Phase 1.5: Launch Task 6 alone (1 agent) — LeadStatus + cleanup (broad blast radius, must run alone)
+Phase 2: Launch Tasks 7–10 in parallel (4 agents) — Workers refactored + PDF worker + scoring
+Phase 3: Launch Tasks 11–13 in parallel (3 agents) — Orchestrator + email template + WhatsApp
+Phase 4: Launch Tasks 14–16 in parallel (3 agents) — DI wiring + cleanup + architecture tests
+Phase 5: Launch Task 17 (1 agent) — Diagnostics + Grafana dashboard
+Phase 6: Launch Task 18 (1 agent) — End-to-end integration test
 ```
+
+**Important codebase notes for implementers:**
+- WhatsApp interface is `IWhatsAppSender` (not IWhatsAppSender). Located at `Domain/Shared/Interfaces/Senders/IWhatsAppSender.cs`.
+- `CompSummary`/`ListingSummary` (Task 2) must align with existing CMA `Comp` and HomeSearch listing models — read those files before implementing.
+- `DiRegistrationTests.cs` and `TestWebApplicationFactory` both reference removed interfaces — must be updated in Task 14.
+- The `CascadingAgentNotifier` in Notifications/ is replaced by the new `AgentNotifier` — listed for deletion in Task 15.
 
 ---
 
@@ -29,6 +36,8 @@ Phase 6: Launch Task 16 (1 agent) — End-to-end integration test
 
 **Files to create:**
 - `apps/api/RealEstateStar.Domain/Leads/Interfaces/ILeadScorer.cs` — new scoring interface
+- `apps/api/RealEstateStar.Domain/Leads/Interfaces/ILeadEmailDrafter.cs` — email drafting interface (Phase 1)
+- `apps/api/RealEstateStar.Domain/Leads/Interfaces/IAgentNotifier.cs` — agent notification interface (Phase 1)
 - `apps/api/RealEstateStar.Domain/Leads/Models/AgentNotificationConfig.cs` — agent config subset for dispatch payloads
 - `apps/api/RealEstateStar.Domain/Leads/Models/WorkerResults.cs` — sealed result hierarchy
 - `apps/api/RealEstateStar.Domain/Orchestration/OrchestratorDiagnostics.cs` — new diagnostics class
@@ -72,7 +81,13 @@ Phase 6: Launch Task 16 (1 agent) — End-to-end integration test
 - `apps/api/RealEstateStar.Domain/Leads/Interfaces/ILeadNotifier.cs`
 - `apps/api/RealEstateStar.Domain/Leads/Interfaces/IFailedNotificationStore.cs`
 - `apps/api/RealEstateStar.Notifications/Leads/MultiChannelLeadNotifier.cs`
+- `apps/api/RealEstateStar.Notifications/Leads/CascadingAgentNotifier.cs`
+- `apps/api/RealEstateStar.Notifications/Cma/CmaSellerNotifier.cs`
+- `apps/api/RealEstateStar.Notifications/HomeSearch/HomeSearchBuyerNotifier.cs`
 - `apps/api/tests/RealEstateStar.Workers.Leads.Tests/ScraperLeadEnricherTests.cs`
+- `apps/api/tests/RealEstateStar.Notifications.Tests/Leads/CascadingAgentNotifierTests.cs` (if exists)
+- `apps/api/tests/RealEstateStar.Notifications.Tests/Cma/CmaSellerNotifierTests.cs` (if exists)
+- `apps/api/tests/RealEstateStar.Notifications.Tests/HomeSearch/HomeSearchBuyerNotifierTests.cs` (if exists)
 
 ---
 
@@ -792,7 +807,7 @@ Test cases:
 
 ```csharp
 public class AgentNotifier(
-    IWhatsAppClient whatsAppClient,
+    IWhatsAppSender whatsAppClient,
     IGmailSender gmailSender,
     ILogger<AgentNotifier> logger) : IAgentNotifier
 {
@@ -1001,7 +1016,7 @@ git commit -m "test: update architecture tests — workers must not reference st
 
 Follow the exact pattern from `LeadDiagnostics.cs`. Define:
 - ActivitySource: `"RealEstateStar.Orchestrator"` v1.0.0
-- All 16 counters from the spec (leads_processed, leads_completed, leads_partial, leads_failed, worker_dispatches, worker_completions, worker_timeouts, email_sent, email_failed, whatsapp_sent, whatsapp_failed, checkpoints_written, checkpoints_resumed, claude_tokens.input, claude_tokens.output)
+- All 15 counters from the spec (leads_processed, leads_completed, leads_partial, leads_failed, worker_dispatches, worker_completions, worker_timeouts, email_sent, email_failed, whatsapp_sent, whatsapp_failed, checkpoints_written, checkpoints_resumed, claude_tokens.input, claude_tokens.output)
 - All 7 histograms from the spec (total_duration_ms, score_duration_ms, collect_duration_ms, pdf_duration_ms, email_draft_duration_ms, email_send_duration_ms, whatsapp_send_duration_ms)
 
 - [ ] **Step 2: Register in OpenTelemetryExtensions.cs**
@@ -1033,7 +1048,7 @@ dotnet test apps/api/RealEstateStar.Api.sln --no-restore --logger "console;verbo
 
 ```bash
 git add -A
-git commit -m "feat: add OrchestratorDiagnostics — 16 counters, 7 histograms, 9 trace spans + Grafana row"
+git commit -m "feat: add OrchestratorDiagnostics — 15 counters, 7 histograms, 9 trace spans + Grafana row"
 ```
 
 ---
@@ -1056,7 +1071,7 @@ Test cases:
 4. **Partial failure:** CMA times out → email sent without PDF → WhatsApp sent with "CMA pending"
 5. **Resume after crash:** Checkpoint at "results collected" → restart → skips dispatch → sends notifications
 
-Use in-memory channels, mock `IAnthropicClient`, mock `IGmailSender`, mock `IWhatsAppClient`, mock `IFileStorageProvider`, mock `IRentCastClient`.
+Use in-memory channels, mock `IAnthropicClient`, mock `IGmailSender`, mock `IWhatsAppSender`, mock `IFileStorageProvider`, mock `IRentCastClient`.
 
 - [ ] **Step 2: Run integration tests**
 
