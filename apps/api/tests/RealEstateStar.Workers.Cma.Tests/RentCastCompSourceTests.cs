@@ -249,6 +249,121 @@ public class RentCastCompSourceTests
     }
 
     // ---------------------------------------------------------------------------
+    // MapComps — tiered comp selection (5-comp target, 6-month recency preference)
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void MapComps_FiveOrMoreRecentComps_TakesOnlyRecent()
+    {
+        var today = new DateTimeOffset(2026, 3, 26, 0, 0, 0, TimeSpan.Zero);
+        var recentDate = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero); // within 6 months
+
+        // 7 recent comps, correlations 0.9 down to 0.3
+        var comps = Enumerable.Range(1, 7)
+            .Select(i => MakeComp(
+                address: $"{i} Recent St, Freehold, NJ 07728",
+                removedDate: recentDate) with { Correlation = 1.0 - (i * 0.1) })
+            .ToList();
+
+        var result = RentCastCompSource.MapComps(comps, MakeRequest(), NullLogger.Instance, today);
+
+        result.Should().HaveCount(5);
+        result.Should().AllSatisfy(c => c.IsRecent.Should().BeTrue());
+    }
+
+    [Fact]
+    public void MapComps_FewerThanFiveRecent_BackfillsWithOlder()
+    {
+        var today = new DateTimeOffset(2026, 3, 26, 0, 0, 0, TimeSpan.Zero);
+        var recentDate = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);  // within 6 months
+        var oldDate = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);    // > 6 months ago
+
+        var recentComps = Enumerable.Range(1, 2)
+            .Select(i => MakeComp(
+                address: $"{i} Recent St, Freehold, NJ 07728",
+                removedDate: recentDate) with { Correlation = 0.9 - (i * 0.05) })
+            .ToList();
+
+        var olderComps = Enumerable.Range(1, 5)
+            .Select(i => MakeComp(
+                address: $"{i} Old St, Freehold, NJ 07728",
+                removedDate: oldDate) with { Correlation = 0.7 - (i * 0.05) })
+            .ToList();
+
+        var result = RentCastCompSource.MapComps(
+            [.. recentComps, .. olderComps], MakeRequest(), NullLogger.Instance, today);
+
+        result.Should().HaveCount(5);
+        result.Count(c => c.IsRecent).Should().Be(2);
+        result.Count(c => !c.IsRecent).Should().Be(3);
+    }
+
+    [Fact]
+    public void MapComps_NoRecentComps_UsesOlderSortedByCorrelation()
+    {
+        var today = new DateTimeOffset(2026, 3, 26, 0, 0, 0, TimeSpan.Zero);
+        var oldDate = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+        // 7 older comps with varied correlations
+        var comps = Enumerable.Range(1, 7)
+            .Select(i => MakeComp(
+                address: $"{i} Old St, Freehold, NJ 07728",
+                removedDate: oldDate) with { Correlation = i * 0.1 })
+            .ToList();
+
+        var result = RentCastCompSource.MapComps(comps, MakeRequest(), NullLogger.Instance, today);
+
+        result.Should().HaveCount(5);
+        result.Should().AllSatisfy(c => c.IsRecent.Should().BeFalse());
+    }
+
+    [Fact]
+    public void MapComps_FewerThanFiveTotal_ReturnsAll()
+    {
+        var today = new DateTimeOffset(2026, 3, 26, 0, 0, 0, TimeSpan.Zero);
+        var recentDate = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+        var comps = Enumerable.Range(1, 3)
+            .Select(i => MakeComp(
+                address: $"{i} Short St, Freehold, NJ 07728",
+                removedDate: recentDate))
+            .ToList();
+
+        var result = RentCastCompSource.MapComps(comps, MakeRequest(), NullLogger.Instance, today);
+
+        result.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public void MapComps_CorrelationSortOrder_HighestFirst()
+    {
+        var today = new DateTimeOffset(2026, 3, 26, 0, 0, 0, TimeSpan.Zero);
+        var recentDate = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+        // 6 recent comps with correlations in ascending order
+        var comps = new[]
+        {
+            MakeComp(address: "1 Low St, Freehold, NJ 07728", removedDate: recentDate) with { Correlation = 0.3 },
+            MakeComp(address: "2 Med St, Freehold, NJ 07728", removedDate: recentDate) with { Correlation = 0.7 },
+            MakeComp(address: "3 High St, Freehold, NJ 07728", removedDate: recentDate) with { Correlation = 0.95 },
+            MakeComp(address: "4 MedHi St, Freehold, NJ 07728", removedDate: recentDate) with { Correlation = 0.85 },
+            MakeComp(address: "5 MedLo St, Freehold, NJ 07728", removedDate: recentDate) with { Correlation = 0.5 },
+            MakeComp(address: "6 Dropped St, Freehold, NJ 07728", removedDate: recentDate) with { Correlation = 0.2 },
+        };
+
+        var result = RentCastCompSource.MapComps(comps, MakeRequest(), NullLogger.Instance, today);
+
+        result.Should().HaveCount(5);
+        result[0].Correlation.Should().Be(0.95);
+        result[1].Correlation.Should().Be(0.85);
+        result[2].Correlation.Should().Be(0.7);
+        result[3].Correlation.Should().Be(0.5);
+        result[4].Correlation.Should().Be(0.3);
+        // 0.2 (lowest) should be dropped
+        result.Should().NotContain(c => c.Correlation == 0.2);
+    }
+
+    // ---------------------------------------------------------------------------
     // FetchAsync — uses mock IRentCastClient
     // ---------------------------------------------------------------------------
 

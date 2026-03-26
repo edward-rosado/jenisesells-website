@@ -41,9 +41,14 @@ public class RentCastCompSource(
     internal static List<Comp> MapComps(
         IReadOnlyList<RentCastComp> comparables,
         CompSearchRequest request,
-        ILogger logger)
+        ILogger logger,
+        DateTimeOffset? today = null)
     {
-        var result = new List<Comp>();
+        var effectiveToday = today ?? DateTimeOffset.UtcNow;
+        var sixMonthsAgo = effectiveToday.AddMonths(-6);
+
+        var recent = new List<(RentCastComp Rc, DateOnly SaleDate)>();
+        var older = new List<(RentCastComp Rc, DateOnly SaleDate)>();
 
         foreach (var rc in comparables)
         {
@@ -79,17 +84,50 @@ public class RentCastCompSource(
                 continue;
             }
 
+            if (resolvedDate.Value >= sixMonthsAgo)
+                recent.Add((rc, saleDate));
+            else
+                older.Add((rc, saleDate));
+        }
+
+        // Sort each group by Correlation descending (highest similarity first)
+        recent.Sort((a, b) => (b.Rc.Correlation ?? 0).CompareTo(a.Rc.Correlation ?? 0));
+        older.Sort((a, b) => (b.Rc.Correlation ?? 0).CompareTo(a.Rc.Correlation ?? 0));
+
+        // Tiered selection: prefer recent comps, backfill with older up to 5 total
+        var selected = new List<(RentCastComp Rc, DateOnly SaleDate, bool IsRecent)>();
+
+        if (recent.Count >= 5)
+        {
+            foreach (var item in recent.Take(5))
+                selected.Add((item.Rc, item.SaleDate, true));
+        }
+        else
+        {
+            foreach (var item in recent)
+                selected.Add((item.Rc, item.SaleDate, true));
+
+            var needed = 5 - recent.Count;
+            foreach (var item in older.Take(needed))
+                selected.Add((item.Rc, item.SaleDate, false));
+        }
+
+        var result = new List<Comp>(selected.Count);
+        foreach (var (rc, saleDate, isRecent) in selected)
+        {
             result.Add(new Comp
             {
                 Address = rc.FormattedAddress,
-                SalePrice = rc.Price.Value,
+                SalePrice = rc.Price!.Value,
                 SaleDate = saleDate,
                 Beds = rc.Bedrooms ?? 0,
                 Baths = (int)Math.Round(rc.Bathrooms ?? 0, MidpointRounding.AwayFromZero),
-                Sqft = rc.SquareFootage.Value,
+                Sqft = rc.SquareFootage!.Value,
                 DaysOnMarket = rc.DaysOnMarket,
                 DistanceMiles = rc.Distance ?? 0.0,
-                Source = CompSource.RentCast
+                Source = CompSource.RentCast,
+                IsRecent = isRecent,
+                Correlation = rc.Correlation
             });
         }
 
