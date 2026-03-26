@@ -22,6 +22,8 @@ public class Comp
     public int? DaysOnMarket { get; init; }
     public required double DistanceMiles { get; init; }
     public required CompSource Source { get; init; }
+    public bool IsRecent { get; init; } = true;
+    public double? Correlation { get; init; }
 
     public decimal PricePerSqft => Sqft > 0 ? SalePrice / Sqft : 0;
 }

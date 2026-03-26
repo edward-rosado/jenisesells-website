@@ -13,6 +13,7 @@ namespace RealEstateStar.Workers.Cma;
 public sealed class CmaProcessingWorker(
     CmaProcessingChannel channel,
     ICompAggregator compAggregator,
+    RentCastCompSource rentCastCompSource,
     ICmaAnalyzer cmaAnalyzer,
     ICmaPdfGenerator pdfGenerator,
     ICmaNotifier cmaNotifier,
@@ -20,7 +21,8 @@ public sealed class CmaProcessingWorker(
     IDocumentStorageProvider documentStorage,
     BackgroundServiceHealthTracker healthTracker,
     ILogger<CmaProcessingWorker> logger,
-    IConfiguration configuration)
+    IConfiguration configuration,
+    IImageResolver imageResolver)
     : PipelineWorker<CmaProcessingRequest, CmaPipelineContext>(
         channel, healthTracker, logger,
         configuration.GetSection("Pipeline:Cma:Retry").Get<PipelineRetryOptions>())
@@ -50,6 +52,7 @@ public sealed class CmaProcessingWorker(
             return;
         }
 
+        await RunStepAsync(ctx, CmaPipelineContext.StepEnrichSubject, () => EnrichSubjectAsync(ctx, ct), ct);
         await RunStepAsync(ctx, CmaPipelineContext.StepAnalyze, () => AnalyzeAsync(ctx, ct), ct);
         await RunStepAsync(ctx, CmaPipelineContext.StepGeneratePdf, () => GeneratePdfAsync(ctx, ct), ct);
         await StorePdfAsync(ctx, ct);
@@ -57,6 +60,45 @@ public sealed class CmaProcessingWorker(
 
         CmaDiagnostics.CmaGenerated.Add(1);
         CmaDiagnostics.TotalDuration.Record(ctx.PipelineDurationMs ?? 0);
+    }
+
+    private Task EnrichSubjectAsync(CmaPipelineContext ctx, CancellationToken ct)
+    {
+        var subject = rentCastCompSource.LastValuation?.SubjectProperty;
+        if (subject is null)
+        {
+            logger.LogInformation("[CMA-ENRICH-001] No RentCast subject property available; skipping enrichment. Lead={LeadId}",
+                ctx.Request.Id);
+            return Task.CompletedTask;
+        }
+
+        var seller = ctx.Request.SellerDetails!;
+        var filledBeds = seller.Beds is null && subject.Bedrooms.HasValue;
+        var filledBaths = seller.Baths is null && subject.Bathrooms.HasValue;
+        var filledSqft = seller.Sqft is null && subject.SquareFootage.HasValue;
+
+        if (!filledBeds && !filledBaths && !filledSqft)
+            return Task.CompletedTask;
+
+        ctx.Request.SellerDetails = seller with
+        {
+            Beds = filledBeds ? subject.Bedrooms : seller.Beds,
+            Baths = filledBaths ? (int)Math.Round(subject.Bathrooms!.Value, MidpointRounding.AwayFromZero) : seller.Baths,
+            Sqft = filledSqft ? subject.SquareFootage : seller.Sqft
+        };
+
+        // Record enrichment metric
+        CmaDiagnostics.SubjectEnriched.Add(1);
+
+        logger.LogInformation(
+            "[CMA-ENRICH-001] Enriched subject property from RentCast. Lead={LeadId} Beds={Beds} Baths={Baths} Sqft={Sqft}",
+            ctx.Request.Id,
+            filledBeds ? $"{subject.Bedrooms} (filled)" : $"{seller.Beds} (from lead)",
+            filledBaths ? $"{subject.Bathrooms} (filled)" : $"{seller.Baths} (from lead)",
+            filledSqft ? $"{subject.SquareFootage} (filled)" : $"{seller.Sqft} (from lead)");
+
+        ct.ThrowIfCancellationRequested();
+        return Task.CompletedTask;
     }
 
     private async Task FetchCompsAsync(CmaPipelineContext ctx, CancellationToken ct)
@@ -87,9 +129,31 @@ public sealed class CmaProcessingWorker(
         var accountConfig = await accountConfigService.GetAccountAsync(ctx.AgentId, ct)
             ?? throw new InvalidOperationException($"Account config not found for agent {ctx.AgentId}");
 
+        var logoBytes = await TryResolveImageAsync(ctx.AgentId, accountConfig.Branding?.LogoUrl, ct);
+        var headshotBytes = await TryResolveImageAsync(ctx.AgentId, accountConfig.Agent?.HeadshotUrl, ct);
+
         var reportType = DetermineReportType(ctx.Comps!.Count);
-        var pdfPath = await pdfGenerator.GenerateAsync(ctx.Request, ctx.Analysis!, ctx.Comps!, accountConfig, reportType, ct);
+        var pdfPath = await pdfGenerator.GenerateAsync(
+            ctx.Request, ctx.Analysis!, ctx.Comps!, accountConfig, reportType,
+            logoBytes, headshotBytes, ct);
         ctx.Set("pdf-path", pdfPath);
+    }
+
+    private async Task<byte[]?> TryResolveImageAsync(string agentId, string? relativePath, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath)) return null;
+
+        try
+        {
+            return await imageResolver.ResolveAsync(agentId, relativePath, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "[CmaWorker-030] Failed to resolve image {Path} for agent {AgentId}. PDF will render without it.",
+                relativePath, agentId);
+            return null;
+        }
     }
 
     private async Task StorePdfAsync(CmaPipelineContext ctx, CancellationToken ct)
@@ -103,6 +167,9 @@ public sealed class CmaProcessingWorker(
             var folder = $"Real Estate Star/1 - Leads/{ctx.Request.FullName}/{seller.Address}, {seller.City}, {seller.State} {seller.Zip}";
             var fileName = $"{DateTime.UtcNow:yyyy-MM-dd}-CMA-Report.pdf.b64";
             var pdfBytes = await File.ReadAllBytesAsync(pdfPath, ct);
+
+            // Record PDF size metric
+            CmaDiagnostics.PdfSizeBytes.Record(pdfBytes.Length);
 
             // Store as base64 since IDocumentStorageProvider only supports text content.
             // The .b64 extension signals this needs base64-decoding to get the original PDF.
@@ -139,7 +206,7 @@ public sealed class CmaProcessingWorker(
     internal static ReportType DetermineReportType(int compCount) =>
         compCount switch
         {
-            >= 6 => ReportType.Comprehensive,
+            >= 5 => ReportType.Comprehensive,
             >= 3 => ReportType.Standard,
             _ => ReportType.Lean
         };

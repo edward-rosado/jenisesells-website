@@ -48,4 +48,10 @@ public static class CmaDiagnostics
 
     public static readonly Histogram<long> CompsFound = Meter.CreateHistogram<long>(
         "cma.comps_found", description: "Number of comparable sales found per CMA");
+
+    public static readonly Histogram<long> PdfSizeBytes = Meter.CreateHistogram<long>(
+        "cma.pdf_size_bytes", unit: "bytes", description: "Size of generated CMA PDF");
+
+    public static readonly Counter<long> SubjectEnriched = Meter.CreateCounter<long>(
+        "cma.subject_enriched", description: "Times subject property was enriched from RentCast");
 }

@@ -42,7 +42,9 @@ public class CmaPdfGeneratorTests
         Sqft = sqft
     };
 
-    internal static CmaAnalysis MakeAnalysis(string? pricingRecommendation = null) => new()
+    internal static CmaAnalysis MakeAnalysis(
+        string? pricingRecommendation = null,
+        string? leadInsights = null) => new()
     {
         ValueLow = 480_000m,
         ValueMid = 510_000m,
@@ -50,10 +52,11 @@ public class CmaPdfGeneratorTests
         MarketNarrative = "The market is competitive.",
         MarketTrend = "Seller's Market",
         MedianDaysOnMarket = 14,
-        PricingRecommendation = pricingRecommendation
+        PricingRecommendation = pricingRecommendation,
+        LeadInsights = leadInsights
     };
 
-    internal static List<Comp> MakeComps(int count = 2) =>
+    internal static List<Comp> MakeComps(int count = 2, bool includeOlder = false) =>
         Enumerable.Range(1, count).Select(i => new Comp
         {
             Address = $"{i * 100} Elm St",
@@ -63,7 +66,8 @@ public class CmaPdfGeneratorTests
             Baths = 2,
             Sqft = 1800,
             DistanceMiles = 0.3 * i,
-            Source = CompSource.Zillow
+            Source = CompSource.Zillow,
+            IsRecent = !includeOlder || i != count   // last one is older when includeOlder=true
         }).ToList();
 
     internal static AccountConfig MakeAgentConfig(
@@ -71,7 +75,9 @@ public class CmaPdfGeneratorTests
         string? brokerageName = "Keller Williams",
         string? tagline = "Helping families find home.",
         List<string>? serviceAreas = null,
-        List<string>? languages = null) => new()
+        List<string>? languages = null,
+        string? primaryColor = null,
+        string? licenseNumber = null) => new()
     {
         Handle = "jenise-buckalew",
         Agent = new AccountAgent
@@ -81,7 +87,8 @@ public class CmaPdfGeneratorTests
             Phone = "555-123-4567",
             Email = "jenise@example.com",
             Tagline = tagline,
-            Languages = languages ?? ["English", "Spanish"]
+            Languages = languages ?? ["English", "Spanish"],
+            LicenseNumber = licenseNumber
         },
         Brokerage = brokerageName is not null
             ? new AccountBrokerage { Name = brokerageName }
@@ -90,7 +97,10 @@ public class CmaPdfGeneratorTests
         {
             State = "NJ",
             ServiceAreas = serviceAreas ?? ["Springfield", "Millburn"]
-        }
+        },
+        Branding = primaryColor is not null
+            ? new AccountBranding { PrimaryColor = primaryColor }
+            : null
     };
 
     private static CmaPdfGenerator MakeGenerator(out Mock<ILogger<CmaPdfGenerator>> loggerMock)
@@ -142,6 +152,24 @@ public class CmaPdfGeneratorTests
     }
 
     // ---------------------------------------------------------------------------
+    // HexOrDefault
+    // ---------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("#2E7D32", "#2E7D32", "#000000")]
+    [InlineData("2E7D32", "#2E7D32", "#000000")]
+    [InlineData(null, "#000000", "#000000")]
+    [InlineData("bad", "#000000", "#000000")]
+    [InlineData("#AABBCCDD", "#AABBCCDD", "#000000")]  // 8-char hex (ARGB)
+    public void HexOrDefault_ReturnsNormalizedHexOrFallback(
+        string? input, string expected, string fallback)
+    {
+        var result = CmaPdfGenerator.HexOrDefault(input, fallback);
+
+        result.Should().Be(expected);
+    }
+
+    // ---------------------------------------------------------------------------
     // GenerateAsync — happy path (Lean, Standard, Comprehensive)
     // ---------------------------------------------------------------------------
 
@@ -155,7 +183,8 @@ public class CmaPdfGeneratorTests
         var agent = MakeAgentConfig();
         var ct = CancellationToken.None;
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean, ct);
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: null, headshotBytes: null, ct);
 
         try
         {
@@ -178,7 +207,8 @@ public class CmaPdfGeneratorTests
         var agent = MakeAgentConfig();
         var ct = CancellationToken.None;
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard, ct);
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
+            logoBytes: null, headshotBytes: null, ct);
 
         try
         {
@@ -201,7 +231,8 @@ public class CmaPdfGeneratorTests
         var agent = MakeAgentConfig();
         var ct = CancellationToken.None;
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive, ct);
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+            logoBytes: null, headshotBytes: null, ct);
 
         try
         {
@@ -224,7 +255,8 @@ public class CmaPdfGeneratorTests
         var agent = MakeAgentConfig();
         var ct = CancellationToken.None;
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive, ct);
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+            logoBytes: null, headshotBytes: null, ct);
 
         try
         {
@@ -256,7 +288,8 @@ public class CmaPdfGeneratorTests
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
-        var act = async () => await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean, cts.Token);
+        var act = async () => await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: null, headshotBytes: null, cts.Token);
 
         await act.Should().ThrowAsync<OperationCanceledException>();
 
@@ -268,6 +301,165 @@ public class CmaPdfGeneratorTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Branding — custom primary color
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GenerateAsync_WithCustomPrimaryColor_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead();
+        var analysis = MakeAnalysis();
+        var comps = MakeComps();
+        var agent = MakeAgentConfig(primaryColor: "#1565C0");
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Images — logo and headshot bytes provided
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GenerateAsync_WithLogoBytes_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead();
+        var analysis = MakeAnalysis();
+        var comps = MakeComps();
+        var agent = MakeAgentConfig();
+        // Minimal 1x1 white PNG
+        var pngBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==");
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: pngBytes, headshotBytes: null, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateAsync_WithHeadshotBytes_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead();
+        var analysis = MakeAnalysis();
+        var comps = MakeComps();
+        var agent = MakeAgentConfig();
+        var pngBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==");
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: null, headshotBytes: pngBytes, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Comp table — older comps get dagger footnote
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GenerateAsync_WithOlderComps_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead();
+        var analysis = MakeAnalysis();
+        var comps = MakeComps(count: 3, includeOlder: true);
+        var agent = MakeAgentConfig();
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Pricing strategy — lead insights rendered when present
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GenerateAsync_Comprehensive_WithLeadInsights_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead();
+        var analysis = MakeAnalysis(
+            pricingRecommendation: "List at $510,000.",
+            leadInsights: "Seller is motivated to close quickly.");
+        var comps = MakeComps();
+        var agent = MakeAgentConfig();
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Agent license number
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GenerateAsync_WithLicenseNumber_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead();
+        var analysis = MakeAnalysis();
+        var comps = MakeComps();
+        var agent = MakeAgentConfig(licenseNumber: "NJ-1234567");
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 
     // ---------------------------------------------------------------------------
@@ -283,7 +475,8 @@ public class CmaPdfGeneratorTests
         var comps = MakeComps();
         var agent = MakeAgentConfig(title: null);
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean, CancellationToken.None);
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
         {
@@ -304,7 +497,8 @@ public class CmaPdfGeneratorTests
         var comps = MakeComps();
         var agent = MakeAgentConfig(brokerageName: null);
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean, CancellationToken.None);
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
         {
@@ -317,7 +511,7 @@ public class CmaPdfGeneratorTests
     }
 
     // ---------------------------------------------------------------------------
-    // AddPropertyOverview — beds/baths/sqft null vs present
+    // Property Overview — beds/baths/sqft null vs present
     // ---------------------------------------------------------------------------
 
     [Fact]
@@ -329,7 +523,8 @@ public class CmaPdfGeneratorTests
         var comps = MakeComps();
         var agent = MakeAgentConfig();
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard, CancellationToken.None);
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
         {
@@ -342,7 +537,7 @@ public class CmaPdfGeneratorTests
     }
 
     // ---------------------------------------------------------------------------
-    // AddPricePerSqftAnalysis — empty comps list, sqft null, sqft = 0
+    // Empty comps list and null sqft edge cases
     // ---------------------------------------------------------------------------
 
     [Fact]
@@ -354,7 +549,8 @@ public class CmaPdfGeneratorTests
         var comps = new List<Comp>();
         var agent = MakeAgentConfig();
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive, CancellationToken.None);
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
         {
@@ -375,7 +571,8 @@ public class CmaPdfGeneratorTests
         var comps = MakeComps();
         var agent = MakeAgentConfig();
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive, CancellationToken.None);
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
         {
@@ -396,7 +593,8 @@ public class CmaPdfGeneratorTests
         var comps = MakeComps();
         var agent = MakeAgentConfig();
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive, CancellationToken.None);
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
         {
@@ -409,19 +607,96 @@ public class CmaPdfGeneratorTests
     }
 
     // ---------------------------------------------------------------------------
-    // AddAboutAgent — tagline, serviceAreas, languages conditionals
+    // Null SellerDetails
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task GenerateAsync_Lean_WithoutTagline_CreatesPdfSuccessfully()
+    public async Task GenerateAsync_Lean_WithNullSellerDetails_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead(sellerDetails: null);
+        var analysis = MakeAnalysis();
+        var comps = MakeComps();
+        var agent = MakeAgentConfig();
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateAsync_Standard_WithNullSellerDetails_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead(sellerDetails: null);
+        var analysis = MakeAnalysis();
+        var comps = MakeComps();
+        var agent = MakeAgentConfig();
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateAsync_Comprehensive_WithNullSellerDetails_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead(sellerDetails: null);
+        var analysis = MakeAnalysis();
+        var comps = MakeComps();
+        var agent = MakeAgentConfig();
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Null Agent config
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GenerateAsync_Lean_WithNullAgent_CreatesPdfSuccessfully()
     {
         var generator = MakeGenerator(out _);
         var lead = MakeLead();
         var analysis = MakeAnalysis();
         var comps = MakeComps();
-        var agent = MakeAgentConfig(tagline: null);
+        var agent = new AccountConfig
+        {
+            Handle = "bare",
+            Agent = null,
+            Brokerage = null,
+            Location = null
+        };
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean, CancellationToken.None);
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
         {
@@ -432,6 +707,10 @@ public class CmaPdfGeneratorTests
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    // ---------------------------------------------------------------------------
+    // Empty service areas and languages
+    // ---------------------------------------------------------------------------
 
     [Fact]
     public async Task GenerateAsync_Lean_WithEmptyServiceAreas_CreatesPdfSuccessfully()
@@ -442,7 +721,8 @@ public class CmaPdfGeneratorTests
         var comps = MakeComps();
         var agent = MakeAgentConfig(serviceAreas: []);
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean, CancellationToken.None);
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
         {
@@ -463,7 +743,8 @@ public class CmaPdfGeneratorTests
         var comps = MakeComps();
         var agent = MakeAgentConfig(languages: []);
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean, CancellationToken.None);
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
         {
@@ -476,99 +757,16 @@ public class CmaPdfGeneratorTests
     }
 
     [Fact]
-    public async Task GenerateAsync_Lean_WithNullSellerDetails_CreatesPdfSuccessfully()
-    {
-        var generator = MakeGenerator(out _);
-        var lead = MakeLead(sellerDetails: null);
-        var analysis = MakeAnalysis();
-        var comps = MakeComps();
-        var agent = MakeAgentConfig();
-
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean, CancellationToken.None);
-
-        try
-        {
-            File.Exists(path).Should().BeTrue();
-        }
-        finally
-        {
-            if (File.Exists(path)) File.Delete(path);
-        }
-    }
-
-    // ---------------------------------------------------------------------------
-    // AddPropertyOverview — sd == null (Standard/Comprehensive with null SellerDetails)
-    // Exercises the sd?.Beds?.ToString() ?? "—" path where sd itself is null
-    // ---------------------------------------------------------------------------
-
-    [Fact]
-    public async Task GenerateAsync_Standard_WithNullSellerDetails_CreatesPdfSuccessfully()
-    {
-        var generator = MakeGenerator(out _);
-        var lead = MakeLead(sellerDetails: null);
-        var analysis = MakeAnalysis();
-        var comps = MakeComps();
-        var agent = MakeAgentConfig();
-
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard, CancellationToken.None);
-
-        try
-        {
-            File.Exists(path).Should().BeTrue();
-        }
-        finally
-        {
-            if (File.Exists(path)) File.Delete(path);
-        }
-    }
-
-    // ---------------------------------------------------------------------------
-    // AddPricePerSqftAnalysis — sd == null with comps present
-    // Exercises the sd?.Sqft is { } sqft path where sd itself is null
-    // ---------------------------------------------------------------------------
-
-    [Fact]
-    public async Task GenerateAsync_Comprehensive_WithNullSellerDetails_CreatesPdfSuccessfully()
-    {
-        var generator = MakeGenerator(out _);
-        var lead = MakeLead(sellerDetails: null);
-        var analysis = MakeAnalysis();
-        var comps = MakeComps();
-        var agent = MakeAgentConfig();
-
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive, CancellationToken.None);
-
-        try
-        {
-            File.Exists(path).Should().BeTrue();
-        }
-        finally
-        {
-            if (File.Exists(path)) File.Delete(path);
-        }
-    }
-
-    // ---------------------------------------------------------------------------
-    // AddAboutAgent — null Agent (exercises agent.Agent?.Languages ?? [] and
-    // agent.Location?.ServiceAreas ?? [] null-coalescing branches)
-    // ---------------------------------------------------------------------------
-
-    [Fact]
-    public async Task GenerateAsync_Lean_WithNullAgent_CreatesPdfSuccessfully()
+    public async Task GenerateAsync_Lean_WithoutTagline_CreatesPdfSuccessfully()
     {
         var generator = MakeGenerator(out _);
         var lead = MakeLead();
         var analysis = MakeAnalysis();
         var comps = MakeComps();
-        var agent = new AccountConfig
-        {
-            Handle = "bare",
-            Agent = null,
-            Brokerage = null,
-            Location = null
-        };
+        var agent = MakeAgentConfig(tagline: null);
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean, CancellationToken.None);
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
         {
