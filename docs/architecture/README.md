@@ -71,6 +71,12 @@ Design spec: `docs/superpowers/specs/2026-03-21-api-project-restructure-design.m
 | [Legal Page Rendering](legal-page-rendering.md) | Dynamic state-specific content rendering on terms and privacy pages |
 | [Legal Content System](legal-content-system.md) | Above/below-the-fold legal markdown discovery and rendering pipeline |
 
+## CMA Comp Data
+
+| Document | Description |
+|----------|------------|
+| [RentCast Comp Flow](rentcast-comp-flow.md) | LeadForm → SubmitEndpoint → CmaWorker → CompAggregator → RentCastCompSource → RentCastClient → api.rentcast.io |
+
 ## Lead Submission & Processing
 
 | Document | Description |

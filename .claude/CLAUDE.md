@@ -31,6 +31,7 @@ apps/
     RealEstateStar.Clients.Cloudflare/ # Cloudflare client
     RealEstateStar.Clients.Turnstile/  # Turnstile client
     RealEstateStar.Clients.Azure/      # Azure Table Storage client
+    RealEstateStar.Clients.RentCast/   # RentCast API client (comp data for CMA)
     RealEstateStar.Clients.Gws/        # GWS CLI wrapper
     tests/                             # 23 test projects (1:1 with production + Architecture.Tests + TestUtilities)
 packages/

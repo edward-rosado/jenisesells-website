@@ -28,6 +28,7 @@ Eddie Rosado, Senior Manager of Engineering at Mindbody/Playlist. Building Real 
 | **Google API Clients** | Gmail, Drive, Docs, Sheets — per-agent OAuth via `IOAuthRefresher`; tokens persisted in Azure Table (`ITokenStore`) |
 | **Token Store** | Azure Table Storage (`AzureTableTokenStore` in `Clients.Azure`) implements `ITokenStore` (Domain); DPAPI-encrypted tokens with ETag optimistic locking |
 | **Anthropic Client** | Shared `IAnthropicClient` (Domain) → `AnthropicClient` (`Clients.Anthropic`); replaces 6 inline callers with a single injected abstraction |
+| **RentCast Client** | `IRentCastClient` (Domain) → `RentCastClient` (`Clients.RentCast`); fetches comp sales data from api.rentcast.io for CMA pipeline |
 
 ## Preferences
 - Use eddie-voice skill when talking
