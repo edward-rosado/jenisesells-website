@@ -28,6 +28,7 @@ COPY ["RealEstateStar.Clients.Cloudflare/RealEstateStar.Clients.Cloudflare.cspro
 COPY ["RealEstateStar.Clients.Turnstile/RealEstateStar.Clients.Turnstile.csproj", "RealEstateStar.Clients.Turnstile/"]
 COPY ["RealEstateStar.Clients.Azure/RealEstateStar.Clients.Azure.csproj", "RealEstateStar.Clients.Azure/"]
 COPY ["RealEstateStar.Clients.Gws/RealEstateStar.Clients.Gws.csproj", "RealEstateStar.Clients.Gws/"]
+COPY ["RealEstateStar.Clients.RentCast/RealEstateStar.Clients.RentCast.csproj", "RealEstateStar.Clients.RentCast/"]
 
 # Restore dependencies (cached layer — only invalidated when csproj files change)
 RUN dotnet restore "RealEstateStar.Api/RealEstateStar.Api.csproj"

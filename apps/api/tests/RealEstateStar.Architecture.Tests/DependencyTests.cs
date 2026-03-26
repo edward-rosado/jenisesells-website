@@ -42,6 +42,7 @@ public class DependencyTests
     [InlineData("RealEstateStar.Clients.Turnstile", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.Azure", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.Gws", new[] { "Domain" })]
+    [InlineData("RealEstateStar.Clients.RentCast", new[] { "Domain" })]
     public void Project_only_depends_on_allowed_projects(string projectName, string[] allowedSuffixes)
     {
         var assembly = Assembly.Load(projectName);
@@ -191,6 +192,7 @@ public class DependencyTests
             "RealEstateStar.Clients.Turnstile",
             "RealEstateStar.Clients.Azure",
             "RealEstateStar.Clients.Gws",
+            "RealEstateStar.Clients.RentCast",
         };
 
         var violations = assembly.GetReferencedAssemblies()
