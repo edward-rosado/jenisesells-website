@@ -281,4 +281,59 @@ public class RentCastClientTests
 
         result.Should().BeNull();
     }
+
+    [Fact]
+    public async Task GetValuationAsync_MapsSubjectProperty_WhenPresent()
+    {
+        var (client, handler) = BuildClient();
+        handler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("""
+                {
+                  "price": 450000,
+                  "priceRangeLow": 420000,
+                  "priceRangeHigh": 480000,
+                  "comparables": [],
+                  "subjectProperty": {
+                    "formattedAddress": "123 Main St, Freehold, NJ 07728",
+                    "propertyType": "Single Family",
+                    "bedrooms": 4,
+                    "bathrooms": 2.5,
+                    "squareFootage": 2100,
+                    "yearBuilt": 1998,
+                    "lotSize": 8500
+                  }
+                }
+                """)
+        };
+
+        var result = await client.GetValuationAsync("123 Main St, Freehold, NJ 07728",
+            CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.SubjectProperty.Should().NotBeNull();
+        result.SubjectProperty!.FormattedAddress.Should().Be("123 Main St, Freehold, NJ 07728");
+        result.SubjectProperty.PropertyType.Should().Be("Single Family");
+        result.SubjectProperty.Bedrooms.Should().Be(4);
+        result.SubjectProperty.Bathrooms.Should().Be(2.5m);
+        result.SubjectProperty.SquareFootage.Should().Be(2100);
+        result.SubjectProperty.YearBuilt.Should().Be(1998);
+        result.SubjectProperty.LotSize.Should().Be(8500);
+    }
+
+    [Fact]
+    public async Task GetValuationAsync_SubjectPropertyIsNull_WhenNotInResponse()
+    {
+        var (client, handler) = BuildClient();
+        handler.ResponseToReturn = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(ValidResponseJson(0))
+        };
+
+        var result = await client.GetValuationAsync("123 Main St, Freehold, NJ 07728",
+            CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.SubjectProperty.Should().BeNull();
+    }
 }

@@ -421,4 +421,37 @@ public class RentCastCompSourceTests
 
         capturedAddress.Should().Be("123 Main St, Freehold, NJ 07728");
     }
+
+    [Fact]
+    public async Task FetchAsync_StoresLastValuation_AfterSuccessfulFetch()
+    {
+        var valuation = MakeValuation([MakeComp()]);
+        var mockClient = new Mock<IRentCastClient>();
+        mockClient
+            .Setup(c => c.GetValuationAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(valuation);
+
+        var source = new RentCastCompSource(mockClient.Object,
+            NullLogger<RentCastCompSource>.Instance);
+
+        await source.FetchAsync(MakeRequest(), CancellationToken.None);
+
+        source.LastValuation.Should().BeSameAs(valuation);
+    }
+
+    [Fact]
+    public async Task FetchAsync_StoresNullLastValuation_WhenClientReturnsNull()
+    {
+        var mockClient = new Mock<IRentCastClient>();
+        mockClient
+            .Setup(c => c.GetValuationAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RentCastValuation?)null);
+
+        var source = new RentCastCompSource(mockClient.Object,
+            NullLogger<RentCastCompSource>.Instance);
+
+        await source.FetchAsync(MakeRequest(), CancellationToken.None);
+
+        source.LastValuation.Should().BeNull();
+    }
 }

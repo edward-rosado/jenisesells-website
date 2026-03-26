@@ -19,6 +19,12 @@ public class RentCastCompSource(
 
     public string Name => "RentCast";
 
+    /// <summary>
+    /// The valuation returned by the most recent <see cref="FetchAsync"/> call.
+    /// Populated before comps are returned so callers can read SubjectProperty without a second API call.
+    /// </summary>
+    public RentCastValuation? LastValuation { get; private set; }
+
     public async Task<List<Comp>> FetchAsync(CompSearchRequest request, CancellationToken ct)
     {
         var fullAddress = $"{request.Address}, {request.City}, {request.State} {request.Zip}";
@@ -26,6 +32,8 @@ public class RentCastCompSource(
             fullAddress);
 
         var valuation = await rentCastClient.GetValuationAsync(fullAddress, ct);
+        LastValuation = valuation;
+
         if (valuation is null)
         {
             logger.LogWarning("[COMP-004] RentCast returned null for address={Address}",

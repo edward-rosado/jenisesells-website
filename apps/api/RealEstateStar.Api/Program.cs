@@ -417,8 +417,11 @@ builder.Services.AddSingleton<IRentCastClient, RentCastClient>();
 builder.Services.AddHttpClient("RentCast")
     .AddRentCastResilience(pollyLogger);
 
-// CMA comp source — single RentCast source replaces three-scraper loop
-builder.Services.AddSingleton<ICompSource, RentCastCompSource>();
+// CMA comp source — single RentCast source replaces three-scraper loop.
+// Registered as both the concrete type (for CmaProcessingWorker to read LastValuation)
+// and the ICompSource interface (for CompAggregator). Both resolve the same singleton instance.
+builder.Services.AddSingleton<RentCastCompSource>();
+builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<RentCastCompSource>());
 
 var rentCastKey = builder.Configuration["RentCast:ApiKey"];
 if (!string.IsNullOrWhiteSpace(rentCastKey))
