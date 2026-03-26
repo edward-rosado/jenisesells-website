@@ -10,17 +10,23 @@ namespace RealEstateStar.Api.Tests.Infrastructure;
 
 public class LocalFirstImageResolverTests : IDisposable
 {
-    private readonly string _tempDir;
+    // ContentRootPath is set to {_root}/apps/api so that ../../../ resolves back to {_root},
+    // keeping all test files inside the unique per-test temp directory.
+    private readonly string _root;
+    private readonly string _contentRoot;
     private readonly Mock<IWebHostEnvironment> _envMock;
     private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
 
     public LocalFirstImageResolverTests()
     {
-        _tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        Directory.CreateDirectory(_tempDir);
+        _root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        // ContentRootPath mirrors the real path: apps/api/RealEstateStar.Api
+        // so that ../../.. resolves back to _root (the monorepo root equivalent)
+        _contentRoot = Path.Combine(_root, "apps", "api", "RealEstateStar.Api");
+        Directory.CreateDirectory(_contentRoot);
 
         _envMock = new Mock<IWebHostEnvironment>();
-        _envMock.Setup(e => e.ContentRootPath).Returns(_tempDir);
+        _envMock.Setup(e => e.ContentRootPath).Returns(_contentRoot);
 
         _httpClientFactoryMock = new Mock<IHttpClientFactory>();
     }
@@ -44,14 +50,21 @@ public class LocalFirstImageResolverTests : IDisposable
             NullLogger<LocalFirstImageResolver>.Instance);
     }
 
+    private string DockerImagePath(string handle, string fileName) =>
+        Path.Combine(_contentRoot, "config", "accounts", handle, fileName);
+
+    private string LocalDevImagePath(string relativeWebPath) =>
+        // ContentRootPath = {_root}/apps/api; ../../.. = {_root}; then apps/agent-site/public/{relativeWebPath}
+        Path.Combine(_root, "apps", "agent-site", "public", relativeWebPath.TrimStart('/'));
+
     [Fact]
     public async Task ResolveAsync_ReturnsBytes_WhenDockerLocalFileExists()
     {
         // Arrange
         var imageBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47 }; // PNG header
-        var dockerPath = Path.Combine(_tempDir, "config", "accounts", "jenise-buckalew");
-        Directory.CreateDirectory(dockerPath);
-        await File.WriteAllBytesAsync(Path.Combine(dockerPath, "logo.png"), imageBytes);
+        var dockerDir = Path.GetDirectoryName(DockerImagePath("jenise-buckalew", "logo.png"))!;
+        Directory.CreateDirectory(dockerDir);
+        await File.WriteAllBytesAsync(DockerImagePath("jenise-buckalew", "logo.png"), imageBytes);
 
         var resolver = BuildResolver();
 
@@ -67,11 +80,10 @@ public class LocalFirstImageResolverTests : IDisposable
     public async Task ResolveAsync_ReturnsBytes_WhenLocalDevFileExists()
     {
         // Arrange: place the file at the local dev path relative to ContentRootPath
-        // ContentRootPath/../../../apps/agent-site/public/{relativePath}
         var imageBytes = new byte[] { 0xFF, 0xD8, 0xFF }; // JPEG SOI marker
-        var agentSitePublicPath = Path.Combine(_tempDir, "..", "..", "..", "apps", "agent-site", "public", "agents", "jenise-buckalew");
-        Directory.CreateDirectory(agentSitePublicPath);
-        await File.WriteAllBytesAsync(Path.Combine(agentSitePublicPath, "headshot.jpg"), imageBytes);
+        var localDevFile = LocalDevImagePath("/agents/jenise-buckalew/headshot.jpg");
+        Directory.CreateDirectory(Path.GetDirectoryName(localDevFile)!);
+        await File.WriteAllBytesAsync(localDevFile, imageBytes);
 
         var resolver = BuildResolver();
 
@@ -166,13 +178,13 @@ public class LocalFirstImageResolverTests : IDisposable
         var dockerBytes = new byte[] { 0x01, 0x02, 0x03 };
         var localDevBytes = new byte[] { 0x04, 0x05, 0x06 };
 
-        var dockerPath = Path.Combine(_tempDir, "config", "accounts", "jenise-buckalew");
-        Directory.CreateDirectory(dockerPath);
-        await File.WriteAllBytesAsync(Path.Combine(dockerPath, "logo.png"), dockerBytes);
+        var dockerDir = Path.GetDirectoryName(DockerImagePath("jenise-buckalew", "logo.png"))!;
+        Directory.CreateDirectory(dockerDir);
+        await File.WriteAllBytesAsync(DockerImagePath("jenise-buckalew", "logo.png"), dockerBytes);
 
-        var localDevPath = Path.Combine(_tempDir, "..", "..", "..", "apps", "agent-site", "public", "agents", "jenise-buckalew");
-        Directory.CreateDirectory(localDevPath);
-        await File.WriteAllBytesAsync(Path.Combine(localDevPath, "logo.png"), localDevBytes);
+        var localDevFile = LocalDevImagePath("/agents/jenise-buckalew/logo.png");
+        Directory.CreateDirectory(Path.GetDirectoryName(localDevFile)!);
+        await File.WriteAllBytesAsync(localDevFile, localDevBytes);
 
         var resolver = BuildResolver();
 
@@ -185,6 +197,6 @@ public class LocalFirstImageResolverTests : IDisposable
 
     public void Dispose()
     {
-        try { Directory.Delete(_tempDir, recursive: true); } catch { /* best-effort */ }
+        try { Directory.Delete(_root, recursive: true); } catch { /* best-effort */ }
     }
 }

@@ -33,9 +33,12 @@ public sealed class LocalFirstImageResolver : IImageResolver
         var normalized = relativePath.TrimStart('/').Replace('\\', '/');
 
         // Local path candidates:
-        // Docker: /app/config/accounts/{handle}/{relativePath}
+        // Docker: /app/config/accounts/{handle}/{filename}
+        //   Agent images are copied alongside account.json — stored as flat files under the handle dir.
         // Local dev: apps/agent-site/public/{relativePath}
-        var dockerPath = Path.Combine(_env.ContentRootPath, "config", "accounts", handle, normalized);
+        //   e.g. /agents/jenise-buckalew/logo.png → apps/agent-site/public/agents/jenise-buckalew/logo.png
+        var fileName = Path.GetFileName(normalized);
+        var dockerPath = Path.Combine(_env.ContentRootPath, "config", "accounts", handle, fileName);
         var localDevPath = Path.Combine(_env.ContentRootPath, "..", "..", "..", "apps", "agent-site", "public", normalized);
 
         foreach (var candidate in new[] { dockerPath, localDevPath })
