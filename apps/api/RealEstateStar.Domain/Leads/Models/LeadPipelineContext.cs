@@ -5,6 +5,10 @@ namespace RealEstateStar.Domain.Leads.Models;
 /// Each activity reads what it needs and writes its output back.
 /// This is the single source of truth — no passing large objects between activities.
 /// </summary>
+/// <remarks>
+/// NOT thread-safe. All writes must happen sequentially from the orchestrator
+/// after parallel activities have completed (post-WhenAll).
+/// </remarks>
 public class LeadPipelineContext
 {
     // Input (set at creation)

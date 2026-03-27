@@ -67,13 +67,13 @@ public sealed class LeadOrchestrator(
 
         using var activity = OrchestratorDiagnostics.ActivitySource.StartActivity("orchestrator.process_lead");
         activity?.SetTag("lead.id", lead.Id.ToString());
-        activity?.SetTag("lead.agent_id", agentId);
+        activity?.SetTag("agent.id", agentId);
         activity?.SetTag("correlation.id", correlationId);
 
         // Keep existing lead-level trace span for backward compatibility
         using var leadActivity = LeadDiagnostics.ActivitySource.StartActivity("lead.orchestrate");
         leadActivity?.SetTag("lead.id", lead.Id.ToString());
-        leadActivity?.SetTag("lead.agent_id", agentId);
+        leadActivity?.SetTag("agent.id", agentId);
         leadActivity?.SetTag("correlation.id", correlationId);
 
         try
@@ -101,7 +101,7 @@ public sealed class LeadOrchestrator(
 
             // Step 2: Score the lead
             var scoreStarted = Stopwatch.GetTimestamp();
-            using var scoreSpan = OrchestratorDiagnostics.ActivitySource.StartActivity("orchestrator.score_lead");
+            using var scoreSpan = OrchestratorDiagnostics.ActivitySource.StartActivity("activity.score");
             ctx.Score = scorer.Score(lead);
             lead.Score = ctx.Score;
             OrchestratorDiagnostics.ScoreDurationMs.Record(

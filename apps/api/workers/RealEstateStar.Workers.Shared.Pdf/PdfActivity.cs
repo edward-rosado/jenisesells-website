@@ -98,7 +98,15 @@ public class PdfActivity(
         var folder = $"Real Estate Star/1 - Leads/{leadId}/CMA";
         var fileName = $"{timestamp:yyyy-MM-dd}-{leadId}-CMA-Report.pdf.b64";
 
-        var pdfBytes = await File.ReadAllBytesAsync(tempFilePath, ct);
+        byte[] pdfBytes;
+        try
+        {
+            pdfBytes = await File.ReadAllBytesAsync(tempFilePath, ct);
+        }
+        finally
+        {
+            try { File.Delete(tempFilePath); } catch { /* best-effort */ }
+        }
 
         PdfDiagnostics.PdfSizeBytes.Record(pdfBytes.Length);
 

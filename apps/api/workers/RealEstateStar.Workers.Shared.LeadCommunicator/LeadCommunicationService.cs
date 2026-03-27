@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -25,9 +26,16 @@ public class LeadCommunicationService(
         var lead = ctx.Lead;
         var agentConfig = ctx.AgentConfig;
 
+        using var span = LeadCommunicatorDiagnostics.ActivitySource.StartActivity("activity.draft_lead_email");
+        span?.SetTag("lead.id", lead.Id.ToString());
+        span?.SetTag("agent.id", agentConfig.AgentId);
+        span?.SetTag("correlation.id", ctx.CorrelationId);
+
         logger.LogInformation(
-            "[LEAD-COMM-001] Drafting lead email for lead {LeadId} agent {AgentId}",
+            "[DRAFT-001] Drafting lead email for lead {LeadId} agent {AgentId}",
             lead.Id, agentConfig.AgentId);
+
+        var draftStarted = Stopwatch.GetTimestamp();
 
         var email = await drafter.DraftAsync(
             lead,
@@ -36,6 +44,9 @@ public class LeadCommunicationService(
             ctx.HsResult,
             agentConfig,
             ct);
+
+        LeadCommunicatorDiagnostics.DraftDurationMs.Record(
+            Stopwatch.GetElapsedTime(draftStarted).TotalMilliseconds);
 
         var contentHash = ComputeContentHash(email.Subject, email.HtmlBody);
 
@@ -59,9 +70,18 @@ public class LeadCommunicationService(
         var lead = ctx.Lead;
         var agentConfig = ctx.AgentConfig;
 
+        using var span = LeadCommunicatorDiagnostics.ActivitySource.StartActivity("activity.send_lead_email");
+        span?.SetTag("lead.id", lead.Id.ToString());
+        span?.SetTag("agent.id", agentConfig.AgentId);
+        span?.SetTag("correlation.id", ctx.CorrelationId);
+
+        var emailHash = Convert.ToHexString(SHA256.HashData(
+            Encoding.UTF8.GetBytes(lead.Email ?? "")))[..12];
         logger.LogInformation(
-            "[LEAD-COMM-002] Sending lead email for lead {LeadId} to {LeadEmail}",
-            lead.Id, lead.Email);
+            "[SEND-001] Sending lead email for lead {LeadId} to {LeadEmailHash}",
+            lead.Id, emailHash);
+
+        var sendStarted = Stopwatch.GetTimestamp();
 
         try
         {
@@ -76,17 +96,29 @@ public class LeadCommunicationService(
             draft.Sent = true;
             draft.SentAt = DateTimeOffset.UtcNow;
 
+            LeadCommunicatorDiagnostics.SendSuccess.Add(1);
+
             logger.LogInformation(
-                "[LEAD-COMM-003] Lead email sent for lead {LeadId}",
+                "[SEND-002] Lead email sent for lead {LeadId}",
                 lead.Id);
         }
         catch (Exception ex)
         {
+            LeadCommunicatorDiagnostics.SendFailed.Add(1);
+            span?.SetStatus(System.Diagnostics.ActivityStatusCode.Error, ex.Message);
+
             logger.LogError(ex,
-                "[LEAD-COMM-004] Failed to send lead email for lead {LeadId}",
+                "[SEND-010] Failed to send lead email for lead {LeadId}",
                 lead.Id);
 
-            draft.Error = ex.Message;
+            draft.Error = ex is HttpRequestException or TimeoutException
+                ? $"Delivery failure: {ex.GetType().Name}"
+                : "Internal delivery error";
+        }
+        finally
+        {
+            LeadCommunicatorDiagnostics.SendDurationMs.Record(
+                Stopwatch.GetElapsedTime(sendStarted).TotalMilliseconds);
         }
 
         return draft;

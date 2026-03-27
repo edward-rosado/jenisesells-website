@@ -1,10 +1,11 @@
-namespace RealEstateStar.Workers.Shared.AgentNotifier;
-
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
+
+namespace RealEstateStar.Workers.Shared.AgentNotifier;
 
 public class AgentNotificationService(
     IWhatsAppSender whatsAppSender,
@@ -15,6 +16,10 @@ public class AgentNotificationService(
         CmaWorkerResult? cmaResult, HomeSearchWorkerResult? homeSearchResult,
         AgentNotificationConfig agentConfig, CancellationToken ct)
     {
+        using var span = AgentNotifierDiagnostics.ActivitySource.StartActivity("activity.send_agent_notification");
+        span?.SetTag("lead.id", lead.Id.ToString());
+        span?.SetTag("agent.id", agentConfig.AgentId);
+
         if (!string.IsNullOrEmpty(agentConfig.WhatsAppPhoneNumberId))
         {
             try
@@ -24,12 +29,19 @@ public class AgentNotificationService(
                     "new_lead_notification",
                     BuildTemplateParameters(lead, score, cmaResult, homeSearchResult),
                     ct);
+
+                AgentNotifierDiagnostics.WhatsAppSuccess.Add(1);
+                logger.LogInformation(
+                    "[SEND-020] Agent notified via WhatsApp for {AgentId}, lead {LeadId}",
+                    agentConfig.AgentId, lead.Id);
                 return;
             }
             catch (Exception ex)
             {
+                AgentNotifierDiagnostics.WhatsAppFailed.Add(1);
+                AgentNotifierDiagnostics.EmailFallback.Add(1);
                 logger.LogWarning(ex,
-                    "[AGENT-NOTIFY-001] WhatsApp failed for {AgentId}, falling back to email",
+                    "[SEND-021] WhatsApp failed for {AgentId}, falling back to email",
                     agentConfig.AgentId);
             }
         }
@@ -47,8 +59,9 @@ public class AgentNotificationService(
         }
         catch (Exception ex)
         {
+            span?.SetStatus(System.Diagnostics.ActivityStatusCode.Error, ex.Message);
             logger.LogError(ex,
-                "[AGENT-NOTIFY-002] Both WhatsApp and email failed for {AgentId}",
+                "[SEND-022] Both WhatsApp and email failed for {AgentId}",
                 agentConfig.AgentId);
         }
     }
@@ -122,13 +135,13 @@ public class AgentNotificationService(
                "<style>" +
                "body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f9fafb; }" +
                ".container { max-width: 600px; margin: 24px auto; background: #ffffff; border-radius: 8px; overflow: hidden; }" +
-               $".header {{ background: {agentConfig.PrimaryColor}; padding: 24px; color: #ffffff; }}" +
+               $".header {{ background: {SafeCssColor(agentConfig.PrimaryColor)}; padding: 24px; color: #ffffff; }}" +
                ".header h1 { margin: 0; font-size: 20px; }" +
                ".header p { margin: 4px 0 0; font-size: 14px; opacity: 0.85; }" +
                ".body { padding: 24px; }" +
                $".score-badge {{ display: inline-block; padding: 4px 12px; border-radius: 9999px; color: #ffffff; font-weight: bold; background: {scoreColor}; }}" +
                ".section { margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 16px; }" +
-               $".section h2 {{ margin: 0 0 12px; font-size: 16px; color: {agentConfig.PrimaryColor}; }}" +
+               $".section h2 {{ margin: 0 0 12px; font-size: 16px; color: {SafeCssColor(agentConfig.PrimaryColor)}; }}" +
                ".field { margin-bottom: 8px; font-size: 14px; color: #374151; }" +
                ".field strong { color: #111827; }" +
                ".footer { padding: 16px 24px; background: #f3f4f6; font-size: 12px; color: #6b7280; }" +
@@ -220,4 +233,12 @@ public class AgentNotificationService(
     }
 
     private static string H(string? s) => System.Net.WebUtility.HtmlEncode(s ?? string.Empty);
+
+    internal static string SafeCssColor(string? color, string fallback = "#1E3A5F")
+    {
+        if (string.IsNullOrWhiteSpace(color)) return fallback;
+        var trimmed = color.TrimStart('#');
+        return trimmed.Length is 3 or 6 && trimmed.All(c => char.IsAsciiHexDigit(c))
+            ? $"#{trimmed}" : fallback;
+    }
 }

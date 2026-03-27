@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -38,7 +39,7 @@ public class LeadEmailDrafter(
         catch (Exception ex)
         {
             logger.LogWarning(ex,
-                "[LEAD-EMAIL-001] Claude call failed for lead {LeadId}; falling back to template-only email",
+                "[DRAFT-010] Claude call failed for lead {LeadId}; falling back to template-only email",
                 lead.Id);
             personalizedParagraph = string.Empty;
             agentPitch = string.Empty;
@@ -69,13 +70,17 @@ public class LeadEmailDrafter(
         CmaWorkerResult? cmaResult, HomeSearchWorkerResult? homeSearchResult,
         AgentNotificationConfig agentConfig, CancellationToken ct)
     {
+        using var span = LeadCommunicatorDiagnostics.ActivitySource.StartActivity("activity.draft_claude_call");
+        span?.SetTag("lead.id", lead.Id.ToString());
+        span?.SetTag("model", Model);
+
         var systemPrompt = BuildSystemPrompt(agentConfig);
         var userMessage = BuildUserMessage(lead, score, cmaResult, homeSearchResult, agentConfig);
 
         var response = await anthropicClient.SendAsync(
             Model, systemPrompt, userMessage, MaxTokens, Pipeline, ct);
 
-        return ParseClaudeResponse(response.Content, lead.Id);
+        return ParseClaudeResponse(response.Content, lead.Id, logger);
     }
 
     private static string BuildSystemPrompt(AgentNotificationConfig agentConfig)
@@ -155,7 +160,7 @@ public class LeadEmailDrafter(
         return sb.ToString();
     }
 
-    internal static (string Personalized, string Pitch) ParseClaudeResponse(string content, Guid leadId)
+    internal static (string Personalized, string Pitch) ParseClaudeResponse(string content, Guid leadId, ILogger? logger = null)
     {
         try
         {
@@ -165,8 +170,11 @@ public class LeadEmailDrafter(
             var pitch = root.TryGetProperty("pitch", out var pi) ? pi.GetString() ?? string.Empty : string.Empty;
             return (personalized, pitch);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            logger?.LogWarning(ex,
+                "[DRAFT-011] Failed to parse Claude JSON response for lead {LeadId}",
+                leadId);
             return (string.Empty, string.Empty);
         }
     }

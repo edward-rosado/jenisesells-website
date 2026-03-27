@@ -226,8 +226,8 @@ public class AgentNotifierTests
             PriceRangeHigh: 380_000m,
             Comps: new List<CompSummary>
             {
-                new("456 Elm St", 355_000m, 3, 2, 1800, 14, 0.3),
-                new("789 Pine Rd", 365_000m, 4, 2, 2000, 7, 0.5)
+                new("456 Elm St", 355_000m, 3, 2, 1800, 14, 0.3, null),
+                new("789 Pine Rd", 365_000m, 4, 2, 2000, 7, 0.5, null)
             },
             MarketAnalysis: "Strong seller's market"
         );
