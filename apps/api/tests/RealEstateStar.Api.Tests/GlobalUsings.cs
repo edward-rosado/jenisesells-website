@@ -49,5 +49,4 @@ global using RealEstateStar.Workers.HomeSearch;
 global using RealEstateStar.Workers.WhatsApp;
 
 // Notifications
-global using RealEstateStar.Notifications.Leads;
 global using RealEstateStar.Notifications.WhatsApp;

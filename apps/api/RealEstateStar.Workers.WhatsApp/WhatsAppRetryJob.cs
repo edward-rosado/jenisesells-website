@@ -23,7 +23,7 @@ public class WhatsAppRetryJob(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "[WA-023] Retry job error");
+                logger.LogError(ex, "[WA-050] Retry job error");
             }
 
             await Task.Delay(Interval, stoppingToken);
@@ -59,14 +59,14 @@ public class WhatsAppRetryJob(
                 wa.RetryAfter = null;
 
                 await accountConfigService.UpdateAccountAsync(config.Handle, config, ct);
-                logger.LogInformation("[WA-013] Welcome retry succeeded for {Handle}", config.Handle);
+                logger.LogInformation("[WA-051] Welcome retry succeeded for {Handle}", config.Handle);
             }
             catch (Exception)
             {
                 // Single retry only — clear retry_after to prevent loops
                 wa.RetryAfter = null;
                 await accountConfigService.UpdateAccountAsync(config.Handle, config, ct);
-                logger.LogWarning("[WA-014] Welcome retry failed for {Handle}, no further retries", config.Handle);
+                logger.LogWarning("[WA-052] Welcome retry failed for {Handle}, no further retries", config.Handle);
             }
         }
     }

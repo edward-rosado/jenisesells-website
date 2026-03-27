@@ -24,5 +24,4 @@ global using RealEstateStar.DataServices.Privacy;
 global using RealEstateStar.DataServices.WhatsApp;
 
 // Notifications namespaces
-global using RealEstateStar.Notifications.Leads;
 global using RealEstateStar.Notifications.WhatsApp;

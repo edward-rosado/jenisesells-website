@@ -2,7 +2,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace RealEstateStar.Api.Health;
 
-public class ClaudeApiHealthCheck(IHttpClientFactory httpClientFactory, IConfiguration configuration) : IHealthCheck
+public sealed class ClaudeApiHealthCheck(IHttpClientFactory httpClientFactory, IConfiguration configuration) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,

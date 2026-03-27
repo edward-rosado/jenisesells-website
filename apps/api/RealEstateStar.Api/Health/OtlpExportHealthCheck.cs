@@ -7,7 +7,7 @@ namespace RealEstateStar.Api.Health;
 /// Makes a real HTTP POST to the traces endpoint with an empty protobuf payload.
 /// A non-2xx response (especially 404 or 401) means telemetry is silently lost.
 /// </summary>
-public class OtlpExportHealthCheck(
+public sealed class OtlpExportHealthCheck(
     IConfiguration configuration,
     IHttpClientFactory httpClientFactory,
     ILogger<OtlpExportHealthCheck> logger) : IHealthCheck

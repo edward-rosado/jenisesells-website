@@ -2,7 +2,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace RealEstateStar.Api.Health;
 
-public class GwsCliHealthCheck : IHealthCheck
+public sealed class GwsCliHealthCheck : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
