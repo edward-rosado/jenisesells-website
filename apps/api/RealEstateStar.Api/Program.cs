@@ -427,8 +427,7 @@ builder.Services.AddSingleton<ICmaAnalyzer>(sp =>
         sp.GetRequiredService<IAnthropicClient>(),
         sp.GetRequiredService<ILogger<ClaudeCmaAnalyzer>>()));
 builder.Services.AddSingleton<ICmaPdfGenerator, CmaPdfGenerator>();
-builder.Services.AddSingleton<ICmaNotifier, CmaSellerNotifier>();
-builder.Services.AddSingleton<IHomeSearchNotifier, HomeSearchBuyerNotifier>();
+// ICmaNotifier and IHomeSearchNotifier are now unused — notifications handled by AgentNotifier in Workers.Leads
 
 // Named HttpClients used by services with hardcoded client names
 builder.Services.AddHttpClient("ScraperAPI")
@@ -506,18 +505,14 @@ if (!string.IsNullOrEmpty(whatsAppPhoneNumberId))
 else
 {
     // Register null-object implementations so any endpoint that resolves
-    // IWhatsAppNotifier / IWhatsAppAuditService / IWebhookQueueService
+    // IWhatsAppNotifier / IWhatsAppAuditService / IWebhookQueueService / IWhatsAppSender
     // still compiles and fails gracefully with a clear log rather than a DI exception.
+    builder.Services.AddSingleton<IWhatsAppSender, DisabledWhatsAppSender>();
     builder.Services.AddSingleton<IWhatsAppNotifier, DisabledWhatsAppNotifier>();
     builder.Services.AddSingleton<IWhatsAppAuditService, DisabledWhatsAppAuditService>();
     builder.Services.AddSingleton<IWebhookQueueService, DisabledWebhookQueueService>();
     builder.Services.AddSingleton<WhatsAppIdempotencyStore>();
 }
-
-// ------------------------------------------------------------------
-// Lead notification orchestrator
-// ------------------------------------------------------------------
-builder.Services.AddSingleton<CascadingAgentNotifier>();
 
 // Memory cache for WhatsApp 24hr window tracking + any future caching
 builder.Services.AddMemoryCache(options =>

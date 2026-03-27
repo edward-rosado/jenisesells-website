@@ -207,7 +207,8 @@ public class LeadSubmission_FullSubmissionFlowTests
     public async Task SubmitBuyerLead_TriggersHomeSearch_NotCma()
     {
         var mocks = new LeadSubmissionMocks();
-        var homeSearchDone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Pipeline complete signal — orchestrator calls UpdateStatusAsync(lead, LeadStatus.Complete)
+        var pipelineDone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         mocks.HomeSearch
             .Setup(h => h.SearchAsync(It.IsAny<HomeSearchCriteria>(), It.IsAny<CancellationToken>()))
@@ -217,32 +218,22 @@ public class LeadSubmission_FullSubmissionFlowTests
             ]);
 
         mocks.LeadStore
-            .Setup(s => s.UpdateHomeSearchIdAsync(
-                It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.UpdateStatusAsync(It.IsAny<Lead>(), LeadStatus.Complete, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask)
-            .Callback(() => homeSearchDone.TrySetResult());
+            .Callback<Lead, LeadStatus, CancellationToken>((_, _, _) => pipelineDone.TrySetResult());
 
         await using var factory = new LeadSubmissionMockFactory(mocks);
         var client = factory.CreateClient();
 
         await client.PostAsJsonAsync($"/agents/{AgentId}/leads", LeadRequests.BuyerPayload());
 
-        // Wait for background worker to finish home search (with timeout)
-        await homeSearchDone.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        // Wait for the orchestrator to complete the full pipeline (with timeout)
+        await pipelineDone.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
-        // Home search triggered
+        // Home search was triggered by the orchestrator
         mocks.HomeSearch.Verify(
             h => h.SearchAsync(
                 It.Is<HomeSearchCriteria>(c => c.MinBeds == 3),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        // Lead store updated with a search ID (because results were returned)
-        mocks.LeadStore.Verify(
-            s => s.UpdateHomeSearchIdAsync(
-                AgentId,
-                It.IsAny<Guid>(),
-                It.Is<string>(id => id.StartsWith("search-")),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }

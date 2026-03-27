@@ -15,7 +15,7 @@ public class LayerTests
         typeof(DataServices.Config.AccountConfigService).Assembly;
 
     private static readonly System.Reflection.Assembly NotificationsAssembly =
-        typeof(Notifications.Leads.CascadingAgentNotifier).Assembly;
+        typeof(Notifications.Leads.NoopEmailNotifier).Assembly;
 
     private static readonly System.Reflection.Assembly CmaWorkerAssembly =
         typeof(Workers.Cma.CmaProcessingWorker).Assembly;
