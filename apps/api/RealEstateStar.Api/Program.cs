@@ -9,18 +9,12 @@ using RealEstateStar.Api.Diagnostics;
 using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Api.Logging;
 using RealEstateStar.Api.Middleware;
-using RealEstateStar.DataServices.Config;
-using RealEstateStar.DataServices.Leads;
-using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.DataServices.Onboarding;
-using RealEstateStar.DataServices.Storage;
 using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.DataServices.Storage;
 using RealEstateStar.DataServices.WhatsApp;
-using RealEstateStar.Domain.Notifications.Interfaces;
-using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
-using RealEstateStar.Notifications.Templates;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.DataProtection;
@@ -44,7 +38,8 @@ using RealEstateStar.Clients.Gws;
 using RealEstateStar.Clients.RentCast;
 using RealEstateStar.Clients.Scraper;
 using RealEstateStar.Clients.WhatsApp;
-using RealEstateStar.Domain.Cma.Interfaces;
+using RealEstateStar.DataServices;
+using RealEstateStar.Notifications;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -78,8 +73,7 @@ else
 {
     Console.Error.WriteLine($"[STARTUP-ERROR] Config directory does not exist: {configPath}");
 }
-builder.Services.AddSingleton<IAccountConfigService>(sp =>
-    new AccountConfigService(configPath, sp.GetRequiredService<ILogger<AccountConfigService>>()));
+builder.Services.AddDataServices(builder.Configuration, builder.Environment, configPath);
 
 // Data Protection — encrypt OAuth tokens at rest
 var dpBuilder = builder.Services.AddDataProtection()
@@ -234,12 +228,14 @@ builder.Services.AddSingleton<IGwsService, GwsCliRunner>();
 // --- Lead Feature Services ---
 
 // Platform-tier document storage: Azure Blob when connection string is available, local filesystem fallback.
-// This is the durable storage backend for the Platform tier in FanOutStorageProvider.
+// Must stay in Program.cs — AzureBlobDocumentStore lives in Clients.Azure which DataServices cannot reference.
+// Registered as keyed IDocumentStorageProvider so AddStorageProviders() can resolve it without a compile-time dep.
 var storageConnStr = builder.Configuration["AzureStorage:ConnectionString"];
 if (!string.IsNullOrEmpty(storageConnStr))
 {
-    builder.Services.AddSingleton(sp =>
-        new AzureBlobDocumentStore(
+    builder.Services.AddKeyedSingleton<IDocumentStorageProvider>(
+        StorageServiceCollectionExtensions.PlatformDocumentStoreKey,
+        (sp, _) => new AzureBlobDocumentStore(
             new Azure.Storage.Blobs.BlobContainerClient(storageConnStr, "lead-documents"),
             sp.GetRequiredService<ILogger<AzureBlobDocumentStore>>()));
     Log.Information("[STARTUP-080] Platform document store: AzureBlobDocumentStore (container: lead-documents)");
@@ -249,99 +245,23 @@ else
     Log.Warning("[STARTUP-081] AzureStorage:ConnectionString not configured — Platform tier using LocalStorageProvider");
 }
 
-// FanOutStorageProvider: three-tier fan-out (Agent Drive + Account Drive + Platform Blob/Local).
-// Registered as IFileStorageProvider so all lead storage flows through fan-out.
-builder.Services.AddSingleton<IFileStorageProvider>(sp =>
+// FanOutStorageProvider + narrower interface forwarding (IDocumentStorageProvider, ISheetStorageProvider)
+builder.Services.AddStorageProviders(builder.Configuration, builder.Environment);
+
+// ITokenStore Azure override — must stay in Program.cs (AzureTableTokenStore is in Clients.Azure;
+// DataServices cannot reference it). AddDataServices() registers the NullTokenStore default; this
+// AddSingleton call replaces it when AzureStorage:ConnectionString is configured.
+if (!string.IsNullOrEmpty(storageConnStr))
 {
-    // Platform tier: prefer AzureBlobDocumentStore, fall back to LocalStorageProvider
-    var platformStore = sp.GetService<AzureBlobDocumentStore>() as IDocumentStorageProvider
-        ?? new LocalStorageProvider(
-            builder.Configuration["Storage:BasePath"] ?? Path.Combine(builder.Environment.ContentRootPath, "data"));
-
-    return new FanOutStorageProvider(
-        sp.GetRequiredService<IGDriveClient>(),
-        sp.GetRequiredService<IGSheetsClient>(),
-        sp.GetRequiredService<IGwsService>(),
-        platformStore,
-        "platform",  // accountId — platform-level, not per-agent
-        "platform",  // agentId — platform-level
-        "",          // platformEmail — no longer needed for document ops, only sheets
-        sp.GetRequiredService<ILogger<FanOutStorageProvider>>());
-});
-
-// Forward the narrower interfaces to FanOutStorageProvider
-builder.Services.AddSingleton<IDocumentStorageProvider>(sp => sp.GetRequiredService<IFileStorageProvider>());
-builder.Services.AddSingleton<ISheetStorageProvider>(sp => sp.GetRequiredService<IFileStorageProvider>());
-
-// Lead feature services
-builder.Services.AddSingleton<ILeadStore, LeadFileStore>();
-builder.Services.AddSingleton<IMarketingConsentLog, MarketingConsentLog>();
-builder.Services.AddSingleton<ILeadDataDeletion, LeadDataDeletion>();
-builder.Services.AddSingleton<IDeletionAuditLog, DeletionAuditLog>();
-builder.Services.AddSingleton<ILeadDeadLetterStore>(sp =>
-    new LeadDeadLetterStore(
-        Path.Combine(builder.Environment.ContentRootPath, "data", "dead-letter"),
-        sp.GetRequiredService<ILogger<LeadDeadLetterStore>>()));
-
-// Compliance consent triple-write services
-// IComplianceFileStorageProvider: service-account Drive in prod, local filesystem in dev
-builder.Services.AddSingleton<IComplianceFileStorageProvider>(sp =>
-    new LocalComplianceStorageProvider(
-        builder.Configuration["Storage:ComplianceBasePath"] ??
-        Path.Combine(builder.Environment.ContentRootPath, "data", "compliance")));
-
-// IComplianceConsentWriter: backed by ComplianceConsentWriter
-builder.Services.AddSingleton<IComplianceConsentWriter, ComplianceConsentWriter>();
-
-// IConsentAuditService: Azure Table in prod, no-op in dev
-builder.Services.AddSingleton<IConsentAuditService>(sp =>
-{
-    var connStr = builder.Configuration["AzureStorage:ConnectionString"];
-    if (string.IsNullOrEmpty(connStr))
-        return new NullConsentAuditService();
-
-    var tableClient = new Azure.Data.Tables.TableClient(connStr, "consentaudit");
-    return new ConsentAuditService(tableClient, sp.GetRequiredService<ILogger<ConsentAuditService>>());
-});
-
-// GDPR data export
-builder.Services.AddSingleton<ILeadDataExport, LeadDataExport>();
-
-// Email template rendering (privacy footer with unsubscribe/view-data links)
-builder.Services.AddSingleton<IEmailTemplateRenderer, PrivacyFooterRenderer>();
-
-// Consent token store (Azure Table; in-memory fallback when not configured)
-builder.Services.AddSingleton<ConsentTokenStore>(sp =>
-{
-    var connStr = builder.Configuration["AzureStorage:ConnectionString"];
-    if (string.IsNullOrEmpty(connStr))
-        return new ConsentTokenStore(
-            new Azure.Data.Tables.TableClient("UseDevelopmentStorage=true", "consenttokens"),
-            sp.GetRequiredService<ILogger<ConsentTokenStore>>());
-
-    var tableClient = new Azure.Data.Tables.TableClient(connStr, "consenttokens");
-    return new ConsentTokenStore(tableClient, sp.GetRequiredService<ILogger<ConsentTokenStore>>());
-});
-
-// OAuth token store (Azure Table; null fallback when not configured — skips persist in local dev)
-builder.Services.AddSingleton<ITokenStore>(sp =>
-{
-    var connStr = builder.Configuration["AzureStorage:ConnectionString"];
-    if (string.IsNullOrEmpty(connStr))
+    builder.Services.AddSingleton<ITokenStore>(sp =>
     {
-        // TODO: Once Azure Table Storage is provisioned, add AzureStorage__ConnectionString
-        // to container env vars and convert this warning to a throw for non-dev environments.
-        Log.Warning("[STARTUP-070] AzureStorage:ConnectionString not configured — using NullTokenStore. " +
-            "OAuth tokens will NOT be persisted. Set AzureStorage:ConnectionString to enable.");
-        return new NullTokenStore();
-    }
-
-    var tableClient = new Azure.Data.Tables.TableClient(connStr, "oauthtokens");
-    return new AzureTableTokenStore(
-        tableClient,
-        sp.GetRequiredService<IDataProtectionProvider>(),
-        sp.GetRequiredService<ILogger<AzureTableTokenStore>>());
-});
+        var tableClient = new Azure.Data.Tables.TableClient(storageConnStr, "oauthtokens");
+        return new AzureTableTokenStore(
+            tableClient,
+            sp.GetRequiredService<IDataProtectionProvider>(),
+            sp.GetRequiredService<ILogger<AzureTableTokenStore>>());
+    });
+}
 
 // Gmail API client — IGmailSender backed by GmailApiClient (needs IOAuthRefresher)
 builder.Services.AddHttpClient("GoogleOAuth", client =>
@@ -365,48 +285,20 @@ builder.Services.AddGDriveClient(googleClientId, googleClientSecret);
 builder.Services.AddGDocsClient(googleClientId, googleClientSecret);
 builder.Services.AddGSheetsClient(googleClientId, googleClientSecret);
 
-// Scraper client — centralized with OTel, circuit breaker, rate limiting
-builder.Services.Configure<ScraperOptions>(builder.Configuration.GetSection("Scraper"));
-builder.Services.AddSingleton<IScraperClient, ScraperClient>();
+// Scraper client (options, IScraperClient, HttpClient "ScraperAPI" with resilience)
+builder.Services.AddScraperClient(builder.Configuration, pollyLogger);
 
-// Lead pipeline — orchestrator + PDF worker + scoring/drafting/notification services
-builder.Services.AddSingleton<LeadOrchestratorChannel>();
-builder.Services.AddSingleton<PdfProcessingChannel>();
-builder.Services.AddSingleton<ILeadScorer, LeadScorer>();
-builder.Services.AddSingleton<ILeadEmailDrafter, LeadEmailDrafter>();
-builder.Services.AddSingleton<IAgentNotifier, AgentNotifier>();
-builder.Services.AddHostedService<LeadOrchestrator>();
-builder.Services.AddHostedService<PdfWorker>();
+// Lead pipeline (orchestrator + PDF worker + scoring/drafting/notification services)
+builder.Services.AddLeadPipeline();
 
-// CMA + home search channels/workers
-builder.Services.AddSingleton<CmaProcessingChannel>();
-builder.Services.AddSingleton<HomeSearchProcessingChannel>();
-builder.Services.AddHostedService<CmaProcessingWorker>();
-builder.Services.AddHostedService<HomeSearchProcessingWorker>();
+// RentCast client (options, IRentCastClient, HttpClient "RentCast" with resilience)
+builder.Services.AddRentCastClient(builder.Configuration, pollyLogger);
 
-// Pipeline source URL config
-var homeSearchSources = builder.Configuration.GetSection("Pipeline:HomeSearch:Sources")
-    .Get<Dictionary<string, string>>() ?? new();
+// CMA pipeline (channel, worker, RentCastCompSource, ICompSource, ICompAggregator, ICmaAnalyzer)
+builder.Services.AddCmaPipeline();
 
-// Home search
-builder.Services.AddSingleton<IHomeSearchProvider>(sp =>
-    new ScraperHomeSearchProvider(
-        sp.GetRequiredService<IAnthropicClient>(),
-        sp.GetRequiredService<IScraperClient>(),
-        homeSearchSources,
-        sp.GetRequiredService<ILogger<ScraperHomeSearchProvider>>()));
-
-// RentCast client — structured comp data for CMA pipeline
-builder.Services.Configure<RentCastOptions>(builder.Configuration.GetSection("RentCast"));
-builder.Services.AddSingleton<IRentCastClient, RentCastClient>();
-builder.Services.AddHttpClient("RentCast")
-    .AddRentCastResilience(pollyLogger);
-
-// CMA comp source — single RentCast source replaces three-scraper loop.
-// Registered as both the concrete type (for CmaProcessingWorker to read LastValuation)
-// and the ICompSource interface (for CompAggregator). Both resolve the same singleton instance.
-builder.Services.AddSingleton<RentCastCompSource>();
-builder.Services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<RentCastCompSource>());
+// Home search pipeline (channel, worker, IHomeSearchProvider)
+builder.Services.AddHomeSearchPipeline(builder.Configuration);
 
 var rentCastKey = builder.Configuration["RentCast:ApiKey"];
 if (!string.IsNullOrWhiteSpace(rentCastKey))
@@ -414,18 +306,6 @@ if (!string.IsNullOrWhiteSpace(rentCastKey))
         builder.Configuration.GetValue<int>("RentCast:MonthlyLimitWarningPercent", 80));
 else
     Log.Warning("[STARTUP-091] RentCast:ApiKey not configured — CMA comp fetch will return empty results");
-
-// CMA pipeline services
-builder.Services.AddSingleton<ICompAggregator>(sp =>
-    new CompAggregator(
-        sp.GetServices<ICompSource>(),
-        sp.GetRequiredService<ILogger<CompAggregator>>()));
-builder.Services.AddSingleton<ICmaAnalyzer>(sp =>
-    new ClaudeCmaAnalyzer(
-        sp.GetRequiredService<IAnthropicClient>(),
-        sp.GetRequiredService<ILogger<ClaudeCmaAnalyzer>>()));
-builder.Services.AddSingleton<ICmaPdfGenerator, CmaPdfGenerator>();
-// ICmaNotifier and IHomeSearchNotifier are now unused — notifications handled by AgentNotifier in Workers.Leads
 
 // Image resolver — local-first (agent-site public dir → live site HTTP fallback)
 builder.Services.AddHttpClient("image-resolver", client =>
@@ -435,14 +315,9 @@ builder.Services.AddHttpClient("image-resolver", client =>
 });
 builder.Services.AddSingleton<IImageResolver, LocalFirstImageResolver>();
 
-// Named HttpClients used by services with hardcoded client names
-builder.Services.AddHttpClient("ScraperAPI")
-    .AddScraperApiResilience(pollyLogger);
+// Named HttpClient used by GoogleChat resilience (ScraperAPI handled by AddScraperClient above)
 builder.Services.AddHttpClient("GoogleChat")
     .AddGoogleChatResilience(pollyLogger);
-
-// Drive change monitor
-builder.Services.AddSingleton<DriveChangeMonitor>();
 
 // ------------------------------------------------------------------
 // WhatsApp config validation
@@ -456,15 +331,18 @@ var whatsAppWabaId = builder.Configuration["WhatsApp:WabaId"];
 if (string.IsNullOrEmpty(whatsAppPhoneNumberId))
     Log.Warning("WhatsApp:PhoneNumberId not configured — WhatsApp notifications disabled");
 
+// Notification services (IEmailTemplateRenderer, IEmailNotifier)
+builder.Services.AddNotificationServices();
+
 // ------------------------------------------------------------------
-// WhatsApp services — always register intent/response stubs so
-// ConversationHandler can be resolved even without WhatsApp config.
-// Azure queue/table services are conditional on PhoneNumberId being set.
+// WhatsApp services — intent/response/conversation stubs + conditional
+// hosted services are registered by AddWhatsAppWorkers.
+// Azure queue/table, IWhatsAppSender, IWhatsAppNotifier, IConversationLogger
+// must stay here (they depend on Clients.WhatsApp which Workers.* cannot reference).
 // ------------------------------------------------------------------
-builder.Services.AddSingleton<IIntentClassifier, NoopIntentClassifier>();
-builder.Services.AddSingleton<IResponseGenerator, NoopResponseGenerator>();
+builder.Services.AddWhatsAppWorkers(builder.Configuration);
+
 builder.Services.AddSingleton<IConversationLogger, ConversationLogger>();
-builder.Services.AddSingleton<IConversationHandler, ConversationHandler>();
 
 builder.Services.AddHttpClient("WhatsApp", client =>
 {
@@ -499,9 +377,6 @@ if (!string.IsNullOrEmpty(whatsAppPhoneNumberId))
     builder.Services.AddSingleton(new Azure.Data.Tables.TableClient(
         storageConnectionString, "whatsappaudit"));
     builder.Services.AddSingleton<IWhatsAppAuditService, AzureWhatsAppAuditService>();
-
-    builder.Services.AddHostedService<WebhookProcessorWorker>();
-    builder.Services.AddHostedService<WhatsAppRetryJob>();
 }
 else
 {
