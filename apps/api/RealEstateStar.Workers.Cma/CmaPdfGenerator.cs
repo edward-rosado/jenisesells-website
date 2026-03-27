@@ -385,14 +385,22 @@ public class CmaPdfGenerator : ICmaPdfGenerator
 
         if (analysis.PricingRecommendation is { } recommendation)
         {
-            col.Item().PaddingBottom(6).Text("Pricing Strategy").FontSize(11).Bold();
-            col.Item().PaddingBottom(12).Text(recommendation).FontSize(10);
+            // Keep pricing strategy together — don't split across pages
+            col.Item().ShowEntire().Column(section =>
+            {
+                section.Item().PaddingBottom(6).Text("Pricing Strategy").FontSize(11).Bold();
+                section.Item().PaddingBottom(12).Text(recommendation).FontSize(10);
+            });
         }
 
         if (analysis.LeadInsights is { } insights)
         {
-            col.Item().PaddingBottom(6).Text("Seller Insights").FontSize(11).Bold();
-            col.Item().PaddingBottom(12).Text(insights).FontSize(10);
+            // Keep seller insights together — don't split across pages
+            col.Item().ShowEntire().Column(section =>
+            {
+                section.Item().PaddingBottom(6).Text("Seller Insights").FontSize(11).Bold();
+                section.Item().PaddingBottom(12).Text(insights).FontSize(10);
+            });
         }
     }
 
