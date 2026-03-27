@@ -12,4 +12,5 @@ public record BuyerDetails
     public decimal? PreApprovalAmount { get; init; }
     public List<string>? PropertyTypes { get; init; }
     public List<string>? MustHaves { get; init; }
+    public string? Notes { get; init; }
 }

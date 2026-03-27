@@ -12,4 +12,5 @@ public record SellerDetails
     public string? PropertyType { get; init; }
     public string? Condition { get; init; }
     public decimal? AskingPrice { get; init; }
+    public string? Notes { get; init; }
 }
