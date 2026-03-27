@@ -15,12 +15,13 @@ public class BackgroundServiceHealthCheckTests
 {
     private readonly BackgroundServiceHealthTracker _tracker = new();
     private readonly LeadOrchestratorChannel _leadChannel = new();
+    private readonly PdfProcessingChannel _pdfChannel = new();
     private readonly CmaProcessingChannel _cmaChannel = new();
     private readonly HomeSearchProcessingChannel _homeSearchChannel = new();
     private readonly Mock<ILogger<BackgroundServiceHealthCheck>> _logger = new();
 
     private BackgroundServiceHealthCheck CreateCheck() =>
-        new(_tracker, _leadChannel, _cmaChannel, _homeSearchChannel, _logger.Object);
+        new(_tracker, _leadChannel, _pdfChannel, _cmaChannel, _homeSearchChannel, _logger.Object);
 
     private static HealthCheckContext MakeContext() => new()
     {
@@ -91,6 +92,23 @@ public class BackgroundServiceHealthCheckTests
     }
 
     [Fact]
+    public async Task ReturnsUnhealthy_WhenPdfWorkerHasItems_AndWorkerNeverActive()
+    {
+        // Pdf channel has an item queued but worker has never processed
+        await _pdfChannel.Writer.WriteAsync(
+            new PdfProcessingRequest("lead-1", MakeCmaResult(), MakeAgentConfig(), "corr-1",
+                new TaskCompletionSource<PdfWorkerResult>(TaskCreationOptions.RunContinuationsAsynchronously)),
+            CancellationToken.None);
+
+        var check = CreateCheck();
+        var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
+
+        result.Status.Should().Be(HealthStatus.Unhealthy);
+        result.Description.Should().Contain("PdfWorker");
+        result.Description.Should().Contain("never active");
+    }
+
+    [Fact]
     public async Task ReturnsUnhealthy_WhenMultipleWorkersStuck()
     {
         // Two channels with items, neither worker ever active
@@ -131,6 +149,9 @@ public class BackgroundServiceHealthCheckTests
 
         result.Data["LeadOrchestrator.lastActivity"].Should().Be("never");
     }
+
+    private static CmaWorkerResult MakeCmaResult() =>
+        new("lead-1", true, null, 500_000m, 480_000m, 520_000m, null, null);
 
     private static AgentNotificationConfig MakeAgentConfig() => new()
     {
