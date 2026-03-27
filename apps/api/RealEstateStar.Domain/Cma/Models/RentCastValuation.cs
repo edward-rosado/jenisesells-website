@@ -6,6 +6,18 @@ public record RentCastValuation
     public required decimal PriceRangeLow { get; init; }
     public required decimal PriceRangeHigh { get; init; }
     public required IReadOnlyList<RentCastComp> Comparables { get; init; }
+    public RentCastSubjectProperty? SubjectProperty { get; init; }
+}
+
+public record RentCastSubjectProperty
+{
+    public required string FormattedAddress { get; init; }
+    public string? PropertyType { get; init; }
+    public int? Bedrooms { get; init; }
+    public decimal? Bathrooms { get; init; }
+    public int? SquareFootage { get; init; }
+    public int? YearBuilt { get; init; }
+    public int? LotSize { get; init; }
 }
 
 public record RentCastComp

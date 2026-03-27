@@ -8,6 +8,7 @@ public class CmaPipelineContext : PipelineContext<Lead>
 {
     // Step name constants
     public const string StepFetchComps = "fetch-comps";
+    public const string StepEnrichSubject = "enrich-subject";
     public const string StepAnalyze = "analyze";
     public const string StepGeneratePdf = "generate-pdf";
     public const string StepNotifySeller = "notify-seller";

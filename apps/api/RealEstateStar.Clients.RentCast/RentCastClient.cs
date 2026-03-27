@@ -118,7 +118,17 @@ internal sealed class RentCastClient(
                     Status = c.Status
                 })
                 .ToList()
-                .AsReadOnly()
+                .AsReadOnly(),
+            SubjectProperty = dto.SubjectProperty is null ? null : new RentCastSubjectProperty
+            {
+                FormattedAddress = dto.SubjectProperty.FormattedAddress,
+                PropertyType = dto.SubjectProperty.PropertyType,
+                Bedrooms = dto.SubjectProperty.Bedrooms,
+                Bathrooms = dto.SubjectProperty.Bathrooms,
+                SquareFootage = dto.SubjectProperty.SquareFootage,
+                YearBuilt = dto.SubjectProperty.YearBuilt,
+                LotSize = dto.SubjectProperty.LotSize
+            }
         };
 
     // Internal DTOs — mirror RentCast JSON shape, not exposed outside this file
@@ -126,7 +136,8 @@ internal sealed class RentCastClient(
         [property: JsonPropertyName("price")] decimal Price,
         [property: JsonPropertyName("priceRangeLow")] decimal PriceRangeLow,
         [property: JsonPropertyName("priceRangeHigh")] decimal PriceRangeHigh,
-        [property: JsonPropertyName("comparables")] List<RentCastApiComp>? Comparables);
+        [property: JsonPropertyName("comparables")] List<RentCastApiComp>? Comparables,
+        [property: JsonPropertyName("subjectProperty")] RentCastApiSubjectProperty? SubjectProperty);
 
     private record RentCastApiComp(
         [property: JsonPropertyName("formattedAddress")] string FormattedAddress,
@@ -141,4 +152,13 @@ internal sealed class RentCastClient(
         [property: JsonPropertyName("distance")] double? Distance,
         [property: JsonPropertyName("correlation")] double? Correlation,
         [property: JsonPropertyName("status")] string? Status);
+
+    private record RentCastApiSubjectProperty(
+        [property: JsonPropertyName("formattedAddress")] string FormattedAddress,
+        [property: JsonPropertyName("propertyType")] string? PropertyType,
+        [property: JsonPropertyName("bedrooms")] int? Bedrooms,
+        [property: JsonPropertyName("bathrooms")] decimal? Bathrooms,
+        [property: JsonPropertyName("squareFootage")] int? SquareFootage,
+        [property: JsonPropertyName("yearBuilt")] int? YearBuilt,
+        [property: JsonPropertyName("lotSize")] int? LotSize);
 }
