@@ -11,4 +11,6 @@ public sealed class HomeSearchProcessingChannel : ProcessingChannelBase<HomeSear
 public sealed record HomeSearchProcessingRequest(
     string AgentId,
     Lead Lead,
-    string CorrelationId);
+    AgentNotificationConfig AgentConfig,
+    string CorrelationId,
+    TaskCompletionSource<HomeSearchWorkerResult> Completion);

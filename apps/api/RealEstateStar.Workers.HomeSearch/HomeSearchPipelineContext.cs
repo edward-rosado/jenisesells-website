@@ -7,7 +7,10 @@ public class HomeSearchPipelineContext : PipelineContext<Lead>
 {
     // Step name constants
     public const string StepFetchListings = "fetch-listings";
-    public const string StepNotifyBuyer = "notify-buyer";
+
+    // Request-level data passed from the dispatch payload
+    public required TaskCompletionSource<HomeSearchWorkerResult> Completion { get; init; }
+    public required AgentNotificationConfig AgentConfig { get; init; }
 
     // Typed accessors
     public List<Listing>? Listings
