@@ -84,8 +84,8 @@ public class LeadEmailTemplateTests
         PriceRangeHigh: 470_000m,
         Comps:
         [
-            new CompSummary("100 Elm St", 440_000m, 3, 2, 1750, 12, 0.3),
-            new CompSummary("200 Maple Ave", 460_000m, 4, 2, 1900, 8, 0.5)
+            new CompSummary("100 Elm St", 440_000m, 3, 2, 1750, 12, 0.3, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30))),
+            new CompSummary("200 Maple Ave", 460_000m, 4, 2, 1900, 8, 0.5, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-20)))
         ],
         MarketAnalysis: "Seller's market with low inventory.");
 

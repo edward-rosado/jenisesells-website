@@ -20,7 +20,7 @@ public sealed record PdfWorkerResult(
 
 public record CompSummary(
     string Address, decimal Price, int? Beds, decimal? Baths,
-    int? Sqft, int? DaysOnMarket, double? Distance);
+    int? Sqft, int? DaysOnMarket, double? Distance, DateOnly? SaleDate);
 
 public record ListingSummary(
     string Address, decimal Price, int? Beds, decimal? Baths,

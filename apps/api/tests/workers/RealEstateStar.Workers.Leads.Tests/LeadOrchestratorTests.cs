@@ -156,7 +156,7 @@ public sealed class LeadOrchestratorTests
         EstimatedValue: 500_000m,
         PriceRangeLow: 480_000m,
         PriceRangeHigh: 520_000m,
-        Comps: [new CompSummary("123 Main St", 490_000m, 3, 2m, 1800, 14, 0.3)],
+        Comps: [new CompSummary("123 Main St", 490_000m, 3, 2m, 1800, 14, 0.3, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30)))],
         MarketAnalysis: "Market trending upward.");
 
     private static HomeSearchWorkerResult BuildHsResult(string leadId) => new(

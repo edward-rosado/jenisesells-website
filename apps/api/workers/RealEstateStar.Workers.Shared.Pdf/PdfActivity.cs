@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
@@ -33,18 +34,59 @@ public class PdfActivity(
         string correlationId,
         CancellationToken ct)
     {
+        using var span = PdfDiagnostics.ActivitySource.StartActivity("activity.pdf");
+        span?.SetTag("lead.id", lead.Id.ToString());
+        span?.SetTag("agent.id", accountConfig?.Handle ?? lead.AgentId);
+        span?.SetTag("correlation.id", correlationId);
+
         logger.LogInformation(
-            "[PDF-ACT-001] Generating CMA PDF. LeadId: {LeadId}, ReportType: {ReportType}, CorrelationId: {CorrelationId}",
+            "[PDF-001] Generating CMA PDF. LeadId: {LeadId}, ReportType: {ReportType}, CorrelationId: {CorrelationId}",
             lead.Id, reportType, correlationId);
 
         var config = accountConfig ?? new AccountConfig { Handle = lead.AgentId };
-        var tempPath = await generator.GenerateAsync(lead, analysis, comps, config, reportType,
-            logoBytes, headshotBytes, ct);
 
-        var storagePath = await StorePdfAsync(lead.Id.ToString(), tempPath, ct);
+        string tempPath;
+        try
+        {
+            var genStarted = Stopwatch.GetTimestamp();
+            tempPath = await generator.GenerateAsync(lead, analysis, comps, config, reportType,
+                logoBytes, headshotBytes, ct);
+            PdfDiagnostics.GenerationDurationMs.Record(
+                Stopwatch.GetElapsedTime(genStarted).TotalMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            PdfDiagnostics.PdfFailed.Add(1);
+            span?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            logger.LogError(ex,
+                "[PDF-010] PDF generation failed for lead {LeadId}. CorrelationId: {CorrelationId}",
+                lead.Id, correlationId);
+            throw;
+        }
+
+        string storagePath;
+        try
+        {
+            var storeStarted = Stopwatch.GetTimestamp();
+            storagePath = await StorePdfAsync(lead.Id.ToString(), tempPath, ct);
+            PdfDiagnostics.StorageDurationMs.Record(
+                Stopwatch.GetElapsedTime(storeStarted).TotalMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            PdfDiagnostics.PdfFailed.Add(1);
+            span?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            logger.LogError(ex,
+                "[PDF-011] PDF storage failed for lead {LeadId}. CorrelationId: {CorrelationId}",
+                lead.Id, correlationId);
+            throw;
+        }
+
+        PdfDiagnostics.PdfSuccess.Add(1);
+        span?.SetTag("result.success", true);
 
         logger.LogInformation(
-            "[PDF-ACT-002] CMA PDF generated and stored. LeadId: {LeadId}, Path: {Path}, CorrelationId: {CorrelationId}",
+            "[PDF-002] CMA PDF generated and stored. LeadId: {LeadId}, Path: {Path}, CorrelationId: {CorrelationId}",
             lead.Id, storagePath, correlationId);
 
         return storagePath;
@@ -57,6 +99,8 @@ public class PdfActivity(
         var fileName = $"{timestamp:yyyy-MM-dd}-{leadId}-CMA-Report.pdf.b64";
 
         var pdfBytes = await File.ReadAllBytesAsync(tempFilePath, ct);
+
+        PdfDiagnostics.PdfSizeBytes.Record(pdfBytes.Length);
 
         await storage.WriteDocumentAsync(
             folder,

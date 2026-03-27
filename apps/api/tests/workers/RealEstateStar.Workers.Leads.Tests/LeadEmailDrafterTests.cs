@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.Leads.Interfaces;
@@ -109,8 +110,11 @@ public class LeadEmailDrafterTests
                 .ReturnsAsync(new AnthropicResponse(content, 100, 200, 300));
         }
 
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Privacy:TokenSecret"] = "test-secret" })
+            .Build();
         var logger = new Mock<ILogger<LeadEmailDrafter>>();
-        var drafter = new LeadEmailDrafter(anthropicMock.Object, logger.Object);
+        var drafter = new LeadEmailDrafter(anthropicMock.Object, config, logger.Object);
         return (drafter, anthropicMock);
     }
 

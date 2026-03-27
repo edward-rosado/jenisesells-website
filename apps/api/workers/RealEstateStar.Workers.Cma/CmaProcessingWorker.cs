@@ -57,7 +57,7 @@ public sealed class CmaProcessingWorker(
             ctx.Request.Id.ToString(), true, null,
             ctx.Analysis!.ValueMid, ctx.Analysis.ValueLow, ctx.Analysis.ValueHigh,
             ctx.Comps.Select(c => new CompSummary(
-                c.Address, c.SalePrice, c.Beds, c.Baths, c.Sqft, c.DaysOnMarket, c.DistanceMiles)).ToList(),
+                c.Address, c.SalePrice, c.Beds, c.Baths, c.Sqft, c.DaysOnMarket, c.DistanceMiles, c.SaleDate)).ToList(),
             ctx.Analysis.MarketNarrative);
         ctx.ProcessingRequest.Completion.TrySetResult(result);
 

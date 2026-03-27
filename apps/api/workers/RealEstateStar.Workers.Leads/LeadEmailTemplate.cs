@@ -11,14 +11,15 @@ public static class LeadEmailTemplate
         CmaWorkerResult? cmaResult, HomeSearchWorkerResult? homeSearchResult,
         AgentNotificationConfig agentConfig,
         string personalizedParagraph, string agentPitch,
-        string? pdfDownloadUrl)
+        string? pdfDownloadUrl,
+        string privacySecret)
     {
         var isSeller = lead.SellerDetails is not null;
         var isBuyer = lead.BuyerDetails is not null;
         var primary = HtmlEncode(agentConfig.PrimaryColor);
         var accent = HtmlEncode(agentConfig.AccentColor);
 
-        var privacyToken = BuildPrivacyToken(lead.Email, agentConfig.AgentId);
+        var privacyToken = BuildPrivacyToken(lead.Email, agentConfig.AgentId, privacySecret);
 
         return $"""
             <!DOCTYPE html>
@@ -209,12 +210,12 @@ public static class LeadEmailTemplate
             """;
     }
 
-    internal static string BuildPrivacyToken(string email, string agentId)
+    internal static string BuildPrivacyToken(string email, string agentId, string privacySecret)
     {
         // Sign with HMAC to prevent tampering — email is hashed, not raw
         var emailHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(email))).ToLowerInvariant();
         var payload = $"{agentId}:{emailHash}:{DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 86400}"; // day-granular
-        var keyBytes = Encoding.UTF8.GetBytes($"privacy-token:{agentId}");
+        var keyBytes = Encoding.UTF8.GetBytes(privacySecret);
         var sig = Convert.ToHexString(HMACSHA256.HashData(keyBytes, Encoding.UTF8.GetBytes(payload))).ToLowerInvariant();
         return $"{emailHash}.{sig}";
     }

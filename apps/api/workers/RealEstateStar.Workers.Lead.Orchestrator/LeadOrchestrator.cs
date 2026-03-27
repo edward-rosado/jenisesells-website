@@ -363,7 +363,7 @@ public sealed class LeadOrchestrator(
                 {
                     Address = c.Address,
                     SalePrice = c.Price,
-                    SaleDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    SaleDate = c.SaleDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
                     Beds = c.Beds ?? 0,
                     Baths = (int)(c.Baths ?? 0),
                     Sqft = c.Sqft ?? 0,
