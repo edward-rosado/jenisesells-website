@@ -64,7 +64,8 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
     [InlineData(typeof(IAnthropicClient))]
     [InlineData(typeof(IGwsService))]
     [InlineData(typeof(ILeadStore))]
-    [InlineData(typeof(ILeadNotifier))]
+    // TODO: Pipeline redesign — ILeadNotifier removed in Phase 1.5; replaced in Phase 2/3/4
+    // [InlineData(typeof(ILeadNotifier))]
     [InlineData(typeof(ILeadDataDeletion))]
     [InlineData(typeof(IMarketingConsentLog))]
     [InlineData(typeof(IRentCastClient))]

@@ -15,7 +15,7 @@ public class LayerTests
         typeof(DataServices.Config.AccountConfigService).Assembly;
 
     private static readonly System.Reflection.Assembly NotificationsAssembly =
-        typeof(Notifications.Leads.MultiChannelLeadNotifier).Assembly;
+        typeof(Notifications.Leads.CascadingAgentNotifier).Assembly;
 
     [Fact]
     public void Domain_types_should_not_depend_on_DataServices()

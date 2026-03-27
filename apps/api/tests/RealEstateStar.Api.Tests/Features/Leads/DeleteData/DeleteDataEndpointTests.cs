@@ -28,7 +28,8 @@ public class DeleteDataEndpointTests
         Email = email,
         Phone = "555-1234",
         Timeline = "ASAP",
-        Status = LeadStatus.Enriched
+        // TODO: Pipeline redesign — LeadStatus.Enriched removed in Phase 1.5; using Received
+        Status = LeadStatus.Received
     };
 
     private static DeleteLeadDataRequest MakeRequest(

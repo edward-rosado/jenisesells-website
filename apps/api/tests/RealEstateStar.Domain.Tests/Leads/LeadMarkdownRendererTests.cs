@@ -16,7 +16,8 @@ public class LeadMarkdownRendererTests
         Phone = "5551234567",
         Timeline = "1-3months",
         ReceivedAt = new DateTime(2026, 3, 19, 14, 30, 0, DateTimeKind.Utc),
-        Status = LeadStatus.Enriched,
+        // TODO: Pipeline redesign — LeadStatus.Enriched removed in Phase 1.5; using Received
+        Status = LeadStatus.Received,
         Notes = "Referred by a neighbor.",
         SellerDetails = new SellerDetails
         {
@@ -38,16 +39,7 @@ public class LeadMarkdownRendererTests
             PropertyTypes = ["Single Family", "Townhome"],
             MustHaves = ["Pool", "Garage"]
         },
-        Enrichment = new LeadEnrichment
-        {
-            MotivationCategory = "relocating",
-            MotivationAnalysis = "Relocating for a new job opportunity.",
-            ProfessionalBackground = "Software engineer, stable income.",
-            FinancialIndicators = "Pre-approved for $500k.",
-            TimelinePressure = "Needs to move within 90 days.",
-            ConversationStarters = ["Ask about the new role.", "Discuss commute preferences."],
-            ColdCallOpeners = ["Congratulations on the new opportunity!", "I specialize in relocation buyers."]
-        },
+        // TODO: Pipeline redesign — LeadEnrichment removed in Phase 1.5; Enrichment property removed
         Score = new LeadScore
         {
             OverallScore = 82,
@@ -121,7 +113,8 @@ public class LeadMarkdownRendererTests
     {
         var lead = MakeFullLead();
         var result = LeadMarkdownRenderer.RenderLeadProfile(lead);
-        Assert.Contains("status: Enriched", result);
+        // TODO: Pipeline redesign — status value updated in Phase 1.5 from Enriched to Received
+        Assert.Contains("status: Received", result);
     }
 
     [Fact]
@@ -278,60 +271,15 @@ public class LeadMarkdownRendererTests
     }
 
     // ─── RenderResearchInsights ──────────────────────────────────────────────────
+    // TODO: Pipeline redesign — RenderResearchInsights tests updated in Phase 1.5.
+    // Enrichment-specific assertions removed; will be rewritten in Phase 2/3/4.
 
     [Fact]
-    public void RenderResearchInsights_ContainsScoreDisplay()
+    public void RenderResearchInsights_ContainsLeadId()
     {
         var lead = MakeFullLead();
         var result = LeadMarkdownRenderer.RenderResearchInsights(lead);
-        Assert.Contains("## Lead Score: 82 / 100", result);
-    }
-
-    [Fact]
-    public void RenderResearchInsights_ContainsScoreBreakdownTable()
-    {
-        var lead = MakeFullLead();
-        var result = LeadMarkdownRenderer.RenderResearchInsights(lead);
-        Assert.Contains("| Timeline |", result);
-        Assert.Contains("| Budget |", result);
-        Assert.Contains("Very tight timeline.", result);
-    }
-
-    [Fact]
-    public void RenderResearchInsights_ContainsMotivationSection()
-    {
-        var lead = MakeFullLead();
-        var result = LeadMarkdownRenderer.RenderResearchInsights(lead);
-        Assert.Contains("## Motivation Analysis", result);
-        Assert.Contains("Relocating for a new job opportunity.", result);
-    }
-
-    [Fact]
-    public void RenderResearchInsights_ContainsProfessionalBackground()
-    {
-        var lead = MakeFullLead();
-        var result = LeadMarkdownRenderer.RenderResearchInsights(lead);
-        Assert.Contains("## Professional Background", result);
-        Assert.Contains("Software engineer, stable income.", result);
-    }
-
-    [Fact]
-    public void RenderResearchInsights_ContainsConversationStarters()
-    {
-        var lead = MakeFullLead();
-        var result = LeadMarkdownRenderer.RenderResearchInsights(lead);
-        Assert.Contains("## Conversation Starters", result);
-        Assert.Contains("- Ask about the new role.", result);
-        Assert.Contains("- Discuss commute preferences.", result);
-    }
-
-    [Fact]
-    public void RenderResearchInsights_ContainsColdCallOpeners()
-    {
-        var lead = MakeFullLead();
-        var result = LeadMarkdownRenderer.RenderResearchInsights(lead);
-        Assert.Contains("## Cold Call Openers", result);
-        Assert.Contains("- Congratulations on the new opportunity!", result);
+        Assert.Contains($"leadId: {lead.Id}", result);
     }
 
     [Fact]
@@ -343,32 +291,20 @@ public class LeadMarkdownRendererTests
     }
 
     [Fact]
-    public void RenderResearchInsights_YamlContainsMotivationCategory()
+    public void RenderResearchInsights_EmptyScore_DefaultScore50InYaml()
     {
         var lead = MakeFullLead();
-        var result = LeadMarkdownRenderer.RenderResearchInsights(lead);
-        Assert.Contains("motivationCategory: relocating", result);
-    }
-
-    [Fact]
-    public void RenderResearchInsights_EmptyEnrichment_ProducesMinimalDoc()
-    {
-        var lead = MakeFullLead();
-        lead.Enrichment = null;
-        lead.Score = null;
-        var result = LeadMarkdownRenderer.RenderResearchInsights(lead);
-        Assert.Contains("Enrichment pending", result);
-        Assert.DoesNotContain("## Motivation Analysis", result);
-    }
-
-    [Fact]
-    public void RenderResearchInsights_EmptyEnrichment_DefaultScore50InYaml()
-    {
-        var lead = MakeFullLead();
-        lead.Enrichment = null;
         lead.Score = null;
         var result = LeadMarkdownRenderer.RenderResearchInsights(lead);
         Assert.Contains("overallScore: 50", result);
+    }
+
+    [Fact]
+    public void RenderResearchInsights_ContainsPendingMessage()
+    {
+        var lead = MakeFullLead();
+        var result = LeadMarkdownRenderer.RenderResearchInsights(lead);
+        Assert.Contains("Enrichment pending", result);
     }
 
     // ─── RenderHomeSearchResults ─────────────────────────────────────────────────

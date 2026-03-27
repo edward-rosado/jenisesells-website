@@ -6,14 +6,9 @@ namespace RealEstateStar.Domain.Leads.Models;
 public enum LeadStatus
 {
     Received,
-    Enriching,
-    Enriched,
-    EnrichmentFailed,
-    EmailDrafted,
+    Scored,
+    Analyzing,
     Notified,
-    NotificationFailed,
-    CmaComplete,
-    SearchComplete,
     Complete,
     ActiveClient,
     UnderContract,

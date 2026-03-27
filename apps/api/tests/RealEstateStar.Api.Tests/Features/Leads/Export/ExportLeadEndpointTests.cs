@@ -19,6 +19,7 @@ public class ExportLeadEndpointTests
     [Fact]
     public async Task Handle_Returns200WithExportData_WhenLeadExists()
     {
+        // TODO: Pipeline redesign — LeadEnrichment removed in Phase 1.5; status updated in Phase 2/3/4
         var exportData = new LeadExportData(
             new Lead
             {
@@ -30,10 +31,9 @@ public class ExportLeadEndpointTests
                 Email = Email,
                 Phone = "555-1234",
                 Timeline = "ASAP",
-                Status = LeadStatus.Enriched
+                Status = LeadStatus.Received
             },
-            [],
-            null);
+            []);
 
         _dataExport.Setup(e => e.GatherAsync(AgentId, Email, It.IsAny<CancellationToken>()))
             .ReturnsAsync(exportData);

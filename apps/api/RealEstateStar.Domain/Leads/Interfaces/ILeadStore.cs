@@ -4,7 +4,7 @@ namespace RealEstateStar.Domain.Leads.Interfaces;
 public interface ILeadStore
 {
     Task SaveAsync(Lead lead, CancellationToken ct);
-    Task UpdateEnrichmentAsync(Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct);
+    // TODO: Pipeline redesign — UpdateEnrichmentAsync removed in Phase 1.5; replaced in Phase 2/3/4
     Task UpdateHomeSearchIdAsync(string agentId, Guid leadId, string homeSearchId, CancellationToken ct);
     Task UpdateStatusAsync(Lead lead, LeadStatus status, CancellationToken ct);
     Task UpdateMarketingOptInAsync(string agentId, Guid leadId, bool optedIn, CancellationToken ct);

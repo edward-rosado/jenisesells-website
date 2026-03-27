@@ -8,6 +8,8 @@ using RealEstateStar.Workers.Shared.Context;
 
 namespace RealEstateStar.Workers.Leads;
 
+// TODO: Pipeline redesign — ILeadEnricher, ILeadNotifier, IFailedNotificationStore removed in Phase 1.5.
+// LeadProcessingWorker is a stub pending full pipeline redesign in Phase 2/3/4.
 /// <summary>
 /// Background pipeline worker that processes leads from the <see cref="LeadProcessingChannel"/>.
 /// Inherits checkpoint/resume, exponential backoff retry, and dead-letter handling from
@@ -17,9 +19,6 @@ namespace RealEstateStar.Workers.Leads;
 public sealed class LeadProcessingWorker(
     LeadProcessingChannel channel,
     ILeadStore leadStore,
-    ILeadEnricher enricher,
-    ILeadNotifier notifier,
-    IFailedNotificationStore failedNotificationStore,
     BackgroundServiceHealthTracker healthTracker,
     ILogger<LeadProcessingWorker> logger,
     IConfiguration configuration)
@@ -43,8 +42,7 @@ public sealed class LeadProcessingWorker(
         activity?.SetTag("lead.agent_id", ctx.AgentId);
         activity?.SetTag("correlation.id", ctx.CorrelationId);
 
-        await RunStepAsync(ctx, LeadPipelineContext.StepEnrich, () => EnrichAsync(ctx, ct), ct);
-        await RunStepAsync(ctx, LeadPipelineContext.StepDraftEmail, () => DraftEmailAsync(ctx, ct), ct);
+        // TODO: Pipeline redesign — steps will be re-implemented in Phase 2/3/4
         await RunStepAsync(ctx, LeadPipelineContext.StepNotify, () => NotifyAsync(ctx, ct), ct);
 
         // Mark lead complete
@@ -55,42 +53,9 @@ public sealed class LeadProcessingWorker(
         LeadDiagnostics.TotalPipelineDuration.Record(ctx.PipelineDurationMs ?? 0);
     }
 
-    private async Task EnrichAsync(LeadPipelineContext ctx, CancellationToken ct)
-    {
-        if (!ctx.HasCompletedSubStep(LeadPipelineContext.StepEnrich, "call-enricher"))
-        {
-            var (enrichment, score) = await enricher.EnrichAsync(ctx.Request, ct);
-            ctx.Enrichment = enrichment;
-            ctx.Score = score;
-            ctx.MarkSubStepCompleted(LeadPipelineContext.StepEnrich, "call-enricher");
-        }
-
-        if (!ctx.HasCompletedSubStep(LeadPipelineContext.StepEnrich, "save"))
-        {
-            await leadStore.UpdateEnrichmentAsync(ctx.Request, ctx.Enrichment!, ctx.Score!, ct);
-            ctx.Request.Status = LeadStatus.Enriched;
-            await leadStore.UpdateStatusAsync(ctx.Request, LeadStatus.Enriched, ct);
-            LeadDiagnostics.LeadsEnriched.Add(1);
-            ctx.MarkSubStepCompleted(LeadPipelineContext.StepEnrich, "save");
-        }
-    }
-
-    private async Task DraftEmailAsync(LeadPipelineContext ctx, CancellationToken ct)
-    {
-        var subject = notifier.BuildSubject(ctx.Request, ctx.Enrichment!, ctx.Score!);
-        var body = notifier.BuildBody(ctx.Request, ctx.Enrichment!, ctx.Score!);
-        ctx.EmailDraftSubject = subject;
-        ctx.EmailDraftBody = body;
-
-        ctx.Request.Status = LeadStatus.EmailDrafted;
-        try { await leadStore.UpdateStatusAsync(ctx.Request, LeadStatus.EmailDrafted, ct); }
-        catch (Exception ex) { logger.LogWarning(ex, "[LeadWorker] Failed to update status to EmailDrafted for lead {LeadId}", ctx.Request.Id); }
-    }
-
     private async Task NotifyAsync(LeadPipelineContext ctx, CancellationToken ct)
     {
-        await notifier.NotifyAgentAsync(ctx.AgentId, ctx.Request, ctx.Enrichment!, ctx.Score!, ct);
-
+        // TODO: Pipeline redesign — notification re-implemented in Phase 2/3/4
         ctx.Request.Status = LeadStatus.Notified;
         try { await leadStore.UpdateStatusAsync(ctx.Request, LeadStatus.Notified, ct); }
         catch (Exception ex) { logger.LogWarning(ex, "[LeadWorker] Failed to update status to Notified for lead {LeadId}", ctx.Request.Id); }
@@ -98,11 +63,10 @@ public sealed class LeadProcessingWorker(
         LeadDiagnostics.LeadsNotificationSent.Add(1);
     }
 
-    protected override async Task OnPermanentFailureAsync(LeadPipelineContext context, Exception lastException, CancellationToken ct)
+    protected override Task OnPermanentFailureAsync(LeadPipelineContext context, Exception lastException, CancellationToken ct)
     {
         LeadDiagnostics.NotificationPermanentlyFailed.Add(1);
-        await failedNotificationStore.RecordAsync(
-            context.AgentId, context.Request.Id,
-            lastException.Message, context.TotalFailures, ct);
+        // TODO: Pipeline redesign — IFailedNotificationStore removed in Phase 1.5; dead-letter handling replaced in Phase 2/3/4
+        return Task.CompletedTask;
     }
 }

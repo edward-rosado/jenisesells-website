@@ -10,12 +10,8 @@ public class LeadPipelineContext : PipelineContext<Lead>
     public const string StepDraftEmail = "draft-email";
     public const string StepNotify = "notify";
 
-    // Typed accessors for intermediate results
-    public LeadEnrichment? Enrichment
-    {
-        get => Get<LeadEnrichment>("enrichment");
-        set { if (value is not null) Set("enrichment", value); }
-    }
+    // TODO: Pipeline redesign — LeadEnrichment removed in Phase 1.5; Enrichment step replaced in Phase 2/3/4
+    // Enrichment property removed; Score and email draft properties retained for compatibility
 
     public LeadScore? Score
     {

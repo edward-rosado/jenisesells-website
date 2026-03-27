@@ -37,8 +37,9 @@ public class LeadSubmitTestFactory : TestWebApplicationFactory
             // Register no-op lead service stubs so all lead endpoints can resolve their dependencies
             services.AddSingleton<ILeadStore, NoOpLeadStore>();
             services.AddSingleton<IMarketingConsentLog, NoOpMarketingConsentLog>();
-            services.AddSingleton<ILeadEnricher, NoOpLeadEnricher>();
-            services.AddSingleton<ILeadNotifier, NoOpLeadNotifier>();
+            // TODO: Pipeline redesign — ILeadEnricher and ILeadNotifier removed in Phase 1.5; replaced in Phase 2/3/4
+            // services.AddSingleton<ILeadEnricher, NoOpLeadEnricher>();
+            // services.AddSingleton<ILeadNotifier, NoOpLeadNotifier>();
             services.AddSingleton<IHomeSearchProvider, NoOpHomeSearchProvider>();
             services.AddSingleton<ILeadDataDeletion, NoOpLeadDataDeletion>();
             services.AddSingleton<IDeletionAuditLog, NoOpDeletionAuditLog>();
@@ -52,7 +53,7 @@ public class LeadSubmitTestFactory : TestWebApplicationFactory
 file sealed class NoOpLeadStore : ILeadStore
 {
     public Task SaveAsync(Lead lead, CancellationToken ct) => Task.CompletedTask;
-    public Task UpdateEnrichmentAsync(Lead l, LeadEnrichment e, LeadScore s, CancellationToken ct) => Task.CompletedTask;
+    // TODO: Pipeline redesign — UpdateEnrichmentAsync removed in Phase 1.5; replaced in Phase 2/3/4
     public Task UpdateHomeSearchIdAsync(string a, Guid i, string h, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateStatusAsync(Lead l, LeadStatus s, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateMarketingOptInAsync(string a, Guid i, bool o, CancellationToken ct) => Task.CompletedTask;
@@ -69,19 +70,7 @@ file sealed class NoOpMarketingConsentLog : IMarketingConsentLog
     public Task RedactAsync(string agentId, string email, CancellationToken ct) => Task.CompletedTask;
 }
 
-file sealed class NoOpLeadEnricher : ILeadEnricher
-{
-    public Task<(LeadEnrichment Enrichment, LeadScore Score)> EnrichAsync(Lead lead, CancellationToken ct) =>
-        Task.FromResult((LeadEnrichment.Empty(), LeadScore.Default("no-op")));
-}
-
-file sealed class NoOpLeadNotifier : ILeadNotifier
-{
-    public Task NotifyAgentAsync(string agentId, Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct) =>
-        Task.CompletedTask;
-    public string BuildSubject(Lead l, LeadEnrichment e, LeadScore s) => "";
-    public string BuildBody(Lead l, LeadEnrichment e, LeadScore s) => "";
-}
+// TODO: Pipeline redesign — ILeadEnricher and ILeadNotifier removed in Phase 1.5; stubs removed
 
 file sealed class NoOpHomeSearchProvider : IHomeSearchProvider
 {

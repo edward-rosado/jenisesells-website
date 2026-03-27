@@ -21,6 +21,7 @@ public class LeadDataExport(
 
         // For now, return profile only. Consent history and enrichment
         // will be populated when those stores support querying by lead.
-        return new LeadExportData(lead, [], null);
+        // TODO: Pipeline redesign — LeadEnrichment removed in Phase 1.5; consent history populated in Phase 2/3/4
+        return new LeadExportData(lead, []);
     }
 }

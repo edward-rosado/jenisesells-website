@@ -15,7 +15,6 @@ public class Lead
     public string? Notes { get; init; }
     public DateTime ReceivedAt { get; init; }
     public LeadStatus Status { get; set; }
-    public LeadEnrichment? Enrichment { get; set; }
     public LeadScore? Score { get; set; }
     public Guid? HomeSearchId { get; set; }
     public string? ConsentToken { get; set; }
