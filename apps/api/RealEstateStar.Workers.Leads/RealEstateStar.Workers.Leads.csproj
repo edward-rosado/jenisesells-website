@@ -16,5 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers.Shared\RealEstateStar.Workers.Shared.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers.Cma\RealEstateStar.Workers.Cma.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers.HomeSearch\RealEstateStar.Workers.HomeSearch.csproj" />
   </ItemGroup>
 </Project>
