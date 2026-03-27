@@ -16,7 +16,7 @@ apps/
     RealEstateStar.Notifications/    # Delivery channels (email, WhatsApp)
     RealEstateStar.Workers.Shared/   # Pipeline base classes (WorkerBase, steps, channels)
     RealEstateStar.Workers.Leads/    # Lead processing pipeline
-    RealEstateStar.Workers.Cma/      # CMA pipeline
+    RealEstateStar.Workers.Cma/      # CMA pipeline — tiered comp selection (5-comp target, 6-month recency), subject enrichment, PDF generation
     RealEstateStar.Workers.HomeSearch/ # Home search pipeline
     RealEstateStar.Workers.WhatsApp/ # WhatsApp message processing
     RealEstateStar.Clients.Anthropic/  # Claude API client
@@ -195,6 +195,19 @@ Form Submit → Turnstile → HMAC → API Endpoint
 ```
 
 **Lead status progression:** `Received → Enriched → EmailDrafted → Notified → Complete`
+
+## CMA Pipeline Architecture
+
+When a seller lead is submitted, the CMA pipeline fetches comparable sales data from RentCast and generates a professional PDF report.
+
+**Comp Selection:** `RentCastCompSource` implements a tiered selection strategy targeting 5 comps with a 6-month recency preference. Recent sales (≤ 6 months old) are prioritized; older sales backfill up to the target count. Each comp is annotated with `IsRecent` to distinguish newer from older sales in Claude's analysis.
+
+**Subject Enrichment:** `CmaProcessingWorker.EnrichSubjectAsync` fills missing property details (beds, baths, sqft) from RentCast's subject property response.
+
+**PDF Generation:** `CmaPdfGenerator` renders a professionally branded PDF with enriched subject property data, tiered comp table (no Source column; Age column shows months since sale), agent branding, and contact info.
+
+**PDF Download:** `DownloadCmaEndpoint` (GET `/accounts/{accountId}/agents/{agentId}/leads/{leadId}/cma/download`) streams the PDF from Azure Blob Storage. PDFs are stored automatically when the CMA pipeline completes.
+
 
 ## Docker / Production Notes
 

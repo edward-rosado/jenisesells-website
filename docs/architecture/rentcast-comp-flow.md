@@ -7,8 +7,18 @@ and used in the CMA pipeline.
 
 When a seller lead is submitted, the CMA pipeline calls `CompAggregator`,
 which delegates to `RentCastCompSource`. That source calls `RentCastClient`
-to retrieve structured comp data from the RentCast API. The results are
-passed back to `ClaudeCmaAnalyzer` for valuation and PDF generation.
+to retrieve structured comp data from the RentCast API.
+
+**Comp Selection:** RentCastCompSource implements tiered selection targeting 5 comps with a 6-month recency preference.
+Recent sales (≤ 6 months old) are prioritized; older sales backfill up to the target count.
+Each comp is annotated with `IsRecent` to distinguish newer from older sales in analysis.
+
+**Subject Property Enrichment:** The RentCast API returns subject property attributes (beds, baths, sqft, year built).
+CmaProcessingWorker's `EnrichSubjectAsync` step uses this data to fill missing fields in the seller's lead submission,
+ensuring complete property details for PDF generation.
+
+The results are passed to `ClaudeCmaAnalyzer` for valuation, analysis with tiered weighting,
+and finally to `CmaPdfGenerator` for professional PDF rendering.
 
 ## Flow Diagram
 
@@ -43,9 +53,12 @@ sequenceDiagram
 | Component | Project | Responsibility |
 |-----------|---------|----------------|
 | `CompAggregator` | `Workers.Cma` | Orchestrates one or more comp sources; returns merged results |
-| `RentCastCompSource` | `Workers.Cma` | Implements `ICompSource`; maps RentCast data to domain `CompSale` |
-| `RentCastClient` | `Clients.RentCast` | HTTP client for api.rentcast.io; owns internal DTOs |
+| `RentCastCompSource` | `Workers.Cma` | Implements `ICompSource`; fetches comps, applies 5-comp tiered selection (6-month recency first, older backfill), annotates `IsRecent`, maps to domain `Comp` |
+| `CmaProcessingWorker` | `Workers.Cma` | Orchestrates pipeline steps including `EnrichSubjectAsync` which fills missing property details from RentCast subject property data |
+| `RentCastClient` | `Clients.RentCast` | HTTP client for api.rentcast.io; owns internal DTOs; includes subject property mapping |
 | `IRentCastClient` | `Domain` | Interface contract; no dependency on the client implementation |
+| `CmaPdfGenerator` | `Workers.Cma` | Renders professional PDF with branding, enriched subject property, tiered comp table (no Source column, Age column instead), and agent info |
+| `DownloadCmaEndpoint` | `Api/Features/Cma/Download` | REPR endpoint: `GET /accounts/{accountId}/agents/{agentId}/leads/{leadId}/cma/download`; streams PDF from Azure Blob Storage |
 
 ## Dependency Path
 

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using RealEstateStar.Api.Infrastructure;
-using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Api.Features.Cma.Download;
@@ -18,71 +17,38 @@ public class DownloadCmaEndpoint : IEndpoint
         string accountId,
         string agentId,
         Guid leadId,
-        ILeadStore leadStore,
         IDocumentStorageProvider documentStorage,
         ILogger<DownloadCmaEndpoint> logger,
         CancellationToken ct)
     {
-        // 1. Look up the lead to get FullName and SellerDetails for path resolution
-        var lead = await leadStore.GetAsync(agentId, leadId, ct);
-        if (lead is null)
-        {
-            logger.LogWarning("[CMA-DL-010] Lead not found. AgentId={AgentId}, LeadId={LeadId}", agentId, leadId);
-            return Results.NotFound(new CmaErrorResponse("Lead not found"));
-        }
+        // The PDF blob is named {leadId}-CMA-Report.pdf.b64 under the lead's folder.
+        // Since we don't know the lead's folder path from just the leadId, scan all lead
+        // folders for a blob matching the leadId pattern.
+        var targetBlobName = $"{leadId}-CMA-Report.pdf.b64";
 
-        if (lead.SellerDetails is null)
-        {
-            logger.LogWarning("[CMA-DL-011] Lead has no seller details — no CMA can exist. AgentId={AgentId}, LeadId={LeadId}", agentId, leadId);
-            return Results.NotFound(new CmaErrorResponse("CMA report not yet generated"));
-        }
-
-        // 2. Build the folder path matching how CmaProcessingWorker stores the PDF
-        var seller = lead.SellerDetails;
-        var folder = $"Real Estate Star/1 - Leads/{lead.FullName}/{seller.Address}, {seller.City}, {seller.State} {seller.Zip}";
-
-        // 3. List blobs in the folder and find the CMA PDF
-        List<string> documents;
+        // List all documents under the leads root to find the PDF
+        string? base64Content = null;
         try
         {
-            documents = await documentStorage.ListDocumentsAsync(folder, ct);
+            var allDocs = await documentStorage.ListDocumentsAsync("Real Estate Star/1 - Leads", ct);
+            var match = allDocs.FirstOrDefault(d => d.Contains(targetBlobName, StringComparison.OrdinalIgnoreCase));
+
+            if (match is not null)
+            {
+                // The ListDocumentsAsync returns paths relative to the prefix — reconstruct full path
+                base64Content = await documentStorage.ReadDocumentAsync(
+                    "Real Estate Star/1 - Leads", match, ct);
+            }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[CMA-DL-020] Failed to list documents in folder. AgentId={AgentId}, LeadId={LeadId}, Folder={Folder}",
-                agentId, leadId, folder);
-            return Results.Problem("Failed to retrieve CMA report.", statusCode: StatusCodes.Status500InternalServerError);
-        }
-
-        var pdfFileName = documents
-            .Where(d => d.EndsWith("-CMA-Report.pdf.b64", StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(d => d)
-            .FirstOrDefault();
-
-        if (pdfFileName is null)
-        {
-            logger.LogWarning("[CMA-DL-011] No CMA PDF blob found. AgentId={AgentId}, LeadId={LeadId}, Folder={Folder}",
-                agentId, leadId, folder);
-            return Results.NotFound(new CmaErrorResponse("CMA report not yet generated"));
-        }
-
-        // 4. Download and decode the base64-encoded PDF
-        string? base64Content;
-        try
-        {
-            base64Content = await documentStorage.ReadDocumentAsync(folder, pdfFileName, ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "[CMA-DL-020] Failed to read PDF blob. AgentId={AgentId}, LeadId={LeadId}, File={FileName}",
-                agentId, leadId, pdfFileName);
+            logger.LogError(ex, "[CMA-DL-020] Failed to search for CMA PDF. LeadId={LeadId}", leadId);
             return Results.Problem("Failed to retrieve CMA report.", statusCode: StatusCodes.Status500InternalServerError);
         }
 
         if (base64Content is null)
         {
-            logger.LogWarning("[CMA-DL-011] PDF blob was empty. AgentId={AgentId}, LeadId={LeadId}, File={FileName}",
-                agentId, leadId, pdfFileName);
+            logger.LogWarning("[CMA-DL-011] No CMA PDF found for lead. LeadId={LeadId}", leadId);
             return Results.NotFound(new CmaErrorResponse("CMA report not yet generated"));
         }
 
@@ -93,14 +59,11 @@ public class DownloadCmaEndpoint : IEndpoint
         }
         catch (FormatException ex)
         {
-            logger.LogError(ex, "[CMA-DL-020] Base64 decode failed. AgentId={AgentId}, LeadId={LeadId}, File={FileName}",
-                agentId, leadId, pdfFileName);
+            logger.LogError(ex, "[CMA-DL-020] Base64 decode failed. LeadId={LeadId}", leadId);
             return Results.Problem("CMA report data is corrupted.", statusCode: StatusCodes.Status500InternalServerError);
         }
 
-        logger.LogInformation("[CMA-DL-001] PDF downloaded successfully. AgentId={AgentId}, LeadId={LeadId}, SizeKB={SizeKB}",
-            agentId, leadId, pdfBytes.Length / 1024);
-
+        logger.LogInformation("[CMA-DL-001] PDF downloaded. LeadId={LeadId}, SizeKB={SizeKB}", leadId, pdfBytes.Length / 1024);
         return Results.File(pdfBytes, "application/pdf", "CMA-Report.pdf");
     }
 }
