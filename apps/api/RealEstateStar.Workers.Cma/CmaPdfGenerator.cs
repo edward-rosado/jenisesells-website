@@ -82,16 +82,16 @@ public class CmaPdfGenerator : ICmaPdfGenerator
             {
                 page.Size(PageSizes.Letter);
                 page.MarginTop(0);
-                page.MarginBottom(40);
+                page.MarginBottom(0);
                 page.MarginHorizontal(0);
-                page.DefaultTextStyle(t => t.FontSize(10).FontColor(Colors.Black));
+                page.DefaultTextStyle(t => t.FontSize(9).FontColor(Colors.Black));
 
-                // Header band — full width, no horizontal margin
+                // Header band — compact, full width
                 page.Header().Element(c => AddHeaderBand(c, config, logoBytes, headshotBytes, primaryColor));
 
-                page.Content().PaddingHorizontal(40).Column(col =>
+                page.Content().PaddingHorizontal(30).Column(col =>
                 {
-                    col.Item().PaddingTop(24);
+                    col.Item().PaddingTop(12);
 
                     // Section 2: Property Overview
                     AddPropertyOverview(col, lead.SellerDetails, fullAddress, primaryColor);
@@ -129,15 +129,17 @@ public class CmaPdfGenerator : ICmaPdfGenerator
     {
         container
             .Background(primaryColor)
-            .Padding(20)
+            .PaddingHorizontal(16)
+            .PaddingVertical(8)
             .Row(row =>
             {
-                // Left: brokerage logo
-                row.ConstantItem(80).Column(c =>
+                // Left: brokerage logo with white background for readability
+                row.ConstantItem(120).AlignMiddle().Column(c =>
                 {
                     if (logoBytes is { Length: > 0 })
                     {
-                        c.Item().Width(72).Height(72).Image(logoBytes).FitArea();
+                        c.Item().Background(Colors.White).Padding(4)
+                            .Width(112).Height(50).Image(logoBytes).FitArea();
                     }
                     else if (config.Brokerage?.Name is { } brokerageName)
                     {
@@ -146,34 +148,28 @@ public class CmaPdfGenerator : ICmaPdfGenerator
                     }
                 });
 
-                // Center: agent name, title, license
-                row.RelativeItem().AlignCenter().Column(c =>
+                // Center: CMA title + agent name + license (compact)
+                row.RelativeItem().AlignCenter().AlignMiddle().Column(c =>
                 {
                     c.Item().Text("Comparative Market Analysis")
-                        .FontSize(11).FontColor(Colors.White).Italic();
+                        .FontSize(9).FontColor(Colors.White).Italic();
 
-                    c.Item().PaddingTop(4).Text(config.Agent?.Name ?? "")
-                        .FontSize(20).Bold().FontColor(Colors.White);
+                    c.Item().Text(config.Agent?.Name ?? "")
+                        .FontSize(11).Bold().FontColor(Colors.White);
 
-                    if (config.Agent?.Title is { } title)
-                    {
-                        c.Item().Text(title)
-                            .FontSize(11).FontColor(Colors.White);
-                    }
-
-                    if (config.Agent?.LicenseNumber is { } license)
-                    {
-                        c.Item().PaddingTop(2).Text($"License # {license}")
-                            .FontSize(9).FontColor(Colors.White);
-                    }
+                    var subtitle = string.Join(" | ",
+                        new[] { config.Agent?.Title, config.Agent?.LicenseNumber is { } lic ? $"Lic# {lic}" : null }
+                        .Where(s => s is not null));
+                    if (subtitle.Length > 0)
+                        c.Item().Text(subtitle).FontSize(8).FontColor(Colors.White);
                 });
 
-                // Right: headshot
-                row.ConstantItem(80).AlignRight().Column(c =>
+                // Right: headshot (compact)
+                row.ConstantItem(56).AlignRight().AlignMiddle().Column(c =>
                 {
                     if (headshotBytes is { Length: > 0 })
                     {
-                        c.Item().Width(72).Height(72).Image(headshotBytes).FitArea();
+                        c.Item().Width(50).Height(50).Image(headshotBytes).FitArea();
                     }
                 });
             });
@@ -190,9 +186,9 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         string primaryColor)
     {
         col.Item().PaddingBottom(6).Text("Property Overview")
-            .FontSize(14).Bold().FontColor(primaryColor);
+            .FontSize(11).Bold().FontColor(primaryColor);
 
-        col.Item().PaddingBottom(16).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(12).Row(row =>
+        col.Item().PaddingBottom(10).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(12).Row(row =>
         {
             row.RelativeItem().Column(c =>
             {
@@ -235,7 +231,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         string primaryColor)
     {
         col.Item().PaddingBottom(6).Text("Estimated Value Range")
-            .FontSize(14).Bold().FontColor(primaryColor);
+            .FontSize(11).Bold().FontColor(primaryColor);
 
         col.Item().PaddingBottom(8).Row(row =>
         {
@@ -266,7 +262,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         });
 
         // Market trend badge
-        col.Item().PaddingBottom(16).Row(row =>
+        col.Item().PaddingBottom(8).Row(row =>
         {
             row.AutoItem().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(6).Column(c =>
             {
@@ -289,7 +285,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
     private static void AddCompTable(ColumnDescriptor col, List<Comp> comps, string primaryColor)
     {
         col.Item().PaddingBottom(6).Text("Recent Comparable Sales")
-            .FontSize(14).Bold().FontColor(primaryColor);
+            .FontSize(11).Bold().FontColor(primaryColor);
 
         var hasOlderComps = comps.Any(c => !c.IsRecent);
 
@@ -373,9 +369,9 @@ public class CmaPdfGenerator : ICmaPdfGenerator
     private static void AddMarketAnalysis(ColumnDescriptor col, CmaAnalysis analysis, string primaryColor)
     {
         col.Item().PaddingBottom(6).Text("Market Analysis")
-            .FontSize(14).Bold().FontColor(primaryColor);
+            .FontSize(11).Bold().FontColor(primaryColor);
 
-        col.Item().PaddingBottom(16).Text(analysis.MarketNarrative).FontSize(10);
+        col.Item().PaddingBottom(8).Text(analysis.MarketNarrative).FontSize(10);
     }
 
     // -------------------------------------------------------------------------
@@ -389,13 +385,13 @@ public class CmaPdfGenerator : ICmaPdfGenerator
 
         if (analysis.PricingRecommendation is { } recommendation)
         {
-            col.Item().PaddingBottom(6).Text("Pricing Strategy").FontSize(14).Bold();
+            col.Item().PaddingBottom(6).Text("Pricing Strategy").FontSize(11).Bold();
             col.Item().PaddingBottom(12).Text(recommendation).FontSize(10);
         }
 
         if (analysis.LeadInsights is { } insights)
         {
-            col.Item().PaddingBottom(6).Text("Seller Insights").FontSize(14).Bold();
+            col.Item().PaddingBottom(6).Text("Seller Insights").FontSize(11).Bold();
             col.Item().PaddingBottom(12).Text(insights).FontSize(10);
         }
     }
@@ -407,52 +403,28 @@ public class CmaPdfGenerator : ICmaPdfGenerator
     private static void AddFooter(IContainer container, AccountConfig config, byte[]? logoBytes, string primaryColor)
     {
         container
-            .Background(Colors.Grey.Lighten4)
-            .PaddingHorizontal(40)
-            .PaddingVertical(12)
+            .PaddingHorizontal(30)
+            .PaddingVertical(6)
             .Column(col =>
             {
-                col.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
-                col.Item().PaddingTop(8).Row(row =>
+                col.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);
+                col.Item().PaddingTop(4).Row(row =>
                 {
-                    // Agent + brokerage contact info
-                    row.RelativeItem().Column(c =>
+                    // Left: agent contact
+                    var contactParts = new List<string>();
+                    if (config.Agent?.Name is { } name) contactParts.Add(name);
+                    if (config.Brokerage?.Name is { } brokerage) contactParts.Add(brokerage);
+                    if (config.Agent?.Phone is { } phone && phone.Length > 0) contactParts.Add(phone);
+                    if (config.Agent?.LicenseNumber is { } lic) contactParts.Add($"Lic# {lic}");
+
+                    row.RelativeItem().Text(string.Join(" | ", contactParts))
+                        .FontSize(7).FontColor(Colors.Grey.Darken1);
+
+                    // Right: disclaimer + date
+                    row.RelativeItem().AlignRight().Text(t =>
                     {
-                        if (config.Agent?.Name is { } name)
-                            c.Item().Text(name).Bold().FontSize(9);
-
-                        if (config.Agent?.Title is { } title)
-                            c.Item().Text(title).FontSize(8).FontColor(Colors.Grey.Darken1);
-
-                        if (config.Brokerage?.Name is { } brokerage)
-                            c.Item().Text(brokerage).FontSize(8).FontColor(Colors.Grey.Darken1);
-
-                        if (config.Agent?.Phone is { } phone && phone.Length > 0)
-                            c.Item().Text(phone).FontSize(8);
-
-                        if (config.Agent?.Email is { } email && email.Length > 0)
-                            c.Item().Text(email).FontSize(8);
-
-                        if (config.Agent?.LicenseNumber is { } license)
-                            c.Item().PaddingTop(2).Text($"License # {license}").FontSize(7).FontColor(Colors.Grey.Medium);
-                    });
-
-                    // Center disclaimer
-                    row.RelativeItem().AlignCenter().Column(c =>
-                    {
-                        c.Item().Text("This is not an appraisal.")
-                            .FontSize(7).Italic().FontColor(Colors.Grey.Medium);
-                        c.Item().Text("This report is for informational purposes only.")
-                            .FontSize(7).Italic().FontColor(Colors.Grey.Medium);
-                        c.Item().PaddingTop(4).Text($"Generated {DateTime.UtcNow:MMMM d, yyyy}")
-                            .FontSize(7).FontColor(Colors.Grey.Medium);
-                    });
-
-                    // Right: small logo
-                    row.ConstantItem(60).AlignRight().Column(c =>
-                    {
-                        if (logoBytes is { Length: > 0 })
-                            c.Item().Width(48).Height(48).Image(logoBytes).FitArea();
+                        t.Span("This is not an appraisal. ").FontSize(6).Italic().FontColor(Colors.Grey.Medium);
+                        t.Span($"Generated {DateTime.UtcNow:MMM d, yyyy}").FontSize(6).FontColor(Colors.Grey.Medium);
                     });
                 });
             });
