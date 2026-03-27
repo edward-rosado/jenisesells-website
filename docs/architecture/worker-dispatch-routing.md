@@ -1,6 +1,6 @@
 # Worker Dispatch Routing
 
-The orchestrator dispatches CMA and HomeSearch workers based on lead type, then collects results via TaskCompletionSource.
+The orchestrator dispatches CMA and HomeSearch workers based on lead type, collects results via TaskCompletionSource, then dispatches PDF generation if CMA succeeded.
 
 ```mermaid
 flowchart LR
@@ -12,17 +12,14 @@ flowchart LR
     CmaChannel --> CmaWorker["CMA Worker<br/>pure compute"]
     HsChannel --> HsWorker["HomeSearch Worker<br/>pure compute"]
 
-    CmaWorker -->|"TCS result"| CmaResult["CmaWorkerResult<br/>value + comps + analysis"]
-    HsWorker -->|"TCS result"| HsResult["HomeSearchWorkerResult<br/>listings + summary"]
+    CmaWorker -->|"TCS result"| Orch
+    HsWorker -->|"TCS result"| Orch
 
-    CmaResult --> PdfChannel["PdfProcessingChannel"]
+    Orch -->|"CMA succeeded"| PdfChannel["PdfProcessingChannel"]
     PdfChannel --> PdfWorker["PDF Worker<br/>QuestPDF"]
-    PdfWorker -->|"TCS result"| PdfResult["PdfWorkerResult<br/>storage path"]
+    PdfWorker -->|"writes PDF"| Storage["Document Storage"]
+    PdfWorker -->|"TCS result"| Orch
 
-    CmaResult --> Orch2["Orchestrator<br/>collects all"]
-    HsResult --> Orch2
-    PdfResult --> Orch2
-
-    Orch2 --> Email["LeadEmailDrafter<br/>Claude-drafted"]
-    Orch2 --> Agent["AgentNotifier<br/>WhatsApp + email"]
+    Orch --> Email["LeadEmailDrafter<br/>Claude-drafted"]
+    Orch --> Agent["AgentNotifier<br/>WhatsApp + email"]
 ```
