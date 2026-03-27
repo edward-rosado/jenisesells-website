@@ -17,6 +17,12 @@ public class LayerTests
     private static readonly System.Reflection.Assembly NotificationsAssembly =
         typeof(Notifications.Leads.CascadingAgentNotifier).Assembly;
 
+    private static readonly System.Reflection.Assembly CmaWorkerAssembly =
+        typeof(Workers.Cma.CmaProcessingWorker).Assembly;
+
+    private static readonly System.Reflection.Assembly HomeSearchWorkerAssembly =
+        typeof(Workers.HomeSearch.HomeSearchProcessingWorker).Assembly;
+
     [Fact]
     public void Domain_types_should_not_depend_on_DataServices()
     {
@@ -137,6 +143,84 @@ public class LayerTests
 
         Assert.True(result.IsSuccessful,
             $"Domain interfaces outside Domain namespace:\n{FormatFailures(result)}");
+    }
+
+    [Fact]
+    public void CmaWorker_types_should_not_depend_on_Data()
+    {
+        var result = Types.InAssembly(CmaWorkerAssembly)
+            .ShouldNot()
+            .HaveDependencyOn("RealEstateStar.Data")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Workers.Cma types depend on Data:\n{FormatFailures(result)}" +
+            " — CMA is a pure compute worker; storage belongs in Workers.Leads (the orchestrator)");
+    }
+
+    [Fact]
+    public void CmaWorker_types_should_not_depend_on_DataServices()
+    {
+        var result = Types.InAssembly(CmaWorkerAssembly)
+            .ShouldNot()
+            .HaveDependencyOn("RealEstateStar.DataServices")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Workers.Cma types depend on DataServices:\n{FormatFailures(result)}" +
+            " — CMA is a pure compute worker; storage orchestration belongs in Workers.Leads");
+    }
+
+    [Fact]
+    public void CmaWorker_types_should_not_depend_on_Notifications()
+    {
+        var result = Types.InAssembly(CmaWorkerAssembly)
+            .ShouldNot()
+            .HaveDependencyOn("RealEstateStar.Notifications")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Workers.Cma types depend on Notifications:\n{FormatFailures(result)}" +
+            " — CMA is a pure compute worker; notifications belong in Workers.Leads");
+    }
+
+    [Fact]
+    public void HomeSearchWorker_types_should_not_depend_on_Data()
+    {
+        var result = Types.InAssembly(HomeSearchWorkerAssembly)
+            .ShouldNot()
+            .HaveDependencyOn("RealEstateStar.Data")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Workers.HomeSearch types depend on Data:\n{FormatFailures(result)}" +
+            " — HomeSearch is a pure compute worker; storage belongs in Workers.Leads (the orchestrator)");
+    }
+
+    [Fact]
+    public void HomeSearchWorker_types_should_not_depend_on_DataServices()
+    {
+        var result = Types.InAssembly(HomeSearchWorkerAssembly)
+            .ShouldNot()
+            .HaveDependencyOn("RealEstateStar.DataServices")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Workers.HomeSearch types depend on DataServices:\n{FormatFailures(result)}" +
+            " — HomeSearch is a pure compute worker; storage orchestration belongs in Workers.Leads");
+    }
+
+    [Fact]
+    public void HomeSearchWorker_types_should_not_depend_on_Notifications()
+    {
+        var result = Types.InAssembly(HomeSearchWorkerAssembly)
+            .ShouldNot()
+            .HaveDependencyOn("RealEstateStar.Notifications")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Workers.HomeSearch types depend on Notifications:\n{FormatFailures(result)}" +
+            " — HomeSearch is a pure compute worker; notifications belong in Workers.Leads");
     }
 
     private static string FormatFailures(TestResult result) =>
