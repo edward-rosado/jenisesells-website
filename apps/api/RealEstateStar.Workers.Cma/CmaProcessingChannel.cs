@@ -11,4 +11,6 @@ public sealed class CmaProcessingChannel : ProcessingChannelBase<CmaProcessingRe
 public sealed record CmaProcessingRequest(
     string AgentId,
     Lead Lead,
-    string CorrelationId);
+    AgentNotificationConfig AgentConfig,
+    string CorrelationId,
+    TaskCompletionSource<CmaWorkerResult> Completion);

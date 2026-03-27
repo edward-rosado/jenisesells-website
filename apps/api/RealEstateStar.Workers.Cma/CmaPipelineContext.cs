@@ -9,8 +9,9 @@ public class CmaPipelineContext : PipelineContext<Lead>
     // Step name constants
     public const string StepFetchComps = "fetch-comps";
     public const string StepAnalyze = "analyze";
-    public const string StepGeneratePdf = "generate-pdf";
-    public const string StepNotifySeller = "notify-seller";
+
+    /// <summary>The original processing request, held so ProcessAsync can access Completion.</summary>
+    public required CmaProcessingRequest ProcessingRequest { get; init; }
 
     // Typed accessors
     public List<Comp>? Comps
@@ -23,11 +24,5 @@ public class CmaPipelineContext : PipelineContext<Lead>
     {
         get => Get<CmaAnalysis>("analysis");
         set { if (value is not null) Set("analysis", value); }
-    }
-
-    public byte[]? PdfBytes
-    {
-        get => Get<byte[]>("pdf-bytes");
-        set { if (value is not null) Set("pdf-bytes", value); }
     }
 }

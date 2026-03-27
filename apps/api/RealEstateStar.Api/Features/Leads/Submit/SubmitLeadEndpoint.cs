@@ -190,12 +190,39 @@ public class SubmitLeadEndpoint : IEndpoint
 
         await processingChannel.Writer.WriteAsync(processingRequest, ct);
 
+        // Build agent notification config for fan-out workers
+        var agentNotificationConfig = new AgentNotificationConfig
+        {
+            AgentId = agentId,
+            Handle = agent.Handle,
+            Name = agent.Agent?.Name ?? "",
+            FirstName = agent.Agent?.Name?.Split(' ').FirstOrDefault() ?? "",
+            Email = agent.Agent?.Email ?? "",
+            Phone = agent.Agent?.Phone ?? "",
+            LicenseNumber = agent.Agent?.LicenseNumber ?? "",
+            BrokerageName = agent.Brokerage?.Name ?? "",
+            BrokerageLogo = agent.Branding?.LogoUrl,
+            PrimaryColor = agent.Branding?.PrimaryColor ?? "#000000",
+            AccentColor = agent.Branding?.AccentColor ?? "#000000",
+            State = agent.Location?.State ?? "",
+            ServiceAreas = agent.Location?.ServiceAreas ?? [],
+            WhatsAppPhoneNumberId = agent.Integrations?.WhatsApp?.PhoneNumber,
+        };
+
         // Fan-out: dispatch CMA and home search independently
         if (lead.LeadType is LeadType.Seller or LeadType.Both && lead.SellerDetails is not null)
-            await cmaChannel.Writer.WriteAsync(new CmaProcessingRequest(agentId, lead, correlationId), ct);
+        {
+            var cmaCompletion = new TaskCompletionSource<CmaWorkerResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            await cmaChannel.Writer.WriteAsync(
+                new CmaProcessingRequest(agentId, lead, agentNotificationConfig, correlationId, cmaCompletion), ct);
+        }
 
         if (lead.LeadType is LeadType.Buyer or LeadType.Both && lead.BuyerDetails is not null)
-            await homeSearchChannel.Writer.WriteAsync(new HomeSearchProcessingRequest(agentId, lead, correlationId), ct);
+        {
+            var homeSearchCompletion = new TaskCompletionSource<HomeSearchWorkerResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            await homeSearchChannel.Writer.WriteAsync(
+                new HomeSearchProcessingRequest(agentId, lead, agentNotificationConfig, correlationId, homeSearchCompletion), ct);
+        }
 
         LeadDiagnostics.LeadsReceived.Add(1);
 

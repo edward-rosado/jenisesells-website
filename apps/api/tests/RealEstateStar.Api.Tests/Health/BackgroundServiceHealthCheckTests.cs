@@ -3,6 +3,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Api.Health;
+using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Cma;
 using RealEstateStar.Workers.HomeSearch;
 using RealEstateStar.Workers.Leads;
@@ -77,7 +78,9 @@ public class BackgroundServiceHealthCheckTests
 
         // Channel has an item queued
         await _cmaChannel.Writer.WriteAsync(
-            new CmaProcessingRequest("agent", MakeLead(), "corr-1"), CancellationToken.None);
+            new CmaProcessingRequest("agent", MakeLead(), MakeAgentConfig(), "corr-1",
+                new TaskCompletionSource<CmaWorkerResult>(TaskCreationOptions.RunContinuationsAsynchronously)),
+            CancellationToken.None);
 
         var check = CreateCheck();
         var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
@@ -94,7 +97,9 @@ public class BackgroundServiceHealthCheckTests
         await _leadChannel.Writer.WriteAsync(
             new LeadProcessingRequest("agent", MakeLead(), "corr-1"), CancellationToken.None);
         await _cmaChannel.Writer.WriteAsync(
-            new CmaProcessingRequest("agent", MakeLead(), "corr-2"), CancellationToken.None);
+            new CmaProcessingRequest("agent", MakeLead(), MakeAgentConfig(), "corr-2",
+                new TaskCompletionSource<CmaWorkerResult>(TaskCreationOptions.RunContinuationsAsynchronously)),
+            CancellationToken.None);
 
         var check = CreateCheck();
         var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
@@ -126,6 +131,21 @@ public class BackgroundServiceHealthCheckTests
 
         result.Data["LeadProcessingWorker.lastActivity"].Should().Be("never");
     }
+
+    private static AgentNotificationConfig MakeAgentConfig() => new()
+    {
+        AgentId = "agent",
+        Handle = "agent",
+        Name = "Test Agent",
+        FirstName = "Test",
+        Email = "agent@test.com",
+        Phone = "555",
+        LicenseNumber = "NJ123",
+        BrokerageName = "Test Brokerage",
+        PrimaryColor = "#000000",
+        AccentColor = "#000000",
+        State = "NJ",
+    };
 
     private static Lead MakeLead() => new()
     {

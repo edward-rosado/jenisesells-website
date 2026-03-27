@@ -5,8 +5,6 @@ using Moq;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Shared.Interfaces.Storage;
-using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Workers.Cma;
 using RealEstateStar.Workers.Shared;
 
@@ -17,10 +15,6 @@ public class CmaProcessingWorkerTests
     private readonly CmaProcessingChannel _channel = new();
     private readonly Mock<ICompAggregator> _compAggregator = new();
     private readonly Mock<ICmaAnalyzer> _cmaAnalyzer = new();
-    private readonly Mock<ICmaPdfGenerator> _pdfGenerator = new();
-    private readonly Mock<ICmaNotifier> _cmaNotifier = new();
-    private readonly Mock<IAccountConfigService> _accountConfigService = new();
-    private readonly Mock<IDocumentStorageProvider> _documentStorage = new();
     private readonly BackgroundServiceHealthTracker _healthTracker = new();
     private readonly Mock<ILogger<CmaProcessingWorker>> _logger = new();
 
@@ -39,8 +33,7 @@ public class CmaProcessingWorkerTests
 
     private CmaProcessingWorker CreateWorker(IConfiguration? config = null) =>
         new(_channel, _compAggregator.Object, _cmaAnalyzer.Object,
-            _pdfGenerator.Object, _cmaNotifier.Object, _accountConfigService.Object, _documentStorage.Object, _healthTracker, _logger.Object,
-            config ?? EmptyConfig());
+            _healthTracker, _logger.Object, config ?? EmptyConfig());
 
     private static Lead MakeLead() => new()
     {
@@ -55,10 +48,27 @@ public class CmaProcessingWorkerTests
         SellerDetails = new SellerDetails { Address = "123 Main", City = "Springfield", State = "NJ", Zip = "07081" }
     };
 
+    private static AgentNotificationConfig MakeAgentConfig() => new()
+    {
+        AgentId = "test-agent",
+        Handle = "test-agent",
+        Name = "Test Agent",
+        FirstName = "Test",
+        Email = "agent@test.com",
+        Phone = "555",
+        LicenseNumber = "NJ123",
+        BrokerageName = "Test Brokerage",
+        PrimaryColor = "#000000",
+        AccentColor = "#000000",
+        State = "NJ",
+    };
+
     private static CmaProcessingRequest MakeRequest(Lead? lead = null)
     {
         var l = lead ?? MakeLead();
-        return new CmaProcessingRequest("test-agent", l, "corr-123");
+        return new CmaProcessingRequest(
+            "test-agent", l, MakeAgentConfig(), "corr-123",
+            new TaskCompletionSource<CmaWorkerResult>(TaskCreationOptions.RunContinuationsAsynchronously));
     }
 
     private static List<Comp> MakeComps(int count) =>
@@ -71,7 +81,7 @@ public class CmaProcessingWorkerTests
             Baths = 2,
             Sqft = 1500,
             DistanceMiles = 0.5 + i * 0.1,
-            Source = CompSource.Zillow
+            Source = CompSource.RentCast
         }).ToList();
 
     private static CmaAnalysis MakeAnalysis() => new()
@@ -84,17 +94,11 @@ public class CmaProcessingWorkerTests
         MedianDaysOnMarket = 30
     };
 
-    private void SetupAccountConfig() =>
-        _accountConfigService
-            .Setup(a => a.GetAccountAsync("test-agent", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AccountConfig { Agent = new AccountAgent { Name = "Test Agent", Email = "agent@test.com" } });
-
     [Fact]
-    public async Task ProcessesCma_FullPipeline_WhenCompsFound()
+    public async Task SetsCmaWorkerResult_WhenCompsAndAnalysisSucceed()
     {
         var comps = MakeComps(5);
         var analysis = MakeAnalysis();
-        var pdfPath = "/tmp/cma-test.pdf";
 
         _compAggregator
             .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
@@ -102,71 +106,63 @@ public class CmaProcessingWorkerTests
         _cmaAnalyzer
             .Setup(a => a.AnalyzeAsync(It.IsAny<Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(analysis);
-        SetupAccountConfig();
-        _pdfGenerator
-            .Setup(g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
-                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(pdfPath);
-        _cmaNotifier
-            .Setup(n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),
-                It.IsAny<CmaAnalysis>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
 
+        var request = MakeRequest();
         var worker = CreateWorker();
         var cts = new CancellationTokenSource();
 
-        await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
+        await _channel.Writer.WriteAsync(request, CancellationToken.None);
         _channel.Writer.Complete();
 
         await worker.StartAsync(cts.Token);
         await worker.ExecuteTask!;
 
-        _compAggregator.Verify(
-            a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()),
-            Times.Once);
-        _cmaAnalyzer.Verify(
-            a => a.AnalyzeAsync(It.IsAny<Lead>(), comps, It.IsAny<CancellationToken>()),
-            Times.Once);
-        _pdfGenerator.Verify(
-            g => g.GenerateAsync(It.IsAny<Lead>(), analysis, comps, It.IsAny<AccountConfig>(),
-                It.IsAny<ReportType>(), It.IsAny<CancellationToken>()),
-            Times.Once);
-        _cmaNotifier.Verify(
-            n => n.NotifySellerAsync("test-agent", It.IsAny<Lead>(), pdfPath, analysis, "corr-123", It.IsAny<CancellationToken>()),
-            Times.Once);
+        var result = await request.Completion.Task;
+
+        result.Success.Should().BeTrue();
+        result.Error.Should().BeNull();
+        result.EstimatedValue.Should().Be(350000);
+        result.PriceRangeLow.Should().Be(300000);
+        result.PriceRangeHigh.Should().Be(400000);
+        result.MarketAnalysis.Should().Be("test");
+        result.Comps.Should().HaveCount(5);
+        result.Comps![0].Price.Should().Be(300000);
+        result.Comps![0].Beds.Should().Be(3);
+        result.Comps![0].Baths.Should().Be(2);
+        result.Comps![0].Sqft.Should().Be(1500);
     }
 
     [Fact]
-    public async Task SkipsCma_WhenNoCompsFound()
+    public async Task SetsFailureResult_WhenNoCompsFound()
     {
         _compAggregator
             .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
+        var request = MakeRequest();
         var worker = CreateWorker();
         var cts = new CancellationTokenSource();
 
-        await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
+        await _channel.Writer.WriteAsync(request, CancellationToken.None);
         _channel.Writer.Complete();
 
         await worker.StartAsync(cts.Token);
         await worker.ExecuteTask!;
 
+        var result = await request.Completion.Task;
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("No comparable sales found");
+        result.EstimatedValue.Should().BeNull();
+        result.Comps.Should().BeNull();
+
         _cmaAnalyzer.Verify(
             a => a.AnalyzeAsync(It.IsAny<Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-        _pdfGenerator.Verify(
-            g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
-                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-        _cmaNotifier.Verify(
-            n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),
-                It.IsAny<CmaAnalysis>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
     [Fact]
-    public async Task ContinuesAfterNotifierFailure()
+    public async Task SetsFailureResult_WhenAnalysisPermanentlyFails()
     {
         var comps = MakeComps(3);
         _compAggregator
@@ -174,22 +170,13 @@ public class CmaProcessingWorkerTests
             .ReturnsAsync(comps);
         _cmaAnalyzer
             .Setup(a => a.AnalyzeAsync(It.IsAny<Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MakeAnalysis());
-        SetupAccountConfig();
-        _pdfGenerator
-            .Setup(g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
-                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("/tmp/cma-test.pdf");
-        _cmaNotifier
-            .Setup(n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),
-                It.IsAny<CmaAnalysis>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("smtp down"));
+            .ThrowsAsync(new InvalidOperationException("claude down"));
 
-        // Zero-delay retries so the test completes quickly
-        var worker = CreateWorker(ZeroDelayConfig());
+        var request = MakeRequest();
+        var worker = CreateWorker(ZeroDelayConfig(maxRetries: 0));
         var cts = new CancellationTokenSource();
 
-        await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
+        await _channel.Writer.WriteAsync(request, CancellationToken.None);
         _channel.Writer.Complete();
 
         await worker.StartAsync(cts.Token);
@@ -197,15 +184,11 @@ public class CmaProcessingWorkerTests
 
         await act.Should().NotThrowAsync();
 
-        // The step failure is logged by PipelineWorker with "Step 'notify-seller' Failed"
-        _logger.Verify(
-            l => l.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Step 'notify-seller' Failed")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+        var result = await request.Completion.Task;
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().NotBeNullOrEmpty();
+        result.EstimatedValue.Should().BeNull();
     }
 
     [Fact]
@@ -230,87 +213,5 @@ public class CmaProcessingWorkerTests
         var result = CmaProcessingWorker.DetermineReportType(2);
 
         result.Should().Be(ReportType.Lean);
-    }
-
-    // ---------------------------------------------------------------------------
-    // TryDeleteTempFile — File.Exists(path) == true branch
-    // ---------------------------------------------------------------------------
-
-    [Fact]
-    public async Task DeletesTempPdfFile_WhenFileExists()
-    {
-        var tempFile = Path.GetTempFileName();
-        var comps = MakeComps(3);
-
-        _compAggregator
-            .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(comps);
-        _cmaAnalyzer
-            .Setup(a => a.AnalyzeAsync(It.IsAny<Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MakeAnalysis());
-        SetupAccountConfig();
-        _pdfGenerator
-            .Setup(g => g.GenerateAsync(It.IsAny<Lead>(), It.IsAny<CmaAnalysis>(), It.IsAny<List<Comp>>(),
-                It.IsAny<AccountConfig>(), It.IsAny<ReportType>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tempFile); // return a real file path that exists
-        _cmaNotifier
-            .Setup(n => n.NotifySellerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<string>(),
-                It.IsAny<CmaAnalysis>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var worker = CreateWorker();
-        var cts = new CancellationTokenSource();
-
-        await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
-        _channel.Writer.Complete();
-
-        await worker.StartAsync(cts.Token);
-        await worker.ExecuteTask!;
-
-        // The file should have been deleted
-        File.Exists(tempFile).Should().BeFalse();
-    }
-
-    // ---------------------------------------------------------------------------
-    // AccountConfig not found — worker catches, logs step failure, does not crash
-    // ---------------------------------------------------------------------------
-
-    [Fact]
-    public async Task AccountConfigNotFound_LogsStepFailure_DoesNotCrash()
-    {
-        var comps = MakeComps(3);
-        _compAggregator
-            .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(comps);
-        _cmaAnalyzer
-            .Setup(a => a.AnalyzeAsync(It.IsAny<Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MakeAnalysis());
-
-        // Return null → GeneratePdfAsync throws InvalidOperationException
-        _accountConfigService
-            .Setup(a => a.GetAccountAsync("test-agent", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((AccountConfig?)null);
-
-        // Zero-delay retries so the test completes quickly
-        var worker = CreateWorker(ZeroDelayConfig());
-        var cts = new CancellationTokenSource();
-
-        await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
-        _channel.Writer.Complete();
-
-        await worker.StartAsync(cts.Token);
-        var act = async () => await worker.ExecuteTask!;
-
-        await act.Should().NotThrowAsync();
-
-        // The generate-pdf step failure is logged by PipelineWorker with "Step 'generate-pdf' Failed"
-        _logger.Verify(
-            l => l.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Step 'generate-pdf' Failed")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
     }
 }
