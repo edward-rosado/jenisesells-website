@@ -20,6 +20,9 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | [Fan-Out Storage](fan-out-storage.md) | Three-tier document writes: Agent + Account + Platform Drive |
 | [Notification Email Flow](notification-email-flow.md) | Pipeline → Notifier → Gmail API → Fan-Out storage (Mermaid) |
 | [Google Client Dependency Graph](google-client-dependency-graph.md) | Interface ownership + DI wiring (Mermaid) |
+| [Lead Orchestrator Flow](lead-orchestrator-flow.md) | Lead pipeline: scoring → dispatch → collect → email → notify |
+| [Worker Dispatch Routing](worker-dispatch-routing.md) | CMA/HomeSearch/PDF worker dispatch via channels + TCS |
+| [Agent Notification Flow](agent-notification-flow.md) | WhatsApp-first agent notification with email fallback |
 
 ## API Project Structure (21 Projects + 23 Test Projects)
 
