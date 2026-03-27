@@ -165,7 +165,7 @@ public sealed class CmaProcessingWorker(
         {
             var seller = ctx.Request.SellerDetails!;
             var folder = $"Real Estate Star/1 - Leads/{ctx.Request.FullName}/{seller.Address}, {seller.City}, {seller.State} {seller.Zip}";
-            var fileName = $"{DateTime.UtcNow:yyyy-MM-dd}-CMA-Report.pdf.b64";
+            var fileName = $"{ctx.Request.Id}-CMA-Report.pdf.b64";
             var pdfBytes = await File.ReadAllBytesAsync(pdfPath, ct);
 
             // Record PDF size metric
