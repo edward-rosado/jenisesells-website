@@ -45,6 +45,7 @@ public static class OpenTelemetryExtensions
                 .AddSource(TokenStoreDiagnostics.ServiceName)
                 .AddSource(FanOutDiagnostics.ServiceName)
                 .AddSource(RentCastDiagnostics.ServiceName)
+                .AddSource(OrchestratorDiagnostics.ServiceName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>
@@ -69,6 +70,7 @@ public static class OpenTelemetryExtensions
                 .AddMeter(TokenStoreDiagnostics.ServiceName)
                 .AddMeter(FanOutDiagnostics.ServiceName)
                 .AddMeter(RentCastDiagnostics.ServiceName)
+                .AddMeter(OrchestratorDiagnostics.ServiceName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Orchestration;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Workers.Cma;
@@ -58,10 +59,18 @@ public sealed class LeadOrchestrator(
         var agentId = request.AgentId;
         var correlationId = request.CorrelationId;
 
-        using var activity = LeadDiagnostics.ActivitySource.StartActivity("lead.orchestrate");
+        OrchestratorDiagnostics.LeadsProcessed.Add(1);
+
+        using var activity = OrchestratorDiagnostics.ActivitySource.StartActivity("orchestrator.process_lead");
         activity?.SetTag("lead.id", lead.Id.ToString());
         activity?.SetTag("lead.agent_id", agentId);
         activity?.SetTag("correlation.id", correlationId);
+
+        // Keep existing lead-level trace span for backward compatibility
+        using var leadActivity = LeadDiagnostics.ActivitySource.StartActivity("lead.orchestrate");
+        leadActivity?.SetTag("lead.id", lead.Id.ToString());
+        leadActivity?.SetTag("lead.agent_id", agentId);
+        leadActivity?.SetTag("correlation.id", correlationId);
 
         try
         {
@@ -72,14 +81,19 @@ public sealed class LeadOrchestrator(
                 logger.LogError(
                     "[{Worker}-010] Agent config not found for {AgentId}. Lead {LeadId} cannot be processed. CorrelationId: {CorrelationId}",
                     WorkerName, agentId, lead.Id, correlationId);
+                OrchestratorDiagnostics.LeadsFailed.Add(1);
                 return;
             }
 
             var agentConfig = BuildAgentNotificationConfig(agentId, accountConfig);
 
             // Step 2: Score the lead
+            var scoreStarted = Stopwatch.GetTimestamp();
+            using var scoreSpan = OrchestratorDiagnostics.ActivitySource.StartActivity("orchestrator.score_lead");
             var score = scorer.Score(lead);
             lead.Score = score;
+            OrchestratorDiagnostics.ScoreDurationMs.Record(
+                Stopwatch.GetElapsedTime(scoreStarted).TotalMilliseconds);
             await UpdateStatusAsync(lead, LeadStatus.Scored, ct);
 
             logger.LogInformation(
@@ -96,25 +110,57 @@ public sealed class LeadOrchestrator(
             HomeSearchWorkerResult? hsResult = null;
 
             var pendingTasks = BuildPendingTasks(cmaTcs, hsTcs);
+            var collectStarted = Stopwatch.GetTimestamp();
+            var timedOut = false;
 
-            try
+            using (OrchestratorDiagnostics.ActivitySource.StartActivity("orchestrator.collect_workers"))
             {
-                await Task.WhenAll(pendingTasks).WaitAsync(
-                    TimeSpan.FromSeconds(WorkerTimeoutSeconds), ct);
+                try
+                {
+                    await Task.WhenAll(pendingTasks).WaitAsync(
+                        TimeSpan.FromSeconds(WorkerTimeoutSeconds), ct);
+                }
+                catch (TimeoutException)
+                {
+                    timedOut = true;
+                    logger.LogWarning(
+                        "[{Worker}-030] Worker timeout after {TimeoutSeconds}s. Lead {LeadId}. CorrelationId: {CorrelationId}",
+                        WorkerName, WorkerTimeoutSeconds, lead.Id, correlationId);
+                }
             }
-            catch (TimeoutException)
-            {
-                logger.LogWarning(
-                    "[{Worker}-030] Worker timeout after {TimeoutSeconds}s. Lead {LeadId}. CorrelationId: {CorrelationId}",
-                    WorkerName, WorkerTimeoutSeconds, lead.Id, correlationId);
-            }
+
+            OrchestratorDiagnostics.CollectDurationMs.Record(
+                Stopwatch.GetElapsedTime(collectStarted).TotalMilliseconds);
+
+            if (timedOut)
+                OrchestratorDiagnostics.WorkerTimeouts.Add(1);
 
             // Collect results from completed TCS tasks
-            if (cmaTcs is not null && cmaTcs.Task.IsCompleted)
-                cmaResult = cmaTcs.Task.Result;
+            if (cmaTcs is not null)
+            {
+                if (cmaTcs.Task.IsCompleted)
+                {
+                    cmaResult = cmaTcs.Task.Result;
+                    OrchestratorDiagnostics.WorkerCompletions.Add(1);
+                }
+                else
+                {
+                    OrchestratorDiagnostics.WorkerTimeouts.Add(1);
+                }
+            }
 
-            if (hsTcs is not null && hsTcs.Task.IsCompleted)
-                hsResult = hsTcs.Task.Result;
+            if (hsTcs is not null)
+            {
+                if (hsTcs.Task.IsCompleted)
+                {
+                    hsResult = hsTcs.Task.Result;
+                    OrchestratorDiagnostics.WorkerCompletions.Add(1);
+                }
+                else
+                {
+                    OrchestratorDiagnostics.WorkerTimeouts.Add(1);
+                }
+            }
 
             LogWorkerResults(cmaResult, hsResult, lead.Id, correlationId);
 
@@ -122,21 +168,33 @@ public sealed class LeadOrchestrator(
             PdfWorkerResult? pdfResult = null;
             if (cmaResult?.Success == true)
             {
-                pdfResult = await DispatchPdfAsync(lead.Id.ToString(), cmaResult, agentConfig, correlationId, ct);
+                var pdfStarted = Stopwatch.GetTimestamp();
+                using (OrchestratorDiagnostics.ActivitySource.StartActivity("orchestrator.dispatch_pdf"))
+                {
+                    pdfResult = await DispatchPdfAsync(lead.Id.ToString(), cmaResult, agentConfig, correlationId, ct);
+                }
+                OrchestratorDiagnostics.PdfDurationMs.Record(
+                    Stopwatch.GetElapsedTime(pdfStarted).TotalMilliseconds);
             }
 
             // Step 6: Draft email
             LeadEmail? emailDraft = null;
-            try
+            var emailDraftStarted = Stopwatch.GetTimestamp();
+            using (OrchestratorDiagnostics.ActivitySource.StartActivity("orchestrator.draft_email"))
             {
-                emailDraft = await emailDrafter.DraftAsync(lead, score, cmaResult, hsResult, agentConfig, ct);
+                try
+                {
+                    emailDraft = await emailDrafter.DraftAsync(lead, score, cmaResult, hsResult, agentConfig, ct);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex,
+                        "[{Worker}-040] Email draft failed for lead {LeadId}. CorrelationId: {CorrelationId}",
+                        WorkerName, lead.Id, correlationId);
+                }
             }
-            catch (Exception ex)
-            {
-                logger.LogError(ex,
-                    "[{Worker}-040] Email draft failed for lead {LeadId}. CorrelationId: {CorrelationId}",
-                    WorkerName, lead.Id, correlationId);
-            }
+            OrchestratorDiagnostics.EmailDraftDurationMs.Record(
+                Stopwatch.GetElapsedTime(emailDraftStarted).TotalMilliseconds);
 
             // Always set Notified — notification was attempted regardless of draft success
             await UpdateStatusAsync(lead, LeadStatus.Notified, ct);
@@ -155,6 +213,14 @@ public sealed class LeadOrchestrator(
             healthTracker.RecordActivity(WorkerName);
             var elapsedMs = Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
             LeadDiagnostics.TotalPipelineDuration.Record((long)elapsedMs);
+            OrchestratorDiagnostics.TotalDurationMs.Record(elapsedMs);
+
+            var anyTimeout = (cmaTcs is not null && !cmaTcs.Task.IsCompleted) ||
+                             (hsTcs is not null && !hsTcs.Task.IsCompleted);
+            if (anyTimeout)
+                OrchestratorDiagnostics.LeadsPartial.Add(1);
+            else
+                OrchestratorDiagnostics.LeadsCompleted.Add(1);
 
             logger.LogInformation(
                 "[{Worker}-090] Lead {LeadId} pipeline complete. CorrelationId: {CorrelationId}",
@@ -169,6 +235,7 @@ public sealed class LeadOrchestrator(
         }
         catch (Exception ex)
         {
+            OrchestratorDiagnostics.LeadsFailed.Add(1);
             logger.LogError(ex,
                 "[{Worker}-099] Lead {LeadId} orchestration failed. CorrelationId: {CorrelationId}",
                 WorkerName, lead.Id, correlationId);
@@ -193,6 +260,7 @@ public sealed class LeadOrchestrator(
             }
             else
             {
+                OrchestratorDiagnostics.WorkerDispatches.Add(1);
                 logger.LogInformation(
                     "[{Worker}-022] CMA dispatched for lead {LeadId}. CorrelationId: {CorrelationId}",
                     WorkerName, lead.Id, correlationId);
@@ -211,6 +279,7 @@ public sealed class LeadOrchestrator(
             }
             else
             {
+                OrchestratorDiagnostics.WorkerDispatches.Add(1);
                 logger.LogInformation(
                     "[{Worker}-023] HomeSearch dispatched for lead {LeadId}. CorrelationId: {CorrelationId}",
                     WorkerName, lead.Id, correlationId);
@@ -299,11 +368,14 @@ public sealed class LeadOrchestrator(
         string correlationId,
         CancellationToken ct)
     {
+        var sendStarted = Stopwatch.GetTimestamp();
+        using var span = OrchestratorDiagnostics.ActivitySource.StartActivity("orchestrator.send_email");
         try
         {
             await gmailSender.SendAsync(agentId, agentId, agentConfig.Email, emailDraft.Subject, emailDraft.HtmlBody, ct);
 
             LeadDiagnostics.LeadsNotificationSent.Add(1);
+            OrchestratorDiagnostics.EmailSent.Add(1);
 
             logger.LogInformation(
                 "[{Worker}-050] Email sent for lead {LeadId}. CorrelationId: {CorrelationId}",
@@ -315,6 +387,12 @@ public sealed class LeadOrchestrator(
                 "[{Worker}-051] Email send failed for lead {LeadId}. CorrelationId: {CorrelationId}",
                 WorkerName, lead.Id, correlationId);
             LeadDiagnostics.LeadsNotificationFailed.Add(1);
+            OrchestratorDiagnostics.EmailFailed.Add(1);
+        }
+        finally
+        {
+            OrchestratorDiagnostics.EmailSendDurationMs.Record(
+                Stopwatch.GetElapsedTime(sendStarted).TotalMilliseconds);
         }
     }
 
@@ -327,19 +405,28 @@ public sealed class LeadOrchestrator(
         string correlationId,
         CancellationToken ct)
     {
+        var notifyStarted = Stopwatch.GetTimestamp();
+        using var span = OrchestratorDiagnostics.ActivitySource.StartActivity("orchestrator.notify_agent");
         try
         {
             await agentNotifier.NotifyAsync(lead, score, cmaResult, hsResult, agentConfig, ct);
 
+            OrchestratorDiagnostics.WhatsAppSent.Add(1);
             logger.LogInformation(
                 "[{Worker}-060] Agent notified for lead {LeadId}. CorrelationId: {CorrelationId}",
                 WorkerName, lead.Id, correlationId);
         }
         catch (Exception ex)
         {
+            OrchestratorDiagnostics.WhatsAppFailed.Add(1);
             logger.LogError(ex,
                 "[{Worker}-061] Agent notification failed for lead {LeadId}. CorrelationId: {CorrelationId}",
                 WorkerName, lead.Id, correlationId);
+        }
+        finally
+        {
+            OrchestratorDiagnostics.WhatsAppSendDurationMs.Record(
+                Stopwatch.GetElapsedTime(notifyStarted).TotalMilliseconds);
         }
     }
 

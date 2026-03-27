@@ -43,6 +43,9 @@ global using RealEstateStar.Domain.Onboarding;
 global using RealEstateStar.Notifications.Leads;
 global using RealEstateStar.Notifications.WhatsApp;
 
+// Orchestration
+global using RealEstateStar.Domain.Orchestration;
+
 // Workers
 global using RealEstateStar.Workers.Shared;
 global using RealEstateStar.Workers.Leads;
