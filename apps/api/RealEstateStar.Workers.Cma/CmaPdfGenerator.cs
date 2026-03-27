@@ -385,7 +385,6 @@ public class CmaPdfGenerator : ICmaPdfGenerator
 
         if (analysis.PricingRecommendation is { } recommendation)
         {
-            // Keep pricing strategy together — don't split across pages
             col.Item().ShowEntire().Column(section =>
             {
                 section.Item().PaddingBottom(6).Text("Pricing Strategy").FontSize(11).Bold();
@@ -395,7 +394,6 @@ public class CmaPdfGenerator : ICmaPdfGenerator
 
         if (analysis.LeadInsights is { } insights)
         {
-            // Keep seller insights together — don't split across pages
             col.Item().ShowEntire().Column(section =>
             {
                 section.Item().PaddingBottom(6).Text("Seller Insights").FontSize(11).Bold();

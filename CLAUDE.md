@@ -29,6 +29,7 @@ Eddie Rosado, Senior Manager of Engineering at Mindbody/Playlist. Building Real 
 | **Token Store** | Azure Table Storage (`AzureTableTokenStore` in `Clients.Azure`) implements `ITokenStore` (Domain); DPAPI-encrypted tokens with ETag optimistic locking |
 | **Anthropic Client** | Shared `IAnthropicClient` (Domain) → `AnthropicClient` (`Clients.Anthropic`); replaces 6 inline callers with a single injected abstraction |
 | **RentCast Client** | `IRentCastClient` (Domain) → `RentCastClient` (`Clients.RentCast`); fetches comp sales data from api.rentcast.io for CMA pipeline |
+| **RentCast** | Comp data API (api.rentcast.io) — 5-comp target with 6-month recency preference; subject property enrichment |
 
 ## Preferences
 - Use eddie-voice skill when talking
