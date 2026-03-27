@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -52,6 +53,7 @@ public sealed class LeadOrchestrator(
 
     internal async Task ProcessRequestAsync(LeadOrchestrationRequest request, CancellationToken ct)
     {
+        var startedAt = Stopwatch.GetTimestamp();
         var lead = request.Lead;
         var agentId = request.AgentId;
         var correlationId = request.CorrelationId;
@@ -151,7 +153,8 @@ public sealed class LeadOrchestrator(
             // Step 9: Save results + update status
             await UpdateStatusAsync(lead, LeadStatus.Complete, ct);
             healthTracker.RecordActivity(WorkerName);
-            LeadDiagnostics.TotalPipelineDuration.Record(0);
+            var elapsedMs = Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
+            LeadDiagnostics.TotalPipelineDuration.Record((long)elapsedMs);
 
             logger.LogInformation(
                 "[{Worker}-090] Lead {LeadId} pipeline complete. CorrelationId: {CorrelationId}",
@@ -181,23 +184,37 @@ public sealed class LeadOrchestrator(
         if (lead.LeadType is LeadType.Seller or LeadType.Both && lead.SellerDetails is not null)
         {
             cmaTcs = new TaskCompletionSource<CmaWorkerResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-            cmaChannel.Writer.TryWrite(
-                new CmaProcessingRequest(agentId, lead, agentConfig, correlationId, cmaTcs));
-
-            logger.LogInformation(
-                "[{Worker}-022] CMA dispatched for lead {LeadId}. CorrelationId: {CorrelationId}",
-                WorkerName, lead.Id, correlationId);
+            if (!cmaChannel.Writer.TryWrite(new CmaProcessingRequest(agentId, lead, agentConfig, correlationId, cmaTcs)))
+            {
+                logger.LogError(
+                    "[{Worker}-024] CMA channel full — request dropped for lead {LeadId}. CorrelationId: {CorrelationId}",
+                    WorkerName, lead.Id, correlationId);
+                cmaTcs.TrySetResult(new CmaWorkerResult(lead.Id.ToString(), false, "Channel full", null, null, null, null, null));
+            }
+            else
+            {
+                logger.LogInformation(
+                    "[{Worker}-022] CMA dispatched for lead {LeadId}. CorrelationId: {CorrelationId}",
+                    WorkerName, lead.Id, correlationId);
+            }
         }
 
         if (lead.LeadType is LeadType.Buyer or LeadType.Both && lead.BuyerDetails is not null)
         {
             hsTcs = new TaskCompletionSource<HomeSearchWorkerResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-            homeSearchChannel.Writer.TryWrite(
-                new HomeSearchProcessingRequest(agentId, lead, agentConfig, correlationId, hsTcs));
-
-            logger.LogInformation(
-                "[{Worker}-023] HomeSearch dispatched for lead {LeadId}. CorrelationId: {CorrelationId}",
-                WorkerName, lead.Id, correlationId);
+            if (!homeSearchChannel.Writer.TryWrite(new HomeSearchProcessingRequest(agentId, lead, agentConfig, correlationId, hsTcs)))
+            {
+                logger.LogError(
+                    "[{Worker}-025] HomeSearch channel full — request dropped for lead {LeadId}. CorrelationId: {CorrelationId}",
+                    WorkerName, lead.Id, correlationId);
+                hsTcs.TrySetResult(new HomeSearchWorkerResult(lead.Id.ToString(), false, "Channel full", null, null));
+            }
+            else
+            {
+                logger.LogInformation(
+                    "[{Worker}-023] HomeSearch dispatched for lead {LeadId}. CorrelationId: {CorrelationId}",
+                    WorkerName, lead.Id, correlationId);
+            }
         }
 
         return (cmaTcs, hsTcs);
@@ -284,26 +301,7 @@ public sealed class LeadOrchestrator(
     {
         try
         {
-            if (pdfResult?.Success == true && pdfResult.StoragePath is not null)
-            {
-                // Send email — PDF attachment path is available but we send text email;
-                // PDF is referenced by storage path in the body.
-                await gmailSender.SendAsync(
-                    agentId, agentId,
-                    agentConfig.Email,
-                    emailDraft.Subject,
-                    emailDraft.HtmlBody,
-                    ct);
-            }
-            else
-            {
-                await gmailSender.SendAsync(
-                    agentId, agentId,
-                    agentConfig.Email,
-                    emailDraft.Subject,
-                    emailDraft.HtmlBody,
-                    ct);
-            }
+            await gmailSender.SendAsync(agentId, agentId, agentConfig.Email, emailDraft.Subject, emailDraft.HtmlBody, ct);
 
             LeadDiagnostics.LeadsNotificationSent.Add(1);
 
