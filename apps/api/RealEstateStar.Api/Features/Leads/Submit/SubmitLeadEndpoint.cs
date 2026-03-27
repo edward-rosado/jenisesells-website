@@ -83,6 +83,9 @@ public class SubmitLeadEndpoint : IEndpoint
             lead = existingLead;
             isUpdate = true;
 
+            // Increment submission count
+            lead.SubmissionCount++;
+
             // Merge lead type: if they were Buyer and now submitting as Seller, upgrade to Both
             if (lead.LeadType != request.LeadType && request.LeadType is not LeadType.Both)
                 lead.MergeType(LeadType.Both);
@@ -98,6 +101,15 @@ public class SubmitLeadEndpoint : IEndpoint
             {
                 lead.MergeBuyerDetails(LeadMappers.MapBuyerDetails(request.Buyer));
                 hasNewDetails = true;
+            }
+
+            // Map Notes to seller/buyer details
+            if (request.Notes is not null)
+            {
+                if (lead.SellerDetails is not null)
+                    lead.SellerDetails = lead.SellerDetails with { Notes = request.Notes };
+                if (lead.BuyerDetails is not null)
+                    lead.BuyerDetails = lead.BuyerDetails with { Notes = request.Notes };
             }
 
             // Only re-run pipeline if new data was added (new seller/buyer details or type change)

@@ -25,6 +25,7 @@ public class BuyerDetailsRequest
     public int? MinBaths { get; init; }
     public string? PreApproved { get; init; }
     public decimal? PreApprovalAmount { get; init; }
+    [StringLength(2000)] public string? Notes { get; init; }
 }
 
 public class SellerDetailsRequest
@@ -36,6 +37,7 @@ public class SellerDetailsRequest
     public int? Beds { get; init; }
     public int? Baths { get; init; }
     public int? Sqft { get; init; }
+    [StringLength(2000)] public string? Notes { get; init; }
 }
 
 public class MarketingConsentRequest

@@ -29,7 +29,8 @@ public static class LeadMappers
         Zip = s.Zip,
         Beds = s.Beds,
         Baths = s.Baths,
-        Sqft = s.Sqft
+        Sqft = s.Sqft,
+        Notes = s.Notes
     };
 
     internal static BuyerDetails MapBuyerDetails(BuyerDetailsRequest b)
@@ -44,7 +45,8 @@ public static class LeadMappers
             Bedrooms = b.MinBeds,
             Bathrooms = b.MinBaths,
             PreApproved = b.PreApproved,
-            PreApprovalAmount = b.PreApprovalAmount
+            PreApprovalAmount = b.PreApprovalAmount,
+            Notes = b.Notes
         };
     }
 
