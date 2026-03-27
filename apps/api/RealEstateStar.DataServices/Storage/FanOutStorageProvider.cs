@@ -131,10 +131,11 @@ public sealed class FanOutStorageProvider : IFileStorageProvider
 
     public async Task<List<string>> ListDocumentsAsync(string folder, CancellationToken ct)
     {
-        // Return from Agent tier (primary); fall back to Account then Platform on error.
+        // Return from Agent tier (primary); fall back to Account then Platform on error OR empty.
         try
         {
-            return await _driveClient.ListFilesAsync(_accountId, _agentId, folder, ct);
+            var result = await _driveClient.ListFilesAsync(_accountId, _agentId, folder, ct);
+            if (result.Count > 0) return result;
         }
         catch (Exception ex)
         {
@@ -143,7 +144,8 @@ public sealed class FanOutStorageProvider : IFileStorageProvider
 
         try
         {
-            return await _driveClient.ListFilesAsync(_accountId, AccountTierAgentId, folder, ct);
+            var result = await _driveClient.ListFilesAsync(_accountId, AccountTierAgentId, folder, ct);
+            if (result.Count > 0) return result;
         }
         catch (Exception ex)
         {
