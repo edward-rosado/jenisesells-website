@@ -10,9 +10,8 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Workers.Cma;
 using RealEstateStar.Workers.HomeSearch;
 using RealEstateStar.Workers.Shared;
-using RealEstateStar.Workers.Shared.AgentNotifier;
-using RealEstateStar.Workers.Shared.LeadCommunicator;
 using RealEstateStar.Workers.Shared.Pdf;
+using DomainLead = RealEstateStar.Domain.Leads.Models.Lead;
 
 namespace RealEstateStar.Workers.Lead.Orchestrator;
 
@@ -20,8 +19,8 @@ namespace RealEstateStar.Workers.Lead.Orchestrator;
 /// Per-lead orchestrator. Reads from <see cref="LeadOrchestratorChannel"/>,
 /// scores the lead, dispatches CMA and HomeSearch workers in parallel via channels,
 /// calls <see cref="PdfActivity"/> inline, drafts and sends the lead email via
-/// <see cref="LeadCommunicationService"/>, and notifies the agent via
-/// <see cref="AgentNotificationService"/>. All pipeline state is carried in
+/// <see cref="ILeadCommunicationService"/>, and notifies the agent via
+/// <see cref="IAgentNotifier"/>. All pipeline state is carried in
 /// a <see cref="LeadPipelineContext"/> instance.
 /// </summary>
 public sealed class LeadOrchestrator(
@@ -32,8 +31,8 @@ public sealed class LeadOrchestrator(
     CmaProcessingChannel cmaChannel,
     HomeSearchProcessingChannel homeSearchChannel,
     PdfActivity pdfActivity,
-    LeadCommunicationService communicationService,
-    AgentNotificationService agentNotificationService,
+    ILeadCommunicationService communicationService,
+    IAgentNotifier agentNotifier,
     BackgroundServiceHealthTracker healthTracker,
     ILogger<LeadOrchestrator> logger,
     IConfiguration configuration)
@@ -251,7 +250,7 @@ public sealed class LeadOrchestrator(
     }
 
     internal (TaskCompletionSource<CmaWorkerResult>? CmaTcs, TaskCompletionSource<HomeSearchWorkerResult>? HsTcs)
-        DispatchWorkers(global::RealEstateStar.Domain.Leads.Models.Lead lead, string agentId, AgentNotificationConfig agentConfig, string correlationId)
+        DispatchWorkers(DomainLead lead, string agentId, AgentNotificationConfig agentConfig, string correlationId)
     {
         TaskCompletionSource<CmaWorkerResult>? cmaTcs = null;
         TaskCompletionSource<HomeSearchWorkerResult>? hsTcs = null;
@@ -458,13 +457,24 @@ public sealed class LeadOrchestrator(
         using var span = OrchestratorDiagnostics.ActivitySource.StartActivity("orchestrator.notify_agent");
         try
         {
-            await agentNotificationService.NotifyAsync(
+            await agentNotifier.NotifyAsync(
                 ctx.Lead,
                 ctx.Score ?? new LeadScore { OverallScore = 0, Factors = [], Explanation = string.Empty },
                 ctx.CmaResult,
                 ctx.HsResult,
                 ctx.AgentConfig,
                 ct);
+
+            ctx.AgentNotification = new CommunicationRecord
+            {
+                Subject = "New Lead Notification",
+                HtmlBody = string.Empty,
+                Channel = ctx.AgentConfig.WhatsAppPhoneNumberId != null ? "whatsapp" : "email",
+                DraftedAt = DateTimeOffset.UtcNow,
+                SentAt = DateTimeOffset.UtcNow,
+                Sent = true,
+                ContentHash = string.Empty
+            };
 
             OrchestratorDiagnostics.WhatsAppSent.Add(1);
             logger.LogInformation(
@@ -485,7 +495,7 @@ public sealed class LeadOrchestrator(
         }
     }
 
-    private async Task UpdateStatusAsync(global::RealEstateStar.Domain.Leads.Models.Lead lead, LeadStatus status, CancellationToken ct)
+    private async Task UpdateStatusAsync(DomainLead lead, LeadStatus status, CancellationToken ct)
     {
         try
         {

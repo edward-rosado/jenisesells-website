@@ -8,7 +8,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddLeadCommunicator(this IServiceCollection services)
     {
         services.AddSingleton<ILeadEmailDrafter, LeadEmailDrafter>();
-        services.AddSingleton<LeadCommunicationService>();
+        services.AddSingleton<ILeadCommunicationService, LeadCommunicationService>();
         return services;
     }
 }

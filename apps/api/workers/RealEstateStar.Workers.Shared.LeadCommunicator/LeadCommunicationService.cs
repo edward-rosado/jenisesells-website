@@ -15,7 +15,7 @@ namespace RealEstateStar.Workers.Shared.LeadCommunicator;
 public class LeadCommunicationService(
     ILeadEmailDrafter drafter,
     IGmailSender gmailSender,
-    ILogger<LeadCommunicationService> logger)
+    ILogger<LeadCommunicationService> logger) : ILeadCommunicationService
 {
     /// <summary>
     /// Draft personalized email content via Claude.

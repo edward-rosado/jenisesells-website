@@ -24,8 +24,12 @@ using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Tools;
 using RealEstateStar.Workers.Cma;
 using RealEstateStar.Workers.HomeSearch;
+using RealEstateStar.Workers.Lead.Orchestrator;
 using RealEstateStar.Workers.Leads;
 using RealEstateStar.Workers.Shared;
+using RealEstateStar.Workers.Shared.AgentNotifier;
+using RealEstateStar.Workers.Shared.LeadCommunicator;
+using RealEstateStar.Workers.Shared.Pdf;
 using RealEstateStar.Workers.WhatsApp;
 using RealEstateStar.Clients.Anthropic;
 using RealEstateStar.Clients.Azure;
@@ -288,8 +292,11 @@ builder.Services.AddGSheetsClient(googleClientId, googleClientSecret);
 // Scraper client (options, IScraperClient, HttpClient "ScraperAPI" with resilience)
 builder.Services.AddScraperClient(builder.Configuration, pollyLogger);
 
-// Lead pipeline (orchestrator + PDF worker + scoring/drafting/notification services)
-builder.Services.AddLeadPipeline();
+// Lead pipeline — new decomposed orchestrator wiring
+builder.Services.AddLeadOrchestrator();
+builder.Services.AddPdfService();
+builder.Services.AddAgentNotifier();
+builder.Services.AddLeadCommunicator();
 
 // RentCast client (options, IRentCastClient, HttpClient "RentCast" with resilience)
 builder.Services.AddRentCastClient(builder.Configuration, pollyLogger);
