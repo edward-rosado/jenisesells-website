@@ -51,7 +51,7 @@ public class SendWhatsAppWelcomeTool(
         {
             whatsApp.Status = "error";
             await accountConfigService.UpdateAccountAsync(session.AgentConfigId!, accountConfig, ct);
-            logger.LogError(ex, "[WA-014] WhatsApp welcome failed for {AgentId}", session.AgentConfigId);
+            logger.LogError(ex, "[WA-015] WhatsApp welcome failed for {AgentId}", session.AgentConfigId);
             return "WhatsApp setup hit a snag. I'll send everything via email for now.";
         }
     }

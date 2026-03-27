@@ -2,7 +2,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace RealEstateStar.Api.Health;
 
-public class TurnstileHealthCheck(IConfiguration configuration) : IHealthCheck
+public sealed class TurnstileHealthCheck(IConfiguration configuration) : IHealthCheck
 {
     public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,

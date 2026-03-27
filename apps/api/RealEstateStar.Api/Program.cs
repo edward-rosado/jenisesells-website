@@ -278,8 +278,6 @@ builder.Services.AddSingleton<ILeadStore, LeadFileStore>();
 builder.Services.AddSingleton<IMarketingConsentLog, MarketingConsentLog>();
 builder.Services.AddSingleton<ILeadDataDeletion, LeadDataDeletion>();
 builder.Services.AddSingleton<IDeletionAuditLog, DeletionAuditLog>();
-// TODO: Pipeline redesign — ILeadNotifier removed in Phase 1.5; replaced in Phase 2/3/4
-// builder.Services.AddSingleton<ILeadNotifier, MultiChannelLeadNotifier>();
 builder.Services.AddSingleton<ILeadDeadLetterStore>(sp =>
     new LeadDeadLetterStore(
         Path.Combine(builder.Environment.ContentRootPath, "data", "dead-letter"),
@@ -305,9 +303,6 @@ builder.Services.AddSingleton<IConsentAuditService>(sp =>
     var tableClient = new Azure.Data.Tables.TableClient(connStr, "consentaudit");
     return new ConsentAuditService(tableClient, sp.GetRequiredService<ILogger<ConsentAuditService>>());
 });
-
-// TODO: Pipeline redesign — IFailedNotificationStore removed in Phase 1.5; dead-letter handling replaced in Phase 2/3/4
-// Notification dead letter store registration commented out
 
 // GDPR data export
 builder.Services.AddSingleton<ILeadDataExport, LeadDataExport>();
@@ -460,11 +455,6 @@ var whatsAppWabaId = builder.Configuration["WhatsApp:WabaId"];
 
 if (string.IsNullOrEmpty(whatsAppPhoneNumberId))
     Log.Warning("WhatsApp:PhoneNumberId not configured — WhatsApp notifications disabled");
-
-// ------------------------------------------------------------------
-// Lead notification channel stubs (email — noop until email channel built)
-// ------------------------------------------------------------------
-builder.Services.AddSingleton<IEmailNotifier, NoopEmailNotifier>();
 
 // ------------------------------------------------------------------
 // WhatsApp services — always register intent/response stubs so

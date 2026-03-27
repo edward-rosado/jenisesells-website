@@ -103,7 +103,7 @@ public class WhatsAppNotifier(
             }
             catch (WhatsAppNotRegisteredException ex)
             {
-                logger.LogWarning(ex, "[WA-014] Agent {AgentId} phone {Phone} not registered on WhatsApp",
+                logger.LogWarning(ex, "[WA-040] Agent {AgentId} phone {Phone} not registered on WhatsApp",
                     agentId, agentPhone);
                 return;
             }
@@ -136,7 +136,7 @@ public class WhatsAppNotifier(
         }
         catch (WhatsAppNotRegisteredException ex)
         {
-            logger.LogWarning(ex, "[WA-014] Agent {AgentId} phone {Phone} not registered on WhatsApp",
+            logger.LogWarning(ex, "[WA-041] Agent {AgentId} phone {Phone} not registered on WhatsApp",
                 agentId, agentPhone);
             return;
         }

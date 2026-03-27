@@ -40,7 +40,6 @@ global using RealEstateStar.Domain.Onboarding.Services;
 global using RealEstateStar.Domain.Onboarding;
 
 // Notifications
-global using RealEstateStar.Notifications.Leads;
 global using RealEstateStar.Notifications.WhatsApp;
 
 // Orchestration

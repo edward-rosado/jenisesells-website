@@ -25,7 +25,16 @@ public class FileLeadStore(LocalStorageProvider storage, string basePath) : ILea
         await storage.WriteDocumentAsync(folder, LeadProfileFile, content, ct);
     }
 
-    // TODO: Pipeline redesign — UpdateEnrichmentAsync removed in Phase 1.5; replaced in Phase 2/3/4
+    public async Task UpdateScoreAsync(Lead lead, LeadScore score, CancellationToken ct)
+    {
+        var folder = LeadPaths.LeadFolder(lead.FullName);
+        var doc = await storage.ReadDocumentAsync(folder, LeadProfileFile, ct);
+        if (doc is null) return;
+        var updated = YamlFrontmatterParser.UpdateField(doc, "score", score.OverallScore.ToString());
+        updated = YamlFrontmatterParser.UpdateField(updated, "score_bucket", score.Bucket);
+        updated = YamlFrontmatterParser.UpdateField(updated, "score_explanation", score.Explanation);
+        await storage.UpdateDocumentAsync(folder, LeadProfileFile, updated, ct);
+    }
 
     public async Task UpdateHomeSearchIdAsync(string agentId, Guid leadId, string homeSearchId, CancellationToken ct)
     {
@@ -40,6 +49,12 @@ public class FileLeadStore(LocalStorageProvider storage, string basePath) : ILea
         var doc = await storage.ReadDocumentAsync(folder, LeadProfileFile, ct);
         if (doc is null) return;
         var updated = YamlFrontmatterParser.UpdateField(doc, "status", status.ToString());
+        if (lead.Score is { } score)
+        {
+            updated = YamlFrontmatterParser.UpdateField(updated, "score", score.OverallScore.ToString());
+            updated = YamlFrontmatterParser.UpdateField(updated, "score_bucket", score.Bucket);
+            updated = YamlFrontmatterParser.UpdateField(updated, "score_explanation", score.Explanation);
+        }
         await storage.UpdateDocumentAsync(folder, LeadProfileFile, updated, ct);
     }
 

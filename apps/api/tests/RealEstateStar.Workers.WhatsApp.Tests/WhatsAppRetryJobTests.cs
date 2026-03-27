@@ -56,7 +56,7 @@ public class WhatsAppRetryJobTests
             .ReturnsAsync("wamid.abc");
 
         var sut = CreateSut();
-        await sut.ProcessRetries(CancellationToken.None);
+        await sut.ProcessRetriesAsync(CancellationToken.None);
 
         _whatsAppClient.Verify(c => c.SendTemplateAsync(
             "+12015551234", "welcome_onboarding",
@@ -72,7 +72,7 @@ public class WhatsAppRetryJobTests
             .ReturnsAsync([config]);
 
         var sut = CreateSut();
-        await sut.ProcessRetries(CancellationToken.None);
+        await sut.ProcessRetriesAsync(CancellationToken.None);
 
         _whatsAppClient.Verify(c => c.SendTemplateAsync(
             It.IsAny<string>(), It.IsAny<string>(),
@@ -88,7 +88,7 @@ public class WhatsAppRetryJobTests
             .ReturnsAsync([config]);
 
         var sut = CreateSut();
-        await sut.ProcessRetries(CancellationToken.None);
+        await sut.ProcessRetriesAsync(CancellationToken.None);
 
         _whatsAppClient.Verify(c => c.SendTemplateAsync(
             It.IsAny<string>(), It.IsAny<string>(),
@@ -104,7 +104,7 @@ public class WhatsAppRetryJobTests
             .ReturnsAsync([config]);
 
         var sut = CreateSut();
-        await sut.ProcessRetries(CancellationToken.None);
+        await sut.ProcessRetriesAsync(CancellationToken.None);
 
         _whatsAppClient.Verify(c => c.SendTemplateAsync(
             It.IsAny<string>(), It.IsAny<string>(),
@@ -125,7 +125,7 @@ public class WhatsAppRetryJobTests
             .ReturnsAsync("wamid.ok");
 
         var sut = CreateSut();
-        await sut.ProcessRetries(CancellationToken.None);
+        await sut.ProcessRetriesAsync(CancellationToken.None);
 
         _configService.Verify(s => s.UpdateAccountAsync(
             "test-agent",
@@ -149,7 +149,7 @@ public class WhatsAppRetryJobTests
             .ThrowsAsync(new WhatsAppApiException(131047, "Re-engagement message"));
 
         var sut = CreateSut();
-        await sut.ProcessRetries(CancellationToken.None);
+        await sut.ProcessRetriesAsync(CancellationToken.None);
 
         _configService.Verify(s => s.UpdateAccountAsync(
             "test-agent",
@@ -179,7 +179,7 @@ public class WhatsAppRetryJobTests
             .ReturnsAsync("wamid.bob");
 
         var sut = CreateSut();
-        await sut.ProcessRetries(CancellationToken.None);
+        await sut.ProcessRetriesAsync(CancellationToken.None);
 
         // agent-a: retry_after cleared (failure path)
         _configService.Verify(s => s.UpdateAccountAsync(
