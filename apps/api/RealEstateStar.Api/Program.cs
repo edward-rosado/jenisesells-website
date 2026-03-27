@@ -278,7 +278,8 @@ builder.Services.AddSingleton<ILeadStore, LeadFileStore>();
 builder.Services.AddSingleton<IMarketingConsentLog, MarketingConsentLog>();
 builder.Services.AddSingleton<ILeadDataDeletion, LeadDataDeletion>();
 builder.Services.AddSingleton<IDeletionAuditLog, DeletionAuditLog>();
-builder.Services.AddSingleton<ILeadNotifier, MultiChannelLeadNotifier>();
+// TODO: Pipeline redesign — ILeadNotifier removed in Phase 1.5; replaced in Phase 2/3/4
+// builder.Services.AddSingleton<ILeadNotifier, MultiChannelLeadNotifier>();
 builder.Services.AddSingleton<ILeadDeadLetterStore>(sp =>
     new LeadDeadLetterStore(
         Path.Combine(builder.Environment.ContentRootPath, "data", "dead-letter"),
@@ -305,16 +306,8 @@ builder.Services.AddSingleton<IConsentAuditService>(sp =>
     return new ConsentAuditService(tableClient, sp.GetRequiredService<ILogger<ConsentAuditService>>());
 });
 
-// Notification dead letter store (Azure Table Storage; no-op when connection string is absent)
-builder.Services.AddSingleton<IFailedNotificationStore>(sp =>
-{
-    var connStr = builder.Configuration["AzureStorage:ConnectionString"];
-    if (string.IsNullOrEmpty(connStr))
-        return new NullFailedNotificationStore();
-
-    var tableClient = new Azure.Data.Tables.TableClient(connStr, "failednotifications");
-    return new FailedNotificationStore(tableClient, sp.GetRequiredService<ILogger<FailedNotificationStore>>());
-});
+// TODO: Pipeline redesign — IFailedNotificationStore removed in Phase 1.5; dead-letter handling replaced in Phase 2/3/4
+// Notification dead letter store registration commented out
 
 // GDPR data export
 builder.Services.AddSingleton<ILeadDataExport, LeadDataExport>();
@@ -381,27 +374,24 @@ builder.Services.AddGSheetsClient(googleClientId, googleClientSecret);
 builder.Services.Configure<ScraperOptions>(builder.Configuration.GetSection("Scraper"));
 builder.Services.AddSingleton<IScraperClient, ScraperClient>();
 
-// Background lead processing (replaces fire-and-forget Task.Run)
-builder.Services.AddSingleton<LeadProcessingChannel>();
+// Lead pipeline — orchestrator + PDF worker + scoring/drafting/notification services
+builder.Services.AddSingleton<LeadOrchestratorChannel>();
+builder.Services.AddSingleton<PdfProcessingChannel>();
+builder.Services.AddSingleton<ILeadScorer, LeadScorer>();
+builder.Services.AddSingleton<ILeadEmailDrafter, LeadEmailDrafter>();
+builder.Services.AddSingleton<IAgentNotifier, AgentNotifier>();
+builder.Services.AddHostedService<LeadOrchestrator>();
+builder.Services.AddHostedService<PdfWorker>();
+
+// CMA + home search channels/workers
 builder.Services.AddSingleton<CmaProcessingChannel>();
 builder.Services.AddSingleton<HomeSearchProcessingChannel>();
-builder.Services.AddHostedService<LeadProcessingWorker>();
 builder.Services.AddHostedService<CmaProcessingWorker>();
 builder.Services.AddHostedService<HomeSearchProcessingWorker>();
 
 // Pipeline source URL config
-var leadSources = builder.Configuration.GetSection("Pipeline:Lead:Sources")
-    .Get<Dictionary<string, string>>() ?? new();
 var homeSearchSources = builder.Configuration.GetSection("Pipeline:HomeSearch:Sources")
     .Get<Dictionary<string, string>>() ?? new();
-
-// Lead enrichment
-builder.Services.AddSingleton<ILeadEnricher>(sp =>
-    new ScraperLeadEnricher(
-        sp.GetRequiredService<IAnthropicClient>(),
-        sp.GetRequiredService<IScraperClient>(),
-        leadSources,
-        sp.GetRequiredService<ILogger<ScraperLeadEnricher>>()));
 
 // Home search
 builder.Services.AddSingleton<IHomeSearchProvider>(sp =>
@@ -440,8 +430,7 @@ builder.Services.AddSingleton<ICmaAnalyzer>(sp =>
         sp.GetRequiredService<IAnthropicClient>(),
         sp.GetRequiredService<ILogger<ClaudeCmaAnalyzer>>()));
 builder.Services.AddSingleton<ICmaPdfGenerator, CmaPdfGenerator>();
-builder.Services.AddSingleton<ICmaNotifier, CmaSellerNotifier>();
-builder.Services.AddSingleton<IHomeSearchNotifier, HomeSearchBuyerNotifier>();
+// ICmaNotifier and IHomeSearchNotifier are now unused — notifications handled by AgentNotifier in Workers.Leads
 
 // Image resolver — local-first (agent-site public dir → live site HTTP fallback)
 builder.Services.AddHttpClient("image-resolver", client =>
@@ -527,18 +516,14 @@ if (!string.IsNullOrEmpty(whatsAppPhoneNumberId))
 else
 {
     // Register null-object implementations so any endpoint that resolves
-    // IWhatsAppNotifier / IWhatsAppAuditService / IWebhookQueueService
+    // IWhatsAppNotifier / IWhatsAppAuditService / IWebhookQueueService / IWhatsAppSender
     // still compiles and fails gracefully with a clear log rather than a DI exception.
+    builder.Services.AddSingleton<IWhatsAppSender, DisabledWhatsAppSender>();
     builder.Services.AddSingleton<IWhatsAppNotifier, DisabledWhatsAppNotifier>();
     builder.Services.AddSingleton<IWhatsAppAuditService, DisabledWhatsAppAuditService>();
     builder.Services.AddSingleton<IWebhookQueueService, DisabledWebhookQueueService>();
     builder.Services.AddSingleton<WhatsAppIdempotencyStore>();
 }
-
-// ------------------------------------------------------------------
-// Lead notification orchestrator
-// ------------------------------------------------------------------
-builder.Services.AddSingleton<CascadingAgentNotifier>();
 
 // Memory cache for WhatsApp 24hr window tracking + any future caching
 builder.Services.AddMemoryCache(options =>

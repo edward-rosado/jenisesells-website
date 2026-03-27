@@ -8,7 +8,7 @@ using RealEstateStar.Domain.Cma.Models;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Models;
 
-namespace RealEstateStar.Workers.Cma;
+namespace RealEstateStar.Workers.Leads;
 
 public class CmaPdfGenerator : ICmaPdfGenerator
 {

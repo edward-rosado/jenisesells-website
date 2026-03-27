@@ -342,6 +342,101 @@ public class DependencyTests
     }
 
     [Fact]
+    public void CmaWorker_ShouldNotReference_StorageInterfaces()
+    {
+        // Verify Workers.Cma assembly does not reference IFileStorageProvider or IDocumentStorageProvider.
+        // CMA is a pure compute worker — storage is handled upstream by the orchestrator (Workers.Leads).
+        var assembly = typeof(Workers.Cma.CmaProcessingWorker).Assembly;
+        var forbiddenTypeNames = new HashSet<string>
+        {
+            "IFileStorageProvider",
+            "IDocumentStorageProvider"
+        };
+
+        var violations = assembly.GetTypes()
+            .SelectMany(t => t.GetMembers(
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.Static))
+            .OfType<System.Reflection.MethodBase>()
+            .SelectMany(m =>
+            {
+                try { return m.GetParameters().Select(p => p.ParameterType); }
+                catch { return []; }
+            })
+            .Concat(assembly.GetTypes()
+                .SelectMany(t =>
+                {
+                    try
+                    {
+                        return t.GetConstructors(
+                            System.Reflection.BindingFlags.Public |
+                            System.Reflection.BindingFlags.NonPublic |
+                            System.Reflection.BindingFlags.Instance)
+                            .SelectMany(c => c.GetParameters().Select(p => p.ParameterType));
+                    }
+                    catch { return []; }
+                }))
+            .Where(t => forbiddenTypeNames.Contains(t.Name))
+            .Select(t => t.Name)
+            .Distinct()
+            .ToList();
+
+        Assert.True(violations.Count == 0,
+            $"Workers.Cma references storage interfaces it must not depend on: {string.Join(", ", violations)}" +
+            " — CMA is a pure compute worker; storage belongs in Workers.Leads (the orchestrator)");
+    }
+
+    [Fact]
+    public void HomeSearchWorker_ShouldNotReference_NotificationInterfaces()
+    {
+        // Verify Workers.HomeSearch does not reference IAgentNotifier or IHomeSearchNotifier.
+        // HomeSearch is a pure compute worker — notifications are dispatched by the orchestrator (Workers.Leads).
+        var assembly = typeof(Workers.HomeSearch.HomeSearchProcessingWorker).Assembly;
+        var forbiddenTypeNames = new HashSet<string>
+        {
+            "IAgentNotifier",
+            "IEmailNotifier",
+            "IHomeSearchNotifier"
+        };
+
+        var violations = assembly.GetTypes()
+            .SelectMany(t =>
+            {
+                try
+                {
+                    return t.GetConstructors(
+                        System.Reflection.BindingFlags.Public |
+                        System.Reflection.BindingFlags.NonPublic |
+                        System.Reflection.BindingFlags.Instance)
+                        .SelectMany(c => c.GetParameters().Select(p => p.ParameterType));
+                }
+                catch { return []; }
+            })
+            .Concat(assembly.GetTypes()
+                .SelectMany(t => t.GetMembers(
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.NonPublic |
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.Static))
+                .OfType<System.Reflection.MethodBase>()
+                .SelectMany(m =>
+                {
+                    try { return m.GetParameters().Select(p => p.ParameterType); }
+                    catch { return []; }
+                }))
+            .Where(t => forbiddenTypeNames.Contains(t.Name))
+            .Select(t => t.Name)
+            .Distinct()
+            .ToList();
+
+        Assert.True(violations.Count == 0,
+            $"Workers.HomeSearch references notification interfaces it must not depend on: {string.Join(", ", violations)}" +
+            " — HomeSearch is a pure compute worker; notifications belong in Workers.Leads (the orchestrator)");
+    }
+
+    [Fact]
     public void All_Domain_exported_types_are_public()
     {
         var domainAssembly = typeof(Domain.Leads.Models.Lead).Assembly;

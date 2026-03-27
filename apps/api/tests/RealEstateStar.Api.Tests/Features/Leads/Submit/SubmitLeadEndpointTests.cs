@@ -18,8 +18,7 @@ using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.DataServices.Config;
 using RealEstateStar.Api.Tests.Integration;
-using RealEstateStar.Workers.Cma;
-using RealEstateStar.Workers.HomeSearch;
+using RealEstateStar.Workers.Leads;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Submit;
 
@@ -37,8 +36,9 @@ public class LeadSubmitTestFactory : TestWebApplicationFactory
             // Register no-op lead service stubs so all lead endpoints can resolve their dependencies
             services.AddSingleton<ILeadStore, NoOpLeadStore>();
             services.AddSingleton<IMarketingConsentLog, NoOpMarketingConsentLog>();
-            services.AddSingleton<ILeadEnricher, NoOpLeadEnricher>();
-            services.AddSingleton<ILeadNotifier, NoOpLeadNotifier>();
+            // TODO: Pipeline redesign — ILeadEnricher and ILeadNotifier removed in Phase 1.5; replaced in Phase 2/3/4
+            // services.AddSingleton<ILeadEnricher, NoOpLeadEnricher>();
+            // services.AddSingleton<ILeadNotifier, NoOpLeadNotifier>();
             services.AddSingleton<IHomeSearchProvider, NoOpHomeSearchProvider>();
             services.AddSingleton<ILeadDataDeletion, NoOpLeadDataDeletion>();
             services.AddSingleton<IDeletionAuditLog, NoOpDeletionAuditLog>();
@@ -52,7 +52,7 @@ public class LeadSubmitTestFactory : TestWebApplicationFactory
 file sealed class NoOpLeadStore : ILeadStore
 {
     public Task SaveAsync(Lead lead, CancellationToken ct) => Task.CompletedTask;
-    public Task UpdateEnrichmentAsync(Lead l, LeadEnrichment e, LeadScore s, CancellationToken ct) => Task.CompletedTask;
+    // TODO: Pipeline redesign — UpdateEnrichmentAsync removed in Phase 1.5; replaced in Phase 2/3/4
     public Task UpdateHomeSearchIdAsync(string a, Guid i, string h, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateStatusAsync(Lead l, LeadStatus s, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateMarketingOptInAsync(string a, Guid i, bool o, CancellationToken ct) => Task.CompletedTask;
@@ -69,19 +69,7 @@ file sealed class NoOpMarketingConsentLog : IMarketingConsentLog
     public Task RedactAsync(string agentId, string email, CancellationToken ct) => Task.CompletedTask;
 }
 
-file sealed class NoOpLeadEnricher : ILeadEnricher
-{
-    public Task<(LeadEnrichment Enrichment, LeadScore Score)> EnrichAsync(Lead lead, CancellationToken ct) =>
-        Task.FromResult((LeadEnrichment.Empty(), LeadScore.Default("no-op")));
-}
-
-file sealed class NoOpLeadNotifier : ILeadNotifier
-{
-    public Task NotifyAgentAsync(string agentId, Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct) =>
-        Task.CompletedTask;
-    public string BuildSubject(Lead l, LeadEnrichment e, LeadScore s) => "";
-    public string BuildBody(Lead l, LeadEnrichment e, LeadScore s) => "";
-}
+// TODO: Pipeline redesign — ILeadEnricher and ILeadNotifier removed in Phase 1.5; stubs removed
 
 file sealed class NoOpHomeSearchProvider : IHomeSearchProvider
 {
@@ -316,9 +304,7 @@ public class SubmitLeadEndpointUnitTests
         Mock<IAccountConfigService> AccountConfig,
         Mock<ILeadStore> LeadStore,
         Mock<IMarketingConsentLog> ConsentLog,
-        LeadProcessingChannel ProcessingChannel,
-        CmaProcessingChannel CmaChannel,
-        HomeSearchProcessingChannel HomeSearchChannel,
+        LeadOrchestratorChannel OrchestratorChannel,
         Mock<ILogger<SubmitLeadEndpoint>> Logger,
         Mock<IConsentAuditService> ConsentAudit,
         Mock<IComplianceConsentWriter> ComplianceWriter,
@@ -342,9 +328,7 @@ public class SubmitLeadEndpointUnitTests
             .Setup(s => s.RecordConsentAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var channel = new LeadProcessingChannel();
-        var cmaChannel = new CmaProcessingChannel();
-        var homeSearchChannel = new HomeSearchProcessingChannel();
+        var orchestratorChannel = new LeadOrchestratorChannel();
         var logger = new Mock<ILogger<SubmitLeadEndpoint>>();
 
         var consentAudit = new Mock<IConsentAuditService>();
@@ -364,7 +348,7 @@ public class SubmitLeadEndpointUnitTests
             .Setup(s => s.RecordAsync(It.IsAny<Lead>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        return new Mocks(accountConfig, leadStore, consentLog, channel, cmaChannel, homeSearchChannel, logger, consentAudit, complianceWriter, consentHmacOptions, deadLetterStore);
+        return new Mocks(accountConfig, leadStore, consentLog, orchestratorChannel, logger, consentAudit, complianceWriter, consentHmacOptions, deadLetterStore);
     }
 
     private static HttpContext MakeHttpContext(
@@ -388,9 +372,7 @@ public class SubmitLeadEndpointUnitTests
             m.AccountConfig.Object,
             m.LeadStore.Object,
             m.ConsentLog.Object,
-            m.ProcessingChannel,
-            m.CmaChannel,
-            m.HomeSearchChannel,
+            m.OrchestratorChannel,
             httpContext ?? MakeHttpContext(),
             m.Logger.Object,
             m.ConsentAudit.Object,
@@ -623,12 +605,12 @@ public class SubmitLeadEndpointUnitTests
 
         await CallHandle(m);
 
-        // The channel should have exactly one item
-        m.ProcessingChannel.Reader.TryRead(out var processingRequest).Should().BeTrue();
-        processingRequest.Should().NotBeNull();
-        processingRequest!.AgentId.Should().Be("test-agent");
-        processingRequest.Lead.Email.Should().Be("jane@example.com");
-        processingRequest.CorrelationId.Should().NotBeNullOrEmpty();
+        // The orchestrator channel should have exactly one item
+        m.OrchestratorChannel.Reader.TryRead(out var orchestrationRequest).Should().BeTrue();
+        orchestrationRequest.Should().NotBeNull();
+        orchestrationRequest!.AgentId.Should().Be("test-agent");
+        orchestrationRequest.Lead.Email.Should().Be("jane@example.com");
+        orchestrationRequest.CorrelationId.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
@@ -639,8 +621,8 @@ public class SubmitLeadEndpointUnitTests
 
         await CallHandle(m, request);
 
-        m.ProcessingChannel.Reader.TryRead(out var processingRequest).Should().BeTrue();
-        processingRequest!.Lead.LeadType.Should().Be(LeadType.Seller);
+        m.OrchestratorChannel.Reader.TryRead(out var orchestrationRequest).Should().BeTrue();
+        orchestrationRequest!.Lead.LeadType.Should().Be(LeadType.Seller);
     }
 
     // -------------------------------------------------------------------------

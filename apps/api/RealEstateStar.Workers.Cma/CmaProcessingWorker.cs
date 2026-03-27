@@ -3,8 +3,7 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Cma;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
-using RealEstateStar.Domain.Shared.Interfaces.Storage;
-using RealEstateStar.Domain.Shared.Models;
+using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Shared.Context;
 
@@ -15,14 +14,9 @@ public sealed class CmaProcessingWorker(
     ICompAggregator compAggregator,
     RentCastCompSource rentCastCompSource,
     ICmaAnalyzer cmaAnalyzer,
-    ICmaPdfGenerator pdfGenerator,
-    ICmaNotifier cmaNotifier,
-    IAccountConfigService accountConfigService,
-    IDocumentStorageProvider documentStorage,
     BackgroundServiceHealthTracker healthTracker,
     ILogger<CmaProcessingWorker> logger,
-    IConfiguration configuration,
-    IImageResolver imageResolver)
+    IConfiguration configuration)
     : PipelineWorker<CmaProcessingRequest, CmaPipelineContext>(
         channel, healthTracker, logger,
         configuration.GetSection("Pipeline:Cma:Retry").Get<PipelineRetryOptions>())
@@ -34,6 +28,7 @@ public sealed class CmaProcessingWorker(
         Request = request.Lead,
         AgentId = request.AgentId,
         CorrelationId = request.CorrelationId,
+        ProcessingRequest = request,
     };
 
     protected override async Task ProcessAsync(CmaPipelineContext ctx, CancellationToken ct)
@@ -49,17 +44,33 @@ public sealed class CmaProcessingWorker(
         {
             logger.LogWarning("[CmaWorker] No comps found for lead {LeadId}. Skipping CMA. CorrelationId: {CorrelationId}",
                 ctx.Request.Id, ctx.CorrelationId);
+            ctx.ProcessingRequest.Completion.TrySetResult(new CmaWorkerResult(
+                ctx.Request.Id.ToString(), false, "No comparable sales found",
+                null, null, null, null, null));
             return;
         }
 
         await RunStepAsync(ctx, CmaPipelineContext.StepEnrichSubject, () => EnrichSubjectAsync(ctx, ct), ct);
         await RunStepAsync(ctx, CmaPipelineContext.StepAnalyze, () => AnalyzeAsync(ctx, ct), ct);
-        await RunStepAsync(ctx, CmaPipelineContext.StepGeneratePdf, () => GeneratePdfAsync(ctx, ct), ct);
-        await StorePdfAsync(ctx, ct);
-        await RunStepAsync(ctx, CmaPipelineContext.StepNotifySeller, () => NotifySellerAsync(ctx, ct), ct);
+
+        var result = new CmaWorkerResult(
+            ctx.Request.Id.ToString(), true, null,
+            ctx.Analysis!.ValueMid, ctx.Analysis.ValueLow, ctx.Analysis.ValueHigh,
+            ctx.Comps.Select(c => new CompSummary(
+                c.Address, c.SalePrice, c.Beds, c.Baths, c.Sqft, c.DaysOnMarket, c.DistanceMiles)).ToList(),
+            ctx.Analysis.MarketNarrative);
+        ctx.ProcessingRequest.Completion.TrySetResult(result);
 
         CmaDiagnostics.CmaGenerated.Add(1);
         CmaDiagnostics.TotalDuration.Record(ctx.PipelineDurationMs ?? 0);
+    }
+
+    protected override Task OnPermanentFailureAsync(CmaPipelineContext ctx, Exception lastException, CancellationToken ct)
+    {
+        ctx.ProcessingRequest.Completion.TrySetResult(new CmaWorkerResult(
+            ctx.Request.Id.ToString(), false, lastException.Message,
+            null, null, null, null, null));
+        return Task.CompletedTask;
     }
 
     private Task EnrichSubjectAsync(CmaPipelineContext ctx, CancellationToken ct)
@@ -87,7 +98,6 @@ public sealed class CmaProcessingWorker(
             Sqft = filledSqft ? subject.SquareFootage : seller.Sqft
         };
 
-        // Record enrichment metric
         CmaDiagnostics.SubjectEnriched.Add(1);
 
         logger.LogInformation(
@@ -124,85 +134,6 @@ public sealed class CmaProcessingWorker(
         ctx.Analysis = await cmaAnalyzer.AnalyzeAsync(ctx.Request, ctx.Comps!, ct);
     }
 
-    private async Task GeneratePdfAsync(CmaPipelineContext ctx, CancellationToken ct)
-    {
-        var accountConfig = await accountConfigService.GetAccountAsync(ctx.AgentId, ct)
-            ?? throw new InvalidOperationException($"Account config not found for agent {ctx.AgentId}");
-
-        var logoBytes = await TryResolveImageAsync(ctx.AgentId, accountConfig.Branding?.LogoUrl, ct);
-        var headshotBytes = await TryResolveImageAsync(ctx.AgentId, accountConfig.Agent?.HeadshotUrl, ct);
-
-        var reportType = DetermineReportType(ctx.Comps!.Count);
-        var pdfPath = await pdfGenerator.GenerateAsync(
-            ctx.Request, ctx.Analysis!, ctx.Comps!, accountConfig, reportType,
-            logoBytes, headshotBytes, ct);
-        ctx.Set("pdf-path", pdfPath);
-    }
-
-    private async Task<byte[]?> TryResolveImageAsync(string agentId, string? relativePath, CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(relativePath)) return null;
-
-        try
-        {
-            return await imageResolver.ResolveAsync(agentId, relativePath, ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex,
-                "[CmaWorker-030] Failed to resolve image {Path} for agent {AgentId}. PDF will render without it.",
-                relativePath, agentId);
-            return null;
-        }
-    }
-
-    private async Task StorePdfAsync(CmaPipelineContext ctx, CancellationToken ct)
-    {
-        var pdfPath = ctx.Get<string>("pdf-path");
-        if (pdfPath is null || !File.Exists(pdfPath)) return;
-
-        try
-        {
-            var seller = ctx.Request.SellerDetails!;
-            var folder = $"Real Estate Star/1 - Leads/{ctx.Request.FullName}/{seller.Address}, {seller.City}, {seller.State} {seller.Zip}";
-            var fileName = $"{ctx.Request.Id}-CMA-Report.pdf.b64";
-            var pdfBytes = await File.ReadAllBytesAsync(pdfPath, ct);
-
-            // Record PDF size metric
-            CmaDiagnostics.PdfSizeBytes.Record(pdfBytes.Length);
-
-            // Store as base64 since IDocumentStorageProvider only supports text content.
-            // The .b64 extension signals this needs base64-decoding to get the original PDF.
-            await documentStorage.WriteDocumentAsync(folder, fileName, Convert.ToBase64String(pdfBytes), ct);
-
-            logger.LogInformation(
-                "[CmaWorker-020] CMA PDF stored. Lead: {LeadId}, Size: {SizeKB}KB",
-                ctx.Request.Id, pdfBytes.Length / 1024);
-        }
-        catch (Exception ex)
-        {
-            // Best-effort — don't fail the pipeline if storage fails
-            logger.LogWarning(ex,
-                "[CmaWorker-021] Failed to store CMA PDF. Lead: {LeadId}",
-                ctx.Request.Id);
-        }
-    }
-
-    private async Task NotifySellerAsync(CmaPipelineContext ctx, CancellationToken ct)
-    {
-        var pdfPath = ctx.Get<string>("pdf-path")
-            ?? throw new InvalidOperationException("PDF path not set");
-
-        try
-        {
-            await cmaNotifier.NotifySellerAsync(ctx.AgentId, ctx.Request, pdfPath, ctx.Analysis!, ctx.CorrelationId, ct);
-        }
-        finally
-        {
-            TryDeleteTempFile(pdfPath);
-        }
-    }
-
     internal static ReportType DetermineReportType(int compCount) =>
         compCount switch
         {
@@ -210,17 +141,4 @@ public sealed class CmaProcessingWorker(
             >= 3 => ReportType.Standard,
             _ => ReportType.Lean
         };
-
-    private void TryDeleteTempFile(string path)
-    {
-        try
-        {
-            if (File.Exists(path))
-                File.Delete(path);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "[CmaWorker] Failed to delete temp PDF: {FileName}", Path.GetFileName(path));
-        }
-    }
 }

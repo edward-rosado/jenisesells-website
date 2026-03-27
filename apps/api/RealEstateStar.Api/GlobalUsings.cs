@@ -41,9 +41,10 @@ global using RealEstateStar.Domain.Onboarding;
 
 // Notifications
 global using RealEstateStar.Notifications.Leads;
-global using RealEstateStar.Notifications.Cma;
-global using RealEstateStar.Notifications.HomeSearch;
 global using RealEstateStar.Notifications.WhatsApp;
+
+// Orchestration
+global using RealEstateStar.Domain.Orchestration;
 
 // Workers
 global using RealEstateStar.Workers.Shared;

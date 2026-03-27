@@ -2,7 +2,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.HomeSearch;
 using RealEstateStar.Domain.HomeSearch.Interfaces;
-using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Shared.Context;
@@ -12,8 +11,6 @@ namespace RealEstateStar.Workers.HomeSearch;
 public sealed class HomeSearchProcessingWorker(
     HomeSearchProcessingChannel channel,
     IHomeSearchProvider homeSearchProvider,
-    IHomeSearchNotifier homeSearchNotifier,
-    ILeadStore leadStore,
     BackgroundServiceHealthTracker healthTracker,
     ILogger<HomeSearchProcessingWorker> logger,
     IConfiguration configuration)
@@ -28,6 +25,8 @@ public sealed class HomeSearchProcessingWorker(
         Request = request.Lead,
         AgentId = request.AgentId,
         CorrelationId = request.CorrelationId,
+        AgentConfig = request.AgentConfig,
+        Completion = request.Completion,
     };
 
     protected override async Task ProcessAsync(HomeSearchPipelineContext ctx, CancellationToken ct)
@@ -43,16 +42,34 @@ public sealed class HomeSearchProcessingWorker(
         {
             logger.LogWarning("[HomeSearchWorker] No listings found for lead {LeadId}. CorrelationId: {CorrelationId}",
                 ctx.Request.Id, ctx.CorrelationId);
+            ctx.Completion.TrySetResult(new HomeSearchWorkerResult(
+                ctx.Request.Id.ToString(), true, null, [], null));
             return;
         }
 
-        var searchId = $"search-{ctx.Request.Id}";
-        await leadStore.UpdateHomeSearchIdAsync(ctx.AgentId, ctx.Request.Id, searchId, ct);
+        var summaries = ctx.Listings
+            .Select(l => new ListingSummary(
+                Address: $"{l.Address}, {l.City}, {l.State} {l.Zip}",
+                Price: l.Price,
+                Beds: l.Beds,
+                Baths: l.Baths,
+                Sqft: l.Sqft,
+                Status: null,
+                Url: l.ListingUrl))
+            .ToList();
 
-        await RunStepAsync(ctx, HomeSearchPipelineContext.StepNotifyBuyer, () => NotifyBuyerAsync(ctx, ct), ct);
+        ctx.Completion.TrySetResult(new HomeSearchWorkerResult(
+            ctx.Request.Id.ToString(), true, null, summaries, null));
 
         HomeSearchDiagnostics.SearchCompleted.Add(1);
         HomeSearchDiagnostics.TotalDuration.Record(ctx.PipelineDurationMs ?? 0);
+    }
+
+    protected override Task OnPermanentFailureAsync(HomeSearchPipelineContext ctx, Exception lastException, CancellationToken ct)
+    {
+        ctx.Completion.TrySetResult(new HomeSearchWorkerResult(
+            ctx.Request.Id.ToString(), false, lastException.Message, null, null));
+        return Task.CompletedTask;
     }
 
     private async Task FetchListingsAsync(HomeSearchPipelineContext ctx, CancellationToken ct)
@@ -70,10 +87,5 @@ public sealed class HomeSearchProcessingWorker(
 
         ctx.Listings = await homeSearchProvider.SearchAsync(criteria, ct);
         HomeSearchDiagnostics.ListingsFound.Record(ctx.Listings.Count);
-    }
-
-    private async Task NotifyBuyerAsync(HomeSearchPipelineContext ctx, CancellationToken ct)
-    {
-        await homeSearchNotifier.NotifyBuyerAsync(ctx.AgentId, ctx.Request, ctx.Listings!, ctx.CorrelationId, ct);
     }
 }

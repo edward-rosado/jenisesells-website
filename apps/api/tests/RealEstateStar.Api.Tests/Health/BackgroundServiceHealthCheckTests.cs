@@ -3,6 +3,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Api.Health;
+using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Cma;
 using RealEstateStar.Workers.HomeSearch;
 using RealEstateStar.Workers.Leads;
@@ -13,7 +14,7 @@ namespace RealEstateStar.Api.Tests.Health;
 public class BackgroundServiceHealthCheckTests
 {
     private readonly BackgroundServiceHealthTracker _tracker = new();
-    private readonly LeadProcessingChannel _leadChannel = new();
+    private readonly LeadOrchestratorChannel _leadChannel = new();
     private readonly CmaProcessingChannel _cmaChannel = new();
     private readonly HomeSearchProcessingChannel _homeSearchChannel = new();
     private readonly Mock<ILogger<BackgroundServiceHealthCheck>> _logger = new();
@@ -41,11 +42,11 @@ public class BackgroundServiceHealthCheckTests
     public async Task ReturnsHealthy_WhenChannelHasItems_AndWorkerRecentlyActive()
     {
         // Worker just processed something
-        _tracker.RecordActivity("LeadProcessingWorker");
+        _tracker.RecordActivity("LeadOrchestrator");
 
         // Channel has an item queued
         await _leadChannel.Writer.WriteAsync(
-            new LeadProcessingRequest("agent", MakeLead(), "corr-1"), CancellationToken.None);
+            new LeadOrchestrationRequest("agent", MakeLead(), "corr-1"), CancellationToken.None);
 
         var check = CreateCheck();
         var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
@@ -58,13 +59,13 @@ public class BackgroundServiceHealthCheckTests
     {
         // Channel has an item queued but worker has never processed
         await _leadChannel.Writer.WriteAsync(
-            new LeadProcessingRequest("agent", MakeLead(), "corr-1"), CancellationToken.None);
+            new LeadOrchestrationRequest("agent", MakeLead(), "corr-1"), CancellationToken.None);
 
         var check = CreateCheck();
         var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
 
         result.Status.Should().Be(HealthStatus.Unhealthy);
-        result.Description.Should().Contain("LeadProcessingWorker");
+        result.Description.Should().Contain("LeadOrchestrator");
         result.Description.Should().Contain("never active");
     }
 
@@ -77,7 +78,9 @@ public class BackgroundServiceHealthCheckTests
 
         // Channel has an item queued
         await _cmaChannel.Writer.WriteAsync(
-            new CmaProcessingRequest("agent", MakeLead(), "corr-1"), CancellationToken.None);
+            new CmaProcessingRequest("agent", MakeLead(), MakeAgentConfig(), "corr-1",
+                new TaskCompletionSource<CmaWorkerResult>(TaskCreationOptions.RunContinuationsAsynchronously)),
+            CancellationToken.None);
 
         var check = CreateCheck();
         var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
@@ -92,30 +95,32 @@ public class BackgroundServiceHealthCheckTests
     {
         // Two channels with items, neither worker ever active
         await _leadChannel.Writer.WriteAsync(
-            new LeadProcessingRequest("agent", MakeLead(), "corr-1"), CancellationToken.None);
+            new LeadOrchestrationRequest("agent", MakeLead(), "corr-1"), CancellationToken.None);
         await _cmaChannel.Writer.WriteAsync(
-            new CmaProcessingRequest("agent", MakeLead(), "corr-2"), CancellationToken.None);
+            new CmaProcessingRequest("agent", MakeLead(), MakeAgentConfig(), "corr-2",
+                new TaskCompletionSource<CmaWorkerResult>(TaskCreationOptions.RunContinuationsAsynchronously)),
+            CancellationToken.None);
 
         var check = CreateCheck();
         var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
 
         result.Status.Should().Be(HealthStatus.Unhealthy);
-        result.Description.Should().Contain("LeadProcessingWorker");
+        result.Description.Should().Contain("LeadOrchestrator");
         result.Description.Should().Contain("CmaProcessingWorker");
     }
 
     [Fact]
     public async Task IncludesQueueDepthAndLastActivity_InData()
     {
-        _tracker.RecordActivity("LeadProcessingWorker");
+        _tracker.RecordActivity("LeadOrchestrator");
 
         var check = CreateCheck();
         var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
 
-        result.Data.Should().ContainKey("LeadProcessingWorker.queueDepth");
-        result.Data.Should().ContainKey("LeadProcessingWorker.lastActivity");
-        result.Data["LeadProcessingWorker.queueDepth"].Should().Be(0);
-        ((string)result.Data["LeadProcessingWorker.lastActivity"]!).Should().NotBe("never");
+        result.Data.Should().ContainKey("LeadOrchestrator.queueDepth");
+        result.Data.Should().ContainKey("LeadOrchestrator.lastActivity");
+        result.Data["LeadOrchestrator.queueDepth"].Should().Be(0);
+        ((string)result.Data["LeadOrchestrator.lastActivity"]!).Should().NotBe("never");
     }
 
     [Fact]
@@ -124,8 +129,23 @@ public class BackgroundServiceHealthCheckTests
         var check = CreateCheck();
         var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
 
-        result.Data["LeadProcessingWorker.lastActivity"].Should().Be("never");
+        result.Data["LeadOrchestrator.lastActivity"].Should().Be("never");
     }
+
+    private static AgentNotificationConfig MakeAgentConfig() => new()
+    {
+        AgentId = "agent",
+        Handle = "agent",
+        Name = "Test Agent",
+        FirstName = "Test",
+        Email = "agent@test.com",
+        Phone = "555",
+        LicenseNumber = "NJ123",
+        BrokerageName = "Test Brokerage",
+        PrimaryColor = "#000000",
+        AccentColor = "#000000",
+        State = "NJ",
+    };
 
     private static Lead MakeLead() => new()
     {

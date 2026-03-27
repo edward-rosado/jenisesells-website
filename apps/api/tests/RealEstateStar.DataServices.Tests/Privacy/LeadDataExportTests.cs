@@ -60,18 +60,8 @@ public class LeadDataExportTests
         Assert.Empty(result.ConsentHistory);
     }
 
-    [Fact]
-    public async Task GatherAsync_WhenLeadExists_ReturnsNullEnrichment()
-    {
-        var lead = MakeLead();
-        _leadStore.Setup(s => s.GetByEmailAsync(AgentId, LeadEmail, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(lead);
-
-        var result = await _sut.GatherAsync(AgentId, LeadEmail, CancellationToken.None);
-
-        Assert.NotNull(result);
-        Assert.Null(result.Enrichment);
-    }
+    // TODO: Pipeline redesign — GatherAsync_WhenLeadExists_ReturnsNullEnrichment removed in Phase 1.5
+    // LeadExportData.Enrichment property removed; test will be rewritten in Phase 2/3/4
 
     [Fact]
     public async Task GatherAsync_WhenLeadNotFound_ReturnsNull()

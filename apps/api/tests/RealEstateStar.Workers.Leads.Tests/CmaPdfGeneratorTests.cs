@@ -5,9 +5,9 @@ using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.Workers.Cma;
+using RealEstateStar.Workers.Leads;
 
-namespace RealEstateStar.Workers.Cma.Tests;
+namespace RealEstateStar.Workers.Leads.Tests;
 
 public class CmaPdfGeneratorTests
 {

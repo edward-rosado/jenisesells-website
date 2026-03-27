@@ -50,6 +50,4 @@ global using RealEstateStar.Workers.WhatsApp;
 
 // Notifications
 global using RealEstateStar.Notifications.Leads;
-global using RealEstateStar.Notifications.Cma;
-global using RealEstateStar.Notifications.HomeSearch;
 global using RealEstateStar.Notifications.WhatsApp;

@@ -3,7 +3,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.HomeSearch.Interfaces;
-using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.HomeSearch;
 using RealEstateStar.Workers.Shared;
@@ -14,8 +13,6 @@ public class HomeSearchProcessingWorkerTests
 {
     private readonly HomeSearchProcessingChannel _channel = new();
     private readonly Mock<IHomeSearchProvider> _homeSearchProvider = new();
-    private readonly Mock<IHomeSearchNotifier> _homeSearchNotifier = new();
-    private readonly Mock<ILeadStore> _leadStore = new();
     private readonly BackgroundServiceHealthTracker _healthTracker = new();
     private readonly Mock<ILogger<HomeSearchProcessingWorker>> _logger = new();
 
@@ -33,8 +30,23 @@ public class HomeSearchProcessingWorkerTests
             .Build();
 
     private HomeSearchProcessingWorker CreateWorker(IConfiguration? config = null) =>
-        new(_channel, _homeSearchProvider.Object, _homeSearchNotifier.Object, _leadStore.Object, _healthTracker, _logger.Object,
+        new(_channel, _homeSearchProvider.Object, _healthTracker, _logger.Object,
             config ?? EmptyConfig());
+
+    private static AgentNotificationConfig MakeAgentConfig() => new()
+    {
+        AgentId = "test-agent",
+        Handle = "test-agent",
+        Name = "Test Agent",
+        FirstName = "Test",
+        Email = "agent@test.com",
+        Phone = "555-0000",
+        LicenseNumber = "LIC123",
+        BrokerageName = "Test Brokerage",
+        PrimaryColor = "#000000",
+        AccentColor = "#ffffff",
+        State = "NJ"
+    };
 
     private static Lead MakeLead() => new()
     {
@@ -49,8 +61,8 @@ public class HomeSearchProcessingWorkerTests
         BuyerDetails = new BuyerDetails { City = "Springfield", State = "NJ" }
     };
 
-    private static HomeSearchProcessingRequest MakeRequest(Lead? lead = null) =>
-        new("test-agent", lead ?? MakeLead(), "corr-123");
+    private static HomeSearchProcessingRequest MakeRequest(Lead? lead = null, TaskCompletionSource<HomeSearchWorkerResult>? tcs = null) =>
+        new("test-agent", lead ?? MakeLead(), MakeAgentConfig(), "corr-123", tcs ?? new TaskCompletionSource<HomeSearchWorkerResult>());
 
     private static List<Listing> MakeListings(int count) =>
         Enumerable.Range(0, count).Select(i => new Listing(
@@ -66,44 +78,40 @@ public class HomeSearchProcessingWorkerTests
             ListingUrl: null)).ToList();
 
     [Fact]
-    public async Task ProcessesHomeSearch_NotifiesBuyer_WhenListingsFound()
+    public async Task CompletesWithListingSummaries_WhenListingsFound()
     {
         var lead = MakeLead();
         var listings = MakeListings(3);
-        var expectedSearchId = $"search-{lead.Id}";
+        var tcs = new TaskCompletionSource<HomeSearchWorkerResult>();
 
         _homeSearchProvider
             .Setup(p => p.SearchAsync(It.IsAny<HomeSearchCriteria>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(listings);
-        _leadStore
-            .Setup(s => s.UpdateHomeSearchIdAsync(It.IsAny<string>(), It.IsAny<Guid>(),
-                It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        _homeSearchNotifier
-            .Setup(n => n.NotifyBuyerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<List<Listing>>(),
-                It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
 
         var worker = CreateWorker();
         var cts = new CancellationTokenSource();
 
-        await _channel.Writer.WriteAsync(MakeRequest(lead), CancellationToken.None);
+        await _channel.Writer.WriteAsync(MakeRequest(lead, tcs), CancellationToken.None);
         _channel.Writer.Complete();
 
         await worker.StartAsync(cts.Token);
         await worker.ExecuteTask!;
 
-        _homeSearchNotifier.Verify(
-            n => n.NotifyBuyerAsync("test-agent", lead, listings, "corr-123", It.IsAny<CancellationToken>()),
-            Times.Once);
-        _leadStore.Verify(
-            s => s.UpdateHomeSearchIdAsync("test-agent", lead.Id, expectedSearchId, It.IsAny<CancellationToken>()),
-            Times.Once);
+        var result = await tcs.Task;
+        result.Success.Should().BeTrue();
+        result.LeadId.Should().Be(lead.Id.ToString());
+        result.Listings.Should().HaveCount(3);
+        result.Listings![0].Address.Should().Be("100 Oak Ave, Springfield, NJ 07081");
+        result.Listings![0].Price.Should().Be(400000);
+        result.Listings![0].Beds.Should().Be(3);
+        result.Error.Should().BeNull();
     }
 
     [Fact]
-    public async Task SkipsNotification_WhenNoListingsFound()
+    public async Task CompletesWithEmptyListings_WhenNoListingsFound()
     {
+        var tcs = new TaskCompletionSource<HomeSearchWorkerResult>();
+
         _homeSearchProvider
             .Setup(p => p.SearchAsync(It.IsAny<HomeSearchCriteria>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
@@ -111,76 +119,40 @@ public class HomeSearchProcessingWorkerTests
         var worker = CreateWorker();
         var cts = new CancellationTokenSource();
 
-        await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
+        await _channel.Writer.WriteAsync(MakeRequest(tcs: tcs), CancellationToken.None);
         _channel.Writer.Complete();
 
         await worker.StartAsync(cts.Token);
         await worker.ExecuteTask!;
 
-        _homeSearchNotifier.Verify(
-            n => n.NotifyBuyerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<List<Listing>>(),
-                It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-        _leadStore.Verify(
-            s => s.UpdateHomeSearchIdAsync(It.IsAny<string>(), It.IsAny<Guid>(),
-                It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+        var result = await tcs.Task;
+        result.Success.Should().BeTrue();
+        result.Listings.Should().BeEmpty();
+        result.Error.Should().BeNull();
     }
 
     [Fact]
-    public async Task ContinuesAfterNotifierFailure()
+    public async Task CompletesWithFailure_WhenProviderPermanentlyFails()
     {
-        _homeSearchProvider
-            .Setup(p => p.SearchAsync(It.IsAny<HomeSearchCriteria>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MakeListings(2));
-        _leadStore
-            .Setup(s => s.UpdateHomeSearchIdAsync(It.IsAny<string>(), It.IsAny<Guid>(),
-                It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        _homeSearchNotifier
-            .Setup(n => n.NotifyBuyerAsync(It.IsAny<string>(), It.IsAny<Lead>(), It.IsAny<List<Listing>>(),
-                It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("smtp down"));
+        var tcs = new TaskCompletionSource<HomeSearchWorkerResult>();
 
-        // Zero-delay retries so the test completes quickly
-        var worker = CreateWorker(ZeroDelayConfig());
-        var cts = new CancellationTokenSource();
-
-        await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
-        _channel.Writer.Complete();
-
-        await worker.StartAsync(cts.Token);
-        var act = async () => await worker.ExecuteTask!;
-
-        await act.Should().NotThrowAsync();
-
-        // The step failure is logged by PipelineWorker with "Step 'notify-buyer' Failed"
-        _logger.Verify(
-            l => l.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Step 'notify-buyer' Failed")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task LogsError_WhenProviderFails()
-    {
         _homeSearchProvider
             .Setup(p => p.SearchAsync(It.IsAny<HomeSearchCriteria>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("scraper unavailable"));
 
-        // Zero-delay retries so the test completes quickly
+        // Zero-delay retries with 0 max retries → permanent failure after 1 attempt
         var worker = CreateWorker(ZeroDelayConfig());
         var cts = new CancellationTokenSource();
 
-        await _channel.Writer.WriteAsync(MakeRequest(), CancellationToken.None);
+        await _channel.Writer.WriteAsync(MakeRequest(tcs: tcs), CancellationToken.None);
         _channel.Writer.Complete();
 
         await worker.StartAsync(cts.Token);
         await worker.ExecuteTask!;
+
+        var result = await tcs.Task;
+        result.Success.Should().BeFalse();
+        result.Error.Should().NotBeNullOrEmpty();
 
         // The step failure is logged by PipelineWorker with "Step 'fetch-listings' Failed"
         _logger.Verify(
@@ -190,6 +162,113 @@ public class HomeSearchProcessingWorkerTests
                 It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Step 'fetch-listings' Failed")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task MapsListingSummary_WithCorrectFields()
+    {
+        var lead = MakeLead();
+        var listing = new Listing(
+            Address: "42 Elm St",
+            City: "Newark",
+            State: "NJ",
+            Zip: "07102",
+            Price: 550000,
+            Beds: 4,
+            Baths: 2.5m,
+            Sqft: 2200,
+            WhyThisFits: "Close to schools",
+            ListingUrl: "https://example.com/listing/42");
+        var tcs = new TaskCompletionSource<HomeSearchWorkerResult>();
+
+        _homeSearchProvider
+            .Setup(p => p.SearchAsync(It.IsAny<HomeSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([listing]);
+
+        var worker = CreateWorker();
+        var cts = new CancellationTokenSource();
+
+        await _channel.Writer.WriteAsync(MakeRequest(lead, tcs), CancellationToken.None);
+        _channel.Writer.Complete();
+
+        await worker.StartAsync(cts.Token);
+        await worker.ExecuteTask!;
+
+        var result = await tcs.Task;
+        result.Success.Should().BeTrue();
+        var summary = result.Listings!.Single();
+        summary.Address.Should().Be("42 Elm St, Newark, NJ 07102");
+        summary.Price.Should().Be(550000);
+        summary.Beds.Should().Be(4);
+        summary.Baths.Should().Be(2.5m);
+        summary.Sqft.Should().Be(2200);
+        summary.Url.Should().Be("https://example.com/listing/42");
+        summary.Status.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task BuildsSearchCriteria_FromBuyerDetails()
+    {
+        var lead = MakeLead();
+        lead.BuyerDetails = new BuyerDetails
+        {
+            City = "Hoboken",
+            State = "NJ",
+            MinBudget = 300000,
+            MaxBudget = 600000,
+            Bedrooms = 2,
+            Bathrooms = 1
+        };
+        var tcs = new TaskCompletionSource<HomeSearchWorkerResult>();
+
+        _homeSearchProvider
+            .Setup(p => p.SearchAsync(It.IsAny<HomeSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var worker = CreateWorker();
+        var cts = new CancellationTokenSource();
+
+        await _channel.Writer.WriteAsync(MakeRequest(lead, tcs), CancellationToken.None);
+        _channel.Writer.Complete();
+
+        await worker.StartAsync(cts.Token);
+        await worker.ExecuteTask!;
+
+        _homeSearchProvider.Verify(p => p.SearchAsync(
+            It.Is<HomeSearchCriteria>(c =>
+                c.Area == "Hoboken, NJ" &&
+                c.MinPrice == 300000 &&
+                c.MaxPrice == 600000 &&
+                c.MinBeds == 2 &&
+                c.MinBaths == 1),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UsesCityOnly_WhenStateIsEmpty()
+    {
+        var lead = MakeLead();
+        lead.BuyerDetails = new BuyerDetails { City = "Hoboken", State = "" };
+        var tcs = new TaskCompletionSource<HomeSearchWorkerResult>();
+
+        _homeSearchProvider
+            .Setup(p => p.SearchAsync(It.IsAny<HomeSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var worker = CreateWorker();
+        var cts = new CancellationTokenSource();
+
+        await _channel.Writer.WriteAsync(MakeRequest(lead, tcs), CancellationToken.None);
+        _channel.Writer.Complete();
+
+        await worker.StartAsync(cts.Token);
+        await worker.ExecuteTask!;
+
+        _homeSearchProvider.Verify(p => p.SearchAsync(
+            It.Is<HomeSearchCriteria>(c => c.Area == "Hoboken"),
+            It.IsAny<CancellationToken>()),
             Times.Once);
     }
 }

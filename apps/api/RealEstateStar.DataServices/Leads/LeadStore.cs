@@ -25,15 +25,7 @@ public class FileLeadStore(LocalStorageProvider storage, string basePath) : ILea
         await storage.WriteDocumentAsync(folder, LeadProfileFile, content, ct);
     }
 
-    public async Task UpdateEnrichmentAsync(Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
-    {
-        lead.Enrichment = enrichment;
-        lead.Score = score;
-
-        var folder = LeadPaths.LeadFolder(lead.FullName);
-        var content = LeadMarkdownRenderer.RenderResearchInsights(lead);
-        await storage.WriteDocumentAsync(folder, ResearchInsightsFile, content, ct);
-    }
+    // TODO: Pipeline redesign — UpdateEnrichmentAsync removed in Phase 1.5; replaced in Phase 2/3/4
 
     public async Task UpdateHomeSearchIdAsync(string agentId, Guid leadId, string homeSearchId, CancellationToken ct)
     {

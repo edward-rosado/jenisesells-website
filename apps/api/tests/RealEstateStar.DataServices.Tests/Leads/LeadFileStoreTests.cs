@@ -80,28 +80,7 @@ public class LeadFileStoreTests
         Assert.Contains("lastName: \"Doe\"", capturedContent);
     }
 
-    // ── UpdateEnrichmentAsync ────────────────────────────────────────────────
-
-    [Fact]
-    public async Task UpdateEnrichmentAsync_WritesResearchInsightsFile()
-    {
-        var lead = MakeLead();
-        var folder = LeadPaths.LeadFolder(lead.FullName);
-        var enrichment = LeadEnrichment.Empty() with { MotivationCategory = "relocating" };
-        var score = LeadScore.Default("test");
-        string? capturedFile = null;
-        string? capturedContent = null;
-
-        _storage.Setup(s => s.WriteDocumentAsync(folder, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, string, CancellationToken>((_, file, content, _) => { capturedFile = file; capturedContent = content; })
-            .Returns(Task.CompletedTask);
-
-        await _sut.UpdateEnrichmentAsync(lead, enrichment, score, CancellationToken.None);
-
-        Assert.Equal("Research & Insights.md", capturedFile);
-        Assert.NotNull(capturedContent);
-        Assert.Contains("motivationCategory: relocating", capturedContent);
-    }
+    // TODO: Pipeline redesign — UpdateEnrichmentAsync removed in Phase 1.5; test removed
 
     // ── UpdateHomeSearchIdAsync ───────────────────────────────────────────────
 
@@ -144,10 +123,11 @@ public class LeadFileStoreTests
             .Callback<string, string, string, CancellationToken>((_, _, content, _) => capturedContent = content)
             .Returns(Task.CompletedTask);
 
-        await _sut.UpdateStatusAsync(lead, LeadStatus.Enriched, CancellationToken.None);
+        // TODO: Pipeline redesign — LeadStatus.Enriched removed in Phase 1.5; using Notified
+        await _sut.UpdateStatusAsync(lead, LeadStatus.Notified, CancellationToken.None);
 
         Assert.NotNull(capturedContent);
-        Assert.Contains("status: Enriched", capturedContent);
+        Assert.Contains("status: Notified", capturedContent);
     }
 
     // ── GetAsync ──────────────────────────────────────────────────────────────
@@ -231,7 +211,8 @@ public class LeadFileStoreTests
     public async Task ListByStatusAsync_ReturnsOnlyMatchingStatusLeads()
     {
         var receivedLead = MakeLead(new Guid("aaaaaaaa-0000-0000-0000-000000000001"));
-        var enrichedLead = MakeLead(new Guid("bbbbbbbb-0000-0000-0000-000000000002"), LeadStatus.Enriched, firstName: "John", lastName: "Smith");
+        // TODO: Pipeline redesign — LeadStatus.Enriched removed in Phase 1.5; using Notified
+        var enrichedLead = MakeLead(new Guid("bbbbbbbb-0000-0000-0000-000000000002"), LeadStatus.Notified, firstName: "John", lastName: "Smith");
 
         var receivedFolder = LeadPaths.LeadFolder(receivedLead.FullName);
         var enrichedFolder = LeadPaths.LeadFolder(enrichedLead.FullName);
@@ -304,7 +285,8 @@ public class LeadFileStoreTests
         _storage.Setup(s => s.ReadDocumentAsync(folder, "Lead Profile.md", It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
 
-        var ex = await Record.ExceptionAsync(() => _sut.UpdateStatusAsync(lead, LeadStatus.Enriched, CancellationToken.None));
+        // TODO: Pipeline redesign — LeadStatus.Enriched removed in Phase 1.5; using Notified
+        var ex = await Record.ExceptionAsync(() => _sut.UpdateStatusAsync(lead, LeadStatus.Notified, CancellationToken.None));
         Assert.Null(ex);
     }
 

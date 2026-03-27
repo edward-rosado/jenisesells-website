@@ -15,15 +15,7 @@ public class LeadTests
         Assert.Equal("Jane Doe", lead.FullName);
     }
 
-    [Fact]
-    public void LeadEnrichment_Empty_ReturnsUnknownDefaults()
-    {
-        var empty = LeadEnrichment.Empty();
-        Assert.Equal("unknown", empty.MotivationCategory);
-        Assert.Equal("unknown", empty.MotivationAnalysis);
-        Assert.Empty(empty.ConversationStarters);
-        Assert.Empty(empty.ColdCallOpeners);
-    }
+    // TODO: Pipeline redesign — LeadEnrichment.Empty() removed in Phase 1.5; test removed
 
     [Fact]
     public void LeadScore_Default_ReturnsFiftyWithReason()

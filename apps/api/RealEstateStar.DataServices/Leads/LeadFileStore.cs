@@ -25,18 +25,7 @@ public class LeadFileStore(IDocumentStorageProvider storage, ILogger<LeadFileSto
         logger.LogInformation("[LDS-011] Lead {LeadId} saved successfully to {Folder}.", lead.Id, folder);
     }
 
-    public async Task UpdateEnrichmentAsync(Lead lead, LeadEnrichment enrichment, LeadScore score, CancellationToken ct)
-    {
-        logger.LogInformation("[LDS-012] Updating enrichment for lead {LeadId}. Score: {Score}", lead.Id, score.OverallScore);
-
-        lead.Enrichment = enrichment;
-        lead.Score = score;
-
-        var folder = LeadPaths.LeadFolder(lead.FullName);
-        var content = LeadMarkdownRenderer.RenderResearchInsights(lead);
-        await storage.WriteDocumentAsync(folder, ResearchInsightsFile, content, ct);
-        logger.LogInformation("[LDS-013] Enrichment saved for lead {LeadId}.", lead.Id);
-    }
+    // TODO: Pipeline redesign — UpdateEnrichmentAsync removed in Phase 1.5; replaced in Phase 2/3/4
 
     public async Task UpdateHomeSearchIdAsync(string agentId, Guid leadId, string homeSearchId, CancellationToken ct)
     {
