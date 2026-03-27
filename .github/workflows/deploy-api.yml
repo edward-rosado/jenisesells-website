@@ -94,6 +94,7 @@ jobs:
           HMAC_SECRET: ${{ secrets.LEAD_HMAC_SECRET }}
           HMAC_API_KEY: ${{ secrets.LEAD_API_KEY }}
           RENTCAST_KEY: ${{ secrets.RENTCAST_API_KEY }}
+          TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
         run: |
           SECRETS=()
           [ -n "$WA_PHONE" ]      && SECRETS+=("whatsapp-phone-number-id=$WA_PHONE")
@@ -105,6 +106,7 @@ jobs:
           [ -n "$HMAC_SECRET" ]   && SECRETS+=("hmac-secret=$HMAC_SECRET")
           [ -n "$HMAC_API_KEY" ]  && SECRETS+=("hmac-api-key=$HMAC_API_KEY")
           [ -n "$RENTCAST_KEY" ]  && SECRETS+=("rentcast-api-key=$RENTCAST_KEY")
+          [ -n "$TURNSTILE_SECRET" ] && SECRETS+=("turnstile-secret-key=$TURNSTILE_SECRET")
           if [ ${#SECRETS[@]} -gt 0 ]; then
             az containerapp secret set \
               --name "$CONTAINER_APP_NAME" \
@@ -123,6 +125,7 @@ jobs:
           OTEL_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
           OTEL_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
           RENTCAST_KEY: ${{ secrets.RENTCAST_API_KEY }}
+          TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
         run: |
           EXTRA_ENV_VARS=""
           if [ -n "$OTEL_ENDPOINT" ]; then
@@ -141,6 +144,9 @@ jobs:
           fi
           if [ -n "$RENTCAST_KEY" ]; then
             EXTRA_ENV_VARS="$EXTRA_ENV_VARS RentCast__ApiKey=secretref:rentcast-api-key"
+          fi
+          if [ -n "$TURNSTILE_SECRET" ]; then
+            EXTRA_ENV_VARS="$EXTRA_ENV_VARS Turnstile__SecretKey=secretref:turnstile-secret-key"
           fi
           az containerapp update \
             --name "$CONTAINER_APP_NAME" \
