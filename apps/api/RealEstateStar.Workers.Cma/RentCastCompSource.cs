@@ -8,14 +8,17 @@ public class RentCastCompSource(
     IRentCastClient rentCastClient,
     ILogger<RentCastCompSource> logger) : ICompSource
 {
-    private static readonly HashSet<string> ExcludedPropertyTypes =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            "Multi Family",
-            "Apartment",
-            "Condominium",
-            "Townhouse"
-        };
+    private static readonly HashSet<string> SingleFamilyExclusions =
+        new(StringComparer.OrdinalIgnoreCase) { "Condominium", "Apartment", "Multi-Family", "Multi Family", "Townhouse" };
+
+    private static readonly HashSet<string> CondoExclusions =
+        new(StringComparer.OrdinalIgnoreCase) { "Single Family", "Multi-Family", "Multi Family" };
+
+    private static readonly HashSet<string> SingleFamilyTypes =
+        new(StringComparer.OrdinalIgnoreCase) { "Single Family" };
+
+    private static readonly HashSet<string> CondoTypes =
+        new(StringComparer.OrdinalIgnoreCase) { "Condominium", "Condo", "Apartment" };
 
     public string Name => "RentCast";
 
@@ -41,14 +44,17 @@ public class RentCastCompSource(
             return [];
         }
 
-        var comps = MapComps(valuation.Comparables, request, logger);
-        logger.LogInformation("[COMP-003] Mapped {Count} valid comps from RentCast", comps.Count);
+        var subjectType = valuation.SubjectProperty?.PropertyType;
+        var comps = MapComps(valuation.Comparables, request, subjectType, logger);
+        logger.LogInformation("[COMP-003] Mapped {Count} valid comps from RentCast (subject type: {SubjectType})",
+            comps.Count, subjectType ?? "unknown");
         return comps;
     }
 
     internal static List<Comp> MapComps(
         IReadOnlyList<RentCastComp> comparables,
         CompSearchRequest request,
+        string? subjectPropertyType,
         ILogger logger,
         DateTimeOffset? today = null)
     {
@@ -83,13 +89,16 @@ public class RentCastCompSource(
 
             var saleDate = DateOnly.FromDateTime(resolvedDate.Value.UtcDateTime);
 
-            // Property type filter: when subject has SqFt (single-family indicator),
-            // exclude known multi-unit property types. Null type is kept (permissive).
-            if (request.SqFt.HasValue
-                && rc.PropertyType is not null
-                && ExcludedPropertyTypes.Contains(rc.PropertyType))
+            // Property type filter: match comps to subject property type.
+            // If subject is Single Family → exclude condos/apartments/multi-family.
+            // If subject is Condo → exclude single-family/multi-family.
+            // If subject type is unknown → keep all (permissive).
+            if (rc.PropertyType is not null && subjectPropertyType is not null)
             {
-                continue;
+                if (SingleFamilyTypes.Contains(subjectPropertyType) && SingleFamilyExclusions.Contains(rc.PropertyType))
+                    continue;
+                if (CondoTypes.Contains(subjectPropertyType) && CondoExclusions.Contains(rc.PropertyType))
+                    continue;
             }
 
             if (resolvedDate.Value >= sixMonthsAgo)

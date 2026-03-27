@@ -84,7 +84,7 @@ public class RentCastCompSourceTests
         var valuation = MakeValuation([comp]);
 
         var result = RentCastCompSource.MapComps(valuation.Comparables, request,
-            NullLogger.Instance);
+            null, NullLogger.Instance);
 
         result.Should().HaveCount(1);
         var mapped = result[0];
@@ -106,7 +106,7 @@ public class RentCastCompSourceTests
         var listed = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var comp = MakeComp(status: "Inactive", removedDate: removed, listedDate: listed);
 
-        var result = RentCastCompSource.MapComps([comp], MakeRequest(), NullLogger.Instance);
+        var result = RentCastCompSource.MapComps([comp], MakeRequest(), null, NullLogger.Instance);
 
         result[0].SaleDate.Should().Be(new DateOnly(2025, 3, 15));
     }
@@ -117,7 +117,7 @@ public class RentCastCompSourceTests
         var listed = new DateTimeOffset(2025, 1, 10, 0, 0, 0, TimeSpan.Zero);
         var comp = MakeComp(status: "Active", listedDate: listed, removedDate: null);
 
-        var result = RentCastCompSource.MapComps([comp], MakeRequest(), NullLogger.Instance);
+        var result = RentCastCompSource.MapComps([comp], MakeRequest(), null, NullLogger.Instance);
 
         result[0].SaleDate.Should().Be(new DateOnly(2025, 1, 10));
     }
@@ -127,7 +127,7 @@ public class RentCastCompSourceTests
     {
         var comp = MakeComp(status: "Unknown") with { ListedDate = null, RemovedDate = null };
 
-        var result = RentCastCompSource.MapComps([comp], MakeRequest(), NullLogger.Instance);
+        var result = RentCastCompSource.MapComps([comp], MakeRequest(), null, NullLogger.Instance);
 
         result.Should().BeEmpty();
     }
@@ -137,7 +137,7 @@ public class RentCastCompSourceTests
     {
         var comp = MakeComp(price: 0m);
 
-        var result = RentCastCompSource.MapComps([comp], MakeRequest(), NullLogger.Instance);
+        var result = RentCastCompSource.MapComps([comp], MakeRequest(), null, NullLogger.Instance);
 
         result.Should().BeEmpty();
     }
@@ -147,7 +147,7 @@ public class RentCastCompSourceTests
     {
         var comp = MakeComp() with { Price = null };
 
-        var result = RentCastCompSource.MapComps([comp], MakeRequest(), NullLogger.Instance);
+        var result = RentCastCompSource.MapComps([comp], MakeRequest(), null, NullLogger.Instance);
 
         result.Should().BeEmpty();
     }
@@ -157,7 +157,7 @@ public class RentCastCompSourceTests
     {
         var comp = MakeComp(sqft: 0);
 
-        var result = RentCastCompSource.MapComps([comp], MakeRequest(), NullLogger.Instance);
+        var result = RentCastCompSource.MapComps([comp], MakeRequest(), null, NullLogger.Instance);
 
         result.Should().BeEmpty();
     }
@@ -167,7 +167,7 @@ public class RentCastCompSourceTests
     {
         var comp = MakeComp() with { SquareFootage = null };
 
-        var result = RentCastCompSource.MapComps([comp], MakeRequest(), NullLogger.Instance);
+        var result = RentCastCompSource.MapComps([comp], MakeRequest(), null, NullLogger.Instance);
 
         result.Should().BeEmpty();
     }
@@ -177,7 +177,7 @@ public class RentCastCompSourceTests
     {
         var comp = MakeComp(address: "   ");
 
-        var result = RentCastCompSource.MapComps([comp], MakeRequest(), NullLogger.Instance);
+        var result = RentCastCompSource.MapComps([comp], MakeRequest(), null, NullLogger.Instance);
 
         result.Should().BeEmpty();
     }
@@ -187,7 +187,7 @@ public class RentCastCompSourceTests
     {
         var comp = MakeComp() with { Bathrooms = null };
 
-        var result = RentCastCompSource.MapComps([comp], MakeRequest(), NullLogger.Instance);
+        var result = RentCastCompSource.MapComps([comp], MakeRequest(), null, NullLogger.Instance);
 
         result.Should().HaveCount(1);
         result[0].Baths.Should().Be(0);
@@ -198,19 +198,18 @@ public class RentCastCompSourceTests
     {
         var comp = MakeComp() with { Bathrooms = 2.5m };
 
-        var result = RentCastCompSource.MapComps([comp], MakeRequest(), NullLogger.Instance);
+        var result = RentCastCompSource.MapComps([comp], MakeRequest(), null, NullLogger.Instance);
 
         result.Should().HaveCount(1);
         result[0].Baths.Should().Be(3);
     }
 
     [Fact]
-    public void MapComps_MultiFamilyPropertyType_FilteredWhenSubjectHasSqFt()
+    public void MapComps_MultiFamilyPropertyType_FilteredWhenSubjectIsSingleFamily()
     {
-        var request = MakeRequest(sqft: 1800); // non-null sqft signals single-family subject
         var comp = MakeComp(propertyType: "Multi Family");
 
-        var result = RentCastCompSource.MapComps([comp], request, NullLogger.Instance);
+        var result = RentCastCompSource.MapComps([comp], MakeRequest(), "Single Family", NullLogger.Instance);
 
         result.Should().BeEmpty();
     }
@@ -219,12 +218,11 @@ public class RentCastCompSourceTests
     [InlineData("Apartment")]
     [InlineData("Condominium")]
     [InlineData("Townhouse")]
-    public void MapComps_ExcludedPropertyTypes_FilteredWhenSubjectHasSqFt(string propertyType)
+    public void MapComps_ExcludedPropertyTypes_FilteredWhenSubjectIsSingleFamily(string propertyType)
     {
-        var request = MakeRequest(sqft: 1800);
         var comp = MakeComp(propertyType: propertyType);
 
-        var result = RentCastCompSource.MapComps([comp], request, NullLogger.Instance);
+        var result = RentCastCompSource.MapComps([comp], MakeRequest(), "Single Family", NullLogger.Instance);
 
         result.Should().BeEmpty();
     }
@@ -235,7 +233,7 @@ public class RentCastCompSourceTests
         var request = MakeRequest(sqft: 1800);
         var comp = MakeComp() with { PropertyType = null };
 
-        var result = RentCastCompSource.MapComps([comp], request, NullLogger.Instance);
+        var result = RentCastCompSource.MapComps([comp], request, null, NullLogger.Instance);
 
         result.Should().HaveCount(1);
     }
@@ -243,7 +241,7 @@ public class RentCastCompSourceTests
     [Fact]
     public void MapComps_EmptyList_ReturnsEmpty()
     {
-        var result = RentCastCompSource.MapComps([], MakeRequest(), NullLogger.Instance);
+        var result = RentCastCompSource.MapComps([], MakeRequest(), null, NullLogger.Instance);
 
         result.Should().BeEmpty();
     }
@@ -265,7 +263,7 @@ public class RentCastCompSourceTests
                 removedDate: recentDate) with { Correlation = 1.0 - (i * 0.1) })
             .ToList();
 
-        var result = RentCastCompSource.MapComps(comps, MakeRequest(), NullLogger.Instance, today);
+        var result = RentCastCompSource.MapComps(comps, MakeRequest(), null, NullLogger.Instance, today);
 
         result.Should().HaveCount(5);
         result.Should().AllSatisfy(c => c.IsRecent.Should().BeTrue());
@@ -291,7 +289,7 @@ public class RentCastCompSourceTests
             .ToList();
 
         var result = RentCastCompSource.MapComps(
-            [.. recentComps, .. olderComps], MakeRequest(), NullLogger.Instance, today);
+            [.. recentComps, .. olderComps], MakeRequest(), null, NullLogger.Instance, today);
 
         result.Should().HaveCount(5);
         result.Count(c => c.IsRecent).Should().Be(2);
@@ -311,7 +309,7 @@ public class RentCastCompSourceTests
                 removedDate: oldDate) with { Correlation = i * 0.1 })
             .ToList();
 
-        var result = RentCastCompSource.MapComps(comps, MakeRequest(), NullLogger.Instance, today);
+        var result = RentCastCompSource.MapComps(comps, MakeRequest(), null, NullLogger.Instance, today);
 
         result.Should().HaveCount(5);
         result.Should().AllSatisfy(c => c.IsRecent.Should().BeFalse());
@@ -329,7 +327,7 @@ public class RentCastCompSourceTests
                 removedDate: recentDate))
             .ToList();
 
-        var result = RentCastCompSource.MapComps(comps, MakeRequest(), NullLogger.Instance, today);
+        var result = RentCastCompSource.MapComps(comps, MakeRequest(), null, NullLogger.Instance, today);
 
         result.Should().HaveCount(3);
     }
@@ -351,7 +349,7 @@ public class RentCastCompSourceTests
             MakeComp(address: "6 Dropped St, Freehold, NJ 07728", removedDate: recentDate) with { Correlation = 0.2 },
         };
 
-        var result = RentCastCompSource.MapComps(comps, MakeRequest(), NullLogger.Instance, today);
+        var result = RentCastCompSource.MapComps(comps, MakeRequest(), null, NullLogger.Instance, today);
 
         result.Should().HaveCount(5);
         result[0].Correlation.Should().Be(0.95);
