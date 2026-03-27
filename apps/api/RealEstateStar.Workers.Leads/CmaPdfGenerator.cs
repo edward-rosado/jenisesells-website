@@ -30,8 +30,10 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         Lead lead,
         CmaAnalysis analysis,
         List<Comp> comps,
-        AccountConfig agent,
+        AccountConfig config,
         ReportType reportType,
+        byte[]? logoBytes,
+        byte[]? headshotBytes,
         CancellationToken ct)
     {
         var outputPath = Path.Combine(
@@ -44,7 +46,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
 
         try
         {
-            await Task.Run(() => GenerateSync(lead, analysis, comps, agent, reportType, outputPath), ct);
+            await Task.Run(() => GenerateSync(lead, analysis, comps, config, reportType, logoBytes, headshotBytes, outputPath), ct);
         }
         catch (Exception ex)
         {
@@ -65,50 +67,378 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         Lead lead,
         CmaAnalysis analysis,
         List<Comp> comps,
-        AccountConfig agent,
+        AccountConfig config,
         ReportType reportType,
+        byte[]? logoBytes,
+        byte[]? headshotBytes,
         string outputPath)
     {
         var fullAddress = BuildFullAddress(lead.SellerDetails);
-        var sd = lead.SellerDetails;
+        var primaryColor = HexOrDefault(config.Branding?.PrimaryColor, "#2E7D32");
 
         Document.Create(container =>
         {
             container.Page(page =>
             {
                 page.Size(PageSizes.Letter);
-                page.Margin(40);
-                page.DefaultTextStyle(t => t.FontSize(10).FontColor(Colors.Black));
+                page.MarginTop(0);
+                page.MarginBottom(0);
+                page.MarginHorizontal(0);
+                page.DefaultTextStyle(t => t.FontSize(9).FontColor(Colors.Black));
 
-                page.Content().Column(col =>
+                // Header band — compact, full width
+                page.Header().Element(c => AddHeaderBand(c, config, logoBytes, headshotBytes, primaryColor));
+
+                page.Content().PaddingHorizontal(30).Column(col =>
                 {
-                    // Cover Page
-                    AddCoverPage(col, lead, fullAddress, agent);
+                    col.Item().PaddingTop(12);
 
-                    // Property Overview (Standard / Comprehensive)
-                    if (reportType is ReportType.Standard or ReportType.Comprehensive)
-                        AddPropertyOverview(col, sd, fullAddress);
+                    // Section 2: Property Overview
+                    AddPropertyOverview(col, lead.SellerDetails, fullAddress, primaryColor);
 
-                    // Comp Table — always included
-                    AddCompTable(col, comps);
+                    // Section 3: Value Estimate
+                    AddValueEstimate(col, analysis, primaryColor);
 
-                    // Market Analysis (Comprehensive)
+                    // Section 4: Comparable Sales Table
+                    AddCompTable(col, comps, primaryColor);
+
+                    // Section 5: Market Analysis
+                    AddMarketAnalysis(col, analysis, primaryColor);
+
+                    // Section 6: Pricing Strategy + Lead Insights
                     if (reportType is ReportType.Comprehensive)
-                        AddMarketAnalysis(col, analysis);
-
-                    // Price Per Sqft Analysis (Comprehensive)
-                    if (reportType is ReportType.Comprehensive)
-                        AddPricePerSqftAnalysis(col, comps, sd);
-
-                    // Value Estimate — always included
-                    AddValueEstimate(col, analysis, reportType);
-
-                    // About Agent — always included
-                    AddAboutAgent(col, agent);
+                        AddPricingStrategy(col, analysis);
                 });
+
+                // Section 7: Footer
+                page.Footer().Element(c => AddFooter(c, config, logoBytes, primaryColor));
             });
         }).GeneratePdf(outputPath);
     }
+
+    // -------------------------------------------------------------------------
+    // Section 1: Header Band
+    // -------------------------------------------------------------------------
+
+    private static void AddHeaderBand(
+        IContainer container,
+        AccountConfig config,
+        byte[]? logoBytes,
+        byte[]? headshotBytes,
+        string primaryColor)
+    {
+        container
+            .Background(primaryColor)
+            .PaddingHorizontal(16)
+            .PaddingVertical(8)
+            .Row(row =>
+            {
+                // Left: brokerage logo with white background for readability
+                row.ConstantItem(120).AlignMiddle().Column(c =>
+                {
+                    if (logoBytes is { Length: > 0 })
+                    {
+                        c.Item().Background(Colors.White).Padding(4)
+                            .Width(112).Height(50).Image(logoBytes).FitArea();
+                    }
+                    else if (config.Brokerage?.Name is { } brokerageName)
+                    {
+                        c.Item().Text(brokerageName)
+                            .FontSize(9).Bold().FontColor(Colors.White);
+                    }
+                });
+
+                // Center: CMA title + agent name + license (compact)
+                row.RelativeItem().AlignCenter().AlignMiddle().Column(c =>
+                {
+                    c.Item().Text("Comparative Market Analysis")
+                        .FontSize(9).FontColor(Colors.White).Italic();
+
+                    c.Item().Text(config.Agent?.Name ?? "")
+                        .FontSize(11).Bold().FontColor(Colors.White);
+
+                    var subtitle = string.Join(" | ",
+                        new[] { config.Agent?.Title, config.Agent?.LicenseNumber is { } lic ? $"Lic# {lic}" : null }
+                        .Where(s => s is not null));
+                    if (subtitle.Length > 0)
+                        c.Item().Text(subtitle).FontSize(8).FontColor(Colors.White);
+                });
+
+                // Right: headshot (compact)
+                row.ConstantItem(56).AlignRight().AlignMiddle().Column(c =>
+                {
+                    if (headshotBytes is { Length: > 0 })
+                    {
+                        c.Item().Width(50).Height(50).Image(headshotBytes).FitArea();
+                    }
+                });
+            });
+    }
+
+    // -------------------------------------------------------------------------
+    // Section 2: Property Overview
+    // -------------------------------------------------------------------------
+
+    private static void AddPropertyOverview(
+        ColumnDescriptor col,
+        SellerDetails? sd,
+        string fullAddress,
+        string primaryColor)
+    {
+        col.Item().PaddingBottom(6).Text("Property Overview")
+            .FontSize(11).Bold().FontColor(primaryColor);
+
+        col.Item().PaddingBottom(10).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(12).Row(row =>
+        {
+            row.RelativeItem().Column(c =>
+            {
+                c.Item().Text("Address").FontSize(8).FontColor(Colors.Grey.Medium).Bold();
+                c.Item().Text(fullAddress).FontSize(11);
+            });
+
+            row.ConstantItem(1).Background(Colors.Grey.Lighten2);
+
+            row.ConstantItem(16);
+
+            row.ConstantItem(60).Column(c =>
+            {
+                c.Item().Text("Beds").FontSize(8).FontColor(Colors.Grey.Medium).Bold();
+                c.Item().Text(sd?.Beds?.ToString() ?? "—").FontSize(11);
+            });
+
+            row.ConstantItem(60).Column(c =>
+            {
+                c.Item().Text("Baths").FontSize(8).FontColor(Colors.Grey.Medium).Bold();
+                c.Item().Text(sd?.Baths?.ToString() ?? "—").FontSize(11);
+            });
+
+            row.ConstantItem(80).Column(c =>
+            {
+                c.Item().Text("Sq Ft").FontSize(8).FontColor(Colors.Grey.Medium).Bold();
+                c.Item().Text(sd?.Sqft?.ToString("N0") ?? "—").FontSize(11);
+            });
+
+        });
+    }
+
+    // -------------------------------------------------------------------------
+    // Section 3: Value Estimate
+    // -------------------------------------------------------------------------
+
+    private static void AddValueEstimate(
+        ColumnDescriptor col,
+        CmaAnalysis analysis,
+        string primaryColor)
+    {
+        col.Item().PaddingBottom(6).Text("Estimated Value Range")
+            .FontSize(11).Bold().FontColor(primaryColor);
+
+        col.Item().PaddingBottom(8).Row(row =>
+        {
+            // Low
+            row.RelativeItem().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(12).Column(c =>
+            {
+                c.Item().Text("LOW").FontSize(8).Bold().FontColor(Colors.Grey.Medium);
+                c.Item().PaddingTop(4).Text(FormatCurrency(analysis.ValueLow)).FontSize(16).Bold();
+            });
+
+            row.ConstantItem(8);
+
+            // Mid — hero card
+            row.RelativeItem().Background(primaryColor).Padding(12).Column(c =>
+            {
+                c.Item().Text("MID (RECOMMENDED)").FontSize(8).Bold().FontColor(Colors.White);
+                c.Item().PaddingTop(4).Text(FormatCurrency(analysis.ValueMid)).FontSize(22).Bold().FontColor(Colors.White);
+            });
+
+            row.ConstantItem(8);
+
+            // High
+            row.RelativeItem().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(12).Column(c =>
+            {
+                c.Item().Text("HIGH").FontSize(8).Bold().FontColor(Colors.Grey.Medium);
+                c.Item().PaddingTop(4).Text(FormatCurrency(analysis.ValueHigh)).FontSize(16).Bold();
+            });
+        });
+
+        // Market trend badge
+        col.Item().PaddingBottom(8).Row(row =>
+        {
+            row.AutoItem().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(6).Column(c =>
+            {
+                c.Item().Text($"Market Trend: {analysis.MarketTrend}").FontSize(9).Bold();
+            });
+
+            row.ConstantItem(12);
+
+            row.AutoItem().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(6).Column(c =>
+            {
+                c.Item().Text($"Median Days on Market: {analysis.MedianDaysOnMarket}").FontSize(9).Bold();
+            });
+        });
+    }
+
+    // -------------------------------------------------------------------------
+    // Section 4: Comparable Sales Table
+    // -------------------------------------------------------------------------
+
+    private static void AddCompTable(ColumnDescriptor col, List<Comp> comps, string primaryColor)
+    {
+        col.Item().PaddingBottom(6).Text("Recent Comparable Sales")
+            .FontSize(11).Bold().FontColor(primaryColor);
+
+        var hasOlderComps = comps.Any(c => !c.IsRecent);
+
+        col.Item().PaddingBottom(4).Table(table =>
+        {
+            table.ColumnsDefinition(cols =>
+            {
+                cols.RelativeColumn(3);   // Address
+                cols.RelativeColumn(2);   // Sale Price
+                cols.RelativeColumn();    // Age (months)
+                cols.RelativeColumn();    // Sale Date
+                cols.RelativeColumn();    // Beds
+                cols.RelativeColumn();    // Baths
+                cols.RelativeColumn(2);   // SqFt
+                cols.RelativeColumn(2);   // $/SqFt
+                cols.RelativeColumn(2);   // Distance
+            });
+
+            table.Header(header =>
+            {
+                void HeaderCell(string text) =>
+                    header.Cell()
+                        .Background(primaryColor)
+                        .Padding(4)
+                        .Text(text)
+                        .FontSize(8).Bold().FontColor(Colors.White);
+
+                HeaderCell("Address");
+                HeaderCell("Sale Price");
+                HeaderCell("Age");
+                HeaderCell("Sale Date");
+                HeaderCell("Bd");
+                HeaderCell("Ba");
+                HeaderCell("Sq Ft");
+                HeaderCell("$/Sq Ft");
+                HeaderCell("Distance");
+            });
+
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            foreach (var (comp, index) in comps.Select((c, i) => (c, i)))
+            {
+                var rowBg = index % 2 == 0 ? Colors.White : Colors.Grey.Lighten5;
+                var ageMonths = MonthsBetween(comp.SaleDate, today);
+                var ageSuffix = comp.IsRecent ? "" : " †";
+
+                void DataCell(string text, bool italic = false)
+                {
+                    var cell = table.Cell().Background(rowBg).Padding(4);
+                    var t = cell.Text(text).FontSize(9);
+                    if (italic) t.Italic();
+                }
+
+                DataCell(comp.Address);
+                DataCell(FormatCurrency(comp.SalePrice));
+                DataCell($"{ageMonths}mo{ageSuffix}");
+                DataCell(comp.SaleDate.ToString("MM/dd/yyyy"));
+                DataCell(comp.Beds.ToString());
+                DataCell(comp.Baths.ToString());
+                DataCell(comp.Sqft.ToString("N0"));
+                DataCell(FormatPricePerSqft(comp.PricePerSqft));
+                DataCell($"{comp.DistanceMiles:F1} mi");
+            }
+        });
+
+        if (hasOlderComps)
+        {
+            col.Item().PaddingTop(4).PaddingBottom(12).Text("† Older sale — weighted less in analysis")
+                .FontSize(8).Italic().FontColor(Colors.Grey.Medium);
+        }
+        else
+        {
+            col.Item().PaddingBottom(12);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Section 5: Market Analysis
+    // -------------------------------------------------------------------------
+
+    private static void AddMarketAnalysis(ColumnDescriptor col, CmaAnalysis analysis, string primaryColor)
+    {
+        col.Item().PaddingBottom(6).Text("Market Analysis")
+            .FontSize(11).Bold().FontColor(primaryColor);
+
+        col.Item().PaddingBottom(8).Text(analysis.MarketNarrative).FontSize(10);
+    }
+
+    // -------------------------------------------------------------------------
+    // Section 6: Pricing Strategy
+    // -------------------------------------------------------------------------
+
+    private static void AddPricingStrategy(ColumnDescriptor col, CmaAnalysis analysis)
+    {
+        if (analysis.PricingRecommendation is null && analysis.LeadInsights is null)
+            return;
+
+        if (analysis.PricingRecommendation is { } recommendation)
+        {
+            col.Item().ShowEntire().Column(section =>
+            {
+                section.Item().PaddingBottom(6).Text("Pricing Strategy").FontSize(11).Bold();
+                section.Item().PaddingBottom(12).Text(recommendation).FontSize(10);
+            });
+        }
+
+        if (analysis.LeadInsights is { } insights)
+        {
+            col.Item().ShowEntire().Column(section =>
+            {
+                section.Item().PaddingBottom(6).Text("Seller Insights").FontSize(11).Bold();
+                section.Item().PaddingBottom(12).Text(insights).FontSize(10);
+            });
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Section 7: Footer
+    // -------------------------------------------------------------------------
+
+    private static void AddFooter(IContainer container, AccountConfig config, byte[]? logoBytes, string primaryColor)
+    {
+        container
+            .PaddingHorizontal(30)
+            .PaddingVertical(6)
+            .Column(col =>
+            {
+                col.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);
+                col.Item().PaddingTop(4).Row(row =>
+                {
+                    // Left: agent contact
+                    var contactParts = new List<string>();
+                    if (config.Agent?.Name is { } name) contactParts.Add(name);
+                    if (config.Brokerage?.Name is { } brokerage) contactParts.Add(brokerage);
+                    if (config.Agent?.Phone is { } phone && phone.Length > 0) contactParts.Add(phone);
+                    if (config.Agent?.LicenseNumber is { } lic) contactParts.Add($"Lic# {lic}");
+
+                    row.RelativeItem().Text(string.Join(" | ", contactParts))
+                        .FontSize(7).FontColor(Colors.Grey.Darken1);
+
+                    // Right: disclaimer + date
+                    row.RelativeItem().AlignRight().Text(t =>
+                    {
+                        t.Span("This is not an appraisal. ").FontSize(6).Italic().FontColor(Colors.Grey.Medium);
+                        t.Span($"Generated {DateTime.UtcNow:MMM d, yyyy}").FontSize(6).FontColor(Colors.Grey.Medium);
+                    });
+                });
+            });
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
 
     internal static string BuildFullAddress(SellerDetails? sd)
     {
@@ -122,285 +452,21 @@ public class CmaPdfGenerator : ICmaPdfGenerator
     internal static string FormatPricePerSqft(decimal value) =>
         value.ToString("C2", EnUs);
 
-    private static void AddCoverPage(
-        ColumnDescriptor col,
-        Lead lead,
-        string fullAddress,
-        AccountConfig agent)
+    /// <summary>
+    /// Parses a CSS hex color (e.g. "#2E7D32") for use as a QuestPDF color string.
+    /// Falls back to <paramref name="fallback"/> if <paramref name="hex"/> is null or malformed.
+    /// </summary>
+    internal static string HexOrDefault(string? hex, string fallback)
     {
-        col.Item().PaddingBottom(20).Column(inner =>
-        {
-            inner.Item().Text("Comparative Market Analysis")
-                .FontSize(26).Bold().FontColor(Colors.Grey.Darken3);
-
-            inner.Item().PaddingTop(8).Text(fullAddress)
-                .FontSize(14).FontColor(Colors.Grey.Darken2);
-
-            inner.Item().PaddingTop(20).Row(row =>
-            {
-                row.RelativeItem().Column(c =>
-                {
-                    c.Item().Text("Prepared for:").Bold();
-                    c.Item().Text(lead.FullName);
-                });
-
-                row.RelativeItem().Column(c =>
-                {
-                    c.Item().Text("Prepared by:").Bold();
-                    c.Item().Text(agent.Agent?.Name ?? "");
-                    if (agent.Agent?.Title is { } title)
-                        c.Item().Text(title).FontColor(Colors.Grey.Medium);
-                    if (agent.Brokerage?.Name is { } brokerage)
-                        c.Item().Text(brokerage).FontColor(Colors.Grey.Medium);
-                    c.Item().Text(agent.Agent?.Phone ?? "");
-                    c.Item().Text(agent.Agent?.Email ?? "");
-                });
-            });
-        });
-
-        col.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
-        col.Item().PaddingBottom(16);
+        if (hex is null) return fallback;
+        var trimmed = hex.TrimStart('#');
+        return trimmed.Length is 6 or 8 ? $"#{trimmed}" : fallback;
     }
 
-    private static void AddPropertyOverview(
-        ColumnDescriptor col,
-        SellerDetails? sd,
-        string fullAddress)
+    /// <summary>Returns the number of whole months between two dates.</summary>
+    private static int MonthsBetween(DateOnly from, DateOnly to)
     {
-        col.Item().PaddingBottom(8).Text("Property Overview")
-            .FontSize(14).Bold();
-
-        col.Item().PaddingBottom(4).Table(table =>
-        {
-            table.ColumnsDefinition(cols =>
-            {
-                cols.RelativeColumn(2);
-                cols.RelativeColumn();
-                cols.RelativeColumn();
-                cols.RelativeColumn();
-            });
-
-            table.Header(header =>
-            {
-                header.Cell().Text("Address").Bold();
-                header.Cell().Text("Beds").Bold();
-                header.Cell().Text("Baths").Bold();
-                header.Cell().Text("Sqft").Bold();
-            });
-
-            table.Cell().Text(fullAddress);
-            table.Cell().Text(sd?.Beds?.ToString() ?? "—");
-            table.Cell().Text(sd?.Baths?.ToString() ?? "—");
-            table.Cell().Text(sd?.Sqft?.ToString("N0") ?? "—");
-        });
-
-        col.Item().PaddingBottom(16);
-    }
-
-    private static void AddCompTable(ColumnDescriptor col, List<Comp> comps)
-    {
-        col.Item().PaddingBottom(8).Text("Comparable Sales")
-            .FontSize(14).Bold();
-
-        col.Item().PaddingBottom(4).Table(table =>
-        {
-            table.ColumnsDefinition(cols =>
-            {
-                cols.RelativeColumn(3);
-                cols.RelativeColumn(2);
-                cols.RelativeColumn();
-                cols.RelativeColumn();
-                cols.RelativeColumn();
-                cols.RelativeColumn(2);
-                cols.RelativeColumn();
-                cols.RelativeColumn();
-            });
-
-            table.Header(header =>
-            {
-                header.Cell().Text("Address").Bold();
-                header.Cell().Text("Sale Price").Bold();
-                header.Cell().Text("Bd").Bold();
-                header.Cell().Text("Ba").Bold();
-                header.Cell().Text("Sqft").Bold();
-                header.Cell().Text("$/Sqft").Bold();
-                header.Cell().Text("Date").Bold();
-                header.Cell().Text("Source").Bold();
-            });
-
-            foreach (var comp in comps)
-            {
-                table.Cell().Text(comp.Address);
-                table.Cell().Text(FormatCurrency(comp.SalePrice));
-                table.Cell().Text(comp.Beds.ToString());
-                table.Cell().Text(comp.Baths.ToString());
-                table.Cell().Text(comp.Sqft.ToString("N0"));
-                table.Cell().Text(FormatPricePerSqft(comp.PricePerSqft));
-                table.Cell().Text(comp.SaleDate.ToString("MM/dd/yyyy"));
-                table.Cell().Text(comp.Source.ToString());
-            }
-        });
-
-        col.Item().PaddingBottom(16);
-    }
-
-    private static void AddMarketAnalysis(ColumnDescriptor col, CmaAnalysis analysis)
-    {
-        col.Item().PaddingBottom(8).Text("Market Analysis")
-            .FontSize(14).Bold();
-
-        col.Item().PaddingBottom(4).Row(row =>
-        {
-            row.RelativeItem().Column(c =>
-            {
-                c.Item().Text("Market Trend:").Bold();
-                c.Item().Text(analysis.MarketTrend);
-            });
-
-            row.ConstantItem(20);
-
-            row.RelativeItem().Column(c =>
-            {
-                c.Item().Text("Median Days on Market:").Bold();
-                c.Item().Text(analysis.MedianDaysOnMarket.ToString());
-            });
-        });
-
-        col.Item().PaddingTop(8).Text("Market Narrative:").Bold();
-        col.Item().PaddingBottom(4).Text(analysis.MarketNarrative);
-
-        col.Item().PaddingBottom(16);
-    }
-
-    private static void AddPricePerSqftAnalysis(
-        ColumnDescriptor col,
-        List<Comp> comps,
-        SellerDetails? sd)
-    {
-        col.Item().PaddingBottom(8).Text("Price Per Sqft Analysis")
-            .FontSize(14).Bold();
-
-        col.Item().PaddingBottom(4).Table(table =>
-        {
-            table.ColumnsDefinition(cols =>
-            {
-                cols.RelativeColumn(3);
-                cols.RelativeColumn(2);
-            });
-
-            table.Header(header =>
-            {
-                header.Cell().Text("Address").Bold();
-                header.Cell().Text("$/Sqft").Bold();
-            });
-
-            foreach (var comp in comps)
-            {
-                table.Cell().Text(comp.Address);
-                table.Cell().Text(FormatPricePerSqft(comp.PricePerSqft));
-            }
-        });
-
-        if (comps.Count > 0)
-        {
-            var avgPricePerSqft = comps.Average(c => (double)c.PricePerSqft);
-            col.Item().PaddingTop(4).Text($"Average $/Sqft: {FormatPricePerSqft((decimal)avgPricePerSqft)}").Bold();
-
-            if (sd?.Sqft is { } sqft and > 0)
-            {
-                var estimatedValue = (decimal)avgPricePerSqft * sqft;
-                col.Item().Text($"Applied to subject ({sqft:N0} sqft): {FormatCurrency(estimatedValue)}");
-            }
-        }
-
-        col.Item().PaddingBottom(16);
-    }
-
-    private static void AddValueEstimate(
-        ColumnDescriptor col,
-        CmaAnalysis analysis,
-        ReportType reportType)
-    {
-        col.Item().PaddingBottom(8).Text("Estimated Value Range")
-            .FontSize(14).Bold();
-
-        col.Item().PaddingBottom(4).Row(row =>
-        {
-            row.RelativeItem().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).Column(c =>
-            {
-                c.Item().Text("Low").Bold().FontSize(9).FontColor(Colors.Grey.Medium);
-                c.Item().Text(FormatCurrency(analysis.ValueLow)).FontSize(14).Bold();
-            });
-
-            row.ConstantItem(8);
-
-            row.RelativeItem().Border(1).BorderColor(Colors.Blue.Medium).Padding(8).Column(c =>
-            {
-                c.Item().Text("Mid").Bold().FontSize(9).FontColor(Colors.Blue.Medium);
-                c.Item().Text(FormatCurrency(analysis.ValueMid)).FontSize(16).Bold().FontColor(Colors.Blue.Darken2);
-            });
-
-            row.ConstantItem(8);
-
-            row.RelativeItem().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).Column(c =>
-            {
-                c.Item().Text("High").Bold().FontSize(9).FontColor(Colors.Grey.Medium);
-                c.Item().Text(FormatCurrency(analysis.ValueHigh)).FontSize(14).Bold();
-            });
-        });
-
-        if (reportType is ReportType.Comprehensive && analysis.PricingRecommendation is { } recommendation)
-        {
-            col.Item().PaddingTop(8).Text("Pricing Strategy:").Bold();
-            col.Item().PaddingBottom(4).Text(recommendation);
-        }
-
-        col.Item().PaddingBottom(16);
-    }
-
-    private static void AddAboutAgent(ColumnDescriptor col, AccountConfig agent)
-    {
-        col.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
-        col.Item().PaddingTop(16).PaddingBottom(8).Text("About Your Agent")
-            .FontSize(14).Bold();
-
-        col.Item().Row(row =>
-        {
-            row.RelativeItem().Column(c =>
-            {
-                c.Item().Text(agent.Agent?.Name ?? "").Bold().FontSize(12);
-
-                if (agent.Agent?.Title is { } title)
-                    c.Item().Text(title).FontColor(Colors.Grey.Medium);
-
-                if (agent.Brokerage?.Name is { } brokerage)
-                    c.Item().Text(brokerage).FontColor(Colors.Grey.Medium);
-
-                if (agent.Agent?.Tagline is { } tagline)
-                    c.Item().PaddingTop(4).Text(tagline).Italic().FontColor(Colors.Grey.Darken1);
-
-                c.Item().PaddingTop(8).Text(agent.Agent?.Phone ?? "");
-                c.Item().Text(agent.Agent?.Email ?? "");
-            });
-
-            row.ConstantItem(20);
-
-            row.RelativeItem().Column(c =>
-            {
-                var serviceAreas = agent.Location?.ServiceAreas ?? [];
-                if (serviceAreas.Count > 0)
-                {
-                    c.Item().Text("Service Areas:").Bold();
-                    c.Item().Text(string.Join(", ", serviceAreas));
-                }
-
-                var languages = agent.Agent?.Languages ?? [];
-                if (languages.Count > 0)
-                {
-                    c.Item().PaddingTop(8).Text("Languages:").Bold();
-                    c.Item().Text(string.Join(", ", languages));
-                }
-            });
-        });
+        var months = (to.Year - from.Year) * 12 + (to.Month - from.Month);
+        return Math.Max(0, months);
     }
 }
