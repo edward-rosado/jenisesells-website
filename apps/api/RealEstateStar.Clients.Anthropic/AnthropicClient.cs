@@ -90,7 +90,7 @@ public sealed class AnthropicClient(
             ClaudeDiagnostics.RecordUsage(pipeline, model, inputTokens, outputTokens, durationMs);
 
             logger.LogInformation(
-                "[CLAUDE-001] Claude call succeeded. Pipeline: {Pipeline}, Model: {Model}, InputTokens: {InputTokens}, OutputTokens: {OutputTokens}, Duration: {Duration}ms",
+                "[CLAUDE-020] Claude call succeeded. Pipeline: {Pipeline}, Model: {Model}, InputTokens: {InputTokens}, OutputTokens: {OutputTokens}, Duration: {Duration}ms",
                 pipeline, model, inputTokens, outputTokens, durationMs);
 
             return new AnthropicResponse(content, inputTokens, outputTokens, durationMs);
@@ -98,13 +98,13 @@ public sealed class AnthropicClient(
         catch (TaskCanceledException ex)
         {
             ClaudeDiagnostics.RecordFailure(pipeline, model);
-            logger.LogWarning(ex, "[CLAUDE-020] Anthropic API call timed out. Pipeline: {Pipeline}, Model: {Model}",
+            logger.LogWarning(ex, "[CLAUDE-021] Anthropic API call timed out. Pipeline: {Pipeline}, Model: {Model}",
                 pipeline, model);
             throw;
         }
         catch (HttpRequestException ex)
         {
-            logger.LogError(ex, "[CLAUDE-010] API error for {Pipeline}: {Message}", pipeline, ex.Message);
+            logger.LogError(ex, "[CLAUDE-011] API error for {Pipeline}: {Message}", pipeline, ex.Message);
             ClaudeDiagnostics.RecordFailure(pipeline, model);
             throw;
         }

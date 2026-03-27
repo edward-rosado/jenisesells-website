@@ -54,7 +54,7 @@ public class ApiKeyHmacMiddleware
         var routeAgentId = context.Request.RouteValues["agentId"]?.ToString();
         if (routeAgentId is null || !string.Equals(mappedAgentId, routeAgentId, StringComparison.Ordinal))
         {
-            _logger.LogWarning("[LEAD-020] API key agentId {MappedAgentId} does not match route agentId {RouteAgentId}", mappedAgentId, routeAgentId);
+            _logger.LogWarning("[HMAC-020] API key agentId {MappedAgentId} does not match route agentId {RouteAgentId}", mappedAgentId, routeAgentId);
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }
@@ -63,7 +63,7 @@ public class ApiKeyHmacMiddleware
         var timestampHeader = context.Request.Headers["X-Timestamp"].FirstOrDefault();
         if (!long.TryParse(timestampHeader, out var timestampSeconds))
         {
-            _logger.LogWarning("[LEAD-022] Missing or unparseable X-Timestamp header");
+            _logger.LogWarning("[HMAC-022] Missing or unparseable X-Timestamp header");
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }
@@ -72,7 +72,7 @@ public class ApiKeyHmacMiddleware
         var drift = Math.Abs(now - timestampSeconds);
         if (drift > _options.MaxTimestampDriftSeconds)
         {
-            _logger.LogWarning("[LEAD-022] Timestamp drift {DriftSeconds}s exceeds maximum {MaxSeconds}s", drift, _options.MaxTimestampDriftSeconds);
+            _logger.LogWarning("[HMAC-022] Timestamp drift {DriftSeconds}s exceeds maximum {MaxSeconds}s", drift, _options.MaxTimestampDriftSeconds);
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }
@@ -89,7 +89,7 @@ public class ApiKeyHmacMiddleware
         var signatureHeader = context.Request.Headers["X-Signature"].FirstOrDefault();
         if (string.IsNullOrEmpty(signatureHeader) || !signatureHeader.StartsWith("sha256=", StringComparison.Ordinal))
         {
-            _logger.LogWarning("[LEAD-021] Missing or malformed X-Signature header");
+            _logger.LogWarning("[HMAC-021] Missing or malformed X-Signature header");
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }
@@ -100,7 +100,7 @@ public class ApiKeyHmacMiddleware
 
         if (!ConstantTimeEquals(providedHex, expectedHex))
         {
-            _logger.LogWarning("[LEAD-021] HMAC signature mismatch");
+            _logger.LogWarning("[HMAC-021] HMAC signature mismatch");
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }

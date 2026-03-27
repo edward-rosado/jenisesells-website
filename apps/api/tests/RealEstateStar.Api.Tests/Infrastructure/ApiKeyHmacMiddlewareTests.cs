@@ -183,9 +183,9 @@ public class ApiKeyHmacMiddlewareTests
         logMessages.Should().ContainSingle(m => m.Contains("[LEAD-019]"));
     }
 
-    // Test 4: API key maps to agentId that doesn't match route → 401 + log [LEAD-020]
+    // Test 4: API key maps to agentId that doesn't match route → 401 + log [HMAC-020]
     [Fact]
-    public async Task ApiKeyAgentIdMismatch_Returns401_LogsLead020()
+    public async Task ApiKeyAgentIdMismatch_Returns401_LogsHmac020()
     {
         var logMessages = new List<string>();
         var mockLogger = new Mock<ILogger<ApiKeyHmacMiddleware>>();
@@ -193,10 +193,10 @@ public class ApiKeyHmacMiddlewareTests
             .Setup(l => l.Log(
                 It.IsAny<LogLevel>(),
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[LEAD-020]")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[HMAC-020]")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
-            .Callback(() => logMessages.Add("[LEAD-020]"));
+            .Callback(() => logMessages.Add("[HMAC-020]"));
 
         var options = new ApiKeyHmacOptions
         {
@@ -229,7 +229,7 @@ public class ApiKeyHmacMiddlewareTests
 
         httpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
         nextCalled.Should().BeFalse();
-        logMessages.Should().ContainSingle(m => m.Contains("[LEAD-020]"));
+        logMessages.Should().ContainSingle(m => m.Contains("[HMAC-020]"));
     }
 
     // Test 5: Missing HMAC signature → 401
@@ -253,9 +253,9 @@ public class ApiKeyHmacMiddlewareTests
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    // Test 6: Invalid HMAC signature → 401 + log [LEAD-021]
+    // Test 6: Invalid HMAC signature → 401 + log [HMAC-021]
     [Fact]
-    public async Task InvalidHmacSignature_Returns401_LogsLead021()
+    public async Task InvalidHmacSignature_Returns401_LogsHmac021()
     {
         var logMessages = new List<string>();
         var mockLogger = new Mock<ILogger<ApiKeyHmacMiddleware>>();
@@ -263,10 +263,10 @@ public class ApiKeyHmacMiddlewareTests
             .Setup(l => l.Log(
                 It.IsAny<LogLevel>(),
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[LEAD-021]")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[HMAC-021]")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
-            .Callback(() => logMessages.Add("[LEAD-021]"));
+            .Callback(() => logMessages.Add("[HMAC-021]"));
 
         var options = new ApiKeyHmacOptions
         {
@@ -298,12 +298,12 @@ public class ApiKeyHmacMiddlewareTests
 
         httpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
         nextCalled.Should().BeFalse();
-        logMessages.Should().ContainSingle(m => m.Contains("[LEAD-021]"));
+        logMessages.Should().ContainSingle(m => m.Contains("[HMAC-021]"));
     }
 
-    // Test 7: Timestamp > 5 min old → 401 + log [LEAD-022]
+    // Test 7: Timestamp > 5 min old → 401 + log [HMAC-022]
     [Fact]
-    public async Task StaleTimestamp_Returns401_LogsLead022()
+    public async Task StaleTimestamp_Returns401_LogsHmac022()
     {
         var logMessages = new List<string>();
         var mockLogger = new Mock<ILogger<ApiKeyHmacMiddleware>>();
@@ -311,10 +311,10 @@ public class ApiKeyHmacMiddlewareTests
             .Setup(l => l.Log(
                 It.IsAny<LogLevel>(),
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[LEAD-022]")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[HMAC-022]")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
-            .Callback(() => logMessages.Add("[LEAD-022]"));
+            .Callback(() => logMessages.Add("[HMAC-022]"));
 
         var options = new ApiKeyHmacOptions
         {
@@ -347,7 +347,7 @@ public class ApiKeyHmacMiddlewareTests
 
         httpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
         nextCalled.Should().BeFalse();
-        logMessages.Should().ContainSingle(m => m.Contains("[LEAD-022]"));
+        logMessages.Should().ContainSingle(m => m.Contains("[HMAC-022]"));
     }
 
     // Test 8: Timestamp in the future by > 5 min → 401

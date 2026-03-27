@@ -78,7 +78,7 @@ public sealed class CmaProcessingWorker(
         var subject = rentCastCompSource.LastValuation?.SubjectProperty;
         if (subject is null)
         {
-            logger.LogInformation("[CMA-ENRICH-001] No RentCast subject property available; skipping enrichment. Lead={LeadId}",
+            logger.LogInformation("[CMA-ENRICH-002] No RentCast subject property available; skipping enrichment. Lead={LeadId}",
                 ctx.Request.Id);
             return Task.CompletedTask;
         }

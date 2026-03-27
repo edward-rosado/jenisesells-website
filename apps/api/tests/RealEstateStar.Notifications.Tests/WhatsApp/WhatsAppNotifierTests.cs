@@ -150,7 +150,7 @@ public class WhatsAppNotifierTests : IDisposable
     }
 
     // -------------------------------------------------------------------------
-    // Test 6: WhatsAppNotRegisteredException — log [WA-014], no throw
+    // Test 6: WhatsAppNotRegisteredException — log [WA-040], no throw
     // -------------------------------------------------------------------------
     [Fact]
     public async Task NotifyAsync_FallsGracefully_OnNotRegistered()
@@ -169,7 +169,7 @@ public class WhatsAppNotifierTests : IDisposable
         _log.Verify(l => l.Log(
             LogLevel.Warning,
             It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("WA-014")),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("WA-040")),
             It.IsAny<Exception?>(),
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
@@ -404,7 +404,7 @@ public class WhatsAppNotifierTests : IDisposable
         _log.Verify(l => l.Log(
             LogLevel.Warning,
             It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("WA-014")),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("WA-040")),
             It.IsAny<Exception?>(),
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
@@ -436,7 +436,7 @@ public class WhatsAppNotifierTests : IDisposable
     }
 
     // -------------------------------------------------------------------------
-    // Test 19: Template send throws NotRegistered with window closed → logs [WA-014]
+    // Test 19: Template send throws NotRegistered with window closed → logs [WA-041]
     // -------------------------------------------------------------------------
     [Fact]
     public async Task NotifyAsync_TemplateSend_NotRegistered_LogsWarning()
@@ -455,7 +455,7 @@ public class WhatsAppNotifierTests : IDisposable
         _log.Verify(l => l.Log(
             LogLevel.Warning,
             It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("WA-014")),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("WA-041")),
             It.IsAny<Exception?>(),
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
