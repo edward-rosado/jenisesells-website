@@ -11,8 +11,6 @@ using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Domain.Privacy;
 using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
-using RealEstateStar.Workers.Cma;
-using RealEstateStar.Workers.HomeSearch;
 using RealEstateStar.Workers.Leads;
 
 namespace RealEstateStar.Api.Features.Leads.Submit;
@@ -29,9 +27,7 @@ public class SubmitLeadEndpoint : IEndpoint
         IAccountConfigService accountConfig,
         ILeadStore leadStore,
         IMarketingConsentLog consentLog,
-        LeadProcessingChannel processingChannel,
-        CmaProcessingChannel cmaChannel,
-        HomeSearchProcessingChannel homeSearchChannel,
+        LeadOrchestratorChannel orchestratorChannel,
         HttpContext httpContext,
         ILogger<SubmitLeadEndpoint> logger,
         IConsentAuditService consentAudit,
@@ -183,46 +179,12 @@ public class SubmitLeadEndpoint : IEndpoint
             await deadLetterStore.RecordAsync(lead, "consent", ex.Message, ct);
         }
 
-        // 5. Enqueue background processing (enrichment, notification, home search)
+        // 5. Enqueue orchestrator — handles enrichment, scoring, CMA, home search, notification
         var correlationId = httpContext.Items[CorrelationIdMiddleware.CorrelationIdKey]?.ToString() ?? Guid.NewGuid().ToString();
         activity?.SetTag("correlation.id", correlationId);
-        var processingRequest = new LeadProcessingRequest(agentId, lead, correlationId);
 
-        await processingChannel.Writer.WriteAsync(processingRequest, ct);
-
-        // Build agent notification config for fan-out workers
-        var agentNotificationConfig = new AgentNotificationConfig
-        {
-            AgentId = agentId,
-            Handle = agent.Handle,
-            Name = agent.Agent?.Name ?? "",
-            FirstName = agent.Agent?.Name?.Split(' ').FirstOrDefault() ?? "",
-            Email = agent.Agent?.Email ?? "",
-            Phone = agent.Agent?.Phone ?? "",
-            LicenseNumber = agent.Agent?.LicenseNumber ?? "",
-            BrokerageName = agent.Brokerage?.Name ?? "",
-            BrokerageLogo = agent.Branding?.LogoUrl,
-            PrimaryColor = agent.Branding?.PrimaryColor ?? "#000000",
-            AccentColor = agent.Branding?.AccentColor ?? "#000000",
-            State = agent.Location?.State ?? "",
-            ServiceAreas = agent.Location?.ServiceAreas ?? [],
-            WhatsAppPhoneNumberId = agent.Integrations?.WhatsApp?.PhoneNumber,
-        };
-
-        // Fan-out: dispatch CMA and home search independently
-        if (lead.LeadType is LeadType.Seller or LeadType.Both && lead.SellerDetails is not null)
-        {
-            var cmaCompletion = new TaskCompletionSource<CmaWorkerResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await cmaChannel.Writer.WriteAsync(
-                new CmaProcessingRequest(agentId, lead, agentNotificationConfig, correlationId, cmaCompletion), ct);
-        }
-
-        if (lead.LeadType is LeadType.Buyer or LeadType.Both && lead.BuyerDetails is not null)
-        {
-            var homeSearchCompletion = new TaskCompletionSource<HomeSearchWorkerResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await homeSearchChannel.Writer.WriteAsync(
-                new HomeSearchProcessingRequest(agentId, lead, agentNotificationConfig, correlationId, homeSearchCompletion), ct);
-        }
+        await orchestratorChannel.Writer.WriteAsync(
+            new LeadOrchestrationRequest(agentId, lead, correlationId), ct);
 
         LeadDiagnostics.LeadsReceived.Add(1);
 

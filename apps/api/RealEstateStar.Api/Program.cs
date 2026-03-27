@@ -374,22 +374,24 @@ builder.Services.AddGSheetsClient(googleClientId, googleClientSecret);
 builder.Services.Configure<ScraperOptions>(builder.Configuration.GetSection("Scraper"));
 builder.Services.AddSingleton<IScraperClient, ScraperClient>();
 
-// Background lead processing (replaces fire-and-forget Task.Run)
-builder.Services.AddSingleton<LeadProcessingChannel>();
+// Lead pipeline — orchestrator + PDF worker + scoring/drafting/notification services
+builder.Services.AddSingleton<LeadOrchestratorChannel>();
+builder.Services.AddSingleton<PdfProcessingChannel>();
+builder.Services.AddSingleton<ILeadScorer, LeadScorer>();
+builder.Services.AddSingleton<ILeadEmailDrafter, LeadEmailDrafter>();
+builder.Services.AddSingleton<IAgentNotifier, AgentNotifier>();
+builder.Services.AddHostedService<LeadOrchestrator>();
+builder.Services.AddHostedService<PdfWorker>();
+
+// CMA + home search channels/workers
 builder.Services.AddSingleton<CmaProcessingChannel>();
 builder.Services.AddSingleton<HomeSearchProcessingChannel>();
-builder.Services.AddHostedService<LeadProcessingWorker>();
 builder.Services.AddHostedService<CmaProcessingWorker>();
 builder.Services.AddHostedService<HomeSearchProcessingWorker>();
 
 // Pipeline source URL config
-var leadSources = builder.Configuration.GetSection("Pipeline:Lead:Sources")
-    .Get<Dictionary<string, string>>() ?? new();
 var homeSearchSources = builder.Configuration.GetSection("Pipeline:HomeSearch:Sources")
     .Get<Dictionary<string, string>>() ?? new();
-
-// TODO: Pipeline redesign — ILeadEnricher removed in Phase 1.5; replaced in Phase 2/3/4
-// Lead enrichment registration commented out
 
 // Home search
 builder.Services.AddSingleton<IHomeSearchProvider>(sp =>

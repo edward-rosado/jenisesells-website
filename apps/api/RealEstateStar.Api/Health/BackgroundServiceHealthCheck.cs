@@ -15,7 +15,7 @@ namespace RealEstateStar.Api.Health;
 /// </summary>
 public sealed class BackgroundServiceHealthCheck(
     BackgroundServiceHealthTracker tracker,
-    LeadProcessingChannel leadChannel,
+    LeadOrchestratorChannel leadChannel,
     CmaProcessingChannel cmaChannel,
     HomeSearchProcessingChannel homeSearchChannel,
     ILogger<BackgroundServiceHealthCheck> logger) : IHealthCheck
@@ -30,7 +30,7 @@ public sealed class BackgroundServiceHealthCheck(
         var stuckWorkers = new List<string>();
         var data = new Dictionary<string, object>();
 
-        CheckWorker("LeadProcessingWorker", leadChannel.Count, now, stuckWorkers, data);
+        CheckWorker("LeadOrchestrator", leadChannel.Count, now, stuckWorkers, data);
         CheckWorker("CmaProcessingWorker", cmaChannel.Count, now, stuckWorkers, data);
         CheckWorker("HomeSearchProcessingWorker", homeSearchChannel.Count, now, stuckWorkers, data);
 

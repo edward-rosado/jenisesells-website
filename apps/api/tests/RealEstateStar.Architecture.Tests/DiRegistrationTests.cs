@@ -7,6 +7,7 @@ using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Notifications.Interfaces;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Privacy.Interfaces;
+using RealEstateStar.Workers.Leads;
 
 namespace RealEstateStar.Architecture.Tests;
 
@@ -64,8 +65,11 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
     [InlineData(typeof(IAnthropicClient))]
     [InlineData(typeof(IGwsService))]
     [InlineData(typeof(ILeadStore))]
-    // TODO: Pipeline redesign — ILeadNotifier removed in Phase 1.5; replaced in Phase 2/3/4
-    // [InlineData(typeof(ILeadNotifier))]
+    [InlineData(typeof(ILeadScorer))]
+    [InlineData(typeof(ILeadEmailDrafter))]
+    [InlineData(typeof(IAgentNotifier))]
+    [InlineData(typeof(LeadOrchestratorChannel))]
+    [InlineData(typeof(PdfProcessingChannel))]
     [InlineData(typeof(ILeadDataDeletion))]
     [InlineData(typeof(IMarketingConsentLog))]
     [InlineData(typeof(IRentCastClient))]

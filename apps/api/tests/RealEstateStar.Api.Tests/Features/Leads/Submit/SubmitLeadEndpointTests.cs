@@ -18,8 +18,7 @@ using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.DataServices.Config;
 using RealEstateStar.Api.Tests.Integration;
-using RealEstateStar.Workers.Cma;
-using RealEstateStar.Workers.HomeSearch;
+using RealEstateStar.Workers.Leads;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Submit;
 
@@ -305,9 +304,7 @@ public class SubmitLeadEndpointUnitTests
         Mock<IAccountConfigService> AccountConfig,
         Mock<ILeadStore> LeadStore,
         Mock<IMarketingConsentLog> ConsentLog,
-        LeadProcessingChannel ProcessingChannel,
-        CmaProcessingChannel CmaChannel,
-        HomeSearchProcessingChannel HomeSearchChannel,
+        LeadOrchestratorChannel OrchestratorChannel,
         Mock<ILogger<SubmitLeadEndpoint>> Logger,
         Mock<IConsentAuditService> ConsentAudit,
         Mock<IComplianceConsentWriter> ComplianceWriter,
@@ -331,9 +328,7 @@ public class SubmitLeadEndpointUnitTests
             .Setup(s => s.RecordConsentAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var channel = new LeadProcessingChannel();
-        var cmaChannel = new CmaProcessingChannel();
-        var homeSearchChannel = new HomeSearchProcessingChannel();
+        var orchestratorChannel = new LeadOrchestratorChannel();
         var logger = new Mock<ILogger<SubmitLeadEndpoint>>();
 
         var consentAudit = new Mock<IConsentAuditService>();
@@ -353,7 +348,7 @@ public class SubmitLeadEndpointUnitTests
             .Setup(s => s.RecordAsync(It.IsAny<Lead>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        return new Mocks(accountConfig, leadStore, consentLog, channel, cmaChannel, homeSearchChannel, logger, consentAudit, complianceWriter, consentHmacOptions, deadLetterStore);
+        return new Mocks(accountConfig, leadStore, consentLog, orchestratorChannel, logger, consentAudit, complianceWriter, consentHmacOptions, deadLetterStore);
     }
 
     private static HttpContext MakeHttpContext(
@@ -377,9 +372,7 @@ public class SubmitLeadEndpointUnitTests
             m.AccountConfig.Object,
             m.LeadStore.Object,
             m.ConsentLog.Object,
-            m.ProcessingChannel,
-            m.CmaChannel,
-            m.HomeSearchChannel,
+            m.OrchestratorChannel,
             httpContext ?? MakeHttpContext(),
             m.Logger.Object,
             m.ConsentAudit.Object,
@@ -612,12 +605,12 @@ public class SubmitLeadEndpointUnitTests
 
         await CallHandle(m);
 
-        // The channel should have exactly one item
-        m.ProcessingChannel.Reader.TryRead(out var processingRequest).Should().BeTrue();
-        processingRequest.Should().NotBeNull();
-        processingRequest!.AgentId.Should().Be("test-agent");
-        processingRequest.Lead.Email.Should().Be("jane@example.com");
-        processingRequest.CorrelationId.Should().NotBeNullOrEmpty();
+        // The orchestrator channel should have exactly one item
+        m.OrchestratorChannel.Reader.TryRead(out var orchestrationRequest).Should().BeTrue();
+        orchestrationRequest.Should().NotBeNull();
+        orchestrationRequest!.AgentId.Should().Be("test-agent");
+        orchestrationRequest.Lead.Email.Should().Be("jane@example.com");
+        orchestrationRequest.CorrelationId.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
@@ -628,8 +621,8 @@ public class SubmitLeadEndpointUnitTests
 
         await CallHandle(m, request);
 
-        m.ProcessingChannel.Reader.TryRead(out var processingRequest).Should().BeTrue();
-        processingRequest!.Lead.LeadType.Should().Be(LeadType.Seller);
+        m.OrchestratorChannel.Reader.TryRead(out var orchestrationRequest).Should().BeTrue();
+        orchestrationRequest!.Lead.LeadType.Should().Be(LeadType.Seller);
     }
 
     // -------------------------------------------------------------------------
