@@ -150,7 +150,7 @@ public class WhatsAppNotifierTests : IDisposable
     }
 
     // -------------------------------------------------------------------------
-    // Test 6: WhatsAppNotRegisteredException — log [WA-040], no throw
+    // Test 6: WhatsAppNotRegisteredException — log [WA-041], no throw
     // -------------------------------------------------------------------------
     [Fact]
     public async Task NotifyAsync_FallsGracefully_OnNotRegistered()
@@ -169,7 +169,7 @@ public class WhatsAppNotifierTests : IDisposable
         _log.Verify(l => l.Log(
             LogLevel.Warning,
             It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("WA-040")),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("WA-041")),
             It.IsAny<Exception?>(),
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
