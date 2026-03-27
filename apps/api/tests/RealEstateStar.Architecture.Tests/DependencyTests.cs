@@ -22,6 +22,7 @@ public class DependencyTests
     [InlineData("RealEstateStar.Notifications", new[] { "Domain" })]
     [InlineData("RealEstateStar.Workers.Shared", new[] { "Domain" })]
     [InlineData("RealEstateStar.Workers.Shared.Pdf", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Shared.LeadCommunicator", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Leads", new[] { "Domain", "Workers.Shared", "Workers.Cma", "Workers.HomeSearch" })]
     [InlineData("RealEstateStar.Workers.Cma", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.HomeSearch", new[] { "Domain", "Workers.Shared" })]
