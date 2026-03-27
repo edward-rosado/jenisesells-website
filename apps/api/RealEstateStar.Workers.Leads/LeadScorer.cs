@@ -87,9 +87,6 @@ public class LeadScorer : ILeadScorer
         var totalWeight = factors.Sum(f => f.Weight);
         var overall = (int)Math.Round(factors.Sum(f => f.Score * f.Weight) / totalWeight);
 
-        // Determine bucket
-        var bucket = overall >= 70 ? "Hot" : overall >= 40 ? "Warm" : "Cool";
-
         // Determine lead type context
         var type = (isSeller, isBuyer) switch
         {
@@ -98,11 +95,16 @@ public class LeadScorer : ILeadScorer
             _ => "buyer"
         };
 
-        return new LeadScore
+        var score = new LeadScore
         {
             OverallScore = overall,
             Factors = factors,
-            Explanation = $"{bucket} {type} lead — {lead.Timeline} timeline, score {overall}/100"
+            Explanation = ""
+        };
+
+        return score with
+        {
+            Explanation = $"{score.Bucket} {type} lead — {lead.Timeline} timeline, score {overall}/100"
         };
     }
 }
