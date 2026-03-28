@@ -24,11 +24,11 @@ public class RecordTelemetryEndpoint : IEndpoint
         // Event is guaranteed non-null by [Required] validation above
         switch (request.Event!.Value)
         {
-            case FormEvent.Viewed:    LeadDiagnostics.FormViewed.Add(1);    break;
-            case FormEvent.Started:   LeadDiagnostics.FormStarted.Add(1);   break;
+            case FormEvent.Viewed: LeadDiagnostics.FormViewed.Add(1); break;
+            case FormEvent.Started: LeadDiagnostics.FormStarted.Add(1); break;
             case FormEvent.Submitted: LeadDiagnostics.FormSubmitted.Add(1); break;
             case FormEvent.Succeeded: LeadDiagnostics.FormSucceeded.Add(1); break;
-            case FormEvent.Failed:    LeadDiagnostics.FormFailed.Add(1);    break;
+            case FormEvent.Failed: LeadDiagnostics.FormFailed.Add(1); break;
         }
 
         return Results.NoContent();

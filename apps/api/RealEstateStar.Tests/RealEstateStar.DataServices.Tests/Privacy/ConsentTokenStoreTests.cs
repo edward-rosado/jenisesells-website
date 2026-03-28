@@ -50,8 +50,10 @@ public class ConsentTokenStoreTests
     {
         var entry = new ConsentTokenEntry
         {
-            PartitionKey = "agent-1", RowKey = "abc123hash",
-            LeadId = Guid.NewGuid(), EmailHash = "emailhash"
+            PartitionKey = "agent-1",
+            RowKey = "abc123hash",
+            LeadId = Guid.NewGuid(),
+            EmailHash = "emailhash"
         };
         _tableClient.Setup(tc => tc.GetEntityAsync<ConsentTokenEntry>(
             "agent-1", "abc123hash", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
@@ -69,8 +71,10 @@ public class ConsentTokenStoreTests
     {
         var entry = new ConsentTokenEntry
         {
-            PartitionKey = "agent-1", RowKey = "abc123hash",
-            LeadId = Guid.NewGuid(), EmailHash = "myhash"
+            PartitionKey = "agent-1",
+            RowKey = "abc123hash",
+            LeadId = Guid.NewGuid(),
+            EmailHash = "myhash"
         };
         _tableClient.Setup(tc => tc.GetEntityAsync<ConsentTokenEntry>(
             "agent-1", "abc123hash", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))

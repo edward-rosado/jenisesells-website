@@ -8,9 +8,14 @@ public class LeadTests
     {
         var lead = new Lead
         {
-            Id = Guid.NewGuid(), AgentId = "test", LeadType = LeadType.Buyer,
-            FirstName = "Jane", LastName = "Doe",
-            Email = "j@e.com", Phone = "555", Timeline = "asap"
+            Id = Guid.NewGuid(),
+            AgentId = "test",
+            LeadType = LeadType.Buyer,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "j@e.com",
+            Phone = "555",
+            Timeline = "asap"
         };
         Assert.Equal("Jane Doe", lead.FullName);
     }

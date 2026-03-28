@@ -21,16 +21,16 @@ public class CompAggregatorTests
         string address = "456 Oak Ave",
         DateOnly? saleDate = null,
         CompSource source = CompSource.Zillow) => new()
-    {
-        Address = address,
-        SalePrice = 500_000m,
-        SaleDate = saleDate ?? new DateOnly(2025, 1, 15),
-        Beds = 3,
-        Baths = 2,
-        Sqft = 1800,
-        DistanceMiles = 0.5,
-        Source = source
-    };
+        {
+            Address = address,
+            SalePrice = 500_000m,
+            SaleDate = saleDate ?? new DateOnly(2025, 1, 15),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 1800,
+            DistanceMiles = 0.5,
+            Source = source
+        };
 
     private static Mock<ICompSource> MakeSource(string name, List<Comp> comps)
     {

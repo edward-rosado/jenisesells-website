@@ -13,10 +13,18 @@ public class ComplianceConsentWriterTests
         var sut = new ComplianceConsentWriter(_storageProvider.Object, NullLogger<ComplianceConsentWriter>.Instance);
         var consent = new MarketingConsent
         {
-            LeadId = Guid.NewGuid(), Email = "test@example.com", FirstName = "Test", LastName = "User",
-            OptedIn = true, ConsentText = "Consented", Channels = ["email", "calls"],
-            IpAddress = "127.0.0.1", UserAgent = "TestAgent", Timestamp = DateTime.UtcNow,
-            Action = ConsentAction.OptIn, Source = ConsentSource.LeadForm,
+            LeadId = Guid.NewGuid(),
+            Email = "test@example.com",
+            FirstName = "Test",
+            LastName = "User",
+            OptedIn = true,
+            ConsentText = "Consented",
+            Channels = ["email", "calls"],
+            IpAddress = "127.0.0.1",
+            UserAgent = "TestAgent",
+            Timestamp = DateTime.UtcNow,
+            Action = ConsentAction.OptIn,
+            Source = ConsentSource.LeadForm,
         };
 
         await sut.WriteAsync("agent-1", consent, "hmac-sig-123", CancellationToken.None);
@@ -36,10 +44,18 @@ public class ComplianceConsentWriterTests
         var sut = new ComplianceConsentWriter(_storageProvider.Object, NullLogger<ComplianceConsentWriter>.Instance);
         var consent = new MarketingConsent
         {
-            LeadId = Guid.NewGuid(), Email = "x@y.com", FirstName = "A", LastName = "B",
-            OptedIn = true, ConsentText = "C", Channels = ["email"], IpAddress = "0",
-            UserAgent = "U", Timestamp = DateTime.UtcNow,
-            Action = ConsentAction.OptIn, Source = ConsentSource.LeadForm,
+            LeadId = Guid.NewGuid(),
+            Email = "x@y.com",
+            FirstName = "A",
+            LastName = "B",
+            OptedIn = true,
+            ConsentText = "C",
+            Channels = ["email"],
+            IpAddress = "0",
+            UserAgent = "U",
+            Timestamp = DateTime.UtcNow,
+            Action = ConsentAction.OptIn,
+            Source = ConsentSource.LeadForm,
         };
 
         // Should not throw — compliance writes are non-blocking

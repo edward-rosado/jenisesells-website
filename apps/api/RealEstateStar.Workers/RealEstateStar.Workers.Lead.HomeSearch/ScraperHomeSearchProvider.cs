@@ -149,7 +149,7 @@ public class ScraperHomeSearchProvider(
         sb.AppendLine($"Area: {criteria.Area}");
         if (criteria.MinPrice.HasValue) sb.AppendLine($"Min Price: ${criteria.MinPrice.Value:N0}");
         if (criteria.MaxPrice.HasValue) sb.AppendLine($"Max Price: ${criteria.MaxPrice.Value:N0}");
-        if (criteria.MinBeds.HasValue)  sb.AppendLine($"Min Beds: {criteria.MinBeds.Value}");
+        if (criteria.MinBeds.HasValue) sb.AppendLine($"Min Beds: {criteria.MinBeds.Value}");
         if (criteria.MinBaths.HasValue) sb.AppendLine($"Min Baths: {criteria.MinBaths.Value}");
         return sb.ToString();
     }
@@ -183,17 +183,17 @@ public class ScraperHomeSearchProvider(
         foreach (var item in array.EnumerateArray())
         {
             var address = item.GetProperty("address").GetString() ?? "";
-            var city    = item.GetProperty("city").GetString() ?? "";
-            var state   = item.GetProperty("state").GetString() ?? "";
-            var zip     = item.GetProperty("zip").GetString() ?? "";
-            var price   = item.GetProperty("price").GetDecimal();
-            var beds    = item.GetProperty("beds").GetInt32();
-            var baths   = item.GetProperty("baths").GetDecimal();
-            int? sqft   = item.TryGetProperty("sqft", out var sqftEl) && sqftEl.ValueKind == JsonValueKind.Number
+            var city = item.GetProperty("city").GetString() ?? "";
+            var state = item.GetProperty("state").GetString() ?? "";
+            var zip = item.GetProperty("zip").GetString() ?? "";
+            var price = item.GetProperty("price").GetDecimal();
+            var beds = item.GetProperty("beds").GetInt32();
+            var baths = item.GetProperty("baths").GetDecimal();
+            int? sqft = item.TryGetProperty("sqft", out var sqftEl) && sqftEl.ValueKind == JsonValueKind.Number
                 ? sqftEl.GetInt32()
                 : null;
             var whyThisFits = item.TryGetProperty("whyThisFits", out var why) ? why.GetString() : null;
-            var listingUrl  = item.TryGetProperty("listingUrl", out var urlEl) ? urlEl.GetString() : null;
+            var listingUrl = item.TryGetProperty("listingUrl", out var urlEl) ? urlEl.GetString() : null;
 
             listings.Add(new Listing(address, city, state, zip, price, beds, baths, sqft, whyThisFits, listingUrl));
         }

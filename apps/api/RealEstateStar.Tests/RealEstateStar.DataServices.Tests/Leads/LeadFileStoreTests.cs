@@ -21,18 +21,18 @@ public class LeadFileStoreTests
         LeadStatus status = LeadStatus.Received,
         string firstName = "Jane",
         string lastName = "Doe") => new()
-    {
-        Id = id ?? new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
-        AgentId = AgentId,
-        LeadType = LeadType.Buyer,
-        FirstName = firstName,
-        LastName = lastName,
-        Email = $"{firstName.ToLower()}@example.com",
-        Phone = "5551234567",
-        Timeline = "1-3months",
-        Status = status,
-        ReceivedAt = new DateTime(2026, 3, 19, 14, 0, 0, DateTimeKind.Utc),
-    };
+        {
+            Id = id ?? new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
+            AgentId = AgentId,
+            LeadType = LeadType.Buyer,
+            FirstName = firstName,
+            LastName = lastName,
+            Email = $"{firstName.ToLower()}@example.com",
+            Phone = "5551234567",
+            Timeline = "1-3months",
+            Status = status,
+            ReceivedAt = new DateTime(2026, 3, 19, 14, 0, 0, DateTimeKind.Utc),
+        };
 
     private static string MakeLeadProfileMarkdown(Lead lead) =>
         LeadMarkdownRenderer.RenderLeadProfile(lead);

@@ -11,9 +11,9 @@ public static partial class LeadMarkdownRenderer
     public static string RenderLeadProfile(Lead lead)
     {
         var sb = new StringBuilder();
-        var city  = lead.SellerDetails?.City  ?? lead.BuyerDetails?.City  ?? "";
+        var city = lead.SellerDetails?.City ?? lead.BuyerDetails?.City ?? "";
         var state = lead.SellerDetails?.State ?? lead.BuyerDetails?.State ?? "";
-        var tags  = BuildTags(lead);
+        var tags = BuildTags(lead);
 
         // YAML frontmatter
         sb.AppendLine("---");
@@ -60,8 +60,8 @@ public static partial class LeadMarkdownRenderer
                 : $"{s.Address}, {s.City}, {s.State} {s.Zip}";
             sb.AppendLine($"- **Address:** {addressLine}");
             if (s.PropertyType is not null) sb.AppendLine($"- **Property Type:** {s.PropertyType}");
-            if (s.Condition    is not null) sb.AppendLine($"- **Condition:** {s.Condition}");
-            if (s.AskingPrice  is not null) sb.AppendLine($"- **Asking Price:** {FormatCurrency(s.AskingPrice.Value)}");
+            if (s.Condition is not null) sb.AppendLine($"- **Condition:** {s.Condition}");
+            if (s.AskingPrice is not null) sb.AppendLine($"- **Asking Price:** {FormatCurrency(s.AskingPrice.Value)}");
             sb.AppendLine();
         }
 
@@ -70,11 +70,11 @@ public static partial class LeadMarkdownRenderer
         {
             sb.AppendLine("## Buying");
             sb.AppendLine($"- **Desired Area:** {b.City}, {b.State}");
-            if (b.MaxBudget    is not null) sb.AppendLine($"- **Max Budget:** {FormatCurrency(b.MaxBudget.Value)}");
-            if (b.Bedrooms     is not null) sb.AppendLine($"- **Bedrooms:** {b.Bedrooms}");
-            if (b.Bathrooms    is not null) sb.AppendLine($"- **Bathrooms:** {b.Bathrooms}");
+            if (b.MaxBudget is not null) sb.AppendLine($"- **Max Budget:** {FormatCurrency(b.MaxBudget.Value)}");
+            if (b.Bedrooms is not null) sb.AppendLine($"- **Bedrooms:** {b.Bedrooms}");
+            if (b.Bathrooms is not null) sb.AppendLine($"- **Bathrooms:** {b.Bathrooms}");
             if (b.PropertyTypes is { Count: > 0 }) sb.AppendLine($"- **Property Types:** {string.Join(", ", b.PropertyTypes)}");
-            if (b.MustHaves    is { Count: > 0 }) sb.AppendLine($"- **Must-Haves:** {string.Join(", ", b.MustHaves)}");
+            if (b.MustHaves is { Count: > 0 }) sb.AppendLine($"- **Must-Haves:** {string.Join(", ", b.MustHaves)}");
             sb.AppendLine();
         }
 
@@ -114,7 +114,7 @@ public static partial class LeadMarkdownRenderer
     public static string RenderHomeSearchResults(Lead lead, List<Listing> listings)
     {
         var sb = new StringBuilder();
-        var b  = lead.BuyerDetails;
+        var b = lead.BuyerDetails;
 
         // YAML frontmatter
         sb.AppendLine("---");
@@ -131,9 +131,9 @@ public static partial class LeadMarkdownRenderer
         // Search criteria
         if (b is not null)
         {
-            var budget   = b.MaxBudget  is not null ? $" • Up to {FormatCurrency(b.MaxBudget.Value)}" : "";
-            var beds     = b.Bedrooms   is not null ? $" • {b.Bedrooms}+ bed" : "";
-            var baths    = b.Bathrooms  is not null ? $" • {b.Bathrooms}+ bath" : "";
+            var budget = b.MaxBudget is not null ? $" • Up to {FormatCurrency(b.MaxBudget.Value)}" : "";
+            var beds = b.Bedrooms is not null ? $" • {b.Bedrooms}+ bed" : "";
+            var baths = b.Bathrooms is not null ? $" • {b.Bathrooms}+ bath" : "";
             sb.AppendLine($"**Search Criteria:** {b.City}, {b.State}{budget}{beds}{baths}");
         }
         sb.AppendLine();
@@ -148,7 +148,7 @@ public static partial class LeadMarkdownRenderer
 
         for (var i = 0; i < listings.Count; i++)
         {
-            var l    = listings[i];
+            var l = listings[i];
             var sqft = l.Sqft is not null ? $" / {l.Sqft.Value:N0} sqft" : "";
             sb.AppendLine($"## {i + 1}. {l.Address}");
             sb.AppendLine($"**{l.City}, {l.State} {l.Zip}** • ${l.Price:N0} • {l.Beds} bed / {l.Baths} bath{sqft}");
@@ -192,12 +192,12 @@ public static partial class LeadMarkdownRenderer
 
     internal static string FormatTimeline(string timeline) => timeline.ToLowerInvariant().Trim() switch
     {
-        "asap"       => "ASAP",
-        "1-3months"  => "1–3 months",
-        "3-6months"  => "3–6 months",
+        "asap" => "ASAP",
+        "1-3months" => "1–3 months",
+        "3-6months" => "3–6 months",
         "6-12months" => "6–12 months",
         "justlooking" => "Just looking",
-        _            => timeline
+        _ => timeline
     };
 
     // ─── Private helpers ─────────────────────────────────────────────────────────

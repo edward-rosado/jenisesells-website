@@ -124,26 +124,26 @@ internal static class LeadRequests
         string email = "jane@example.com",
         string consentToken = "tok-abc123",
         bool marketingOptedIn = true) => new()
-    {
-        Id = Guid.NewGuid(),
-        AgentId = agentId,
-        LeadType = LeadType.Seller,
-        FirstName = "Jane",
-        LastName = "Doe",
-        Email = email,
-        Phone = "555-123-4567",
-        Timeline = "3-6 months",
-        ConsentToken = consentToken,
-        MarketingOptedIn = marketingOptedIn,
-        Status = LeadStatus.Received,
-        SellerDetails = new SellerDetails
         {
-            Address = "123 Main St",
-            City = "Springfield",
-            State = "NJ",
-            Zip = "07081"
-        }
-    };
+            Id = Guid.NewGuid(),
+            AgentId = agentId,
+            LeadType = LeadType.Seller,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = email,
+            Phone = "555-123-4567",
+            Timeline = "3-6 months",
+            ConsentToken = consentToken,
+            MarketingOptedIn = marketingOptedIn,
+            Status = LeadStatus.Received,
+            SellerDetails = new SellerDetails
+            {
+                Address = "123 Main St",
+                City = "Springfield",
+                State = "NJ",
+                Zip = "07081"
+            }
+        };
 }
 
 // ---------------------------------------------------------------------------

@@ -37,20 +37,20 @@ public class SendWhatsAppWelcomeToolTests
         string phoneNumber = "+15551234567",
         bool optedIn = true,
         string firstName = "Jenise") => new()
-    {
-        Handle = "agent-001",
-        Agent = new AccountAgent { Name = firstName + " Buckalew", Phone = "555-000-0000", Email = "jenise@example.com" },
-        Integrations = new AccountIntegrations
         {
-            WhatsApp = new AccountWhatsApp
+            Handle = "agent-001",
+            Agent = new AccountAgent { Name = firstName + " Buckalew", Phone = "555-000-0000", Email = "jenise@example.com" },
+            Integrations = new AccountIntegrations
             {
-                PhoneNumber = phoneNumber,
-                OptedIn = optedIn,
-                Status = "not_registered",
-                WelcomeSent = false
+                WhatsApp = new AccountWhatsApp
+                {
+                    PhoneNumber = phoneNumber,
+                    OptedIn = optedIn,
+                    Status = "not_registered",
+                    WelcomeSent = false
+                }
             }
-        }
-    };
+        };
 
     private static readonly JsonElement EmptyParameters = JsonDocument.Parse("{}").RootElement;
 

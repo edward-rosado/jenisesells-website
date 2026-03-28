@@ -268,22 +268,22 @@ public class SubmitLeadEndpointUnitTests
         LeadType? leadType = null,
         SellerDetailsRequest? seller = null,
         BuyerDetailsRequest? buyer = null) => new()
-    {
-        LeadType = leadType ?? LeadType.Buyer,
-        FirstName = "Jane",
-        LastName = "Doe",
-        Email = "jane@example.com",
-        Phone = "555-123-4567",
-        Timeline = "3-6 months",
-        Seller = seller,
-        Buyer = buyer ?? MakeBuyer(),
-        MarketingConsent = new MarketingConsentRequest
         {
-            OptedIn = true,
-            ConsentText = "I agree to receive marketing communications.",
-            Channels = ["email", "sms"]
-        }
-    };
+            LeadType = leadType ?? LeadType.Buyer,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@example.com",
+            Phone = "555-123-4567",
+            Timeline = "3-6 months",
+            Seller = seller,
+            Buyer = buyer ?? MakeBuyer(),
+            MarketingConsent = new MarketingConsentRequest
+            {
+                OptedIn = true,
+                ConsentText = "I agree to receive marketing communications.",
+                Channels = ["email", "sms"]
+            }
+        };
 
     private static SellerDetailsRequest MakeSeller() => new()
     {

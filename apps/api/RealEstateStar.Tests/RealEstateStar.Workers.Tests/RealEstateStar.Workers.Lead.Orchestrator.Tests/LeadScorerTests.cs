@@ -167,8 +167,15 @@ public class LeadScorerTests
             timeline: "asap",
             sellerDetails: new SellerDetails
             {
-                Address = "123 Main St", City = "Springfield", State = "IL", Zip = "62701",
-                Beds = 3, Baths = 2, Sqft = 2000, PropertyType = "Single Family", Condition = "Good"
+                Address = "123 Main St",
+                City = "Springfield",
+                State = "IL",
+                Zip = "62701",
+                Beds = 3,
+                Baths = 2,
+                Sqft = 2000,
+                PropertyType = "Single Family",
+                Condition = "Good"
             });
 
         var score = _scorer.Score(lead);

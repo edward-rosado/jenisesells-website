@@ -10,41 +10,41 @@ public class LeadMappersTests
         bool withBuyer = true,
         bool withSeller = true,
         string? notes = "Test notes") => new()
-    {
-        LeadType = LeadType.Both,
-        FirstName = "Jane",
-        LastName = "Doe",
-        Email = "jane@example.com",
-        Phone = "555-867-5309",
-        Timeline = "3-6 months",
-        Notes = notes,
-        MarketingConsent = new MarketingConsentRequest
         {
-            OptedIn = true,
-            ConsentText = "I agree to receive marketing communications.",
-            Channels = ["email", "sms"]
-        },
-        Buyer = withBuyer ? new BuyerDetailsRequest
-        {
-            DesiredArea = desiredArea ?? "Kill Devil Hills, NC",
-            MinPrice = 300_000m,
-            MaxPrice = 500_000m,
-            MinBeds = 3,
-            MinBaths = 2,
-            PreApproved = "yes",
-            PreApprovalAmount = 480_000m
-        } : null,
-        Seller = withSeller ? new SellerDetailsRequest
-        {
-            Address = "123 Main St",
-            City = "Kill Devil Hills",
-            State = "NC",
-            Zip = "27948",
-            Beds = 4,
-            Baths = 2,
-            Sqft = 1800
-        } : null
-    };
+            LeadType = LeadType.Both,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@example.com",
+            Phone = "555-867-5309",
+            Timeline = "3-6 months",
+            Notes = notes,
+            MarketingConsent = new MarketingConsentRequest
+            {
+                OptedIn = true,
+                ConsentText = "I agree to receive marketing communications.",
+                Channels = ["email", "sms"]
+            },
+            Buyer = withBuyer ? new BuyerDetailsRequest
+            {
+                DesiredArea = desiredArea ?? "Kill Devil Hills, NC",
+                MinPrice = 300_000m,
+                MaxPrice = 500_000m,
+                MinBeds = 3,
+                MinBaths = 2,
+                PreApproved = "yes",
+                PreApprovalAmount = 480_000m
+            } : null,
+            Seller = withSeller ? new SellerDetailsRequest
+            {
+                Address = "123 Main St",
+                City = "Kill Devil Hills",
+                State = "NC",
+                Zip = "27948",
+                Beds = 4,
+                Baths = 2,
+                Sqft = 1800
+            } : null
+        };
 
     [Fact]
     public void ToLead_MapsScalarFields()

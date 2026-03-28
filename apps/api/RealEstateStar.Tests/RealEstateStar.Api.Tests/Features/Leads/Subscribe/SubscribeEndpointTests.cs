@@ -19,18 +19,18 @@ public class SubscribeEndpointTests
         string email = "jane@example.com",
         string consentToken = "valid-token-abc123",
         bool? marketingOptedIn = false) => new()
-    {
-        Id = Guid.NewGuid(),
-        AgentId = AgentId,
-        LeadType = LeadType.Buyer,
-        FirstName = "Jane",
-        LastName = "Doe",
-        Email = email,
-        Phone = "5551234",
-        Timeline = "1-3months",
-        ConsentToken = consentToken,
-        MarketingOptedIn = marketingOptedIn,
-    };
+        {
+            Id = Guid.NewGuid(),
+            AgentId = AgentId,
+            LeadType = LeadType.Buyer,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = email,
+            Phone = "5551234",
+            Timeline = "1-3months",
+            ConsentToken = consentToken,
+            MarketingOptedIn = marketingOptedIn,
+        };
 
     private static (Mock<IConsentAuditService> audit, Mock<IComplianceConsentWriter> writer, IOptions<ConsentHmacOptions> opts) MakeTripleWriteMocks()
     {

@@ -116,8 +116,12 @@ file sealed class NoOpCmaAnalyzer : ICmaAnalyzer
     public Task<CmaAnalysis> AnalyzeAsync(Lead lead, List<Comp> comps, CancellationToken ct) =>
         Task.FromResult(new CmaAnalysis
         {
-            ValueLow = 0, ValueMid = 0, ValueHigh = 0,
-            MarketNarrative = "no-op", MarketTrend = "Balanced", MedianDaysOnMarket = 0
+            ValueLow = 0,
+            ValueMid = 0,
+            ValueHigh = 0,
+            MarketNarrative = "no-op",
+            MarketTrend = "Balanced",
+            MedianDaysOnMarket = 0
         });
 }
 

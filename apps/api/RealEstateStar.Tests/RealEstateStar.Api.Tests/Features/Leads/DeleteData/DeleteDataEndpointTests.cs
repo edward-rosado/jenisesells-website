@@ -36,11 +36,11 @@ public class DeleteDataEndpointTests
         string email = "lead@example.com",
         string token = "valid-token",
         string reason = "gdpr_erasure") => new()
-    {
-        Email = email,
-        Token = token,
-        Reason = reason
-    };
+        {
+            Email = email,
+            Token = token,
+            Reason = reason
+        };
 
     [Fact]
     public async Task Handle_Returns200WithDeletedItems_WhenTokenIsValid()

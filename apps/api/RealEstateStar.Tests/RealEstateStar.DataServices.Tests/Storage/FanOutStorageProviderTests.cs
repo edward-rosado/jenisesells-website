@@ -300,7 +300,7 @@ public class FanOutStorageProviderTests
         result[0][0].Should().Be("2026-03-23"); // confirms data row, not header
     }
 
-// ── RedactRowsAsync ────────────────────────────────────────────────────────
+    // ── RedactRowsAsync ────────────────────────────────────────────────────────
 
     [Fact]
     public async Task RedactRowsAsync_PassesToGwsService()

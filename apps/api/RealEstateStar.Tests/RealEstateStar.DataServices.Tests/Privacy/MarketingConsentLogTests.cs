@@ -182,12 +182,18 @@ public class MarketingConsentLogTests
 
         var consent = new MarketingConsent
         {
-            LeadId = Guid.NewGuid(), Email = "test@example.com",
-            FirstName = "Test", LastName = "User", OptedIn = true,
-            ConsentText = "Consented", Channels = ["email"],
-            IpAddress = "127.0.0.1", UserAgent = "TestAgent",
+            LeadId = Guid.NewGuid(),
+            Email = "test@example.com",
+            FirstName = "Test",
+            LastName = "User",
+            OptedIn = true,
+            ConsentText = "Consented",
+            Channels = ["email"],
+            IpAddress = "127.0.0.1",
+            UserAgent = "TestAgent",
             Timestamp = DateTime.UtcNow,
-            Action = ConsentAction.OptIn, Source = ConsentSource.LeadForm,
+            Action = ConsentAction.OptIn,
+            Source = ConsentSource.LeadForm,
         };
 
         await consentLog.RecordConsentAsync("agent-1", consent, CancellationToken.None);
