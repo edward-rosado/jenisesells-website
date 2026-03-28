@@ -1,11 +1,9 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.Activities.Pdf;
 
 namespace RealEstateStar.Activities.Pdf.Tests;
 

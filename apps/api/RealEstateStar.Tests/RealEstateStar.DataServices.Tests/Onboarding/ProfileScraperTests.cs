@@ -1,11 +1,6 @@
 using System.Net;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
 using Moq.Protected;
-using RealEstateStar.DataServices.Onboarding;
-using RealEstateStar.Domain.Shared.Interfaces.External;
-using RealEstateStar.Domain.Shared.Models;
-using Xunit;
 
 namespace RealEstateStar.DataServices.Tests.Onboarding;
 

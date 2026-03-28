@@ -1,7 +1,5 @@
 using System.Net;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using Moq;
 
 namespace RealEstateStar.Clients.WhatsApp.Tests;
 

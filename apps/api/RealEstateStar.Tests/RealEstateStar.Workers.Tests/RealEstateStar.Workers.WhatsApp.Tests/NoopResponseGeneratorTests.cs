@@ -1,5 +1,4 @@
 using FluentAssertions;
-using RealEstateStar.Workers.WhatsApp;
 
 namespace RealEstateStar.Workers.WhatsApp.Tests;
 

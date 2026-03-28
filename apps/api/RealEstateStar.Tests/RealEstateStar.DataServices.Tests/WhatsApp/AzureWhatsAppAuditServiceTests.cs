@@ -1,8 +1,6 @@
 using Azure;
 using Azure.Data.Tables;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using Moq;
 
 namespace RealEstateStar.DataServices.Tests.WhatsApp;
 

@@ -1,11 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using RealEstateStar.Api.Features.Onboarding;
-using RealEstateStar.DataServices.Onboarding;
 using Stripe;
 using Stripe.Checkout;
-using Xunit;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.Services;
 

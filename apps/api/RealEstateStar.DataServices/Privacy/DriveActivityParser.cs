@@ -1,4 +1,3 @@
-using RealEstateStar.Domain.Shared.Models;
 using System.Text.Json;
 
 namespace RealEstateStar.DataServices.Privacy;

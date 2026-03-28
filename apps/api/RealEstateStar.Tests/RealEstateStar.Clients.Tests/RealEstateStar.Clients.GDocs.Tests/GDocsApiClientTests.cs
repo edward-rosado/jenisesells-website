@@ -2,7 +2,6 @@ using System.Text;
 using FluentAssertions;
 using Google.Apis.Docs.v1.Data;
 using Microsoft.Extensions.Logging.Abstractions;
-using RealEstateStar.Clients.GDocs;
 using RealEstateStar.Clients.GoogleOAuth;
 using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Models;

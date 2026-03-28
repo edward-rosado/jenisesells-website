@@ -1,5 +1,4 @@
 using RealEstateStar.DataServices.Leads;
-using RealEstateStar.Domain.Privacy.Interfaces;
 
 namespace RealEstateStar.DataServices.Privacy;
 

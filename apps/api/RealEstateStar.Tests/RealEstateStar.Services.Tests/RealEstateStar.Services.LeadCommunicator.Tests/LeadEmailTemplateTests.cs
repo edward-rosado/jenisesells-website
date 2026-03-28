@@ -1,6 +1,5 @@
 using FluentAssertions;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Services.LeadCommunicator;
 
 namespace RealEstateStar.Services.LeadCommunicator.Tests;
 

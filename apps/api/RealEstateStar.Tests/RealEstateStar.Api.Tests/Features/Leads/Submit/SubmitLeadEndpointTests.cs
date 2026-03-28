@@ -6,17 +6,10 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.DataServices.Leads;
-using RealEstateStar.DataServices.Privacy;
-using RealEstateStar.Domain.Privacy.Interfaces;
-using RealEstateStar.Api.Features.Leads.Submit;
-using RealEstateStar.DataServices.Config;
 using RealEstateStar.Api.Tests.Integration;
 using RealEstateStar.Workers.Lead.Orchestrator;
 

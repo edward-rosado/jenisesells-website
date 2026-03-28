@@ -1,5 +1,3 @@
-using RealEstateStar.Domain.Shared.Interfaces.Storage;
-
 namespace RealEstateStar.DataServices.Leads;
 
 public class LocalStorageProvider(string basePath) : IFileStorageProvider

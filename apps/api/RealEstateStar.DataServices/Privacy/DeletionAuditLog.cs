@@ -1,5 +1,3 @@
-using RealEstateStar.Domain.Privacy.Interfaces;
-
 namespace RealEstateStar.DataServices.Privacy;
 
 using Microsoft.Extensions.Logging;

@@ -1,7 +1,5 @@
 using RealEstateStar.Api.Features.Onboarding.Services;
 using System.Text.Json;
-using System.Threading.RateLimiting;
-using RealEstateStar.DataServices.Onboarding;
 using RealEstateStar.Api.Infrastructure;
 
 namespace RealEstateStar.Api.Features.Onboarding.PostChat;

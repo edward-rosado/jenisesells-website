@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using RealEstateStar.Api.Features.WhatsApp.Webhook.VerifyWebhook;
 

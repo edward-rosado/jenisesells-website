@@ -1,6 +1,4 @@
-using RealEstateStar.Domain.WhatsApp.Interfaces;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.DataServices.WhatsApp;
 

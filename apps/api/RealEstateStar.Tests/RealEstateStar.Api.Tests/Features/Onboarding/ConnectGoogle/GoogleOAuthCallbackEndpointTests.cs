@@ -1,12 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.ConnectGoogle;
-using RealEstateStar.DataServices.Onboarding;
-using RealEstateStar.Domain.Shared.Interfaces.Storage;
-using RealEstateStar.Domain.Shared.Models;
-using Xunit;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.ConnectGoogle;
 

@@ -1,6 +1,3 @@
-using RealEstateStar.Domain.Shared.Interfaces.Storage;
-using RealEstateStar.Domain.Shared.Models;
-
 namespace RealEstateStar.DataServices.Storage;
 
 /// <summary>

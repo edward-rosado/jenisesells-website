@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace RealEstateStar.Clients.Gws.Tests;
 
 public class GwsServiceTests

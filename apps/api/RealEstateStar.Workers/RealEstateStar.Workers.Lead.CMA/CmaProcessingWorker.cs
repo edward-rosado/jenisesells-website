@@ -3,9 +3,7 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Cma;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
-using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Shared;
-using RealEstateStar.Workers.Shared.Context;
 
 namespace RealEstateStar.Workers.Lead.CMA;
 

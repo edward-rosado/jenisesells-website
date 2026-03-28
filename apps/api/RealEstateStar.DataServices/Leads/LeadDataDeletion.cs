@@ -1,12 +1,7 @@
-using RealEstateStar.Domain.Leads.Interfaces;
-using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Privacy.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Domain.Shared.Interfaces.External;
-using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.DataServices.Leads;
 

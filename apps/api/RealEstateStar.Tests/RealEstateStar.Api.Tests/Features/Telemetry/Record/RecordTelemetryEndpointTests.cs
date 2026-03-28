@@ -3,10 +3,8 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using RealEstateStar.Api.Features.Telemetry.Record;
 using RealEstateStar.Api.Tests.Integration;
-using RealEstateStar.Domain.Leads;
 
 namespace RealEstateStar.Api.Tests.Features.Telemetry.Record;
 

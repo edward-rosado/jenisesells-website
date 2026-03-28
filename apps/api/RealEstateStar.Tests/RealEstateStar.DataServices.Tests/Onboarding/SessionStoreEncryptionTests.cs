@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging.Abstractions;
-using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.DataServices.Tests.Onboarding;
 

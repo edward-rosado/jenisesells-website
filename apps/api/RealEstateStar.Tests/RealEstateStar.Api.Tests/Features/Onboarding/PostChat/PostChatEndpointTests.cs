@@ -5,12 +5,8 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.PostChat;
-using RealEstateStar.DataServices.Onboarding;
 using Microsoft.Extensions.Logging.Abstractions;
-using RealEstateStar.DataServices.Onboarding;
-using Xunit;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.PostChat;
 

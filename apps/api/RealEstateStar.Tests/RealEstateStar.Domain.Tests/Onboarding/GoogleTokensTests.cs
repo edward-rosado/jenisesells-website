@@ -1,6 +1,3 @@
-using RealEstateStar.Domain.Shared.Models;
-using Xunit;
-
 namespace RealEstateStar.Domain.Tests.Onboarding;
 
 // TODO: LOW-8 — Add boundary test for exactly 5-minute expiry buffer

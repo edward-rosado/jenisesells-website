@@ -1,10 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
-using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Privacy.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.DataServices.Privacy;
 

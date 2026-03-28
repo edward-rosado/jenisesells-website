@@ -1,8 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Mvc;
-using RealEstateStar.DataServices.Leads;
-using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Api.Infrastructure;
 
 namespace RealEstateStar.Api.Features.Leads.RequestDeletion;

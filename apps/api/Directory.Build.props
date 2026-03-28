@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Enable code style diagnostics so dotnet format with IDE0005 removes unused usings -->
+    <EnableCodeStyleSeverity>true</EnableCodeStyleSeverity>
+  </PropertyGroup>
+</Project>

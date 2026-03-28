@@ -6,7 +6,6 @@ using RealEstateStar.Domain.Cma.Models;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.Activities.Pdf;
 
 namespace RealEstateStar.Activities.Pdf.Tests;
 

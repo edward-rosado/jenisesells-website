@@ -1,8 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using RealEstateStar.Domain.Leads.Interfaces;
-using RealEstateStar.Services.AgentNotifier;
-using RealEstateStar.Services.LeadCommunicator;
-using RealEstateStar.Activities.Pdf;
 
 namespace RealEstateStar.Workers.Lead.Orchestrator;
 

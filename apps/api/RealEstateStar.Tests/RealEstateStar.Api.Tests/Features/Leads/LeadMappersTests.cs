@@ -1,6 +1,3 @@
-using RealEstateStar.DataServices.Leads;
-using RealEstateStar.Api.Features.Leads.Submit;
-
 namespace RealEstateStar.Api.Tests.Features.Leads;
 
 public class LeadMappersTests

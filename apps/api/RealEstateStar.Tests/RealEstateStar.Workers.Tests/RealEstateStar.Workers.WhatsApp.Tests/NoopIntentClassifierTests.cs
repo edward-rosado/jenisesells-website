@@ -1,6 +1,5 @@
 using FluentAssertions;
 using RealEstateStar.Domain.WhatsApp.Models;
-using RealEstateStar.Workers.WhatsApp;
 
 namespace RealEstateStar.Workers.WhatsApp.Tests;
 

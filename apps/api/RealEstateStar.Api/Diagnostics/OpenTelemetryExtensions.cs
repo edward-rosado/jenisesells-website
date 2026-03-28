@@ -3,7 +3,6 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using RealEstateStar.Clients.Scraper;
-using RealEstateStar.Domain.WhatsApp;
 using RealEstateStar.Domain.Shared;
 
 namespace RealEstateStar.Api.Diagnostics;

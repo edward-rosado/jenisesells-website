@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using RealEstateStar.DataServices.Onboarding;
-using Xunit;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.Services;
 

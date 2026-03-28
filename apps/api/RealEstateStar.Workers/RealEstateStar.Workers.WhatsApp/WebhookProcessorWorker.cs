@@ -2,7 +2,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
 using RealEstateStar.Domain.WhatsApp.Interfaces;
-using RealEstateStar.Domain.WhatsApp.Models;
 
 namespace RealEstateStar.Workers.WhatsApp;
 

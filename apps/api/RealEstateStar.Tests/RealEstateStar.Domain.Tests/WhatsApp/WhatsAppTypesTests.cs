@@ -1,5 +1,4 @@
 using System.Text.Json;
-using FluentAssertions;
 
 namespace RealEstateStar.Domain.Tests.WhatsApp;
 

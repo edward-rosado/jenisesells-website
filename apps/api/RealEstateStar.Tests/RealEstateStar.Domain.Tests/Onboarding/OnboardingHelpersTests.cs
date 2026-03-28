@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace RealEstateStar.Domain.Tests.Onboarding;
 
 public class OnboardingHelpersTests

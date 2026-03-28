@@ -1,6 +1,3 @@
-using RealEstateStar.Domain.Shared.Models;
-using Xunit;
-
 namespace RealEstateStar.Domain.Tests.Onboarding;
 
 public class OnboardingSessionTests

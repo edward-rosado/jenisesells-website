@@ -1,8 +1,5 @@
-using System.Text.Json;
 using FluentAssertions;
 using RealEstateStar.Domain.Cma.Models;
-using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Workers.Lead.CMA;
 
 namespace RealEstateStar.Workers.Lead.CMA.Tests;
 

@@ -2,9 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.HomeSearch;
 using RealEstateStar.Domain.HomeSearch.Interfaces;
-using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Shared;
-using RealEstateStar.Workers.Shared.Context;
 
 namespace RealEstateStar.Workers.Lead.HomeSearch;
 

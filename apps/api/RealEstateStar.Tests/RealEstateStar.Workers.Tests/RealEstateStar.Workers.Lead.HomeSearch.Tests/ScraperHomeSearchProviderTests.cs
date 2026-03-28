@@ -1,10 +1,8 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.Workers.Lead.HomeSearch;
 using System.Text.Json;
 
 namespace RealEstateStar.Workers.Lead.HomeSearch.Tests;

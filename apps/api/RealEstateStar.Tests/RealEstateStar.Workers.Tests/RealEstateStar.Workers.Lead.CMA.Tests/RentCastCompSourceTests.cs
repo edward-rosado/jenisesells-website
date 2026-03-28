@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
-using RealEstateStar.Workers.Lead.CMA;
 
 namespace RealEstateStar.Workers.Lead.CMA.Tests;
 

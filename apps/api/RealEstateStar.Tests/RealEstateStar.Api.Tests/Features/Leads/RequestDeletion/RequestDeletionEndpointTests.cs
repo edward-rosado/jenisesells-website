@@ -1,13 +1,9 @@
 using FluentAssertions;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using RealEstateStar.DataServices.Leads;
 using RealEstateStar.Api.Features.Leads.RequestDeletion;
-using RealEstateStar.DataServices.Leads;
-using RealEstateStar.DataServices.Privacy;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.RequestDeletion;
 

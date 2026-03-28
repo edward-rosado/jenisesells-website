@@ -1,5 +1,3 @@
-using RealEstateStar.Domain.Onboarding.Interfaces;
-using RealEstateStar.Domain.Onboarding.Models;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;

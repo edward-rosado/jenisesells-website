@@ -1,10 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
-using RealEstateStar.Api.Features.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.ConnectGoogle;
-using RealEstateStar.DataServices.Onboarding;
-using Xunit;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.ConnectGoogle;
 

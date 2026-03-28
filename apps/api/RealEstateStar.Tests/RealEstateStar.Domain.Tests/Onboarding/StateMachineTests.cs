@@ -1,5 +1,3 @@
-using Xunit;
-
 namespace RealEstateStar.Domain.Tests.Onboarding;
 
 public class StateMachineTests

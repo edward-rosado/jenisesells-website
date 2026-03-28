@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace RealEstateStar.DataServices.Tests.Privacy;
 
 public class DriveActivityParserTests

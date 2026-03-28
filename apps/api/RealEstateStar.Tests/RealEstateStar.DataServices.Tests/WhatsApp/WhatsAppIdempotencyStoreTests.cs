@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace RealEstateStar.DataServices.Tests.WhatsApp;

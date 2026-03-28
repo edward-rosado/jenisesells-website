@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace RealEstateStar.DataServices.Tests.WhatsApp;

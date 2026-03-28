@@ -2,8 +2,6 @@ using System.Security.Cryptography;
 using System.Text;
 using Azure.Data.Tables;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Privacy.Interfaces;
 
 namespace RealEstateStar.DataServices.Privacy;
 

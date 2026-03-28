@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using RealEstateStar.Api.Infrastructure;
-using RealEstateStar.Domain.Privacy.Interfaces;
 
 namespace RealEstateStar.Api.Features.Leads.Export;
 

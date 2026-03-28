@@ -5,10 +5,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using RealEstateStar.DataServices.Leads;
-using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Domain.Privacy;
-using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Api.Tests.Integration;
 
 namespace RealEstateStar.Api.Tests.Features.Leads;

@@ -1,7 +1,6 @@
 using FluentAssertions;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Workers.Lead.Orchestrator;
 
 namespace RealEstateStar.Workers.Lead.Orchestrator.Tests;
 

@@ -5,9 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Logging;
-using RealEstateStar.DataServices.Onboarding;
-using RealEstateStar.Domain.Onboarding;
 using RealEstateStar.Domain.Shared;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;

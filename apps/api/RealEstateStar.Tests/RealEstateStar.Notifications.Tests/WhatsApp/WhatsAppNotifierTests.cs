@@ -1,7 +1,5 @@
-using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using Moq;
 
 namespace RealEstateStar.Notifications.Tests.WhatsApp;
 

@@ -7,7 +7,6 @@ using RealEstateStar.DataServices.Config;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.DataServices.Storage;
-using RealEstateStar.Domain.Privacy.Interfaces;
 
 namespace RealEstateStar.DataServices;
 

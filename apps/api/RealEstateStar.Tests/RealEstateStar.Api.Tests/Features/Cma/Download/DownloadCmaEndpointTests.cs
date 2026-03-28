@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Api.Features.Cma.Download;
-using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using NotFoundResult = Microsoft.AspNetCore.Http.HttpResults.NotFound<RealEstateStar.Api.Features.Cma.Download.CmaErrorResponse>;
 
 namespace RealEstateStar.Api.Tests.Features.Cma.Download;

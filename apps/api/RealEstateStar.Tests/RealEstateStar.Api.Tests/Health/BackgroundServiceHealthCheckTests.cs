@@ -3,11 +3,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Api.Health;
-using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Workers.Lead.CMA;
-using RealEstateStar.Workers.Lead.HomeSearch;
 using RealEstateStar.Workers.Lead.Orchestrator;
-using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Api.Tests.Health;
 

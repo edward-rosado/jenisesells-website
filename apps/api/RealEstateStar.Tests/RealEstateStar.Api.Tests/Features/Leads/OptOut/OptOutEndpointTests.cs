@@ -1,13 +1,9 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
 using Moq;
-using RealEstateStar.DataServices.Leads;
 using RealEstateStar.Api.Features.Leads.OptOut;
-using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.Domain.Privacy;
-using RealEstateStar.Domain.Privacy.Interfaces;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.OptOut;
 

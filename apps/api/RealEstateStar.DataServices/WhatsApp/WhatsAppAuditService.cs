@@ -1,4 +1,3 @@
-using RealEstateStar.Domain.WhatsApp.Interfaces;
 using Azure.Data.Tables;
 using Microsoft.Extensions.Logging;
 

@@ -1,9 +1,6 @@
 using Azure;
 using Azure.Data.Tables;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
-using RealEstateStar.DataServices.Privacy;
-using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Privacy;
 
 namespace RealEstateStar.DataServices.Tests.Privacy;

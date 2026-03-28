@@ -1,7 +1,4 @@
 using System.Diagnostics;
-using RealEstateStar.DataServices.Onboarding;
-using RealEstateStar.DataServices.Onboarding;
-using Xunit;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.Services;
 

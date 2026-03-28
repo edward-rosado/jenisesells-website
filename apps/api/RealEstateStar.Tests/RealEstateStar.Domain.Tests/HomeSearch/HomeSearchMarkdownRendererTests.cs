@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace RealEstateStar.Domain.Tests.HomeSearch;
 
 public class HomeSearchMarkdownRendererTests

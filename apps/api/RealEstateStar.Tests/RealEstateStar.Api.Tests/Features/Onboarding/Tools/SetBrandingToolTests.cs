@@ -1,8 +1,5 @@
 using System.Text.Json;
 using FluentAssertions;
-using RealEstateStar.Api.Features.Onboarding;
-using RealEstateStar.DataServices.Onboarding;
-using RealEstateStar.DataServices.Onboarding;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.Tools;
 

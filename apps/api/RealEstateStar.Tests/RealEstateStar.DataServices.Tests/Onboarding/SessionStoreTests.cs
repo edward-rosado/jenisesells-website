@@ -1,6 +1,4 @@
 using Microsoft.Extensions.Logging.Abstractions;
-using RealEstateStar.Domain.Shared.Models;
-using Xunit;
 
 namespace RealEstateStar.DataServices.Tests.Onboarding;
 

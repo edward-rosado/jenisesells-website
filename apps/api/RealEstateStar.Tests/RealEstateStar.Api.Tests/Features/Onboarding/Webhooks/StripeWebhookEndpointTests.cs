@@ -1,4 +1,3 @@
-using System.IO;
 using System.Net;
 using System.Text;
 using FluentAssertions;
@@ -6,13 +5,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using RealEstateStar.Api.Features.Onboarding;
-using RealEstateStar.DataServices.Onboarding;
 using RealEstateStar.Api.Features.Onboarding.Webhooks;
 using RealEstateStar.Api.Tests.Integration;
 using Stripe;
 using Stripe.Checkout;
-using Xunit;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.Webhooks;
 
