@@ -1,13 +1,13 @@
-using RealEstateStar.Api.Features.Onboarding.Services;
 using System.Security.Cryptography;
 using System.Text;
 using System.Web;
 using RealEstateStar.Api.Infrastructure;
-using RealEstateStar.Domain.Shared;
+using RealEstateStar.Clients.GoogleOAuth;
 using RealEstateStar.Domain.Onboarding.Interfaces;
 using RealEstateStar.Domain.Onboarding.Models;
 using RealEstateStar.Domain.Onboarding.Services;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Workers.Onboarding;
 
 namespace RealEstateStar.Api.Features.Onboarding.ConnectGoogle;
 

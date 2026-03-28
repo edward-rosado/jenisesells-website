@@ -258,11 +258,7 @@ public class NamingConventionTests
     // the architectural cleanup is tracked separately.
     private static readonly HashSet<string> DomainImplementationsExcluded = new()
     {
-        // CompAggregator implements ICompAggregator — should move to Workers.Lead.CMA or a Services.* project
-        "RealEstateStar.Domain.Cma.Services.CompAggregator",
-
-        // OnboardingStateMachine and OnboardingSession are stateful implementations — should move to Services.*
-        "RealEstateStar.Domain.Onboarding.Services.OnboardingStateMachine",
+        // OnboardingSession is a stateful model with mutable list fields — should move to Services.*
         "RealEstateStar.Domain.Onboarding.Models.OnboardingSession",
 
         // SystemDnsResolver implements IDnsResolver — should move to a Clients.* or Services.* project

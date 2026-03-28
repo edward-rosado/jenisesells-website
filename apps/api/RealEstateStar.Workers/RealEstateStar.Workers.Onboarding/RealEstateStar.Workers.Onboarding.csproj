@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="RealEstateStar.Workers.Onboarding.Tests" />
+    <InternalsVisibleTo Include="RealEstateStar.Api" />
+    <InternalsVisibleTo Include="RealEstateStar.Api.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />
+    <ProjectReference Include="..\..\RealEstateStar.Clients\RealEstateStar.Clients.Stripe\RealEstateStar.Clients.Stripe.csproj" />
+    <ProjectReference Include="..\..\RealEstateStar.Clients\RealEstateStar.Clients.GoogleOAuth\RealEstateStar.Clients.GoogleOAuth.csproj" />
+  </ItemGroup>
+</Project>

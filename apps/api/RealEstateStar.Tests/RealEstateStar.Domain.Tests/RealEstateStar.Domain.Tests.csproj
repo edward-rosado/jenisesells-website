@@ -18,6 +18,12 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../RealEstateStar.Domain/RealEstateStar.Domain.csproj" />
+    <ProjectReference Include="../../RealEstateStar.DataServices/RealEstateStar.DataServices.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/RealEstateStar.Workers.Lead.Orchestrator.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Workers/RealEstateStar.Workers.Lead.CMA/RealEstateStar.Workers.Lead.CMA.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Workers/RealEstateStar.Workers.WhatsApp/RealEstateStar.Workers.WhatsApp.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.Anthropic/RealEstateStar.Clients.Anthropic.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Api/RealEstateStar.Api.csproj" />
     <ProjectReference Include="../RealEstateStar.TestUtilities/RealEstateStar.TestUtilities.csproj" />
   </ItemGroup>
 </Project>

@@ -5,7 +5,7 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Leads.Interfaces;
-using RealEstateStar.Domain.Leads.Markdown;
+using RealEstateStar.DataServices.Leads;
 using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Domain.WhatsApp.Interfaces;

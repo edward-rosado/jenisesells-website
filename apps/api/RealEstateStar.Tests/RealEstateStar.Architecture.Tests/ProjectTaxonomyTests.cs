@@ -252,10 +252,6 @@ public class ProjectTaxonomyTests
     // Remove each entry as the type is moved to the appropriate layer.
     private static readonly HashSet<string> DomainConcreteImplementationExclusions = new()
     {
-        // CompAggregator implements ICompAggregator — comp selection logic.
-        // Target: Workers.Lead.CMA or a new Services.Cma project.
-        "RealEstateStar.Domain.Cma.Services.CompAggregator",
-
         // SystemDnsResolver implements IDnsResolver — wraps Dns.GetHostAddressesAsync.
         // Target: Clients.* or Services.Onboarding (external I/O wrapper).
         "RealEstateStar.Domain.Onboarding.Interfaces.SystemDnsResolver",

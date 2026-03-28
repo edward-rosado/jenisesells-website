@@ -1,10 +1,11 @@
-using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Infrastructure;
 using Stripe;
 using Stripe.Checkout;
+using RealEstateStar.Clients.Stripe;
 using RealEstateStar.Domain.Onboarding.Interfaces;
 using RealEstateStar.Domain.Onboarding.Models;
 using RealEstateStar.Domain.Onboarding.Services;
+using RealEstateStar.Workers.Onboarding;
 
 namespace RealEstateStar.Api.Features.Onboarding.Webhooks;
 
