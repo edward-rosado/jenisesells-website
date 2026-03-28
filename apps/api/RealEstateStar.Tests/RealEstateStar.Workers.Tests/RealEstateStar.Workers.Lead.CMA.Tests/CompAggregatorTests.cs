@@ -17,7 +17,9 @@ using RealEstateStar.Domain.Onboarding.Services;
 using RealEstateStar.Domain.Onboarding;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace RealEstateStar.Domain.Tests.Cma;
+using RealEstateStar.Workers.Lead.CMA;
+
+namespace RealEstateStar.Workers.Lead.CMA.Tests;
 
 public class CompAggregatorTests
 {
