@@ -23,7 +23,6 @@ using RealEstateStar.TestUtilities;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
-using RealEstateStar.Notifications.WhatsApp;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;

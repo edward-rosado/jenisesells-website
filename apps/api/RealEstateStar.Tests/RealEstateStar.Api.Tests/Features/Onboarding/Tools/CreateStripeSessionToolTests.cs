@@ -24,9 +24,9 @@ using RealEstateStar.TestUtilities;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
-using RealEstateStar.Notifications.WhatsApp;
 using System.Text.Json;
 using Moq;
+using RealEstateStar.Clients.Stripe;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.Tools;
 

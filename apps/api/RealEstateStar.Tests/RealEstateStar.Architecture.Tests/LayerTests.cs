@@ -15,7 +15,7 @@ public class LayerTests
         typeof(DataServices.Config.ConfigDataService).Assembly;
 
     private static readonly System.Reflection.Assembly NotificationsAssembly =
-        typeof(Notifications.WhatsApp.WhatsAppNotifier).Assembly;
+        typeof(Notifications.Templates.PrivacyFooterRenderer).Assembly;
 
     private static readonly System.Reflection.Assembly CmaWorkerAssembly =
         typeof(Workers.Lead.CMA.CmaProcessingWorker).Assembly;

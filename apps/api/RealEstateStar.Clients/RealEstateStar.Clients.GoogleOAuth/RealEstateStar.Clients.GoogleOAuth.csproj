@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="RealEstateStar.Clients.GoogleOAuth.Tests" />
+    <InternalsVisibleTo Include="RealEstateStar.Api.Tests" />
     <InternalsVisibleTo Include="RealEstateStar.Clients.Gmail" />
     <InternalsVisibleTo Include="RealEstateStar.Clients.GDrive" />
     <InternalsVisibleTo Include="RealEstateStar.Clients.GDocs" />

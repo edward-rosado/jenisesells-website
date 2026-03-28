@@ -25,7 +25,6 @@ using RealEstateStar.TestUtilities;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
-using RealEstateStar.Notifications.WhatsApp;
 namespace RealEstateStar.Api.Tests.Features.Leads;
 
 public class LeadMappersTests

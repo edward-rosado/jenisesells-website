@@ -6,7 +6,6 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
 using RealEstateStar.Domain.WhatsApp.Models;
 using RealEstateStar.Domain.WhatsApp.Interfaces;
-using RealEstateStar.Notifications.WhatsApp;
 using RealEstateStar.Notifications.Templates;
 
 namespace RealEstateStar.Notifications.Tests.Templates;

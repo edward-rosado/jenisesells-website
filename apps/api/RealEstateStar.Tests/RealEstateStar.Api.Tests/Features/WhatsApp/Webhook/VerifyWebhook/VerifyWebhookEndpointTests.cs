@@ -24,7 +24,6 @@ using RealEstateStar.TestUtilities;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
-using RealEstateStar.Notifications.WhatsApp;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using RealEstateStar.Api.Features.WhatsApp.Webhook.VerifyWebhook;

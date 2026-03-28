@@ -1,4 +1,4 @@
-namespace RealEstateStar.Notifications.WhatsApp;
+namespace RealEstateStar.Services.AgentNotifier;
 
 public static class WhatsAppMappers
 {

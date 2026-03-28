@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
 
-namespace RealEstateStar.Notifications.WhatsApp;
+namespace RealEstateStar.Services.AgentNotifier;
 
 /// <summary>
 /// Null-object implementation registered when WhatsApp is not configured.

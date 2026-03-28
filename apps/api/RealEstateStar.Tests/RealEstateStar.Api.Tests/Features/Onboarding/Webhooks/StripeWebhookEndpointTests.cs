@@ -23,7 +23,6 @@ using RealEstateStar.TestUtilities;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
-using RealEstateStar.Notifications.WhatsApp;
 using System.Net;
 using System.Text;
 using FluentAssertions;
@@ -33,6 +32,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Api.Features.Onboarding.Webhooks;
 using RealEstateStar.Api.Tests.Integration;
+using RealEstateStar.Clients.Stripe;
 using Stripe;
 using Stripe.Checkout;
 

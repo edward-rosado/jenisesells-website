@@ -24,11 +24,11 @@ using RealEstateStar.TestUtilities;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
-using RealEstateStar.Notifications.WhatsApp;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using RealEstateStar.Clients.GoogleOAuth;
 using Moq.Protected;
 
 namespace RealEstateStar.Api.Tests.Features.Onboarding.Services;

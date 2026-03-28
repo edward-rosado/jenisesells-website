@@ -24,7 +24,6 @@ using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
 using RealEstateStar.Workers.Onboarding;
-using RealEstateStar.Notifications.WhatsApp;
 using System.Text.Json;
 using RealEstateStar.Api.Features.Onboarding;
 

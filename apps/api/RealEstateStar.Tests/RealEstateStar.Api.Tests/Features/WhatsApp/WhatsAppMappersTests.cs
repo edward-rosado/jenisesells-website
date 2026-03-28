@@ -11,6 +11,7 @@ using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.HomeSearch.Interfaces;
 using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Domain.WhatsApp.Interfaces;
+using RealEstateStar.Services.AgentNotifier;
 using RealEstateStar.Domain.Onboarding.Models;
 using RealEstateStar.Domain.Onboarding.Interfaces;
 using RealEstateStar.Domain.Onboarding.Services;
@@ -24,7 +25,6 @@ using RealEstateStar.TestUtilities;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
-using RealEstateStar.Notifications.WhatsApp;
 using FluentAssertions;
 
 namespace RealEstateStar.Api.Tests.Features.WhatsApp;
