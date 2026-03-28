@@ -22,9 +22,10 @@ public class DependencyTests
     [InlineData("RealEstateStar.Notifications", new[] { "Domain" })]
     [InlineData("RealEstateStar.Workers.Shared", new[] { "Domain" })]
     [InlineData("RealEstateStar.Activities.Pdf", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Activities.Persist", new[] { "Domain" })]
     [InlineData("RealEstateStar.Services.AgentNotifier", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Services.LeadCommunicator", new[] { "Domain", "Workers.Shared" })]
-    [InlineData("RealEstateStar.Workers.Lead.Orchestrator", new[] { "Domain", "Workers.Shared", "Activities.Pdf", "Services.AgentNotifier", "Services.LeadCommunicator", "Workers.Lead.CMA", "Workers.Lead.HomeSearch" })]
+    [InlineData("RealEstateStar.Workers.Lead.Orchestrator", new[] { "Domain", "Workers.Shared", "Activities.Pdf", "Activities.Persist", "Services.AgentNotifier", "Services.LeadCommunicator", "Workers.Lead.CMA", "Workers.Lead.HomeSearch" })]
     [InlineData("RealEstateStar.Workers.Lead.CMA", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Lead.HomeSearch", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.WhatsApp", new[] { "Domain", "Workers.Shared" })]
@@ -179,6 +180,7 @@ public class DependencyTests
             "RealEstateStar.Notifications",
             "RealEstateStar.Workers.Shared",
             "RealEstateStar.Activities.Pdf",
+            "RealEstateStar.Activities.Persist",
             "RealEstateStar.Services.AgentNotifier",
             "RealEstateStar.Services.LeadCommunicator",
             "RealEstateStar.Workers.Lead.Orchestrator",

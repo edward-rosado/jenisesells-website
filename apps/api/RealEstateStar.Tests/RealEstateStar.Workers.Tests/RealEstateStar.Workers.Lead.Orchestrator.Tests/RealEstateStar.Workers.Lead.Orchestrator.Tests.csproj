@@ -17,10 +17,15 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0-preview.3.25171.5" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../../../RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/RealEstateStar.Workers.Lead.Orchestrator.csproj" />
     <ProjectReference Include="../../../RealEstateStar.Services/RealEstateStar.Services.AgentNotifier/RealEstateStar.Services.AgentNotifier.csproj" />
     <ProjectReference Include="../../../RealEstateStar.Services/RealEstateStar.Services.LeadCommunicator/RealEstateStar.Services.LeadCommunicator.csproj" />
     <ProjectReference Include="../../../RealEstateStar.Activities/RealEstateStar.Activities.Pdf/RealEstateStar.Activities.Pdf.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Activities/RealEstateStar.Activities.Persist/RealEstateStar.Activities.Persist.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.DataServices/RealEstateStar.DataServices.csproj" />
     <ProjectReference Include="../../RealEstateStar.TestUtilities/RealEstateStar.TestUtilities.csproj" />
   </ItemGroup>
 </Project>

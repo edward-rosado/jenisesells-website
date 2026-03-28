@@ -1,14 +1,17 @@
 using Azure.Data.Tables;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.DataServices.Cache;
 using RealEstateStar.DataServices.Config;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.DataServices.Storage;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Privacy.Interfaces;
+using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.DataServices;
@@ -88,6 +91,10 @@ public static class ServiceCollectionExtensions
 
         // Drive change monitor
         services.AddSingleton<DriveChangeMonitor>();
+
+        // Content cache — shared cross-lead dedup for CMA and HomeSearch results
+        services.AddMemoryCache();
+        services.AddSingleton<IContentCache, MemoryContentCache>();
 
         return services;
     }
