@@ -120,7 +120,7 @@ public sealed class LeadOrchestrator(
             lead.Score = ctx.Score;
             OrchestratorDiagnostics.ScoreDurationMs.Record(
                 Stopwatch.GetElapsedTime(scoreStarted).TotalMilliseconds);
-            await UpdateStatusAsync(lead, LeadStatus.Scored, ct);
+            await persistActivity.PersistStatusAsync(lead, LeadStatus.Scored, ct);
 
             logger.LogInformation(
                 "[{Worker}-020] Lead {LeadId} scored: {Score}/100 ({Bucket}). CorrelationId: {CorrelationId}",
@@ -128,7 +128,7 @@ public sealed class LeadOrchestrator(
 
             // Step 3: Dispatch CMA + HomeSearch in parallel via channels, collect via TCS
             // Content-aware skip: checks RetryState (per-lead) + IContentCache (cross-lead)
-            await UpdateStatusAsync(lead, LeadStatus.Analyzing, ct);
+            await persistActivity.PersistStatusAsync(lead, LeadStatus.Analyzing, ct);
 
             var cmaInputHash = ComputeCmaInputHash(lead);
             var hsInputHash = ComputeHsInputHash(lead);
@@ -264,9 +264,6 @@ public sealed class LeadOrchestrator(
                     Stopwatch.GetElapsedTime(emailDraftStarted).TotalMilliseconds);
             }
 
-            // Always set Notified — notification was attempted regardless of draft success
-            await UpdateStatusAsync(lead, LeadStatus.Notified, ct);
-
             // Step 7: Send lead email
             if (ctx.LeadEmail is not null)
             {
@@ -276,7 +273,11 @@ public sealed class LeadOrchestrator(
             // Step 8: Notify agent via AgentNotificationService
             await NotifyAgentAsync(ctx, correlationId, ct);
 
-            // Step 9: Persist all artifacts (upsert, content-hash dedup)
+            // Step 9: Set final status + persist all artifacts
+            // PersistActivity handles: status → Complete, score, CMA/HS summaries,
+            // email/notification drafts, retry state. Only Scored and Analyzing are
+            // written inline as concurrency gates (above). All result data persists here.
+            lead.Status = LeadStatus.Complete;
             try
             {
                 await persistActivity.ExecuteAsync(ctx, ct);
@@ -287,9 +288,6 @@ public sealed class LeadOrchestrator(
                     "[{Worker}-085] PersistActivity failed for lead {LeadId}. CorrelationId: {CorrelationId}",
                     WorkerName, lead.Id, correlationId);
             }
-
-            // Step 10: Update status to Complete
-            await UpdateStatusAsync(lead, LeadStatus.Complete, ct);
             healthTracker.RecordActivity(WorkerName);
 
             var elapsedMs = Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
@@ -709,20 +707,6 @@ public sealed class LeadOrchestrator(
         {
             OrchestratorDiagnostics.WhatsAppSendDurationMs.Record(
                 Stopwatch.GetElapsedTime(notifyStarted).TotalMilliseconds);
-        }
-    }
-
-    private async Task UpdateStatusAsync(Domain.Leads.Models.Lead lead, LeadStatus status, CancellationToken ct)
-    {
-        try
-        {
-            await leadStore.UpdateStatusAsync(lead, status, ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex,
-                "[{Worker}-070] Failed to update status to {Status} for lead {LeadId}.",
-                WorkerName, status, lead.Id);
         }
     }
 

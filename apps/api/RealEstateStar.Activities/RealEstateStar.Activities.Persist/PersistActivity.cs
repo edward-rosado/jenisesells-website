@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Leads;
+using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Activities.Persist;
@@ -13,10 +13,12 @@ namespace RealEstateStar.Activities.Persist;
 /// Called as the final step of the lead orchestrator pipeline.
 /// </summary>
 /// <remarks>
+/// Handles the final status write (Complete). Only Scored and Analyzing are written
+/// inline by the orchestrator as concurrency gates. All result data persists here.
 /// Does NOT write the PDF — <c>PdfActivity</c> handles PDF storage.
 /// Writing:
 /// <list type="bullet">
-///   <item>Lead Profile.md — status, score, bucket</item>
+///   <item>Lead Profile.md — status (Complete), score, bucket</item>
 ///   <item>CMA Summary.md — estimated value, comps, market analysis</item>
 ///   <item>HomeSearch Summary.md — listings, area summary</item>
 ///   <item>Lead Email Draft.md — subject, body, sent status</item>
@@ -26,6 +28,7 @@ namespace RealEstateStar.Activities.Persist;
 /// </remarks>
 public sealed class PersistActivity(
     IDocumentStorageProvider storage,
+    ILeadStore leadStore,
     ILogger<PersistActivity> logger)
 {
     internal const string CmaSummaryFile = "CMA Summary.md";
@@ -34,9 +37,24 @@ public sealed class PersistActivity(
     internal const string AgentNotificationDraftFile = "Agent Notification Draft.md";
     internal const string RetryStateFile = "Retry State.json";
 
+    // ── Inline persistence (called mid-pipeline as concurrency gates) ──────────
+
+    /// <summary>
+    /// Persists lead status as a concurrency gate. Called inline by the orchestrator
+    /// after scoring and before dispatch to prevent duplicate orchestrator instances.
+    /// </summary>
+    public Task PersistStatusAsync(Domain.Leads.Models.Lead lead, LeadStatus status, CancellationToken ct)
+    {
+        lead.Status = status;
+        return leadStore.UpdateStatusAsync(lead, status, ct);
+    }
+
+    // ── Batch persistence (called once at end of pipeline) ──────────────────
+
     /// <summary>
     /// Persists all available pipeline artifacts for the given context.
     /// Skips any artifact whose context field is null (partial pipeline result).
+    /// Sets final status to Complete before writing.
     /// </summary>
     public async Task ExecuteAsync(LeadPipelineContext ctx, CancellationToken ct)
     {
@@ -49,7 +67,11 @@ public sealed class PersistActivity(
 
         await storage.EnsureFolderExistsAsync(folder, ct);
 
-        // Lead Profile — always update status and score
+        // Final status → Complete (persisted via ILeadStore)
+        lead.Status = LeadStatus.Complete;
+        await leadStore.UpdateStatusAsync(lead, LeadStatus.Complete, ct);
+
+        // Lead Profile — score, bucket, submission count
         await PersistLeadProfileAsync(ctx, folder, ct);
 
         // CMA Summary — only when CMA succeeded
