@@ -4,10 +4,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.DataServices.Cache;
+using RealEstateStar.DataServices.Cma;
 using RealEstateStar.DataServices.Config;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.DataServices.Storage;
+using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces;
@@ -94,6 +96,9 @@ public static class ServiceCollectionExtensions
         // Content cache — shared cross-lead dedup for CMA and HomeSearch results
         services.AddMemoryCache();
         services.AddSingleton<IContentCache, MemoryContentCache>();
+
+        // CMA PDF storage service
+        services.AddSingleton<IPdfDataService, PdfDataService>();
 
         return services;
     }

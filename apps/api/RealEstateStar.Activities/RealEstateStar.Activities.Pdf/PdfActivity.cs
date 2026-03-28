@@ -3,19 +3,18 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.Activities.Pdf;
 
 /// <summary>
 /// Reusable activity that generates a CMA PDF and persists it via
-/// <see cref="IDocumentStorageProvider"/>. Designed for direct invocation
+/// <see cref="IPdfDataService"/>. Designed for direct invocation
 /// from any pipeline step — not a BackgroundService.
 /// </summary>
 public class PdfActivity(
     ICmaPdfGenerator generator,
-    IDocumentStorageProvider storage,
+    IPdfDataService pdfDataService,
     ILogger<PdfActivity> logger)
 {
     /// <summary>
@@ -68,7 +67,7 @@ public class PdfActivity(
         try
         {
             var storeStarted = Stopwatch.GetTimestamp();
-            storagePath = await StorePdfAsync(lead.Id.ToString(), tempPath, ct);
+            storagePath = await StorePdfAsync(lead.FullName, lead.Id.ToString(), tempPath, ct);
             PdfDiagnostics.StorageDurationMs.Record(
                 Stopwatch.GetElapsedTime(storeStarted).TotalMilliseconds);
         }
@@ -92,12 +91,8 @@ public class PdfActivity(
         return storagePath;
     }
 
-    internal async Task<string> StorePdfAsync(string leadId, string tempFilePath, CancellationToken ct)
+    internal async Task<string> StorePdfAsync(string leadName, string leadId, string tempFilePath, CancellationToken ct)
     {
-        var timestamp = DateTime.UtcNow;
-        var folder = $"Real Estate Star/1 - Leads/{leadId}/CMA";
-        var fileName = $"{timestamp:yyyy-MM-dd}-{leadId}-CMA-Report.pdf.b64";
-
         byte[] pdfBytes;
         try
         {
@@ -110,12 +105,6 @@ public class PdfActivity(
 
         PdfDiagnostics.PdfSizeBytes.Record(pdfBytes.Length);
 
-        await storage.WriteDocumentAsync(
-            folder,
-            fileName,
-            Convert.ToBase64String(pdfBytes),
-            ct);
-
-        return $"{folder}/{fileName}";
+        return await pdfDataService.StorePdfAsync(leadName, leadId, pdfBytes, ct);
     }
 }

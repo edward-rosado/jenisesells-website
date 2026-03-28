@@ -32,7 +32,7 @@ public sealed class LeadOrchestratorTests
     private readonly Mock<IGmailSender> _gmailMock = new();
     private readonly Mock<IWhatsAppSender> _whatsAppMock = new();
     private readonly Mock<ICmaPdfGenerator> _pdfGeneratorMock = new();
-    private readonly Mock<IDocumentStorageProvider> _documentStorageMock = new();
+    private readonly Mock<IPdfDataService> _pdfDataServiceMock = new();
 
     // ── channels + infrastructure ────────────────────────────────────────────
     private readonly LeadOrchestratorChannel _orchestratorChannel = new();
@@ -52,7 +52,7 @@ public sealed class LeadOrchestratorTests
 
         var pdfActivity = new PdfActivity(
             _pdfGeneratorMock.Object,
-            _documentStorageMock.Object,
+            _pdfDataServiceMock.Object,
             NullLogger<PdfActivity>.Instance);
 
         var persistStorage = new Mock<IDocumentStorageProvider>();
@@ -273,10 +273,10 @@ public sealed class LeadOrchestratorTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(tempFile);
 
-        _documentStorageMock
-            .Setup(s => s.WriteDocumentAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        _pdfDataServiceMock
+            .Setup(s => s.StorePdfAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Real Estate Star/1 - Leads/Test Lead/CMA/2026-01-01-test-CMA-Report.pdf.b64");
     }
 
     /// <summary>Runs a background task that auto-resolves CMA channel requests.</summary>

@@ -4,7 +4,6 @@ using Moq;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.Activities.Pdf.Tests;
@@ -12,14 +11,14 @@ namespace RealEstateStar.Activities.Pdf.Tests;
 public sealed class PdfActivityTests
 {
     private readonly Mock<ICmaPdfGenerator> _generatorMock = new();
-    private readonly Mock<IDocumentStorageProvider> _storageMock = new();
+    private readonly Mock<IPdfDataService> _pdfDataServiceMock = new();
     private readonly PdfActivity _activity;
 
     public PdfActivityTests()
     {
         _activity = new PdfActivity(
             _generatorMock.Object,
-            _storageMock.Object,
+            _pdfDataServiceMock.Object,
             NullLogger<PdfActivity>.Instance);
     }
 
@@ -81,33 +80,27 @@ public sealed class PdfActivityTests
     };
 
     // ---------------------------------------------------------------------------
-    // Test 1: StorePdfAsync — file name includes lead ID and timestamp
+    // Test 1: StorePdfAsync — reads temp file, deletes it, delegates to IPdfDataService
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task StorePdfAsync_FileNameIncludesLeadIdAndTimestamp()
+    public async Task StorePdfAsync_ReadsTempFile_DelegatesToPdfDataService()
     {
         // Arrange
+        const string leadName = "Jane Doe";
         const string leadId = "lead-timestamp-test";
-        var expectedDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        const string expectedStoragePath = "Real Estate Star/1 - Leads/Jane Doe/CMA/2026-01-01-lead-timestamp-test-CMA-Report.pdf.b64";
 
-        string? capturedFolder = null;
-        string? capturedFileName = null;
-        string? capturedContent = null;
+        byte[]? capturedBytes = null;
 
-        _storageMock
-            .Setup(s => s.WriteDocumentAsync(
+        _pdfDataServiceMock
+            .Setup(s => s.StorePdfAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<string>(),
+                It.IsAny<byte[]>(),
                 It.IsAny<CancellationToken>()))
-            .Callback<string, string, string, CancellationToken>((folder, name, content, _) =>
-            {
-                capturedFolder = folder;
-                capturedFileName = name;
-                capturedContent = content;
-            })
-            .Returns(Task.CompletedTask);
+            .Callback<string, string, byte[], CancellationToken>((_, _, bytes, _) => capturedBytes = bytes)
+            .ReturnsAsync(expectedStoragePath);
 
         // Write a temporary file for StorePdfAsync to read
         var tempFile = Path.Combine(Path.GetTempPath(), $"{leadId}-test.pdf");
@@ -117,21 +110,21 @@ public sealed class PdfActivityTests
         try
         {
             // Act
-            var storagePath = await _activity.StorePdfAsync(leadId, tempFile, CancellationToken.None);
+            var storagePath = await _activity.StorePdfAsync(leadName, leadId, tempFile, CancellationToken.None);
 
-            // Assert — storage was written
-            capturedFolder.Should().Contain(leadId);
-            capturedFileName.Should().Contain(leadId);
-            capturedFileName.Should().Contain(expectedDate);
-            capturedFileName.Should().EndWith(".pdf.b64");
+            // Assert — IPdfDataService was called with the raw bytes
+            _pdfDataServiceMock.Verify(s => s.StorePdfAsync(
+                leadName,
+                leadId,
+                It.IsAny<byte[]>(),
+                CancellationToken.None), Times.Once);
 
-            storagePath.Should().NotBeNullOrEmpty();
-            storagePath.Should().Contain(leadId);
-            storagePath.Should().EndWith(".pdf.b64");
+            capturedBytes.Should().BeEquivalentTo(fakeBytes);
 
-            // Assert — content is valid base64 of the input bytes
-            var decoded = Convert.FromBase64String(capturedContent!);
-            decoded.Should().BeEquivalentTo(fakeBytes);
+            storagePath.Should().Be(expectedStoragePath);
+
+            // Assert — temp file was deleted
+            File.Exists(tempFile).Should().BeFalse();
         }
         finally
         {
@@ -140,17 +133,18 @@ public sealed class PdfActivityTests
     }
 
     // ---------------------------------------------------------------------------
-    // Test 2: ExecuteAsync — delegates to generator + storage, returns storage path
+    // Test 2: ExecuteAsync — delegates to generator + pdfDataService, returns storage path
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task ExecuteAsync_CallsGeneratorAndStorage_ReturnsStoragePath()
+    public async Task ExecuteAsync_CallsGeneratorAndPdfDataService_ReturnsStoragePath()
     {
         // Arrange
         var lead = MakeLead();
         var analysis = MakeAnalysis();
         var comps = MakeComps();
         var config = MakeConfig();
+        const string expectedPath = "Real Estate Star/1 - Leads/Jane Doe/CMA/2026-01-01-lead-CMA-Report.pdf.b64";
 
         var tempFile = Path.Combine(Path.GetTempPath(), $"fake-{Guid.NewGuid()}.pdf");
         await File.WriteAllBytesAsync(tempFile, new byte[] { 10, 20, 30 });
@@ -167,13 +161,13 @@ public sealed class PdfActivityTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(tempFile);
 
-        _storageMock
-            .Setup(s => s.WriteDocumentAsync(
+        _pdfDataServiceMock
+            .Setup(s => s.StorePdfAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<string>(),
+                It.IsAny<byte[]>(),
                 It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(expectedPath);
 
         try
         {
@@ -186,8 +180,7 @@ public sealed class PdfActivityTests
                 ct: CancellationToken.None);
 
             // Assert
-            result.Should().NotBeNullOrEmpty();
-            result.Should().EndWith(".pdf.b64");
+            result.Should().Be(expectedPath);
 
             _generatorMock.Verify(g => g.GenerateAsync(
                 lead, analysis, comps, config,
@@ -195,11 +188,11 @@ public sealed class PdfActivityTests
                 null, null,
                 CancellationToken.None), Times.Once);
 
-            _storageMock.Verify(s => s.WriteDocumentAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()), Times.Once);
+            _pdfDataServiceMock.Verify(s => s.StorePdfAsync(
+                lead.FullName,
+                lead.Id.ToString(),
+                It.IsAny<byte[]>(),
+                CancellationToken.None), Times.Once);
         }
         finally
         {
@@ -238,9 +231,9 @@ public sealed class PdfActivityTests
                 (_, _, _, cfg, _, _, _, _) => capturedConfig = cfg)
             .ReturnsAsync(tempFile);
 
-        _storageMock
-            .Setup(s => s.WriteDocumentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        _pdfDataServiceMock
+            .Setup(s => s.StorePdfAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("some/path.pdf.b64");
 
         try
         {
@@ -299,8 +292,8 @@ public sealed class PdfActivityTests
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Generator failed");
 
-        _storageMock.Verify(s => s.WriteDocumentAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+        _pdfDataServiceMock.Verify(s => s.StorePdfAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -309,7 +302,7 @@ public sealed class PdfActivityTests
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task ExecuteAsync_WhenStorageThrows_PropagatesException()
+    public async Task ExecuteAsync_WhenPdfDataServiceThrows_PropagatesException()
     {
         // Arrange
         var lead = MakeLead();
@@ -332,8 +325,8 @@ public sealed class PdfActivityTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(tempFile);
 
-        _storageMock
-            .Setup(s => s.WriteDocumentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _pdfDataServiceMock
+            .Setup(s => s.StorePdfAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new IOException("Storage unavailable"));
 
         try
