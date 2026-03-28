@@ -34,10 +34,10 @@ namespace RealEstateStar.Api.Tests.Features.Onboarding.ConnectGoogle;
 
 public class GoogleOAuthCallbackEndpointTests
 {
-    private readonly Mock<ISessionStore> _mockStore = new();
+    private readonly Mock<ISessionDataService> _mockStore = new();
     private readonly Mock<GoogleOAuthService> _mockOAuth;
     private readonly Mock<ITokenStore> _mockTokenStore = new();
-    private readonly Mock<IAccountConfigService> _mockAccountConfigService = new();
+    private readonly Mock<IConfigDataService> _mockAccountConfigService = new();
     private readonly OnboardingStateMachine _sm = new();
     private readonly IConfiguration _configuration = new ConfigurationBuilder()
         .AddInMemoryCollection(new Dictionary<string, string?> { ["Platform:BaseUrl"] = "http://localhost:3000" })

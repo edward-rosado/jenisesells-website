@@ -34,7 +34,7 @@ namespace RealEstateStar.Api.Tests.Features.Onboarding.GetSession;
 
 public class GetSessionEndpointTests
 {
-    private readonly Mock<ISessionStore> _mockStore = new();
+    private readonly Mock<ISessionDataService> _mockStore = new();
 
     private static HttpContext CreateHttpContext(string? bearerToken)
     {

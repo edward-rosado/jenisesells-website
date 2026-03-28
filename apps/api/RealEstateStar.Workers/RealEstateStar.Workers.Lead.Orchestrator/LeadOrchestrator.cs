@@ -33,8 +33,8 @@ namespace RealEstateStar.Workers.Lead.Orchestrator;
 /// </remarks>
 public sealed class LeadOrchestrator(
     LeadOrchestratorChannel channel,
-    ILeadStore leadStore,
-    IAccountConfigService accountConfigService,
+    ILeadDataService leadStore,
+    IConfigDataService accountConfigService,
     ILeadScorer scorer,
     CmaProcessingChannel cmaChannel,
     HomeSearchProcessingChannel homeSearchChannel,

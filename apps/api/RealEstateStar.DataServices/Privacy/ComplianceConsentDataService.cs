@@ -4,16 +4,16 @@ using RealEstateStar.Domain.Privacy.Interfaces;
 
 namespace RealEstateStar.DataServices.Privacy;
 
-public class ComplianceConsentWriter(
+public class ComplianceConsentDataService(
     IComplianceFileStorageProvider storageProvider,
-    ILogger<ComplianceConsentWriter> logger) : IComplianceConsentWriter
+    ILogger<ComplianceConsentDataService> logger) : IComplianceConsentDataService
 {
     public virtual async Task WriteAsync(string agentId, MarketingConsent consent, string hmacSignature, CancellationToken ct)
     {
         try
         {
             var path = $"compliance/{agentId}/consent-log";
-            var row = MarketingConsentLog.BuildCsvRow(consent, hmacSignature);
+            var row = MarketingConsentDataService.BuildCsvRow(consent, hmacSignature);
             await storageProvider.AppendRowAsync(path, row, ct);
             logger.LogInformation("[CONSENT-004] Compliance copy written for lead {LeadId}", consent.LeadId);
         }

@@ -12,7 +12,7 @@ public class LayerTests
         typeof(Domain.Leads.Models.Lead).Assembly;
 
     private static readonly System.Reflection.Assembly DataServicesAssembly =
-        typeof(DataServices.Config.AccountConfigService).Assembly;
+        typeof(DataServices.Config.ConfigDataService).Assembly;
 
     private static readonly System.Reflection.Assembly NotificationsAssembly =
         typeof(Notifications.WhatsApp.WhatsAppNotifier).Assembly;

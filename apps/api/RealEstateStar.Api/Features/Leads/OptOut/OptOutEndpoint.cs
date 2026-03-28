@@ -20,11 +20,11 @@ public class OptOutEndpoint : IEndpoint
     internal static async Task<IResult> Handle(
         string agentId,
         OptOutRequest request,
-        ILeadStore leadStore,
-        IMarketingConsentLog consentLog,
+        ILeadDataService leadStore,
+        IMarketingConsentDataService consentLog,
         HttpContext httpContext,
         IConsentAuditService consentAudit,
-        IComplianceConsentWriter complianceWriter,
+        IComplianceConsentDataService complianceWriter,
         IOptions<ConsentHmacOptions> consentHmacOptions,
         CancellationToken ct)
     {
@@ -63,7 +63,7 @@ public class OptOutEndpoint : IEndpoint
         await consentLog.RecordConsentAsync(agentId, consent, ct);
 
         // Triple-write: agent Drive (existing) + compliance Drive + Azure Table
-        var hmacSignature = MarketingConsentLog.ComputeHmacSignature(consent, consentHmacOptions.Value.Secret);
+        var hmacSignature = MarketingConsentDataService.ComputeHmacSignature(consent, consentHmacOptions.Value.Secret);
         // Layer 1: Agent Drive CSV (already existing call above)
         await complianceWriter.WriteAsync(agentId, consent, hmacSignature, ct);  // Layer 2: RE* service-account Drive
         await consentAudit.RecordAsync(agentId, consent, hmacSignature, ct);     // Layer 3: Azure Table

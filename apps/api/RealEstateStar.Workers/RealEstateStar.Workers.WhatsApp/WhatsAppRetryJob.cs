@@ -6,7 +6,7 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 namespace RealEstateStar.Workers.WhatsApp;
 
 public class WhatsAppRetryJob(
-    IAccountConfigService accountConfigService,
+    IConfigDataService accountConfigService,
     IWhatsAppSender whatsAppClient,
     ILogger<WhatsAppRetryJob> logger) : BackgroundService
 {

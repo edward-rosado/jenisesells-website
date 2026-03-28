@@ -28,7 +28,7 @@ namespace RealEstateStar.Activities.Persist;
 /// </remarks>
 public sealed class PersistActivity(
     IDocumentStorageProvider storage,
-    ILeadStore leadStore,
+    ILeadDataService leadStore,
     ILogger<PersistActivity> logger)
 {
     internal const string CmaSummaryFile = "CMA Summary.md";
@@ -67,7 +67,7 @@ public sealed class PersistActivity(
 
         await storage.EnsureFolderExistsAsync(folder, ct);
 
-        // Final status → Complete (persisted via ILeadStore)
+        // Final status → Complete (persisted via ILeadDataService)
         lead.Status = LeadStatus.Complete;
         await leadStore.UpdateStatusAsync(lead, LeadStatus.Complete, ct);
 

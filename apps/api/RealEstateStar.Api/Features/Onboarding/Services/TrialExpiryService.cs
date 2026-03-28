@@ -5,7 +5,7 @@ namespace RealEstateStar.Api.Features.Onboarding.Services;
 // TODO: MED-5 — Implement actual trial expiry logic (check CreatedAt + 7 days, notify agent, deactivate site)
 // TODO: MED-12 — Use IServiceScopeFactory for future scoped dependency injection
 public class TrialExpiryService(
-    ISessionStore sessionStore,
+    ISessionDataService sessionStore,
     IStripeService stripeService,
     ILogger<TrialExpiryService> logger) : BackgroundService
 {

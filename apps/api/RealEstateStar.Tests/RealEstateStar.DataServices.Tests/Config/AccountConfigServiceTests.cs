@@ -33,11 +33,11 @@ public class AccountConfigServiceTests
         return dir?.FullName ?? throw new InvalidOperationException("Could not find repo root");
     }
 
-    private static AccountConfigService CreateService()
+    private static ConfigDataService CreateService()
     {
         var repoRoot = FindRepoRoot();
         var configDir = Path.Combine(repoRoot, "config", "accounts");
-        return new AccountConfigService(configDir);
+        return new ConfigDataService(configDir);
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public class AccountConfigServiceTests
     {
         var repoRoot = FindRepoRoot();
         var configDir = Path.Combine(repoRoot, "config", "accounts");
-        var service = new AccountConfigService(configDir, NullLogger<AccountConfigService>.Instance);
+        var service = new ConfigDataService(configDir, NullLogger<ConfigDataService>.Instance);
 
         var config = await service.GetAccountAsync("nonexistent-agent", CancellationToken.None);
 
@@ -145,7 +145,7 @@ public class AccountConfigServiceTests
     {
         var repoRoot = FindRepoRoot();
         var configDir = Path.Combine(repoRoot, "config", "accounts");
-        var service = new AccountConfigService(configDir, NullLogger<AccountConfigService>.Instance);
+        var service = new ConfigDataService(configDir, NullLogger<ConfigDataService>.Instance);
 
         var config = await service.GetAccountAsync("jenise-buckalew", CancellationToken.None);
 
@@ -158,7 +158,7 @@ public class AccountConfigServiceTests
         var repoRoot = FindRepoRoot();
         var configDir = Path.Combine(repoRoot, "config", "accounts");
         // Passing null logger explicitly (the default parameter)
-        var service = new AccountConfigService(configDir, null);
+        var service = new ConfigDataService(configDir, null);
 
         var config = await service.GetAccountAsync("nonexistent-agent", CancellationToken.None);
 

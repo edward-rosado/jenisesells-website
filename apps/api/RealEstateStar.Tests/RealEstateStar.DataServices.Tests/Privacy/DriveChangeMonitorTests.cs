@@ -25,7 +25,7 @@ namespace RealEstateStar.DataServices.Tests.Privacy;
 public class DriveChangeMonitorTests
 {
     private readonly Mock<IGwsService> _gws = new(MockBehavior.Strict);
-    private readonly Mock<ILeadStore> _leadStore = new(MockBehavior.Strict);
+    private readonly Mock<ILeadDataService> _leadStore = new(MockBehavior.Strict);
     private readonly Mock<ILogger<DriveChangeMonitor>> _logger = new();
     private readonly DriveChangeMonitor _sut;
 

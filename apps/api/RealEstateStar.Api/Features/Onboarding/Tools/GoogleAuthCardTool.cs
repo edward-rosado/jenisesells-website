@@ -5,7 +5,7 @@ using RealEstateStar.Domain.Onboarding.Models;
 
 namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
-public class GoogleAuthCardTool(GoogleOAuthService oAuthService, ISessionStore sessionStore) : IOnboardingTool
+public class GoogleAuthCardTool(GoogleOAuthService oAuthService, ISessionDataService sessionStore) : IOnboardingTool
 {
     public string Name => "google_auth_card";
 

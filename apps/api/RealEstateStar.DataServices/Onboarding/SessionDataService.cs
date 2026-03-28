@@ -8,7 +8,7 @@ using RealEstateStar.Domain.Onboarding.Models;
 
 namespace RealEstateStar.DataServices.Onboarding;
 
-public partial class JsonFileSessionStore(string basePath, ILogger<JsonFileSessionStore> logger) : ISessionStore
+public partial class SessionDataService(string basePath, ILogger<SessionDataService> logger) : ISessionDataService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -19,7 +19,7 @@ public partial class JsonFileSessionStore(string basePath, ILogger<JsonFileSessi
 
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
 
-    public JsonFileSessionStore(ILogger<JsonFileSessionStore> logger)
+    public SessionDataService(ILogger<SessionDataService> logger)
         : this(Path.Combine(AppContext.BaseDirectory, "data", "sessions"), logger) { }
 
     public async Task SaveAsync(OnboardingSession session, CancellationToken ct)

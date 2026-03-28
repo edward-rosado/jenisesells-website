@@ -12,7 +12,7 @@ namespace RealEstateStar.Activities.Persist.Tests;
 public sealed class PersistActivityTests
 {
     private readonly Mock<IDocumentStorageProvider> _storageMock = new();
-    private readonly Mock<ILeadStore> _leadStoreMock = new();
+    private readonly Mock<ILeadDataService> _leadStoreMock = new();
     private readonly PersistActivity _sut;
 
     public PersistActivityTests()

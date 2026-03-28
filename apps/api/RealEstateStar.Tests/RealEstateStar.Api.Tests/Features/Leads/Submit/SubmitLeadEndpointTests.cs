@@ -53,14 +53,14 @@ public class LeadSubmitTestFactory : TestWebApplicationFactory
         builder.ConfigureServices(services =>
         {
             // Register no-op lead service stubs so all lead endpoints can resolve their dependencies
-            services.AddSingleton<ILeadStore, NoOpLeadStore>();
-            services.AddSingleton<IMarketingConsentLog, NoOpMarketingConsentLog>();
+            services.AddSingleton<ILeadDataService, NoOpLeadStore>();
+            services.AddSingleton<IMarketingConsentDataService, NoOpMarketingConsentLog>();
             // TODO: Pipeline redesign — ILeadEnricher and ILeadNotifier removed in Phase 1.5; replaced in Phase 2/3/4
             // services.AddSingleton<ILeadEnricher, NoOpLeadEnricher>();
             // services.AddSingleton<ILeadNotifier, NoOpLeadNotifier>();
             services.AddSingleton<IHomeSearchProvider, NoOpHomeSearchProvider>();
-            services.AddSingleton<ILeadDataDeletion, NoOpLeadDataDeletion>();
-            services.AddSingleton<IDeletionAuditLog, NoOpDeletionAuditLog>();
+            services.AddSingleton<ILeadDeletionDataService, NoOpLeadDataDeletion>();
+            services.AddSingleton<IDeletionAuditDataService, NoOpDeletionAuditLog>();
         });
     }
 }
@@ -68,7 +68,7 @@ public class LeadSubmitTestFactory : TestWebApplicationFactory
 // ---------------------------------------------------------------------------
 // No-op stubs used only in integration tests
 // ---------------------------------------------------------------------------
-file sealed class NoOpLeadStore : ILeadStore
+file sealed class NoOpLeadStore : ILeadDataService
 {
     public Task SaveAsync(Lead lead, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateScoreAsync(Lead l, LeadScore s, CancellationToken ct) => Task.CompletedTask;
@@ -82,7 +82,7 @@ file sealed class NoOpLeadStore : ILeadStore
     public Task DeleteAsync(string a, Guid i, CancellationToken ct) => Task.CompletedTask;
 }
 
-file sealed class NoOpMarketingConsentLog : IMarketingConsentLog
+file sealed class NoOpMarketingConsentLog : IMarketingConsentDataService
 {
     public Task RecordConsentAsync(string agentId, MarketingConsent consent, CancellationToken ct) => Task.CompletedTask;
     public Task RedactAsync(string agentId, string email, CancellationToken ct) => Task.CompletedTask;
@@ -96,7 +96,7 @@ file sealed class NoOpHomeSearchProvider : IHomeSearchProvider
         Task.FromResult(new List<Listing>());
 }
 
-file sealed class NoOpLeadDataDeletion : ILeadDataDeletion
+file sealed class NoOpLeadDataDeletion : ILeadDeletionDataService
 {
     public Task<string> InitiateDeletionRequestAsync(string agentId, string email, CancellationToken ct) =>
         Task.FromResult("no-op-token");
@@ -104,7 +104,7 @@ file sealed class NoOpLeadDataDeletion : ILeadDataDeletion
         Task.FromResult(new DeleteResult(true, []));
 }
 
-file sealed class NoOpDeletionAuditLog : IDeletionAuditLog
+file sealed class NoOpDeletionAuditLog : IDeletionAuditDataService
 {
     public Task RecordInitiationAsync(string agentId, Guid leadId, string email, CancellationToken ct) => Task.CompletedTask;
     public Task RecordCompletionAsync(string agentId, Guid leadId, CancellationToken ct) => Task.CompletedTask;
@@ -320,29 +320,29 @@ public class SubmitLeadEndpointUnitTests
     private static AccountConfig MakeAgent() => new() { Handle = "test-agent" };
 
     private record Mocks(
-        Mock<IAccountConfigService> AccountConfig,
-        Mock<ILeadStore> LeadStore,
-        Mock<IMarketingConsentLog> ConsentLog,
+        Mock<IConfigDataService> AccountConfig,
+        Mock<ILeadDataService> LeadStore,
+        Mock<IMarketingConsentDataService> ConsentLog,
         LeadOrchestratorChannel OrchestratorChannel,
         Mock<ILogger<SubmitLeadEndpoint>> Logger,
         Mock<IConsentAuditService> ConsentAudit,
-        Mock<IComplianceConsentWriter> ComplianceWriter,
+        Mock<IComplianceConsentDataService> ComplianceWriter,
         IOptions<ConsentHmacOptions> ConsentHmacOptions,
-        Mock<ILeadDeadLetterStore> DeadLetterStore);
+        Mock<ILeadDeadLetterDataService> DeadLetterStore);
 
     private static Mocks CreateMocks(AccountConfig? agent = null)
     {
-        var accountConfig = new Mock<IAccountConfigService>();
+        var accountConfig = new Mock<IConfigDataService>();
         accountConfig
             .Setup(s => s.GetAccountAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(agent ?? MakeAgent());
 
-        var leadStore = new Mock<ILeadStore>();
+        var leadStore = new Mock<ILeadDataService>();
         leadStore
             .Setup(s => s.SaveAsync(It.IsAny<Lead>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var consentLog = new Mock<IMarketingConsentLog>();
+        var consentLog = new Mock<IMarketingConsentDataService>();
         consentLog
             .Setup(s => s.RecordConsentAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -355,14 +355,14 @@ public class SubmitLeadEndpointUnitTests
             .Setup(s => s.RecordAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var complianceWriter = new Mock<IComplianceConsentWriter>();
+        var complianceWriter = new Mock<IComplianceConsentDataService>();
         complianceWriter
             .Setup(s => s.WriteAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var consentHmacOptions = Options.Create(new ConsentHmacOptions { Secret = "test-hmac-secret-32-bytes-xxxxx!" });
 
-        var deadLetterStore = new Mock<ILeadDeadLetterStore>();
+        var deadLetterStore = new Mock<ILeadDeadLetterDataService>();
         deadLetterStore
             .Setup(s => s.RecordAsync(It.IsAny<Lead>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);

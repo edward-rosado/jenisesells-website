@@ -30,7 +30,7 @@ public class ComplianceConsentWriterTests
     [Fact]
     public async Task WriteAsync_AppendsCSVRowToCompliancePath()
     {
-        var sut = new ComplianceConsentWriter(_storageProvider.Object, NullLogger<ComplianceConsentWriter>.Instance);
+        var sut = new ComplianceConsentDataService(_storageProvider.Object, NullLogger<ComplianceConsentDataService>.Instance);
         var consent = new MarketingConsent
         {
             LeadId = Guid.NewGuid(),
@@ -61,7 +61,7 @@ public class ComplianceConsentWriterTests
         _storageProvider.Setup(sp => sp.AppendRowAsync(It.IsAny<string>(), It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Drive unavailable"));
 
-        var sut = new ComplianceConsentWriter(_storageProvider.Object, NullLogger<ComplianceConsentWriter>.Instance);
+        var sut = new ComplianceConsentDataService(_storageProvider.Object, NullLogger<ComplianceConsentDataService>.Instance);
         var consent = new MarketingConsent
         {
             LeadId = Guid.NewGuid(),

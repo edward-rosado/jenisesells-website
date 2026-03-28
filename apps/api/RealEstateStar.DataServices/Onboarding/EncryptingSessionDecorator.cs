@@ -5,10 +5,10 @@ using RealEstateStar.Domain.Onboarding.Models;
 
 namespace RealEstateStar.DataServices.Onboarding;
 
-internal sealed class EncryptingSessionStoreDecorator(
-    ISessionStore inner,
+internal sealed class EncryptingSessionDecorator(
+    ISessionDataService inner,
     IDataProtectionProvider provider,
-    ILogger<EncryptingSessionStoreDecorator> logger) : ISessionStore
+    ILogger<EncryptingSessionDecorator> logger) : ISessionDataService
 {
     private readonly IDataProtector _protector = provider.CreateProtector("OnboardingSession.GoogleTokens.v1");
 

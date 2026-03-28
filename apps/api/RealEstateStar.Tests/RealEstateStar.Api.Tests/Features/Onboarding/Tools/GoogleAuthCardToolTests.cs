@@ -43,7 +43,7 @@ public class GoogleAuthCardToolTests
         mockOAuth.Setup(o => o.BuildAuthorizationUrl(It.IsAny<string>()))
             .Returns(("https://accounts.google.com/o/oauth2/v2/auth?test=true", "test-nonce"));
 
-        var mockStore = new Mock<ISessionStore>();
+        var mockStore = new Mock<ISessionDataService>();
         mockStore.Setup(s => s.SaveAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -70,7 +70,7 @@ public class GoogleAuthCardToolTests
         mockOAuth.Setup(o => o.BuildAuthorizationUrl(It.IsAny<string>()))
             .Returns((string sid) => ($"https://accounts.google.com/o/oauth2/v2/auth?state={sid}", "test-nonce"));
 
-        var mockStore = new Mock<ISessionStore>();
+        var mockStore = new Mock<ISessionDataService>();
         mockStore.Setup(s => s.SaveAsync(It.IsAny<OnboardingSession>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 

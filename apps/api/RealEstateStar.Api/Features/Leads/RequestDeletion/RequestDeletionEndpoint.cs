@@ -15,9 +15,9 @@ public class RequestDeletionEndpoint : IEndpoint
     internal static async Task<IResult> Handle(
         string agentId,
         [FromBody] RequestDeletionRequest request,
-        ILeadStore leadStore,
-        ILeadDataDeletion deletion,
-        IDeletionAuditLog auditLog,
+        ILeadDataService leadStore,
+        ILeadDeletionDataService deletion,
+        IDeletionAuditDataService auditLog,
         ILogger<RequestDeletionEndpoint> logger,
         CancellationToken ct)
     {

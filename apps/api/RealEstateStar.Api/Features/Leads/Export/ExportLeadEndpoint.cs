@@ -13,7 +13,7 @@ public class ExportLeadEndpoint : IEndpoint
     internal static async Task<IResult> Handle(
         string agentId,
         [FromQuery] string email,
-        [FromServices] ILeadDataExport dataExport,
+        [FromServices] ILeadExportDataService dataExport,
         [FromServices] ILogger<ExportLeadEndpoint> logger,
         CancellationToken ct)
     {

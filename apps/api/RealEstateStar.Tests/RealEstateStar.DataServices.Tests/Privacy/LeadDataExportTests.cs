@@ -24,16 +24,16 @@ namespace RealEstateStar.DataServices.Tests.Privacy;
 
 public class LeadDataExportTests
 {
-    private readonly Mock<ILeadStore> _leadStore = new();
-    private readonly Mock<ILogger<LeadDataExport>> _logger = new();
-    private readonly LeadDataExport _sut;
+    private readonly Mock<ILeadDataService> _leadStore = new();
+    private readonly Mock<ILogger<LeadExportDataService>> _logger = new();
+    private readonly LeadExportDataService _sut;
 
     private const string AgentId = "jenise-buckalew";
     private const string LeadEmail = "jane.doe@example.com";
 
     public LeadDataExportTests()
     {
-        _sut = new LeadDataExport(_leadStore.Object, _logger.Object);
+        _sut = new LeadExportDataService(_leadStore.Object, _logger.Object);
 
         _leadStore.Setup(s => s.GetByEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Lead?)null);

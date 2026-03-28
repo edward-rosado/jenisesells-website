@@ -59,8 +59,8 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         builder.ConfigureServices(services =>
         {
             services.AddSingleton<LeadOrchestratorChannel>();
-            services.AddSingleton<ILeadStore, NoOpLeadStore>();
-            services.AddSingleton<IMarketingConsentLog, NoOpMarketingConsentLog>();
+            services.AddSingleton<ILeadDataService, NoOpLeadStore>();
+            services.AddSingleton<IMarketingConsentDataService, NoOpMarketingConsentLog>();
             // TODO: Pipeline redesign — ILeadEnricher and ILeadNotifier removed in Phase 1.5; replaced in Phase 2/3/4
             // services.AddSingleton<ILeadEnricher, NoOpLeadEnricher>();
             // services.AddSingleton<ILeadNotifier, NoOpLeadNotifier>();
@@ -70,8 +70,8 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.AddSingleton<ICmaAnalyzer, NoOpCmaAnalyzer>();
             services.AddSingleton<ICmaPdfGenerator, NoOpCmaPdfGenerator>();
             services.AddSingleton<ICmaNotifier, NoOpCmaNotifier>();
-            services.AddSingleton<ILeadDataDeletion, NoOpLeadDataDeletion>();
-            services.AddSingleton<IDeletionAuditLog, NoOpDeletionAuditLog>();
+            services.AddSingleton<ILeadDeletionDataService, NoOpLeadDataDeletion>();
+            services.AddSingleton<IDeletionAuditDataService, NoOpDeletionAuditLog>();
         });
     }
 }
@@ -81,7 +81,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 // Subclasses override with configured mocks for behaviour-specific tests.
 // ---------------------------------------------------------------------------
 
-file sealed class NoOpLeadStore : ILeadStore
+file sealed class NoOpLeadStore : ILeadDataService
 {
     public Task SaveAsync(Lead lead, CancellationToken ct) => Task.CompletedTask;
     public Task UpdateScoreAsync(Lead l, LeadScore s, CancellationToken ct) => Task.CompletedTask;
@@ -95,7 +95,7 @@ file sealed class NoOpLeadStore : ILeadStore
     public Task DeleteAsync(string a, Guid i, CancellationToken ct) => Task.CompletedTask;
 }
 
-file sealed class NoOpMarketingConsentLog : IMarketingConsentLog
+file sealed class NoOpMarketingConsentLog : IMarketingConsentDataService
 {
     public Task RecordConsentAsync(string agentId, MarketingConsent consent, CancellationToken ct) => Task.CompletedTask;
     public Task RedactAsync(string agentId, string email, CancellationToken ct) => Task.CompletedTask;
@@ -110,7 +110,7 @@ file sealed class NoOpHomeSearchProvider : IHomeSearchProvider
         Task.FromResult(new List<Listing>());
 }
 
-file sealed class NoOpLeadDataDeletion : ILeadDataDeletion
+file sealed class NoOpLeadDataDeletion : ILeadDeletionDataService
 {
     public Task<string> InitiateDeletionRequestAsync(string agentId, string email, CancellationToken ct) =>
         Task.FromResult("no-op-token");
@@ -118,7 +118,7 @@ file sealed class NoOpLeadDataDeletion : ILeadDataDeletion
         Task.FromResult(new DeleteResult(true, []));
 }
 
-file sealed class NoOpDeletionAuditLog : IDeletionAuditLog
+file sealed class NoOpDeletionAuditLog : IDeletionAuditDataService
 {
     public Task RecordInitiationAsync(string agentId, Guid leadId, string email, CancellationToken ct) => Task.CompletedTask;
     public Task RecordCompletionAsync(string agentId, Guid leadId, CancellationToken ct) => Task.CompletedTask;

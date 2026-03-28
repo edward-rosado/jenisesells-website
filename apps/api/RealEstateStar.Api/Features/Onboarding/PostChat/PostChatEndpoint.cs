@@ -18,7 +18,7 @@ public class PostChatEndpoint : IEndpoint
         string sessionId,
         PostChatRequest request,
         HttpContext httpContext,
-        ISessionStore sessionStore,
+        ISessionDataService sessionStore,
         OnboardingChatService chatService,
         ILogger<PostChatEndpoint> logger,
         CancellationToken ct)

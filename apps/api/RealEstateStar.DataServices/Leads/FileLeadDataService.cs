@@ -7,10 +7,10 @@ using RealEstateStar.Domain.Shared.Markdown;
 namespace RealEstateStar.DataServices.Leads;
 
 /// <summary>
-/// ILeadStore implementation backed by the local filesystem via LocalStorageProvider.
+/// ILeadDataService implementation backed by the local filesystem via LocalStorageProvider.
 /// Used in development and CI environments where GDrive is unavailable.
 /// </summary>
-public class FileLeadStore(LocalStorageProvider storage, string basePath) : ILeadStore
+public class FileLeadStore(LocalStorageProvider storage, string basePath) : ILeadDataService
 {
     private const string LeadProfileFile = "Lead Profile.md";
     private const string ResearchInsightsFile = "Research & Insights.md";

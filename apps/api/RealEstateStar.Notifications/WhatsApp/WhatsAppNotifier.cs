@@ -11,7 +11,7 @@ namespace RealEstateStar.Notifications.WhatsApp;
 public class WhatsAppNotifier(
     IWhatsAppSender client,
     IConversationLogger conversationLogger,
-    IAccountConfigService configService,
+    IConfigDataService configService,
     IMemoryCache cache,
     ILogger<WhatsAppNotifier> logger) : IWhatsAppNotifier
 {

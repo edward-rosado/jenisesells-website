@@ -8,7 +8,7 @@ using RealEstateStar.Domain.Shared.Markdown;
 
 namespace RealEstateStar.DataServices.Leads;
 
-public class LeadFileStore(IDocumentStorageProvider storage, ILogger<LeadFileStore> logger) : ILeadStore
+public class LeadDataService(IDocumentStorageProvider storage, ILogger<LeadDataService> logger) : ILeadDataService
 {
     private const string LeadProfileFile = "Lead Profile.md";
     private const string ResearchInsightsFile = "Research & Insights.md";

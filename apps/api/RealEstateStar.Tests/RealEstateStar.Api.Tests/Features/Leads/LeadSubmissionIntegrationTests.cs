@@ -47,14 +47,14 @@ namespace RealEstateStar.Api.Tests.Features.Leads;
 /// </summary>
 public class LeadSubmissionMocks
 {
-    public Mock<ILeadStore> LeadStore { get; } = new();
-    public Mock<IMarketingConsentLog> ConsentLog { get; } = new();
+    public Mock<ILeadDataService> LeadStore { get; } = new();
+    public Mock<IMarketingConsentDataService> ConsentLog { get; } = new();
     // TODO: Pipeline redesign — ILeadEnricher and ILeadNotifier removed in Phase 1.5; replaced in Phase 2/3/4
     // public Mock<ILeadEnricher> Enricher { get; } = new();
     // public Mock<ILeadNotifier> Notifier { get; }
     public Mock<IHomeSearchProvider> HomeSearch { get; } = new();
-    public Mock<ILeadDataDeletion> Deletion { get; } = new();
-    public Mock<IDeletionAuditLog> AuditLog { get; } = new();
+    public Mock<ILeadDeletionDataService> Deletion { get; } = new();
+    public Mock<IDeletionAuditDataService> AuditLog { get; } = new();
 
     public LeadSubmissionMocks()
     {
@@ -173,8 +173,8 @@ internal static class LeadRequests
 // Test 1 — Full submission flow
 // POST /agents/{agentId}/leads with a seller lead
 //   → 202 returned immediately
-//   → lead saved to ILeadStore
-//   → consent logged to IMarketingConsentLog
+//   → lead saved to ILeadDataService
+//   → consent logged to IMarketingConsentDataService
 // TODO: Pipeline redesign — ILeadEnricher/ILeadNotifier verification removed in Phase 1.5; will be re-added in Phase 2/3/4
 // ---------------------------------------------------------------------------
 public class LeadSubmission_FullSubmissionFlowTests

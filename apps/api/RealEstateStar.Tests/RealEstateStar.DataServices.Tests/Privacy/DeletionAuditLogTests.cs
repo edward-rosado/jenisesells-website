@@ -25,11 +25,11 @@ using Moq;
 public class DeletionAuditLogTests
 {
     private readonly Mock<IFileStorageProvider> _storage = new();
-    private readonly DeletionAuditLog _sut;
+    private readonly DeletionAuditDataService _sut;
 
     public DeletionAuditLogTests()
     {
-        _sut = new DeletionAuditLog(_storage.Object, NullLogger<DeletionAuditLog>.Instance);
+        _sut = new DeletionAuditDataService(_storage.Object, NullLogger<DeletionAuditDataService>.Instance);
     }
 
     [Fact]

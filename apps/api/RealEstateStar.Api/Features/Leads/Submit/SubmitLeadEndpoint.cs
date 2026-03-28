@@ -26,16 +26,16 @@ public class SubmitLeadEndpoint : IEndpoint
     internal static async Task<IResult> Handle(
         string agentId,
         [FromBody] SubmitLeadRequest request,
-        IAccountConfigService accountConfig,
-        ILeadStore leadStore,
-        IMarketingConsentLog consentLog,
+        IConfigDataService accountConfig,
+        ILeadDataService leadStore,
+        IMarketingConsentDataService consentLog,
         LeadOrchestratorChannel orchestratorChannel,
         HttpContext httpContext,
         ILogger<SubmitLeadEndpoint> logger,
         IConsentAuditService consentAudit,
-        IComplianceConsentWriter complianceWriter,
+        IComplianceConsentDataService complianceWriter,
         IOptions<ConsentHmacOptions> consentHmacOptions,
-        ILeadDeadLetterStore deadLetterStore,
+        ILeadDeadLetterDataService deadLetterStore,
         CancellationToken ct)
     {
         // Validate DataAnnotations on the request
@@ -179,7 +179,7 @@ public class SubmitLeadEndpoint : IEndpoint
             logger.LogInformation("[LEAD-001d] Consent recorded for lead {LeadId}.", lead.Id);
 
             // Triple-write: agent Drive (existing) + compliance Drive + Azure Table
-            var hmacSignature = MarketingConsentLog.ComputeHmacSignature(consent, consentHmacOptions.Value.Secret);
+            var hmacSignature = MarketingConsentDataService.ComputeHmacSignature(consent, consentHmacOptions.Value.Secret);
             logger.LogInformation("[LEAD-001e] Triple-write consent. ComplianceWriter: {WriterType}, ConsentAudit: {AuditType}",
                 complianceWriter.GetType().Name, consentAudit.GetType().Name);
             await complianceWriter.WriteAsync(agentId, consent, hmacSignature, ct);  // Layer 2: RE* service-account Drive

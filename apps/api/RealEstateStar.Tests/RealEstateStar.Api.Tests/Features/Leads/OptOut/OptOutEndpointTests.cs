@@ -54,13 +54,13 @@ public class OptOutEndpointTests
             MarketingOptedIn = marketingOptedIn,
         };
 
-    private static (Mock<IConsentAuditService> audit, Mock<IComplianceConsentWriter> writer, IOptions<ConsentHmacOptions> opts) MakeTripleWriteMocks()
+    private static (Mock<IConsentAuditService> audit, Mock<IComplianceConsentDataService> writer, IOptions<ConsentHmacOptions> opts) MakeTripleWriteMocks()
     {
         var audit = new Mock<IConsentAuditService>();
         audit.Setup(s => s.RecordAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var writer = new Mock<IComplianceConsentWriter>();
+        var writer = new Mock<IComplianceConsentDataService>();
         writer.Setup(s => s.WriteAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -73,8 +73,8 @@ public class OptOutEndpointTests
     public async Task Handle_ValidToken_Returns200AndUpdatesOptInAndAppendConsentLog()
     {
         var lead = MakeLead();
-        var leadStore = new Mock<ILeadStore>();
-        var consentLog = new Mock<IMarketingConsentLog>();
+        var leadStore = new Mock<ILeadDataService>();
+        var consentLog = new Mock<IMarketingConsentDataService>();
         var (consentAudit, complianceWriter, consentHmacOptions) = MakeTripleWriteMocks();
 
         leadStore.Setup(s => s.GetByEmailAsync(AgentId, lead.Email, It.IsAny<CancellationToken>()))
@@ -107,8 +107,8 @@ public class OptOutEndpointTests
     public async Task Handle_ValidToken_TripleWritesConsent()
     {
         var lead = MakeLead();
-        var leadStore = new Mock<ILeadStore>();
-        var consentLog = new Mock<IMarketingConsentLog>();
+        var leadStore = new Mock<ILeadDataService>();
+        var consentLog = new Mock<IMarketingConsentDataService>();
         var (consentAudit, complianceWriter, consentHmacOptions) = MakeTripleWriteMocks();
 
         leadStore.Setup(s => s.GetByEmailAsync(AgentId, lead.Email, It.IsAny<CancellationToken>()))
@@ -138,8 +138,8 @@ public class OptOutEndpointTests
     public async Task Handle_InvalidToken_Returns200WithoutWriting()
     {
         var lead = MakeLead();
-        var leadStore = new Mock<ILeadStore>();
-        var consentLog = new Mock<IMarketingConsentLog>();
+        var leadStore = new Mock<ILeadDataService>();
+        var consentLog = new Mock<IMarketingConsentDataService>();
         var (consentAudit, complianceWriter, consentHmacOptions) = MakeTripleWriteMocks();
 
         leadStore.Setup(s => s.GetByEmailAsync(AgentId, lead.Email, It.IsAny<CancellationToken>()))
@@ -169,8 +169,8 @@ public class OptOutEndpointTests
     [Fact]
     public async Task Handle_EmailNotFound_Returns200WithoutWriting()
     {
-        var leadStore = new Mock<ILeadStore>();
-        var consentLog = new Mock<IMarketingConsentLog>();
+        var leadStore = new Mock<ILeadDataService>();
+        var consentLog = new Mock<IMarketingConsentDataService>();
         var (consentAudit, complianceWriter, consentHmacOptions) = MakeTripleWriteMocks();
 
         leadStore.Setup(s => s.GetByEmailAsync(AgentId, "unknown@example.com", It.IsAny<CancellationToken>()))
@@ -199,8 +199,8 @@ public class OptOutEndpointTests
     public async Task Handle_AlreadyOptedOut_Returns200Idempotently()
     {
         var lead = MakeLead(marketingOptedIn: false);
-        var leadStore = new Mock<ILeadStore>();
-        var consentLog = new Mock<IMarketingConsentLog>();
+        var leadStore = new Mock<ILeadDataService>();
+        var consentLog = new Mock<IMarketingConsentDataService>();
         var (consentAudit, complianceWriter, consentHmacOptions) = MakeTripleWriteMocks();
 
         leadStore.Setup(s => s.GetByEmailAsync(AgentId, lead.Email, It.IsAny<CancellationToken>()))
@@ -230,8 +230,8 @@ public class OptOutEndpointTests
     public async Task Handle_ValidToken_ConsentLogRecordsOptOutAction()
     {
         var lead = MakeLead();
-        var leadStore = new Mock<ILeadStore>();
-        var consentLog = new Mock<IMarketingConsentLog>();
+        var leadStore = new Mock<ILeadDataService>();
+        var consentLog = new Mock<IMarketingConsentDataService>();
         var (consentAudit, complianceWriter, consentHmacOptions) = MakeTripleWriteMocks();
 
         leadStore.Setup(s => s.GetByEmailAsync(AgentId, lead.Email, It.IsAny<CancellationToken>()))

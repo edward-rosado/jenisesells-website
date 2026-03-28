@@ -13,7 +13,7 @@ public class DeleteLeadEndpoint : IEndpoint
     internal static async Task<IResult> Handle(
         string agentId,
         [FromQuery] string email,
-        ILeadDataDeletion deletion,
+        ILeadDeletionDataService deletion,
         ILogger<DeleteLeadEndpoint> logger,
         CancellationToken ct)
     {

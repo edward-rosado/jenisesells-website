@@ -36,7 +36,7 @@ public class TrialExpiryTests
     [Fact]
     public async Task Service_StopsGracefully_OnCancellation()
     {
-        var mockStore = new Mock<ISessionStore>();
+        var mockStore = new Mock<ISessionDataService>();
         var mockStripe = new Mock<IStripeService>();
         var service = new TrialExpiryService(
             mockStore.Object, mockStripe.Object, NullLogger<TrialExpiryService>.Instance);
@@ -53,7 +53,7 @@ public class TrialExpiryTests
     [Fact]
     public async Task Service_LogsStartMessage()
     {
-        var mockStore = new Mock<ISessionStore>();
+        var mockStore = new Mock<ISessionDataService>();
         var mockStripe = new Mock<IStripeService>();
         var mockLogger = new Mock<ILogger<TrialExpiryService>>();
         var service = new TrialExpiryService(
@@ -82,7 +82,7 @@ public class TrialExpiryTests
         // Use a very short interval to ensure the check loop runs at least once
         // The service uses Task.Delay(CheckInterval) which is 1 hour, but cancellation
         // throws OperationCanceledException which is caught by the while loop
-        var mockStore = new Mock<ISessionStore>();
+        var mockStore = new Mock<ISessionDataService>();
         var mockStripe = new Mock<IStripeService>();
         var mockLogger = new Mock<ILogger<TrialExpiryService>>();
         var service = new TrialExpiryService(

@@ -8,7 +8,7 @@ namespace RealEstateStar.Api.Features.Onboarding.Tools;
 
 public class SendWhatsAppWelcomeTool(
     IWhatsAppSender whatsAppClient,
-    IAccountConfigService accountConfigService,
+    IConfigDataService accountConfigService,
     ILogger<SendWhatsAppWelcomeTool> logger) : IOnboardingTool
 {
     public string Name => "send_whatsapp_welcome";

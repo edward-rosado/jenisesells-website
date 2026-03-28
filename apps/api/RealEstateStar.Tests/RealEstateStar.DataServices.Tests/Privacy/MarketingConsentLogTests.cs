@@ -26,10 +26,10 @@ namespace RealEstateStar.DataServices.Tests.Privacy;
 
 public class MarketingConsentLogTests
 {
-    private static MarketingConsentLog CreateConsentLog(IFileStorageProvider storageProvider, string secret = "test-secret")
+    private static MarketingConsentDataService CreateConsentLog(IFileStorageProvider storageProvider, string secret = "test-secret")
     {
         var hmacOptions = Options.Create(new ConsentHmacOptions { Secret = secret });
-        return new MarketingConsentLog(storageProvider, hmacOptions, NullLogger<MarketingConsentLog>.Instance);
+        return new MarketingConsentDataService(storageProvider, hmacOptions, NullLogger<MarketingConsentDataService>.Instance);
     }
 
     [Fact]
@@ -190,7 +190,7 @@ public class MarketingConsentLogTests
     {
         var storageProvider = new Mock<IFileStorageProvider>();
         var hmacOptions = Options.Create(new ConsentHmacOptions { Secret = "test-secret-key" });
-        var consentLog = new MarketingConsentLog(storageProvider.Object, hmacOptions, NullLogger<MarketingConsentLog>.Instance);
+        var consentLog = new MarketingConsentDataService(storageProvider.Object, hmacOptions, NullLogger<MarketingConsentDataService>.Instance);
 
         List<string>? capturedRow = null;
         storageProvider.Setup(sp => sp.AppendRowAsync(
@@ -240,7 +240,7 @@ public class MarketingConsentLogTests
             Source = ConsentSource.LeadForm,
         };
 
-        var signature = MarketingConsentLog.ComputeHmacSignature(consent, "my-secret");
+        var signature = MarketingConsentDataService.ComputeHmacSignature(consent, "my-secret");
 
         signature.Should().StartWith("sha256=");
         signature.Should().HaveLength(7 + 64); // "sha256=" + 32 bytes hex = 64 chars
@@ -265,8 +265,8 @@ public class MarketingConsentLogTests
             Source = ConsentSource.LeadForm,
         };
 
-        var sig1 = MarketingConsentLog.ComputeHmacSignature(consent, "secret");
-        var sig2 = MarketingConsentLog.ComputeHmacSignature(consent, "secret");
+        var sig1 = MarketingConsentDataService.ComputeHmacSignature(consent, "secret");
+        var sig2 = MarketingConsentDataService.ComputeHmacSignature(consent, "secret");
 
         sig1.Should().Be(sig2);
     }
@@ -290,7 +290,7 @@ public class MarketingConsentLogTests
             Source = ConsentSource.LeadForm,
         };
 
-        var row = MarketingConsentLog.BuildCsvRow(consent, "sha256=abc123");
+        var row = MarketingConsentDataService.BuildCsvRow(consent, "sha256=abc123");
 
         row.Should().HaveCount(13);
         row[10].Should().Be("OptIn");

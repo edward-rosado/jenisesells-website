@@ -6,7 +6,7 @@ using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.DataServices.Config;
 
-public partial class AccountConfigService(string configDirectory, ILogger<AccountConfigService>? logger = null) : IAccountConfigService
+public partial class ConfigDataService(string configDirectory, ILogger<ConfigDataService>? logger = null) : IConfigDataService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

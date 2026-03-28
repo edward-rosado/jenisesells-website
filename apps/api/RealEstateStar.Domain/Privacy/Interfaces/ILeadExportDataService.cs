@@ -1,6 +1,6 @@
 namespace RealEstateStar.Domain.Privacy.Interfaces;
 
-public interface ILeadDataExport
+public interface ILeadExportDataService
 {
     Task<LeadExportData?> GatherAsync(string agentId, string email, CancellationToken ct);
 }

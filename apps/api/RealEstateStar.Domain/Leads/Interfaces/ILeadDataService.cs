@@ -1,7 +1,7 @@
 using RealEstateStar.Domain.Leads.Models;
 namespace RealEstateStar.Domain.Leads.Interfaces;
 
-public interface ILeadStore
+public interface ILeadDataService
 {
     Task SaveAsync(Lead lead, CancellationToken ct);
     Task UpdateScoreAsync(Lead lead, LeadScore score, CancellationToken ct);

@@ -34,7 +34,7 @@ namespace RealEstateStar.Api.Tests.Features.Onboarding.CreateSession;
 
 public class CreateSessionEndpointTests
 {
-    private readonly Mock<ISessionStore> _mockStore = new();
+    private readonly Mock<ISessionDataService> _mockStore = new();
 
     [Fact]
     public async Task Handle_WithProfileUrl_CreatesSession()

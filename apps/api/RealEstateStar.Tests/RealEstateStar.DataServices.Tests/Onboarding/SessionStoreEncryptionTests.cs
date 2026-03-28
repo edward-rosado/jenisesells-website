@@ -27,19 +27,19 @@ namespace RealEstateStar.DataServices.Tests.Onboarding;
 public class SessionStoreEncryptionTests : IDisposable
 {
     private readonly string _testDir;
-    private readonly JsonFileSessionStore _innerStore;
-    private readonly EncryptingSessionStoreDecorator _sut;
+    private readonly SessionDataService _innerStore;
+    private readonly EncryptingSessionDecorator _sut;
     private readonly IDataProtectionProvider _provider;
 
     public SessionStoreEncryptionTests()
     {
         _testDir = Path.Combine(Path.GetTempPath(), $"res-enc-{Guid.NewGuid():N}");
         _provider = new EphemeralDataProtectionProvider();
-        _innerStore = new JsonFileSessionStore(_testDir, NullLogger<JsonFileSessionStore>.Instance);
-        _sut = new EncryptingSessionStoreDecorator(
+        _innerStore = new SessionDataService(_testDir, NullLogger<SessionDataService>.Instance);
+        _sut = new EncryptingSessionDecorator(
             _innerStore,
             _provider,
-            NullLogger<EncryptingSessionStoreDecorator>.Instance);
+            NullLogger<EncryptingSessionDecorator>.Instance);
     }
 
     public void Dispose()

@@ -9,7 +9,7 @@ namespace RealEstateStar.DataServices.Leads;
 /// Writes failed lead operations to a local JSON file as a last resort.
 /// Survives when Azure Table Storage is unavailable.
 /// </summary>
-public class LeadDeadLetterStore(string basePath, ILogger<LeadDeadLetterStore> logger) : ILeadDeadLetterStore
+public class LeadDeadLetterDataService(string basePath, ILogger<LeadDeadLetterDataService> logger) : ILeadDeadLetterDataService
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 

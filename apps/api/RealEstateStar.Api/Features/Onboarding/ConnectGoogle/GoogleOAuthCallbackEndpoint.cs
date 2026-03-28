@@ -22,11 +22,11 @@ public class GoogleOAuthCallbackEndpoint : IEndpoint
         string? code,
         string state,
         string? error,
-        ISessionStore sessionStore,
+        ISessionDataService sessionStore,
         GoogleOAuthService oAuthService,
         OnboardingStateMachine stateMachine,
         ITokenStore tokenStore,
-        IAccountConfigService accountConfigService,
+        IConfigDataService accountConfigService,
         IConfiguration configuration,
         ILogger<GoogleOAuthCallbackEndpoint> logger,
         CancellationToken ct)

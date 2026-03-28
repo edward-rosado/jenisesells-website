@@ -20,7 +20,7 @@ public class StripeWebhookEndpoint : IEndpoint
     internal static async Task<IResult> Handle(
         HttpContext httpContext,
         IStripeService stripeService,
-        ISessionStore sessionStore,
+        ISessionDataService sessionStore,
         OnboardingStateMachine stateMachine,
         ILogger<StripeWebhookEndpoint> logger,
         CancellationToken ct)
@@ -50,7 +50,7 @@ public class StripeWebhookEndpoint : IEndpoint
 
     internal static async Task<IResult> HandleWebhookEvent(
         Event stripeEvent,
-        ISessionStore sessionStore,
+        ISessionDataService sessionStore,
         OnboardingStateMachine stateMachine,
         ILogger<StripeWebhookEndpoint> logger,
         CancellationToken ct)

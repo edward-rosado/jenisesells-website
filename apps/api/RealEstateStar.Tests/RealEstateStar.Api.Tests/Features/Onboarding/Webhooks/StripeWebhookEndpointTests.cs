@@ -40,7 +40,7 @@ namespace RealEstateStar.Api.Tests.Features.Onboarding.Webhooks;
 
 public class StripeWebhookEndpointTests
 {
-    private readonly Mock<ISessionStore> _sessionStore = new();
+    private readonly Mock<ISessionDataService> _sessionStore = new();
     private readonly Mock<OnboardingStateMachine> _stateMachine = new();
     private const string WebhookSecret = "whsec_test_secret";
 

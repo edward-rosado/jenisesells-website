@@ -3,9 +3,9 @@ using Microsoft.Extensions.Logging;
 
 namespace RealEstateStar.DataServices.Privacy;
 
-public class ConsentTokenStore(
+public class ConsentDataService(
     TableClient tableClient,
-    ILogger<ConsentTokenStore> logger)
+    ILogger<ConsentDataService> logger)
 {
     public async Task StoreAsync(string agentId, string tokenHash, Guid leadId, string email, CancellationToken ct)
     {

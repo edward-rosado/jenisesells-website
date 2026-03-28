@@ -39,7 +39,7 @@ internal static class NotificationHelpers
     /// Use this overload when accountId is the only value needed from the config.
     /// </summary>
     internal static async Task<string> ResolveAccountIdAsync(
-        IAccountConfigService accountConfigService,
+        IConfigDataService accountConfigService,
         string agentId,
         CancellationToken ct)
     {

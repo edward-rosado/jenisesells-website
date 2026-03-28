@@ -25,20 +25,20 @@ namespace RealEstateStar.DataServices.Tests.Leads;
 
 public class LeadDataDeletionTests
 {
-    private readonly Mock<ILeadStore> _leadStore = new();
-    private readonly Mock<IMarketingConsentLog> _consentLog = new();
-    private readonly Mock<IDeletionAuditLog> _auditLog = new();
+    private readonly Mock<ILeadDataService> _leadStore = new();
+    private readonly Mock<IMarketingConsentDataService> _consentLog = new();
+    private readonly Mock<IDeletionAuditDataService> _auditLog = new();
     private readonly Mock<IFileStorageProvider> _storage = new();
     private readonly Mock<IGwsService> _gws = new();
-    private readonly Mock<ILogger<LeadDataDeletion>> _logger = new();
-    private readonly LeadDataDeletion _sut;
+    private readonly Mock<ILogger<LeadDeletionDataService>> _logger = new();
+    private readonly LeadDeletionDataService _sut;
 
     private const string AgentId = "jenise-buckalew";
     private const string LeadEmail = "jane.doe@example.com";
 
     public LeadDataDeletionTests()
     {
-        _sut = new LeadDataDeletion(
+        _sut = new LeadDeletionDataService(
             _leadStore.Object,
             _consentLog.Object,
             _auditLog.Object,
@@ -94,7 +94,7 @@ public class LeadDataDeletionTests
 
     private void SetupValidToken(string token, string email = LeadEmail, double hoursFromNow = 23)
     {
-        var tokenHash = LeadDataDeletion.ComputeTokenHash(token);
+        var tokenHash = LeadDeletionDataService.ComputeTokenHash(token);
         var tokenFolder = LeadPaths.DeletionTokensFolder(AgentId);
         _storage.Setup(s => s.ReadDocumentAsync(tokenFolder, $"{tokenHash}.json", It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildValidTokenJson(email, hoursFromNow));
@@ -211,7 +211,7 @@ public class LeadDataDeletionTests
         storedContent.Should().Contain(LeadEmail, "stored data must include the email");
 
         // Verify filename is the hash of the token
-        var expectedHash = LeadDataDeletion.ComputeTokenHash(token);
+        var expectedHash = LeadDeletionDataService.ComputeTokenHash(token);
         storedFileName.Should().Be($"{expectedHash}.json");
     }
 
@@ -362,7 +362,7 @@ public class LeadDataDeletionTests
     [Fact]
     public async Task ExecuteDeletionAsync_AuditLogRecordsCompletionWithRedactedEmail()
     {
-        // The DeletionAuditLog.RecordCompletionAsync records [REDACTED] — verify our impl calls RecordCompletion (not Initiation)
+        // The DeletionAuditDataService.RecordCompletionAsync records [REDACTED] — verify our impl calls RecordCompletion (not Initiation)
         var lead = MakeLead();
         var token = "test-token-redact-check";
         SetupValidToken(token);
@@ -371,7 +371,7 @@ public class LeadDataDeletionTests
 
         await _sut.ExecuteDeletionAsync(AgentId, LeadEmail, token, "user request", CancellationToken.None);
 
-        // Verify we call RecordCompletionAsync (which internally redacts the email per DeletionAuditLog impl)
+        // Verify we call RecordCompletionAsync (which internally redacts the email per DeletionAuditDataService impl)
         _auditLog.Verify(a => a.RecordCompletionAsync(AgentId, lead.Id, It.IsAny<CancellationToken>()), Times.Once);
         // We must NOT call RecordInitiationAsync on completion
         _auditLog.Verify(a => a.RecordInitiationAsync(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -396,8 +396,8 @@ public class LeadDataDeletionTests
     public async Task ComputeTokenHash_IsDeterministic()
     {
         var token = "my-test-token";
-        var hash1 = LeadDataDeletion.ComputeTokenHash(token);
-        var hash2 = LeadDataDeletion.ComputeTokenHash(token);
+        var hash1 = LeadDeletionDataService.ComputeTokenHash(token);
+        var hash2 = LeadDeletionDataService.ComputeTokenHash(token);
 
         hash1.Should().Be(hash2);
     }
@@ -405,8 +405,8 @@ public class LeadDataDeletionTests
     [Fact]
     public async Task ComputeTokenHash_DifferentTokensProduceDifferentHashes()
     {
-        var hash1 = LeadDataDeletion.ComputeTokenHash("token-a");
-        var hash2 = LeadDataDeletion.ComputeTokenHash("token-b");
+        var hash1 = LeadDeletionDataService.ComputeTokenHash("token-a");
+        var hash2 = LeadDeletionDataService.ComputeTokenHash("token-b");
 
         hash1.Should().NotBe(hash2);
     }

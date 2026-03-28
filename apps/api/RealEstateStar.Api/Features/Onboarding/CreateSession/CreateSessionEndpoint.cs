@@ -14,7 +14,7 @@ public class CreateSessionEndpoint : IEndpoint
 
     internal static async Task<IResult> Handle(
         CreateSessionRequest request,
-        ISessionStore sessionStore,
+        ISessionDataService sessionStore,
         ILogger<CreateSessionEndpoint> logger,
         CancellationToken ct)
     {

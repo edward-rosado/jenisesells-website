@@ -25,8 +25,8 @@ namespace RealEstateStar.Workers.Lead.Orchestrator.Tests;
 public sealed class LeadOrchestratorTests
 {
     // ── mocks ────────────────────────────────────────────────────────────────
-    private readonly Mock<ILeadStore> _leadStoreMock = new();
-    private readonly Mock<IAccountConfigService> _accountConfigMock = new();
+    private readonly Mock<ILeadDataService> _leadStoreMock = new();
+    private readonly Mock<IConfigDataService> _accountConfigMock = new();
     private readonly Mock<ILeadScorer> _scorerMock = new();
     private readonly Mock<ILeadEmailDrafter> _emailDrafterMock = new();
     private readonly Mock<IGmailSender> _gmailMock = new();
@@ -720,7 +720,7 @@ public sealed class LeadOrchestratorTests
         // Assert — status update sequence: Scored → Analyzing → Complete
         // Scored and Analyzing are written inline via persistActivity.PersistStatusAsync (concurrency gates).
         // Complete is written inside persistActivity.ExecuteAsync at end of pipeline.
-        // All three flow through _leadStoreMock because PersistActivity wraps ILeadStore.
+        // All three flow through _leadStoreMock because PersistActivity wraps ILeadDataService.
         _leadStoreMock.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.Scored, It.IsAny<CancellationToken>()), Times.Once);
         _leadStoreMock.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.Analyzing, It.IsAny<CancellationToken>()), Times.Once);
         _leadStoreMock.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.Complete, It.IsAny<CancellationToken>()), Times.Once);

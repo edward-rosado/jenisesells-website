@@ -30,7 +30,7 @@ public class ConsentTokenStoreTests
     [Fact]
     public async Task StoreAsync_UpsertsEntryWithTokenHashAsRowKey()
     {
-        var sut = new ConsentTokenStore(_tableClient.Object, NullLogger<ConsentTokenStore>.Instance);
+        var sut = new ConsentDataService(_tableClient.Object, NullLogger<ConsentDataService>.Instance);
         ConsentTokenEntry? captured = null;
         _tableClient.Setup(tc => tc.UpsertEntityAsync(
             It.IsAny<ConsentTokenEntry>(), It.IsAny<TableUpdateMode>(), It.IsAny<CancellationToken>()))
@@ -49,7 +49,7 @@ public class ConsentTokenStoreTests
     [Fact]
     public async Task StoreAsync_HashesEmailBeforeStoring()
     {
-        var sut = new ConsentTokenStore(_tableClient.Object, NullLogger<ConsentTokenStore>.Instance);
+        var sut = new ConsentDataService(_tableClient.Object, NullLogger<ConsentDataService>.Instance);
         ConsentTokenEntry? captured = null;
         _tableClient.Setup(tc => tc.UpsertEntityAsync(
             It.IsAny<ConsentTokenEntry>(), It.IsAny<TableUpdateMode>(), It.IsAny<CancellationToken>()))
@@ -77,7 +77,7 @@ public class ConsentTokenStoreTests
             "agent-1", "abc123hash", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Azure.Response.FromValue(entry, Mock.Of<Azure.Response>()));
 
-        var sut = new ConsentTokenStore(_tableClient.Object, NullLogger<ConsentTokenStore>.Instance);
+        var sut = new ConsentDataService(_tableClient.Object, NullLogger<ConsentDataService>.Instance);
         var result = await sut.LookupAsync("agent-1", "abc123hash", CancellationToken.None);
 
         Assert.NotNull(result);
@@ -98,7 +98,7 @@ public class ConsentTokenStoreTests
             "agent-1", "abc123hash", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Azure.Response.FromValue(entry, Mock.Of<Azure.Response>()));
 
-        var sut = new ConsentTokenStore(_tableClient.Object, NullLogger<ConsentTokenStore>.Instance);
+        var sut = new ConsentDataService(_tableClient.Object, NullLogger<ConsentDataService>.Instance);
         var result = await sut.LookupAsync("agent-1", "abc123hash", CancellationToken.None);
 
         Assert.NotNull(result);
@@ -112,7 +112,7 @@ public class ConsentTokenStoreTests
             "agent-1", "missing", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Azure.RequestFailedException(404, "Not found"));
 
-        var sut = new ConsentTokenStore(_tableClient.Object, NullLogger<ConsentTokenStore>.Instance);
+        var sut = new ConsentDataService(_tableClient.Object, NullLogger<ConsentDataService>.Instance);
         var result = await sut.LookupAsync("agent-1", "missing", CancellationToken.None);
 
         Assert.Null(result);
@@ -121,7 +121,7 @@ public class ConsentTokenStoreTests
     [Fact]
     public async Task RevokeAsync_DeletesEntryFromTable()
     {
-        var sut = new ConsentTokenStore(_tableClient.Object, NullLogger<ConsentTokenStore>.Instance);
+        var sut = new ConsentDataService(_tableClient.Object, NullLogger<ConsentDataService>.Instance);
         await sut.RevokeAsync("agent-1", "abc123hash", CancellationToken.None);
 
         _tableClient.Verify(tc => tc.DeleteEntityAsync(
@@ -135,7 +135,7 @@ public class ConsentTokenStoreTests
             "agent-1", "abc123hash", It.IsAny<Azure.ETag>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Azure.RequestFailedException(404, "Not found"));
 
-        var sut = new ConsentTokenStore(_tableClient.Object, NullLogger<ConsentTokenStore>.Instance);
+        var sut = new ConsentDataService(_tableClient.Object, NullLogger<ConsentDataService>.Instance);
         // Should not throw — idempotent
         await sut.RevokeAsync("agent-1", "abc123hash", CancellationToken.None);
     }

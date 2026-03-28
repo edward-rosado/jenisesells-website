@@ -20,8 +20,8 @@ public class DeleteDataEndpoint : IEndpoint
     internal static async Task<IResult> Handle(
         string agentId,
         [FromBody] DeleteLeadDataRequest request,
-        ILeadStore leadStore,
-        ILeadDataDeletion deletion,
+        ILeadDataService leadStore,
+        ILeadDeletionDataService deletion,
         ILogger<DeleteDataEndpoint> logger,
         CancellationToken ct)
     {
@@ -52,7 +52,7 @@ public class DeleteDataEndpoint : IEndpoint
             return Results.NotFound();
         }
 
-        // Execute deletion — ILeadDataDeletion validates the token internally
+        // Execute deletion — ILeadDeletionDataService validates the token internally
         var result = await deletion.ExecuteDeletionAsync(agentId, request.Email, request.Token, request.Reason, ct);
 
         if (!result.Success)

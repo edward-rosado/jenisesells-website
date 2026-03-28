@@ -16,7 +16,7 @@ public class WhatsAppNotifierTests : IDisposable
 {
     private readonly Mock<IWhatsAppSender> _client = new();
     private readonly Mock<IConversationLogger> _logger = new();
-    private readonly Mock<IAccountConfigService> _configService = new();
+    private readonly Mock<IConfigDataService> _configService = new();
     private readonly Mock<ILogger<WhatsAppNotifier>> _log = new();
     private readonly IMemoryCache _cache;
     private readonly WhatsAppNotifier _sut;

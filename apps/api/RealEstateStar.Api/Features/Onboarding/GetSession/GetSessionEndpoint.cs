@@ -14,7 +14,7 @@ public class GetSessionEndpoint : IEndpoint
     internal static async Task<IResult> Handle(
         string sessionId,
         HttpContext httpContext,
-        ISessionStore sessionStore,
+        ISessionDataService sessionStore,
         CancellationToken ct)
     {
         var session = await sessionStore.LoadAsync(sessionId, ct);

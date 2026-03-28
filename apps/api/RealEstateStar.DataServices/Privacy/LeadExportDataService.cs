@@ -5,9 +5,9 @@ using RealEstateStar.Domain.Privacy.Interfaces;
 
 namespace RealEstateStar.DataServices.Privacy;
 
-public class LeadDataExport(
-    ILeadStore leadStore,
-    ILogger<LeadDataExport> logger) : ILeadDataExport
+public class LeadExportDataService(
+    ILeadDataService leadStore,
+    ILogger<LeadExportDataService> logger) : ILeadExportDataService
 {
     public async Task<LeadExportData?> GatherAsync(string agentId, string email, CancellationToken ct)
     {

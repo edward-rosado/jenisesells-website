@@ -25,19 +25,19 @@ public static class ServiceCollectionExtensions
         string configPath)
     {
         // Account config service — reads per-tenant config from disk
-        services.AddSingleton<IAccountConfigService>(sp =>
-            new AccountConfigService(configPath, sp.GetRequiredService<ILogger<AccountConfigService>>()));
+        services.AddSingleton<IConfigDataService>(sp =>
+            new ConfigDataService(configPath, sp.GetRequiredService<ILogger<ConfigDataService>>()));
 
         // Lead feature services
-        services.AddSingleton<ILeadStore, LeadFileStore>();
-        services.AddSingleton<IMarketingConsentLog, MarketingConsentLog>();
-        services.AddSingleton<ILeadDataDeletion, LeadDataDeletion>();
-        services.AddSingleton<IDeletionAuditLog, DeletionAuditLog>();
+        services.AddSingleton<ILeadDataService, LeadDataService>();
+        services.AddSingleton<IMarketingConsentDataService, MarketingConsentDataService>();
+        services.AddSingleton<ILeadDeletionDataService, LeadDeletionDataService>();
+        services.AddSingleton<IDeletionAuditDataService, DeletionAuditDataService>();
 
-        services.AddSingleton<ILeadDeadLetterStore>(sp =>
-            new LeadDeadLetterStore(
+        services.AddSingleton<ILeadDeadLetterDataService>(sp =>
+            new LeadDeadLetterDataService(
                 Path.Combine(environment.ContentRootPath, "data", "dead-letter"),
-                sp.GetRequiredService<ILogger<LeadDeadLetterStore>>()));
+                sp.GetRequiredService<ILogger<LeadDeadLetterDataService>>()));
 
         // Compliance consent triple-write services
         // IComplianceFileStorageProvider: service-account Drive in prod, local filesystem in dev
@@ -46,8 +46,8 @@ public static class ServiceCollectionExtensions
                 configuration["Storage:ComplianceBasePath"] ??
                 Path.Combine(environment.ContentRootPath, "data", "compliance")));
 
-        // IComplianceConsentWriter: backed by ComplianceConsentWriter
-        services.AddSingleton<IComplianceConsentWriter, ComplianceConsentWriter>();
+        // IComplianceConsentDataService: backed by ComplianceConsentDataService
+        services.AddSingleton<IComplianceConsentDataService, ComplianceConsentDataService>();
 
         // IConsentAuditService: Azure Table in prod, no-op in dev
         services.AddSingleton<IConsentAuditService>(sp =>
@@ -61,19 +61,19 @@ public static class ServiceCollectionExtensions
         });
 
         // GDPR data export
-        services.AddSingleton<ILeadDataExport, LeadDataExport>();
+        services.AddSingleton<ILeadExportDataService, LeadExportDataService>();
 
-        // Consent token store (Azure Table; in-memory fallback when not configured)
-        services.AddSingleton<ConsentTokenStore>(sp =>
+        // Consent data service (Azure Table; in-memory fallback when not configured)
+        services.AddSingleton<ConsentDataService>(sp =>
         {
             var connStr = configuration["AzureStorage:ConnectionString"];
             if (string.IsNullOrEmpty(connStr))
-                return new ConsentTokenStore(
+                return new ConsentDataService(
                     new TableClient("UseDevelopmentStorage=true", "consenttokens"),
-                    sp.GetRequiredService<ILogger<ConsentTokenStore>>());
+                    sp.GetRequiredService<ILogger<ConsentDataService>>());
 
             var tableClient = new TableClient(connStr, "consenttokens");
-            return new ConsentTokenStore(tableClient, sp.GetRequiredService<ILogger<ConsentTokenStore>>());
+            return new ConsentDataService(tableClient, sp.GetRequiredService<ILogger<ConsentDataService>>());
         });
 
         // OAuth token store — default to NullTokenStore (no-persist) when connection string is absent.

@@ -126,12 +126,12 @@ if (!builder.Environment.IsDevelopment())
 builder.Services.Configure<ConsentHmacOptions>(builder.Configuration.GetSection("Consent:Hmac"));
 
 // Onboarding (session store registered early, services after config keys below)
-builder.Services.AddSingleton<JsonFileSessionStore>();
-builder.Services.AddSingleton<ISessionStore>(sp =>
-    new EncryptingSessionStoreDecorator(
-        sp.GetRequiredService<JsonFileSessionStore>(),
+builder.Services.AddSingleton<SessionDataService>();
+builder.Services.AddSingleton<ISessionDataService>(sp =>
+    new EncryptingSessionDecorator(
+        sp.GetRequiredService<SessionDataService>(),
         sp.GetRequiredService<IDataProtectionProvider>(),
-        sp.GetRequiredService<ILogger<EncryptingSessionStoreDecorator>>()));
+        sp.GetRequiredService<ILogger<EncryptingSessionDecorator>>()));
 builder.Services.AddSingleton<OnboardingStateMachine>();
 
 // Configuration keys

@@ -25,12 +25,12 @@ namespace RealEstateStar.DataServices.Tests.Leads;
 public class LeadFileStoreTests
 {
     private readonly Mock<IFileStorageProvider> _storage = new(MockBehavior.Strict);
-    private readonly LeadFileStore _sut;
+    private readonly LeadDataService _sut;
     private const string AgentId = "jenise-buckalew";
 
     public LeadFileStoreTests()
     {
-        _sut = new LeadFileStore(_storage.Object, NullLogger<LeadFileStore>.Instance);
+        _sut = new LeadDataService(_storage.Object, NullLogger<LeadDataService>.Instance);
     }
 
     // ── Test data ─────────────────────────────────────────────────────────────

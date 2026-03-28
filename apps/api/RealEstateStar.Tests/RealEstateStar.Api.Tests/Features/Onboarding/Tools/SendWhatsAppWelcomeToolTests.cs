@@ -37,10 +37,10 @@ public class SendWhatsAppWelcomeToolTests
 
     private static SendWhatsAppWelcomeTool CreateTool(
         out Mock<IWhatsAppSender> whatsAppClient,
-        out Mock<IAccountConfigService> accountConfigService)
+        out Mock<IConfigDataService> accountConfigService)
     {
         whatsAppClient = new Mock<IWhatsAppSender>();
-        accountConfigService = new Mock<IAccountConfigService>();
+        accountConfigService = new Mock<IConfigDataService>();
         return new SendWhatsAppWelcomeTool(
             whatsAppClient.Object,
             accountConfigService.Object,

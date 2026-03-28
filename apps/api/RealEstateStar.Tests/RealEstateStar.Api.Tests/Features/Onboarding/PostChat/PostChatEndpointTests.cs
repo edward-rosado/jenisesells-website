@@ -39,7 +39,7 @@ namespace RealEstateStar.Api.Tests.Features.Onboarding.PostChat;
 
 public class PostChatEndpointTests
 {
-    private readonly Mock<ISessionStore> _mockStore = new();
+    private readonly Mock<ISessionDataService> _mockStore = new();
 
     private static OnboardingChatService CreateStubChatService()
     {

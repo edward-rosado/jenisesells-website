@@ -8,7 +8,7 @@ namespace RealEstateStar.Workers.WhatsApp.Tests;
 
 public class WhatsAppRetryJobTests
 {
-    private readonly Mock<IAccountConfigService> _configService = new();
+    private readonly Mock<IConfigDataService> _configService = new();
     private readonly Mock<IWhatsAppSender> _whatsAppClient = new();
     private readonly Mock<ILogger<WhatsAppRetryJob>> _logger = new();
 

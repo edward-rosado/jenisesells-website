@@ -36,7 +36,7 @@ namespace RealEstateStar.Api.Tests.Features.Leads.Delete;
 
 public class DeleteLeadEndpointTests
 {
-    private readonly Mock<ILeadDataDeletion> _deletion = new();
+    private readonly Mock<ILeadDeletionDataService> _deletion = new();
     private readonly ILogger<DeleteLeadEndpoint> _logger = NullLogger<DeleteLeadEndpoint>.Instance;
     private const string AgentId = "jenise-buckalew";
     private const string Email = "lead@example.com";

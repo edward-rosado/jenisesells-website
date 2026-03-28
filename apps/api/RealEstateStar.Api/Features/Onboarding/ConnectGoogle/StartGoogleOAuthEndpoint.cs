@@ -15,7 +15,7 @@ public class StartGoogleOAuthEndpoint : IEndpoint
     internal static async Task<IResult> Handle(
         string sessionId,
         HttpContext httpContext,
-        ISessionStore sessionStore,
+        ISessionDataService sessionStore,
         GoogleOAuthService oAuthService,
         CancellationToken ct)
     {

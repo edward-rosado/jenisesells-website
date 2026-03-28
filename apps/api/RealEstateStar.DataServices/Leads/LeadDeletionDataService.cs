@@ -11,13 +11,13 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.DataServices.Leads;
 
-public class LeadDataDeletion(
-    ILeadStore leadStore,
-    IMarketingConsentLog consentLog,
-    IDeletionAuditLog auditLog,
+public class LeadDeletionDataService(
+    ILeadDataService leadStore,
+    IMarketingConsentDataService consentLog,
+    IDeletionAuditDataService auditLog,
     IDocumentStorageProvider storage,
     IGwsService gwsService,
-    ILogger<LeadDataDeletion> logger) : ILeadDataDeletion
+    ILogger<LeadDeletionDataService> logger) : ILeadDeletionDataService
 {
     private const string TokenFolder = "Deletion Tokens";
     private static readonly TimeSpan TokenExpiry = TimeSpan.FromHours(24);
@@ -167,7 +167,7 @@ public class LeadDataDeletion(
         deletedItems.Add("Consent log entries (redacted)");
         logger.LogInformation("[LEAD-064] Redacted consent log rows for lead {LeadId}", lead.Id);
 
-        // Record completion in deletion audit log (email is [REDACTED] in completion record per DeletionAuditLog)
+        // Record completion in deletion audit log (email is [REDACTED] in completion record per DeletionAuditDataService)
         await auditLog.RecordCompletionAsync(agentId, lead.Id, ct);
         logger.LogInformation("[LEAD-065] Deletion completion recorded in audit log for lead {LeadId}", lead.Id);
 

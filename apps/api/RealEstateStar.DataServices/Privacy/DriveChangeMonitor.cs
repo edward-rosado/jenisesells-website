@@ -9,7 +9,7 @@ namespace RealEstateStar.DataServices.Privacy;
 
 public class DriveChangeMonitor(
     IGwsService gws,
-    ILeadStore leadStore,
+    ILeadDataService leadStore,
     ILogger<DriveChangeMonitor> logger)
 {
     // Maps the leading number of a destination folder name to a LeadStatus value.

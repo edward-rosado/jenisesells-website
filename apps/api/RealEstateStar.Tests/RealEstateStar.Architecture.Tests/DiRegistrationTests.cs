@@ -63,15 +63,15 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
     [InlineData(typeof(IOAuthRefresher))]
     [InlineData(typeof(IAnthropicClient))]
     [InlineData(typeof(IGwsService))]
-    [InlineData(typeof(ILeadStore))]
+    [InlineData(typeof(ILeadDataService))]
     [InlineData(typeof(ILeadScorer))]
     [InlineData(typeof(ILeadEmailDrafter))]
     [InlineData(typeof(ILeadCommunicationService))]
     [InlineData(typeof(IAgentNotifier))]
     [InlineData(typeof(LeadOrchestratorChannel))]
     [InlineData(typeof(PdfActivity))]
-    [InlineData(typeof(ILeadDataDeletion))]
-    [InlineData(typeof(IMarketingConsentLog))]
+    [InlineData(typeof(ILeadDeletionDataService))]
+    [InlineData(typeof(IMarketingConsentDataService))]
     [InlineData(typeof(IRentCastClient))]
     public void Domain_interface_resolves_from_DI(Type interfaceType)
     {

@@ -25,12 +25,12 @@ namespace RealEstateStar.DataServices.Tests.Onboarding;
 public class SessionStoreTests : IDisposable
 {
     private readonly string _testDir;
-    private readonly JsonFileSessionStore _store;
+    private readonly SessionDataService _store;
 
     public SessionStoreTests()
     {
         _testDir = Path.Combine(Path.GetTempPath(), $"res-sessions-{Guid.NewGuid():N}");
-        _store = new JsonFileSessionStore(_testDir, NullLogger<JsonFileSessionStore>.Instance);
+        _store = new SessionDataService(_testDir, NullLogger<SessionDataService>.Instance);
     }
 
     public void Dispose()
@@ -184,9 +184,9 @@ public class SessionStoreTests : IDisposable
     {
         // Use a path that doesn't exist and can't be created — load triggers I/O error
         // on Windows, an invalid path char triggers IOException
-        var badStore = new JsonFileSessionStore(
+        var badStore = new SessionDataService(
             Path.Combine(Path.GetTempPath(), $"nonexistent-{Guid.NewGuid():N}", "deep", "path"),
-            NullLogger<JsonFileSessionStore>.Instance);
+            NullLogger<SessionDataService>.Instance);
 
         // The file simply won't exist, so LoadAsync returns null (no IOException on read for missing file)
         var result = await badStore.LoadAsync("aabbccddeeff", CancellationToken.None);
@@ -209,7 +209,7 @@ public class SessionStoreTests : IDisposable
     public async Task DefaultConstructor_UsesBaseDirectory()
     {
         // Verify the parameterless constructor creates a store with default base path
-        var store = new JsonFileSessionStore(NullLogger<JsonFileSessionStore>.Instance);
+        var store = new SessionDataService(NullLogger<SessionDataService>.Instance);
         // Just verify it can be created and used — load a nonexistent session
         var result = await store.LoadAsync("aabbccddeeff", CancellationToken.None);
         Assert.Null(result);

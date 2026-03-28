@@ -9,10 +9,10 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.DataServices.Privacy;
 
-public class MarketingConsentLog(
+public class MarketingConsentDataService(
     ISheetStorageProvider fileStorageProvider,
     IOptions<ConsentHmacOptions> hmacOptions,
-    ILogger<MarketingConsentLog> logger) : IMarketingConsentLog
+    ILogger<MarketingConsentDataService> logger) : IMarketingConsentDataService
 {
     public async Task RecordConsentAsync(string agentId, MarketingConsent consent, CancellationToken ct)
     {

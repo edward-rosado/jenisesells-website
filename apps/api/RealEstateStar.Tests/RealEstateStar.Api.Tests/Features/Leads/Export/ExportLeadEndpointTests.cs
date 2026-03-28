@@ -37,7 +37,7 @@ namespace RealEstateStar.Api.Tests.Features.Leads.Export;
 
 public class ExportLeadEndpointTests
 {
-    private readonly Mock<ILeadDataExport> _dataExport = new();
+    private readonly Mock<ILeadExportDataService> _dataExport = new();
     private readonly ILogger<ExportLeadEndpoint> _logger = NullLogger<ExportLeadEndpoint>.Instance;
     private const string AgentId = "jenise-buckalew";
     private const string Email = "lead@example.com";
