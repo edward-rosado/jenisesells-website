@@ -1,6 +1,31 @@
-using RealEstateStar.DataServices.Leads;
+using Xunit;
+using Moq;
+using FluentAssertions;
+using RealEstateStar.Domain.Shared.Models;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Domain.Shared.Interfaces.Senders;
+using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Leads.Interfaces;
+using RealEstateStar.Domain.Leads;
+using RealEstateStar.Domain.Cma.Models;
+using RealEstateStar.Domain.Cma.Interfaces;
+using RealEstateStar.Domain.HomeSearch.Interfaces;
+using RealEstateStar.Domain.Privacy.Interfaces;
+using RealEstateStar.Domain.WhatsApp.Interfaces;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Onboarding.Interfaces;
+using RealEstateStar.Domain.Onboarding.Services;
+using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.DataServices.WhatsApp;
+using RealEstateStar.Api.Features.Leads;
 using RealEstateStar.Api.Features.Leads.Submit;
-
+using RealEstateStar.Api.Features.Onboarding.Services;
+using RealEstateStar.Api.Features.Onboarding.Tools;
+using RealEstateStar.TestUtilities;
+using RealEstateStar.Workers.Shared;
+using RealEstateStar.Workers.Lead.CMA;
+using RealEstateStar.Workers.Lead.HomeSearch;
+using RealEstateStar.Notifications.WhatsApp;
 namespace RealEstateStar.Api.Tests.Features.Leads;
 
 public class LeadMappersTests
@@ -10,41 +35,41 @@ public class LeadMappersTests
         bool withBuyer = true,
         bool withSeller = true,
         string? notes = "Test notes") => new()
-    {
-        LeadType = LeadType.Both,
-        FirstName = "Jane",
-        LastName = "Doe",
-        Email = "jane@example.com",
-        Phone = "555-867-5309",
-        Timeline = "3-6 months",
-        Notes = notes,
-        MarketingConsent = new MarketingConsentRequest
         {
-            OptedIn = true,
-            ConsentText = "I agree to receive marketing communications.",
-            Channels = ["email", "sms"]
-        },
-        Buyer = withBuyer ? new BuyerDetailsRequest
-        {
-            DesiredArea = desiredArea ?? "Kill Devil Hills, NC",
-            MinPrice = 300_000m,
-            MaxPrice = 500_000m,
-            MinBeds = 3,
-            MinBaths = 2,
-            PreApproved = "yes",
-            PreApprovalAmount = 480_000m
-        } : null,
-        Seller = withSeller ? new SellerDetailsRequest
-        {
-            Address = "123 Main St",
-            City = "Kill Devil Hills",
-            State = "NC",
-            Zip = "27948",
-            Beds = 4,
-            Baths = 2,
-            Sqft = 1800
-        } : null
-    };
+            LeadType = LeadType.Both,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@example.com",
+            Phone = "555-867-5309",
+            Timeline = "3-6 months",
+            Notes = notes,
+            MarketingConsent = new MarketingConsentRequest
+            {
+                OptedIn = true,
+                ConsentText = "I agree to receive marketing communications.",
+                Channels = ["email", "sms"]
+            },
+            Buyer = withBuyer ? new BuyerDetailsRequest
+            {
+                DesiredArea = desiredArea ?? "Kill Devil Hills, NC",
+                MinPrice = 300_000m,
+                MaxPrice = 500_000m,
+                MinBeds = 3,
+                MinBaths = 2,
+                PreApproved = "yes",
+                PreApprovalAmount = 480_000m
+            } : null,
+            Seller = withSeller ? new SellerDetailsRequest
+            {
+                Address = "123 Main St",
+                City = "Kill Devil Hills",
+                State = "NC",
+                Zip = "27948",
+                Beds = 4,
+                Baths = 2,
+                Sqft = 1800
+            } : null
+        };
 
     [Fact]
     public void ToLead_MapsScalarFields()

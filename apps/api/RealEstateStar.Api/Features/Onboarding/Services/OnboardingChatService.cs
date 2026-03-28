@@ -5,10 +5,11 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Logging;
-using RealEstateStar.DataServices.Onboarding;
 using RealEstateStar.Domain.Onboarding;
 using RealEstateStar.Domain.Shared;
+using RealEstateStar.Domain.Onboarding.Services;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Onboarding.Interfaces;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 
@@ -324,54 +325,54 @@ public class OnboardingChatService(
             switch (type)
             {
                 case "content_block_start":
-                {
-                    var block = evt.RootElement.GetProperty("content_block");
-                    if (block.GetProperty("type").GetString() == "tool_use")
                     {
-                        toolName = block.GetProperty("name").GetString();
-                        toolUseId = block.GetProperty("id").GetString();
-                        toolInput.Clear();
-                        hasToolCall = true;
-                        logger.LogDebug("[STREAM-020] Tool block started: {ToolName} (id={ToolUseId})", toolName, toolUseId);
+                        var block = evt.RootElement.GetProperty("content_block");
+                        if (block.GetProperty("type").GetString() == "tool_use")
+                        {
+                            toolName = block.GetProperty("name").GetString();
+                            toolUseId = block.GetProperty("id").GetString();
+                            toolInput.Clear();
+                            hasToolCall = true;
+                            logger.LogDebug("[STREAM-020] Tool block started: {ToolName} (id={ToolUseId})", toolName, toolUseId);
+                        }
+                        break;
                     }
-                    break;
-                }
                 case "content_block_delta":
-                {
-                    var delta = evt.RootElement.GetProperty("delta");
-                    var deltaType = delta.GetProperty("type").GetString();
+                    {
+                        var delta = evt.RootElement.GetProperty("delta");
+                        var deltaType = delta.GetProperty("type").GetString();
 
-                    if (deltaType == "text_delta")
-                    {
-                        var text = delta.GetProperty("text").GetString() ?? "";
-                        fullText.Append(text);
-                        textChunks.Add(text);
+                        if (deltaType == "text_delta")
+                        {
+                            var text = delta.GetProperty("text").GetString() ?? "";
+                            fullText.Append(text);
+                            textChunks.Add(text);
+                        }
+                        else if (deltaType == "input_json_delta")
+                        {
+                            toolInput.Append(delta.GetProperty("partial_json").GetString() ?? "");
+                        }
+                        break;
                     }
-                    else if (deltaType == "input_json_delta")
-                    {
-                        toolInput.Append(delta.GetProperty("partial_json").GetString() ?? "");
-                    }
-                    break;
-                }
                 case "message_delta":
-                {
-                    if (evt.RootElement.TryGetProperty("usage", out var streamUsage))
                     {
-                        inputTokens = streamUsage.TryGetProperty("input_tokens", out var sit) ? sit.GetInt32() : inputTokens;
-                        outputTokens = streamUsage.TryGetProperty("output_tokens", out var sot) ? sot.GetInt32() : outputTokens;
+                        if (evt.RootElement.TryGetProperty("usage", out var streamUsage))
+                        {
+                            inputTokens = streamUsage.TryGetProperty("input_tokens", out var sit) ? sit.GetInt32() : inputTokens;
+                            outputTokens = streamUsage.TryGetProperty("output_tokens", out var sot) ? sot.GetInt32() : outputTokens;
+                        }
+                        break;
                     }
-                    break;
-                }
                 case "message_start":
-                {
-                    if (evt.RootElement.TryGetProperty("message", out var msg) &&
-                        msg.TryGetProperty("usage", out var startUsage))
                     {
-                        inputTokens = startUsage.TryGetProperty("input_tokens", out var sit) ? sit.GetInt32() : inputTokens;
-                        outputTokens = startUsage.TryGetProperty("output_tokens", out var sot) ? sot.GetInt32() : outputTokens;
+                        if (evt.RootElement.TryGetProperty("message", out var msg) &&
+                            msg.TryGetProperty("usage", out var startUsage))
+                        {
+                            inputTokens = startUsage.TryGetProperty("input_tokens", out var sit) ? sit.GetInt32() : inputTokens;
+                            outputTokens = startUsage.TryGetProperty("output_tokens", out var sot) ? sot.GetInt32() : outputTokens;
+                        }
+                        break;
                     }
-                    break;
-                }
                 case "message_stop":
                     logger.LogDebug("[STREAM-025] Message stop received for session {SessionId}", sessionId);
                     break;

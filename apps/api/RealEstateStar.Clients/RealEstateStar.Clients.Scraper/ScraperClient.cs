@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Net;
-using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RealEstateStar.Domain.Shared.Interfaces.External;

@@ -2,7 +2,6 @@ using FluentAssertions;
 using Moq;
 using RealEstateStar.Domain.WhatsApp.Interfaces;
 using RealEstateStar.Domain.WhatsApp.Models;
-using RealEstateStar.Workers.WhatsApp;
 
 namespace RealEstateStar.Workers.WhatsApp.Tests;
 

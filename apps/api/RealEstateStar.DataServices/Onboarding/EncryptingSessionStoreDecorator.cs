@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Onboarding.Interfaces;
 using RealEstateStar.Domain.Onboarding.Models;
-using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.DataServices.Onboarding;
 

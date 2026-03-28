@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using RealEstateStar.Domain.Onboarding.Interfaces;
 
 namespace RealEstateStar.Api.Features.Onboarding.Tools;
 

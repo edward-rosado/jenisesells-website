@@ -1,12 +1,12 @@
-using RealEstateStar.Domain.Onboarding;
-using RealEstateStar.Domain.Onboarding.Interfaces;
-using RealEstateStar.Domain.Onboarding.Models;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Onboarding;
+using RealEstateStar.Domain.Onboarding.Interfaces;
+using RealEstateStar.Domain.Onboarding.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.DataServices.Onboarding;

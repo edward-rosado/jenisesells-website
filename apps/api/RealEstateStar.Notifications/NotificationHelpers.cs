@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.Notifications;
 

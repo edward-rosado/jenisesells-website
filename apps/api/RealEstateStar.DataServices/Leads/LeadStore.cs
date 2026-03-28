@@ -1,8 +1,8 @@
+using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Markdown;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Markdown;
-using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.DataServices.Leads;
 

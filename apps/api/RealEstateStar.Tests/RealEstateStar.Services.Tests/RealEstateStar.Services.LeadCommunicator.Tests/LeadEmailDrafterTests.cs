@@ -2,11 +2,9 @@ using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.Services.LeadCommunicator;
 
 namespace RealEstateStar.Services.LeadCommunicator.Tests;
 

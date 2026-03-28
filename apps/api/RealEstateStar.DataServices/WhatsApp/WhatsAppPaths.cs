@@ -1,3 +1,5 @@
+using RealEstateStar.Domain.Leads;
+
 namespace RealEstateStar.DataServices.WhatsApp;
 
 public static class WhatsAppPaths

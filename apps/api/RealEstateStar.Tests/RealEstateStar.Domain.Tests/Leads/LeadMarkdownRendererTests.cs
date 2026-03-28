@@ -1,3 +1,20 @@
+using Xunit;
+using Moq;
+using FluentAssertions;
+using RealEstateStar.Domain.Shared.Models;
+using RealEstateStar.Domain.Shared.Markdown;
+using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Leads.Markdown;
+using RealEstateStar.Domain.Leads;
+using RealEstateStar.Domain.Cma.Models;
+using RealEstateStar.Domain.Cma.Interfaces;
+using RealEstateStar.Domain.Cma.Services;
+using RealEstateStar.Domain.HomeSearch.Markdown;
+using RealEstateStar.Domain.WhatsApp.Models;
+using RealEstateStar.Domain.WhatsApp;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Onboarding.Services;
+using RealEstateStar.Domain.Onboarding;
 
 namespace RealEstateStar.Domain.Tests.Leads;
 
@@ -194,8 +211,13 @@ public class LeadMarkdownRendererTests
     {
         var lead = new Lead
         {
-            Id = Guid.NewGuid(), AgentId = "test", LeadType = LeadType.Buyer,
-            FirstName = "T", LastName = "T", Email = "t@t.com", Phone = "5550000000",
+            Id = Guid.NewGuid(),
+            AgentId = "test",
+            LeadType = LeadType.Buyer,
+            FirstName = "T",
+            LastName = "T",
+            Email = "t@t.com",
+            Phone = "5550000000",
             Timeline = "justlooking",
             BuyerDetails = new BuyerDetails { City = "NYC", State = "NY" }
         };
@@ -208,8 +230,13 @@ public class LeadMarkdownRendererTests
     {
         var lead = new Lead
         {
-            Id = Guid.NewGuid(), AgentId = "test", LeadType = LeadType.Buyer,
-            FirstName = "T", LastName = "T", Email = "t@t.com", Phone = "5550000000",
+            Id = Guid.NewGuid(),
+            AgentId = "test",
+            LeadType = LeadType.Buyer,
+            FirstName = "T",
+            LastName = "T",
+            Email = "t@t.com",
+            Phone = "5550000000",
             Timeline = "6-12months",
             BuyerDetails = new BuyerDetails { City = "NYC", State = "NY" }
         };

@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using RealEstateStar.Clients.GSheets;
 using RealEstateStar.Clients.GoogleOAuth;
 using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Models;

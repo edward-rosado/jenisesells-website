@@ -1,5 +1,4 @@
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Onboarding.Interfaces;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 

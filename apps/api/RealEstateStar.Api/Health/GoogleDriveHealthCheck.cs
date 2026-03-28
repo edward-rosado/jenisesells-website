@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
-using RealEstateStar.DataServices.Leads;
 
 namespace RealEstateStar.Api.Health;
 

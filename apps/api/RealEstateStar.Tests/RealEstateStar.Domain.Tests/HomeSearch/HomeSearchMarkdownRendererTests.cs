@@ -1,5 +1,20 @@
+using Xunit;
+using Moq;
 using FluentAssertions;
-
+using RealEstateStar.Domain.Shared.Models;
+using RealEstateStar.Domain.Shared.Markdown;
+using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Leads.Markdown;
+using RealEstateStar.Domain.Leads;
+using RealEstateStar.Domain.Cma.Models;
+using RealEstateStar.Domain.Cma.Interfaces;
+using RealEstateStar.Domain.Cma.Services;
+using RealEstateStar.Domain.HomeSearch.Markdown;
+using RealEstateStar.Domain.WhatsApp.Models;
+using RealEstateStar.Domain.WhatsApp;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Onboarding.Services;
+using RealEstateStar.Domain.Onboarding;
 namespace RealEstateStar.Domain.Tests.HomeSearch;
 
 public class HomeSearchMarkdownRendererTests
@@ -139,25 +154,25 @@ public class HomeSearchMarkdownRendererTests
         decimal? maxBudget = null,
         int? bedrooms = null,
         int? bathrooms = null) => new()
-    {
-        Id = Guid.Parse("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
-        AgentId = "test-agent",
-        LeadType = LeadType.Buyer,
-        FirstName = "Jane",
-        LastName = "Doe",
-        Email = "jane@example.com",
-        Phone = "555-1234",
-        Timeline = "3-6m",
-        BuyerDetails = new BuyerDetails
         {
-            City = "Springfield",
-            State = "NJ",
-            MinBudget = minBudget,
-            MaxBudget = maxBudget,
-            Bedrooms = bedrooms,
-            Bathrooms = bathrooms
-        }
-    };
+            Id = Guid.Parse("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
+            AgentId = "test-agent",
+            LeadType = LeadType.Buyer,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@example.com",
+            Phone = "555-1234",
+            Timeline = "3-6m",
+            BuyerDetails = new BuyerDetails
+            {
+                City = "Springfield",
+                State = "NJ",
+                MinBudget = minBudget,
+                MaxBudget = maxBudget,
+                Bedrooms = bedrooms,
+                Bathrooms = bathrooms
+            }
+        };
 
     [Fact]
     public void RenderListings_WithBothBudgets_ShowsPriceRange()

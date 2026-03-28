@@ -1,9 +1,12 @@
-using System.Net;
+using Xunit;
+using Moq;
 using FluentAssertions;
+using RealEstateStar.Domain.Shared.Interfaces.Senders;
+using RealEstateStar.TestUtilities;
+using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
-using Moq;
 using Polly;
 
 namespace RealEstateStar.Clients.WhatsApp.Tests;

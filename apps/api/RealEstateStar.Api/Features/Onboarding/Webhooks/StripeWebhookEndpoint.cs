@@ -1,9 +1,10 @@
 using RealEstateStar.Api.Features.Onboarding.Services;
-using System.Threading.RateLimiting;
-using RealEstateStar.DataServices.Onboarding;
 using RealEstateStar.Api.Infrastructure;
 using Stripe;
 using Stripe.Checkout;
+using RealEstateStar.Domain.Onboarding.Interfaces;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Onboarding.Services;
 
 namespace RealEstateStar.Api.Features.Onboarding.Webhooks;
 

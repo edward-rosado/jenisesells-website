@@ -1,6 +1,21 @@
-using FluentAssertions;
-using Microsoft.Extensions.Logging.Abstractions;
+using Xunit;
 using Moq;
+using FluentAssertions;
+using RealEstateStar.Domain.Shared.Models;
+using RealEstateStar.Domain.Shared.Markdown;
+using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Leads.Markdown;
+using RealEstateStar.Domain.Leads;
+using RealEstateStar.Domain.Cma.Models;
+using RealEstateStar.Domain.Cma.Interfaces;
+using RealEstateStar.Domain.Cma.Services;
+using RealEstateStar.Domain.HomeSearch.Markdown;
+using RealEstateStar.Domain.WhatsApp.Models;
+using RealEstateStar.Domain.WhatsApp;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Onboarding.Services;
+using RealEstateStar.Domain.Onboarding;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace RealEstateStar.Domain.Tests.Cma;
 
@@ -21,16 +36,16 @@ public class CompAggregatorTests
         string address = "456 Oak Ave",
         DateOnly? saleDate = null,
         CompSource source = CompSource.Zillow) => new()
-    {
-        Address = address,
-        SalePrice = 500_000m,
-        SaleDate = saleDate ?? new DateOnly(2025, 1, 15),
-        Beds = 3,
-        Baths = 2,
-        Sqft = 1800,
-        DistanceMiles = 0.5,
-        Source = source
-    };
+        {
+            Address = address,
+            SalePrice = 500_000m,
+            SaleDate = saleDate ?? new DateOnly(2025, 1, 15),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 1800,
+            DistanceMiles = 0.5,
+            Source = source
+        };
 
     private static Mock<ICompSource> MakeSource(string name, List<Comp> comps)
     {

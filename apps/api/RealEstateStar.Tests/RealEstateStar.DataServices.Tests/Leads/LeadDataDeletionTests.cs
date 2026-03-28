@@ -1,7 +1,24 @@
-using FluentAssertions;
-using Microsoft.Extensions.Logging;
+using Xunit;
 using Moq;
+using FluentAssertions;
+using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Leads.Interfaces;
+using RealEstateStar.Domain.Leads.Markdown;
+using RealEstateStar.Domain.Leads;
+using RealEstateStar.Domain.Privacy.Interfaces;
+using RealEstateStar.Domain.WhatsApp.Interfaces;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Onboarding.Interfaces;
+using RealEstateStar.DataServices.Config;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.DataServices.Storage;
+using RealEstateStar.DataServices.WhatsApp;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace RealEstateStar.DataServices.Tests.Leads;
@@ -56,18 +73,18 @@ public class LeadDataDeletionTests
         string firstName = "Jane",
         string lastName = "Doe",
         string email = LeadEmail) => new()
-    {
-        Id = Guid.NewGuid(),
-        AgentId = AgentId,
-        LeadType = LeadType.Buyer,
-        FirstName = firstName,
-        LastName = lastName,
-        Email = email,
-        Phone = "5551234567",
-        Timeline = "1-3months",
-        Status = LeadStatus.Received,
-        ReceivedAt = new DateTime(2026, 3, 19, 14, 0, 0, DateTimeKind.Utc),
-    };
+        {
+            Id = Guid.NewGuid(),
+            AgentId = AgentId,
+            LeadType = LeadType.Buyer,
+            FirstName = firstName,
+            LastName = lastName,
+            Email = email,
+            Phone = "5551234567",
+            Timeline = "1-3months",
+            Status = LeadStatus.Received,
+            ReceivedAt = new DateTime(2026, 3, 19, 14, 0, 0, DateTimeKind.Utc),
+        };
 
     private string BuildValidTokenJson(string email = LeadEmail, double hoursFromNow = 23)
     {

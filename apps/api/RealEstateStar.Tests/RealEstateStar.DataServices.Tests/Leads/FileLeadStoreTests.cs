@@ -1,3 +1,23 @@
+using Xunit;
+using Moq;
+using FluentAssertions;
+using RealEstateStar.Domain.Shared.Models;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Leads.Interfaces;
+using RealEstateStar.Domain.Leads.Markdown;
+using RealEstateStar.Domain.Leads;
+using RealEstateStar.Domain.Privacy.Interfaces;
+using RealEstateStar.Domain.WhatsApp.Interfaces;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Onboarding.Interfaces;
+using RealEstateStar.DataServices.Config;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.DataServices.Storage;
+using RealEstateStar.DataServices.WhatsApp;
 
 namespace RealEstateStar.DataServices.Tests.Leads;
 
@@ -29,18 +49,18 @@ public class FileLeadStoreTests : IDisposable
         LeadStatus status = LeadStatus.Received,
         string firstName = "Jane",
         string lastName = "Doe") => new()
-    {
-        Id = id ?? new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
-        AgentId = AgentId,
-        LeadType = LeadType.Buyer,
-        FirstName = firstName,
-        LastName = lastName,
-        Email = $"{firstName.ToLower()}@example.com",
-        Phone = "5551234567",
-        Timeline = "1-3months",
-        Status = status,
-        ReceivedAt = new DateTime(2026, 3, 19, 14, 0, 0, DateTimeKind.Utc),
-    };
+        {
+            Id = id ?? new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
+            AgentId = AgentId,
+            LeadType = LeadType.Buyer,
+            FirstName = firstName,
+            LastName = lastName,
+            Email = $"{firstName.ToLower()}@example.com",
+            Phone = "5551234567",
+            Timeline = "1-3months",
+            Status = status,
+            ReceivedAt = new DateTime(2026, 3, 19, 14, 0, 0, DateTimeKind.Utc),
+        };
 
     // ── SaveAsync ─────────────────────────────────────────────────────────────
 

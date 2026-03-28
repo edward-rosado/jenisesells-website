@@ -1,11 +1,9 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.Activities.Pdf;
 
 namespace RealEstateStar.Activities.Pdf.Tests;
 
@@ -32,29 +30,29 @@ public class CmaPdfGeneratorTests
         int? beds = 3,
         int? baths = 2,
         int? sqft = 1800) => new()
-    {
-        Address = "123 Oak Ave",
-        City = "Springfield",
-        State = "NJ",
-        Zip = "07081",
-        Beds = beds,
-        Baths = baths,
-        Sqft = sqft
-    };
+        {
+            Address = "123 Oak Ave",
+            City = "Springfield",
+            State = "NJ",
+            Zip = "07081",
+            Beds = beds,
+            Baths = baths,
+            Sqft = sqft
+        };
 
     internal static CmaAnalysis MakeAnalysis(
         string? pricingRecommendation = null,
         string? leadInsights = null) => new()
-    {
-        ValueLow = 480_000m,
-        ValueMid = 510_000m,
-        ValueHigh = 540_000m,
-        MarketNarrative = "The market is competitive.",
-        MarketTrend = "Seller's Market",
-        MedianDaysOnMarket = 14,
-        PricingRecommendation = pricingRecommendation,
-        LeadInsights = leadInsights
-    };
+        {
+            ValueLow = 480_000m,
+            ValueMid = 510_000m,
+            ValueHigh = 540_000m,
+            MarketNarrative = "The market is competitive.",
+            MarketTrend = "Seller's Market",
+            MedianDaysOnMarket = 14,
+            PricingRecommendation = pricingRecommendation,
+            LeadInsights = leadInsights
+        };
 
     internal static List<Comp> MakeComps(int count = 2, bool includeOlder = false) =>
         Enumerable.Range(1, count).Select(i => new Comp
@@ -78,30 +76,30 @@ public class CmaPdfGeneratorTests
         List<string>? languages = null,
         string? primaryColor = null,
         string? licenseNumber = null) => new()
-    {
-        Handle = "jenise-buckalew",
-        Agent = new AccountAgent
         {
-            Name = "Jenise Buckalew",
-            Title = title,
-            Phone = "555-123-4567",
-            Email = "jenise@example.com",
-            Tagline = tagline,
-            Languages = languages ?? ["English", "Spanish"],
-            LicenseNumber = licenseNumber
-        },
-        Brokerage = brokerageName is not null
+            Handle = "jenise-buckalew",
+            Agent = new AccountAgent
+            {
+                Name = "Jenise Buckalew",
+                Title = title,
+                Phone = "555-123-4567",
+                Email = "jenise@example.com",
+                Tagline = tagline,
+                Languages = languages ?? ["English", "Spanish"],
+                LicenseNumber = licenseNumber
+            },
+            Brokerage = brokerageName is not null
             ? new AccountBrokerage { Name = brokerageName }
             : null,
-        Location = new AccountLocation
-        {
-            State = "NJ",
-            ServiceAreas = serviceAreas ?? ["Springfield", "Millburn"]
-        },
-        Branding = primaryColor is not null
+            Location = new AccountLocation
+            {
+                State = "NJ",
+                ServiceAreas = serviceAreas ?? ["Springfield", "Millburn"]
+            },
+            Branding = primaryColor is not null
             ? new AccountBranding { PrimaryColor = primaryColor }
             : null
-    };
+        };
 
     private static CmaPdfGenerator MakeGenerator(out Mock<ILogger<CmaPdfGenerator>> loggerMock)
     {

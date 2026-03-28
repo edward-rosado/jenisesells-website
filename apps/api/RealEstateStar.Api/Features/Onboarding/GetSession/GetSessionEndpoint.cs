@@ -1,5 +1,6 @@
-using RealEstateStar.DataServices.Onboarding;
 using RealEstateStar.Api.Infrastructure;
+using RealEstateStar.Domain.Onboarding.Interfaces;
+using RealEstateStar.Domain.Onboarding.Models;
 
 namespace RealEstateStar.Api.Features.Onboarding.GetSession;
 

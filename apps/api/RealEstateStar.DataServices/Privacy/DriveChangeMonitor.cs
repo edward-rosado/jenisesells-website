@@ -1,8 +1,9 @@
+using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Shared.Models;
-using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.DataServices.Privacy;
 

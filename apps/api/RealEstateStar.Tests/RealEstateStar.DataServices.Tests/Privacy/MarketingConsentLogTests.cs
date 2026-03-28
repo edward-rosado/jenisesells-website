@@ -1,7 +1,25 @@
+using Xunit;
+using Moq;
 using FluentAssertions;
+using RealEstateStar.Domain.Shared.Models;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Leads.Interfaces;
+using RealEstateStar.Domain.Leads.Markdown;
+using RealEstateStar.Domain.Leads;
+using RealEstateStar.Domain.Privacy.Interfaces;
+using RealEstateStar.Domain.WhatsApp.Interfaces;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Onboarding.Interfaces;
+using RealEstateStar.DataServices.Config;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.DataServices.Storage;
+using RealEstateStar.DataServices.WhatsApp;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Moq;
 using RealEstateStar.Domain.Privacy;
 
 namespace RealEstateStar.DataServices.Tests.Privacy;
@@ -182,12 +200,18 @@ public class MarketingConsentLogTests
 
         var consent = new MarketingConsent
         {
-            LeadId = Guid.NewGuid(), Email = "test@example.com",
-            FirstName = "Test", LastName = "User", OptedIn = true,
-            ConsentText = "Consented", Channels = ["email"],
-            IpAddress = "127.0.0.1", UserAgent = "TestAgent",
+            LeadId = Guid.NewGuid(),
+            Email = "test@example.com",
+            FirstName = "Test",
+            LastName = "User",
+            OptedIn = true,
+            ConsentText = "Consented",
+            Channels = ["email"],
+            IpAddress = "127.0.0.1",
+            UserAgent = "TestAgent",
             Timestamp = DateTime.UtcNow,
-            Action = ConsentAction.OptIn, Source = ConsentSource.LeadForm,
+            Action = ConsentAction.OptIn,
+            Source = ConsentSource.LeadForm,
         };
 
         await consentLog.RecordConsentAsync("agent-1", consent, CancellationToken.None);

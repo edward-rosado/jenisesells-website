@@ -1,9 +1,10 @@
+using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Markdown;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Shared.Markdown;
-using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Domain.Shared.Markdown;
 
 namespace RealEstateStar.DataServices.Leads;
 

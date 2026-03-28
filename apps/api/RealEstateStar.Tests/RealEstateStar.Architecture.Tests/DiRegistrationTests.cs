@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Leads.Interfaces;
-using RealEstateStar.Domain.Notifications.Interfaces;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Workers.Lead.Orchestrator;

@@ -1,5 +1,10 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Shared.Interfaces.Senders;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Domain.Shared.Models;
+using RealEstateStar.Domain.WhatsApp.Interfaces;
+using RealEstateStar.Domain.WhatsApp.Models;
 
 namespace RealEstateStar.Notifications.WhatsApp;
 
@@ -14,22 +19,22 @@ public class WhatsAppNotifier(
 
     private static readonly Dictionary<NotificationType, string> TemplateNames = new()
     {
-        [NotificationType.NewLead]          = "new_lead_notification",
-        [NotificationType.CmaReady]         = "cma_ready",
+        [NotificationType.NewLead] = "new_lead_notification",
+        [NotificationType.CmaReady] = "cma_ready",
         [NotificationType.FollowUpReminder] = "follow_up_reminder",
-        [NotificationType.DataDeletion]     = "data_deletion_notice",
-        [NotificationType.ListingAlert]     = "listing_alert",
-        [NotificationType.Welcome]          = "welcome"
+        [NotificationType.DataDeletion] = "data_deletion_notice",
+        [NotificationType.ListingAlert] = "listing_alert",
+        [NotificationType.Welcome] = "welcome"
     };
 
     // Preference key names match the JSON config values (snake_case)
     private static readonly Dictionary<NotificationType, string> PreferenceKeys = new()
     {
-        [NotificationType.NewLead]          = "new_lead",
-        [NotificationType.CmaReady]         = "cma_ready",
+        [NotificationType.NewLead] = "new_lead",
+        [NotificationType.CmaReady] = "cma_ready",
         [NotificationType.FollowUpReminder] = "follow_up_reminder",
-        [NotificationType.DataDeletion]     = "data_deletion",
-        [NotificationType.ListingAlert]     = "listing_alert"
+        [NotificationType.DataDeletion] = "data_deletion",
+        [NotificationType.ListingAlert] = "listing_alert"
     };
 
     public async Task NotifyAsync(string agentId, NotificationType type,
@@ -72,27 +77,27 @@ public class WhatsAppNotifier(
 
                 var updatedWhatsApp = new AccountWhatsApp
                 {
-                    PhoneNumber        = whatsApp.PhoneNumber,
-                    OptedIn            = whatsApp.OptedIn,
-                    WelcomeSent        = true,
+                    PhoneNumber = whatsApp.PhoneNumber,
+                    OptedIn = whatsApp.OptedIn,
+                    WelcomeSent = true,
                     NotificationPreferences = whatsApp.NotificationPreferences,
-                    Status             = whatsApp.Status,
-                    RetryAfter         = whatsApp.RetryAfter
+                    Status = whatsApp.Status,
+                    RetryAfter = whatsApp.RetryAfter
                 };
                 var updatedConfig = new AccountConfig
                 {
-                    Handle       = config!.Handle,
-                    Agent        = config.Agent,
-                    Location     = config.Location,
-                    Branding     = config.Branding,
-                    Compliance   = config.Compliance,
+                    Handle = config!.Handle,
+                    Agent = config.Agent,
+                    Location = config.Location,
+                    Branding = config.Branding,
+                    Compliance = config.Compliance,
                     Integrations = new AccountIntegrations
                     {
                         EmailProvider = config.Integrations!.EmailProvider,
-                        Hosting       = config.Integrations.Hosting,
-                        FormHandler   = config.Integrations.FormHandler,
+                        Hosting = config.Integrations.Hosting,
+                        FormHandler = config.Integrations.FormHandler,
                         FormHandlerId = config.Integrations.FormHandlerId,
-                        WhatsApp      = updatedWhatsApp
+                        WhatsApp = updatedWhatsApp
                     }
                 };
 

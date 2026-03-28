@@ -1,7 +1,7 @@
-using RealEstateStar.Domain.WhatsApp.Interfaces;
 using System.Text.Json;
 using Azure.Storage.Queues;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.WhatsApp.Interfaces;
 
 namespace RealEstateStar.DataServices.WhatsApp;
 

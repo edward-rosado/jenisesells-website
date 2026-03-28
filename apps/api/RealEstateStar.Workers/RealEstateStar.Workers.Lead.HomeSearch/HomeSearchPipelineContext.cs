@@ -1,3 +1,4 @@
+using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Shared.Context;
 
 namespace RealEstateStar.Workers.Lead.HomeSearch;

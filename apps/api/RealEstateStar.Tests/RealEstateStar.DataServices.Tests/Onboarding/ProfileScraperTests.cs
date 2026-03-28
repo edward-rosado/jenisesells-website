@@ -1,11 +1,26 @@
+using Xunit;
+using Moq;
+using FluentAssertions;
+using RealEstateStar.Domain.Shared.Models;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Leads.Interfaces;
+using RealEstateStar.Domain.Leads.Markdown;
+using RealEstateStar.Domain.Leads;
+using RealEstateStar.Domain.Privacy.Interfaces;
+using RealEstateStar.Domain.WhatsApp.Interfaces;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Onboarding.Interfaces;
+using RealEstateStar.DataServices.Config;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.DataServices.Storage;
+using RealEstateStar.DataServices.WhatsApp;
 using System.Net;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
 using Moq.Protected;
-using RealEstateStar.DataServices.Onboarding;
-using RealEstateStar.Domain.Shared.Interfaces.External;
-using RealEstateStar.Domain.Shared.Models;
-using Xunit;
 
 namespace RealEstateStar.DataServices.Tests.Onboarding;
 

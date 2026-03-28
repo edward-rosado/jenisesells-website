@@ -1,6 +1,7 @@
 namespace RealEstateStar.Api.Features.Leads.Submit;
 
 using System.ComponentModel.DataAnnotations;
+using RealEstateStar.Domain.Leads.Models;
 
 public class SubmitLeadRequest
 {

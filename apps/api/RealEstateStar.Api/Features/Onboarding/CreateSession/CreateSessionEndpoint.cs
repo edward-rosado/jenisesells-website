@@ -1,6 +1,6 @@
 using RealEstateStar.Api.Features.Onboarding.Services;
-using RealEstateStar.DataServices.Onboarding;
 using RealEstateStar.Api.Infrastructure;
+using RealEstateStar.Domain.Onboarding.Interfaces;
 
 namespace RealEstateStar.Api.Features.Onboarding.CreateSession;
 

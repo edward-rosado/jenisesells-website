@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using RealEstateStar.Clients.GoogleOAuth;
 using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.TestUtilities;

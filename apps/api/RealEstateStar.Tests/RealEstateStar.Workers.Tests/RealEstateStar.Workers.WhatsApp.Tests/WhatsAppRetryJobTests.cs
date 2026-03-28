@@ -1,10 +1,8 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.Workers.WhatsApp;
 
 namespace RealEstateStar.Workers.WhatsApp.Tests;
 

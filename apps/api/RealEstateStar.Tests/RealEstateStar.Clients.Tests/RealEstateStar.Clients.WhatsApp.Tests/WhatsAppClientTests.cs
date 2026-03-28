@@ -1,7 +1,10 @@
-using System.Net;
-using FluentAssertions;
-using Microsoft.Extensions.Logging;
+using Xunit;
 using Moq;
+using FluentAssertions;
+using RealEstateStar.Domain.Shared.Interfaces.Senders;
+using RealEstateStar.TestUtilities;
+using System.Net;
+using Microsoft.Extensions.Logging;
 
 namespace RealEstateStar.Clients.WhatsApp.Tests;
 

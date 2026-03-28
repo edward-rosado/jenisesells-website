@@ -2,10 +2,11 @@ using RealEstateStar.Api.Features.Onboarding.Services;
 using System.Security.Cryptography;
 using System.Text;
 using System.Web;
-using Microsoft.Extensions.Logging;
-using RealEstateStar.DataServices.Onboarding;
 using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Domain.Shared;
+using RealEstateStar.Domain.Onboarding.Interfaces;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Onboarding.Services;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Api.Features.Onboarding.ConnectGoogle;

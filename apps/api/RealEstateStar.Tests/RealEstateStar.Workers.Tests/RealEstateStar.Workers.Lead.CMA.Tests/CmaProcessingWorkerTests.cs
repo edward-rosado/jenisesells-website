@@ -1,3 +1,5 @@
+using Xunit;
+using RealEstateStar.Domain.Leads.Models;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -5,8 +7,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
-using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Workers.Lead.CMA.Tests;
@@ -240,19 +240,19 @@ public class CmaProcessingWorkerTests
 
     private static RentCastValuation MakeValuationWithSubject(
         int? beds = 4, decimal? baths = 2.5m, int? sqft = 2000) => new()
-    {
-        Price = 450_000m,
-        PriceRangeLow = 420_000m,
-        PriceRangeHigh = 480_000m,
-        Comparables = [],
-        SubjectProperty = new RentCastSubjectProperty
         {
-            FormattedAddress = "123 Main St, Springfield, NJ 07081",
-            Bedrooms = beds,
-            Bathrooms = baths,
-            SquareFootage = sqft
-        }
-    };
+            Price = 450_000m,
+            PriceRangeLow = 420_000m,
+            PriceRangeHigh = 480_000m,
+            Comparables = [],
+            SubjectProperty = new RentCastSubjectProperty
+            {
+                FormattedAddress = "123 Main St, Springfield, NJ 07081",
+                Bedrooms = beds,
+                Bathrooms = baths,
+                SquareFootage = sqft
+            }
+        };
 
     [Fact]
     public async Task EnrichSubject_FillsBedsFromRentCast_WhenLeadHasNoBeds()
@@ -262,7 +262,10 @@ public class CmaProcessingWorkerTests
         // Pre-populate LastValuation by simulating FetchAsync having run
         await compSource.FetchAsync(new CompSearchRequest
         {
-            Address = "123 Main", City = "Springfield", State = "NJ", Zip = "07081"
+            Address = "123 Main",
+            City = "Springfield",
+            State = "NJ",
+            Zip = "07081"
         }, CancellationToken.None);
 
         RealEstateStar.Domain.Leads.Models.Lead? capturedLead = null;
@@ -298,7 +301,10 @@ public class CmaProcessingWorkerTests
         var compSource = MakeRentCastCompSource(valuation);
         await compSource.FetchAsync(new CompSearchRequest
         {
-            Address = "123 Main", City = "Springfield", State = "NJ", Zip = "07081"
+            Address = "123 Main",
+            City = "Springfield",
+            State = "NJ",
+            Zip = "07081"
         }, CancellationToken.None);
 
         RealEstateStar.Domain.Leads.Models.Lead? capturedLead = null;
@@ -334,7 +340,10 @@ public class CmaProcessingWorkerTests
         var compSource = MakeRentCastCompSource(valuation);
         await compSource.FetchAsync(new CompSearchRequest
         {
-            Address = "123 Main", City = "Springfield", State = "NJ", Zip = "07081"
+            Address = "123 Main",
+            City = "Springfield",
+            State = "NJ",
+            Zip = "07081"
         }, CancellationToken.None);
 
         RealEstateStar.Domain.Leads.Models.Lead? capturedLead = null;
@@ -369,7 +378,10 @@ public class CmaProcessingWorkerTests
         var compSource = MakeRentCastCompSource(valuation);
         await compSource.FetchAsync(new CompSearchRequest
         {
-            Address = "123 Main", City = "Springfield", State = "NJ", Zip = "07081"
+            Address = "123 Main",
+            City = "Springfield",
+            State = "NJ",
+            Zip = "07081"
         }, CancellationToken.None);
 
         RealEstateStar.Domain.Leads.Models.Lead? capturedLead = null;

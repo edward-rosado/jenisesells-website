@@ -1,4 +1,3 @@
-using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Workers.Lead.Orchestrator;

@@ -1,7 +1,25 @@
+using Xunit;
+using Moq;
+using FluentAssertions;
+using RealEstateStar.Domain.Shared.Models;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Leads.Interfaces;
+using RealEstateStar.Domain.Leads.Markdown;
+using RealEstateStar.Domain.Leads;
+using RealEstateStar.Domain.Privacy.Interfaces;
+using RealEstateStar.Domain.WhatsApp.Interfaces;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Onboarding.Interfaces;
+using RealEstateStar.DataServices.Config;
+using RealEstateStar.DataServices.Leads;
+using RealEstateStar.DataServices.Onboarding;
+using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.DataServices.Storage;
+using RealEstateStar.DataServices.WhatsApp;
 using Azure.Data.Tables;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
-using RealEstateStar.DataServices.Privacy;
 
 namespace RealEstateStar.DataServices.Tests.Privacy;
 
@@ -50,8 +68,10 @@ public class ConsentTokenStoreTests
     {
         var entry = new ConsentTokenEntry
         {
-            PartitionKey = "agent-1", RowKey = "abc123hash",
-            LeadId = Guid.NewGuid(), EmailHash = "emailhash"
+            PartitionKey = "agent-1",
+            RowKey = "abc123hash",
+            LeadId = Guid.NewGuid(),
+            EmailHash = "emailhash"
         };
         _tableClient.Setup(tc => tc.GetEntityAsync<ConsentTokenEntry>(
             "agent-1", "abc123hash", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
@@ -69,8 +89,10 @@ public class ConsentTokenStoreTests
     {
         var entry = new ConsentTokenEntry
         {
-            PartitionKey = "agent-1", RowKey = "abc123hash",
-            LeadId = Guid.NewGuid(), EmailHash = "myhash"
+            PartitionKey = "agent-1",
+            RowKey = "abc123hash",
+            LeadId = Guid.NewGuid(),
+            EmailHash = "myhash"
         };
         _tableClient.Setup(tc => tc.GetEntityAsync<ConsentTokenEntry>(
             "agent-1", "abc123hash", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))

@@ -1,9 +1,10 @@
+using Xunit;
+using RealEstateStar.Domain.Leads.Models;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
-using RealEstateStar.Workers.Lead.CMA;
 
 namespace RealEstateStar.Workers.Lead.CMA.Tests;
 
@@ -17,15 +18,15 @@ public class RentCastCompSourceTests
         int? beds = 3,
         int? baths = 2,
         int? sqft = 1800) => new()
-    {
-        Address = address,
-        City = city,
-        State = state,
-        Zip = zip,
-        Beds = beds,
-        Baths = baths,
-        SqFt = sqft
-    };
+        {
+            Address = address,
+            City = city,
+            State = state,
+            Zip = zip,
+            Beds = beds,
+            Baths = baths,
+            SqFt = sqft
+        };
 
     private static RentCastComp MakeComp(
         string address = "456 Oak Ave, Freehold, NJ 07728",
@@ -39,28 +40,28 @@ public class RentCastCompSourceTests
         decimal? bathrooms = 2.0m,
         int? daysOnMarket = 22,
         double? distance = 0.4) => new()
-    {
-        FormattedAddress = address,
-        Price = price,
-        SquareFootage = sqft,
-        Status = status,
-        ListedDate = listedDate ?? new DateTimeOffset(2025, 1, 10, 0, 0, 0, TimeSpan.Zero),
-        RemovedDate = removedDate ?? new DateTimeOffset(2025, 2, 1, 0, 0, 0, TimeSpan.Zero),
-        PropertyType = propertyType,
-        Bedrooms = bedrooms,
-        Bathrooms = bathrooms,
-        DaysOnMarket = daysOnMarket,
-        Distance = distance
-    };
+        {
+            FormattedAddress = address,
+            Price = price,
+            SquareFootage = sqft,
+            Status = status,
+            ListedDate = listedDate ?? new DateTimeOffset(2025, 1, 10, 0, 0, 0, TimeSpan.Zero),
+            RemovedDate = removedDate ?? new DateTimeOffset(2025, 2, 1, 0, 0, 0, TimeSpan.Zero),
+            PropertyType = propertyType,
+            Bedrooms = bedrooms,
+            Bathrooms = bathrooms,
+            DaysOnMarket = daysOnMarket,
+            Distance = distance
+        };
 
     private static RentCastValuation MakeValuation(
         IReadOnlyList<RentCastComp>? comparables = null) => new()
-    {
-        Price = 450_000m,
-        PriceRangeLow = 420_000m,
-        PriceRangeHigh = 480_000m,
-        Comparables = comparables ?? []
-    };
+        {
+            Price = 450_000m,
+            PriceRangeLow = 420_000m,
+            PriceRangeHigh = 480_000m,
+            Comparables = comparables ?? []
+        };
 
     // ---------------------------------------------------------------------------
     // MapComps — pure static method, tested directly without mocking
@@ -260,7 +261,8 @@ public class RentCastCompSourceTests
         var comps = Enumerable.Range(1, 7)
             .Select(i => MakeComp(
                 address: $"{i} Recent St, Freehold, NJ 07728",
-                removedDate: recentDate) with { Correlation = 1.0 - (i * 0.1) })
+                removedDate: recentDate) with
+            { Correlation = 1.0 - (i * 0.1) })
             .ToList();
 
         var result = RentCastCompSource.MapComps(comps, MakeRequest(), null, NullLogger.Instance, today);
@@ -279,13 +281,15 @@ public class RentCastCompSourceTests
         var recentComps = Enumerable.Range(1, 2)
             .Select(i => MakeComp(
                 address: $"{i} Recent St, Freehold, NJ 07728",
-                removedDate: recentDate) with { Correlation = 0.9 - (i * 0.05) })
+                removedDate: recentDate) with
+            { Correlation = 0.9 - (i * 0.05) })
             .ToList();
 
         var olderComps = Enumerable.Range(1, 5)
             .Select(i => MakeComp(
                 address: $"{i} Old St, Freehold, NJ 07728",
-                removedDate: oldDate) with { Correlation = 0.7 - (i * 0.05) })
+                removedDate: oldDate) with
+            { Correlation = 0.7 - (i * 0.05) })
             .ToList();
 
         var result = RentCastCompSource.MapComps(
@@ -306,7 +310,8 @@ public class RentCastCompSourceTests
         var comps = Enumerable.Range(1, 7)
             .Select(i => MakeComp(
                 address: $"{i} Old St, Freehold, NJ 07728",
-                removedDate: oldDate) with { Correlation = i * 0.1 })
+                removedDate: oldDate) with
+            { Correlation = i * 0.1 })
             .ToList();
 
         var result = RentCastCompSource.MapComps(comps, MakeRequest(), null, NullLogger.Instance, today);

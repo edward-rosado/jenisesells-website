@@ -1,3 +1,29 @@
+using Xunit;
+using RealEstateStar.Domain.Shared.Models;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Domain.Shared.Interfaces.Senders;
+using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Leads.Interfaces;
+using RealEstateStar.Domain.Leads;
+using RealEstateStar.Domain.Cma.Models;
+using RealEstateStar.Domain.Cma.Interfaces;
+using RealEstateStar.Domain.HomeSearch.Interfaces;
+using RealEstateStar.Domain.Privacy.Interfaces;
+using RealEstateStar.Domain.WhatsApp.Interfaces;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Onboarding.Interfaces;
+using RealEstateStar.Domain.Onboarding.Services;
+using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.DataServices.WhatsApp;
+using RealEstateStar.Api.Features.Leads;
+using RealEstateStar.Api.Features.Leads.Submit;
+using RealEstateStar.Api.Features.Onboarding.Services;
+using RealEstateStar.Api.Features.Onboarding.Tools;
+using RealEstateStar.TestUtilities;
+using RealEstateStar.Workers.Shared;
+using RealEstateStar.Workers.Lead.CMA;
+using RealEstateStar.Workers.Lead.HomeSearch;
+using RealEstateStar.Notifications.WhatsApp;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Net.Http.Json;
@@ -6,17 +32,10 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.DataServices.Leads;
-using RealEstateStar.DataServices.Privacy;
-using RealEstateStar.Domain.Privacy.Interfaces;
-using RealEstateStar.Api.Features.Leads.Submit;
-using RealEstateStar.DataServices.Config;
 using RealEstateStar.Api.Tests.Integration;
 using RealEstateStar.Workers.Lead.Orchestrator;
 
@@ -268,22 +287,22 @@ public class SubmitLeadEndpointUnitTests
         LeadType? leadType = null,
         SellerDetailsRequest? seller = null,
         BuyerDetailsRequest? buyer = null) => new()
-    {
-        LeadType = leadType ?? LeadType.Buyer,
-        FirstName = "Jane",
-        LastName = "Doe",
-        Email = "jane@example.com",
-        Phone = "555-123-4567",
-        Timeline = "3-6 months",
-        Seller = seller,
-        Buyer = buyer ?? MakeBuyer(),
-        MarketingConsent = new MarketingConsentRequest
         {
-            OptedIn = true,
-            ConsentText = "I agree to receive marketing communications.",
-            Channels = ["email", "sms"]
-        }
-    };
+            LeadType = leadType ?? LeadType.Buyer,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@example.com",
+            Phone = "555-123-4567",
+            Timeline = "3-6 months",
+            Seller = seller,
+            Buyer = buyer ?? MakeBuyer(),
+            MarketingConsent = new MarketingConsentRequest
+            {
+                OptedIn = true,
+                ConsentText = "I agree to receive marketing communications.",
+                Channels = ["email", "sms"]
+            }
+        };
 
     private static SellerDetailsRequest MakeSeller() => new()
     {

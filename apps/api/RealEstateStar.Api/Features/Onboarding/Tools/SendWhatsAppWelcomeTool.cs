@@ -1,6 +1,7 @@
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using RealEstateStar.DataServices.WhatsApp;
+using RealEstateStar.Domain.Onboarding.Interfaces;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Shared.Interfaces.Senders;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Api.Features.Onboarding.Tools;

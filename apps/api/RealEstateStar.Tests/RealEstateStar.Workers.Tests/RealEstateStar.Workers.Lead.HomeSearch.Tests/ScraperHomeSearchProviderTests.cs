@@ -1,10 +1,10 @@
+using Xunit;
+using RealEstateStar.Domain.Leads.Models;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.Workers.Lead.HomeSearch;
 using System.Text.Json;
 
 namespace RealEstateStar.Workers.Lead.HomeSearch.Tests;
@@ -22,8 +22,8 @@ public class ScraperHomeSearchProviderTests
 
     private static readonly Dictionary<string, string> DefaultSourceUrls = new()
     {
-        ["zillow"]  = "https://www.zillow.com/homes/{area}/?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}",
-        ["redfin"]  = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}&max_price={maxPrice}&num_beds={minBeds}&num_baths={minBaths}",
+        ["zillow"] = "https://www.zillow.com/homes/{area}/?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}",
+        ["redfin"] = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}&max_price={maxPrice}&num_beds={minBeds}&num_baths={minBaths}",
         ["realtor"] = "https://www.realtor.com/realestateandhomes-search/{area}?price-min={minPrice}&price-max={maxPrice}&beds-min={minBeds}&baths-min={minBaths}"
     };
 
@@ -34,16 +34,16 @@ public class ScraperHomeSearchProviderTests
     {
         var items = listings.Select(l => new
         {
-            address     = l.Address,
-            city        = l.City,
-            state       = l.State,
-            zip         = l.Zip,
-            price       = l.Price,
-            beds        = l.Beds,
-            baths       = l.Baths,
-            sqft        = l.Sqft,
+            address = l.Address,
+            city = l.City,
+            state = l.State,
+            zip = l.Zip,
+            price = l.Price,
+            beds = l.Beds,
+            baths = l.Baths,
+            sqft = l.Sqft,
             whyThisFits = l.WhyThisFits,
-            listingUrl  = l.ListingUrl
+            listingUrl = l.ListingUrl
         });
         return JsonSerializer.Serialize(items);
     }
@@ -194,8 +194,8 @@ public class ScraperHomeSearchProviderTests
         var logger = new Mock<ILogger<ScraperHomeSearchProvider>>();
         var sourceUrls = new Dictionary<string, string>
         {
-            ["zillow"]  = "https://www.zillow.com/homes/{area}/?price-min={minPrice}",
-            ["redfin"]  = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}",
+            ["zillow"] = "https://www.zillow.com/homes/{area}/?price-min={minPrice}",
+            ["redfin"] = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}",
             ["realtor"] = "https://www.realtor.com/realestateandhomes-search/{area}?price-min={minPrice}"
         };
         var provider = new ScraperHomeSearchProvider(anthropicClient.Object, scraperClient.Object, sourceUrls, logger.Object);
@@ -230,8 +230,8 @@ public class ScraperHomeSearchProviderTests
         var logger = new Mock<ILogger<ScraperHomeSearchProvider>>();
         var sourceUrls = new Dictionary<string, string>
         {
-            ["zillow"]  = "https://www.zillow.com/homes/{area}/?price-min={minPrice}",
-            ["redfin"]  = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}",
+            ["zillow"] = "https://www.zillow.com/homes/{area}/?price-min={minPrice}",
+            ["redfin"] = "https://www.redfin.com/city/search?location={area}&min_price={minPrice}",
             ["realtor"] = "https://www.realtor.com/realestateandhomes-search/{area}?price-min={minPrice}"
         };
         var provider = new ScraperHomeSearchProvider(anthropicClient.Object, scraperClient.Object, sourceUrls, logger.Object);
@@ -285,7 +285,7 @@ public class ScraperHomeSearchProviderTests
     public void BuildSearchUrl_PreservesPerSourceParamNames()
     {
         var zillowTemplate = "https://www.zillow.com/homes/{area}/?price-min={minPrice}&beds-min={minBeds}";
-        var redfinTemplate  = "https://www.redfin.com/search?location={area}&min_price={minPrice}&num_beds={minBeds}";
+        var redfinTemplate = "https://www.redfin.com/search?location={area}&min_price={minPrice}&num_beds={minBeds}";
 
         var zillowUrl = ScraperHomeSearchProvider.BuildSearchUrl(zillowTemplate, DefaultCriteria);
         var redfinUrl = ScraperHomeSearchProvider.BuildSearchUrl(redfinTemplate, DefaultCriteria);
