@@ -47,7 +47,6 @@ global using RealEstateStar.Domain.Orchestration;
 
 // Workers
 global using RealEstateStar.Workers.Shared;
-global using RealEstateStar.Workers.Leads;
 global using RealEstateStar.Workers.Cma;
 global using RealEstateStar.Workers.HomeSearch;
 global using RealEstateStar.Workers.WhatsApp;

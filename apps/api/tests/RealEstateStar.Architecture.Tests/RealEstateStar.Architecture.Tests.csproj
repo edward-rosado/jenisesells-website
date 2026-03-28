@@ -28,7 +28,6 @@
     <ProjectReference Include="../../workers/RealEstateStar.Workers.Shared.AgentNotifier/RealEstateStar.Workers.Shared.AgentNotifier.csproj" />
     <ProjectReference Include="../../workers/RealEstateStar.Workers.Shared.LeadCommunicator/RealEstateStar.Workers.Shared.LeadCommunicator.csproj" />
     <ProjectReference Include="../../workers/RealEstateStar.Workers.Lead.Orchestrator/RealEstateStar.Workers.Lead.Orchestrator.csproj" />
-    <ProjectReference Include="../../workers/RealEstateStar.Workers.Leads/RealEstateStar.Workers.Leads.csproj" />
     <ProjectReference Include="../../workers/RealEstateStar.Workers.Cma/RealEstateStar.Workers.Cma.csproj" />
     <ProjectReference Include="../../workers/RealEstateStar.Workers.HomeSearch/RealEstateStar.Workers.HomeSearch.csproj" />
     <ProjectReference Include="../../workers/RealEstateStar.Workers.WhatsApp/RealEstateStar.Workers.WhatsApp.csproj" />

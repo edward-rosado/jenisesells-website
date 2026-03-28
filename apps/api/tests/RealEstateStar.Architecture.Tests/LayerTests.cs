@@ -155,7 +155,7 @@ public class LayerTests
 
         Assert.True(result.IsSuccessful,
             $"Workers.Cma types depend on Data:\n{FormatFailures(result)}" +
-            " — CMA is a pure compute worker; storage belongs in Workers.Leads (the orchestrator)");
+            " — CMA is a pure compute worker; storage belongs in Workers.Lead.Orchestrator");
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public class LayerTests
 
         Assert.True(result.IsSuccessful,
             $"Workers.Cma types depend on DataServices:\n{FormatFailures(result)}" +
-            " — CMA is a pure compute worker; storage orchestration belongs in Workers.Leads");
+            " — CMA is a pure compute worker; storage orchestration belongs in Workers.Lead.Orchestrator");
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public class LayerTests
 
         Assert.True(result.IsSuccessful,
             $"Workers.HomeSearch types depend on Data:\n{FormatFailures(result)}" +
-            " — HomeSearch is a pure compute worker; storage belongs in Workers.Leads (the orchestrator)");
+            " — HomeSearch is a pure compute worker; storage belongs in Workers.Lead.Orchestrator");
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class LayerTests
 
         Assert.True(result.IsSuccessful,
             $"Workers.HomeSearch types depend on DataServices:\n{FormatFailures(result)}" +
-            " — HomeSearch is a pure compute worker; storage orchestration belongs in Workers.Leads");
+            " — HomeSearch is a pure compute worker; storage orchestration belongs in Workers.Lead.Orchestrator");
     }
 
     [Fact]
