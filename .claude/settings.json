@@ -3,7 +3,8 @@
     "allow": [
       "Edit(~/.claude/skills/learned/**)",
       "Bash(az containerapp:*)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Edit(/.claude/skills/learned/**)"
     ]
   },
   "hooks": {
