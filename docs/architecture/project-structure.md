@@ -15,7 +15,7 @@ graph TD
 
     subgraph "Execution Layer"
         Activities["<b>Activities</b><br/>Compute + persist via DataServices<br/>Can call Services<br/>Launched by Orchestrator ONLY<br/><i>Refs: Domain + DataServices + Services</i>"]
-        Services["<b>Services</b><br/>Sync calls — orchestrator waits<br/>Persist failure/fallback via DataServices<br/>CANNOT call Activities<br/><i>Refs: Domain + DataServices</i>"]
+        Services["<b>Services</b><br/>Sync calls — orchestrator waits<br/>Call Clients for external comms<br/>Persist failure/fallback via DataServices<br/>CANNOT call Activities<br/><i>Refs: Domain + DataServices + Clients</i>"]
     end
 
     subgraph "External Integration"
@@ -24,7 +24,7 @@ graph TD
 
     subgraph "Storage Layer"
         DataServices["<b>DataServices</b><br/>Storage routing — WHERE to store<br/>*DataService naming<br/><i>Refs: Domain + Data</i>"]
-        Data["<b>Data</b><br/>Raw I/O providers — HOW to store<br/>*Provider / *Store naming<br/><i>Refs: Domain only</i>"]
+        Data["<b>Data</b><br/>Raw I/O providers — HOW to store<br/>CAN call Clients (GDrive, Azure Blob)<br/>*Provider / *Store naming<br/><i>Refs: Domain + Clients</i>"]
     end
 
     subgraph "Contracts"
@@ -52,12 +52,14 @@ graph TD
     Activities --> DataServices
     Activities --> Domain
 
+    Services --> Clients
     Services --> DataServices
     Services --> Domain
 
     Clients --> Domain
     DataServices --> Domain
     DataServices --> Data
+    Data --> Clients
     Data --> Domain
 
     style Api fill:#4a90d9,color:white
@@ -81,9 +83,11 @@ graph LR
         O -->|"call directly"| S["Services"]
         A -->|"can call"| S
         A -->|"persist via"| DS["DataServices"]
+        S -->|"calls for external comms"| C["Clients"]
         S -->|"persist failure via"| DS
         DS -->|"routes to"| D["Data Providers"]
-        W -->|"calls"| C["Clients"]
+        D -->|"calls for storage I/O"| C
+        W -->|"calls"| C
     end
 
     subgraph "WHO cannot call WHOM"
@@ -202,10 +206,10 @@ graph TD
 | **Orchestrator** | Multi-step coordinator | `*Orchestrator` | Sub-Workers, Activities, Services | — |
 | **Sub-Workers** | Pure compute pipelines | `*Worker`, `*Channel` | Clients (external APIs) | Orchestrator, Activities, Services, DataServices |
 | **Activities** | Compute + persist | `*Activity` | Services, DataServices | Workers, Orchestrator |
-| **Services** | Sync business logic | `*Service` | DataServices | Activities, Workers, Orchestrator |
+| **Services** | Sync business logic | `*Service` | Clients, DataServices | Activities, Workers, Orchestrator |
 | **Clients** | External API wrappers | `*Client`, `*Sender` | Domain only | Everything else |
-| **DataServices** | Storage routing (WHERE) | `*DataService` | Data providers | Clients, Workers, Services, Activities |
-| **Data** | Raw I/O (HOW) | `*Provider`, `*Store` | Domain only | Everything else |
+| **DataServices** | Storage routing (WHERE) | `*DataService` | Data providers | Workers, Services, Activities |
+| **Data** | Raw I/O (HOW) | `*Provider`, `*Store` | Domain, Clients | Everything else |
 | **Domain** | Pure contracts | `I*`, records, enums | NOTHING | Implementations |
 
 ## Architecture Tests
