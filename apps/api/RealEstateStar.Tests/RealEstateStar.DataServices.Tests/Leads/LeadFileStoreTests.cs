@@ -1,9 +1,8 @@
 using Moq;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Leads.Markdown;
-using RealEstateStar.Domain.Leads;
 using RealEstateStar.DataServices.Leads;
+using RealEstateStar.Domain.Leads;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace RealEstateStar.DataServices.Tests.Leads;

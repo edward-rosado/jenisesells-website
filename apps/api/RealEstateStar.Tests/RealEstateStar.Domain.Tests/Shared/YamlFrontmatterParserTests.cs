@@ -1,4 +1,4 @@
-using RealEstateStar.Domain.Shared.Markdown;
+using RealEstateStar.DataServices.Shared;
 
 namespace RealEstateStar.Domain.Tests.Shared;
 

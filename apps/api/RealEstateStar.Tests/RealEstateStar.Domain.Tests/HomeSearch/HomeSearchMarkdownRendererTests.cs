@@ -1,6 +1,6 @@
 using FluentAssertions;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.HomeSearch.Markdown;
+using RealEstateStar.DataServices.HomeSearch;
 namespace RealEstateStar.Domain.Tests.HomeSearch;
 
 public class HomeSearchMarkdownRendererTests
