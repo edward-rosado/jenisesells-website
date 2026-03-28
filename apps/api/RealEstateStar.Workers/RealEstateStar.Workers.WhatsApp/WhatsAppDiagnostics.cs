@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-namespace RealEstateStar.Domain.WhatsApp;
+namespace RealEstateStar.Workers.WhatsApp;
 
 public static class WhatsAppDiagnostics
 {

@@ -1,20 +1,20 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-namespace RealEstateStar.Domain.Shared;
+namespace RealEstateStar.Clients.GDocs;
 
-public static class GSheetsDiagnostics
+public static class GDocsDiagnostics
 {
-    public const string ServiceName = "RealEstateStar.GSheets";
+    public const string ServiceName = "RealEstateStar.GDocs";
     public static readonly ActivitySource ActivitySource = new(ServiceName, "1.0.0");
     private static readonly Meter Meter = new(ServiceName, "1.0.0");
 
     public static readonly Counter<long> Operations = Meter.CreateCounter<long>(
-        "gsheets.operations", description: "Sheets API operations");
+        "gdocs.operations", description: "Docs API operations");
     public static readonly Counter<long> Failed = Meter.CreateCounter<long>(
-        "gsheets.failed", description: "Sheets API operation failures");
+        "gdocs.failed", description: "Docs API operation failures");
     public static readonly Counter<long> TokenMissing = Meter.CreateCounter<long>(
-        "gsheets.token_missing", description: "Sheets calls skipped due to missing token");
+        "gdocs.token_missing", description: "Docs calls skipped due to missing token");
     public static readonly Histogram<double> Duration = Meter.CreateHistogram<double>(
-        "gsheets.duration_ms", unit: "ms", description: "Sheets API call duration");
+        "gdocs.duration_ms", unit: "ms", description: "Docs API call duration");
 }

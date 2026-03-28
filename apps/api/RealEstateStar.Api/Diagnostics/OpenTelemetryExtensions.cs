@@ -2,13 +2,19 @@ using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using RealEstateStar.Clients.Anthropic;
+using RealEstateStar.Clients.Azure;
+using RealEstateStar.Clients.GDocs;
+using RealEstateStar.Clients.GDrive;
+using RealEstateStar.Clients.Gmail;
+using RealEstateStar.Clients.GSheets;
+using RealEstateStar.Clients.RentCast;
 using RealEstateStar.Clients.Scraper;
-using RealEstateStar.Domain.Cma;
-using RealEstateStar.Domain.HomeSearch;
-using RealEstateStar.Domain.Leads;
+using RealEstateStar.DataServices;
+using RealEstateStar.Workers.Lead.CMA;
+using RealEstateStar.Workers.Lead.HomeSearch;
 using RealEstateStar.Workers.Lead.Orchestrator;
-using RealEstateStar.Domain.Shared;
-using RealEstateStar.Domain.WhatsApp;
+using RealEstateStar.Workers.WhatsApp;
 
 namespace RealEstateStar.Api.Diagnostics;
 

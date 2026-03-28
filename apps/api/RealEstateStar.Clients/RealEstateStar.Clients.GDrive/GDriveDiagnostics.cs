@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-namespace RealEstateStar.Domain.Shared;
+namespace RealEstateStar.Clients.GDrive;
 
 public static class GDriveDiagnostics
 {
