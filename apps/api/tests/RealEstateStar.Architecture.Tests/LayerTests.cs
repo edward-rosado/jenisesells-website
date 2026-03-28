@@ -18,10 +18,10 @@ public class LayerTests
         typeof(Notifications.WhatsApp.WhatsAppNotifier).Assembly;
 
     private static readonly System.Reflection.Assembly CmaWorkerAssembly =
-        typeof(Workers.Cma.CmaProcessingWorker).Assembly;
+        typeof(Workers.Lead.CMA.CmaProcessingWorker).Assembly;
 
     private static readonly System.Reflection.Assembly HomeSearchWorkerAssembly =
-        typeof(Workers.HomeSearch.HomeSearchProcessingWorker).Assembly;
+        typeof(Workers.Lead.HomeSearch.HomeSearchProcessingWorker).Assembly;
 
     [Fact]
     public void Domain_types_should_not_depend_on_DataServices()
@@ -154,7 +154,7 @@ public class LayerTests
             .GetResult();
 
         Assert.True(result.IsSuccessful,
-            $"Workers.Cma types depend on Data:\n{FormatFailures(result)}" +
+            $"Workers.Lead.CMA types depend on Data:\n{FormatFailures(result)}" +
             " — CMA is a pure compute worker; storage belongs in Workers.Lead.Orchestrator");
     }
 
@@ -167,7 +167,7 @@ public class LayerTests
             .GetResult();
 
         Assert.True(result.IsSuccessful,
-            $"Workers.Cma types depend on DataServices:\n{FormatFailures(result)}" +
+            $"Workers.Lead.CMA types depend on DataServices:\n{FormatFailures(result)}" +
             " — CMA is a pure compute worker; storage orchestration belongs in Workers.Lead.Orchestrator");
     }
 
@@ -180,7 +180,7 @@ public class LayerTests
             .GetResult();
 
         Assert.True(result.IsSuccessful,
-            $"Workers.Cma types depend on Notifications:\n{FormatFailures(result)}" +
+            $"Workers.Lead.CMA types depend on Notifications:\n{FormatFailures(result)}" +
             " — CMA is a pure compute worker; notifications belong in Workers.Leads");
     }
 
@@ -193,7 +193,7 @@ public class LayerTests
             .GetResult();
 
         Assert.True(result.IsSuccessful,
-            $"Workers.HomeSearch types depend on Data:\n{FormatFailures(result)}" +
+            $"Workers.Lead.HomeSearch types depend on Data:\n{FormatFailures(result)}" +
             " — HomeSearch is a pure compute worker; storage belongs in Workers.Lead.Orchestrator");
     }
 
@@ -206,7 +206,7 @@ public class LayerTests
             .GetResult();
 
         Assert.True(result.IsSuccessful,
-            $"Workers.HomeSearch types depend on DataServices:\n{FormatFailures(result)}" +
+            $"Workers.Lead.HomeSearch types depend on DataServices:\n{FormatFailures(result)}" +
             " — HomeSearch is a pure compute worker; storage orchestration belongs in Workers.Lead.Orchestrator");
     }
 
@@ -219,7 +219,7 @@ public class LayerTests
             .GetResult();
 
         Assert.True(result.IsSuccessful,
-            $"Workers.HomeSearch types depend on Notifications:\n{FormatFailures(result)}" +
+            $"Workers.Lead.HomeSearch types depend on Notifications:\n{FormatFailures(result)}" +
             " — HomeSearch is a pure compute worker; notifications belong in Workers.Leads");
     }
 

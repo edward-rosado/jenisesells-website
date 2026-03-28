@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.HomeSearch.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
-namespace RealEstateStar.Workers.HomeSearch;
+namespace RealEstateStar.Workers.Lead.HomeSearch;
 
 public static class ServiceCollectionExtensions
 {

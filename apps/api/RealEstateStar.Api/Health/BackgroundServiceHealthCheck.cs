@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using RealEstateStar.Workers.Cma;
-using RealEstateStar.Workers.HomeSearch;
+using RealEstateStar.Workers.Lead.CMA;
+using RealEstateStar.Workers.Lead.HomeSearch;
 using RealEstateStar.Workers.Shared;
 using LeadOrchestratorChannel = RealEstateStar.Workers.Lead.Orchestrator.LeadOrchestratorChannel;
 

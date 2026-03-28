@@ -5,10 +5,9 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Cma;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
-using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
-namespace RealEstateStar.Workers.Cma;
+namespace RealEstateStar.Workers.Lead.CMA;
 
 public class ClaudeCmaAnalyzer(
     IAnthropicClient anthropicClient,
@@ -48,7 +47,7 @@ public class ClaudeCmaAnalyzer(
         }
         """;
 
-    public async Task<CmaAnalysis> AnalyzeAsync(Lead lead, List<Comp> comps, CancellationToken ct)
+    public async Task<CmaAnalysis> AnalyzeAsync(global::RealEstateStar.Domain.Leads.Models.Lead lead, List<Comp> comps, CancellationToken ct)
     {
         // Validate subject property data against comps — detect fat-finger errors
         ValidateSubjectData(lead, comps, logger);
@@ -81,7 +80,7 @@ public class ClaudeCmaAnalyzer(
         }
     }
 
-    internal static string BuildPrompt(Lead lead, List<Comp> comps)
+    internal static string BuildPrompt(global::RealEstateStar.Domain.Leads.Models.Lead lead, List<Comp> comps)
     {
         var sd = lead.SellerDetails!;
         var fullAddress = $"{sd.Address}, {sd.City}, {sd.State} {sd.Zip}";
@@ -134,7 +133,7 @@ public class ClaudeCmaAnalyzer(
     /// Validates subject property data against comp data to detect fat-finger errors.
     /// Logs warnings but does NOT block the analysis — Claude handles it inside leadInsights.
     /// </summary>
-    internal static void ValidateSubjectData(Lead lead, List<Comp> comps, ILogger logger)
+    internal static void ValidateSubjectData(global::RealEstateStar.Domain.Leads.Models.Lead lead, List<Comp> comps, ILogger logger)
     {
         var sd = lead.SellerDetails;
         if (sd is null || comps.Count == 0) return;

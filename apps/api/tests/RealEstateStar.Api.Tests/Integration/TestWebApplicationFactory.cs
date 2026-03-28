@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.Workers.Cma;
+using RealEstateStar.Workers.Lead.CMA;
 using LeadOrchestratorChannel = RealEstateStar.Workers.Lead.Orchestrator.LeadOrchestratorChannel;
 
 namespace RealEstateStar.Api.Tests.Integration;

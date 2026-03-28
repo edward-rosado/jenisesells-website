@@ -17,7 +17,7 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../../workers/RealEstateStar.Workers.HomeSearch/RealEstateStar.Workers.HomeSearch.csproj" />
+    <ProjectReference Include="../../../workers/RealEstateStar.Workers.Lead.CMA/RealEstateStar.Workers.Lead.CMA.csproj" />
     <ProjectReference Include="../../RealEstateStar.TestUtilities/RealEstateStar.TestUtilities.csproj" />
   </ItemGroup>
 </Project>

@@ -6,7 +6,7 @@ using RealEstateStar.Domain.HomeSearch.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
-namespace RealEstateStar.Workers.HomeSearch;
+namespace RealEstateStar.Workers.Lead.HomeSearch;
 
 public class ScraperHomeSearchProvider(
     IAnthropicClient anthropicClient,

@@ -4,7 +4,7 @@ using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Services;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
-namespace RealEstateStar.Workers.Cma;
+namespace RealEstateStar.Workers.Lead.CMA;
 
 public static class ServiceCollectionExtensions
 {

@@ -24,9 +24,9 @@ public class DependencyTests
     [InlineData("RealEstateStar.Workers.Shared.Pdf", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Shared.AgentNotifier", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Shared.LeadCommunicator", new[] { "Domain", "Workers.Shared" })]
-    [InlineData("RealEstateStar.Workers.Lead.Orchestrator", new[] { "Domain", "Workers.Shared", "Workers.Shared.Pdf", "Workers.Shared.AgentNotifier", "Workers.Shared.LeadCommunicator", "Workers.Cma", "Workers.HomeSearch" })]
-    [InlineData("RealEstateStar.Workers.Cma", new[] { "Domain", "Workers.Shared" })]
-    [InlineData("RealEstateStar.Workers.HomeSearch", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Lead.Orchestrator", new[] { "Domain", "Workers.Shared", "Workers.Shared.Pdf", "Workers.Shared.AgentNotifier", "Workers.Shared.LeadCommunicator", "Workers.Lead.CMA", "Workers.Lead.HomeSearch" })]
+    [InlineData("RealEstateStar.Workers.Lead.CMA", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Lead.HomeSearch", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.WhatsApp", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Clients.Anthropic", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.Scraper", new[] { "Domain" })]
@@ -182,8 +182,8 @@ public class DependencyTests
             "RealEstateStar.Workers.Shared.AgentNotifier",
             "RealEstateStar.Workers.Shared.LeadCommunicator",
             "RealEstateStar.Workers.Lead.Orchestrator",
-            "RealEstateStar.Workers.Cma",
-            "RealEstateStar.Workers.HomeSearch",
+            "RealEstateStar.Workers.Lead.CMA",
+            "RealEstateStar.Workers.Lead.HomeSearch",
             "RealEstateStar.Workers.WhatsApp",
             "RealEstateStar.Clients.Anthropic",
             "RealEstateStar.Clients.Scraper",
@@ -350,9 +350,9 @@ public class DependencyTests
     [Fact]
     public void CmaWorker_ShouldNotReference_StorageInterfaces()
     {
-        // Verify Workers.Cma assembly does not reference IFileStorageProvider or IDocumentStorageProvider.
+        // Verify Workers.Lead.CMA assembly does not reference IFileStorageProvider or IDocumentStorageProvider.
         // CMA is a pure compute worker — storage is handled upstream by the orchestrator (Workers.Leads).
-        var assembly = typeof(Workers.Cma.CmaProcessingWorker).Assembly;
+        var assembly = typeof(Workers.Lead.CMA.CmaProcessingWorker).Assembly;
         var forbiddenTypeNames = new HashSet<string>
         {
             "IFileStorageProvider",
@@ -390,16 +390,16 @@ public class DependencyTests
             .ToList();
 
         Assert.True(violations.Count == 0,
-            $"Workers.Cma references storage interfaces it must not depend on: {string.Join(", ", violations)}" +
+            $"Workers.Lead.CMA references storage interfaces it must not depend on: {string.Join(", ", violations)}" +
             " — CMA is a pure compute worker; storage belongs in Workers.Leads (the orchestrator)");
     }
 
     [Fact]
     public void HomeSearchWorker_ShouldNotReference_NotificationInterfaces()
     {
-        // Verify Workers.HomeSearch does not reference IAgentNotifier or IHomeSearchNotifier.
+        // Verify Workers.Lead.HomeSearch does not reference IAgentNotifier or IHomeSearchNotifier.
         // HomeSearch is a pure compute worker — notifications are dispatched by the orchestrator (Workers.Leads).
-        var assembly = typeof(Workers.HomeSearch.HomeSearchProcessingWorker).Assembly;
+        var assembly = typeof(Workers.Lead.HomeSearch.HomeSearchProcessingWorker).Assembly;
         var forbiddenTypeNames = new HashSet<string>
         {
             "IAgentNotifier",
@@ -438,7 +438,7 @@ public class DependencyTests
             .ToList();
 
         Assert.True(violations.Count == 0,
-            $"Workers.HomeSearch references notification interfaces it must not depend on: {string.Join(", ", violations)}" +
+            $"Workers.Lead.HomeSearch references notification interfaces it must not depend on: {string.Join(", ", violations)}" +
             " — HomeSearch is a pure compute worker; notifications belong in Workers.Leads (the orchestrator)");
     }
 

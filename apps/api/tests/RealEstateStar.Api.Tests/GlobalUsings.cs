@@ -43,8 +43,8 @@ global using RealEstateStar.TestUtilities;
 
 // Workers
 global using RealEstateStar.Workers.Shared;
-global using RealEstateStar.Workers.Cma;
-global using RealEstateStar.Workers.HomeSearch;
+global using RealEstateStar.Workers.Lead.CMA;
+global using RealEstateStar.Workers.Lead.HomeSearch;
 global using RealEstateStar.Workers.WhatsApp;
 
 // Notifications

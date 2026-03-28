@@ -4,10 +4,10 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.HomeSearch.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Workers.HomeSearch;
+using RealEstateStar.Workers.Lead.HomeSearch;
 using RealEstateStar.Workers.Shared;
 
-namespace RealEstateStar.Workers.HomeSearch.Tests;
+namespace RealEstateStar.Workers.Lead.HomeSearch.Tests;
 
 public class HomeSearchProcessingWorkerTests
 {
@@ -48,7 +48,7 @@ public class HomeSearchProcessingWorkerTests
         State = "NJ"
     };
 
-    private static Lead MakeLead() => new()
+    private static global::RealEstateStar.Domain.Leads.Models.Lead MakeLead() => new()
     {
         Id = Guid.NewGuid(),
         AgentId = "test-agent",
@@ -61,7 +61,7 @@ public class HomeSearchProcessingWorkerTests
         BuyerDetails = new BuyerDetails { City = "Springfield", State = "NJ" }
     };
 
-    private static HomeSearchProcessingRequest MakeRequest(Lead? lead = null, TaskCompletionSource<HomeSearchWorkerResult>? tcs = null) =>
+    private static HomeSearchProcessingRequest MakeRequest(global::RealEstateStar.Domain.Leads.Models.Lead? lead = null, TaskCompletionSource<HomeSearchWorkerResult>? tcs = null) =>
         new("test-agent", lead ?? MakeLead(), MakeAgentConfig(), "corr-123", tcs ?? new TaskCompletionSource<HomeSearchWorkerResult>());
 
     private static List<Listing> MakeListings(int count) =>

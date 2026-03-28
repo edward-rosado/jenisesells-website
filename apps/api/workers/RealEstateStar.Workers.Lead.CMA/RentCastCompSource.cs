@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
 
-namespace RealEstateStar.Workers.Cma;
+namespace RealEstateStar.Workers.Lead.CMA;
 
 public class RentCastCompSource(
     IRentCastClient rentCastClient,

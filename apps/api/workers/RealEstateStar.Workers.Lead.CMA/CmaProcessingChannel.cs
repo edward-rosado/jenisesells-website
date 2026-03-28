@@ -1,7 +1,6 @@
-using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Shared;
 
-namespace RealEstateStar.Workers.Cma;
+namespace RealEstateStar.Workers.Lead.CMA;
 
 public sealed class CmaProcessingChannel : ProcessingChannelBase<CmaProcessingRequest>
 {
@@ -10,7 +9,7 @@ public sealed class CmaProcessingChannel : ProcessingChannelBase<CmaProcessingRe
 
 public sealed record CmaProcessingRequest(
     string AgentId,
-    Lead Lead,
+    global::RealEstateStar.Domain.Leads.Models.Lead Lead,
     AgentNotificationConfig AgentConfig,
     string CorrelationId,
     TaskCompletionSource<CmaWorkerResult> Completion);

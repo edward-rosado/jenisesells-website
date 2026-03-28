@@ -3,9 +3,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
-using RealEstateStar.Workers.Cma;
+using RealEstateStar.Workers.Lead.CMA;
 
-namespace RealEstateStar.Workers.Cma.Tests;
+namespace RealEstateStar.Workers.Lead.CMA.Tests;
 
 public class RentCastCompSourceTests
 {

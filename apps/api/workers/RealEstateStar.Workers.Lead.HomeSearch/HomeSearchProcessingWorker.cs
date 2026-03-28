@@ -6,7 +6,7 @@ using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Shared.Context;
 
-namespace RealEstateStar.Workers.HomeSearch;
+namespace RealEstateStar.Workers.Lead.HomeSearch;
 
 public sealed class HomeSearchProcessingWorker(
     HomeSearchProcessingChannel channel,

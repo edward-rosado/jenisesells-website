@@ -7,7 +7,7 @@ using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Shared.Context;
 
-namespace RealEstateStar.Workers.Cma;
+namespace RealEstateStar.Workers.Lead.CMA;
 
 public sealed class CmaProcessingWorker(
     CmaProcessingChannel channel,

@@ -1,10 +1,9 @@
 using RealEstateStar.Domain.Cma.Models;
-using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Shared.Context;
 
-namespace RealEstateStar.Workers.Cma;
+namespace RealEstateStar.Workers.Lead.CMA;
 
-public class CmaPipelineContext : PipelineContext<Lead>
+public class CmaPipelineContext : PipelineContext<global::RealEstateStar.Domain.Leads.Models.Lead>
 {
     // Step name constants
     public const string StepFetchComps = "fetch-comps";

@@ -18,7 +18,7 @@
     <ProjectReference Include="..\RealEstateStar.Workers.Shared.Pdf\RealEstateStar.Workers.Shared.Pdf.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers.Shared.AgentNotifier\RealEstateStar.Workers.Shared.AgentNotifier.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers.Shared.LeadCommunicator\RealEstateStar.Workers.Shared.LeadCommunicator.csproj" />
-    <ProjectReference Include="..\RealEstateStar.Workers.Cma\RealEstateStar.Workers.Cma.csproj" />
-    <ProjectReference Include="..\RealEstateStar.Workers.HomeSearch\RealEstateStar.Workers.HomeSearch.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers.Lead.CMA\RealEstateStar.Workers.Lead.CMA.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers.Lead.HomeSearch\RealEstateStar.Workers.Lead.HomeSearch.csproj" />
   </ItemGroup>
 </Project>

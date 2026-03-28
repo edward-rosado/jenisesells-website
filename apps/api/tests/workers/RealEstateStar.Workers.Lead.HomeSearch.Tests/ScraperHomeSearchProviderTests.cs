@@ -4,10 +4,10 @@ using Moq;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Models;
-using RealEstateStar.Workers.HomeSearch;
+using RealEstateStar.Workers.Lead.HomeSearch;
 using System.Text.Json;
 
-namespace RealEstateStar.Workers.HomeSearch.Tests;
+namespace RealEstateStar.Workers.Lead.HomeSearch.Tests;
 
 public class ScraperHomeSearchProviderTests
 {
