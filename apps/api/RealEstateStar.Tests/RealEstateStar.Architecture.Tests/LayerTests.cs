@@ -181,7 +181,7 @@ public class LayerTests
 
         Assert.True(result.IsSuccessful,
             $"Workers.Lead.CMA types depend on Notifications:\n{FormatFailures(result)}" +
-            " — CMA is a pure compute worker; notifications belong in Workers.Leads");
+            " — CMA is a pure compute worker; notifications belong in Workers.Lead.Orchestrator");
     }
 
     [Fact]
@@ -220,7 +220,7 @@ public class LayerTests
 
         Assert.True(result.IsSuccessful,
             $"Workers.Lead.HomeSearch types depend on Notifications:\n{FormatFailures(result)}" +
-            " — HomeSearch is a pure compute worker; notifications belong in Workers.Leads");
+            " — HomeSearch is a pure compute worker; notifications belong in Workers.Lead.Orchestrator");
     }
 
     private static string FormatFailures(TestResult result) =>

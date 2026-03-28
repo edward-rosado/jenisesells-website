@@ -351,7 +351,7 @@ public class DependencyTests
     public void CmaWorker_ShouldNotReference_StorageInterfaces()
     {
         // Verify Workers.Lead.CMA assembly does not reference IFileStorageProvider or IDocumentStorageProvider.
-        // CMA is a pure compute worker — storage is handled upstream by the orchestrator (Workers.Leads).
+        // CMA is a pure compute worker — storage is handled upstream by the orchestrator (Workers.Lead.Orchestrator).
         var assembly = typeof(Workers.Lead.CMA.CmaProcessingWorker).Assembly;
         var forbiddenTypeNames = new HashSet<string>
         {
@@ -391,14 +391,14 @@ public class DependencyTests
 
         Assert.True(violations.Count == 0,
             $"Workers.Lead.CMA references storage interfaces it must not depend on: {string.Join(", ", violations)}" +
-            " — CMA is a pure compute worker; storage belongs in Workers.Leads (the orchestrator)");
+            " — CMA is a pure compute worker; storage belongs in Workers.Lead.Orchestrator (the orchestrator)");
     }
 
     [Fact]
     public void HomeSearchWorker_ShouldNotReference_NotificationInterfaces()
     {
         // Verify Workers.Lead.HomeSearch does not reference IAgentNotifier or IHomeSearchNotifier.
-        // HomeSearch is a pure compute worker — notifications are dispatched by the orchestrator (Workers.Leads).
+        // HomeSearch is a pure compute worker — notifications are dispatched by the orchestrator (Workers.Lead.Orchestrator).
         var assembly = typeof(Workers.Lead.HomeSearch.HomeSearchProcessingWorker).Assembly;
         var forbiddenTypeNames = new HashSet<string>
         {
@@ -439,7 +439,7 @@ public class DependencyTests
 
         Assert.True(violations.Count == 0,
             $"Workers.Lead.HomeSearch references notification interfaces it must not depend on: {string.Join(", ", violations)}" +
-            " — HomeSearch is a pure compute worker; notifications belong in Workers.Leads (the orchestrator)");
+            " — HomeSearch is a pure compute worker; notifications belong in Workers.Lead.Orchestrator (the orchestrator)");
     }
 
     [Fact]

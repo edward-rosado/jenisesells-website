@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Orchestration;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
@@ -150,10 +149,6 @@ public sealed class LeadOrchestrator(
                     ctx.CmaResult = cmaTcs.Task.Result;
                     OrchestratorDiagnostics.WorkerCompletions.Add(1);
                 }
-                else
-                {
-                    OrchestratorDiagnostics.WorkerTimeouts.Add(1);
-                }
             }
 
             if (hsTcs is not null)
@@ -162,10 +157,6 @@ public sealed class LeadOrchestrator(
                 {
                     ctx.HsResult = hsTcs.Task.Result;
                     OrchestratorDiagnostics.WorkerCompletions.Add(1);
-                }
-                else
-                {
-                    OrchestratorDiagnostics.WorkerTimeouts.Add(1);
                 }
             }
 
@@ -472,7 +463,8 @@ public sealed class LeadOrchestrator(
                 DraftedAt = DateTimeOffset.UtcNow,
                 SentAt = DateTimeOffset.UtcNow,
                 Sent = true,
-                ContentHash = string.Empty
+                ContentHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+                    System.Text.Encoding.UTF8.GetBytes($"{ctx.Lead.Id}|{ctx.Score?.OverallScore}|{ctx.CmaResult?.Success}|{ctx.HsResult?.Success}"))).ToLowerInvariant()
             };
 
             OrchestratorDiagnostics.WhatsAppSent.Add(1);
@@ -517,7 +509,7 @@ public sealed class LeadOrchestrator(
             AgentId = agentId,
             Handle = accountConfig.Handle,
             Name = accountConfig.Agent?.Name ?? "",
-            FirstName = accountConfig.Agent?.Name?.Split(' ').FirstOrDefault() ?? "",
+            FirstName = accountConfig.Agent?.Name?.Split(' ')[0] ?? "",
             Email = accountConfig.Agent?.Email ?? "",
             Phone = accountConfig.Agent?.Phone ?? "",
             LicenseNumber = accountConfig.Agent?.LicenseNumber ?? "",
