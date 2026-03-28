@@ -21,10 +21,10 @@ public class DependencyTests
     [InlineData("RealEstateStar.DataServices", new[] { "Domain" })]
     [InlineData("RealEstateStar.Notifications", new[] { "Domain" })]
     [InlineData("RealEstateStar.Workers.Shared", new[] { "Domain" })]
-    [InlineData("RealEstateStar.Workers.Shared.Pdf", new[] { "Domain", "Workers.Shared" })]
-    [InlineData("RealEstateStar.Workers.Shared.AgentNotifier", new[] { "Domain", "Workers.Shared" })]
-    [InlineData("RealEstateStar.Workers.Shared.LeadCommunicator", new[] { "Domain", "Workers.Shared" })]
-    [InlineData("RealEstateStar.Workers.Lead.Orchestrator", new[] { "Domain", "Workers.Shared", "Workers.Shared.Pdf", "Workers.Shared.AgentNotifier", "Workers.Shared.LeadCommunicator", "Workers.Lead.CMA", "Workers.Lead.HomeSearch" })]
+    [InlineData("RealEstateStar.Activities.Pdf", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Services.AgentNotifier", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Services.LeadCommunicator", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Lead.Orchestrator", new[] { "Domain", "Workers.Shared", "Activities.Pdf", "Services.AgentNotifier", "Services.LeadCommunicator", "Workers.Lead.CMA", "Workers.Lead.HomeSearch" })]
     [InlineData("RealEstateStar.Workers.Lead.CMA", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Lead.HomeSearch", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.WhatsApp", new[] { "Domain", "Workers.Shared" })]
@@ -178,9 +178,9 @@ public class DependencyTests
             "RealEstateStar.DataServices",
             "RealEstateStar.Notifications",
             "RealEstateStar.Workers.Shared",
-            "RealEstateStar.Workers.Shared.Pdf",
-            "RealEstateStar.Workers.Shared.AgentNotifier",
-            "RealEstateStar.Workers.Shared.LeadCommunicator",
+            "RealEstateStar.Activities.Pdf",
+            "RealEstateStar.Services.AgentNotifier",
+            "RealEstateStar.Services.LeadCommunicator",
             "RealEstateStar.Workers.Lead.Orchestrator",
             "RealEstateStar.Workers.Lead.CMA",
             "RealEstateStar.Workers.Lead.HomeSearch",

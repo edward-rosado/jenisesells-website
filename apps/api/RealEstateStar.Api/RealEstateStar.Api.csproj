@@ -36,12 +36,12 @@
     <ProjectReference Include="..\RealEstateStar.Notifications\RealEstateStar.Notifications.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Shared\RealEstateStar.Workers.Shared.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Lead.Orchestrator\RealEstateStar.Workers.Lead.Orchestrator.csproj" />
-    <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Shared.AgentNotifier\RealEstateStar.Workers.Shared.AgentNotifier.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Services\RealEstateStar.Services.AgentNotifier\RealEstateStar.Services.AgentNotifier.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Services\RealEstateStar.Services.LeadCommunicator\RealEstateStar.Services.LeadCommunicator.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Activities\RealEstateStar.Activities.Pdf\RealEstateStar.Activities.Pdf.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Lead.CMA\RealEstateStar.Workers.Lead.CMA.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Lead.HomeSearch\RealEstateStar.Workers.Lead.HomeSearch.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.WhatsApp\RealEstateStar.Workers.WhatsApp.csproj" />
-    <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Shared.Pdf\RealEstateStar.Workers.Shared.Pdf.csproj" />
-    <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Shared.LeadCommunicator\RealEstateStar.Workers.Shared.LeadCommunicator.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Anthropic\RealEstateStar.Clients.Anthropic.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Scraper\RealEstateStar.Clients.Scraper.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.WhatsApp\RealEstateStar.Clients.WhatsApp.csproj" />

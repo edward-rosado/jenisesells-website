@@ -10,7 +10,7 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
 using RealEstateStar.Workers.Shared;
-using RealEstateStar.Workers.Shared.Pdf;
+using RealEstateStar.Activities.Pdf;
 
 namespace RealEstateStar.Workers.Lead.Orchestrator;
 
