@@ -724,4 +724,140 @@ public class SubmitLeadEndpointUnitTests
 
         grouped["FirstName"].Should().HaveCount(2);
     }
+
+    // -------------------------------------------------------------------------
+    // EvaluateStatusGate — status-based gating
+    // -------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData(LeadStatus.Scored)]
+    [InlineData(LeadStatus.Analyzing)]
+    [InlineData(LeadStatus.Notified)]
+    public void EvaluateStatusGate_InProgressStatus_ReturnsProcessing(LeadStatus status)
+    {
+        var lead = BuildLead(status);
+        var request = BuildRequest(lead);
+
+        var result = SubmitLeadEndpoint.EvaluateStatusGate(lead, request);
+
+        result.Should().NotBeNull();
+        result.Should().Be("processing");
+    }
+
+    [Fact]
+    public void EvaluateStatusGate_ReceivedStatus_ReturnsNull_AllowsDispatch()
+    {
+        var lead = BuildLead(LeadStatus.Received);
+        var request = BuildRequest(lead);
+
+        var result = SubmitLeadEndpoint.EvaluateStatusGate(lead, request);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void EvaluateStatusGate_CompleteStatusSameContent_ReturnsAlreadyComplete()
+    {
+        var lead = BuildLead(LeadStatus.Complete);
+        var request = BuildRequest(lead);  // Same content → same hash
+
+        var result = SubmitLeadEndpoint.EvaluateStatusGate(lead, request);
+
+        result.Should().NotBeNull();
+        result.Should().Be("already-complete");
+    }
+
+    [Fact]
+    public void EvaluateStatusGate_CompleteStatusDifferentContent_ReturnsNull_AllowsDispatch()
+    {
+        var lead = BuildLead(LeadStatus.Complete);
+        // Change the address to produce a different content hash
+        lead.SellerDetails = new SellerDetails { Address = "99 Changed St", City = "Newark", State = "NJ", Zip = "07101" };
+
+        var request = BuildRequestWithSeller("10 Pine St", "Newark", "NJ", "07101");  // Different address
+
+        var result = SubmitLeadEndpoint.EvaluateStatusGate(lead, request);
+
+        result.Should().BeNull("content changed — re-dispatch is allowed");
+    }
+
+    [Fact]
+    public void EvaluateStatusGate_ActiveClientStatus_ReturnsNull()
+    {
+        var lead = BuildLead(LeadStatus.ActiveClient);
+        var request = BuildRequest(lead);
+
+        var result = SubmitLeadEndpoint.EvaluateStatusGate(lead, request);
+
+        result.Should().BeNull();
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static Lead BuildLead(LeadStatus status) => new()
+    {
+        Id = Guid.NewGuid(),
+        AgentId = "agent-1",
+        LeadType = LeadType.Seller,
+        FirstName = "Alice",
+        LastName = "Tester",
+        Email = "alice@example.com",
+        Phone = "555-0001",
+        Timeline = "asap",
+        Status = status,
+        ReceivedAt = DateTime.UtcNow,
+        SellerDetails = new SellerDetails
+        {
+            Address = "10 Pine St",
+            City = "Newark",
+            State = "NJ",
+            Zip = "07101"
+        }
+    };
+
+    private static SubmitLeadRequest BuildRequest(Lead lead) => new()
+    {
+        LeadType = lead.LeadType,
+        FirstName = lead.FirstName,
+        LastName = lead.LastName,
+        Email = lead.Email,
+        Phone = lead.Phone,
+        Timeline = lead.Timeline,
+        Seller = lead.SellerDetails is null ? null : new SellerDetailsRequest
+        {
+            Address = lead.SellerDetails.Address,
+            City = lead.SellerDetails.City,
+            State = lead.SellerDetails.State,
+            Zip = lead.SellerDetails.Zip
+        },
+        MarketingConsent = new MarketingConsentRequest
+        {
+            OptedIn = true,
+            ConsentText = "I agree",
+            Channels = ["email"]
+        }
+    };
+
+    private static SubmitLeadRequest BuildRequestWithSeller(string address, string city, string state, string zip) => new()
+    {
+        LeadType = LeadType.Seller,
+        FirstName = "Alice",
+        LastName = "Tester",
+        Email = "alice@example.com",
+        Phone = "555-0001",
+        Timeline = "asap",
+        Seller = new SellerDetailsRequest
+        {
+            Address = address,
+            City = city,
+            State = state,
+            Zip = zip
+        },
+        MarketingConsent = new MarketingConsentRequest
+        {
+            OptedIn = true,
+            ConsentText = "I agree",
+            Channels = ["email"]
+        }
+    };
 }

@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="RealEstateStar.DataServices.Tests" />
+    <InternalsVisibleTo Include="RealEstateStar.Workers.Lead.Orchestrator" />
     <InternalsVisibleTo Include="RealEstateStar.Api" />
     <InternalsVisibleTo Include="RealEstateStar.Api.Tests" />
   </ItemGroup>

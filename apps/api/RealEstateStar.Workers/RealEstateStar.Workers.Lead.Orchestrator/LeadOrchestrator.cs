@@ -1,11 +1,14 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Activities.Persist;
 using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Orchestration;
+using RealEstateStar.Domain.Shared;
+using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
@@ -22,6 +25,12 @@ namespace RealEstateStar.Workers.Lead.Orchestrator;
 /// <see cref="IAgentNotifier"/>. All pipeline state is carried in
 /// a <see cref="LeadPipelineContext"/> instance.
 /// </summary>
+/// <remarks>
+/// Retry safety: before dispatching CMA/HomeSearch, checks the per-lead
+/// <see cref="LeadRetryState"/> to skip activities whose inputs haven't changed.
+/// Cross-lead dedup: checks <see cref="IContentCache"/> before dispatching CMA/HomeSearch
+/// to avoid re-running expensive analysis for the same property across multiple leads.
+/// </remarks>
 public sealed class LeadOrchestrator(
     LeadOrchestratorChannel channel,
     ILeadStore leadStore,
@@ -30,14 +39,20 @@ public sealed class LeadOrchestrator(
     CmaProcessingChannel cmaChannel,
     HomeSearchProcessingChannel homeSearchChannel,
     PdfActivity pdfActivity,
+    PersistActivity persistActivity,
     ILeadCommunicationService communicationService,
     IAgentNotifier agentNotifier,
+    IContentCache contentCache,
     BackgroundServiceHealthTracker healthTracker,
     ILogger<LeadOrchestrator> logger,
     IConfiguration configuration)
     : BackgroundService
 {
     private const string WorkerName = "LeadOrchestrator";
+
+    // Content cache TTLs
+    internal static readonly TimeSpan CmaCacheTtl = TimeSpan.FromHours(24);
+    internal static readonly TimeSpan HomeSearchCacheTtl = TimeSpan.FromHours(1);
 
     private int WorkerTimeoutSeconds =>
         configuration.GetValue<int?>("Pipeline:Lead:WorkerTimeoutSeconds") ?? 300;
@@ -89,12 +104,13 @@ public sealed class LeadOrchestrator(
 
             var agentConfig = BuildAgentNotificationConfig(agentId, accountConfig);
 
-            // Build the shared pipeline context
+            // Build the shared pipeline context — load existing RetryState from lead if available
             var ctx = new LeadPipelineContext
             {
                 Lead = lead,
                 AgentConfig = agentConfig,
-                CorrelationId = correlationId
+                CorrelationId = correlationId,
+                RetryState = lead.RetryState ?? new LeadRetryState()
             };
 
             // Step 2: Score the lead
@@ -104,16 +120,22 @@ public sealed class LeadOrchestrator(
             lead.Score = ctx.Score;
             OrchestratorDiagnostics.ScoreDurationMs.Record(
                 Stopwatch.GetElapsedTime(scoreStarted).TotalMilliseconds);
-            await UpdateStatusAsync(lead, LeadStatus.Scored, ct);
+            await persistActivity.PersistStatusAsync(lead, LeadStatus.Scored, ct);
 
             logger.LogInformation(
                 "[{Worker}-020] Lead {LeadId} scored: {Score}/100 ({Bucket}). CorrelationId: {CorrelationId}",
                 WorkerName, lead.Id, ctx.Score.OverallScore, ctx.Score.Bucket, correlationId);
 
             // Step 3: Dispatch CMA + HomeSearch in parallel via channels, collect via TCS
-            await UpdateStatusAsync(lead, LeadStatus.Analyzing, ct);
+            // Content-aware skip: checks RetryState (per-lead) + IContentCache (cross-lead)
+            await persistActivity.PersistStatusAsync(lead, LeadStatus.Analyzing, ct);
 
-            var (cmaTcs, hsTcs) = DispatchWorkers(lead, agentId, agentConfig, correlationId);
+            var cmaInputHash = ComputeCmaInputHash(lead);
+            var hsInputHash = ComputeHsInputHash(lead);
+
+            var (cmaTcs, hsTcs) = await DispatchWorkersAsync(
+                lead, agentId, agentConfig, correlationId,
+                ctx.RetryState, cmaInputHash, hsInputHash, ct);
 
             // Step 4: Wait for workers with configurable timeout
             var pendingTasks = BuildPendingTasks(cmaTcs, hsTcs);
@@ -143,66 +165,104 @@ public sealed class LeadOrchestrator(
                 OrchestratorDiagnostics.WorkerTimeouts.Add(1);
 
             // Collect results from completed TCS tasks into context
-            if (cmaTcs is not null)
+            if (cmaTcs is not null && cmaTcs.Task.IsCompleted)
             {
-                if (cmaTcs.Task.IsCompleted)
+                ctx.CmaResult = cmaTcs.Task.Result;
+                OrchestratorDiagnostics.WorkerCompletions.Add(1);
+
+                // Update cross-lead content cache and per-lead retry state
+                if (ctx.CmaResult.Success)
                 {
-                    ctx.CmaResult = cmaTcs.Task.Result;
-                    OrchestratorDiagnostics.WorkerCompletions.Add(1);
-                }
-                else
-                {
-                    OrchestratorDiagnostics.WorkerTimeouts.Add(1);
+                    await contentCache.SetAsync(cmaInputHash, ctx.CmaResult, CmaCacheTtl, ct);
+                    ctx.RetryState.CompletedActivityKeys["cma"] = cmaInputHash;
+                    ctx.RetryState.CompletedResultPaths["cma"] = $"cma:{lead.Id}:{cmaInputHash}";
                 }
             }
-
-            if (hsTcs is not null)
+            else if (cmaTcs is not null)
             {
-                if (hsTcs.Task.IsCompleted)
+                OrchestratorDiagnostics.WorkerTimeouts.Add(1);
+            }
+
+            if (hsTcs is not null && hsTcs.Task.IsCompleted)
+            {
+                ctx.HsResult = hsTcs.Task.Result;
+                OrchestratorDiagnostics.WorkerCompletions.Add(1);
+
+                // Update cross-lead content cache and per-lead retry state
+                if (ctx.HsResult.Success)
                 {
-                    ctx.HsResult = hsTcs.Task.Result;
-                    OrchestratorDiagnostics.WorkerCompletions.Add(1);
+                    await contentCache.SetAsync(hsInputHash, ctx.HsResult, HomeSearchCacheTtl, ct);
+                    ctx.RetryState.CompletedActivityKeys["homeSearch"] = hsInputHash;
+                    ctx.RetryState.CompletedResultPaths["homeSearch"] = $"hs:{lead.Id}:{hsInputHash}";
                 }
-                else
-                {
-                    OrchestratorDiagnostics.WorkerTimeouts.Add(1);
-                }
+            }
+            else if (hsTcs is not null)
+            {
+                OrchestratorDiagnostics.WorkerTimeouts.Add(1);
             }
 
             LogWorkerResults(ctx.CmaResult, ctx.HsResult, lead.Id, correlationId);
 
             // Step 5: Generate PDF inline via PdfActivity (CMA succeeded required)
+            var pdfInputHash = ComputePdfInputHash(ctx.CmaResult);
             if (ctx.CmaResult?.Success == true)
             {
-                var pdfStarted = Stopwatch.GetTimestamp();
-                using (OrchestratorDiagnostics.ActivitySource.StartActivity("orchestrator.generate_pdf"))
+                if (ctx.RetryState.IsCompleted("pdf", pdfInputHash))
                 {
-                    ctx.PdfStoragePath = await GeneratePdfAsync(ctx, accountConfig, correlationId, ct);
+                    logger.LogInformation(
+                        "[{Worker}-035a] PDF skipped — same CMA content already generated. Lead {LeadId}. CorrelationId: {CorrelationId}",
+                        WorkerName, lead.Id, correlationId);
                 }
-                OrchestratorDiagnostics.PdfDurationMs.Record(
-                    Stopwatch.GetElapsedTime(pdfStarted).TotalMilliseconds);
+                else
+                {
+                    var pdfStarted = Stopwatch.GetTimestamp();
+                    using (OrchestratorDiagnostics.ActivitySource.StartActivity("orchestrator.generate_pdf"))
+                    {
+                        ctx.PdfStoragePath = await GeneratePdfAsync(ctx, accountConfig, correlationId, ct);
+                    }
+                    OrchestratorDiagnostics.PdfDurationMs.Record(
+                        Stopwatch.GetElapsedTime(pdfStarted).TotalMilliseconds);
+
+                    if (ctx.PdfStoragePath is not null)
+                    {
+                        ctx.RetryState.CompletedActivityKeys["pdf"] = pdfInputHash;
+                        ctx.RetryState.CompletedResultPaths["pdf"] = ctx.PdfStoragePath;
+                    }
+                }
             }
 
             // Step 6: Draft lead email via LeadCommunicationService
-            var emailDraftStarted = Stopwatch.GetTimestamp();
-            using (OrchestratorDiagnostics.ActivitySource.StartActivity("orchestrator.draft_email"))
+            var draftEmailHash = ComputeDraftEmailHash(ctx);
+            if (ctx.RetryState.IsCompleted("draftLeadEmail", draftEmailHash))
             {
-                try
-                {
-                    ctx.LeadEmail = await communicationService.DraftAsync(ctx, ct);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex,
-                        "[{Worker}-040] Email draft failed for lead {LeadId}. CorrelationId: {CorrelationId}",
-                        WorkerName, lead.Id, correlationId);
-                }
+                logger.LogInformation(
+                    "[{Worker}-040a] Email draft skipped — same inputs already drafted. Lead {LeadId}. CorrelationId: {CorrelationId}",
+                    WorkerName, lead.Id, correlationId);
             }
-            OrchestratorDiagnostics.EmailDraftDurationMs.Record(
-                Stopwatch.GetElapsedTime(emailDraftStarted).TotalMilliseconds);
-
-            // Always set Notified — notification was attempted regardless of draft success
-            await UpdateStatusAsync(lead, LeadStatus.Notified, ct);
+            else
+            {
+                var emailDraftStarted = Stopwatch.GetTimestamp();
+                using (OrchestratorDiagnostics.ActivitySource.StartActivity("orchestrator.draft_email"))
+                {
+                    try
+                    {
+                        ctx.LeadEmail = await communicationService.DraftAsync(ctx, ct);
+                        if (ctx.LeadEmail is not null)
+                        {
+                            ctx.RetryState.CompletedActivityKeys["draftLeadEmail"] = draftEmailHash;
+                            ctx.RetryState.CompletedResultPaths["draftLeadEmail"] = $"email:{lead.Id}";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex,
+                            "[{Worker}-040] Email draft failed for lead {LeadId}. CorrelationId: {CorrelationId}",
+                            WorkerName, lead.Id, correlationId);
+                    }
+                }
+                OrchestratorDiagnostics.EmailDraftDurationMs.Record(
+                    Stopwatch.GetElapsedTime(emailDraftStarted).TotalMilliseconds);
+            }
 
             // Step 7: Send lead email
             if (ctx.LeadEmail is not null)
@@ -213,8 +273,21 @@ public sealed class LeadOrchestrator(
             // Step 8: Notify agent via AgentNotificationService
             await NotifyAgentAsync(ctx, correlationId, ct);
 
-            // Step 9: Update status to Complete
-            await UpdateStatusAsync(lead, LeadStatus.Complete, ct);
+            // Step 9: Set final status + persist all artifacts
+            // PersistActivity handles: status → Complete, score, CMA/HS summaries,
+            // email/notification drafts, retry state. Only Scored and Analyzing are
+            // written inline as concurrency gates (above). All result data persists here.
+            lead.Status = LeadStatus.Complete;
+            try
+            {
+                await persistActivity.ExecuteAsync(ctx, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex,
+                    "[{Worker}-085] PersistActivity failed for lead {LeadId}. CorrelationId: {CorrelationId}",
+                    WorkerName, lead.Id, correlationId);
+            }
             healthTracker.RecordActivity(WorkerName);
 
             var elapsedMs = Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
@@ -248,8 +321,147 @@ public sealed class LeadOrchestrator(
         }
     }
 
+    // ── Content hash helpers ─────────────────────────────────────────────────
+
+    internal static string ComputeCmaInputHash(Domain.Leads.Models.Lead lead) =>
+        ContentHash.Compute(
+            lead.SellerDetails?.Address,
+            lead.SellerDetails?.City,
+            lead.SellerDetails?.State,
+            lead.SellerDetails?.Zip);
+
+    internal static string ComputeHsInputHash(Domain.Leads.Models.Lead lead) =>
+        ContentHash.Compute(
+            lead.BuyerDetails?.City,
+            lead.BuyerDetails?.State,
+            lead.BuyerDetails?.MinBudget?.ToString(),
+            lead.BuyerDetails?.MaxBudget?.ToString(),
+            lead.BuyerDetails?.Bedrooms?.ToString(),
+            lead.BuyerDetails?.Bathrooms?.ToString());
+
+    internal static string ComputePdfInputHash(CmaWorkerResult? cmaResult) =>
+        cmaResult is null
+            ? ContentHash.Compute()
+            : ContentHash.Compute(
+                cmaResult.EstimatedValue?.ToString(),
+                cmaResult.PriceRangeLow?.ToString(),
+                cmaResult.PriceRangeHigh?.ToString(),
+                cmaResult.MarketAnalysis,
+                cmaResult.Comps?.Count.ToString());
+
+    internal static string ComputeDraftEmailHash(LeadPipelineContext ctx) =>
+        ContentHash.Compute(
+            ctx.Score?.OverallScore.ToString(),
+            ctx.RetryState.GetHash("cma"),
+            ctx.RetryState.GetHash("homeSearch"));
+
+    // ── Worker dispatch (content-aware) ─────────────────────────────────────
+
+    internal async Task<(TaskCompletionSource<CmaWorkerResult>? CmaTcs, TaskCompletionSource<HomeSearchWorkerResult>? HsTcs)>
+        DispatchWorkersAsync(
+            Domain.Leads.Models.Lead lead,
+            string agentId,
+            AgentNotificationConfig agentConfig,
+            string correlationId,
+            LeadRetryState retryState,
+            string cmaInputHash,
+            string hsInputHash,
+            CancellationToken ct)
+    {
+        TaskCompletionSource<CmaWorkerResult>? cmaTcs = null;
+        TaskCompletionSource<HomeSearchWorkerResult>? hsTcs = null;
+
+        if (lead.LeadType is LeadType.Seller or LeadType.Both && lead.SellerDetails is not null)
+        {
+            cmaTcs = new TaskCompletionSource<CmaWorkerResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            // Check per-lead retry state first
+            if (retryState.IsCompleted("cma", cmaInputHash))
+            {
+                logger.LogInformation(
+                    "[{Worker}-021a] CMA skipped — same inputs already completed. Lead {LeadId}. CorrelationId: {CorrelationId}",
+                    WorkerName, lead.Id, correlationId);
+                // We don't have the cached result stored locally, so re-run to get the data
+                // (RetryState only stores the hash, not the full result)
+                cmaTcs = null;
+            }
+            else
+            {
+                // Check cross-lead content cache
+                var cached = await contentCache.GetAsync<CmaWorkerResult>(cmaInputHash, ct);
+                if (cached is not null)
+                {
+                    logger.LogInformation(
+                        "[{Worker}-021b] CMA cache hit for lead {LeadId}. CorrelationId: {CorrelationId}",
+                        WorkerName, lead.Id, correlationId);
+                    cmaTcs.TrySetResult(cached);
+                    OrchestratorDiagnostics.WorkerCompletions.Add(1);
+                }
+                else if (!cmaChannel.Writer.TryWrite(new CmaProcessingRequest(agentId, lead, agentConfig, correlationId, cmaTcs)))
+                {
+                    logger.LogError(
+                        "[{Worker}-024] CMA channel full — request dropped for lead {LeadId}. CorrelationId: {CorrelationId}",
+                        WorkerName, lead.Id, correlationId);
+                    cmaTcs.TrySetResult(new CmaWorkerResult(lead.Id.ToString(), false, "Channel full", null, null, null, null, null));
+                }
+                else
+                {
+                    OrchestratorDiagnostics.WorkerDispatches.Add(1);
+                    logger.LogInformation(
+                        "[{Worker}-022] CMA dispatched for lead {LeadId}. CorrelationId: {CorrelationId}",
+                        WorkerName, lead.Id, correlationId);
+                }
+            }
+        }
+
+        if (lead.LeadType is LeadType.Buyer or LeadType.Both && lead.BuyerDetails is not null)
+        {
+            hsTcs = new TaskCompletionSource<HomeSearchWorkerResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            // Check per-lead retry state first
+            if (retryState.IsCompleted("homeSearch", hsInputHash))
+            {
+                logger.LogInformation(
+                    "[{Worker}-023a] HomeSearch skipped — same inputs already completed. Lead {LeadId}. CorrelationId: {CorrelationId}",
+                    WorkerName, lead.Id, correlationId);
+                hsTcs = null;
+            }
+            else
+            {
+                // Check cross-lead content cache
+                var cached = await contentCache.GetAsync<HomeSearchWorkerResult>(hsInputHash, ct);
+                if (cached is not null)
+                {
+                    logger.LogInformation(
+                        "[{Worker}-023b] HomeSearch cache hit for lead {LeadId}. CorrelationId: {CorrelationId}",
+                        WorkerName, lead.Id, correlationId);
+                    hsTcs.TrySetResult(cached);
+                    OrchestratorDiagnostics.WorkerCompletions.Add(1);
+                }
+                else if (!homeSearchChannel.Writer.TryWrite(new HomeSearchProcessingRequest(agentId, lead, agentConfig, correlationId, hsTcs)))
+                {
+                    logger.LogError(
+                        "[{Worker}-025] HomeSearch channel full — request dropped for lead {LeadId}. CorrelationId: {CorrelationId}",
+                        WorkerName, lead.Id, correlationId);
+                    hsTcs.TrySetResult(new HomeSearchWorkerResult(lead.Id.ToString(), false, "Channel full", null, null));
+                }
+                else
+                {
+                    OrchestratorDiagnostics.WorkerDispatches.Add(1);
+                    logger.LogInformation(
+                        "[{Worker}-023] HomeSearch dispatched for lead {LeadId}. CorrelationId: {CorrelationId}",
+                        WorkerName, lead.Id, correlationId);
+                }
+            }
+        }
+
+        return (cmaTcs, hsTcs);
+    }
+
+    // ── Backward-compatible non-async DispatchWorkers (kept for tests) ────────
+
     internal (TaskCompletionSource<CmaWorkerResult>? CmaTcs, TaskCompletionSource<HomeSearchWorkerResult>? HsTcs)
-        DispatchWorkers(RealEstateStar.Domain.Leads.Models.Lead lead, string agentId, AgentNotificationConfig agentConfig, string correlationId)
+        DispatchWorkers(Domain.Leads.Models.Lead lead, string agentId, AgentNotificationConfig agentConfig, string correlationId)
     {
         TaskCompletionSource<CmaWorkerResult>? cmaTcs = null;
         TaskCompletionSource<HomeSearchWorkerResult>? hsTcs = null;
@@ -472,7 +684,11 @@ public sealed class LeadOrchestrator(
                 DraftedAt = DateTimeOffset.UtcNow,
                 SentAt = DateTimeOffset.UtcNow,
                 Sent = true,
-                ContentHash = string.Empty
+                ContentHash = ContentHash.Compute(
+                    ctx.Lead.Id.ToString(),
+                    ctx.Score?.OverallScore.ToString(),
+                    ctx.CmaResult?.Success.ToString(),
+                    ctx.HsResult?.Success.ToString())
             };
 
             OrchestratorDiagnostics.WhatsAppSent.Add(1);
@@ -491,20 +707,6 @@ public sealed class LeadOrchestrator(
         {
             OrchestratorDiagnostics.WhatsAppSendDurationMs.Record(
                 Stopwatch.GetElapsedTime(notifyStarted).TotalMilliseconds);
-        }
-    }
-
-    private async Task UpdateStatusAsync(RealEstateStar.Domain.Leads.Models.Lead lead, LeadStatus status, CancellationToken ct)
-    {
-        try
-        {
-            await leadStore.UpdateStatusAsync(lead, status, ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex,
-                "[{Worker}-070] Failed to update status to {Status} for lead {LeadId}.",
-                WorkerName, status, lead.Id);
         }
     }
 

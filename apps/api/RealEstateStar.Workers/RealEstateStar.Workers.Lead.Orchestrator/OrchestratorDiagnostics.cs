@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-namespace RealEstateStar.Domain.Orchestration;
+namespace RealEstateStar.Workers.Lead.Orchestrator;
 
 public static class OrchestratorDiagnostics
 {

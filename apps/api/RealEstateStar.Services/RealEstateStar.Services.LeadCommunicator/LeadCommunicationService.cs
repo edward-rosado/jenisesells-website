@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Services.LeadCommunicator;
@@ -48,7 +49,7 @@ public class LeadCommunicationService(
         LeadCommunicatorDiagnostics.DraftDurationMs.Record(
             Stopwatch.GetElapsedTime(draftStarted).TotalMilliseconds);
 
-        var contentHash = ComputeContentHash(email.Subject, email.HtmlBody);
+        var contentHash = ContentHash.Compute(email.Subject, email.HtmlBody);
 
         return new CommunicationRecord
         {
@@ -93,8 +94,7 @@ public class LeadCommunicationService(
                 draft.HtmlBody,
                 ct);
 
-            draft.Sent = true;
-            draft.SentAt = DateTimeOffset.UtcNow;
+            draft = draft with { Sent = true, SentAt = DateTimeOffset.UtcNow };
 
             LeadCommunicatorDiagnostics.SendSuccess.Add(1);
 
@@ -111,9 +111,10 @@ public class LeadCommunicationService(
                 "[SEND-010] Failed to send lead email for lead {LeadId}",
                 lead.Id);
 
-            draft.Error = ex is HttpRequestException or TimeoutException
+            var sanitizedError = ex is HttpRequestException or TimeoutException
                 ? $"Delivery failure: {ex.GetType().Name}"
                 : "Internal delivery error";
+            draft = draft with { Error = sanitizedError };
         }
         finally
         {
@@ -122,12 +123,5 @@ public class LeadCommunicationService(
         }
 
         return draft;
-    }
-
-    internal static string ComputeContentHash(string subject, string htmlBody)
-    {
-        var input = $"{subject}|{htmlBody}";
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 }

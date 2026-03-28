@@ -2,9 +2,11 @@ using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using RealEstateStar.Activities.Persist;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
@@ -15,6 +17,7 @@ using RealEstateStar.Workers.Shared;
 using RealEstateStar.Services.AgentNotifier;
 using RealEstateStar.Services.LeadCommunicator;
 using RealEstateStar.Activities.Pdf;
+using RealEstateStar.TestUtilities;
 
 
 namespace RealEstateStar.Workers.Lead.Orchestrator.Tests;
@@ -39,7 +42,7 @@ public sealed class LeadOrchestratorTests
 
     // ── builder ──────────────────────────────────────────────────────────────
 
-    private LeadOrchestrator BuildOrchestrator(int? timeoutSeconds = null)
+    private LeadOrchestrator BuildOrchestrator(int? timeoutSeconds = null, IContentCache? contentCache = null)
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(timeoutSeconds.HasValue
@@ -51,6 +54,25 @@ public sealed class LeadOrchestratorTests
             _pdfGeneratorMock.Object,
             _documentStorageMock.Object,
             NullLogger<PdfActivity>.Instance);
+
+        var persistStorage = new Mock<IDocumentStorageProvider>();
+        persistStorage
+            .Setup(s => s.ReadDocumentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+        persistStorage
+            .Setup(s => s.WriteDocumentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        persistStorage
+            .Setup(s => s.EnsureFolderExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var persistActivity = new PersistActivity(
+            persistStorage.Object,
+            _leadStoreMock.Object,
+            NullLogger<PersistActivity>.Instance);
+
+        // Use a real FakeContentCache when none is provided (null-returning mock is only for non-cache-hit tests)
+        contentCache ??= new FakeContentCache();
 
         var communicationService = new LeadCommunicationService(
             _emailDrafterMock.Object,
@@ -70,8 +92,10 @@ public sealed class LeadOrchestratorTests
             _cmaChannel,
             _hsChannel,
             pdfActivity,
+            persistActivity,
             communicationService,
             agentNotificationService,
+            contentCache,
             _healthTracker,
             NullLogger<LeadOrchestrator>.Instance,
             config);
@@ -672,7 +696,7 @@ public sealed class LeadOrchestratorTests
     }
 
     [Fact]
-    public async Task ProcessRequest_StatusProgression_ScoreAnalyzedNotifiedComplete()
+    public async Task ProcessRequest_StatusProgression_ScoredAnalyzingComplete()
     {
         // Arrange
         var lead = BuildBuyerLead();
@@ -693,10 +717,12 @@ public sealed class LeadOrchestratorTests
         // Act
         await orchestrator.ProcessRequestAsync(request, cts.Token);
 
-        // Assert — status update sequence: Scored → Analyzing → Notified → Complete
+        // Assert — status update sequence: Scored → Analyzing → Complete
+        // Scored and Analyzing are written inline via persistActivity.PersistStatusAsync (concurrency gates).
+        // Complete is written inside persistActivity.ExecuteAsync at end of pipeline.
+        // All three flow through _leadStoreMock because PersistActivity wraps ILeadStore.
         _leadStoreMock.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.Scored, It.IsAny<CancellationToken>()), Times.Once);
         _leadStoreMock.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.Analyzing, It.IsAny<CancellationToken>()), Times.Once);
-        _leadStoreMock.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.Notified, It.IsAny<CancellationToken>()), Times.Once);
         _leadStoreMock.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.Complete, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -833,5 +859,204 @@ public sealed class LeadOrchestratorTests
         ((object?)hsTcs).Should().NotBeNull();
         _cmaChannel.Count.Should().Be(1);
         _hsChannel.Count.Should().Be(1);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ContentHash helper tests
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ComputeCmaInputHash_SameSellerDetails_ReturnsSameHash()
+    {
+        var lead1 = BuildSellerLead();
+        var lead2 = BuildSellerLead();
+        // Set same details explicitly
+        lead2.SellerDetails!.GetType();
+
+        var hash1 = LeadOrchestrator.ComputeCmaInputHash(lead1);
+        var hash2 = LeadOrchestrator.ComputeCmaInputHash(lead2);
+
+        hash1.Should().Be(hash2);
+    }
+
+    [Fact]
+    public void ComputeHsInputHash_SameBuyerDetails_ReturnsSameHash()
+    {
+        var lead1 = BuildBuyerLead();
+        var lead2 = BuildBuyerLead();
+
+        var hash1 = LeadOrchestrator.ComputeHsInputHash(lead1);
+        var hash2 = LeadOrchestrator.ComputeHsInputHash(lead2);
+
+        hash1.Should().Be(hash2);
+    }
+
+    [Fact]
+    public void ComputeCmaInputHash_DifferentAddress_ReturnsDifferentHash()
+    {
+        var lead1 = BuildSellerLead();
+        var lead2 = new Domain.Leads.Models.Lead
+        {
+            Id = Guid.NewGuid(), AgentId = "agent-1", LeadType = LeadType.Seller,
+            FirstName = "Alice", LastName = "Seller", Email = "alice@example.com",
+            Phone = "555-0001", Timeline = "asap", Status = LeadStatus.Received,
+            ReceivedAt = DateTime.UtcNow,
+            SellerDetails = new SellerDetails
+            {
+                Address = "99 Different Blvd", // Different address
+                City = "Newark", State = "NJ", Zip = "07101"
+            }
+        };
+
+        var hash1 = LeadOrchestrator.ComputeCmaInputHash(lead1);
+        var hash2 = LeadOrchestrator.ComputeCmaInputHash(lead2);
+
+        hash1.Should().NotBe(hash2);
+    }
+
+    [Fact]
+    public void ComputePdfInputHash_NullCmaResult_ReturnsConsistentHash()
+    {
+        var hash1 = LeadOrchestrator.ComputePdfInputHash(null);
+        var hash2 = LeadOrchestrator.ComputePdfInputHash(null);
+
+        hash1.Should().Be(hash2);
+    }
+
+    [Fact]
+    public void ComputePdfInputHash_SameCmaResult_ReturnsSameHash()
+    {
+        var leadId = Guid.NewGuid().ToString();
+        var cma1 = BuildCmaResult(leadId);
+        var cma2 = BuildCmaResult(leadId);
+
+        var hash1 = LeadOrchestrator.ComputePdfInputHash(cma1);
+        var hash2 = LeadOrchestrator.ComputePdfInputHash(cma2);
+
+        hash1.Should().Be(hash2);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Retry state — CMA skip
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task SellerLead_WithCompletedCmaRetryState_SkipsCmaDispatch()
+    {
+        // Arrange — lead already has RetryState showing CMA complete for this address
+        var lead = BuildSellerLead();
+        var cmaHash = LeadOrchestrator.ComputeCmaInputHash(lead);
+        lead.RetryState = new LeadRetryState
+        {
+            CompletedActivityKeys = { ["cma"] = cmaHash },
+            CompletedResultPaths = { ["cma"] = "path/to/cma" }
+        };
+
+        var orchestrator = BuildOrchestrator(timeoutSeconds: 5);
+        SetupAccountConfig();
+        SetupScorer();
+        SetupEmailDrafter();
+        SetupGmail();
+        SetupWhatsApp();
+        SetupLeadStore();
+
+        var request = new LeadOrchestrationRequest("agent-1", lead, "corr-retry-cma-001");
+
+        // Act — no CMA channel resolver, but retry state says CMA is done
+        var act = async () => await orchestrator.ProcessRequestAsync(request, CancellationToken.None);
+
+        await act.Should().NotThrowAsync("pipeline should handle skipped CMA gracefully");
+
+        // Assert — CMA channel was NOT dispatched
+        _cmaChannel.Count.Should().Be(0, "CMA was skipped via retry state");
+    }
+
+    [Fact]
+    public async Task BuyerLead_WithCompletedHsRetryState_SkipsHomeSearchDispatch()
+    {
+        // Arrange — lead already has RetryState showing HS complete
+        var lead = BuildBuyerLead();
+        var hsHash = LeadOrchestrator.ComputeHsInputHash(lead);
+        lead.RetryState = new LeadRetryState
+        {
+            CompletedActivityKeys = { ["homeSearch"] = hsHash },
+            CompletedResultPaths = { ["homeSearch"] = "path/to/hs" }
+        };
+
+        var orchestrator = BuildOrchestrator(timeoutSeconds: 5);
+        SetupAccountConfig();
+        SetupScorer();
+        SetupEmailDrafter();
+        SetupGmail();
+        SetupWhatsApp();
+        SetupLeadStore();
+
+        var request = new LeadOrchestrationRequest("agent-1", lead, "corr-retry-hs-001");
+
+        // Act
+        var act = async () => await orchestrator.ProcessRequestAsync(request, CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+
+        // Assert — HS channel was NOT dispatched
+        _hsChannel.Count.Should().Be(0, "HomeSearch was skipped via retry state");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Content cache — cross-lead CMA hit
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task SellerLead_CmaCacheHit_SkipsChannelDispatch()
+    {
+        // Arrange — pre-populate the content cache with a CMA result for this address
+        var lead = BuildSellerLead();
+        var orchestrator = BuildOrchestrator(timeoutSeconds: 5);
+
+        SetupAccountConfig();
+        SetupScorer();
+        SetupEmailDrafter();
+        SetupGmail();
+        SetupWhatsApp();
+        SetupLeadStore();
+        SetupPdfGenerator();
+
+        // Pre-populate cache using the orchestrator's own cache instance via the request
+        // We build a first lead that runs through the pipeline and caches the result
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var cmaResolver = AutoResolveCmaChannelAsync(cts.Token);
+
+        var request1 = new LeadOrchestrationRequest("agent-1", lead, "corr-cache-1");
+        await orchestrator.ProcessRequestAsync(request1, cts.Token);
+        await cmaResolver.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Second lead — same address, different lead instance but same seller details
+        var lead2 = new Domain.Leads.Models.Lead
+        {
+            Id = Guid.NewGuid(), AgentId = "agent-1", LeadType = LeadType.Seller,
+            FirstName = "Bob", LastName = "Also-Seller", Email = "bob2@example.com",
+            Phone = "555-9999", Timeline = "asap", Status = LeadStatus.Received,
+            ReceivedAt = DateTime.UtcNow,
+            SellerDetails = lead.SellerDetails  // SAME property address → cache hit
+        };
+
+        _leadStoreMock.Reset();
+        SetupLeadStore();
+        _accountConfigMock.Reset();
+        SetupAccountConfig();
+        _scorerMock.Reset();
+        SetupScorer();
+        _emailDrafterMock.Reset();
+        SetupEmailDrafter();
+        _gmailMock.Reset();
+        SetupGmail();
+        _whatsAppMock.Reset();
+        SetupWhatsApp();
+
+        var request2 = new LeadOrchestrationRequest("agent-1", lead2, "corr-cache-2");
+        await orchestrator.ProcessRequestAsync(request2, CancellationToken.None);
+
+        // Assert — CMA channel should be empty (cache hit, no dispatch needed)
+        _cmaChannel.Count.Should().Be(0, "second lead reuses cached CMA result");
     }
 }

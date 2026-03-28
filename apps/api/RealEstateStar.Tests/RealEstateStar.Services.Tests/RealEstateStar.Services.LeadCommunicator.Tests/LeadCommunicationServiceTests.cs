@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Services.LeadCommunicator.Tests;
@@ -273,37 +274,37 @@ public class LeadCommunicationServiceTests
     }
 
     // -----------------------------------------------------------------------
-    // ComputeContentHash (internal helper)
+    // ContentHash (shared Domain utility)
     // -----------------------------------------------------------------------
 
     [Fact]
-    public void ComputeContentHash_SameInputProducesSameHash()
+    public void ContentHash_SameInputProducesSameHash()
     {
-        var hash1 = LeadCommunicationService.ComputeContentHash("Subject", "<p>Body</p>");
-        var hash2 = LeadCommunicationService.ComputeContentHash("Subject", "<p>Body</p>");
+        var hash1 = ContentHash.Compute("Subject", "<p>Body</p>");
+        var hash2 = ContentHash.Compute("Subject", "<p>Body</p>");
         hash1.Should().Be(hash2);
     }
 
     [Fact]
-    public void ComputeContentHash_DifferentSubjectProducesDifferentHash()
+    public void ContentHash_DifferentSubjectProducesDifferentHash()
     {
-        var hash1 = LeadCommunicationService.ComputeContentHash("Subject A", "<p>Body</p>");
-        var hash2 = LeadCommunicationService.ComputeContentHash("Subject B", "<p>Body</p>");
+        var hash1 = ContentHash.Compute("Subject A", "<p>Body</p>");
+        var hash2 = ContentHash.Compute("Subject B", "<p>Body</p>");
         hash1.Should().NotBe(hash2);
     }
 
     [Fact]
-    public void ComputeContentHash_DifferentBodyProducesDifferentHash()
+    public void ContentHash_DifferentBodyProducesDifferentHash()
     {
-        var hash1 = LeadCommunicationService.ComputeContentHash("Subject", "<p>Body A</p>");
-        var hash2 = LeadCommunicationService.ComputeContentHash("Subject", "<p>Body B</p>");
+        var hash1 = ContentHash.Compute("Subject", "<p>Body A</p>");
+        var hash2 = ContentHash.Compute("Subject", "<p>Body B</p>");
         hash1.Should().NotBe(hash2);
     }
 
     [Fact]
-    public void ComputeContentHash_ReturnsLowercaseHexString()
+    public void ContentHash_ReturnsLowercaseHexString()
     {
-        var hash = LeadCommunicationService.ComputeContentHash("Subject", "<p>Body</p>");
+        var hash = ContentHash.Compute("Subject", "<p>Body</p>");
         hash.Should().MatchRegex("^[0-9a-f]+$");
     }
 }

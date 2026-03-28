@@ -296,6 +296,7 @@ builder.Services.AddGSheetsClient(googleClientId, googleClientSecret);
 builder.Services.AddScraperClient(builder.Configuration, pollyLogger);
 
 // Lead pipeline — new decomposed orchestrator wiring
+// TODO: Phase 5 — register IDiagnosticsProvider implementations via AddAllDiagnosticsProviders()
 builder.Services.AddLeadOrchestrator();
 builder.Services.AddPdfService();
 builder.Services.AddAgentNotifier();
