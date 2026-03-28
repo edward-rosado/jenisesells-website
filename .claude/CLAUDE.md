@@ -203,7 +203,7 @@ Orchestrator (top-level coordinator)
 
 **Key constraints:**
 - Workers: pure compute, NO storage, NO DataServices — call Clients only
-- Services: CANNOT call Activities or Workers
+- Services: CAN call Clients (Gmail, WhatsApp, Anthropic) + DataServices — CANNOT call Activities or Workers
 - Activities: CAN call Services, launched by Orchestrators ONLY
 - DataServices: storage routing (WHERE to store) — called by Activities and Services
 - Data: raw I/O providers (HOW to store) — called by DataServices only
