@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 using RealEstateStar.Api.Features.Onboarding.CreateSession;
 using RealEstateStar.Api.Features.Onboarding.GetSession;
 using RealEstateStar.Domain.Onboarding.Models;
-using RealEstateStar.Domain.Onboarding.Services;
 
 namespace RealEstateStar.Api.Features.Onboarding;
 

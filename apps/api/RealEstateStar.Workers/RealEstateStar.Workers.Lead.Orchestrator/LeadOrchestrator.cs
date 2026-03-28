@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -33,7 +32,6 @@ namespace RealEstateStar.Workers.Lead.Orchestrator;
 /// </remarks>
 public sealed class LeadOrchestrator(
     LeadOrchestratorChannel channel,
-    ILeadStore leadStore,
     IAccountConfigService accountConfigService,
     ILeadScorer scorer,
     CmaProcessingChannel cmaChannel,

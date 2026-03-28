@@ -1,8 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using RealEstateStar.Activities.Persist;
-using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;

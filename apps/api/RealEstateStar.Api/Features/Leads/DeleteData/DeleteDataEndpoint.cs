@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
-using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Privacy.Interfaces;
 
 namespace RealEstateStar.Api.Features.Leads.DeleteData;
 

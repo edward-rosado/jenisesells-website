@@ -9,7 +9,6 @@ using RealEstateStar.Domain.Onboarding;
 using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Onboarding.Services;
 using RealEstateStar.Domain.Onboarding.Models;
-using RealEstateStar.Domain.Onboarding.Interfaces;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 

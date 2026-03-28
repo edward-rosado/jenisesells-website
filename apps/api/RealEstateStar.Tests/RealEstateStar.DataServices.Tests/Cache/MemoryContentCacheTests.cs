@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
 using RealEstateStar.DataServices.Cache;
 using RealEstateStar.Domain.Leads.Models;
 

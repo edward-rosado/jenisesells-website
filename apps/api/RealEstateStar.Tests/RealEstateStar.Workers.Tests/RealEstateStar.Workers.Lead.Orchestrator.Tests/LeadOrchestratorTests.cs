@@ -86,7 +86,6 @@ public sealed class LeadOrchestratorTests
 
         return new LeadOrchestrator(
             _orchestratorChannel,
-            _leadStoreMock.Object,
             _accountConfigMock.Object,
             _scorerMock.Object,
             _cmaChannel,
@@ -897,14 +896,22 @@ public sealed class LeadOrchestratorTests
         var lead1 = BuildSellerLead();
         var lead2 = new Domain.Leads.Models.Lead
         {
-            Id = Guid.NewGuid(), AgentId = "agent-1", LeadType = LeadType.Seller,
-            FirstName = "Alice", LastName = "Seller", Email = "alice@example.com",
-            Phone = "555-0001", Timeline = "asap", Status = LeadStatus.Received,
+            Id = Guid.NewGuid(),
+            AgentId = "agent-1",
+            LeadType = LeadType.Seller,
+            FirstName = "Alice",
+            LastName = "Seller",
+            Email = "alice@example.com",
+            Phone = "555-0001",
+            Timeline = "asap",
+            Status = LeadStatus.Received,
             ReceivedAt = DateTime.UtcNow,
             SellerDetails = new SellerDetails
             {
                 Address = "99 Different Blvd", // Different address
-                City = "Newark", State = "NJ", Zip = "07101"
+                City = "Newark",
+                State = "NJ",
+                Zip = "07101"
             }
         };
 
@@ -1033,9 +1040,15 @@ public sealed class LeadOrchestratorTests
         // Second lead — same address, different lead instance but same seller details
         var lead2 = new Domain.Leads.Models.Lead
         {
-            Id = Guid.NewGuid(), AgentId = "agent-1", LeadType = LeadType.Seller,
-            FirstName = "Bob", LastName = "Also-Seller", Email = "bob2@example.com",
-            Phone = "555-9999", Timeline = "asap", Status = LeadStatus.Received,
+            Id = Guid.NewGuid(),
+            AgentId = "agent-1",
+            LeadType = LeadType.Seller,
+            FirstName = "Bob",
+            LastName = "Also-Seller",
+            Email = "bob2@example.com",
+            Phone = "555-9999",
+            Timeline = "asap",
+            Status = LeadStatus.Received,
             ReceivedAt = DateTime.UtcNow,
             SellerDetails = lead.SellerDetails  // SAME property address → cache hit
         };
