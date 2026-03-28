@@ -1,3 +1,8 @@
+using Xunit;
+using Moq;
+using FluentAssertions;
+using RealEstateStar.Domain.Shared.Interfaces.Senders;
+using RealEstateStar.TestUtilities;
 using System.Net;
 using Microsoft.Extensions.Logging;
 

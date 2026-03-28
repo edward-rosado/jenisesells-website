@@ -1,3 +1,5 @@
+using RealEstateStar.Domain.Onboarding.Interfaces;
+
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 
 // TODO: MED-5 — Implement actual trial expiry logic (check CreatedAt + 7 days, notify agent, deactivate site)

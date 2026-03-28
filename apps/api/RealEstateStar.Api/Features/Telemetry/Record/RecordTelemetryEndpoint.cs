@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using RealEstateStar.Api.Infrastructure;
+using RealEstateStar.Domain.Leads;
 
 namespace RealEstateStar.Api.Features.Telemetry.Record;
 

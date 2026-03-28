@@ -1,3 +1,5 @@
+using RealEstateStar.Domain.Onboarding.Models;
+
 namespace RealEstateStar.Api.Features.Onboarding.GetSession;
 
 public sealed record GetSessionResponse

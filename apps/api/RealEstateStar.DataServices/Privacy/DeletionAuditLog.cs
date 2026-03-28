@@ -1,7 +1,9 @@
-namespace RealEstateStar.DataServices.Privacy;
-
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Leads;
+using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
+
+namespace RealEstateStar.DataServices.Privacy;
 
 public sealed class DeletionAuditLog(ISheetStorageProvider storage, ILogger<DeletionAuditLog> logger) : IDeletionAuditLog
 {

@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.WhatsApp.Interfaces;
+using RealEstateStar.Domain.WhatsApp.Models;
 
 namespace RealEstateStar.Notifications.WhatsApp;
 

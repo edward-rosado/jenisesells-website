@@ -2,6 +2,9 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 

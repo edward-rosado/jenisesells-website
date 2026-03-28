@@ -1,3 +1,6 @@
+using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Privacy.Interfaces;
+
 namespace RealEstateStar.DataServices.Privacy;
 
 /// <summary>No-op consent audit service used when Azure Table Storage is not configured.</summary>

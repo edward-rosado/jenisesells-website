@@ -1,4 +1,5 @@
 using RealEstateStar.Api.Infrastructure;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Api.Features.Cma.Download;
 

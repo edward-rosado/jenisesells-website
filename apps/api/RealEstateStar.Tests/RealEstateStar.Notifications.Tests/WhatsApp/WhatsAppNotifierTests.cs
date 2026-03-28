@@ -1,3 +1,12 @@
+using Xunit;
+using Moq;
+using FluentAssertions;
+using RealEstateStar.Domain.Shared.Models;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Domain.Shared.Interfaces.Senders;
+using RealEstateStar.Domain.WhatsApp.Models;
+using RealEstateStar.Domain.WhatsApp.Interfaces;
+using RealEstateStar.Notifications.WhatsApp;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 

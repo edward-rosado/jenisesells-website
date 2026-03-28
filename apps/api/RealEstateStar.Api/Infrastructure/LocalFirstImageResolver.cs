@@ -1,3 +1,5 @@
+using RealEstateStar.Domain.Cma.Interfaces;
+
 namespace RealEstateStar.Api.Infrastructure;
 
 /// <summary>

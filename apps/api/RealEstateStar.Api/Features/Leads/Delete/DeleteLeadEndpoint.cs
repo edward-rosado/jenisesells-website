@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using RealEstateStar.Api.Infrastructure;
+using RealEstateStar.Domain.Leads.Interfaces;
 
 namespace RealEstateStar.Api.Features.Leads.Delete;
 

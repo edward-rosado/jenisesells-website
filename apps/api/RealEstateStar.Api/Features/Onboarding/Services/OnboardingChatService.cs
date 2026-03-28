@@ -5,7 +5,11 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using RealEstateStar.Domain.Onboarding;
 using RealEstateStar.Domain.Shared;
+using RealEstateStar.Domain.Onboarding.Services;
+using RealEstateStar.Domain.Onboarding.Models;
+using RealEstateStar.Domain.Onboarding.Interfaces;
 
 namespace RealEstateStar.Api.Features.Onboarding.Services;
 

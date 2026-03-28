@@ -1,5 +1,6 @@
 using Azure.Data.Tables;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.WhatsApp.Interfaces;
 
 namespace RealEstateStar.DataServices.WhatsApp;
 

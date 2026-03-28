@@ -1,6 +1,7 @@
-namespace RealEstateStar.Api.Features.Leads;
-
 using RealEstateStar.Api.Features.Leads.Submit;
+using RealEstateStar.Domain.Leads.Models;
+
+namespace RealEstateStar.Api.Features.Leads;
 
 public static class LeadMappers
 {

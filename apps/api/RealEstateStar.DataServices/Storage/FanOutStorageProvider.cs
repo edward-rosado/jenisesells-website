@@ -1,5 +1,8 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Shared;
+using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.DataServices.Storage;
 
