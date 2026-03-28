@@ -162,6 +162,28 @@ When working on a skill, load the agent profile first:
 - **No hardcoding**: Agent identity, branding, and compliance data always come from config
 - **API calls**: Platform uses shared `api` instance from `@/lib/api`. Agent-site passes HMAC headers per-request via `createApiClient()`. SSE streaming stays raw `fetch`. Correlation IDs are auto-injected.
 
+## Architecture Test Protection
+
+**Architecture tests are IMMUTABLE unless the user explicitly approves a change.**
+
+The following files in `tests/RealEstateStar.Architecture.Tests/` enforce project structure:
+- `DependencyTests.cs` — project reference constraints
+- `LayerTests.cs` — NetArchTest type-level rules
+- `DiRegistrationTests.cs` — DI registration completeness
+- `NamingConventionTests.cs` — class naming per layer (if added in the future)
+- `ProjectTaxonomyTests.cs` — layer boundary enforcement (if added in the future)
+- `ApiCompositionRootTests.cs` — Api stays thin (if added in the future)
+
+**Rules for AI agents:**
+1. NEVER add items to exclusion lists (`*Excluded` HashSets) to make your code compile
+2. NEVER weaken assertions (changing `BeEmpty()` to `HaveCountLessThan()`)
+3. NEVER delete or skip architecture tests
+4. NEVER change `[InlineData]` dependency allowlists without user approval
+5. If your code violates an architecture test, fix your code — not the test
+6. If you believe a rule is wrong, TELL the user and wait for approval before changing
+
+Commits that modify architecture test files MUST include `[arch-change-approved]` in the commit message.
+
 ## File Storage Abstraction
 
 The `IFileStorageProvider` interface (defined in `RealEstateStar.Domain`) abstracts lead storage across Google Drive and local file system. Implementations live in `RealEstateStar.Data`:

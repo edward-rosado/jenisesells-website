@@ -1,0 +1,27 @@
+name: Architecture Guard
+
+on:
+  pull_request:
+    paths:
+      - 'apps/api/RealEstateStar.Tests/RealEstateStar.Architecture.Tests/**'
+
+jobs:
+  check-approval:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for arch-change-approved tag
+        run: |
+          # Get all commit messages in this PR
+          COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].messageHeadline')
+
+          if echo "$COMMITS" | grep -q "\[arch-change-approved\]"; then
+            echo "Architecture change approved via commit message tag"
+          else
+            echo "Architecture test files were modified but no commit contains [arch-change-approved]"
+            echo ""
+            echo "If you intentionally changed architecture tests, add [arch-change-approved] to your commit message."
+            echo "If an AI agent made this change without your approval, reject the PR."
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
