@@ -1,7 +1,6 @@
 using System.Text.Json;
 using RealEstateStar.Domain.Onboarding.Interfaces;
 using RealEstateStar.Domain.Onboarding.Models;
-using RealEstateStar.Domain.Onboarding.Services;
 
 namespace RealEstateStar.Api.Features.Onboarding.Tools;
 

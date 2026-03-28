@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-namespace RealEstateStar.Domain.Cma;
+namespace RealEstateStar.Workers.Lead.CMA;
 
 public static class CmaDiagnostics
 {

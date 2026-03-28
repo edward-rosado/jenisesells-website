@@ -1,10 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using RealEstateStar.Api.Infrastructure;
-using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
-using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Privacy.Interfaces;
+using RealEstateStar.Workers.Lead.Orchestrator;
 
 namespace RealEstateStar.Api.Features.Leads.DeleteData;
 

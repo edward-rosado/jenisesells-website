@@ -6,7 +6,6 @@ using Microsoft.Extensions.Options;
 using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Api.Middleware;
 using RealEstateStar.DataServices.Privacy;
-using RealEstateStar.Domain.Leads;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Privacy;

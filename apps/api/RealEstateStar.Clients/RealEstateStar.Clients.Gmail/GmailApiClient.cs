@@ -4,7 +4,6 @@ using Google.Apis.Gmail.v1.Data;
 using Microsoft.Extensions.Logging;
 using MimeKit;
 using RealEstateStar.Clients.GoogleOAuth;
-using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Clients.Gmail;

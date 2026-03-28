@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-namespace RealEstateStar.Domain.Shared;
+namespace RealEstateStar.Clients.Anthropic;
 
 public static class ClaudeDiagnostics
 {

@@ -4,7 +4,6 @@ using Azure;
 using Azure.Data.Tables;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Shared.Models;
 

@@ -1,5 +1,3 @@
-using Xunit;
-using RealEstateStar.Domain.Leads.Models;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;

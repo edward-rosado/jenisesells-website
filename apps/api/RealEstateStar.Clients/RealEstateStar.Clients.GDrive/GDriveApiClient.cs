@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using Google.Apis.Drive.v3;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Clients.GDrive;

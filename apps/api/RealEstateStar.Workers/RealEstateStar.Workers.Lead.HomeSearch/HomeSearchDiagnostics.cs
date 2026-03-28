@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-namespace RealEstateStar.Domain.HomeSearch;
+namespace RealEstateStar.Workers.Lead.HomeSearch;
 
 public static class HomeSearchDiagnostics
 {
