@@ -14,7 +14,7 @@ public class LeadEmailDrafter(
 {
     private const string Model = "claude-3-5-haiku-20241022";
     private const string Pipeline = "lead-email-drafter";
-    private const int MaxTokens = 1000;
+    private const int MaxTokens = 5000;
 
     public async Task<LeadEmail> DraftAsync(
         Lead lead, LeadScore score,
