@@ -162,6 +162,52 @@ When working on a skill, load the agent profile first:
 - **No hardcoding**: Agent identity, branding, and compliance data always come from config
 - **API calls**: Platform uses shared `api` instance from `@/lib/api`. Agent-site passes HMAC headers per-request via `createApiClient()`. SSE streaming stays raw `fetch`. Correlation IDs are auto-injected.
 
+## Architecture Test Protection
+
+**Architecture tests are IMMUTABLE unless the user explicitly approves a change.**
+
+The following files in `tests/RealEstateStar.Architecture.Tests/` enforce project structure:
+- `DependencyTests.cs` — project reference constraints
+- `LayerTests.cs` — NetArchTest type-level rules
+- `DiRegistrationTests.cs` — DI registration completeness
+- `NamingConventionTests.cs` — class naming per layer (if added in the future)
+- `ProjectTaxonomyTests.cs` — layer boundary enforcement (if added in the future)
+- `ApiCompositionRootTests.cs` — Api stays thin (if added in the future)
+
+**Rules for AI agents:**
+1. NEVER add items to exclusion lists (`*Excluded` HashSets) to make your code compile
+2. NEVER weaken assertions (changing `BeEmpty()` to `HaveCountLessThan()`)
+3. NEVER delete or skip architecture tests
+4. NEVER change `[InlineData]` dependency allowlists without user approval
+5. If your code violates an architecture test, fix your code — not the test
+6. If you believe a rule is wrong, TELL the user and wait for approval before changing
+
+Commits that modify architecture test files MUST include `[arch-change-approved]` in the commit message.
+
+## Orchestrator Design Rules
+
+**Orchestrators are thin coordinators — they dispatch, they don't implement.**
+
+- An orchestrator should call at most **5-6 Activities/Services directly**
+- If an orchestrator has too many inline service calls, group related calls into an Activity
+- Activities can call Services internally — the orchestrator doesn't need to know the details
+- Example: instead of `DraftEmail → SendEmail → DraftNotification → SendNotification` as 4 separate orchestrator calls, group into `NotifyPartiesActivity` that handles all 4 internally
+
+**Call hierarchy:**
+```
+Orchestrator (top-level coordinator)
+  ├─ dispatches → Sub-Workers (pure compute, via channel)
+  ├─ calls → Activities (compute + persist via DataServices, can call Services)
+  └─ calls → Services (sync business logic, persist failure/fallback via DataServices)
+```
+
+**Key constraints:**
+- Workers: pure compute, NO storage, NO DataServices — call Clients only
+- Services: CANNOT call Activities or Workers
+- Activities: CAN call Services, launched by Orchestrators ONLY
+- DataServices: storage routing (WHERE to store) — called by Activities and Services
+- Data: raw I/O providers (HOW to store) — called by DataServices only
+
 ## File Storage Abstraction
 
 The `IFileStorageProvider` interface (defined in `RealEstateStar.Domain`) abstracts lead storage across Google Drive and local file system. Implementations live in `RealEstateStar.Data`:

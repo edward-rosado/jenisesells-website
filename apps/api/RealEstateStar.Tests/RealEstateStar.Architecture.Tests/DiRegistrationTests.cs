@@ -1,3 +1,16 @@
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  ARCHITECTURE GUARD — DO NOT MODIFY WITHOUT EXPLICIT USER APPROVAL  ║
+// ║                                                                      ║
+// ║  These tests enforce the project's dependency and naming rules.       ║
+// ║  AI agents: you MUST NOT add exclusions, weaken rules, or modify     ║
+// ║  these tests to make your code compile. If your code violates an     ║
+// ║  architecture rule, fix YOUR code — not the test.                    ║
+// ║                                                                      ║
+// ║  Changing these tests requires the commit message to contain:         ║
+// ║  [arch-change-approved] — CI will reject without it.                 ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
+using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using RealEstateStar.Domain.Shared.Interfaces.External;
@@ -78,6 +91,46 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
         var service = _services.GetService(interfaceType);
 
         Assert.NotNull(service);
+    }
+
+    // ── Exclusion count guard — adding an interface without updating this count fails CI ──
+
+    [Fact]
+    public void DiRegistration_InterfaceCount_MustMatchExpected()
+    {
+        // If you add a new Domain interface to the [InlineData] list above, update this count.
+        // This prevents AI agents from silently removing interfaces from the registration check.
+        // Current count verified on 2026-03-28.
+        const int expectedInterfaceCount = 21;
+
+        var inlineDataTypes = new[]
+        {
+            typeof(IFileStorageProvider),
+            typeof(IDocumentStorageProvider),
+            typeof(ISheetStorageProvider),
+            typeof(ITokenStore),
+            typeof(IGmailSender),
+            typeof(IGDriveClient),
+            typeof(IGDocsClient),
+            typeof(IGSheetsClient),
+            typeof(IOAuthRefresher),
+            typeof(IAnthropicClient),
+            typeof(IGwsService),
+            typeof(ILeadStore),
+            typeof(ILeadScorer),
+            typeof(ILeadEmailDrafter),
+            typeof(ILeadCommunicatorService),
+            typeof(IAgentNotifier),
+            typeof(LeadOrchestratorChannel),
+            typeof(PdfActivity),
+            typeof(ILeadDataDeletion),
+            typeof(IMarketingConsentLog),
+            typeof(IRentCastClient),
+        };
+
+        inlineDataTypes.Length.Should().Be(expectedInterfaceCount,
+            "DI interface registration count changed — if you added a new interface, update expectedInterfaceCount too. " +
+            "If an AI agent removed an interface from the check without approval, reject the change.");
     }
 
     [Fact]

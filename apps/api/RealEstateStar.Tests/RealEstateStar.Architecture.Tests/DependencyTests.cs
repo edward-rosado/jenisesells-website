@@ -1,3 +1,16 @@
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  ARCHITECTURE GUARD — DO NOT MODIFY WITHOUT EXPLICIT USER APPROVAL  ║
+// ║                                                                      ║
+// ║  These tests enforce the project's dependency and naming rules.       ║
+// ║  AI agents: you MUST NOT add exclusions, weaken rules, or modify     ║
+// ║  these tests to make your code compile. If your code violates an     ║
+// ║  architecture rule, fix YOUR code — not the test.                    ║
+// ║                                                                      ║
+// ║  Changing these tests requires the commit message to contain:         ║
+// ║  [arch-change-approved] — CI will reject without it.                 ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
+using FluentAssertions;
 using System.Reflection;
 
 namespace RealEstateStar.Architecture.Tests;
@@ -423,6 +436,72 @@ public class DependencyTests
         Assert.True(violations.Count == 0,
             $"Workers.Lead.HomeSearch references notification interfaces it must not depend on: {string.Join(", ", violations)}" +
             " — HomeSearch is a pure compute worker; notifications belong in Workers.Lead.Orchestrator (the orchestrator)");
+    }
+
+    // ── Exclusion count guard — adding an exclusion without updating this count fails CI ──
+
+    [Fact]
+    public void ExclusionCounts_MustMatchExpected()
+    {
+        // If you need to add an exclusion, you MUST update this count too.
+        // This prevents AI agents from silently expanding exclusion lists.
+        // Current counts verified on 2026-03-28.
+
+        // googleApiClients — the only Clients allowed to reference another Client (GoogleOAuth).
+        // Adding a new Google API client here requires user approval.
+        var googleApiClientsInClientRefTest = new HashSet<string>
+        {
+            "RealEstateStar.Clients.Gmail",
+            "RealEstateStar.Clients.GDrive",
+            "RealEstateStar.Clients.GDocs",
+            "RealEstateStar.Clients.GSheets"
+        };
+        googleApiClientsInClientRefTest.Count.Should().Be(4,
+            "googleApiClients exclusion set changed — was an exclusion added without approval?");
+
+        // Keywords that exempt an assembly from the DataServices reference check.
+        // This set controls which projects are allowed to depend on DataServices.
+        var dataServicesAllowedKeywords = new HashSet<string>
+        {
+            "Api", "Services", "Activities", "DataServices", "Tests", "TestUtilities"
+        };
+        dataServicesAllowedKeywords.Count.Should().Be(6,
+            "DataServices allowed-caller keyword set changed — was a new caller exempted without approval?");
+
+        // Api allowed-project allowlist — all projects Api may directly reference.
+        // Adding a project here expands the composition root's surface area.
+        var apiAllowedProjects = new HashSet<string>
+        {
+            "RealEstateStar.Api",
+            "RealEstateStar.Domain",
+            "RealEstateStar.Data",
+            "RealEstateStar.DataServices",
+            "RealEstateStar.Workers.Shared",
+            "RealEstateStar.Activities.Pdf",
+            "RealEstateStar.Activities.Persist",
+            "RealEstateStar.Services.AgentNotifier",
+            "RealEstateStar.Services.LeadCommunicator",
+            "RealEstateStar.Workers.Lead.Orchestrator",
+            "RealEstateStar.Workers.Lead.CMA",
+            "RealEstateStar.Workers.Lead.HomeSearch",
+            "RealEstateStar.Workers.WhatsApp",
+            "RealEstateStar.Clients.Anthropic",
+            "RealEstateStar.Clients.Scraper",
+            "RealEstateStar.Clients.WhatsApp",
+            "RealEstateStar.Clients.GDrive",
+            "RealEstateStar.Clients.Gmail",
+            "RealEstateStar.Clients.GDocs",
+            "RealEstateStar.Clients.GSheets",
+            "RealEstateStar.Clients.GoogleOAuth",
+            "RealEstateStar.Clients.Stripe",
+            "RealEstateStar.Clients.Cloudflare",
+            "RealEstateStar.Clients.Turnstile",
+            "RealEstateStar.Clients.Azure",
+            "RealEstateStar.Clients.Gws",
+            "RealEstateStar.Clients.RentCast",
+        };
+        apiAllowedProjects.Count.Should().Be(27,
+            "Api allowed-project count changed — was a new dependency added to the composition root without approval?");
     }
 
     [Fact]

@@ -1,3 +1,15 @@
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  ARCHITECTURE GUARD — DO NOT MODIFY WITHOUT EXPLICIT USER APPROVAL  ║
+// ║                                                                      ║
+// ║  These tests enforce the project's dependency and naming rules.       ║
+// ║  AI agents: you MUST NOT add exclusions, weaken rules, or modify     ║
+// ║  these tests to make your code compile. If your code violates an     ║
+// ║  architecture rule, fix YOUR code — not the test.                    ║
+// ║                                                                      ║
+// ║  Changing these tests requires the commit message to contain:         ║
+// ║  [arch-change-approved] — CI will reject without it.                 ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
 using NetArchTest.Rules;
 
 namespace RealEstateStar.Architecture.Tests;
