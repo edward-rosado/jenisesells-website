@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Activities.Persist;
 using RealEstateStar.Domain.Leads;
+using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
@@ -11,16 +12,30 @@ namespace RealEstateStar.Activities.Persist.Tests;
 public sealed class PersistActivityTests
 {
     private readonly Mock<IDocumentStorageProvider> _storageMock = new();
+    private readonly Mock<ILeadStore> _leadStoreMock = new();
     private readonly PersistActivity _sut;
 
     public PersistActivityTests()
     {
-        _sut = new PersistActivity(_storageMock.Object, NullLogger<PersistActivity>.Instance);
+        _leadStoreMock
+            .Setup(s => s.UpdateStatusAsync(It.IsAny<Domain.Leads.Models.Lead>(), It.IsAny<LeadStatus>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _sut = new PersistActivity(_storageMock.Object, _leadStoreMock.Object, NullLogger<PersistActivity>.Instance);
 
         // Default: ReadDocumentAsync returns null (no existing file)
         _storageMock
             .Setup(s => s.ReadDocumentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
+        _storageMock
+            .Setup(s => s.WriteDocumentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _storageMock
+            .Setup(s => s.UpdateDocumentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _storageMock
+            .Setup(s => s.EnsureFolderExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
     }
 
     // ── Full pipeline result persisted ──────────────────────────────────────

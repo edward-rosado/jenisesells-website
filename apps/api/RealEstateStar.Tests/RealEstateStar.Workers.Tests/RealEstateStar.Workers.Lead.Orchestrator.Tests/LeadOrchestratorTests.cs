@@ -68,6 +68,7 @@ public sealed class LeadOrchestratorTests
 
         var persistActivity = new PersistActivity(
             persistStorage.Object,
+            _leadStoreMock.Object,
             NullLogger<PersistActivity>.Instance);
 
         // Use a real FakeContentCache when none is provided (null-returning mock is only for non-cache-hit tests)
@@ -695,7 +696,7 @@ public sealed class LeadOrchestratorTests
     }
 
     [Fact]
-    public async Task ProcessRequest_StatusProgression_ScoreAnalyzedNotifiedComplete()
+    public async Task ProcessRequest_StatusProgression_ScoredAnalyzingComplete()
     {
         // Arrange
         var lead = BuildBuyerLead();
@@ -716,10 +717,12 @@ public sealed class LeadOrchestratorTests
         // Act
         await orchestrator.ProcessRequestAsync(request, cts.Token);
 
-        // Assert — status update sequence: Scored → Analyzing → Notified → Complete
+        // Assert — status update sequence: Scored → Analyzing → Complete
+        // Scored and Analyzing are written inline via persistActivity.PersistStatusAsync (concurrency gates).
+        // Complete is written inside persistActivity.ExecuteAsync at end of pipeline.
+        // All three flow through _leadStoreMock because PersistActivity wraps ILeadStore.
         _leadStoreMock.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.Scored, It.IsAny<CancellationToken>()), Times.Once);
         _leadStoreMock.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.Analyzing, It.IsAny<CancellationToken>()), Times.Once);
-        _leadStoreMock.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.Notified, It.IsAny<CancellationToken>()), Times.Once);
         _leadStoreMock.Verify(s => s.UpdateStatusAsync(lead, LeadStatus.Complete, It.IsAny<CancellationToken>()), Times.Once);
     }
 
