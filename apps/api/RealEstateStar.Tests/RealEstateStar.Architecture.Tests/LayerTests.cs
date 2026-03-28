@@ -23,6 +23,9 @@ public class LayerTests
     private static readonly System.Reflection.Assembly HomeSearchWorkerAssembly =
         typeof(Workers.Lead.HomeSearch.HomeSearchProcessingWorker).Assembly;
 
+    private static readonly System.Reflection.Assembly OnboardingWorkerAssembly =
+        typeof(Workers.Onboarding.OnboardingChatService).Assembly;
+
     [Fact]
     public void Domain_types_should_not_depend_on_DataServices()
     {
@@ -221,6 +224,42 @@ public class LayerTests
         Assert.True(result.IsSuccessful,
             $"Workers.Lead.HomeSearch types depend on Notifications:\n{FormatFailures(result)}" +
             " — HomeSearch is a pure compute worker; notifications belong in Workers.Lead.Orchestrator");
+    }
+
+    [Fact]
+    public void OnboardingWorker_types_should_not_depend_on_Data()
+    {
+        var result = Types.InAssembly(OnboardingWorkerAssembly)
+            .ShouldNot()
+            .HaveDependencyOn("RealEstateStar.Data")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Workers.Onboarding types depend on Data:\n{FormatFailures(result)}");
+    }
+
+    [Fact]
+    public void OnboardingWorker_types_should_not_depend_on_DataServices()
+    {
+        var result = Types.InAssembly(OnboardingWorkerAssembly)
+            .ShouldNot()
+            .HaveDependencyOn("RealEstateStar.DataServices")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Workers.Onboarding types depend on DataServices:\n{FormatFailures(result)}");
+    }
+
+    [Fact]
+    public void OnboardingWorker_types_should_not_depend_on_Notifications()
+    {
+        var result = Types.InAssembly(OnboardingWorkerAssembly)
+            .ShouldNot()
+            .HaveDependencyOn("RealEstateStar.Notifications")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Workers.Onboarding types depend on Notifications:\n{FormatFailures(result)}");
     }
 
     private static string FormatFailures(TestResult result) =>

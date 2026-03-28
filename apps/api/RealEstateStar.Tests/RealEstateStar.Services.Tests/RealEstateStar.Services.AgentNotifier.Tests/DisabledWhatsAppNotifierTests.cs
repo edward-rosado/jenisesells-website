@@ -6,10 +6,10 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
 using RealEstateStar.Domain.WhatsApp.Models;
 using RealEstateStar.Domain.WhatsApp.Interfaces;
-using RealEstateStar.Notifications.WhatsApp;
+using RealEstateStar.Services.AgentNotifier;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace RealEstateStar.Notifications.Tests.WhatsApp;
+namespace RealEstateStar.Services.AgentNotifier.Tests;
 
 public class DisabledWhatsAppNotifierTests
 {

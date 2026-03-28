@@ -6,6 +6,13 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="RealEstateStar.Clients.Stripe.Tests" />
+    <InternalsVisibleTo Include="RealEstateStar.Workers.Onboarding.Tests" />
+    <InternalsVisibleTo Include="RealEstateStar.Api.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Stripe.net" Version="50.4.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />

@@ -1,6 +1,6 @@
 using RealEstateStar.Domain.Notifications.Interfaces;
 
-namespace RealEstateStar.Notifications.Templates;
+namespace RealEstateStar.Services.LeadCommunicator.Templates;
 
 public class PrivacyFooterRenderer : IEmailTemplateRenderer
 {

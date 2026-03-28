@@ -1,5 +1,6 @@
 using System.Reflection;
 using FluentAssertions;
+using Microsoft.Extensions.Hosting;
 
 namespace RealEstateStar.Architecture.Tests;
 
@@ -61,7 +62,7 @@ public class ProjectTaxonomyTests
     // Helpers
     // ──────────────────────────────────────────────────────────────────────────
 
-    private static readonly Assembly ApiAssembly = typeof(RealEstateStar.Api.Program).Assembly;
+    private static readonly Assembly ApiAssembly = typeof(global::Program).Assembly;
     private static readonly Assembly DomainAssembly = typeof(RealEstateStar.Domain.Leads.Models.Lead).Assembly;
 
     /// <summary>Returns true if the type is a static class (abstract + sealed at the IL level).</summary>
@@ -106,29 +107,10 @@ public class ProjectTaxonomyTests
     //            BackgroundService subclasses, Domain interface implementations
     // ══════════════════════════════════════════════════════════════════════════
 
-    // TODO: These onboarding *Service classes are still in Api pending migration to
-    // Workers.Onboarding (already created). Remove each entry as the type is moved.
+    // All onboarding service classes have been migrated to Workers.Onboarding, Clients.Stripe,
+    // and Clients.GoogleOAuth. No Api exclusions required.
     private static readonly HashSet<string> ApiServiceClassExclusions = new()
     {
-        // GoogleOAuthService — Google OAuth token exchange logic.
-        // Target: Clients.GoogleOAuth (token exchange) or Services.Onboarding (orchestration).
-        "RealEstateStar.Api.Features.Onboarding.Services.GoogleOAuthService",
-
-        // OnboardingChatService — streaming Claude chat with tool dispatch.
-        // Target: Workers.Onboarding (already exists, in-progress migration).
-        "RealEstateStar.Api.Features.Onboarding.Services.OnboardingChatService",
-
-        // StripeService — Stripe Checkout session management.
-        // Target: Clients.Stripe (already has IStripeService/StripeService) or Services.Billing.
-        "RealEstateStar.Api.Features.Onboarding.Services.StripeService",
-
-        // SiteDeployService — Cloudflare Pages build + deploy via Wrangler.
-        // Target: Services.Onboarding or Workers.Onboarding.
-        "RealEstateStar.Api.Features.Onboarding.Tools.SiteDeployService",
-
-        // TrialExpiryService — BackgroundService polling for expired trials.
-        // Target: Workers.Onboarding (already exists, in-progress migration).
-        "RealEstateStar.Api.Features.Onboarding.Services.TrialExpiryService",
     };
 
     [Fact]
@@ -147,13 +129,9 @@ public class ProjectTaxonomyTests
             "Violations: {0}", string.Join(", ", violations));
     }
 
-    // TODO: TrialExpiryService is a BackgroundService that still lives in Api pending migration
-    // to Workers.Onboarding. Remove this exclusion once it is moved.
+    // TrialExpiryService has been migrated to Workers.Onboarding. No Api exclusions required.
     private static readonly HashSet<string> ApiBackgroundServiceExclusions = new()
     {
-        // TrialExpiryService — polls for expired trials and triggers Stripe charges.
-        // Target: Workers.Onboarding or Workers.Billing.
-        "RealEstateStar.Api.Features.Onboarding.Services.TrialExpiryService",
     };
 
     [Fact]

@@ -6,10 +6,9 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
 using RealEstateStar.Domain.WhatsApp.Models;
 using RealEstateStar.Domain.WhatsApp.Interfaces;
-using RealEstateStar.Notifications.WhatsApp;
-using RealEstateStar.Notifications.Templates;
+using RealEstateStar.Services.LeadCommunicator.Templates;
 
-namespace RealEstateStar.Notifications.Tests.Templates;
+namespace RealEstateStar.Services.LeadCommunicator.Tests;
 
 public class PrivacyFooterRendererTests
 {

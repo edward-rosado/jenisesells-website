@@ -1,5 +1,6 @@
 using System.Reflection;
 using FluentAssertions;
+using Microsoft.Extensions.Hosting;
 
 namespace RealEstateStar.Architecture.Tests;
 
@@ -15,7 +16,7 @@ namespace RealEstateStar.Architecture.Tests;
 /// </summary>
 public class ApiCompositionRootTests
 {
-    private static readonly Assembly ApiAssembly = typeof(RealEstateStar.Api.Program).Assembly;
+    private static readonly Assembly ApiAssembly = typeof(global::Program).Assembly;
     private static readonly Assembly DomainAssembly = typeof(RealEstateStar.Domain.Leads.Models.Lead).Assembly;
 
     // ---------------------------------------------------------------------------

@@ -43,7 +43,6 @@ using RealEstateStar.Domain.Shared.Interfaces.Senders;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.WhatsApp.Interfaces;
 using RealEstateStar.Notifications;
-using RealEstateStar.Notifications.WhatsApp;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
 using RealEstateStar.Workers.Shared;

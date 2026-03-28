@@ -29,6 +29,9 @@ public class DependencyTests
     [InlineData("RealEstateStar.Workers.Lead.CMA", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Lead.HomeSearch", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.WhatsApp", new[] { "Domain", "Workers.Shared" })]
+    // Workers.Onboarding is a permitted exception — like Google API clients depending on GoogleOAuth,
+    // Workers.Onboarding depends on Clients.Stripe and Clients.GoogleOAuth as shared infrastructure.
+    [InlineData("RealEstateStar.Workers.Onboarding", new[] { "Domain", "Clients.Stripe", "Clients.GoogleOAuth" })]
     [InlineData("RealEstateStar.Clients.Anthropic", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.Scraper", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.WhatsApp", new[] { "Domain" })]
@@ -71,7 +74,11 @@ public class DependencyTests
         // that Workers.Shared has to Workers.*. Gmail, GDrive, GDocs, and GSheets may reference
         // GoogleOAuth (for GoogleCredentialFactory); no other non-Api project may reference any
         // Clients.* assembly.
+        // Workers.Onboarding is a second permitted exception — it depends on Clients.Stripe and
+        // Clients.GoogleOAuth as shared infrastructure (parallel to the Google API client pattern).
         const string sharedGoogleInfra = "RealEstateStar.Clients.GoogleOAuth";
+        const string stripeClient = "RealEstateStar.Clients.Stripe";
+        const string onboardingWorker = "RealEstateStar.Workers.Onboarding";
         var googleApiClients = new HashSet<string>
         {
             "RealEstateStar.Clients.Gmail",
@@ -93,11 +100,13 @@ public class DependencyTests
                 .Where(a => a.Name!.Contains("Clients"))
                 // Google API clients are allowed to reference the shared GoogleOAuth infrastructure
                 .Where(a => !(googleApiClients.Contains(assemblyName) && a.Name == sharedGoogleInfra))
+                // Workers.Onboarding is allowed to reference Clients.Stripe and Clients.GoogleOAuth
+                .Where(a => !(assemblyName == onboardingWorker && (a.Name == stripeClient || a.Name == sharedGoogleInfra)))
                 .Select(a => a.Name!)
                 .ToList();
 
             Assert.True(clientRefs.Count == 0,
-                $"{assemblyName} references {string.Join(", ", clientRefs)} — only Api may reference Clients.* (GoogleOAuth is the only permitted shared infrastructure dep for Google API clients)");
+                $"{assemblyName} references {string.Join(", ", clientRefs)} — only Api may reference Clients.* (GoogleOAuth is the only permitted shared infrastructure dep for Google API clients; Workers.Onboarding may reference Clients.Stripe and Clients.GoogleOAuth)");
         }
     }
 
@@ -187,6 +196,7 @@ public class DependencyTests
             "RealEstateStar.Workers.Lead.CMA",
             "RealEstateStar.Workers.Lead.HomeSearch",
             "RealEstateStar.Workers.WhatsApp",
+            "RealEstateStar.Workers.Onboarding",
             "RealEstateStar.Clients.Anthropic",
             "RealEstateStar.Clients.Scraper",
             "RealEstateStar.Clients.WhatsApp",

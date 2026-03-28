@@ -17,8 +17,8 @@ using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.DataServices.WhatsApp;
 using RealEstateStar.Api.Features.Leads;
 using RealEstateStar.Api.Features.Leads.Submit;
-using RealEstateStar.Api.Features.Onboarding.Services;
-using RealEstateStar.Api.Features.Onboarding.Tools;
+using RealEstateStar.Workers.Onboarding;
+using RealEstateStar.Workers.Onboarding.Tools;
 using RealEstateStar.TestUtilities;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Lead.CMA;
@@ -30,7 +30,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using RealEstateStar.Api.Infrastructure;
+using RealEstateStar.DataServices;
 
 namespace RealEstateStar.Api.Tests.Infrastructure;
 

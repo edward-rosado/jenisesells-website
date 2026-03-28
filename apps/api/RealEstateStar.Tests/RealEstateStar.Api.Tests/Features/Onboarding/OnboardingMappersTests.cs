@@ -19,12 +19,11 @@ using RealEstateStar.DataServices.Privacy;
 using RealEstateStar.DataServices.WhatsApp;
 using RealEstateStar.Api.Features.Leads;
 using RealEstateStar.Api.Features.Leads.Submit;
-using RealEstateStar.Api.Features.Onboarding.Services;
-using RealEstateStar.Api.Features.Onboarding.Tools;
 using RealEstateStar.TestUtilities;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
+using RealEstateStar.Workers.Onboarding;
 using RealEstateStar.Notifications.WhatsApp;
 using System.Text.Json;
 using RealEstateStar.Api.Features.Onboarding;
@@ -88,14 +87,14 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentConfig_SetsIdFromSlug()
     {
-        var config = OnboardingMappers.ToAgentConfig("jane-doe", FullProfile());
+        var config = SiteConfigMappers.ToAgentConfig("jane-doe", FullProfile());
         Assert.Equal("jane-doe", config.Id);
     }
 
     [Fact]
     public void ToAgentConfig_MapsIdentityFields()
     {
-        var config = OnboardingMappers.ToAgentConfig("jane-doe", FullProfile());
+        var config = SiteConfigMappers.ToAgentConfig("jane-doe", FullProfile());
 
         Assert.Equal("Jane Doe", config.Identity.Name);
         Assert.Equal("Broker Associate", config.Identity.Title);
@@ -111,7 +110,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentConfig_MapsLocationFields()
     {
-        var config = OnboardingMappers.ToAgentConfig("jane-doe", FullProfile());
+        var config = SiteConfigMappers.ToAgentConfig("jane-doe", FullProfile());
 
         Assert.Equal("NJ", config.Location.State);
         Assert.Equal("100 Broad St, Newark NJ 07102", config.Location.OfficeAddress);
@@ -121,7 +120,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentConfig_MapsBrandingFields()
     {
-        var config = OnboardingMappers.ToAgentConfig("jane-doe", FullProfile());
+        var config = SiteConfigMappers.ToAgentConfig("jane-doe", FullProfile());
 
         Assert.Equal("#1e40af", config.Branding.PrimaryColor);
         Assert.Equal("#10b981", config.Branding.AccentColor);
@@ -131,7 +130,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentConfig_DefaultsForMinimalProfile()
     {
-        var config = OnboardingMappers.ToAgentConfig("test-agent", MinimalProfile());
+        var config = SiteConfigMappers.ToAgentConfig("test-agent", MinimalProfile());
 
         Assert.Equal("test-agent", config.Id);
         Assert.Equal("Test Agent", config.Identity.Name);
@@ -148,7 +147,7 @@ public class OnboardingMappersTests
     public void ToAgentConfig_NullName_DefaultsToAgent()
     {
         var profile = new ScrapedProfile();
-        var config = OnboardingMappers.ToAgentConfig("agent", profile);
+        var config = SiteConfigMappers.ToAgentConfig("agent", profile);
 
         Assert.Equal("Agent", config.Identity.Name);
     }
@@ -157,7 +156,7 @@ public class OnboardingMappersTests
     public void ToAgentConfig_NullState_DefaultsToXX()
     {
         var profile = new ScrapedProfile { Name = "Test" };
-        var config = OnboardingMappers.ToAgentConfig("test", profile);
+        var config = SiteConfigMappers.ToAgentConfig("test", profile);
 
         Assert.Equal("XX", config.Location.State);
     }
@@ -165,7 +164,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentConfig_SerializesToSnakeCase()
     {
-        var config = OnboardingMappers.ToAgentConfig("jane-doe", FullProfile());
+        var config = SiteConfigMappers.ToAgentConfig("jane-doe", FullProfile());
         var json = JsonSerializer.Serialize(config, SiteDeployService.JsonOptions);
 
         // Verify snake_case keys
@@ -188,7 +187,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentConfig_RoundTrip_DeserializesCorrectly()
     {
-        var original = OnboardingMappers.ToAgentConfig("jane-doe", FullProfile());
+        var original = SiteConfigMappers.ToAgentConfig("jane-doe", FullProfile());
         var json = JsonSerializer.Serialize(original, SiteDeployService.JsonOptions);
         var deserialized = JsonSerializer.Deserialize<AgentConfigDto>(json, SiteDeployService.JsonOptions);
 
@@ -202,7 +201,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentConfig_NullsOmittedInJson()
     {
-        var config = OnboardingMappers.ToAgentConfig("test", MinimalProfile());
+        var config = SiteConfigMappers.ToAgentConfig("test", MinimalProfile());
         var json = JsonSerializer.Serialize(config, SiteDeployService.JsonOptions);
 
         // Null fields should be omitted (DefaultIgnoreCondition.WhenWritingNull)
@@ -217,14 +216,14 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_SetsTemplate()
     {
-        var content = OnboardingMappers.ToAgentContent("jane-doe", FullProfile());
+        var content = SiteConfigMappers.ToAgentContent("jane-doe", FullProfile());
         Assert.Equal("emerald-classic", content.Template);
     }
 
     [Fact]
     public void ToAgentContent_HeroSectionEnabled()
     {
-        var content = OnboardingMappers.ToAgentContent("jane-doe", FullProfile());
+        var content = SiteConfigMappers.ToAgentContent("jane-doe", FullProfile());
 
         Assert.True(content.Sections.Hero.Enabled);
         Assert.Equal("Sell Your Home with Confidence", content.Sections.Hero.Data.Headline);
@@ -236,14 +235,14 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_HeroUsesDefaultTagline_WhenProfileTaglineNull()
     {
-        var content = OnboardingMappers.ToAgentContent("test", MinimalProfile());
+        var content = SiteConfigMappers.ToAgentContent("test", MinimalProfile());
         Assert.Equal("Your Trusted Real Estate Professional", content.Sections.Hero.Data.Tagline);
     }
 
     [Fact]
     public void ToAgentContent_StatsEnabled_WhenDataPresent()
     {
-        var content = OnboardingMappers.ToAgentContent("jane-doe", FullProfile());
+        var content = SiteConfigMappers.ToAgentContent("jane-doe", FullProfile());
 
         Assert.True(content.Sections.Stats.Enabled);
         Assert.Equal(3, content.Sections.Stats.Data.Items.Length);
@@ -259,7 +258,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_StatsDisabled_WhenNoDataPresent()
     {
-        var content = OnboardingMappers.ToAgentContent("test", MinimalProfile());
+        var content = SiteConfigMappers.ToAgentContent("test", MinimalProfile());
 
         Assert.False(content.Sections.Stats.Enabled);
         Assert.Empty(content.Sections.Stats.Data.Items);
@@ -269,7 +268,7 @@ public class OnboardingMappersTests
     public void ToAgentContent_StatsRating_WithoutReviewCount()
     {
         var profile = MinimalProfile() with { AvgRating = 4.8 };
-        var content = OnboardingMappers.ToAgentContent("test", profile);
+        var content = SiteConfigMappers.ToAgentContent("test", profile);
 
         Assert.True(content.Sections.Stats.Enabled);
         Assert.Contains(content.Sections.Stats.Data.Items, s => s.Label == "Average Rating");
@@ -278,7 +277,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_ServicesEnabled()
     {
-        var content = OnboardingMappers.ToAgentContent("jane-doe", FullProfile());
+        var content = SiteConfigMappers.ToAgentContent("jane-doe", FullProfile());
 
         Assert.True(content.Sections.Services.Enabled);
         Assert.Equal(3, content.Sections.Services.Data.Items.Length);
@@ -288,7 +287,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_HowItWorksEnabled()
     {
-        var content = OnboardingMappers.ToAgentContent("jane-doe", FullProfile());
+        var content = SiteConfigMappers.ToAgentContent("jane-doe", FullProfile());
 
         Assert.True(content.Sections.HowItWorks.Enabled);
         Assert.Equal(3, content.Sections.HowItWorks.Data.Steps.Length);
@@ -299,7 +298,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_TestimonialsEnabled_WhenPresent()
     {
-        var content = OnboardingMappers.ToAgentContent("jane-doe", FullProfile());
+        var content = SiteConfigMappers.ToAgentContent("jane-doe", FullProfile());
 
         Assert.True(content.Sections.Testimonials.Enabled);
         Assert.Equal(2, content.Sections.Testimonials.Data.Items.Length);
@@ -311,7 +310,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_TestimonialsDisabled_WhenNone()
     {
-        var content = OnboardingMappers.ToAgentContent("test", MinimalProfile());
+        var content = SiteConfigMappers.ToAgentContent("test", MinimalProfile());
 
         Assert.False(content.Sections.Testimonials.Enabled);
         Assert.Empty(content.Sections.Testimonials.Data.Items);
@@ -324,7 +323,7 @@ public class OnboardingMappersTests
         {
             Testimonials = [new Testimonial { ReviewerName = "Bob", Text = "Good", Rating = 4.5 }],
         };
-        var content = OnboardingMappers.ToAgentContent("test", profile);
+        var content = SiteConfigMappers.ToAgentContent("test", profile);
 
         Assert.Equal(4, content.Sections.Testimonials.Data.Items[0].Rating);
     }
@@ -336,7 +335,7 @@ public class OnboardingMappersTests
         {
             Testimonials = [new Testimonial { Text = null, ReviewerName = null, Rating = null }],
         };
-        var content = OnboardingMappers.ToAgentContent("test", profile);
+        var content = SiteConfigMappers.ToAgentContent("test", profile);
 
         Assert.Equal("Anonymous", content.Sections.Testimonials.Data.Items[0].Reviewer);
         Assert.Equal("", content.Sections.Testimonials.Data.Items[0].Text);
@@ -346,7 +345,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_SoldHomesEnabled_WhenPresent()
     {
-        var content = OnboardingMappers.ToAgentContent("jane-doe", FullProfile());
+        var content = SiteConfigMappers.ToAgentContent("jane-doe", FullProfile());
 
         Assert.True(content.Sections.SoldHomes.Enabled);
         Assert.Equal(2, content.Sections.SoldHomes.Data.Items.Length);
@@ -359,7 +358,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_SoldHomesDisabled_WhenNone()
     {
-        var content = OnboardingMappers.ToAgentContent("test", MinimalProfile());
+        var content = SiteConfigMappers.ToAgentContent("test", MinimalProfile());
 
         Assert.False(content.Sections.SoldHomes.Enabled);
         Assert.Empty(content.Sections.SoldHomes.Data.Items);
@@ -372,7 +371,7 @@ public class OnboardingMappersTests
         {
             RecentSales = [new RecentSale { Address = null, Price = 100000 }],
         };
-        var content = OnboardingMappers.ToAgentContent("test", profile);
+        var content = SiteConfigMappers.ToAgentContent("test", profile);
 
         Assert.Equal("Address not available", content.Sections.SoldHomes.Data.Items[0].Address);
         Assert.Equal("", content.Sections.SoldHomes.Data.Items[0].City);
@@ -381,7 +380,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_CmaFormEnabled()
     {
-        var content = OnboardingMappers.ToAgentContent("jane-doe", FullProfile());
+        var content = SiteConfigMappers.ToAgentContent("jane-doe", FullProfile());
 
         Assert.True(content.Sections.CmaForm.Enabled);
         Assert.Equal("What's Your Home Worth?", content.Sections.CmaForm.Data.Title);
@@ -390,7 +389,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_AboutUsesScrapedBio_WhenPresent()
     {
-        var content = OnboardingMappers.ToAgentContent("jane-doe", FullProfile());
+        var content = SiteConfigMappers.ToAgentContent("jane-doe", FullProfile());
 
         Assert.True(content.Sections.About.Enabled);
         Assert.Equal("Jane is a top-performing agent with 15 years of experience.", content.Sections.About.Data.Bio);
@@ -399,7 +398,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_AboutGeneratesBio_WhenNoBioPresent()
     {
-        var content = OnboardingMappers.ToAgentContent("test", MinimalProfile());
+        var content = SiteConfigMappers.ToAgentContent("test", MinimalProfile());
 
         Assert.True(content.Sections.About.Enabled);
         Assert.Contains("Test Agent", content.Sections.About.Data.Bio);
@@ -410,7 +409,7 @@ public class OnboardingMappersTests
     public void ToAgentContent_AboutBio_UsesServiceAreas_WhenPresent()
     {
         var profile = MinimalProfile() with { ServiceAreas = ["Austin", "Round Rock"], Bio = null };
-        var content = OnboardingMappers.ToAgentContent("test", profile);
+        var content = SiteConfigMappers.ToAgentContent("test", profile);
 
         Assert.Contains("Austin, Round Rock", content.Sections.About.Data.Bio);
     }
@@ -419,7 +418,7 @@ public class OnboardingMappersTests
     public void ToAgentContent_AboutBio_IncludesYearsExperience_WhenPresent()
     {
         var profile = MinimalProfile() with { YearsExperience = 10, Bio = null };
-        var content = OnboardingMappers.ToAgentContent("test", profile);
+        var content = SiteConfigMappers.ToAgentContent("test", profile);
 
         Assert.Contains("10+ years", content.Sections.About.Data.Bio);
     }
@@ -428,7 +427,7 @@ public class OnboardingMappersTests
     public void ToAgentContent_Credentials_IncludesLicense()
     {
         var profile = MinimalProfile() with { LicenseId = "TX-999", State = "TX" };
-        var content = OnboardingMappers.ToAgentContent("test", profile);
+        var content = SiteConfigMappers.ToAgentContent("test", profile);
 
         Assert.Contains("TX Licensed REALTOR\u00ae", content.Sections.About.Data.Credentials);
     }
@@ -436,7 +435,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_Credentials_IncludesDesignations()
     {
-        var content = OnboardingMappers.ToAgentContent("jane-doe", FullProfile());
+        var content = SiteConfigMappers.ToAgentContent("jane-doe", FullProfile());
 
         Assert.Contains("CRS", content.Sections.About.Data.Credentials);
         Assert.Contains("ABR", content.Sections.About.Data.Credentials);
@@ -445,7 +444,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_Credentials_IncludesBilingual()
     {
-        var content = OnboardingMappers.ToAgentContent("jane-doe", FullProfile());
+        var content = SiteConfigMappers.ToAgentContent("jane-doe", FullProfile());
 
         Assert.Contains("Bilingual: English & Spanish", content.Sections.About.Data.Credentials);
     }
@@ -453,7 +452,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_Credentials_EmptyForMinimalProfile()
     {
-        var content = OnboardingMappers.ToAgentContent("test", MinimalProfile());
+        var content = SiteConfigMappers.ToAgentContent("test", MinimalProfile());
 
         // TX state + no license => no license credential. No languages > 1, no designations.
         Assert.Empty(content.Sections.About.Data.Credentials);
@@ -462,7 +461,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_CityPagesDisabled()
     {
-        var content = OnboardingMappers.ToAgentContent("jane-doe", FullProfile());
+        var content = SiteConfigMappers.ToAgentContent("jane-doe", FullProfile());
 
         Assert.False(content.Sections.CityPages.Enabled);
         Assert.Empty(content.Sections.CityPages.Data.Cities);
@@ -471,7 +470,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_SerializesToSnakeCase()
     {
-        var content = OnboardingMappers.ToAgentContent("jane-doe", FullProfile());
+        var content = SiteConfigMappers.ToAgentContent("jane-doe", FullProfile());
         var json = JsonSerializer.Serialize(content, SiteDeployService.JsonOptions);
 
         // Verify snake_case keys
@@ -487,7 +486,7 @@ public class OnboardingMappersTests
     [Fact]
     public void ToAgentContent_RoundTrip_DeserializesCorrectly()
     {
-        var original = OnboardingMappers.ToAgentContent("jane-doe", FullProfile());
+        var original = SiteConfigMappers.ToAgentContent("jane-doe", FullProfile());
         var json = JsonSerializer.Serialize(original, SiteDeployService.JsonOptions);
         var deserialized = JsonSerializer.Deserialize<AgentContentDto>(json, SiteDeployService.JsonOptions);
 
@@ -504,7 +503,7 @@ public class OnboardingMappersTests
     public void ToAgentContent_ServiceAreaText_EmptyArray_FallsToState()
     {
         var profile = MinimalProfile() with { ServiceAreas = [], State = "TX", Bio = null };
-        var content = OnboardingMappers.ToAgentContent("test", profile);
+        var content = SiteConfigMappers.ToAgentContent("test", profile);
 
         Assert.Contains("TX", content.Sections.About.Data.Bio);
         Assert.DoesNotContain("your area", content.Sections.About.Data.Bio);
@@ -514,7 +513,7 @@ public class OnboardingMappersTests
     public void ToAgentContent_ServiceAreaText_NullStateAndEmptyAreas_FallsToYourArea()
     {
         var profile = new ScrapedProfile { Name = "Test", State = null, ServiceAreas = [], Bio = null };
-        var content = OnboardingMappers.ToAgentContent("test", profile);
+        var content = SiteConfigMappers.ToAgentContent("test", profile);
 
         Assert.Contains("your area", content.Sections.About.Data.Bio);
     }
@@ -526,7 +525,7 @@ public class OnboardingMappersTests
         {
             RecentSales = [new RecentSale { Address = "123 Main St, City, TX", Price = null }],
         };
-        var content = OnboardingMappers.ToAgentContent("test", profile);
+        var content = SiteConfigMappers.ToAgentContent("test", profile);
 
         Assert.Equal("", content.Sections.SoldHomes.Data.Items[0].Price);
     }
@@ -538,7 +537,7 @@ public class OnboardingMappersTests
         {
             RecentSales = [new RecentSale { Address = "123 Main St, City, TX", Price = 0 }],
         };
-        var content = OnboardingMappers.ToAgentContent("test", profile);
+        var content = SiteConfigMappers.ToAgentContent("test", profile);
 
         Assert.Equal("", content.Sections.SoldHomes.Data.Items[0].Price);
     }
@@ -552,7 +551,7 @@ public class OnboardingMappersTests
             State = null,
             RecentSales = [new RecentSale { Address = "123 Main St, City, XX", Price = 100000 }],
         };
-        var content = OnboardingMappers.ToAgentContent("test", profile);
+        var content = SiteConfigMappers.ToAgentContent("test", profile);
 
         Assert.Equal("", content.Sections.SoldHomes.Data.Items[0].State);
     }
@@ -564,7 +563,7 @@ public class OnboardingMappersTests
         {
             RecentSales = [new RecentSale { Address = "123 Main St, City, TX", Price = -1 }],
         };
-        var content = OnboardingMappers.ToAgentContent("test", profile);
+        var content = SiteConfigMappers.ToAgentContent("test", profile);
 
         Assert.Equal("", content.Sections.SoldHomes.Data.Items[0].Price);
     }
@@ -580,6 +579,6 @@ public class OnboardingMappersTests
     [InlineData("   ", "")]
     public void ExtractCity_ParsesCorrectly(string? address, string expectedCity)
     {
-        Assert.Equal(expectedCity, OnboardingMappers.ExtractCity(address));
+        Assert.Equal(expectedCity, SiteConfigMappers.ExtractCity(address));
     }
 }

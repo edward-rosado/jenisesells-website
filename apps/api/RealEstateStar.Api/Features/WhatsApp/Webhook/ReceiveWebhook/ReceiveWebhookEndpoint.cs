@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using RealEstateStar.DataServices.WhatsApp;
 using RealEstateStar.Api.Infrastructure;
 using RealEstateStar.Domain.WhatsApp.Interfaces;
+using RealEstateStar.Domain.WhatsApp.Models;
 
 namespace RealEstateStar.Api.Features.WhatsApp.Webhook.ReceiveWebhook;
 

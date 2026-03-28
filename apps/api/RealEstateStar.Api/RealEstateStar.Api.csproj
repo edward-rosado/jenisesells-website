@@ -33,7 +33,6 @@
     <ProjectReference Include="..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />
     <ProjectReference Include="..\RealEstateStar.Data\RealEstateStar.Data.csproj" />
     <ProjectReference Include="..\RealEstateStar.DataServices\RealEstateStar.DataServices.csproj" />
-    <ProjectReference Include="..\RealEstateStar.Notifications\RealEstateStar.Notifications.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Shared\RealEstateStar.Workers.Shared.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Lead.Orchestrator\RealEstateStar.Workers.Lead.Orchestrator.csproj" />
     <ProjectReference Include="..\RealEstateStar.Services\RealEstateStar.Services.AgentNotifier\RealEstateStar.Services.AgentNotifier.csproj" />
@@ -42,6 +41,7 @@
     <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Lead.CMA\RealEstateStar.Workers.Lead.CMA.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Lead.HomeSearch\RealEstateStar.Workers.Lead.HomeSearch.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.WhatsApp\RealEstateStar.Workers.WhatsApp.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Onboarding\RealEstateStar.Workers.Onboarding.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Anthropic\RealEstateStar.Clients.Anthropic.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Scraper\RealEstateStar.Clients.Scraper.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.WhatsApp\RealEstateStar.Clients.WhatsApp.csproj" />
