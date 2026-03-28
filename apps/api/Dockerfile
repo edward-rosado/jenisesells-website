@@ -15,6 +15,7 @@ COPY ["RealEstateStar.Workers/RealEstateStar.Workers.Lead.CMA/RealEstateStar.Wor
 COPY ["RealEstateStar.Workers/RealEstateStar.Workers.Lead.HomeSearch/RealEstateStar.Workers.Lead.HomeSearch.csproj", "RealEstateStar.Workers/RealEstateStar.Workers.Lead.HomeSearch/"]
 COPY ["RealEstateStar.Workers/RealEstateStar.Workers.WhatsApp/RealEstateStar.Workers.WhatsApp.csproj", "RealEstateStar.Workers/RealEstateStar.Workers.WhatsApp/"]
 COPY ["RealEstateStar.Activities/RealEstateStar.Activities.Pdf/RealEstateStar.Activities.Pdf.csproj", "RealEstateStar.Activities/RealEstateStar.Activities.Pdf/"]
+COPY ["RealEstateStar.Activities/RealEstateStar.Activities.Persist/RealEstateStar.Activities.Persist.csproj", "RealEstateStar.Activities/RealEstateStar.Activities.Persist/"]
 COPY ["RealEstateStar.Services/RealEstateStar.Services.AgentNotifier/RealEstateStar.Services.AgentNotifier.csproj", "RealEstateStar.Services/RealEstateStar.Services.AgentNotifier/"]
 COPY ["RealEstateStar.Services/RealEstateStar.Services.LeadCommunicator/RealEstateStar.Services.LeadCommunicator.csproj", "RealEstateStar.Services/RealEstateStar.Services.LeadCommunicator/"]
 COPY ["RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/RealEstateStar.Workers.Lead.Orchestrator.csproj", "RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/"]
