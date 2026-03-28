@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -56,8 +56,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.DataServices.Tests", "RealEstateStar.Tests\RealEstateStar.DataServices.Tests\RealEstateStar.DataServices.Tests.csproj", "{E221779E-04BC-44E7-862A-6F8B54B01961}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Notifications.Tests", "RealEstateStar.Tests\RealEstateStar.Notifications.Tests\RealEstateStar.Notifications.Tests.csproj", "{718E23F8-B711-4A3D-B0AE-32C626508B8D}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.Shared.Tests", "RealEstateStar.Tests\RealEstateStar.Workers.Tests\RealEstateStar.Workers.Shared.Tests\RealEstateStar.Workers.Shared.Tests.csproj", "{7CE5714D-549F-4B0A-B2BC-9900D8854807}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.WhatsApp.Tests", "RealEstateStar.Tests\RealEstateStar.Workers.Tests\RealEstateStar.Workers.WhatsApp.Tests\RealEstateStar.Workers.WhatsApp.Tests.csproj", "{C9CFD2F1-9255-4DE0-9B16-9FAEFA0B449D}"
 EndProject
@@ -443,18 +441,6 @@ Global
 		{718E23F8-B711-4A3D-B0AE-32C626508B8D}.Release|x64.Build.0 = Release|Any CPU
 		{718E23F8-B711-4A3D-B0AE-32C626508B8D}.Release|x86.ActiveCfg = Release|Any CPU
 		{718E23F8-B711-4A3D-B0AE-32C626508B8D}.Release|x86.Build.0 = Release|Any CPU
-		{7CE5714D-549F-4B0A-B2BC-9900D8854807}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7CE5714D-549F-4B0A-B2BC-9900D8854807}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7CE5714D-549F-4B0A-B2BC-9900D8854807}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{7CE5714D-549F-4B0A-B2BC-9900D8854807}.Debug|x64.Build.0 = Debug|Any CPU
-		{7CE5714D-549F-4B0A-B2BC-9900D8854807}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{7CE5714D-549F-4B0A-B2BC-9900D8854807}.Debug|x86.Build.0 = Debug|Any CPU
-		{7CE5714D-549F-4B0A-B2BC-9900D8854807}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7CE5714D-549F-4B0A-B2BC-9900D8854807}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7CE5714D-549F-4B0A-B2BC-9900D8854807}.Release|x64.ActiveCfg = Release|Any CPU
-		{7CE5714D-549F-4B0A-B2BC-9900D8854807}.Release|x64.Build.0 = Release|Any CPU
-		{7CE5714D-549F-4B0A-B2BC-9900D8854807}.Release|x86.ActiveCfg = Release|Any CPU
-		{7CE5714D-549F-4B0A-B2BC-9900D8854807}.Release|x86.Build.0 = Release|Any CPU
 		{C9CFD2F1-9255-4DE0-9B16-9FAEFA0B449D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C9CFD2F1-9255-4DE0-9B16-9FAEFA0B449D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C9CFD2F1-9255-4DE0-9B16-9FAEFA0B449D}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -816,7 +802,6 @@ Global
 		{D636314D-8198-4709-AB1D-D8376C58E225} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{E221779E-04BC-44E7-862A-6F8B54B01961} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{718E23F8-B711-4A3D-B0AE-32C626508B8D} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
-		{7CE5714D-549F-4B0A-B2BC-9900D8854807} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{C9CFD2F1-9255-4DE0-9B16-9FAEFA0B449D} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{B9C8D7E6-F5A4-3210-FEDC-BA9876543210} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{D3E4F5A6-B7C8-9012-CDEF-123456789012} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
