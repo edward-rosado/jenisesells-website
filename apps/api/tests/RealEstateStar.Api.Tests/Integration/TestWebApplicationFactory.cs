@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Workers.Cma;
+using LeadOrchestratorChannel = RealEstateStar.Workers.Lead.Orchestrator.LeadOrchestratorChannel;
 
 namespace RealEstateStar.Api.Tests.Integration;
 
@@ -32,6 +33,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         // Subclasses may override these with more specific implementations.
         builder.ConfigureServices(services =>
         {
+            services.AddSingleton<LeadOrchestratorChannel>();
             services.AddSingleton<ILeadStore, NoOpLeadStore>();
             services.AddSingleton<IMarketingConsentLog, NoOpMarketingConsentLog>();
             // TODO: Pipeline redesign — ILeadEnricher and ILeadNotifier removed in Phase 1.5; replaced in Phase 2/3/4

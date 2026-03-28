@@ -7,7 +7,8 @@ using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Notifications.Interfaces;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Privacy.Interfaces;
-using RealEstateStar.Workers.Leads;
+using RealEstateStar.Workers.Lead.Orchestrator;
+using RealEstateStar.Workers.Shared.Pdf;
 
 namespace RealEstateStar.Architecture.Tests;
 
@@ -67,9 +68,10 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
     [InlineData(typeof(ILeadStore))]
     [InlineData(typeof(ILeadScorer))]
     [InlineData(typeof(ILeadEmailDrafter))]
+    [InlineData(typeof(ILeadCommunicationService))]
     [InlineData(typeof(IAgentNotifier))]
     [InlineData(typeof(LeadOrchestratorChannel))]
-    [InlineData(typeof(PdfProcessingChannel))]
+    [InlineData(typeof(PdfActivity))]
     [InlineData(typeof(ILeadDataDeletion))]
     [InlineData(typeof(IMarketingConsentLog))]
     [InlineData(typeof(IRentCastClient))]

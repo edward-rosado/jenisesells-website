@@ -22,7 +22,9 @@ public class DependencyTests
     [InlineData("RealEstateStar.Notifications", new[] { "Domain" })]
     [InlineData("RealEstateStar.Workers.Shared", new[] { "Domain" })]
     [InlineData("RealEstateStar.Workers.Shared.Pdf", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Shared.AgentNotifier", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Shared.LeadCommunicator", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Lead.Orchestrator", new[] { "Domain", "Workers.Shared", "Workers.Shared.Pdf", "Workers.Shared.AgentNotifier", "Workers.Shared.LeadCommunicator", "Workers.Cma", "Workers.HomeSearch" })]
     [InlineData("RealEstateStar.Workers.Leads", new[] { "Domain", "Workers.Shared", "Workers.Cma", "Workers.HomeSearch" })]
     [InlineData("RealEstateStar.Workers.Cma", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.HomeSearch", new[] { "Domain", "Workers.Shared" })]
@@ -178,6 +180,9 @@ public class DependencyTests
             "RealEstateStar.Notifications",
             "RealEstateStar.Workers.Shared",
             "RealEstateStar.Workers.Shared.Pdf",
+            "RealEstateStar.Workers.Shared.AgentNotifier",
+            "RealEstateStar.Workers.Shared.LeadCommunicator",
+            "RealEstateStar.Workers.Lead.Orchestrator",
             "RealEstateStar.Workers.Leads",
             "RealEstateStar.Workers.Cma",
             "RealEstateStar.Workers.HomeSearch",

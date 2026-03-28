@@ -162,7 +162,7 @@ public class AgentNotificationServiceTests
             x => x.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("AGENT-NOTIFY-002")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("SEND-022")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);

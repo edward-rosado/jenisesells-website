@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RealEstateStar.Workers.Cma;
 using RealEstateStar.Workers.HomeSearch;
-using RealEstateStar.Workers.Leads;
 using RealEstateStar.Workers.Shared;
+using LeadOrchestratorChannel = RealEstateStar.Workers.Lead.Orchestrator.LeadOrchestratorChannel;
 
 namespace RealEstateStar.Api.Health;
 
@@ -16,7 +16,6 @@ namespace RealEstateStar.Api.Health;
 public sealed class BackgroundServiceHealthCheck(
     BackgroundServiceHealthTracker tracker,
     LeadOrchestratorChannel orchestratorChannel,
-    PdfProcessingChannel pdfChannel,
     CmaProcessingChannel cmaChannel,
     HomeSearchProcessingChannel homeSearchChannel,
     ILogger<BackgroundServiceHealthCheck> logger) : IHealthCheck
@@ -32,7 +31,6 @@ public sealed class BackgroundServiceHealthCheck(
         var data = new Dictionary<string, object>();
 
         CheckWorker("LeadOrchestrator", orchestratorChannel.Count, now, stuckWorkers, data);
-        CheckWorker("PdfWorker", pdfChannel.Count, now, stuckWorkers, data);
         CheckWorker("CmaProcessingWorker", cmaChannel.Count, now, stuckWorkers, data);
         CheckWorker("HomeSearchProcessingWorker", homeSearchChannel.Count, now, stuckWorkers, data);
 
