@@ -592,10 +592,32 @@ export function LeadForm({
       )}
 
       {/* Notes */}
-      <div style={fieldGroupStyle}>
-        <label style={labelStyle} htmlFor="lf-notes">Notes (optional)</label>
-        <textarea {...field("notes")} style={{ ...inputStyle, minHeight: 80, resize: "vertical" }} />
-      </div>
+      {(() => {
+        const notesLabel = isSelling && !isBuying
+          ? "Tell us about the property"
+          : !isSelling && isBuying
+          ? "Describe your dream home"
+          : isSelling && isBuying
+          ? "Tell us about your property and what you're looking for"
+          : "Additional Notes";
+        const notesPlaceholder = isSelling && !isBuying
+          ? "Recent renovations, unique features, timeline, price expectations..."
+          : !isSelling && isBuying
+          ? "Must-haves, neighborhood preferences, school districts, budget flexibility..."
+          : isSelling && isBuying
+          ? "Describe your property for sale and what you're looking for in your next home..."
+          : undefined;
+        return (
+          <div style={fieldGroupStyle}>
+            <label style={labelStyle} htmlFor="lf-notes">{notesLabel} (optional)</label>
+            <textarea
+              {...field("notes")}
+              placeholder={notesPlaceholder}
+              style={{ ...inputStyle, minHeight: 80, resize: "vertical" }}
+            />
+          </div>
+        );
+      })()}
 
       {/* Errors */}
       <div id="lf-error" aria-live="polite" role="alert">
