@@ -23,6 +23,13 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | [Lead Orchestrator Flow](lead-orchestrator-flow.md) | Lead pipeline: scoring → dispatch → collect → email → notify |
 | [Worker Dispatch Routing](worker-dispatch-routing.md) | CMA/HomeSearch/PDF worker dispatch via channels + TCS |
 | [Agent Notification Flow](agent-notification-flow.md) | WhatsApp-first agent notification with email fallback |
+| [Per-Lead Orchestrator Lifecycle](per-lead-orchestrator-lifecycle.md) | Per-lead instance: score → fan-out → PDF → email → notify → persist |
+| [Shared Project Dependencies](shared-project-dependencies.md) | Shared vs lead-specific worker project dependency graph |
+| [Pipeline Context Data Flow](pipeline-context-data-flow.md) | LeadPipelineContext class diagram — what each activity reads/writes |
+| [Communication Draft/Send Split](communication-draft-send-split.md) | Draft and send as separate activities with content-hash dedup |
+| [Lead Scoring with Engagement](lead-scoring-engagement.md) | Weighted scoring factors including repeat submission engagement |
+| [Observability Span Tree](observability-span-tree.md) | Trace span hierarchy with per-activity metrics |
+| [Security Hardening Layers](security-hardening-layers.md) | Defense-in-depth: input sanitization, output encoding, secret management |
 
 ## API Project Structure (21 Projects + 23 Test Projects)
 

@@ -26,8 +26,8 @@ public sealed class PdfWorkerTests
         PriceRangeHigh: 520_000m,
         Comps:
         [
-            new CompSummary("123 Main St", 490_000m, Beds: 3, Baths: 2m, Sqft: 1800, DaysOnMarket: 14, Distance: 0.3),
-            new CompSummary("456 Oak Ave", 510_000m, Beds: 4, Baths: 2.5m, Sqft: 2100, DaysOnMarket: 7, Distance: 0.5)
+            new CompSummary("123 Main St", 490_000m, Beds: 3, Baths: 2m, Sqft: 1800, DaysOnMarket: 14, Distance: 0.3, SaleDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30))),
+            new CompSummary("456 Oak Ave", 510_000m, Beds: 4, Baths: 2.5m, Sqft: 2100, DaysOnMarket: 7, Distance: 0.5, SaleDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-20)))
         ],
         MarketAnalysis: "Market is trending upward with low inventory."
     );

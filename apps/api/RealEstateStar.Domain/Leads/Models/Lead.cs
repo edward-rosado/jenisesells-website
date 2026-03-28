@@ -20,6 +20,8 @@ public class Lead
     public string? ConsentToken { get; set; }
     public string? ConsentTokenHash { get; init; }
     public bool? MarketingOptedIn { get; set; }
+    public int SubmissionCount { get; set; } = 1;
+    public LeadRetryState? RetryState { get; set; }
 
     public string FullName => $"{FirstName} {LastName}";
 

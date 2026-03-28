@@ -46,6 +46,9 @@ public static class OpenTelemetryExtensions
                 .AddSource(FanOutDiagnostics.ServiceName)
                 .AddSource(RentCastDiagnostics.ServiceName)
                 .AddSource(OrchestratorDiagnostics.ServiceName)
+                .AddSource("RealEstateStar.Pdf")
+                .AddSource("RealEstateStar.LeadCommunicator")
+                .AddSource("RealEstateStar.AgentNotifier")
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>
@@ -71,6 +74,9 @@ public static class OpenTelemetryExtensions
                 .AddMeter(FanOutDiagnostics.ServiceName)
                 .AddMeter(RentCastDiagnostics.ServiceName)
                 .AddMeter(OrchestratorDiagnostics.ServiceName)
+                .AddMeter("RealEstateStar.Pdf")
+                .AddMeter("RealEstateStar.LeadCommunicator")
+                .AddMeter("RealEstateStar.AgentNotifier")
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>

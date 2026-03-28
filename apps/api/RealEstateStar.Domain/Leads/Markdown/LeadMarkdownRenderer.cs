@@ -20,6 +20,7 @@ public static partial class LeadMarkdownRenderer
         sb.AppendLine("# === System ===");
         sb.AppendLine($"leadId: {lead.Id}");
         sb.AppendLine($"status: {lead.Status}");
+        sb.AppendLine($"submissionCount: {lead.SubmissionCount}");
         sb.AppendLine($"receivedAt: {lead.ReceivedAt:O}");
         sb.AppendLine($"homeSearchId: {lead.HomeSearchId?.ToString() ?? ""}");
         sb.AppendLine($"consent_token_hash: {lead.ConsentTokenHash ?? ""}");

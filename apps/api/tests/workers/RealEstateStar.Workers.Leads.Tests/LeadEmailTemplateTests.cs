@@ -84,8 +84,8 @@ public class LeadEmailTemplateTests
         PriceRangeHigh: 470_000m,
         Comps:
         [
-            new CompSummary("100 Elm St", 440_000m, 3, 2, 1750, 12, 0.3),
-            new CompSummary("200 Maple Ave", 460_000m, 4, 2, 1900, 8, 0.5)
+            new CompSummary("100 Elm St", 440_000m, 3, 2, 1750, 12, 0.3, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30))),
+            new CompSummary("200 Maple Ave", 460_000m, 4, 2, 1900, 8, 0.5, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-20)))
         ],
         MarketAnalysis: "Seller's market with low inventory.");
 
@@ -107,7 +107,7 @@ public class LeadEmailTemplateTests
     {
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("<img");
         html.Should().Contain("cdn.example.com/logo.png");
@@ -119,7 +119,7 @@ public class LeadEmailTemplateTests
         var agentWithoutLogo = DefaultAgent with { BrokerageLogo = null };
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, agentWithoutLogo,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("Jenise Buckalew");
         html.Should().NotContain("<img");
@@ -130,7 +130,7 @@ public class LeadEmailTemplateTests
     {
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("#1a73e8");
     }
@@ -145,7 +145,7 @@ public class LeadEmailTemplateTests
         var personalized = "Jane, your property on Oak Ave is well-positioned.";
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            personalized, string.Empty, null);
+            personalized, string.Empty, null, "test-secret");
 
         html.Should().Contain("Jane, your property on Oak Ave is well-positioned.");
     }
@@ -156,7 +156,7 @@ public class LeadEmailTemplateTests
         var pitch = "With 15 years in NJ real estate, I bring unmatched expertise.";
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, pitch, null);
+            string.Empty, pitch, null, "test-secret");
 
         html.Should().Contain("With 15 years in NJ real estate, I bring unmatched expertise.");
     }
@@ -166,7 +166,7 @@ public class LeadEmailTemplateTests
     {
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("Thank you for reaching out");
     }
@@ -183,7 +183,7 @@ public class LeadEmailTemplateTests
 
         var html = LeadEmailTemplate.Render(
             lead, MakeScore(), cmaResult, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("Comparative Market Analysis");
         html.Should().Contain("450");    // estimated value 450,000
@@ -199,7 +199,7 @@ public class LeadEmailTemplateTests
 
         var html = LeadEmailTemplate.Render(
             lead, MakeScore(), cmaResult, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("100 Elm St");
         html.Should().Contain("200 Maple Ave");
@@ -214,7 +214,7 @@ public class LeadEmailTemplateTests
 
         var html = LeadEmailTemplate.Render(
             lead, MakeScore(), cmaResult, null, DefaultAgent,
-            string.Empty, string.Empty, pdfUrl);
+            string.Empty, string.Empty, pdfUrl, "test-secret");
 
         html.Should().Contain(pdfUrl);
         html.Should().Contain("Download");
@@ -225,7 +225,7 @@ public class LeadEmailTemplateTests
     {
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().NotContain("Comparative Market Analysis");
     }
@@ -242,7 +242,7 @@ public class LeadEmailTemplateTests
 
         var html = LeadEmailTemplate.Render(
             lead, MakeScore(), null, homeResult, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("10 Pine Rd");
         html.Should().Contain("20 Cedar Dr");
@@ -257,7 +257,7 @@ public class LeadEmailTemplateTests
 
         var html = LeadEmailTemplate.Render(
             lead, MakeScore(), null, homeResult, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("Great school districts");
     }
@@ -267,7 +267,7 @@ public class LeadEmailTemplateTests
     {
         var html = LeadEmailTemplate.Render(
             MakeBuyerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().NotContain("Homes Matching Your Criteria");
     }
@@ -281,7 +281,7 @@ public class LeadEmailTemplateTests
     {
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("NJ-123456");
         html.Should().Contain("License #");
@@ -292,7 +292,7 @@ public class LeadEmailTemplateTests
     {
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("Coldwell Banker");
     }
@@ -302,7 +302,7 @@ public class LeadEmailTemplateTests
     {
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("opt-out");
         html.Should().Contain("Unsubscribe");
@@ -313,7 +313,7 @@ public class LeadEmailTemplateTests
     {
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("ccpa");
         html.Should().Contain("CCPA");
@@ -324,7 +324,7 @@ public class LeadEmailTemplateTests
     {
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("privacy");
         html.Should().Contain("Privacy Policy");
@@ -335,7 +335,7 @@ public class LeadEmailTemplateTests
     {
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         // Token is in query string and contains a dot (hash.signature)
         html.Should().Contain("token=");
@@ -352,7 +352,7 @@ public class LeadEmailTemplateTests
     {
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("Powered by Real Estate Star");
     }
@@ -366,7 +366,7 @@ public class LeadEmailTemplateTests
     {
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("viewport");
         html.Should().Contain("width=device-width");
@@ -377,7 +377,7 @@ public class LeadEmailTemplateTests
     {
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("max-width");
         html.Should().Contain("600");
@@ -390,7 +390,7 @@ public class LeadEmailTemplateTests
     [Fact]
     public void BuildPrivacyToken_ContainsDotSeparatingHashAndSignature()
     {
-        var token = LeadEmailTemplate.BuildPrivacyToken("test@example.com", "agent-id");
+        var token = LeadEmailTemplate.BuildPrivacyToken("test@example.com", "agent-id", "test-secret");
         token.Should().Contain(".");
         var parts = token.Split('.');
         parts.Should().HaveCount(2);
@@ -401,23 +401,23 @@ public class LeadEmailTemplateTests
     [Fact]
     public void BuildPrivacyToken_DoesNotContainRawEmail()
     {
-        var token = LeadEmailTemplate.BuildPrivacyToken("jane@example.com", "jenise-buckalew");
+        var token = LeadEmailTemplate.BuildPrivacyToken("jane@example.com", "jenise-buckalew", "test-secret");
         token.Should().NotContain("jane@example.com");
     }
 
     [Fact]
     public void BuildPrivacyToken_SameInputProducesSameTokenWithinSameDay()
     {
-        var token1 = LeadEmailTemplate.BuildPrivacyToken("same@example.com", "agent-x");
-        var token2 = LeadEmailTemplate.BuildPrivacyToken("same@example.com", "agent-x");
+        var token1 = LeadEmailTemplate.BuildPrivacyToken("same@example.com", "agent-x", "test-secret");
+        var token2 = LeadEmailTemplate.BuildPrivacyToken("same@example.com", "agent-x", "test-secret");
         token1.Should().Be(token2);
     }
 
     [Fact]
     public void BuildPrivacyToken_DifferentEmailsProduceDifferentTokens()
     {
-        var token1 = LeadEmailTemplate.BuildPrivacyToken("alice@example.com", "agent-x");
-        var token2 = LeadEmailTemplate.BuildPrivacyToken("bob@example.com", "agent-x");
+        var token1 = LeadEmailTemplate.BuildPrivacyToken("alice@example.com", "agent-x", "test-secret");
+        var token2 = LeadEmailTemplate.BuildPrivacyToken("bob@example.com", "agent-x", "test-secret");
         token1.Should().NotBe(token2);
     }
 
@@ -431,7 +431,7 @@ public class LeadEmailTemplateTests
         var agentWithoutBio = DefaultAgent with { Bio = null };
         var act = () => LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, agentWithoutBio,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         act.Should().NotThrow();
     }
@@ -442,7 +442,7 @@ public class LeadEmailTemplateTests
         var agentWithoutLogo = DefaultAgent with { BrokerageLogo = null };
         var html = LeadEmailTemplate.Render(
             MakeSellerLead(), MakeScore(), null, null, agentWithoutLogo,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("Jenise Buckalew");
     }
@@ -459,7 +459,7 @@ public class LeadEmailTemplateTests
 
         var act = () => LeadEmailTemplate.Render(
             lead, MakeScore(), cmaResult, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         act.Should().NotThrow();
     }
@@ -474,7 +474,7 @@ public class LeadEmailTemplateTests
 
         var html = LeadEmailTemplate.Render(
             lead, MakeScore(), cmaResult, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().NotContain("Comparative Market Analysis");
     }
@@ -488,7 +488,7 @@ public class LeadEmailTemplateTests
 
         var html = LeadEmailTemplate.Render(
             lead, MakeScore(), null, homeResult, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().NotContain("Homes Matching Your Criteria");
     }
@@ -531,7 +531,7 @@ public class LeadEmailTemplateTests
 
         var html = LeadEmailTemplate.Render(
             lead, MakeScore(), cmaResult, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().Contain("—");
     }
@@ -556,7 +556,7 @@ public class LeadEmailTemplateTests
 
         var act = () => LeadEmailTemplate.Render(
             lead, MakeScore(), null, homeResult, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         act.Should().NotThrow();
     }
@@ -575,7 +575,7 @@ public class LeadEmailTemplateTests
 
         var html = LeadEmailTemplate.Render(
             lead, MakeScore(), null, homeResult, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         html.Should().NotContain("View Listing");
     }
@@ -610,7 +610,7 @@ public class LeadEmailTemplateTests
 
         var act = () => LeadEmailTemplate.Render(
             lead, MakeScore(), null, null, DefaultAgent,
-            string.Empty, string.Empty, null);
+            string.Empty, string.Empty, null, "test-secret");
 
         act.Should().NotThrow();
     }
