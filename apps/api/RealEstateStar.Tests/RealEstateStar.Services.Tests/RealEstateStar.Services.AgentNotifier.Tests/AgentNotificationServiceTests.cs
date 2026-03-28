@@ -7,18 +7,18 @@ using RealEstateStar.Domain.Shared.Interfaces.Senders;
 
 namespace RealEstateStar.Services.AgentNotifier.Tests;
 
-public class AgentNotificationServiceTests
+public class AgentNotifierServiceTests
 {
     private readonly Mock<IWhatsAppSender> _whatsAppSender = new();
     private readonly Mock<IGmailSender> _gmailSender = new();
-    private readonly Mock<ILogger<AgentNotificationService>> _logger = new();
-    private readonly AgentNotificationService _notifier;
+    private readonly Mock<ILogger<AgentNotifierService>> _logger = new();
+    private readonly AgentNotifierService _notifier;
 
     private static readonly CancellationToken Ct = CancellationToken.None;
 
-    public AgentNotificationServiceTests()
+    public AgentNotifierServiceTests()
     {
-        _notifier = new AgentNotificationService(_whatsAppSender.Object, _gmailSender.Object, _logger.Object);
+        _notifier = new AgentNotifierService(_whatsAppSender.Object, _gmailSender.Object, _logger.Object);
     }
 
     private static AgentNotificationConfig MakeConfig(string? whatsAppPhoneNumberId = "123456789") =>

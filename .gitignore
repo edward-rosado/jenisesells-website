@@ -65,5 +65,8 @@ packages/api-client/openapi.json
 # Coverage reports
 coverage/
 
+# Local dev test data — never commit
+apps/api/RealEstateStar.Api/data/
+
 # Archives
 *.tar

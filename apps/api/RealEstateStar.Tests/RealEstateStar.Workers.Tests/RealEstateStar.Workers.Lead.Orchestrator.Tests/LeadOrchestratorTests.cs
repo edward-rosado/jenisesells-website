@@ -32,7 +32,7 @@ public sealed class LeadOrchestratorTests
     private readonly Mock<IGmailSender> _gmailMock = new();
     private readonly Mock<IWhatsAppSender> _whatsAppMock = new();
     private readonly Mock<ICmaPdfGenerator> _pdfGeneratorMock = new();
-    private readonly Mock<IDocumentStorageProvider> _documentStorageMock = new();
+    private readonly Mock<IPdfDataService> _pdfDataServiceMock = new();
 
     // ── channels + infrastructure ────────────────────────────────────────────
     private readonly LeadOrchestratorChannel _orchestratorChannel = new();
@@ -52,7 +52,7 @@ public sealed class LeadOrchestratorTests
 
         var pdfActivity = new PdfActivity(
             _pdfGeneratorMock.Object,
-            _documentStorageMock.Object,
+            _pdfDataServiceMock.Object,
             NullLogger<PdfActivity>.Instance);
 
         var persistStorage = new Mock<IDocumentStorageProvider>();
@@ -74,15 +74,15 @@ public sealed class LeadOrchestratorTests
         // Use a real FakeContentCache when none is provided (null-returning mock is only for non-cache-hit tests)
         contentCache ??= new FakeContentCache();
 
-        var communicationService = new LeadCommunicationService(
+        var communicationService = new LeadCommunicatorService(
             _emailDrafterMock.Object,
             _gmailMock.Object,
-            NullLogger<LeadCommunicationService>.Instance);
+            NullLogger<LeadCommunicatorService>.Instance);
 
-        var agentNotificationService = new AgentNotificationService(
+        var agentNotificationService = new AgentNotifierService(
             _whatsAppMock.Object,
             _gmailMock.Object,
-            NullLogger<AgentNotificationService>.Instance);
+            NullLogger<AgentNotifierService>.Instance);
 
         return new LeadOrchestrator(
             _orchestratorChannel,
@@ -273,10 +273,10 @@ public sealed class LeadOrchestratorTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(tempFile);
 
-        _documentStorageMock
-            .Setup(s => s.WriteDocumentAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        _pdfDataServiceMock
+            .Setup(s => s.StorePdfAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Real Estate Star/1 - Leads/Test Lead/CMA/2026-01-01-test-CMA-Report.pdf.b64");
     }
 
     /// <summary>Runs a background task that auto-resolves CMA channel requests.</summary>
@@ -468,7 +468,7 @@ public sealed class LeadOrchestratorTests
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // LeadCommunicationService.DraftAsync + SendAsync called in sequence
+    // LeadCommunicatorService.DraftAsync + SendAsync called in sequence
     // ═══════════════════════════════════════════════════════════════════════════
 
     [Fact]
@@ -545,11 +545,11 @@ public sealed class LeadOrchestratorTests
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // AgentNotificationService called
+    // AgentNotifierService called
     // ═══════════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public async Task SellerLead_AgentNotificationService_Called()
+    public async Task SellerLead_AgentNotifierService_Called()
     {
         // Arrange
         var lead = BuildSellerLead();
@@ -572,12 +572,12 @@ public sealed class LeadOrchestratorTests
         await orchestrator.ProcessRequestAsync(request, cts.Token);
 
         // Assert — WhatsApp or Gmail called for agent notification
-        // AgentNotificationService tries WhatsApp first, then Gmail as fallback
+        // AgentNotifierService tries WhatsApp first, then Gmail as fallback
         var whatsAppCalled = _whatsAppMock.Invocations.Count > 0;
         var gmailCalledForNotification = _gmailMock.Invocations.Count > 1; // first call is lead email, second would be agent notification
 
         (whatsAppCalled || gmailCalledForNotification).Should().BeTrue(
-            "AgentNotificationService must attempt to notify the agent via WhatsApp or email");
+            "AgentNotifierService must attempt to notify the agent via WhatsApp or email");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

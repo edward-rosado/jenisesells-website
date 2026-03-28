@@ -19,7 +19,6 @@ public class DependencyTests
     [Theory]
     [InlineData("RealEstateStar.Data", new[] { "Domain" })]
     [InlineData("RealEstateStar.DataServices", new[] { "Domain" })]
-    [InlineData("RealEstateStar.Notifications", new[] { "Domain" })]
     [InlineData("RealEstateStar.Workers.Shared", new[] { "Domain" })]
     [InlineData("RealEstateStar.Activities.Pdf", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Activities.Persist", new[] { "Domain" })]
@@ -102,14 +101,19 @@ public class DependencyTests
     }
 
     [Fact]
-    public void No_project_outside_Api_references_DataServices()
+    public void Only_Api_Services_Activities_may_reference_DataServices()
     {
+        // Services persist failure/fallback records via DataServices.
+        // Activities persist pipeline artifacts via DataServices.
+        // Everyone else goes through Domain interfaces only.
+        var allowed = new HashSet<string>
+        {
+            "Api", "Services", "Activities", "DataServices", "Tests", "TestUtilities"
+        };
+
         var productionAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.*.dll")
             .Select(Assembly.LoadFrom)
-            .Where(a => !a.GetName().Name!.Contains("Api"))
-            .Where(a => !a.GetName().Name!.Contains("Tests"))
-            .Where(a => !a.GetName().Name!.Contains("TestUtilities"))
-            .Where(a => !a.GetName().Name!.Contains("DataServices"));
+            .Where(a => !allowed.Any(k => a.GetName().Name!.Contains(k)));
 
         foreach (var assembly in productionAssemblies)
         {
@@ -119,7 +123,7 @@ public class DependencyTests
                 .ToList();
 
             Assert.True(dataServiceRefs.Count == 0,
-                $"{assembly.GetName().Name} references {string.Join(", ", dataServiceRefs)} — only Api may reference DataServices");
+                $"{assembly.GetName().Name} references {string.Join(", ", dataServiceRefs)} — only Api, Services, and Activities may reference DataServices");
         }
     }
 
@@ -146,28 +150,6 @@ public class DependencyTests
     }
 
     [Fact]
-    public void No_project_outside_Api_references_Notifications()
-    {
-        var productionAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.*.dll")
-            .Select(Assembly.LoadFrom)
-            .Where(a => !a.GetName().Name!.Contains("Api"))
-            .Where(a => !a.GetName().Name!.Contains("Tests"))
-            .Where(a => !a.GetName().Name!.Contains("TestUtilities"))
-            .Where(a => a.GetName().Name != "RealEstateStar.Notifications");
-
-        foreach (var assembly in productionAssemblies)
-        {
-            var notifRefs = assembly.GetReferencedAssemblies()
-                .Where(a => a.Name == "RealEstateStar.Notifications")
-                .Select(a => a.Name!)
-                .ToList();
-
-            Assert.True(notifRefs.Count == 0,
-                $"{assembly.GetName().Name} references {string.Join(", ", notifRefs)} — only Api may reference Notifications");
-        }
-    }
-
-    [Fact]
     public void Api_only_depends_on_allowed_projects()
     {
         var assembly = Assembly.Load("RealEstateStar.Api");
@@ -177,7 +159,6 @@ public class DependencyTests
             "RealEstateStar.Domain",
             "RealEstateStar.Data",
             "RealEstateStar.DataServices",
-            "RealEstateStar.Notifications",
             "RealEstateStar.Workers.Shared",
             "RealEstateStar.Activities.Pdf",
             "RealEstateStar.Activities.Persist",
@@ -329,13 +310,13 @@ public class DependencyTests
     }
 
     [Fact]
-    public void Workers_do_not_reference_Data_or_DataServices_or_Notifications()
+    public void Workers_do_not_reference_Data_or_DataServices()
     {
         var workerAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.Workers.*.dll")
             .Select(Assembly.LoadFrom)
             .Where(a => !a.GetName().Name!.Contains("Tests"));
 
-        var forbidden = new[] { "RealEstateStar.Data", "RealEstateStar.DataServices", "RealEstateStar.Notifications" };
+        var forbidden = new[] { "RealEstateStar.Data", "RealEstateStar.DataServices" };
 
         foreach (var assembly in workerAssemblies)
         {
@@ -345,7 +326,7 @@ public class DependencyTests
                 .ToList();
 
             Assert.True(violations.Count == 0,
-                $"{assembly.GetName().Name} references {string.Join(", ", violations)} — Workers must not reference Data, DataServices, or Notifications");
+                $"{assembly.GetName().Name} references {string.Join(", ", violations)} — Workers must not reference Data or DataServices");
         }
     }
 

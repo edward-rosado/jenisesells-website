@@ -33,8 +33,7 @@
     <ProjectReference Include="..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />
     <ProjectReference Include="..\RealEstateStar.Data\RealEstateStar.Data.csproj" />
     <ProjectReference Include="..\RealEstateStar.DataServices\RealEstateStar.DataServices.csproj" />
-    <ProjectReference Include="..\RealEstateStar.Notifications\RealEstateStar.Notifications.csproj" />
-    <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Shared\RealEstateStar.Workers.Shared.csproj" />
+<ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Shared\RealEstateStar.Workers.Shared.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Lead.Orchestrator\RealEstateStar.Workers.Lead.Orchestrator.csproj" />
     <ProjectReference Include="..\RealEstateStar.Services\RealEstateStar.Services.AgentNotifier\RealEstateStar.Services.AgentNotifier.csproj" />
     <ProjectReference Include="..\RealEstateStar.Services\RealEstateStar.Services.LeadCommunicator\RealEstateStar.Services.LeadCommunicator.csproj" />

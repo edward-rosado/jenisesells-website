@@ -2,10 +2,9 @@ using Moq;
 using FluentAssertions;
 using RealEstateStar.Domain.Cma.Models;
 using RealEstateStar.Domain.Cma.Interfaces;
-using RealEstateStar.Workers.Lead.CMA;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace RealEstateStar.Domain.Tests.Cma;
+namespace RealEstateStar.Workers.Lead.CMA.Tests;
 
 public class CompAggregatorTests
 {

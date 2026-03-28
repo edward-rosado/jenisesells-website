@@ -19,7 +19,7 @@ namespace RealEstateStar.Workers.Lead.Orchestrator;
 /// Per-lead orchestrator. Reads from <see cref="LeadOrchestratorChannel"/>,
 /// scores the lead, dispatches CMA and HomeSearch workers in parallel via channels,
 /// calls <see cref="PdfActivity"/> inline, drafts and sends the lead email via
-/// <see cref="ILeadCommunicationService"/>, and notifies the agent via
+/// <see cref="ILeadCommunicatorService"/>, and notifies the agent via
 /// <see cref="IAgentNotifier"/>. All pipeline state is carried in
 /// a <see cref="LeadPipelineContext"/> instance.
 /// </summary>
@@ -37,7 +37,7 @@ public sealed class LeadOrchestrator(
     HomeSearchProcessingChannel homeSearchChannel,
     PdfActivity pdfActivity,
     PersistActivity persistActivity,
-    ILeadCommunicationService communicationService,
+    ILeadCommunicatorService communicationService,
     IAgentNotifier agentNotifier,
     IContentCache contentCache,
     BackgroundServiceHealthTracker healthTracker,
@@ -228,7 +228,7 @@ public sealed class LeadOrchestrator(
                 }
             }
 
-            // Step 6: Draft lead email via LeadCommunicationService
+            // Step 6: Draft lead email via LeadCommunicatorService
             var draftEmailHash = ComputeDraftEmailHash(ctx);
             if (ctx.RetryState.IsCompleted("draftLeadEmail", draftEmailHash))
             {
@@ -267,7 +267,7 @@ public sealed class LeadOrchestrator(
                 await SendLeadEmailAsync(ctx, correlationId, ct);
             }
 
-            // Step 8: Notify agent via AgentNotificationService
+            // Step 8: Notify agent via AgentNotifierService
             await NotifyAgentAsync(ctx, correlationId, ct);
 
             // Step 9: Set final status + persist all artifacts

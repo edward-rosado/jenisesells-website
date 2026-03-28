@@ -8,7 +8,7 @@ using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Services.LeadCommunicator.Tests;
 
-public class LeadCommunicationServiceTests
+public class LeadCommunicatorServiceTests
 {
     private static readonly AgentNotificationConfig DefaultAgent = new()
     {
@@ -56,7 +56,7 @@ public class LeadCommunicationServiceTests
         Score = new LeadScore { OverallScore = 75, Factors = [], Explanation = "Test" }
     };
 
-    private static (LeadCommunicationService service, Mock<ILeadEmailDrafter> drafterMock, Mock<IGmailSender> gmailMock)
+    private static (LeadCommunicatorService service, Mock<ILeadEmailDrafter> drafterMock, Mock<IGmailSender> gmailMock)
         CreateService(LeadEmail? emailResult = null, Exception? gmailException = null)
     {
         var drafterMock = new Mock<ILeadEmailDrafter>();
@@ -80,8 +80,8 @@ public class LeadCommunicationServiceTests
                 .ThrowsAsync(gmailException);
         }
 
-        var logger = new Mock<ILogger<LeadCommunicationService>>();
-        var service = new LeadCommunicationService(drafterMock.Object, gmailMock.Object, logger.Object);
+        var logger = new Mock<ILogger<LeadCommunicatorService>>();
+        var service = new LeadCommunicatorService(drafterMock.Object, gmailMock.Object, logger.Object);
         return (service, drafterMock, gmailMock);
     }
 

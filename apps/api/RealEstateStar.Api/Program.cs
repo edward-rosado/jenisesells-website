@@ -41,8 +41,6 @@ using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.WhatsApp.Interfaces;
-using RealEstateStar.Notifications;
-using RealEstateStar.Notifications.WhatsApp;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
 using RealEstateStar.Workers.Shared;
@@ -341,9 +339,6 @@ var whatsAppWabaId = builder.Configuration["WhatsApp:WabaId"];
 
 if (string.IsNullOrEmpty(whatsAppPhoneNumberId))
     Log.Warning("WhatsApp:PhoneNumberId not configured — WhatsApp notifications disabled");
-
-// Notification services (IEmailTemplateRenderer, IEmailNotifier)
-builder.Services.AddNotificationServices();
 
 // ------------------------------------------------------------------
 // WhatsApp services — intent/response/conversation stubs + conditional

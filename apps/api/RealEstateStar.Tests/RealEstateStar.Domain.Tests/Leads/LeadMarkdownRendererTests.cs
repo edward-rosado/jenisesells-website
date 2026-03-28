@@ -1,6 +1,6 @@
 using FluentAssertions;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Leads.Markdown;
+using RealEstateStar.DataServices.Leads;
 
 namespace RealEstateStar.Domain.Tests.Leads;
 

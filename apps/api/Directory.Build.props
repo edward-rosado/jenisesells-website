@@ -2,5 +2,9 @@
   <PropertyGroup>
     <!-- Enable code style diagnostics so dotnet format with IDE0005 removes unused usings -->
     <EnableCodeStyleSeverity>true</EnableCodeStyleSeverity>
+    <!-- Enforce IDE0005 (unused usings) as a build error — CI will catch them -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Required for IDE0005 to run during build (Roslyn requirement) -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 </Project>

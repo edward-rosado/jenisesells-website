@@ -1,4 +1,4 @@
-using RealEstateStar.Notifications.WhatsApp;
+using RealEstateStar.Services.AgentNotifier;
 using FluentAssertions;
 
 namespace RealEstateStar.Api.Tests.Features.WhatsApp;

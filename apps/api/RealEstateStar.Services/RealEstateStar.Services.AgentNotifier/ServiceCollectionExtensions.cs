@@ -7,7 +7,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddAgentNotifier(this IServiceCollection services)
     {
-        services.AddSingleton<IAgentNotifier, AgentNotificationService>();
+        services.AddSingleton<IAgentNotifier, AgentNotifierService>();
         return services;
     }
 }
