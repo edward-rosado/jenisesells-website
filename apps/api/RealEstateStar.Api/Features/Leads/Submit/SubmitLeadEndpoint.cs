@@ -11,6 +11,7 @@ using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Privacy;
 using RealEstateStar.Domain.Privacy.Interfaces;
+using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Workers.Lead.Orchestrator;
 
@@ -192,7 +193,20 @@ public class SubmitLeadEndpoint : IEndpoint
             await deadLetterStore.RecordAsync(lead, "consent", ex.Message, ct);
         }
 
-        // 5. Enqueue orchestrator — handles enrichment, scoring, CMA, home search, notification
+        // 5. Status-based gating — prevent duplicate orchestrator instances for the same lead
+        if (isUpdate)
+        {
+            var gate = EvaluateStatusGate(lead, request);
+            if (gate is not null)
+            {
+                logger.LogInformation(
+                    "[LEAD-005] Lead {LeadId} status gate: {Status} → {Reason}",
+                    lead.Id, lead.Status, gate);
+                return Results.Accepted($"/agents/{agentId}/leads/{lead.Id}", new SubmitLeadResponse(lead.Id, gate));
+            }
+        }
+
+        // 6. Enqueue orchestrator — handles enrichment, scoring, CMA, home search, notification
         var correlationId = httpContext.Items[CorrelationIdMiddleware.CorrelationIdKey]?.ToString() ?? Guid.NewGuid().ToString();
         activity?.SetTag("correlation.id", correlationId);
 
@@ -207,6 +221,62 @@ public class SubmitLeadEndpoint : IEndpoint
 
         // 6. Return 202 Accepted immediately
         return Results.Accepted($"/agents/{agentId}/leads/{lead.Id}", new SubmitLeadResponse(lead.Id, "received"));
+    }
+
+    /// <summary>
+    /// Evaluates whether an existing lead's pipeline status should prevent re-dispatching.
+    /// Returns a reason string when the orchestrator should NOT be enqueued, or null to allow dispatch.
+    /// </summary>
+    internal static string? EvaluateStatusGate(Lead lead, SubmitLeadRequest request)
+    {
+        switch (lead.Status)
+        {
+            // Already being processed — skip dispatch to prevent parallel instances
+            case LeadStatus.Scored:
+            case LeadStatus.Analyzing:
+            case LeadStatus.Notified:
+                return "processing";
+
+            // Pipeline complete — only re-run if content changed
+            case LeadStatus.Complete:
+                var newContentHash = ComputeLeadContentHash(request);
+                var existingContentHash = ComputeLeadContentHash(lead);
+                if (newContentHash == existingContentHash)
+                    return "already-complete";
+                return null; // Content changed → allow re-dispatch
+
+            // Received or any other status → allow dispatch
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>Computes a content hash of the lead's property/search inputs for change detection.</summary>
+    internal static string ComputeLeadContentHash(SubmitLeadRequest request) =>
+        ContentHash.Compute(
+            request.Seller?.Address,
+            request.Seller?.City,
+            request.Seller?.State,
+            request.Seller?.Zip,
+            request.Buyer?.DesiredArea,
+            request.Buyer?.MinPrice?.ToString(),
+            request.Buyer?.MaxPrice?.ToString());
+
+    internal static string ComputeLeadContentHash(Lead lead)
+    {
+        // Reconstruct DesiredArea from City + State to match the request hash field layout.
+        // BuyerDetailsRequest.DesiredArea is stored as "City, State" and parsed by LeadMappers.
+        var desiredArea = lead.BuyerDetails is { City: var c, State: var s }
+            ? $"{c}, {s}"
+            : null;
+        return ContentHash.Compute(
+            lead.SellerDetails?.Address,
+            lead.SellerDetails?.City,
+            lead.SellerDetails?.State,
+            lead.SellerDetails?.Zip,
+            desiredArea,
+            lead.BuyerDetails?.MinBudget?.ToString(),
+            lead.BuyerDetails?.MaxBudget?.ToString());
     }
 
     internal static Dictionary<string, string[]> GroupValidationErrors(List<ValidationResult> results) =>
