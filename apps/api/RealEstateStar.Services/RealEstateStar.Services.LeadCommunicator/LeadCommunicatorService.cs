@@ -13,10 +13,10 @@ namespace RealEstateStar.Services.LeadCommunicator;
 /// Higher-level service that wraps draft + send as two separate activities.
 /// Draft and send are separated so the pipeline can checkpoint between them.
 /// </summary>
-public class LeadCommunicationService(
+public class LeadCommunicatorService(
     ILeadEmailDrafter drafter,
     IGmailSender gmailSender,
-    ILogger<LeadCommunicationService> logger) : ILeadCommunicationService
+    ILogger<LeadCommunicatorService> logger) : ILeadCommunicatorService
 {
     /// <summary>
     /// Draft personalized email content via Claude.

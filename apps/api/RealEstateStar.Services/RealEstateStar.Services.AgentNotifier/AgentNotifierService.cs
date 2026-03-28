@@ -6,10 +6,10 @@ using RealEstateStar.Domain.Shared.Interfaces.Senders;
 
 namespace RealEstateStar.Services.AgentNotifier;
 
-public class AgentNotificationService(
+public class AgentNotifierService(
     IWhatsAppSender whatsAppSender,
     IGmailSender gmailSender,
-    ILogger<AgentNotificationService> logger) : IAgentNotifier
+    ILogger<AgentNotifierService> logger) : IAgentNotifier
 {
     public async Task NotifyAsync(Lead lead, LeadScore score,
         CmaWorkerResult? cmaResult, HomeSearchWorkerResult? homeSearchResult,
@@ -64,6 +64,7 @@ public class AgentNotificationService(
                 agentConfig.AgentId);
         }
     }
+
 
     internal static List<(string type, string value)> BuildTemplateParameters(
         Lead lead, LeadScore score,

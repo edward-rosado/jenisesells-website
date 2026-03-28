@@ -9,7 +9,7 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Registers the per-lead orchestrator and its direct dependencies.
     /// Callers must also register CmaProcessingChannel, HomeSearchProcessingChannel,
-    /// PdfActivity, LeadCommunicationService, AgentNotificationService, and IContentCache
+    /// PdfActivity, LeadCommunicatorService, AgentNotifierService, and IContentCache
     /// separately (or via their own AddX() extension methods).
     /// </summary>
     public static IServiceCollection AddLeadOrchestrator(this IServiceCollection services)

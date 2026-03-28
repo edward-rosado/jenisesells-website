@@ -66,7 +66,7 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
     [InlineData(typeof(ILeadStore))]
     [InlineData(typeof(ILeadScorer))]
     [InlineData(typeof(ILeadEmailDrafter))]
-    [InlineData(typeof(ILeadCommunicationService))]
+    [InlineData(typeof(ILeadCommunicatorService))]
     [InlineData(typeof(IAgentNotifier))]
     [InlineData(typeof(LeadOrchestratorChannel))]
     [InlineData(typeof(PdfActivity))]

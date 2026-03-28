@@ -1,4 +1,4 @@
-namespace RealEstateStar.Domain.Notifications.Interfaces;
+namespace RealEstateStar.Domain.Shared.Interfaces;
 
 public interface IEmailTemplateRenderer
 {

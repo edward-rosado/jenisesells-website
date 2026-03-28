@@ -1,4 +1,4 @@
-using RealEstateStar.Domain.Notifications.Interfaces;
+using RealEstateStar.Domain.Shared.Interfaces;
 
 namespace RealEstateStar.Services.LeadCommunicator.Templates;
 

@@ -74,15 +74,15 @@ public sealed class LeadOrchestratorTests
         // Use a real FakeContentCache when none is provided (null-returning mock is only for non-cache-hit tests)
         contentCache ??= new FakeContentCache();
 
-        var communicationService = new LeadCommunicationService(
+        var communicationService = new LeadCommunicatorService(
             _emailDrafterMock.Object,
             _gmailMock.Object,
-            NullLogger<LeadCommunicationService>.Instance);
+            NullLogger<LeadCommunicatorService>.Instance);
 
-        var agentNotificationService = new AgentNotificationService(
+        var agentNotificationService = new AgentNotifierService(
             _whatsAppMock.Object,
             _gmailMock.Object,
-            NullLogger<AgentNotificationService>.Instance);
+            NullLogger<AgentNotifierService>.Instance);
 
         return new LeadOrchestrator(
             _orchestratorChannel,
@@ -468,7 +468,7 @@ public sealed class LeadOrchestratorTests
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // LeadCommunicationService.DraftAsync + SendAsync called in sequence
+    // LeadCommunicatorService.DraftAsync + SendAsync called in sequence
     // ═══════════════════════════════════════════════════════════════════════════
 
     [Fact]
@@ -545,11 +545,11 @@ public sealed class LeadOrchestratorTests
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // AgentNotificationService called
+    // AgentNotifierService called
     // ═══════════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public async Task SellerLead_AgentNotificationService_Called()
+    public async Task SellerLead_AgentNotifierService_Called()
     {
         // Arrange
         var lead = BuildSellerLead();
@@ -572,12 +572,12 @@ public sealed class LeadOrchestratorTests
         await orchestrator.ProcessRequestAsync(request, cts.Token);
 
         // Assert — WhatsApp or Gmail called for agent notification
-        // AgentNotificationService tries WhatsApp first, then Gmail as fallback
+        // AgentNotifierService tries WhatsApp first, then Gmail as fallback
         var whatsAppCalled = _whatsAppMock.Invocations.Count > 0;
         var gmailCalledForNotification = _gmailMock.Invocations.Count > 1; // first call is lead email, second would be agent notification
 
         (whatsAppCalled || gmailCalledForNotification).Should().BeTrue(
-            "AgentNotificationService must attempt to notify the agent via WhatsApp or email");
+            "AgentNotifierService must attempt to notify the agent via WhatsApp or email");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
