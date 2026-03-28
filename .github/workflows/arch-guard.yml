@@ -9,10 +9,11 @@ jobs:
   check-approval:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Check for arch-change-approved tag
         run: |
           # Get all commit messages in this PR
-          COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].messageHeadline')
+          COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --json commits --jq '.commits[].messageHeadline')
 
           if echo "$COMMITS" | grep -q "\[arch-change-approved\]"; then
             echo "Architecture change approved via commit message tag"

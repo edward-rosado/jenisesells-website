@@ -184,6 +184,30 @@ The following files in `tests/RealEstateStar.Architecture.Tests/` enforce projec
 
 Commits that modify architecture test files MUST include `[arch-change-approved]` in the commit message.
 
+## Orchestrator Design Rules
+
+**Orchestrators are thin coordinators — they dispatch, they don't implement.**
+
+- An orchestrator should call at most **5-6 Activities/Services directly**
+- If an orchestrator has too many inline service calls, group related calls into an Activity
+- Activities can call Services internally — the orchestrator doesn't need to know the details
+- Example: instead of `DraftEmail → SendEmail → DraftNotification → SendNotification` as 4 separate orchestrator calls, group into `NotifyPartiesActivity` that handles all 4 internally
+
+**Call hierarchy:**
+```
+Orchestrator (top-level coordinator)
+  ├─ dispatches → Sub-Workers (pure compute, via channel)
+  ├─ calls → Activities (compute + persist via DataServices, can call Services)
+  └─ calls → Services (sync business logic, persist failure/fallback via DataServices)
+```
+
+**Key constraints:**
+- Workers: pure compute, NO storage, NO DataServices — call Clients only
+- Services: CANNOT call Activities or Workers
+- Activities: CAN call Services, launched by Orchestrators ONLY
+- DataServices: storage routing (WHERE to store) — called by Activities and Services
+- Data: raw I/O providers (HOW to store) — called by DataServices only
+
 ## File Storage Abstraction
 
 The `IFileStorageProvider` interface (defined in `RealEstateStar.Domain`) abstracts lead storage across Google Drive and local file system. Implementations live in `RealEstateStar.Data`:
