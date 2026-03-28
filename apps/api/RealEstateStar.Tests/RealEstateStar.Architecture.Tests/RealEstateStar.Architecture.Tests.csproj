@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.5" />
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="FluentAssertions" Version="8.8.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="NetArchTest.Rules" Version="1.3.2" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../RealEstateStar.Domain/RealEstateStar.Domain.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Data/RealEstateStar.Data.csproj" />
+    <ProjectReference Include="../../RealEstateStar.DataServices/RealEstateStar.DataServices.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Notifications/RealEstateStar.Notifications.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Workers/RealEstateStar.Workers.Shared/RealEstateStar.Workers.Shared.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Workers/RealEstateStar.Workers.Shared.Pdf/RealEstateStar.Workers.Shared.Pdf.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Workers/RealEstateStar.Workers.Shared.AgentNotifier/RealEstateStar.Workers.Shared.AgentNotifier.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Workers/RealEstateStar.Workers.Shared.LeadCommunicator/RealEstateStar.Workers.Shared.LeadCommunicator.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/RealEstateStar.Workers.Lead.Orchestrator.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Workers/RealEstateStar.Workers.Lead.CMA/RealEstateStar.Workers.Lead.CMA.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Workers/RealEstateStar.Workers.Lead.HomeSearch/RealEstateStar.Workers.Lead.HomeSearch.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Workers/RealEstateStar.Workers.WhatsApp/RealEstateStar.Workers.WhatsApp.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.Anthropic/RealEstateStar.Clients.Anthropic.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.Scraper/RealEstateStar.Clients.Scraper.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.WhatsApp/RealEstateStar.Clients.WhatsApp.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.GDrive/RealEstateStar.Clients.GDrive.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.Gmail/RealEstateStar.Clients.Gmail.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.GDocs/RealEstateStar.Clients.GDocs.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.GSheets/RealEstateStar.Clients.GSheets.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.GoogleOAuth/RealEstateStar.Clients.GoogleOAuth.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.Stripe/RealEstateStar.Clients.Stripe.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.Cloudflare/RealEstateStar.Clients.Cloudflare.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.Turnstile/RealEstateStar.Clients.Turnstile.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.Azure/RealEstateStar.Clients.Azure.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.Gws/RealEstateStar.Clients.Gws.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.RentCast/RealEstateStar.Clients.RentCast.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Api/RealEstateStar.Api.csproj" />
+    <ProjectReference Include="../RealEstateStar.TestUtilities/RealEstateStar.TestUtilities.csproj" />
+  </ItemGroup>
+</Project>

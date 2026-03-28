@@ -875,6 +875,71 @@ describe("LeadForm", () => {
     expect(stateField).toHaveAttribute("aria-readonly", "true");
   });
 
+  // Test 55 — context-aware Notes label
+  it("shows 'Tell us about the property' label when only selling", () => {
+    render(<LeadForm {...defaultProps} initialMode={["selling"]} />);
+    expect(screen.getByLabelText(/tell us about the property/i)).toBeInTheDocument();
+  });
+
+  // Test 56
+  it("shows 'Describe your dream home' label when only buying", () => {
+    render(<LeadForm {...defaultProps} initialMode={["buying"]} />);
+    expect(screen.getByLabelText(/describe your dream home/i)).toBeInTheDocument();
+  });
+
+  // Test 57
+  it("shows combined label when both buying and selling", () => {
+    render(<LeadForm {...defaultProps} initialMode={["buying", "selling"]} />);
+    expect(screen.getByLabelText(/tell us about your property and what you're looking for/i)).toBeInTheDocument();
+  });
+
+  // Test 58
+  it("shows fallback 'Additional Notes' label when neither is selected", () => {
+    render(<LeadForm {...defaultProps} />);
+    expect(screen.getByLabelText(/additional notes/i)).toBeInTheDocument();
+  });
+
+  // Test 59 — Notes placeholder changes with lead type
+  it("shows seller placeholder when only selling", () => {
+    render(<LeadForm {...defaultProps} initialMode={["selling"]} />);
+    const textarea = screen.getByLabelText(/tell us about the property/i);
+    expect(textarea).toHaveAttribute("placeholder", "Recent renovations, unique features, timeline, price expectations...");
+  });
+
+  // Test 60
+  it("shows buyer placeholder when only buying", () => {
+    render(<LeadForm {...defaultProps} initialMode={["buying"]} />);
+    const textarea = screen.getByLabelText(/describe your dream home/i);
+    expect(textarea).toHaveAttribute("placeholder", "Must-haves, neighborhood preferences, school districts, budget flexibility...");
+  });
+
+  // Test 61
+  it("shows both placeholder when buying and selling", () => {
+    render(<LeadForm {...defaultProps} initialMode={["buying", "selling"]} />);
+    const textarea = screen.getByLabelText(/tell us about your property and what you're looking for/i);
+    expect(textarea).toHaveAttribute("placeholder", "Describe your property for sale and what you're looking for in your next home...");
+  });
+
+  // Test 62 — Notes label updates dynamically when pills change
+  it("updates Notes label dynamically when pills change", () => {
+    render(<LeadForm {...defaultProps} />);
+
+    // Neither selected
+    expect(screen.getByLabelText(/additional notes/i)).toBeInTheDocument();
+
+    // Select buying
+    checkBuying();
+    expect(screen.getByLabelText(/describe your dream home/i)).toBeInTheDocument();
+
+    // Also select selling (both)
+    checkSelling();
+    expect(screen.getByLabelText(/tell us about your property and what you're looking for/i)).toBeInTheDocument();
+
+    // Uncheck buying — only selling now
+    checkBuying();
+    expect(screen.getByLabelText(/tell us about the property/i)).toBeInTheDocument();
+  });
+
   // Test 42
   it("allows submit when TCPA consent is checked", async () => {
     const onSubmit = vi.fn();
