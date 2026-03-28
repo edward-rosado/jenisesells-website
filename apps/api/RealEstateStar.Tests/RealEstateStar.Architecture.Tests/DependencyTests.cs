@@ -101,14 +101,19 @@ public class DependencyTests
     }
 
     [Fact]
-    public void No_project_outside_Api_references_DataServices()
+    public void Only_Api_Services_Activities_may_reference_DataServices()
     {
+        // Services persist failure/fallback records via DataServices.
+        // Activities persist pipeline artifacts via DataServices.
+        // Everyone else goes through Domain interfaces only.
+        var allowed = new HashSet<string>
+        {
+            "Api", "Services", "Activities", "DataServices", "Tests", "TestUtilities"
+        };
+
         var productionAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.*.dll")
             .Select(Assembly.LoadFrom)
-            .Where(a => !a.GetName().Name!.Contains("Api"))
-            .Where(a => !a.GetName().Name!.Contains("Tests"))
-            .Where(a => !a.GetName().Name!.Contains("TestUtilities"))
-            .Where(a => !a.GetName().Name!.Contains("DataServices"));
+            .Where(a => !allowed.Any(k => a.GetName().Name!.Contains(k)));
 
         foreach (var assembly in productionAssemblies)
         {
@@ -118,7 +123,7 @@ public class DependencyTests
                 .ToList();
 
             Assert.True(dataServiceRefs.Count == 0,
-                $"{assembly.GetName().Name} references {string.Join(", ", dataServiceRefs)} — only Api may reference DataServices");
+                $"{assembly.GetName().Name} references {string.Join(", ", dataServiceRefs)} — only Api, Services, and Activities may reference DataServices");
         }
     }
 
