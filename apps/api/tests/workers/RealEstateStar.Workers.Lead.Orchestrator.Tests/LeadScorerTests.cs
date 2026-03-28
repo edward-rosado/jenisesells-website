@@ -3,15 +3,13 @@ using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Lead.Orchestrator;
 
-using DomainLead = global::RealEstateStar.Domain.Leads.Models.Lead;
-
 namespace RealEstateStar.Workers.Lead.Orchestrator.Tests;
 
 public class LeadScorerTests
 {
     private readonly ILeadScorer _scorer = new LeadScorer();
 
-    private static DomainLead MakeLead(
+    private static RealEstateStar.Domain.Leads.Models.Lead MakeLead(
         string agentId = "test-agent",
         LeadType leadType = LeadType.Buyer,
         string timeline = "asap",
@@ -20,7 +18,7 @@ public class LeadScorerTests
         string? notes = null,
         int submissionCount = 1)
     {
-        return new DomainLead
+        return new RealEstateStar.Domain.Leads.Models.Lead
         {
             Id = Guid.NewGuid(),
             AgentId = agentId,

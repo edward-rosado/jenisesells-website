@@ -9,7 +9,7 @@ public sealed class HomeSearchProcessingChannel : ProcessingChannelBase<HomeSear
 
 public sealed record HomeSearchProcessingRequest(
     string AgentId,
-    global::RealEstateStar.Domain.Leads.Models.Lead Lead,
+    RealEstateStar.Domain.Leads.Models.Lead Lead,
     AgentNotificationConfig AgentConfig,
     string CorrelationId,
     TaskCompletionSource<HomeSearchWorkerResult> Completion);

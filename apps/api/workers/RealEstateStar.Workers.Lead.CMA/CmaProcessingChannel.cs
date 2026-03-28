@@ -9,7 +9,7 @@ public sealed class CmaProcessingChannel : ProcessingChannelBase<CmaProcessingRe
 
 public sealed record CmaProcessingRequest(
     string AgentId,
-    global::RealEstateStar.Domain.Leads.Models.Lead Lead,
+    RealEstateStar.Domain.Leads.Models.Lead Lead,
     AgentNotificationConfig AgentConfig,
     string CorrelationId,
     TaskCompletionSource<CmaWorkerResult> Completion);

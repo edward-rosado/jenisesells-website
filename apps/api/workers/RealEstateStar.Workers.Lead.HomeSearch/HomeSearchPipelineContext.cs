@@ -2,7 +2,7 @@ using RealEstateStar.Workers.Shared.Context;
 
 namespace RealEstateStar.Workers.Lead.HomeSearch;
 
-public class HomeSearchPipelineContext : PipelineContext<global::RealEstateStar.Domain.Leads.Models.Lead>
+public class HomeSearchPipelineContext : PipelineContext<RealEstateStar.Domain.Leads.Models.Lead>
 {
     // Step name constants
     public const string StepFetchListings = "fetch-listings";

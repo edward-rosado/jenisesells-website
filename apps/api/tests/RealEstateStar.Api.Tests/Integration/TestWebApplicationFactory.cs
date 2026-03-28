@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Workers.Lead.CMA;
-using LeadOrchestratorChannel = RealEstateStar.Workers.Lead.Orchestrator.LeadOrchestratorChannel;
+using RealEstateStar.Workers.Lead.Orchestrator;
 
 namespace RealEstateStar.Api.Tests.Integration;
 

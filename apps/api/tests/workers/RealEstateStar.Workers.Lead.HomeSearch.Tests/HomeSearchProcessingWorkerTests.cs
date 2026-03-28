@@ -48,7 +48,7 @@ public class HomeSearchProcessingWorkerTests
         State = "NJ"
     };
 
-    private static global::RealEstateStar.Domain.Leads.Models.Lead MakeLead() => new()
+    private static RealEstateStar.Domain.Leads.Models.Lead MakeLead() => new()
     {
         Id = Guid.NewGuid(),
         AgentId = "test-agent",
@@ -61,7 +61,7 @@ public class HomeSearchProcessingWorkerTests
         BuyerDetails = new BuyerDetails { City = "Springfield", State = "NJ" }
     };
 
-    private static HomeSearchProcessingRequest MakeRequest(global::RealEstateStar.Domain.Leads.Models.Lead? lead = null, TaskCompletionSource<HomeSearchWorkerResult>? tcs = null) =>
+    private static HomeSearchProcessingRequest MakeRequest(RealEstateStar.Domain.Leads.Models.Lead? lead = null, TaskCompletionSource<HomeSearchWorkerResult>? tcs = null) =>
         new("test-agent", lead ?? MakeLead(), MakeAgentConfig(), "corr-123", tcs ?? new TaskCompletionSource<HomeSearchWorkerResult>());
 
     private static List<Listing> MakeListings(int count) =>

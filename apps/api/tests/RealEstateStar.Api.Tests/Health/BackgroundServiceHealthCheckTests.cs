@@ -6,9 +6,8 @@ using RealEstateStar.Api.Health;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
+using RealEstateStar.Workers.Lead.Orchestrator;
 using RealEstateStar.Workers.Shared;
-using LeadOrchestratorChannel = RealEstateStar.Workers.Lead.Orchestrator.LeadOrchestratorChannel;
-using LeadOrchestrationRequest = RealEstateStar.Workers.Lead.Orchestrator.LeadOrchestrationRequest;
 
 namespace RealEstateStar.Api.Tests.Health;
 

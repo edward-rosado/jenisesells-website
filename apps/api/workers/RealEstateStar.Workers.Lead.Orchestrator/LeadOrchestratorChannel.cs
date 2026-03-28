@@ -5,7 +5,7 @@ namespace RealEstateStar.Workers.Lead.Orchestrator;
 
 public record LeadOrchestrationRequest(
     string AgentId,
-    global::RealEstateStar.Domain.Leads.Models.Lead Lead,
+    RealEstateStar.Domain.Leads.Models.Lead Lead,
     string CorrelationId);
 
 public sealed class LeadOrchestratorChannel : ProcessingChannelBase<LeadOrchestrationRequest>

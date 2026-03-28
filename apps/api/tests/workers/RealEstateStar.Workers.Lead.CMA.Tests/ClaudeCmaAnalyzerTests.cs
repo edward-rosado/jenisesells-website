@@ -8,7 +8,7 @@ namespace RealEstateStar.Workers.Lead.CMA.Tests;
 
 public class ClaudeCmaAnalyzerTests
 {
-    private static global::RealEstateStar.Domain.Leads.Models.Lead MakeLead() => new()
+    private static RealEstateStar.Domain.Leads.Models.Lead MakeLead() => new()
     {
         Id = Guid.NewGuid(),
         AgentId = "test",
@@ -368,7 +368,7 @@ public class ClaudeCmaAnalyzerTests
     [Fact]
     public void BuildPrompt_NullBedsBathsSqft_DoesNotIncludeThoseLines()
     {
-        var lead = new global::RealEstateStar.Domain.Leads.Models.Lead
+        var lead = new RealEstateStar.Domain.Leads.Models.Lead
         {
             Id = Guid.NewGuid(),
             AgentId = "test",

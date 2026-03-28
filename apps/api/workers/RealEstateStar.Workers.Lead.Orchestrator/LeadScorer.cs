@@ -5,7 +5,7 @@ namespace RealEstateStar.Workers.Lead.Orchestrator;
 
 public class LeadScorer : ILeadScorer
 {
-    public LeadScore Score(global::RealEstateStar.Domain.Leads.Models.Lead lead)
+    public LeadScore Score(RealEstateStar.Domain.Leads.Models.Lead lead)
     {
         var factors = new List<ScoreFactor>();
         var isSeller = lead.SellerDetails is not null;

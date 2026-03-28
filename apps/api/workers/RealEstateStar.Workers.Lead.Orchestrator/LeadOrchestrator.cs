@@ -11,7 +11,6 @@ using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Shared.Pdf;
-using DomainLead = RealEstateStar.Domain.Leads.Models.Lead;
 
 namespace RealEstateStar.Workers.Lead.Orchestrator;
 
@@ -250,7 +249,7 @@ public sealed class LeadOrchestrator(
     }
 
     internal (TaskCompletionSource<CmaWorkerResult>? CmaTcs, TaskCompletionSource<HomeSearchWorkerResult>? HsTcs)
-        DispatchWorkers(DomainLead lead, string agentId, AgentNotificationConfig agentConfig, string correlationId)
+        DispatchWorkers(RealEstateStar.Domain.Leads.Models.Lead lead, string agentId, AgentNotificationConfig agentConfig, string correlationId)
     {
         TaskCompletionSource<CmaWorkerResult>? cmaTcs = null;
         TaskCompletionSource<HomeSearchWorkerResult>? hsTcs = null;
@@ -495,7 +494,7 @@ public sealed class LeadOrchestrator(
         }
     }
 
-    private async Task UpdateStatusAsync(DomainLead lead, LeadStatus status, CancellationToken ct)
+    private async Task UpdateStatusAsync(RealEstateStar.Domain.Leads.Models.Lead lead, LeadStatus status, CancellationToken ct)
     {
         try
         {

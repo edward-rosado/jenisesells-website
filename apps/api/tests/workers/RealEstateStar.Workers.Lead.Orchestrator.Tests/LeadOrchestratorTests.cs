@@ -16,7 +16,6 @@ using RealEstateStar.Workers.Shared.AgentNotifier;
 using RealEstateStar.Workers.Shared.LeadCommunicator;
 using RealEstateStar.Workers.Shared.Pdf;
 
-using DomainLead = global::RealEstateStar.Domain.Leads.Models.Lead;
 
 namespace RealEstateStar.Workers.Lead.Orchestrator.Tests;
 
@@ -80,7 +79,7 @@ public sealed class LeadOrchestratorTests
 
     // ── test data ─────────────────────────────────────────────────────────────
 
-    private static DomainLead BuildSellerLead(string agentId = "agent-1", int submissionCount = 1) => new()
+    private static RealEstateStar.Domain.Leads.Models.Lead BuildSellerLead(string agentId = "agent-1", int submissionCount = 1) => new()
     {
         Id = Guid.NewGuid(),
         AgentId = agentId,
@@ -105,7 +104,7 @@ public sealed class LeadOrchestratorTests
         }
     };
 
-    private static DomainLead BuildBuyerLead(string agentId = "agent-1", int submissionCount = 1) => new()
+    private static RealEstateStar.Domain.Leads.Models.Lead BuildBuyerLead(string agentId = "agent-1", int submissionCount = 1) => new()
     {
         Id = Guid.NewGuid(),
         AgentId = agentId,
@@ -128,7 +127,7 @@ public sealed class LeadOrchestratorTests
         }
     };
 
-    private static DomainLead BuildBothLead(string agentId = "agent-1") => new()
+    private static RealEstateStar.Domain.Leads.Models.Lead BuildBothLead(string agentId = "agent-1") => new()
     {
         Id = Guid.NewGuid(),
         AgentId = agentId,
@@ -205,13 +204,13 @@ public sealed class LeadOrchestratorTests
 
     private void SetupScorer() =>
         _scorerMock
-            .Setup(s => s.Score(It.IsAny<DomainLead>()))
+            .Setup(s => s.Score(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>()))
             .Returns(BuildScore());
 
     private void SetupEmailDrafter() =>
         _emailDrafterMock
             .Setup(d => d.DraftAsync(
-                It.IsAny<DomainLead>(), It.IsAny<LeadScore>(),
+                It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<LeadScore>(),
                 It.IsAny<CmaWorkerResult?>(), It.IsAny<HomeSearchWorkerResult?>(),
                 It.IsAny<AgentNotificationConfig>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildEmailDraft());
@@ -232,7 +231,7 @@ public sealed class LeadOrchestratorTests
 
     private void SetupLeadStore() =>
         _leadStoreMock
-            .Setup(s => s.UpdateStatusAsync(It.IsAny<DomainLead>(), It.IsAny<LeadStatus>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.UpdateStatusAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<LeadStatus>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
     private void SetupPdfGenerator()
@@ -473,7 +472,7 @@ public sealed class LeadOrchestratorTests
 
         // Assert — drafter was called (draft step)
         _emailDrafterMock.Verify(d => d.DraftAsync(
-            It.IsAny<DomainLead>(), It.IsAny<LeadScore>(),
+            It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<LeadScore>(),
             It.IsAny<CmaWorkerResult?>(), It.IsAny<HomeSearchWorkerResult?>(),
             It.IsAny<AgentNotificationConfig>(), It.IsAny<CancellationToken>()),
             Times.Once);
@@ -497,7 +496,7 @@ public sealed class LeadOrchestratorTests
 
         _emailDrafterMock
             .Setup(d => d.DraftAsync(
-                It.IsAny<DomainLead>(), It.IsAny<LeadScore>(),
+                It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<LeadScore>(),
                 It.IsAny<CmaWorkerResult?>(), It.IsAny<HomeSearchWorkerResult?>(),
                 It.IsAny<AgentNotificationConfig>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Claude unavailable"));
@@ -641,7 +640,7 @@ public sealed class LeadOrchestratorTests
         await orchestrator.ProcessRequestAsync(request, CancellationToken.None);
 
         // Assert — scorer never called (early return before scoring)
-        _scorerMock.Verify(s => s.Score(It.IsAny<DomainLead>()), Times.Never);
+        _scorerMock.Verify(s => s.Score(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>()), Times.Never);
     }
 
     [Fact]
@@ -653,7 +652,7 @@ public sealed class LeadOrchestratorTests
         var orchestrator = BuildOrchestrator(timeoutSeconds: 10);
 
         SetupAccountConfig();
-        _scorerMock.Setup(s => s.Score(It.IsAny<DomainLead>())).Returns(expectedScore);
+        _scorerMock.Setup(s => s.Score(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>())).Returns(expectedScore);
         SetupEmailDrafter();
         SetupGmail();
         SetupWhatsApp();

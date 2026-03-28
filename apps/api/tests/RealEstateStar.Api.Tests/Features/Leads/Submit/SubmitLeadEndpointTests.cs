@@ -18,7 +18,7 @@ using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Api.Features.Leads.Submit;
 using RealEstateStar.DataServices.Config;
 using RealEstateStar.Api.Tests.Integration;
-using LeadOrchestratorChannel = RealEstateStar.Workers.Lead.Orchestrator.LeadOrchestratorChannel;
+using RealEstateStar.Workers.Lead.Orchestrator;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Submit;
 
