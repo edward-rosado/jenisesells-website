@@ -1,440 +1,1339 @@
-# Worker Architecture Restructure (Phases 5-6) -- Implementation Plan
+# Worker Architecture Restructure — Complete Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Complete the worker architecture restructure by adding content-aware smart retry, a PersistActivity for batch result writes, cross-lead content caching for spam protection, status-based gating on resubmission, and exhaustive dependency graph tests.
+**Goal:** Decompose the monolith `Workers.Leads` project into single-responsibility projects: `Activities.Pdf`, `Services.AgentNotifier`, `Services.LeadCommunicator`, and `Workers.Lead.Orchestrator`. Add domain model improvements (Notes, SubmissionCount, LeadRetryState, CommunicationRecord, LeadPipelineContext, IDiagnosticsProvider), wire the new architecture with self-contained DI extensions, implement smart content-aware retry with cross-lead caching, and enforce the full dependency graph with exhaustive architecture tests.
 
-**Architecture:** The LeadOrchestrator (already a per-lead BackgroundService on `refactor/services-activities-cleanup`) gains SHA256 content hashing per activity, `LeadRetryState` integration for skip-on-match/re-run-on-change, a `PersistActivity` for batch upsert of all pipeline artifacts, an `IMemoryCache`-backed cross-lead dedup cache, and per-project dependency graph tests enforced in CI.
+**Architecture:** Per-lead orchestrator pattern. Each lead gets its own `LeadOrchestrator` instance that sequences: Score -> Fan-out (CMA + HomeSearch) -> PDF -> Lead Communication -> Agent Notification -> Persist. Sub-workers are stateless activities called directly (not channel-dispatched). Services (`AgentNotifier`, `LeadCommunicator`) are synchronous service calls, not BackgroundServices. PDF is a regular activity (not a channel-based worker).
 
-**Tech Stack:** .NET 10, SHA256, IMemoryCache, System.Text.Json, xUnit [Theory] + InlineData, NetArchTest
+**Tech Stack:** .NET 10, Channel\<T\>, QuestPDF, Claude API, Gmail API, WhatsApp Business API, SHA256, IMemoryCache, OpenTelemetry, xUnit, NetArchTest
 
-**Spec:** `docs/superpowers/specs/2026-03-27-worker-architecture-restructure-design.md` (Sections 7-9, Phase 5-6)
+**Spec:** `docs/superpowers/specs/2026-03-27-worker-architecture-restructure-design.md`
 
-**Branch:** `refactor/services-activities-cleanup` (Phases 0-4 already merged on this branch)
+---
+
+## Architecture Overview
+
+```
+Lead API endpoint
+  |
+  v
+LeadOrchestratorChannel (BackgroundService reads from channel)
+  |
+  v
+LeadOrchestrator instance (one per lead)
+  |
+  +--[1]--> Score (sync, pure logic — LeadScorer)
+  |
+  +--[2]--> Fan-out: CMA + HomeSearch in parallel (via channels)
+  |         +-- CMA Activity (async — RentCast + Claude analysis)
+  |         +-- HomeSearch Activity (async — scraper + Claude parsing)
+  |
+  +--[3]--> PDF Activity (async — QuestPDF → blob storage, direct call)
+  |
+  +--[4]--> LeadCommunicator (async — Claude draft → Gmail to lead)
+  |
+  +--[5]--> AgentNotifier (async — WhatsApp → Gmail fallback to agent)
+  |
+  +--[6]--> PersistActivity (batch upsert — lead profile, summaries, drafts, retry state)
+```
+
+### Project Dependency Diagram
+
+```
+Domain         → nothing
+Workers.Shared → Domain
+Activities.Pdf → Domain + Workers.Shared
+Services.AgentNotifier → Domain + Workers.Shared
+Services.LeadCommunicator → Domain + Workers.Shared
+Workers.Lead.CMA → Domain + Workers.Shared
+Workers.Lead.HomeSearch → Domain + Workers.Shared
+Workers.Lead.Orchestrator → Domain + Workers.Shared
+                          + Activities.Pdf
+                          + Services.AgentNotifier
+                          + Services.LeadCommunicator
+                          + Workers.Lead.CMA
+                          + Workers.Lead.HomeSearch
+Api → everything (sole composition root)
+```
 
 ---
 
 ## Spawn Pattern
 
 ```
-Phase 5a: Launch Tasks 1-2 in parallel (2 agents) -- Content hash utility + PersistActivity
-Phase 5b: Launch Task 3 alone (1 agent) -- Wire retry state into orchestrator (depends on Task 1)
-Phase 5c: Launch Tasks 4-5 in parallel (2 agents) -- Cross-lead cache + SubmitLeadEndpoint gating (independent of each other, depend on Task 3)
-Phase 6:  Launch Tasks 6-8 in parallel (3 agents) -- All architecture test tasks are independent
-Post:     Launch Task 9 alone (1 agent) -- Update docs (depends on all above)
+Phase 1: Launch Tasks 1–7 in parallel (7 agents) — Domain model foundation (all independent)
+Phase 2: Launch Tasks 8–11 in parallel (4 agents) — Create new projects (depend on Phase 1 models)
+Phase 3: Launch Tasks 12–13 in parallel (2 agents) — Wire new architecture (depends on Phase 2 projects)
+Phase 4: Launch Tasks 14–17 in parallel (4 agents) — Cleanup (depends on Phase 3 wiring)
+Phase 5: Launch Tasks 18–22 in parallel (5 agents) — Smart retry + PersistActivity (depends on Phase 4)
+Phase 6: Launch Tasks 23–25 in parallel (3 agents) — Exhaustive dependency tests (depends on Phase 5)
+Post:    Launch Tasks 26–28 in parallel (3 agents) — Documentation + reviews
 ```
 
 **Important codebase notes for implementers:**
-- `LeadRetryState` already exists at `Domain/Leads/Models/LeadRetryState.cs` with `CompletedActivityKeys`, `CompletedResultPaths`, `IsCompleted(name, hash)`, and `GetHash(name)`.
-- `LeadPipelineContext` already has `RetryState` property (initialized to empty `new()`).
-- `CommunicationRecord` already has `ContentHash` property for dedup.
-- `SubmissionCount` already exists on `Lead.cs` and engagement scoring is already wired into `LeadScorer`.
-- `IDocumentStorageProvider` is in `Domain/Shared/Interfaces/Storage/` -- use this for file writes.
-- `ILeadStore` is in `Domain/Leads/Interfaces/` -- use for status updates.
-- Projects live under grouped folders: `apps/api/RealEstateStar.Activities/`, `apps/api/RealEstateStar.Services/`, `apps/api/RealEstateStar.Workers/`.
-- Architecture tests are in `apps/api/RealEstateStar.Tests/RealEstateStar.Architecture.Tests/` with `DependencyTests.cs` (reflection) and `LayerTests.cs` (NetArchTest).
+- The current codebase uses `Activities.Pdf`, `Services.AgentNotifier`, `Services.LeadCommunicator` naming (not `Workers.Shared.Pdf` etc.) — the spec's `Workers.Shared.*` naming was a draft; implementation uses `Activities.*` and `Services.*` top-level groupings.
+- `IDiagnosticsProvider` and `DiagnosticsSnapshot` already live in `Domain/Shared/Diagnostics/` — the spec proposed moving them to `Workers.Shared` but Domain is the correct location (interfaces belong in Domain).
+- `ILeadCommunicationService` is the interface name for the lead communicator (not `ILeadCommunicator`).
+- Worker test projects live under `RealEstateStar.Tests/RealEstateStar.Workers.Tests/` (grouped), not flat.
+- Service test projects live under `RealEstateStar.Tests/RealEstateStar.Services.Tests/`.
+- Activity test projects live under `RealEstateStar.Tests/RealEstateStar.Activities.Tests/`.
+- WhatsApp interface is `IWhatsAppSender` at `Domain/Shared/Interfaces/Senders/IWhatsAppSender.cs`.
+- `SellerDetails` uses `Beds`/`Baths`/`Sqft` (not `Bedrooms`/`Bathrooms`/`SquareFootage`).
+- Each project already has its own `ServiceCollectionExtensions.cs` for self-contained DI registration.
 
 ---
 
-## File Structure
-
-**Files to create:**
-- `apps/api/RealEstateStar.Domain/Leads/Hashing/ActivityHasher.cs` -- static SHA256 hash computation per activity type
-- `apps/api/RealEstateStar.Domain/Leads/Hashing/ActivityNames.cs` -- string constants for activity names
-- `apps/api/RealEstateStar.Activities/RealEstateStar.Activities.Persist/PersistActivity.cs` -- batch upsert of pipeline artifacts
-- `apps/api/RealEstateStar.Activities/RealEstateStar.Activities.Persist/RealEstateStar.Activities.Persist.csproj`
-- `apps/api/RealEstateStar.Activities/RealEstateStar.Activities.Persist/ServiceCollectionExtensions.cs`
-- `apps/api/RealEstateStar.Domain/Leads/Interfaces/IContentCache.cs` -- cross-lead dedup cache interface
-- `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/ContentCache.cs` -- IMemoryCache-backed implementation
-- `apps/api/RealEstateStar.Tests/RealEstateStar.Domain.Tests/Leads/Hashing/ActivityHasherTests.cs`
-- `apps/api/RealEstateStar.Tests/RealEstateStar.Activities.Tests/Persist/PersistActivityTests.cs`
-- `apps/api/RealEstateStar.Tests/RealEstateStar.Workers.Tests/Lead/Orchestrator/ContentCacheTests.cs`
-- `apps/api/RealEstateStar.Tests/RealEstateStar.Workers.Tests/Lead/Orchestrator/RetryIntegrationTests.cs`
-- `apps/api/RealEstateStar.Tests/RealEstateStar.Api.Tests/Features/Leads/Submit/StatusGatingTests.cs`
-
-**Files to modify:**
-- `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/LeadOrchestrator.cs` -- add retry checks + cache checks before each activity
-- `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/RealEstateStar.Workers.Lead.Orchestrator.csproj` -- add Activities.Persist reference
-- `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/ServiceCollectionExtensions.cs` -- register ContentCache + PersistActivity
-- `apps/api/RealEstateStar.Api/Features/Leads/Submit/SubmitLeadEndpoint.cs` -- add status-based gating before dispatch
-- `apps/api/RealEstateStar.Api/Program.cs` -- register Activities.Persist, IContentCache
-- `apps/api/RealEstateStar.Api/RealEstateStar.Api.csproj` -- add Activities.Persist reference
-- `apps/api/RealEstateStar.Tests/RealEstateStar.Architecture.Tests/DependencyTests.cs` -- add per-project allowed-dependency [Theory] tests
-- `apps/api/RealEstateStar.Tests/RealEstateStar.Architecture.Tests/LayerTests.cs` -- mirror new constraints in NetArchTest
-- `apps/api/RealEstateStar.Tests/RealEstateStar.Architecture.Tests/ProjectManifestTests.cs` -- new file: validate <Description> in all csproj files
-- `apps/api/RealEstateStar.Tests/RealEstateStar.Architecture.Tests/CsprojReferenceTests.cs` -- new file: parse csproj ProjectReference tags
-- All `.csproj` files for new/modified projects -- add `<Description>` element
+## Phase 1: Domain Model Foundation (all independent — run Tasks 1–7 in parallel)
 
 ---
 
-## Phase 5a: Content Hash + PersistActivity (parallel -- 2 agents)
-
----
-
-### Task 1: Content hash computation utility
+### Task 1: Add Notes property to SellerDetails and BuyerDetails
 
 **Files:**
-- Create: `apps/api/RealEstateStar.Domain/Leads/Hashing/ActivityHasher.cs`
-- Create: `apps/api/RealEstateStar.Domain/Leads/Hashing/ActivityNames.cs`
-- Create: `apps/api/RealEstateStar.Tests/RealEstateStar.Domain.Tests/Leads/Hashing/ActivityHasherTests.cs`
+- Modify: `apps/api/RealEstateStar.Domain/Leads/Models/SellerDetails.cs`
+- Modify: `apps/api/RealEstateStar.Domain/Leads/Models/BuyerDetails.cs`
+- Modify: `apps/api/RealEstateStar.Api/Features/Leads/Submit/SubmitLeadEndpoint.cs`
+- Test: `apps/api/RealEstateStar.Tests/RealEstateStar.Domain.Tests/Leads/SellerDetailsTests.cs`
+- Test: `apps/api/RealEstateStar.Tests/RealEstateStar.Domain.Tests/Leads/BuyerDetailsTests.cs`
 
-- [ ] **Step 1: Create `ActivityNames` constants class**
-  - Static class with `const string` fields: `Cma = "cma"`, `HomeSearch = "homeSearch"`, `Pdf = "pdf"`, `DraftLeadEmail = "draftLeadEmail"`, `DraftAgentNotification = "draftAgentNotification"`, `Persist = "persist"`
-  - These match the keys used in `LeadRetryState.CompletedActivityKeys`
+- [ ] **Step 1: Add `Notes` property to `SellerDetails`**
 
-- [ ] **Step 2: Create `ActivityHasher` static class**
-  - `ComputeCmaHash(SellerDetails seller)` -- SHA256 of `address|city|state|zip|notes` (null-safe, lowercase, trimmed)
-  - `ComputeHomeSearchHash(BuyerDetails buyer)` -- SHA256 of `city|state|minBudget|maxBudget|beds|baths|notes`
-  - `ComputePdfHash(CmaWorkerResult cmaResult)` -- SHA256 of JSON-serialized CmaWorkerResult
-  - `ComputeDraftEmailHash(LeadScore score, string? cmaHash, string? hsHash)` -- SHA256 of `score.OverallScore|cmaHash|hsHash`
-  - `ComputeDraftAgentNotificationHash(LeadScore score, string? cmaHash, string? hsHash)` -- same pattern as draft email
-  - Private `Hash(string input)` helper using `SHA256.HashData()` returning lowercase hex string
-  - All inputs are pipe-delimited, null replaced with empty string, trimmed
+Add `public string? Notes { get; init; }` to the `SellerDetails` record. This allows sellers to provide freeform context ("Recently renovated kitchen", "Motivated seller, needs to close by June") that the CMA analyzer can factor into its pricing strategy.
 
-- [ ] **Step 3: Write exhaustive tests**
-  - Same input produces same hash (deterministic)
-  - Different input produces different hash
-  - Null fields handled gracefully (treated as empty)
-  - Whitespace trimming verified (leading/trailing spaces ignored)
-  - Case insensitivity verified (addresses lowercased before hashing)
-  - Notes field included in hash (changing notes changes hash)
-  - Each `Compute*` method has at least 3 test cases
+- [ ] **Step 2: Add `Notes` property to `BuyerDetails`**
 
-- [ ] **Step 4: Commit** -- `feat: add content-aware SHA256 hash computation for pipeline activities`
+Add `public string? Notes { get; init; }` to the `BuyerDetails` record. This allows buyers to provide search context ("Must have garage and backyard", "Relocating from NYC") that HomeSearch can use for filtering.
+
+- [ ] **Step 3: Map request.Notes into both detail models in SubmitLeadEndpoint**
+
+The API request has a single `notes` field. SubmitLeadEndpoint maps it into BOTH models so each activity reads notes from its own model:
+
+```csharp
+if (lead.SellerDetails is not null)
+    lead.SellerDetails = lead.SellerDetails with { Notes = request.Notes };
+if (lead.BuyerDetails is not null)
+    lead.BuyerDetails = lead.BuyerDetails with { Notes = request.Notes };
+```
+
+- [ ] **Step 4: Write tests for notes mapping**
+
+Test that notes propagate correctly to SellerDetails and BuyerDetails. Verify CMA reads `ctx.Lead.SellerDetails.Notes` and HomeSearch reads `ctx.Lead.BuyerDetails.Notes`.
+
+- [ ] **Step 5: Verify build + run tests**
+
+```bash
+dotnet build apps/api/RealEstateStar.Api.sln --no-restore
+dotnet test apps/api/RealEstateStar.Api.sln --no-restore
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add apps/api/RealEstateStar.Domain/Leads/Models/SellerDetails.cs \
+       apps/api/RealEstateStar.Domain/Leads/Models/BuyerDetails.cs \
+       apps/api/RealEstateStar.Api/Features/Leads/Submit/SubmitLeadEndpoint.cs
+git commit -m "feat: add Notes property to SellerDetails and BuyerDetails for activity-specific context"
+```
 
 ---
 
-### Task 2: PersistActivity implementation
+### Task 2: Add SubmissionCount to Lead model
 
 **Files:**
-- Create: `apps/api/RealEstateStar.Activities/RealEstateStar.Activities.Persist/PersistActivity.cs`
-- Create: `apps/api/RealEstateStar.Activities/RealEstateStar.Activities.Persist/RealEstateStar.Activities.Persist.csproj`
-- Create: `apps/api/RealEstateStar.Activities/RealEstateStar.Activities.Persist/ServiceCollectionExtensions.cs`
-- Create: `apps/api/RealEstateStar.Tests/RealEstateStar.Activities.Tests/Persist/PersistActivityTests.cs`
-- Modify: `apps/api/RealEstateStar.Api/RealEstateStar.Api.csproj` -- add project reference
-- Modify: `apps/api/RealEstateStar.Api/Program.cs` -- register PersistActivity
-- Modify: solution file -- add new project
+- Modify: `apps/api/RealEstateStar.Domain/Leads/Models/Lead.cs`
+- Modify: `apps/api/RealEstateStar.Api/Features/Leads/Submit/SubmitLeadEndpoint.cs`
+- Test: `apps/api/RealEstateStar.Tests/RealEstateStar.Api.Tests/Features/Leads/Submit/SubmitLeadEndpointTests.cs`
 
-- [ ] **Step 1: Create the `.csproj` for Activities.Persist**
-  - Dependencies: Domain only (follows architecture rules)
-  - `<Description>Idempotent batch upsert of lead pipeline artifacts to storage</Description>`
-  - Target framework: net10.0
+- [ ] **Step 1: Add `SubmissionCount` property to `Lead`**
 
-- [ ] **Step 2: Implement `PersistActivity`**
-  - Constructor takes `ILeadStore` and `IDocumentStorageProvider`
-  - `ExecuteAsync(LeadPipelineContext ctx, CancellationToken ct)` method
-  - Writes to lead folder via `LeadPaths.LeadFolder(ctx.Lead.FullName)`:
-    1. CMA Summary.md -- upsert if `ctx.CmaResult?.Success == true`, render as markdown with YAML frontmatter
-    2. HomeSearch Summary.md -- upsert if `ctx.HsResult?.Success == true`
-    3. Lead Email Draft.md -- upsert with dedup: read existing, check `content_hash` + `sent`, skip if match
-    4. Agent Notification Draft.md -- upsert with dedup (same logic)
-    5. Retry State.json -- always overwrite with `JsonSerializer.Serialize(ctx.RetryState)`
-  - Does NOT write PDF (PdfActivity handles that directly)
-  - Does NOT update lead status (inline status writes handle that)
-  - Each communication upsert checks: if existing file has same `content_hash` AND `sent: true`, skip write
+```csharp
+public int SubmissionCount { get; set; } = 1;
+```
 
-- [ ] **Step 3: Implement markdown rendering helpers**
-  - `RenderCmaSummary(CmaWorkerResult)` -- YAML frontmatter with estimated_value, price_range, comp_count + markdown body with market analysis
-  - `RenderHomeSearchSummary(HomeSearchWorkerResult)` -- YAML frontmatter with listing_count, area + markdown body with listing details
-  - `RenderCommunicationRecord(CommunicationRecord)` -- YAML frontmatter with subject, channel, content_hash, sent, drafted_at, sent_at + markdown body with HtmlBody
+Repeat form submissions signal high intent. The LeadScorer uses this as a 10% weight factor.
 
-- [ ] **Step 4: Create `ServiceCollectionExtensions`**
-  - `AddPersistActivity(this IServiceCollection services)` registers `PersistActivity` as singleton
+- [ ] **Step 2: Increment SubmissionCount on dedup in SubmitLeadEndpoint**
 
-- [ ] **Step 5: Write tests with InMemoryFileProvider**
-  - Verify CMA summary written when CmaResult is successful
-  - Verify CMA summary NOT written when CmaResult is null/failed
-  - Verify HomeSearch summary written when HsResult is successful
-  - Verify communication dedup: same hash + sent = skip
-  - Verify communication overwrite: same hash + not sent = write (retry after send failure)
-  - Verify communication overwrite: different hash = write (content changed)
-  - Verify Retry State.json always overwritten
-  - Verify PDF path is NOT written (PersistActivity doesn't own PDF)
-  - Verify idempotency: calling twice with same ctx produces same files
+When `GetByEmailAsync` finds an existing lead (same email = dedup), increment `SubmissionCount` before dispatching to the orchestrator.
 
-- [ ] **Step 6: Add project reference to Api.csproj and register in Program.cs**
+- [ ] **Step 3: Write tests**
 
-- [ ] **Step 7: Commit** -- `feat: add PersistActivity for idempotent batch upsert of pipeline artifacts`
+Test: first submission = 1, dedup'd resubmission = 2, third submission = 3.
+
+- [ ] **Step 4: Verify build + run tests**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit -m "feat: add SubmissionCount to Lead — repeat submissions boost engagement score"
+```
 
 ---
 
-## Phase 5b: Wire Retry State into Orchestrator (depends on Task 1)
-
----
-
-### Task 3: Wire LeadRetryState into orchestrator
+### Task 3: Create LeadRetryState model
 
 **Files:**
-- Modify: `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/LeadOrchestrator.cs`
-- Modify: `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/RealEstateStar.Workers.Lead.Orchestrator.csproj`
-- Create: `apps/api/RealEstateStar.Tests/RealEstateStar.Workers.Tests/Lead/Orchestrator/RetryIntegrationTests.cs`
+- Create: `apps/api/RealEstateStar.Domain/Leads/Models/LeadRetryState.cs`
+- Modify: `apps/api/RealEstateStar.Domain/Leads/Models/Lead.cs`
+- Test: `apps/api/RealEstateStar.Tests/RealEstateStar.Domain.Tests/Leads/LeadRetryStateTests.cs`
 
-- [ ] **Step 1: Add ActivityHasher usage to orchestrator**
-  - Import `RealEstateStar.Domain.Leads.Hashing`
-  - Before CMA dispatch: compute `ActivityHasher.ComputeCmaHash(lead.SellerDetails)`, check `ctx.RetryState.IsCompleted(ActivityNames.Cma, hash)` -- if true, load cached result from `CompletedResultPaths`, skip dispatch
-  - Before HomeSearch dispatch: compute `ActivityHasher.ComputeHomeSearchHash(lead.BuyerDetails)`, same check/skip pattern
-  - Before PDF generation: compute `ActivityHasher.ComputePdfHash(ctx.CmaResult)`, same check/skip
-  - Before email draft: compute `ActivityHasher.ComputeDraftEmailHash(ctx.Score, cmaHash, hsHash)`, same check/skip
-  - Before agent notification draft: same pattern
+- [ ] **Step 1: Create `LeadRetryState` record**
 
-- [ ] **Step 2: Add retry state recording after each activity**
-  - After CMA completes: `ctx.RetryState.CompletedActivityKeys[ActivityNames.Cma] = cmaHash`
-  - Store serialized CmaWorkerResult path in `ctx.RetryState.CompletedResultPaths[ActivityNames.Cma]`
-  - Same pattern for HomeSearch, PDF, DraftEmail, DraftAgentNotification
-  - The PersistActivity (Task 2) writes the final RetryState.json
+```csharp
+namespace RealEstateStar.Domain.Leads.Models;
 
-- [ ] **Step 3: Add Activities.Persist reference and call PersistActivity at end of pipeline**
-  - Add `PersistActivity` to orchestrator constructor (DI)
-  - After all activities complete (Step 9 in current code), call `await persistActivity.ExecuteAsync(ctx, ct)`
-  - This is the final step before `UpdateStatusAsync(Complete)`
+public record LeadRetryState
+{
+    /// Key: activity name ("cma", "homeSearch", "pdf", "draftLeadEmail", "draftAgentNotification")
+    /// Value: SHA256 hash of the input that produced the completed result
+    public Dictionary<string, string> CompletedActivityKeys { get; init; } = new();
 
-- [ ] **Step 4: Add retry state loading on orchestrator start**
-  - When `ProcessRequestAsync` begins, check if lead's Retry State.json exists via `IDocumentStorageProvider`
-  - If it exists, deserialize into `ctx.RetryState`
-  - If not, `ctx.RetryState` stays as empty `new()` (first run)
+    /// Key: activity name
+    /// Value: storage path or serialized result reference
+    public Dictionary<string, string> CompletedResultPaths { get; init; } = new();
 
-- [ ] **Step 5: Add OTel span tags for cache hits/misses**
-  - On each activity span: add `cache.hit = true/false` tag
-  - Add counter `orchestrator.retry_cache_hits` and `orchestrator.retry_cache_misses`
+    public string? GetHash(string activityName) =>
+        CompletedActivityKeys.GetValueOrDefault(activityName);
 
-- [ ] **Step 6: Write retry integration tests**
-  - First run: all activities execute, retry state saved
-  - Second run with same input: all activities skipped (hashes match)
-  - Second run with different seller address: CMA re-runs, HomeSearch skips
-  - Second run with different buyer criteria: HomeSearch re-runs, CMA skips
-  - CMA re-run causes PDF and email draft to re-run (downstream hash changes)
-  - Timeout scenario: partial retry state saved, next run completes remaining steps
-  - Verify retry state JSON written to storage
+    public bool IsCompleted(string activityName, string currentInputHash) =>
+        CompletedActivityKeys.TryGetValue(activityName, out var storedHash)
+        && storedHash == currentInputHash;
+}
+```
 
-- [ ] **Step 7: Commit** -- `feat: wire content-aware retry state into LeadOrchestrator`
+- [ ] **Step 2: Add `RetryState` property to `Lead`**
+
+```csharp
+public LeadRetryState? RetryState { get; set; }
+```
+
+- [ ] **Step 3: Write tests**
+
+Test `IsCompleted` with matching hash (returns true), different hash (returns false), missing key (returns false). Test `GetHash` returns null for missing keys.
+
+- [ ] **Step 4: Verify build + run tests**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit -m "feat: add LeadRetryState — content-aware retry tracking for orchestrator"
+```
 
 ---
 
-## Phase 5c: Cross-Lead Cache + Status Gating (parallel -- 2 agents, depend on Task 3)
-
----
-
-### Task 4: Content-addressed dedup cache (cross-lead spam protection)
+### Task 4: Create CommunicationRecord model
 
 **Files:**
-- Create: `apps/api/RealEstateStar.Domain/Leads/Interfaces/IContentCache.cs`
-- Create: `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/ContentCache.cs`
-- Modify: `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/LeadOrchestrator.cs`
-- Modify: `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/ServiceCollectionExtensions.cs`
-- Create: `apps/api/RealEstateStar.Tests/RealEstateStar.Workers.Tests/Lead/Orchestrator/ContentCacheTests.cs`
+- Create: `apps/api/RealEstateStar.Domain/Leads/Models/CommunicationRecord.cs`
+- Test: `apps/api/RealEstateStar.Tests/RealEstateStar.Domain.Tests/Leads/CommunicationRecordTests.cs`
 
-- [ ] **Step 1: Define `IContentCache` interface in Domain**
-  - `TryGet<T>(string key, out T? value)` -- returns true if cached, false if miss
-  - `Set<T>(string key, T value, TimeSpan ttl)` -- cache with expiration
-  - Interface lives in `Domain/Leads/Interfaces/` since it's used by orchestrator (Domain dependency)
+- [ ] **Step 1: Create `CommunicationRecord` record**
 
-- [ ] **Step 2: Implement `ContentCache` using IMemoryCache**
-  - Constructor takes `IMemoryCache`
-  - `TryGet<T>` delegates to `_cache.TryGetValue`
-  - `Set<T>` delegates to `_cache.Set` with `MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl }`
-  - Cache key format: `"activity:{activityName}:{contentHash}"` (namespaced to avoid collisions)
+```csharp
+namespace RealEstateStar.Domain.Leads.Models;
 
-- [ ] **Step 3: Wire into orchestrator**
-  - Add `IContentCache` to orchestrator constructor
-  - Before CMA dispatch: check `cache.TryGet<CmaWorkerResult>(cmaKey, out cached)` -- if hit, use cached result, skip dispatch entirely
-  - After CMA completes: `cache.Set(cmaKey, result, TimeSpan.FromHours(24))`
-  - Before HomeSearch dispatch: same check with 1-hour TTL
-  - After HomeSearch completes: `cache.Set(hsKey, result, TimeSpan.FromHours(1))`
-  - PDF cache: 24-hour TTL keyed on CmaWorkerResult hash
-  - Notifications: NOT cached (always send -- spec says so)
-  - Cache check happens BEFORE per-lead retry check (shared cache is cheaper than file I/O)
+public record CommunicationRecord
+{
+    public required string Subject { get; init; }
+    public required string HtmlBody { get; init; }
+    public required string Channel { get; init; }       // "email", "whatsapp", "email-fallback"
+    public required DateTimeOffset DraftedAt { get; init; }
+    public DateTimeOffset? SentAt { get; set; }
+    public bool Sent { get; set; }
+    public string? Error { get; set; }
+    public required string ContentHash { get; init; }   // SHA256 of draft inputs — dedup key
+}
+```
 
-- [ ] **Step 4: Add OTel metrics for cache**
-  - `content_cache.hit` counter (tagged by activity name)
-  - `content_cache.miss` counter (tagged by activity name)
-  - Span tag `cross_lead_cache.hit = true/false` on each activity span
+- [ ] **Step 2: Write tests**
 
-- [ ] **Step 5: Register in ServiceCollectionExtensions**
-  - `services.AddMemoryCache()` (if not already registered)
-  - `services.AddSingleton<IContentCache, ContentCache>()`
+Test record creation, sent status mutation, content hash comparison for dedup.
 
-- [ ] **Step 6: Write tests**
-  - Cache miss on first call, returns false
-  - Cache hit on second call with same key, returns cached value
-  - Different key = cache miss (different address)
-  - TTL expiration: set with short TTL, verify miss after expiration
-  - CMA 24hr TTL vs HomeSearch 1hr TTL verified
-  - Cross-lead scenario: Lead A computes CMA for "123 Main St", Lead B requests same address = cache hit
-  - Cache does NOT apply to notifications (verify always-send behavior)
+- [ ] **Step 3: Verify build + run tests**
 
-- [ ] **Step 7: Commit** -- `feat: add cross-lead content cache for CMA/HomeSearch dedup`
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "feat: add CommunicationRecord — draft + send tracking with content hash dedup"
+```
 
 ---
 
-### Task 5: Update SubmitLeadEndpoint for status-based gating
+### Task 5: Create LeadPipelineContext + LeadPipelineResult
+
+**Files:**
+- Create: `apps/api/RealEstateStar.Domain/Leads/Models/LeadPipelineContext.cs`
+- Test: `apps/api/RealEstateStar.Tests/RealEstateStar.Domain.Tests/Leads/LeadPipelineContextTests.cs`
+
+- [ ] **Step 1: Create `LeadPipelineContext` class**
+
+Mutable context passed through all pipeline activities. Each activity reads what it needs and writes its output back. NOT thread-safe — all writes happen sequentially after parallel activities complete.
+
+```csharp
+namespace RealEstateStar.Domain.Leads.Models;
+
+public class LeadPipelineContext
+{
+    // Input (set at creation)
+    public required Lead Lead { get; init; }
+    public required AgentNotificationConfig AgentConfig { get; init; }
+    public required string CorrelationId { get; init; }
+    public LeadRetryState RetryState { get; set; } = new();
+
+    // Activity outputs (set by each activity)
+    public LeadScore? Score { get; set; }
+    public CmaWorkerResult? CmaResult { get; set; }
+    public HomeSearchWorkerResult? HsResult { get; set; }
+    public string? PdfStoragePath { get; set; }
+    public CommunicationRecord? LeadEmail { get; set; }
+    public CommunicationRecord? AgentNotification { get; set; }
+
+    public LeadPipelineResult ToResult() => new(
+        LeadId: Lead.Id.ToString(),
+        Success: true,
+        Score: Score,
+        CmaResult: CmaResult,
+        HsResult: HsResult,
+        PdfStoragePath: PdfStoragePath,
+        LeadEmailSent: LeadEmail?.Sent ?? false,
+        AgentNotified: AgentNotification?.Sent ?? false);
+}
+
+public record LeadPipelineResult(
+    string LeadId, bool Success, LeadScore? Score,
+    CmaWorkerResult? CmaResult, HomeSearchWorkerResult? HsResult,
+    string? PdfStoragePath, bool LeadEmailSent, bool AgentNotified);
+```
+
+- [ ] **Step 2: Write tests**
+
+Test `ToResult()` mapping, default values, context accumulation across activities.
+
+- [ ] **Step 3: Verify build + run tests**
+
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "feat: add LeadPipelineContext + LeadPipelineResult — shared state for orchestrator activities"
+```
+
+---
+
+### Task 6: Create IDiagnosticsProvider + DiagnosticsSnapshot
+
+**Files:**
+- Create: `apps/api/RealEstateStar.Domain/Shared/Diagnostics/IDiagnosticsProvider.cs`
+- Create: `apps/api/RealEstateStar.Domain/Shared/Diagnostics/DiagnosticsSnapshot.cs`
+
+- [ ] **Step 1: Create `IDiagnosticsProvider` interface**
+
+```csharp
+namespace RealEstateStar.Domain.Shared.Diagnostics;
+
+public interface IDiagnosticsProvider
+{
+    string ServiceName { get; }
+    DiagnosticsSnapshot GetSnapshot();
+}
+```
+
+- [ ] **Step 2: Create `DiagnosticsSnapshot` record**
+
+```csharp
+namespace RealEstateStar.Domain.Shared.Diagnostics;
+
+public record DiagnosticsSnapshot(
+    string ServiceName,
+    Dictionary<string, long> Counters,
+    Dictionary<string, double> Histograms,
+    DateTime CollectedAt);
+```
+
+Each worker project will implement `IDiagnosticsProvider`. Auto-registration by scanning for implementations. A `/diagnostics` endpoint aggregates all providers into a single JSON response.
+
+- [ ] **Step 3: Verify build**
+
+```bash
+dotnet build apps/api/RealEstateStar.Domain/RealEstateStar.Domain.csproj --no-restore
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "feat: add IDiagnosticsProvider + DiagnosticsSnapshot — shared diagnostics interface for worker projects"
+```
+
+---
+
+### Task 7: Create ILeadCommunicationService interface
+
+**Files:**
+- Create: `apps/api/RealEstateStar.Domain/Leads/Interfaces/ILeadCommunicationService.cs`
+
+- [ ] **Step 1: Create `ILeadCommunicationService` interface**
+
+```csharp
+namespace RealEstateStar.Domain.Leads.Interfaces;
+
+public interface ILeadCommunicationService
+{
+    Task<CommunicationRecord> DraftAsync(LeadPipelineContext ctx, CancellationToken ct);
+    Task<CommunicationRecord> SendAsync(CommunicationRecord draft, LeadPipelineContext ctx, CancellationToken ct);
+}
+```
+
+This interface is separate from `IAgentNotifier` because it serves a different audience (the lead vs. the agent), uses different channels (email from agent's Gmail), and requires Claude for content generation.
+
+- [ ] **Step 2: Verify build**
+
+- [ ] **Step 3: Commit**
+
+```bash
+git commit -m "feat: add ILeadCommunicationService — draft + send interface for lead emails"
+```
+
+---
+
+## Phase 2: Create New Projects (depend on Phase 1 — run Tasks 8–11 in parallel)
+
+---
+
+### Task 8: Create Activities.Pdf project (PdfActivity + CmaPdfGenerator)
+
+**Files:**
+- Create: `apps/api/RealEstateStar.Activities/RealEstateStar.Activities.Pdf/RealEstateStar.Activities.Pdf.csproj`
+- Create: `apps/api/RealEstateStar.Activities/RealEstateStar.Activities.Pdf/PdfActivity.cs`
+- Create: `apps/api/RealEstateStar.Activities/RealEstateStar.Activities.Pdf/CmaPdfGenerator.cs`
+- Create: `apps/api/RealEstateStar.Activities/RealEstateStar.Activities.Pdf/PdfDiagnostics.cs`
+- Create: `apps/api/RealEstateStar.Activities/RealEstateStar.Activities.Pdf/ServiceCollectionExtensions.cs`
+- Create: `apps/api/RealEstateStar.Tests/RealEstateStar.Activities.Tests/RealEstateStar.Activities.Pdf.Tests/`
+- Modify: `apps/api/RealEstateStar.Api.sln` — add new project
+
+- [ ] **Step 1: Create project file**
+
+Dependencies: `RealEstateStar.Domain` + `RealEstateStar.Workers.Shared` + QuestPDF NuGet. This is a regular activity — NOT a BackgroundService. No channel, no `PdfProcessingChannel`.
+
+- [ ] **Step 2: Implement `PdfActivity`**
+
+```csharp
+public class PdfActivity(ICmaPdfGenerator generator, IDocumentStorageProvider storage)
+{
+    public async Task<string> ExecuteAsync(LeadPipelineContext ctx, CancellationToken ct)
+    {
+        var pdfBytes = generator.Generate(ctx.CmaResult, ctx.AgentConfig);
+        var folder = LeadPaths.LeadFolder(ctx.Lead.FullName);
+        var fileName = $"{ctx.Lead.Id}-CMA-Report.pdf.b64";
+        await storage.WriteDocumentAsync(folder, fileName, Convert.ToBase64String(pdfBytes), ct);
+        return $"{folder}/{fileName}";
+    }
+}
+```
+
+PDF bytes are 2-10MB and must NOT be held on the context. PdfActivity writes directly to storage and puts only the storage path on the context.
+
+- [ ] **Step 3: Move `CmaPdfGenerator` from Workers.Leads**
+
+Copy the QuestPDF-based CMA report renderer. Update namespace to `RealEstateStar.Activities.Pdf`.
+
+- [ ] **Step 4: Add `PdfDiagnostics`**
+
+Metrics: `pdf.generation_duration_ms`, `pdf.size_bytes`, `pdf.storage_duration_ms`, `pdf.success`, `pdf.failed`.
+
+- [ ] **Step 5: Add `ServiceCollectionExtensions.AddPdfService()`**
+
+Self-contained DI registration for the PDF activity and generator.
+
+- [ ] **Step 6: Create test project + tests**
+
+Test cases: PDF generation with comps, without comps, currency formatting, storage path construction, error handling.
+
+- [ ] **Step 7: Verify build + run tests + coverage**
+
+```bash
+dotnet build apps/api/RealEstateStar.Api.sln --no-restore
+dotnet test apps/api/RealEstateStar.Api.sln --no-restore
+bash apps/api/scripts/coverage.sh --low-only
+```
+
+- [ ] **Step 8: Commit**
+
+```bash
+git commit -m "feat: create Activities.Pdf — PdfActivity + CmaPdfGenerator extracted from Workers.Leads"
+```
+
+---
+
+### Task 9: Create Services.AgentNotifier project (AgentNotificationService)
+
+**Files:**
+- Create: `apps/api/RealEstateStar.Services/RealEstateStar.Services.AgentNotifier/RealEstateStar.Services.AgentNotifier.csproj`
+- Create: `apps/api/RealEstateStar.Services/RealEstateStar.Services.AgentNotifier/AgentNotificationService.cs`
+- Create: `apps/api/RealEstateStar.Services/RealEstateStar.Services.AgentNotifier/AgentNotifierDiagnostics.cs`
+- Create: `apps/api/RealEstateStar.Services/RealEstateStar.Services.AgentNotifier/ServiceCollectionExtensions.cs`
+- Create: `apps/api/RealEstateStar.Tests/RealEstateStar.Services.Tests/RealEstateStar.Services.AgentNotifier.Tests/`
+- Modify: `apps/api/RealEstateStar.Api.sln`
+
+- [ ] **Step 1: Create project file**
+
+Dependencies: `RealEstateStar.Domain` + `RealEstateStar.Workers.Shared`. This is a service (synchronous call), NOT a BackgroundService. The orchestrator calls it directly.
+
+- [ ] **Step 2: Implement `AgentNotificationService` (implements `IAgentNotifier`)**
+
+WhatsApp (primary) + email fallback to the real estate agent. Template-based, no Claude. Receives lead summary, score, CMA result, HomeSearch result. Builds WhatsApp template params or email HTML.
+
+- [ ] **Step 3: Add `AgentNotifierDiagnostics`**
+
+Metrics: `agent_notify.whatsapp_success`, `agent_notify.whatsapp_failed`, `agent_notify.email_fallback`, `agent_notify.draft_duration_ms`.
+
+- [ ] **Step 4: Add `ServiceCollectionExtensions.AddAgentNotifier()`**
+
+- [ ] **Step 5: Create test project + tests**
+
+Test cases: WhatsApp template parameters, email fallback when WhatsApp fails, both-fail logging, correct metric recording.
+
+- [ ] **Step 6: Verify build + run tests + coverage**
+
+- [ ] **Step 7: Commit**
+
+```bash
+git commit -m "feat: create Services.AgentNotifier — WhatsApp + email fallback notification to agent"
+```
+
+---
+
+### Task 10: Create Services.LeadCommunicator project
+
+**Files:**
+- Create: `apps/api/RealEstateStar.Services/RealEstateStar.Services.LeadCommunicator/RealEstateStar.Services.LeadCommunicator.csproj`
+- Create: `apps/api/RealEstateStar.Services/RealEstateStar.Services.LeadCommunicator/LeadCommunicationService.cs`
+- Create: `apps/api/RealEstateStar.Services/RealEstateStar.Services.LeadCommunicator/LeadEmailDrafter.cs`
+- Create: `apps/api/RealEstateStar.Services/RealEstateStar.Services.LeadCommunicator/LeadEmailTemplate.cs`
+- Create: `apps/api/RealEstateStar.Services/RealEstateStar.Services.LeadCommunicator/LeadCommunicatorDiagnostics.cs`
+- Create: `apps/api/RealEstateStar.Services/RealEstateStar.Services.LeadCommunicator/ServiceCollectionExtensions.cs`
+- Create: `apps/api/RealEstateStar.Tests/RealEstateStar.Services.Tests/RealEstateStar.Services.LeadCommunicator.Tests/`
+- Modify: `apps/api/RealEstateStar.Api.sln`
+
+- [ ] **Step 1: Create project file**
+
+Dependencies: `RealEstateStar.Domain` + `RealEstateStar.Workers.Shared`.
+
+- [ ] **Step 2: Implement `LeadCommunicationService` (implements `ILeadCommunicationService`)**
+
+Two methods: `DraftAsync` (Claude generates personalized email) and `SendAsync` (Gmail API delivery). Separation means: if send fails, draft is cached and re-send doesn't re-call Claude.
+
+- [ ] **Step 3: Implement `LeadEmailDrafter` (implements `ILeadEmailDrafter`)**
+
+Claude-powered email drafting. Takes lead, score, CMA result, HomeSearch result, agent config. Returns personalized email with full branding (logo, colors, CTA).
+
+- [ ] **Step 4: Implement `LeadEmailTemplate`**
+
+HTML email rendering. Takes the drafted content and wraps it in a branded template with privacy footer, opt-out links, CCPA links. Agent branding from `AgentNotificationConfig`.
+
+- [ ] **Step 5: Add `LeadCommunicatorDiagnostics`**
+
+Metrics: `email.draft_duration_ms`, `email.draft_claude_tokens`, `email.draft_fallback`, `email.send_duration_ms`, `email.send_success`, `email.send_failed`.
+
+- [ ] **Step 6: Add `ServiceCollectionExtensions.AddLeadCommunicator()`**
+
+- [ ] **Step 7: Create test project + tests**
+
+Test cases: email draft with CMA + listings, without CMA, without listings, privacy token signing, HTML encoding, template rendering, send success/failure.
+
+- [ ] **Step 8: Verify build + run tests + coverage**
+
+- [ ] **Step 9: Commit**
+
+```bash
+git commit -m "feat: create Services.LeadCommunicator — Claude email drafting + Gmail delivery to leads"
+```
+
+---
+
+### Task 11: Create Workers.Lead.Orchestrator project
+
+**Files:**
+- Create: `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/RealEstateStar.Workers.Lead.Orchestrator.csproj`
+- Create: `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/LeadOrchestrator.cs`
+- Create: `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/LeadOrchestratorChannel.cs`
+- Create: `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/LeadScorer.cs`
+- Create: `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/ServiceCollectionExtensions.cs`
+- Create: `apps/api/RealEstateStar.Tests/RealEstateStar.Workers.Tests/RealEstateStar.Workers.Lead.Orchestrator.Tests/`
+- Modify: `apps/api/RealEstateStar.Api.sln`
+
+- [ ] **Step 1: Create project file**
+
+Dependencies: `Domain` + `Workers.Shared` + `Activities.Pdf` + `Services.AgentNotifier` + `Services.LeadCommunicator` + `Workers.Lead.CMA` + `Workers.Lead.HomeSearch`. This is the only project allowed to reference all worker/service/activity projects (composition point for lead pipeline).
+
+- [ ] **Step 2: Implement `LeadOrchestrator`**
+
+BackgroundService that reads from `LeadOrchestratorChannel`. For each lead:
+1. Load agent config
+2. Build `LeadPipelineContext`
+3. Score (sync, pure logic via `ILeadScorer`)
+4. Update status to `Scored`
+5. Fan-out CMA + HomeSearch via channels with `TaskCompletionSource` for result collection
+6. Update status to `Analyzing`
+7. If CMA succeeded, call `PdfActivity` directly
+8. Call `ILeadCommunicationService.DraftAsync()` then `SendAsync()`
+9. Call `IAgentNotifier.NotifyAsync()`
+10. Update status to `Notified`
+11. Return `LeadPipelineResult`
+
+- [ ] **Step 3: Implement `LeadOrchestratorChannel`**
+
+Channel\<LeadOrchestrationRequest\> with bounded capacity. `LeadOrchestrationRequest` holds `Lead`, `AgentId`, `CorrelationId`.
+
+- [ ] **Step 4: Implement `LeadScorer` (implements `ILeadScorer`)**
+
+Pure logic scoring. Factors: Timeline (0.35), Notes (0.05), Engagement/SubmissionCount (0.10), PropertyDetails (0.25 seller-only or 0.15 if both), PreApproval (0.25 buyer-only or 0.15 if both), BudgetAlignment (0.15 buyer). Bucket: >=70 Hot, >=40 Warm, <40 Cool.
+
+- [ ] **Step 5: Add `ServiceCollectionExtensions.AddLeadOrchestrator()`**
+
+Register `LeadOrchestrator` as hosted service, `LeadOrchestratorChannel` as singleton, `ILeadScorer` as singleton.
+
+- [ ] **Step 6: Create test project + tests**
+
+Test cases:
+- Dispatch logic by lead type (seller-only, buyer-only, both)
+- Timeout handling (mock slow CMA worker)
+- Partial failure (CMA fails, HomeSearch succeeds)
+- Score calculation for all lead type combinations
+- Score bucket boundaries (69 = Warm, 70 = Hot, 39 = Cool, 40 = Warm)
+- Engagement factor for submission counts 1-4+
+- Notes factor (with/without notes)
+
+- [ ] **Step 7: Verify build + run tests + coverage**
+
+```bash
+dotnet build apps/api/RealEstateStar.Api.sln --no-restore
+dotnet test apps/api/RealEstateStar.Api.sln --no-restore
+bash apps/api/scripts/coverage.sh --low-only
+```
+
+- [ ] **Step 8: Commit**
+
+```bash
+git commit -m "feat: create Workers.Lead.Orchestrator — per-lead pipeline with scoring, fan-out, and notifications"
+```
+
+---
+
+## Phase 3: Wire New Architecture (depends on Phase 2 — run Tasks 12–13 in parallel)
+
+---
+
+### Task 12: Update Program.cs with self-contained DI registrations
+
+**Files:**
+- Modify: `apps/api/RealEstateStar.Api/Program.cs`
+- Modify: `apps/api/RealEstateStar.Api/RealEstateStar.Api.csproj`
+
+- [ ] **Step 1: Add project references to Api.csproj**
+
+Add `<ProjectReference>` entries for:
+- `RealEstateStar.Workers.Lead.Orchestrator`
+- `RealEstateStar.Activities.Pdf`
+- `RealEstateStar.Services.AgentNotifier`
+- `RealEstateStar.Services.LeadCommunicator`
+
+Remove reference to `RealEstateStar.Workers.Leads` (if still referenced).
+
+- [ ] **Step 2: Replace monolith DI with self-contained extensions**
+
+Replace all inline lead pipeline registrations with:
+```csharp
+// Lead pipeline — decomposed orchestrator wiring
+builder.Services.AddLeadOrchestrator();
+builder.Services.AddPdfService();
+builder.Services.AddAgentNotifier();
+builder.Services.AddLeadCommunicator();
+```
+
+Each call delegates to the project's own `ServiceCollectionExtensions`.
+
+- [ ] **Step 3: Register IDiagnosticsProvider implementations**
+
+Add auto-registration that scans for `IDiagnosticsProvider` implementations:
+```csharp
+builder.Services.AddAllDiagnosticsProviders();
+```
+
+- [ ] **Step 4: Verify full build + run all tests**
+
+```bash
+dotnet build apps/api/RealEstateStar.Api.sln --no-restore
+dotnet test apps/api/RealEstateStar.Api.sln --no-restore
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit -m "refactor: wire new decomposed lead pipeline DI in Program.cs"
+```
+
+---
+
+### Task 13: Update SubmitLeadEndpoint for new architecture
 
 **Files:**
 - Modify: `apps/api/RealEstateStar.Api/Features/Leads/Submit/SubmitLeadEndpoint.cs`
-- Create: `apps/api/RealEstateStar.Tests/RealEstateStar.Api.Tests/Features/Leads/Submit/StatusGatingTests.cs`
+- Modify: `apps/api/RealEstateStar.Tests/RealEstateStar.Api.Tests/Features/Leads/Submit/SubmitLeadEndpointTests.cs`
 
-- [ ] **Step 1: Add status check before orchestrator dispatch**
-  - After dedup check (existing lead found), read current `lead.Status`
-  - `Received` -- dispatch to orchestrator (normal flow)
-  - `Scored` or `Analyzing` -- already in progress, return `202 Accepted` with message "Lead is already being processed"
-  - `Notified` -- already in progress (notification phase), return `202 Accepted`
-  - `Complete` -- check content hash:
-    - Compute new content hash from request (seller address + buyer criteria)
-    - Compare with stored retry state hash
-    - If same -- return `200 OK` with message "Lead already processed with same data"
-    - If different -- increment `SubmissionCount`, re-dispatch to orchestrator (retry with new data)
+- [ ] **Step 1: Update endpoint to use `LeadOrchestratorChannel`**
 
-- [ ] **Step 2: Add content hash comparison helper**
-  - Use `ActivityHasher.ComputeCmaHash` and `ActivityHasher.ComputeHomeSearchHash` from Task 1
-  - Compare against `lead.RetryState.GetHash(ActivityNames.Cma)` and `lead.RetryState.GetHash(ActivityNames.HomeSearch)`
-  - If either hash differs, the lead has new data and should be re-dispatched
+The endpoint should:
+1. Validate request
+2. Resolve agent config
+3. Dedup (GetByEmailAsync — if existing, increment SubmissionCount)
+4. Map request notes into SellerDetails/BuyerDetails
+5. Save lead
+6. Write to `LeadOrchestratorChannel` with `LeadOrchestrationRequest`
+7. Return 202 Accepted
 
-- [ ] **Step 3: Add structured logging for gating decisions**
-  - `[SubmitLead-020] Lead {LeadId} already in progress (status: {Status}), skipping dispatch`
-  - `[SubmitLead-021] Lead {LeadId} resubmitted with same data, returning cached result`
-  - `[SubmitLead-022] Lead {LeadId} resubmitted with changed data, re-dispatching (submission #{Count})`
+- [ ] **Step 2: Update tests**
 
-- [ ] **Step 4: Add OTel counter for gating outcomes**
-  - `lead.submit.dispatched` -- new lead or changed data
-  - `lead.submit.skipped_in_progress` -- already processing
-  - `lead.submit.skipped_unchanged` -- complete with same data
+Verify the endpoint correctly dispatches to the orchestrator channel, increments submission count on dedup, and maps notes.
 
-- [ ] **Step 5: Write tests**
-  - New lead (no existing) -- dispatches normally, returns 202
-  - Existing lead with status `Received` -- dispatches, returns 202
-  - Existing lead with status `Scored` -- returns 202 "already processing"
-  - Existing lead with status `Analyzing` -- returns 202 "already processing"
-  - Existing lead with status `Notified` -- returns 202 "already processing"
-  - Existing lead with status `Complete` + same data -- returns 200 "already processed"
-  - Existing lead with status `Complete` + different seller address -- re-dispatches, returns 202
-  - Existing lead with status `Complete` + different buyer criteria -- re-dispatches, returns 202
-  - Verify `SubmissionCount` incremented on re-dispatch of complete lead
+- [ ] **Step 3: Verify build + run tests**
 
-- [ ] **Step 6: Commit** -- `feat: add status-based gating to SubmitLeadEndpoint for dedup + resubmission`
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "refactor: update SubmitLeadEndpoint to dispatch via LeadOrchestratorChannel"
+```
 
 ---
 
-## Phase 6: Exhaustive Dependency Graph Tests (parallel -- 3 agents)
+## Phase 4: Cleanup (depends on Phase 3 — run Tasks 14–17 in parallel)
 
 ---
 
-### Task 6: Per-project allowed-dependency test
+### Task 14: Delete old Workers.Leads project
+
+**Files:**
+- Delete: `apps/api/RealEstateStar.Workers.Leads/` (entire directory)
+- Delete: `apps/api/RealEstateStar.Tests/RealEstateStar.Workers.Leads.Tests/` (entire directory, if exists)
+- Modify: `apps/api/RealEstateStar.Api.sln` — remove old project entries
+- Modify: `apps/api/RealEstateStar.Api/RealEstateStar.Api.csproj` — remove old ProjectReference
+
+- [ ] **Step 1: Verify no remaining references to Workers.Leads**
+
+Search the entire `apps/api/` for references to `Workers.Leads` namespace, `Workers.Leads.csproj`, or any type that was moved. All should already point to new projects.
+
+```bash
+grep -r "Workers\.Leads" apps/api/ --include="*.cs" --include="*.csproj"
+```
+
+- [ ] **Step 2: Remove from solution file**
+
+```bash
+dotnet sln apps/api/RealEstateStar.Api.sln remove apps/api/RealEstateStar.Workers.Leads/RealEstateStar.Workers.Leads.csproj
+```
+
+- [ ] **Step 3: Delete directories**
+
+- [ ] **Step 4: Verify build + run all tests**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit -m "refactor: delete Workers.Leads — all code moved to Orchestrator, Activities.Pdf, Services.*"
+```
+
+---
+
+### Task 15: Rename Workers.Cma to Workers.Lead.CMA
+
+**Files:**
+- Rename: `apps/api/RealEstateStar.Workers.Cma/` → `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.CMA/`
+- Modify: All `<ProjectReference>` paths referencing the old name
+- Modify: `apps/api/RealEstateStar.Api.sln`
+- Modify: Namespace in all `.cs` files: `RealEstateStar.Workers.Cma` → `RealEstateStar.Workers.Lead.CMA`
+- Rename: test project accordingly
+
+- [ ] **Step 1: Create new directory with renamed project**
+
+- [ ] **Step 2: Update namespaces in all .cs files**
+
+- [ ] **Step 3: Update all ProjectReference paths**
+
+- [ ] **Step 4: Update solution file**
+
+- [ ] **Step 5: Update architecture tests**
+
+- [ ] **Step 6: Verify build + run all tests**
+
+- [ ] **Step 7: Commit**
+
+```bash
+git commit -m "refactor: rename Workers.Cma → Workers.Lead.CMA"
+```
+
+---
+
+### Task 16: Rename Workers.HomeSearch to Workers.Lead.HomeSearch
+
+**Files:**
+- Rename: `apps/api/RealEstateStar.Workers.HomeSearch/` → `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.HomeSearch/`
+- Modify: All `<ProjectReference>` paths
+- Modify: `apps/api/RealEstateStar.Api.sln`
+- Modify: Namespaces
+- Rename: test project
+
+- [ ] **Step 1: Create new directory with renamed project**
+
+- [ ] **Step 2: Update namespaces in all .cs files**
+
+- [ ] **Step 3: Update all ProjectReference paths**
+
+- [ ] **Step 4: Update solution file**
+
+- [ ] **Step 5: Update architecture tests**
+
+- [ ] **Step 6: Verify build + run all tests**
+
+- [ ] **Step 7: Commit**
+
+```bash
+git commit -m "refactor: rename Workers.HomeSearch → Workers.Lead.HomeSearch"
+```
+
+---
+
+### Task 17: Folder restructure + cleanup
+
+**Files:**
+- Move: All `RealEstateStar.Clients.*` projects under `apps/api/RealEstateStar.Clients/`
+- Move: All `RealEstateStar.Workers.*` projects under `apps/api/RealEstateStar.Workers/`
+- Move: All `RealEstateStar.Services.*` projects under `apps/api/RealEstateStar.Services/`
+- Move: All `RealEstateStar.Activities.*` projects under `apps/api/RealEstateStar.Activities/`
+- Move: All test projects under `apps/api/RealEstateStar.Tests/`
+- Modify: All `<ProjectReference>` paths in `.csproj` files
+- Modify: `apps/api/RealEstateStar.Api.sln`
+- Remove: Unused usings across all moved files
+
+- [ ] **Step 1: Move Clients projects into Clients/ directory**
+
+Group all 14 `Clients.*` projects. No namespace changes — `RealEstateStar.Clients.Anthropic` stays the same.
+
+- [ ] **Step 2: Move Workers projects into Workers/ directory**
+
+Group `Workers.Shared`, `Workers.Lead.CMA`, `Workers.Lead.HomeSearch`, `Workers.Lead.Orchestrator`, `Workers.WhatsApp`.
+
+- [ ] **Step 3: Move Services projects into Services/ directory**
+
+Group `Services.AgentNotifier`, `Services.LeadCommunicator`.
+
+- [ ] **Step 4: Move Activities projects into Activities/ directory**
+
+Group `Activities.Pdf`.
+
+- [ ] **Step 5: Update ALL ProjectReference paths**
+
+Every `.csproj` that references a moved project needs path updates. Use find-and-replace.
+
+- [ ] **Step 6: Update solution file**
+
+Regenerate or update all project paths in the `.sln` file.
+
+- [ ] **Step 7: Remove unused usings**
+
+Run `dotnet format` or IDE cleanup across all moved files.
+
+- [ ] **Step 8: Verify build + run all tests**
+
+```bash
+dotnet build apps/api/RealEstateStar.Api.sln --no-restore
+dotnet test apps/api/RealEstateStar.Api.sln --no-restore
+```
+
+- [ ] **Step 9: Commit**
+
+```bash
+git commit -m "refactor: group projects into Clients/, Workers/, Services/, Activities/ directories"
+```
+
+**Note:** This task has a high file-change count. Consider deferring to a separate PR if it creates too much merge conflict risk.
+
+---
+
+## Phase 5: Smart Retry + PersistActivity (depends on Phase 4 — run Tasks 18–22 in parallel)
+
+---
+
+### Task 18: Content hash computation utility
+
+**Files:**
+- Create: `apps/api/RealEstateStar.Domain/Shared/ContentHash.cs`
+- Test: `apps/api/RealEstateStar.Tests/RealEstateStar.Domain.Tests/Shared/ContentHashTests.cs`
+
+- [ ] **Step 1: Create `ContentHash` static utility**
+
+```csharp
+namespace RealEstateStar.Domain.Shared;
+
+public static class ContentHash
+{
+    public static string Compute(params string?[] fields)
+    {
+        var input = string.Join("|", fields.Select(f => f ?? ""));
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+}
+```
+
+Used by every activity to compute its retry key from input fields.
+
+- [ ] **Step 2: Write tests**
+
+Test cases:
+- Same inputs = same hash
+- Different inputs = different hash
+- Null fields handled gracefully
+- Deterministic across calls
+- Order matters (different field order = different hash)
+
+- [ ] **Step 3: Verify build + run tests + coverage**
+
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "feat: add ContentHash utility — SHA256 hashing for activity retry keys"
+```
+
+---
+
+### Task 19: Wire LeadRetryState into orchestrator
+
+**Files:**
+- Modify: `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/LeadOrchestrator.cs`
+- Modify: `apps/api/RealEstateStar.Tests/RealEstateStar.Workers.Tests/RealEstateStar.Workers.Lead.Orchestrator.Tests/LeadOrchestratorTests.cs`
+
+- [ ] **Step 1: Add retry key computation per activity**
+
+Before each activity, compute the content hash of its input fields:
+
+```
+CMA key:         SHA256(address + city + state + zip)
+HomeSearch key:   SHA256(city + state + minBudget + maxBudget + bedrooms + bathrooms)
+PDF key:          SHA256(serialized CmaWorkerResult)
+DraftEmail key:   SHA256(score hash + cmaResult hash + hsResult hash)
+DraftAgent key:   SHA256(score hash + cmaResult hash + hsResult hash)
+```
+
+- [ ] **Step 2: Add skip logic**
+
+Before dispatching each activity, check `ctx.RetryState.IsCompleted(activityName, currentHash)`. If true, skip the activity and load the cached result from `CompletedResultPaths`.
+
+- [ ] **Step 3: Update retry state after activity completion**
+
+After each activity completes, store the hash and result path:
+```csharp
+ctx.RetryState.CompletedActivityKeys[activityName] = currentHash;
+ctx.RetryState.CompletedResultPaths[activityName] = resultPath;
+```
+
+- [ ] **Step 4: Write tests for retry scenarios**
+
+Test cases:
+- Same lead, same property = skip all (CMA, HomeSearch, PDF)
+- Same lead, different property = re-run CMA + PDF, skip HomeSearch
+- Same lead, different buyer criteria = skip CMA, re-run HomeSearch
+- First submission (no retry state) = run everything
+- Partial completion (crashed after CMA) = skip CMA, run rest
+
+- [ ] **Step 5: Verify build + run tests + coverage**
+
+- [ ] **Step 6: Commit**
+
+```bash
+git commit -m "feat: wire LeadRetryState into orchestrator — content-aware skip/re-run per activity"
+```
+
+---
+
+### Task 20: Implement PersistActivity
+
+**Files:**
+- Create: `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/PersistActivity.cs`
+- Test: `apps/api/RealEstateStar.Tests/RealEstateStar.Workers.Tests/RealEstateStar.Workers.Lead.Orchestrator.Tests/PersistActivityTests.cs`
+
+- [ ] **Step 1: Implement `PersistActivity`**
+
+Reads the entire `LeadPipelineContext` and writes all artifacts in a single batch:
+
+```
+Lead folder: Real Estate Star/1 - Leads/{FullName}/
+  +-- Lead Profile.md              ← upsert: status, score, bucket, submission_count
+  +-- CMA Summary.md               ← upsert: estimated value, comps, market analysis
+  +-- HomeSearch Summary.md         ← upsert: listings, area summary
+  +-- Lead Email Draft.md           ← upsert: subject + body + sent status + channel
+  +-- Agent Notification Draft.md   ← upsert: subject + body + sent status + channel
+  +-- Retry State.json              ← upsert: content hashes per activity
+```
+
+PDF is NOT written here (already written by PdfActivity — too large for context).
+
+- [ ] **Step 2: Implement communication dedup**
+
+For each communication document: check if existing file has same `content_hash` in YAML frontmatter AND `sent: true`. If so, skip the write — prevents duplicate drafts on retry.
+
+- [ ] **Step 3: Write tests**
+
+Test cases:
+- Full pipeline result persisted correctly
+- Partial result (CMA failed) — only writes available summaries
+- Communication dedup — same hash + sent = skip
+- Communication dedup — same hash + not sent = overwrite
+- Communication dedup — different hash = overwrite
+- Retry state serialized correctly as JSON
+- Idempotent — calling twice with same input produces same output
+
+- [ ] **Step 4: Wire PersistActivity into orchestrator as final step**
+
+- [ ] **Step 5: Verify build + run tests + coverage**
+
+- [ ] **Step 6: Commit**
+
+```bash
+git commit -m "feat: add PersistActivity — batch upsert of all pipeline artifacts with content-hash dedup"
+```
+
+---
+
+### Task 21: Cross-lead content cache (spam protection)
+
+**Files:**
+- Create: `apps/api/RealEstateStar.Workers/RealEstateStar.Workers.Lead.Orchestrator/ContentCache.cs`
+- Test: `apps/api/RealEstateStar.Tests/RealEstateStar.Workers.Tests/RealEstateStar.Workers.Lead.Orchestrator.Tests/ContentCacheTests.cs`
+
+- [ ] **Step 1: Implement `IContentCache` interface and `MemoryContentCache`**
+
+Per-lead retry state protects a single lead from re-running unchanged steps. The content cache protects against 100 different people submitting for the same property.
+
+```
+CMA request for "123 Main St, Newark, NJ 07102"
+  → SHA256("123 Main St|Newark|NJ|07102") = "abc123"
+  → Check shared cache: has "abc123" been computed in last 24 hours?
+    YES → Return cached CmaWorkerResult
+    NO  → Execute CMA activity, cache result with 24hr TTL
+```
+
+Cache TTLs:
+- CMA: 24 hours (comps are stable)
+- HomeSearch: 1 hour (listings change frequently)
+- PDF: 24 hours (tied to CMA result)
+- Notifications: no cache (always send)
+
+- [ ] **Step 2: Wire cache into orchestrator**
+
+Before each cacheable activity, check the shared content cache. On cache hit, skip execution and use cached result. On cache miss, execute and store result.
+
+- [ ] **Step 3: Add cache diagnostics**
+
+Metrics: `cache.hit`, `cache.miss`, `cache.evicted` (per activity type).
+
+- [ ] **Step 4: Write tests**
+
+Test cases:
+- Cache miss → execute → cache stored
+- Cache hit → skip execution → return cached result
+- Different inputs → cache miss (different hash)
+- TTL expiry → cache miss after expiry
+- Concurrent access safety
+
+- [ ] **Step 5: Verify build + run tests + coverage**
+
+- [ ] **Step 6: Commit**
+
+```bash
+git commit -m "feat: add cross-lead content cache — shared IMemoryCache dedup for spam protection"
+```
+
+---
+
+### Task 22: Update SubmitLeadEndpoint for status-based gating
+
+**Files:**
+- Modify: `apps/api/RealEstateStar.Api/Features/Leads/Submit/SubmitLeadEndpoint.cs`
+- Modify: `apps/api/RealEstateStar.Tests/RealEstateStar.Api.Tests/Features/Leads/Submit/SubmitLeadEndpointTests.cs`
+
+- [ ] **Step 1: Add status check before dispatch**
+
+When a dedup'd lead is found, check its current status:
+
+```
+Received?           → Start orchestrator (first time or crashed before scoring)
+Scored/Analyzing?   → Already in progress — skip dispatch, return 200 "processing"
+Complete?           → Check content hash — re-run if input changed, skip if same
+Notified?           → Already in progress — skip dispatch
+```
+
+Without this, 100 rapid submissions would spawn 100 orchestrator instances all racing through the pipeline.
+
+- [ ] **Step 2: Write tests for each status gate**
+
+Test cases:
+- New lead (no existing) → dispatch, 202
+- Existing lead, status Received → dispatch, 202
+- Existing lead, status Scored → skip, 200 "processing"
+- Existing lead, status Analyzing → skip, 200 "processing"
+- Existing lead, status Complete, same content → skip, 200 "already complete"
+- Existing lead, status Complete, different content → dispatch, 202
+
+- [ ] **Step 3: Verify build + run tests + coverage**
+
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "feat: add status-based gating to SubmitLeadEndpoint — prevent duplicate orchestrator instances"
+```
+
+---
+
+## Phase 6: Exhaustive Dependency Tests (depends on Phase 5 — run Tasks 23–25 in parallel)
+
+---
+
+### Task 23: Per-project allowed-dependency test
 
 **Files:**
 - Modify: `apps/api/RealEstateStar.Tests/RealEstateStar.Architecture.Tests/DependencyTests.cs`
 
-- [ ] **Step 1: Add `[Theory]` test with `[InlineData]` per project**
-  - Each `[InlineData]` specifies: project assembly name, allowed dependency assembly names (comma-separated)
-  - Example: `[InlineData("RealEstateStar.Activities.Pdf", "RealEstateStar.Domain")]`
-  - Example: `[InlineData("RealEstateStar.Workers.Lead.Orchestrator", "RealEstateStar.Domain,RealEstateStar.Workers.Shared,RealEstateStar.Workers.Lead.CMA,RealEstateStar.Workers.Lead.HomeSearch,RealEstateStar.Activities.Pdf,RealEstateStar.Activities.Persist,RealEstateStar.Services.AgentNotifier,RealEstateStar.Services.LeadCommunicator")]`
-  - Cover ALL projects in the solution (not just worker projects)
+- [ ] **Step 1: Add exhaustive allowed-dependencies Theory**
 
-- [ ] **Step 2: Implement the test method**
-  - Load assembly by name
-  - Get all referenced assemblies (`assembly.GetReferencedAssemblies()`)
-  - Filter to only `RealEstateStar.*` references
-  - Assert each reference is in the allowed list
-  - Fail with descriptive message: `"{project} references {illegal} which is not in allowed list: [{allowed}]"`
+One test, one source-of-truth table. Every project lists its allowed dependencies. Any dependency not in the list = test failure.
 
-- [ ] **Step 3: Verify existing constraints still hold**
-  - Domain references nothing (no RealEstateStar.* refs)
-  - Data references Domain only
-  - Clients.* reference Domain only
-  - DataServices references Domain only
-  - Workers.Shared references Domain only
-  - Activities.Pdf references Domain + Workers.Shared
-  - Activities.Persist references Domain only
-  - Services.AgentNotifier references Domain + Workers.Shared
-  - Services.LeadCommunicator references Domain + Workers.Shared
-  - Workers.Lead.CMA references Domain + Workers.Shared
-  - Workers.Lead.HomeSearch references Domain + Workers.Shared
-  - Workers.Lead.Orchestrator references Domain + Workers.Shared + all activity/service/worker projects
+```csharp
+[Theory]
+[InlineData("RealEstateStar.Domain", new string[] { })]
+[InlineData("RealEstateStar.Data", new[] { "Domain" })]
+[InlineData("RealEstateStar.DataServices", new[] { "Domain" })]
+[InlineData("RealEstateStar.Notifications", new[] { "Domain" })]
+[InlineData("RealEstateStar.Workers.Shared", new[] { "Domain" })]
+[InlineData("RealEstateStar.Activities.Pdf", new[] { "Domain", "Workers.Shared" })]
+[InlineData("RealEstateStar.Services.AgentNotifier", new[] { "Domain", "Workers.Shared" })]
+[InlineData("RealEstateStar.Services.LeadCommunicator", new[] { "Domain", "Workers.Shared" })]
+[InlineData("RealEstateStar.Workers.Lead.CMA", new[] { "Domain", "Workers.Shared" })]
+[InlineData("RealEstateStar.Workers.Lead.HomeSearch", new[] { "Domain", "Workers.Shared" })]
+[InlineData("RealEstateStar.Workers.WhatsApp", new[] { "Domain", "Workers.Shared" })]
+[InlineData("RealEstateStar.Workers.Lead.Orchestrator", new[] {
+    "Domain", "Workers.Shared", "Activities.Pdf",
+    "Services.AgentNotifier", "Services.LeadCommunicator",
+    "Workers.Lead.CMA", "Workers.Lead.HomeSearch" })]
+[InlineData("RealEstateStar.Clients.Anthropic", new[] { "Domain" })]
+[InlineData("RealEstateStar.Clients.Azure", new[] { "Domain" })]
+[InlineData("RealEstateStar.Clients.Cloudflare", new[] { "Domain" })]
+[InlineData("RealEstateStar.Clients.GDrive", new[] { "Domain", "Clients.GoogleOAuth" })]
+[InlineData("RealEstateStar.Clients.Gmail", new[] { "Domain", "Clients.GoogleOAuth" })]
+[InlineData("RealEstateStar.Clients.GDocs", new[] { "Domain", "Clients.GoogleOAuth" })]
+[InlineData("RealEstateStar.Clients.GSheets", new[] { "Domain", "Clients.GoogleOAuth" })]
+[InlineData("RealEstateStar.Clients.GoogleOAuth", new[] { "Domain" })]
+[InlineData("RealEstateStar.Clients.Gws", new[] { "Domain" })]
+[InlineData("RealEstateStar.Clients.RentCast", new[] { "Domain" })]
+[InlineData("RealEstateStar.Clients.Scraper", new[] { "Domain" })]
+[InlineData("RealEstateStar.Clients.Stripe", new[] { "Domain" })]
+[InlineData("RealEstateStar.Clients.Turnstile", new[] { "Domain" })]
+[InlineData("RealEstateStar.Clients.WhatsApp", new[] { "Domain" })]
+```
 
-- [ ] **Step 4: Commit** -- `test: add per-project allowed-dependency [Theory] tests`
+Key constraints:
+- `Activities.Pdf` must NOT reference `Workers.Lead.*`
+- `Services.AgentNotifier` must NOT reference `Workers.Lead.*`
+- `Services.LeadCommunicator` must NOT reference `Workers.Lead.*`
+- Only `Workers.Lead.Orchestrator` may reference all projects
+
+- [ ] **Step 2: Add symmetric tests to LayerTests.cs (NetArchTest)**
+
+Add equivalent constraints in the NetArchTest-based test suite. Both suites must be maintained (belt-and-suspenders per project convention).
+
+- [ ] **Step 3: Verify all architecture tests pass**
+
+```bash
+dotnet test apps/api/RealEstateStar.Tests/RealEstateStar.Architecture.Tests --no-restore
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "test: add exhaustive per-project allowed-dependency tests for restructured architecture"
+```
 
 ---
 
-### Task 7: csproj reference audit test
+### Task 24: csproj reference audit test
 
 **Files:**
-- Create: `apps/api/RealEstateStar.Tests/RealEstateStar.Architecture.Tests/CsprojReferenceTests.cs`
+- Create or modify: `apps/api/RealEstateStar.Tests/RealEstateStar.Architecture.Tests/CsprojAuditTests.cs`
 
-- [ ] **Step 1: Implement csproj parser**
-  - Find all `.csproj` files under `apps/api/` (excluding `tests/`, `bin/`, `obj/`)
-  - For each csproj, parse `<ProjectReference Include="...">` elements using `XDocument`
-  - Extract the project name from the path (e.g., `..\..\RealEstateStar.Domain\RealEstateStar.Domain.csproj` -> `RealEstateStar.Domain`)
+- [ ] **Step 1: Implement csproj reference audit test**
 
-- [ ] **Step 2: Define allowed references map**
-  - Same allowed-list as Task 6 but verified at csproj level (catches refs before types are used)
-  - Use a `Dictionary<string, HashSet<string>>` mapping project name to allowed project references
+The assembly-level test catches runtime dependencies. This test catches compile-time references in `.csproj` files — a project might reference another project's csproj but never actually use any types (latent violation).
 
-- [ ] **Step 3: Implement `[Theory]` test**
-  - For each csproj, verify all `ProjectReference` entries point to allowed projects
-  - Fail with: `"{project}.csproj references {illegal}.csproj which violates dependency rules"`
+```csharp
+[Fact]
+public void AllCsprojReferences_MatchAllowedDependencyTable()
+{
+    // Parse every .csproj under apps/api/
+    // Extract <ProjectReference> elements
+    // Verify each reference is in the allowed table
+    // Fail with: "MyProject.csproj references DisallowedProject.csproj"
+}
+```
 
-- [ ] **Step 4: Test for circular references**
-  - Build a directed graph from all csproj references
-  - Run topological sort -- if it fails, there's a cycle
-  - Fail with: `"Circular dependency detected: {cycle path}"`
+- [ ] **Step 2: Write tests that scan all .csproj files**
 
-- [ ] **Step 5: Commit** -- `test: add csproj ProjectReference audit tests`
+Use `Directory.GetFiles("*.csproj", SearchOption.AllDirectories)` to find all project files. Parse XML to extract `<ProjectReference>` elements. Validate against the same allowed-dependency table.
+
+- [ ] **Step 3: Verify test passes**
+
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "test: add csproj reference audit — catches compile-time dependency violations"
+```
 
 ---
 
-### Task 8: Single-purpose project manifest
+### Task 25: Single-purpose project manifest test
 
 **Files:**
-- Create: `apps/api/RealEstateStar.Tests/RealEstateStar.Architecture.Tests/ProjectManifestTests.cs`
-- Modify: all `.csproj` files missing `<Description>` -- add the element
+- Create or modify: `apps/api/RealEstateStar.Tests/RealEstateStar.Architecture.Tests/ProjectManifestTests.cs`
 
-- [ ] **Step 1: Implement `<Description>` validation test**
-  - Find all `.csproj` files under `apps/api/` (excluding `tests/`)
-  - Parse each for `<Description>` element in `<PropertyGroup>`
-  - Assert it exists and is non-empty
-  - Fail with: `"{project}.csproj is missing <Description> in PropertyGroup"`
+- [ ] **Step 1: Implement single-purpose validation**
 
-- [ ] **Step 2: Add `<Description>` to all production csproj files**
-  - `RealEstateStar.Domain` -- "Pure domain models, interfaces, enums -- zero external dependencies"
-  - `RealEstateStar.Data` -- "Physical file storage providers (local, in-memory)"
-  - `RealEstateStar.DataServices` -- "Storage orchestration and lead data access"
-  - `RealEstateStar.Notifications` -- "Notification delivery channels (email, WhatsApp)"
-  - `RealEstateStar.Workers.Shared` -- "Pipeline base classes, channels, health tracking"
-  - `RealEstateStar.Workers.Lead.Orchestrator` -- "Per-lead pipeline orchestrator with retry and caching"
-  - `RealEstateStar.Workers.Lead.CMA` -- "Comparative Market Analysis worker (RentCast + Claude)"
-  - `RealEstateStar.Workers.Lead.HomeSearch` -- "Home search worker (scraper + Claude parsing)"
-  - `RealEstateStar.Workers.WhatsApp` -- "WhatsApp message processing worker"
-  - `RealEstateStar.Activities.Pdf` -- "QuestPDF CMA report generation activity"
-  - `RealEstateStar.Activities.Persist` -- "Idempotent batch upsert of pipeline artifacts"
-  - `RealEstateStar.Services.AgentNotifier` -- "Agent notification via WhatsApp with email fallback"
-  - `RealEstateStar.Services.LeadCommunicator` -- "Lead email drafting and sending via Gmail"
-  - `RealEstateStar.Api` -- "HTTP layer and sole DI composition root"
-  - All `Clients.*` projects -- appropriate descriptions per client
+Each project must have a `<Description>` element in its `.csproj` matching a known purpose. Forces every new project to declare its intent at creation time.
 
-- [ ] **Step 3: Verify test passes with all descriptions added**
+```csharp
+[Theory]
+[InlineData("RealEstateStar.Domain", "Pure models, interfaces, enums — zero dependencies")]
+[InlineData("RealEstateStar.Activities.Pdf", "PDF generation activity — QuestPDF CMA reports")]
+[InlineData("RealEstateStar.Services.AgentNotifier", "Agent notification service — WhatsApp + email fallback")]
+[InlineData("RealEstateStar.Services.LeadCommunicator", "Lead communication service — Claude email drafting + Gmail delivery")]
+[InlineData("RealEstateStar.Workers.Lead.Orchestrator", "Lead pipeline orchestration — scoring, dispatch, coordination")]
+[InlineData("RealEstateStar.Workers.Lead.CMA", "CMA pipeline worker")]
+[InlineData("RealEstateStar.Workers.Lead.HomeSearch", "Home search pipeline worker")]
+// ... every project
+public void Project_HasSinglePurpose_DocumentedInManifest(string project, string purpose)
+{
+    // Verify the project's .csproj has a <Description> element matching the purpose
+}
+```
 
-- [ ] **Step 4: Commit** -- `chore: add <Description> to all csproj files + manifest validation test`
+- [ ] **Step 2: Add `<Description>` elements to all .csproj files**
+
+Every project file must declare its purpose.
+
+- [ ] **Step 3: Verify test passes**
+
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "test: add single-purpose project manifest — every project declares its intent in csproj"
+```
 
 ---
 
-## Post-Implementation: Documentation Updates
+## Post-Implementation (run Tasks 26–28 in parallel)
 
 ---
 
-### Task 9: Update documentation
+### Task 26: Update CLAUDE.md with new structure
 
 **Files:**
-- Modify: `.claude/CLAUDE.md` -- update monorepo structure with Activities.Persist, content cache, retry state
-- Modify: `docs/architecture/README.md` -- update dependency diagram (if exists)
+- Modify: `CLAUDE.md` (root)
+- Modify: `.claude/CLAUDE.md`
 
-- [ ] **Step 1: Update CLAUDE.md monorepo structure**
-  - Add `RealEstateStar.Activities.Persist/` to the project listing
-  - Update the API dependency rules section to include Activities.Persist
-  - Add note about content cache and retry state pattern
+- [ ] **Step 1: Update monorepo structure diagram**
 
-- [ ] **Step 2: Update architecture diagrams**
-  - Add Activities.Persist to dependency diagram
-  - Add content cache flow to pipeline diagram
-  - Add retry state flow to orchestrator lifecycle diagram
+Add `Activities/`, `Services/` groupings. Update `Workers/` to show `Workers.Lead.CMA`, `Workers.Lead.HomeSearch`, `Workers.Lead.Orchestrator`.
 
-- [ ] **Step 3: Update onboarding docs if they reference old project structure**
+- [ ] **Step 2: Update API dependency rules**
 
-- [ ] **Step 4: Commit** -- `docs: update architecture docs for smart retry + persist activity`
+Add the new projects and their dependency rules:
+```
+Activities.Pdf            → Domain + Workers.Shared
+Services.AgentNotifier    → Domain + Workers.Shared
+Services.LeadCommunicator → Domain + Workers.Shared
+Workers.Lead.Orchestrator → Domain + Workers.Shared + Activities.Pdf
+                          + Services.AgentNotifier + Services.LeadCommunicator
+                          + Workers.Lead.CMA + Workers.Lead.HomeSearch
+```
+
+- [ ] **Step 3: Update infrastructure table**
+
+Add entries for new projects explaining their purpose.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "docs: update CLAUDE.md with restructured worker architecture"
+```
+
+---
+
+### Task 27: Update architecture diagrams
+
+**Files:**
+- Modify: `docs/architecture/README.md`
+
+- [ ] **Step 1: Update dependency diagram**
+
+Show the new project layout with `Activities.*`, `Services.*`, and `Workers.Lead.*` groupings.
+
+- [ ] **Step 2: Update lead pipeline flow diagram**
+
+Show the per-lead orchestrator pattern: Score → Fan-out → PDF → Communication → Notification → Persist.
+
+- [ ] **Step 3: Add smart retry diagram**
+
+Show the content hash decision flow: compute hash → check cache → skip or execute → update cache.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "docs: update architecture diagrams for worker restructure"
+```
+
+---
+
+### Task 28: Run code review + security review + observability audit
+
+**Files:**
+- No file changes — review only
+
+- [ ] **Step 1: Run code-reviewer agent**
+
+Review all new code for quality, patterns, and consistency.
+
+- [ ] **Step 2: Run security-reviewer agent**
+
+Check for:
+- No PII in span tags or log fields
+- Content hash inputs don't leak to logs
+- YAML injection prevention in PersistActivity
+- Path traversal protection in file write operations
+
+- [ ] **Step 3: Verify observability parity**
+
+Ensure all existing diagnostics modules, counters, histograms, tracing sources, health checks, and log codes are preserved or improved. Check:
+- OrchestratorDiagnostics metrics maintained
+- LeadDiagnostics merged into orchestrator diagnostics
+- CmaDiagnostics in Workers.Lead.CMA
+- HomeSearchDiagnostics in Workers.Lead.HomeSearch
+- PdfDiagnostics in Activities.Pdf
+- New activity spans: `activity.score`, `activity.cma`, `activity.home_search`, `activity.pdf`, `activity.draft_lead_email`, `activity.send_lead_email`, `activity.draft_agent_notification`, `activity.send_agent_notification`, `activity.persist`
+- New log codes: `ORCH-0xx`, `DRAFT-0xx`, `SEND-0xx`, `CACHE-0xx`, `PDF-0xx`, `PERSIST-0xx`
+
+- [ ] **Step 4: Run full test suite + coverage report**
+
+```bash
+dotnet test apps/api/RealEstateStar.Api.sln --no-restore
+bash apps/api/scripts/coverage.sh --low-only
+```
+
+Verify 100% branch coverage on all new code.
+
+- [ ] **Step 5: Document any findings as GitHub Issues**
