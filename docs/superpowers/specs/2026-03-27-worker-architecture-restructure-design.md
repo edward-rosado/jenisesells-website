@@ -728,12 +728,57 @@ apps/api/
 
 The orchestrator tracks completed steps with retry keys that are **content-aware**, not just step-name-aware. This enables the critical scenario: when the same lead submits again about a different property, the CMA re-runs (different address) but HomeSearch skips (same buyer criteria).
 
-### 8. DB Write as Activity (Idempotent Persistence)
+### 8. Two-Tier Write Strategy: Status Guards + Result Persistence
 
-All storage writes happen as an **activity function** at the end of the pipeline, never inline in the orchestrator body. This is critical for:
-- **Durable Functions compatibility** — all I/O must be inside activities
-- **Idempotency** — writing the same result twice produces the same state (upsert, not append)
-- **Retry safety** — if the orchestrator crashes after CMA but before DB write, restart replays the whole pipeline; cached CMA skips re-execution, DB write runs and persists
+The pipeline has **two distinct write patterns** with different purposes:
+
+#### Tier 1: Status Writes — Inline Concurrency Guards
+
+Status updates (`UpdateStatusAsync`) happen **inline during the pipeline**, not at the end.
+They are **concurrency guards** that prevent duplicate orchestrator instances from processing
+the same lead simultaneously.
+
+```
+Lead submitted → endpoint checks current status:
+  → Received?           Start orchestrator
+  → Scored/Analyzing?   Already in progress — skip dispatch
+  → Complete?           Check content hash — re-run if input changed
+```
+
+Without inline status writes, 100 rapid submissions would spawn 100 orchestrator instances
+all racing through CMA/HomeSearch/email in parallel. The status write at `Scored` is the
+gate — subsequent submissions see `Scored` and don't re-dispatch.
+
+```
+Orchestrator pipeline:
+  Score lead           → UpdateStatusAsync(Scored)     ← gate: blocks re-dispatch
+  Dispatch CMA+HS      → UpdateStatusAsync(Analyzing)  ← gate: blocks re-dispatch
+  Send notifications   → UpdateStatusAsync(Notified)   ← gate: blocks re-dispatch
+  Persist results      → UpdateStatusAsync(Complete)   ← final state
+```
+
+**These writes are service calls** via `ILeadStore.UpdateStatusAsync()` — quick YAML field
+updates that the orchestrator waits for before proceeding. They are NOT activities (too
+lightweight, must complete before next step). The `ILeadStore` interface is in Domain,
+implementation in DataServices — proper Dependency Inversion.
+
+#### Tier 2: Result Writes — PersistActivity at End
+
+Result data (CMA summary, email drafts, retry state) is written **once at the end** via
+`PersistActivity`. This is the heavy write — multiple documents upserted in a single pass.
+
+| Write Type | When | Why | Pattern |
+|---|---|---|---|
+| Status | Inline, after each step | Concurrency guard — prevents duplicate orchestrators | Service call (ILeadStore) |
+| Score | With status (Scored) | Persists score + bucket for display | Service call (ILeadStore) |
+| PDF | During PdfActivity | Too large for context — writes directly to blob | Activity (self-managed I/O) |
+| Results | End of pipeline | CMA summary, email drafts, retry state | PersistActivity (batch upsert) |
+
+This is critical for:
+- **Spam protection** — status gates prevent re-dispatch
+- **Idempotency** — result writes use content hash dedup (same hash = skip)
+- **Retry safety** — crashed orchestrator restarts, sees `Analyzing` status, content cache skips completed activities
+- **Durable Functions compatibility** — status writes become durable entity updates, result writes become activity calls
 
 The persist activity reads the entire `LeadPipelineContext` and writes all artifacts to the
 lead's storage folder in a single pass. Every write is an **idempotent upsert** — same content

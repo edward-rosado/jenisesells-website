@@ -8,7 +8,7 @@ using RealEstateStar.Domain.Notifications.Interfaces;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Privacy.Interfaces;
 using RealEstateStar.Workers.Lead.Orchestrator;
-using RealEstateStar.Workers.Shared.Pdf;
+using RealEstateStar.Activities.Pdf;
 
 namespace RealEstateStar.Architecture.Tests;
 

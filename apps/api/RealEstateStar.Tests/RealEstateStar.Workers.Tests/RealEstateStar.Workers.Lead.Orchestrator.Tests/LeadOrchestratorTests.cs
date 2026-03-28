@@ -12,9 +12,9 @@ using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
 using RealEstateStar.Workers.Shared;
-using RealEstateStar.Workers.Shared.AgentNotifier;
-using RealEstateStar.Workers.Shared.LeadCommunicator;
-using RealEstateStar.Workers.Shared.Pdf;
+using RealEstateStar.Services.AgentNotifier;
+using RealEstateStar.Services.LeadCommunicator;
+using RealEstateStar.Activities.Pdf;
 
 
 namespace RealEstateStar.Workers.Lead.Orchestrator.Tests;
