@@ -18,10 +18,10 @@ public class CompAggregator(
         var results = await Task.WhenAll(tasks);
 
         var allComps = results.SelectMany(r => r).ToList();
-        logger.LogInformation("[AGG-002] Collected {Total} raw comps from all sources", allComps.Count);
+        logger.LogDebug("[AGG-002] Collected {Total} raw comps from all sources", allComps.Count);
 
         var deduplicated = Deduplicate(allComps);
-        logger.LogInformation("[AGG-003] Deduplicated to {Count} unique comps", deduplicated.Count);
+        logger.LogDebug("[AGG-003] Deduplicated to {Count} unique comps", deduplicated.Count);
 
         var ranked = FilterAndRankComps(deduplicated, request.Zip, logger, request);
         logger.LogInformation("[AGG-005] After FilterAndRankComps: {Count} comps selected", ranked.Count);
@@ -34,7 +34,7 @@ public class CompAggregator(
         try
         {
             var comps = await source.FetchAsync(request, ct);
-            logger.LogInformation("[AGG-002] Source {Source} returned {Count} comps", source.Name, comps.Count);
+            logger.LogDebug("[AGG-002] Source {Source} returned {Count} comps", source.Name, comps.Count);
             return comps;
         }
         catch (Exception ex)
