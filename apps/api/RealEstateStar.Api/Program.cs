@@ -18,12 +18,18 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.DataProtection;
 using RealEstateStar.Api.Health;
+using RealEstateStar.Api.Features.OAuth.Services;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Tools;
 using RealEstateStar.Workers.Lead.Orchestrator;
 using RealEstateStar.Services.AgentNotifier;
 using RealEstateStar.Services.LeadCommunicator;
+using RealEstateStar.Services.AgentConfig;
+using RealEstateStar.Services.BrandMerge;
+using RealEstateStar.Services.WelcomeNotification;
 using RealEstateStar.Activities.Pdf;
+using RealEstateStar.Activities.Activation.PersistAgentProfile;
+using RealEstateStar.Activities.Activation.BrandMerge;
 using RealEstateStar.Clients.Anthropic;
 using RealEstateStar.Clients.Azure;
 using RealEstateStar.Clients.GDocs;
@@ -218,6 +224,7 @@ builder.Services.AddSingleton(sp =>
         googleClientSecret,
         googleRedirectUri,
         sp.GetRequiredService<ILogger<GoogleOAuthService>>()));
+builder.Services.AddSingleton<AuthorizationLinkService>();
 builder.Services.AddSingleton<IOnboardingTool, GoogleAuthCardTool>();
 builder.Services.AddSingleton<IProcessRunner, ProcessRunner>();
 builder.Services.AddSingleton(cloudflareOptions);
@@ -302,6 +309,7 @@ builder.Services.AddSingleton<IOAuthRefresher>(sp =>
         sp.GetRequiredService<ILogger<GoogleOAuthRefresher>>());
 });
 builder.Services.AddGmailSender(googleClientId, googleClientSecret);
+builder.Services.AddGmailReader(googleClientId, googleClientSecret);
 
 // Google Drive, Docs, Sheets API clients — all backed by IOAuthRefresher
 builder.Services.AddGDriveClient(googleClientId, googleClientSecret);
@@ -317,6 +325,11 @@ builder.Services.AddLeadOrchestrator();
 builder.Services.AddPdfService();
 builder.Services.AddAgentNotifier();
 builder.Services.AddLeadCommunicator();
+builder.Services.AddAgentConfigService();
+builder.Services.AddBrandMergeService();
+builder.Services.AddWelcomeNotificationService();
+builder.Services.AddPersistAgentProfileActivity();
+builder.Services.AddBrandMergeActivity();
 
 // RentCast client (options, IRentCastClient, HttpClient "RentCast" with resilience)
 builder.Services.AddRentCastClient(builder.Configuration, pollyLogger);
