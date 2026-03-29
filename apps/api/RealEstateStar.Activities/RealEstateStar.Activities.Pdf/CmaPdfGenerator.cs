@@ -105,9 +105,8 @@ public class CmaPdfGenerator : ICmaPdfGenerator
                     // Section 5: Market Analysis
                     AddMarketAnalysis(col, analysis, primaryColor);
 
-                    // Section 6: Pricing Strategy + Lead Insights
-                    if (reportType is ReportType.Comprehensive)
-                        AddPricingStrategy(col, analysis);
+                    // Section 6: Pricing Strategy + Lead Insights (always shown when data is present)
+                    AddPricingStrategy(col, analysis);
                 });
 
                 // Section 7: Footer
