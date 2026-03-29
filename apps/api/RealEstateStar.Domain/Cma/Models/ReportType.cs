@@ -6,6 +6,5 @@ namespace RealEstateStar.Domain.Cma.Models;
 public enum ReportType
 {
     Lean,
-    Standard,
-    Comprehensive
+    Standard
 }

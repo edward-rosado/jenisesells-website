@@ -170,7 +170,7 @@ public class CmaPdfGeneratorTests
     }
 
     // ---------------------------------------------------------------------------
-    // GenerateAsync — happy path (Lean, Standard, Comprehensive)
+    // GenerateAsync — happy path (Lean, Standard)
     // ---------------------------------------------------------------------------
 
     [Fact]
@@ -222,7 +222,7 @@ public class CmaPdfGeneratorTests
     }
 
     [Fact]
-    public async Task GenerateAsync_Comprehensive_CreatesPdfFileOnDisk()
+    public async Task GenerateAsync_Standard_WithPricingRecommendation_CreatesPdfFileOnDisk()
     {
         var generator = MakeGenerator(out _);
         var lead = MakeLead();
@@ -231,7 +231,7 @@ public class CmaPdfGeneratorTests
         var agent = MakeAgentConfig();
         var ct = CancellationToken.None;
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
             logoBytes: null, headshotBytes: null, ct);
 
         try
@@ -246,7 +246,7 @@ public class CmaPdfGeneratorTests
     }
 
     [Fact]
-    public async Task GenerateAsync_Comprehensive_WithoutPricingRecommendation_CreatesPdfFileOnDisk()
+    public async Task GenerateAsync_Standard_WithoutPricingRecommendation_CreatesPdfFileOnDisk()
     {
         var generator = MakeGenerator(out _);
         var lead = MakeLead();
@@ -255,7 +255,7 @@ public class CmaPdfGeneratorTests
         var agent = MakeAgentConfig();
         var ct = CancellationToken.None;
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
             logoBytes: null, headshotBytes: null, ct);
 
         try
@@ -413,7 +413,7 @@ public class CmaPdfGeneratorTests
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task GenerateAsync_Comprehensive_WithLeadInsights_CreatesPdfSuccessfully()
+    public async Task GenerateAsync_Standard_WithLeadInsights_CreatesPdfSuccessfully()
     {
         var generator = MakeGenerator(out _);
         var lead = MakeLead();
@@ -423,7 +423,7 @@ public class CmaPdfGeneratorTests
         var comps = MakeComps();
         var agent = MakeAgentConfig();
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
             logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
@@ -541,7 +541,7 @@ public class CmaPdfGeneratorTests
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task GenerateAsync_Comprehensive_WithEmptyComps_CreatesPdfSuccessfully()
+    public async Task GenerateAsync_Standard_WithEmptyComps_CreatesPdfSuccessfully()
     {
         var generator = MakeGenerator(out _);
         var lead = MakeLead();
@@ -549,7 +549,7 @@ public class CmaPdfGeneratorTests
         var comps = new List<Comp>();
         var agent = MakeAgentConfig();
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
             logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
@@ -563,7 +563,7 @@ public class CmaPdfGeneratorTests
     }
 
     [Fact]
-    public async Task GenerateAsync_Comprehensive_WithNullSqft_CreatesPdfSuccessfully()
+    public async Task GenerateAsync_Standard_WithNullSqft_CreatesPdfSuccessfully()
     {
         var generator = MakeGenerator(out _);
         var lead = MakeLead(MakeSellerDetails(sqft: null));
@@ -571,7 +571,7 @@ public class CmaPdfGeneratorTests
         var comps = MakeComps();
         var agent = MakeAgentConfig();
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
             logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
@@ -585,7 +585,7 @@ public class CmaPdfGeneratorTests
     }
 
     [Fact]
-    public async Task GenerateAsync_Comprehensive_WithZeroSqft_CreatesPdfSuccessfully()
+    public async Task GenerateAsync_Standard_WithZeroSqft_CreatesPdfSuccessfully()
     {
         var generator = MakeGenerator(out _);
         var lead = MakeLead(MakeSellerDetails(sqft: 0));
@@ -593,7 +593,7 @@ public class CmaPdfGeneratorTests
         var comps = MakeComps();
         var agent = MakeAgentConfig();
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
             logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
@@ -642,28 +642,6 @@ public class CmaPdfGeneratorTests
         var agent = MakeAgentConfig();
 
         var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
-            logoBytes: null, headshotBytes: null, CancellationToken.None);
-
-        try
-        {
-            File.Exists(path).Should().BeTrue();
-        }
-        finally
-        {
-            if (File.Exists(path)) File.Delete(path);
-        }
-    }
-
-    [Fact]
-    public async Task GenerateAsync_Comprehensive_WithNullSellerDetails_CreatesPdfSuccessfully()
-    {
-        var generator = MakeGenerator(out _);
-        var lead = MakeLead(sellerDetails: null);
-        var analysis = MakeAnalysis();
-        var comps = MakeComps();
-        var agent = MakeAgentConfig();
-
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
             logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
@@ -783,7 +761,7 @@ public class CmaPdfGeneratorTests
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task GenerateAsync_Comprehensive_WithPricingStrategy_CreatesPdfSuccessfully()
+    public async Task GenerateAsync_Standard_WithPricingStrategy_CreatesPdfSuccessfully()
     {
         var generator = MakeGenerator(out _);
         var lead = MakeLead();
@@ -792,7 +770,7 @@ public class CmaPdfGeneratorTests
         var comps = MakeComps();
         var agent = MakeAgentConfig();
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
             logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
@@ -807,7 +785,7 @@ public class CmaPdfGeneratorTests
     }
 
     [Fact]
-    public async Task GenerateAsync_Comprehensive_PricingStrategyNullFallsBackToPricingRecommendation_CreatesPdf()
+    public async Task GenerateAsync_Standard_PricingStrategyNullFallsBackToPricingRecommendation_CreatesPdf()
     {
         // When PricingStrategy is null, the legacy PricingRecommendation field renders instead.
         var generator = MakeGenerator(out _);
@@ -818,7 +796,7 @@ public class CmaPdfGeneratorTests
         var comps = MakeComps();
         var agent = MakeAgentConfig();
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
             logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
@@ -833,7 +811,7 @@ public class CmaPdfGeneratorTests
     }
 
     [Fact]
-    public async Task GenerateAsync_Comprehensive_NoPricingStrategyOrRecommendation_SkipsPricingSection()
+    public async Task GenerateAsync_Standard_NoPricingStrategyOrRecommendation_SkipsPricingSection()
     {
         // When both PricingStrategy and PricingRecommendation are null, the section is omitted.
         var generator = MakeGenerator(out _);
@@ -842,7 +820,7 @@ public class CmaPdfGeneratorTests
         var comps = MakeComps();
         var agent = MakeAgentConfig();
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
             logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
@@ -882,7 +860,7 @@ public class CmaPdfGeneratorTests
         };
         var config = MakeAgentConfig(brokerageName: "Test Realty");
 
-        var path = await generator.GenerateAsync(lead, analysis, comps, config, ReportType.Comprehensive, null, null, CancellationToken.None);
+        var path = await generator.GenerateAsync(lead, analysis, comps, config, ReportType.Standard, null, null, CancellationToken.None);
         try
         {
             File.Exists(path).Should().BeTrue("PDF should be generated");
