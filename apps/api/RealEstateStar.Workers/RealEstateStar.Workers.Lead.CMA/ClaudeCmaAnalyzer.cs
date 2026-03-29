@@ -71,7 +71,11 @@ public class ClaudeCmaAnalyzer(
 
         try
         {
-            return ParseResponse(response.Content);
+            var analysis = ParseResponse(response.Content);
+            logger.LogInformation(
+                "[CMA-ANALYZE-003] Parsed response for lead {LeadId}. PricingStrategy={HasStrategy}, LeadInsights={HasInsights}, MarketTrend={Trend}",
+                lead.Id, analysis.PricingStrategy is not null, analysis.LeadInsights is not null, analysis.MarketTrend);
+            return analysis;
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {
@@ -256,26 +260,9 @@ public class ClaudeCmaAnalyzer(
             throw new InvalidOperationException(
                 $"[CMA-ANALYZE-004] medianDaysOnMarket must be >= 0. Got: {medianDom}");
 
-        string? pricingRec = null;
-        if (root.TryGetProperty("pricingRecommendation", out var pricingProp) &&
-            pricingProp.ValueKind != JsonValueKind.Null)
-            pricingRec = pricingProp.GetString();
+        var pricingStrategy = GetStringPropertyCaseInsensitive(root, "pricingstrategy");
 
-        string? pricingStrategy = null;
-        if (root.TryGetProperty("pricingStrategy", out var pricingStrategyProp) &&
-            pricingStrategyProp.ValueKind != JsonValueKind.Null)
-            pricingStrategy = pricingStrategyProp.GetString();
-
-        // Also check camelCase variant "pricing_strategy" in case Claude uses snake_case
-        if (pricingStrategy is null &&
-            root.TryGetProperty("pricing_strategy", out var snakeProp) &&
-            snakeProp.ValueKind != JsonValueKind.Null)
-            pricingStrategy = snakeProp.GetString();
-
-        string? leadInsights = null;
-        if (root.TryGetProperty("leadInsights", out var insightsProp) &&
-            insightsProp.ValueKind != JsonValueKind.Null)
-            leadInsights = insightsProp.GetString();
+        var leadInsights = GetStringPropertyCaseInsensitive(root, "leadinsights");
 
         var starters = new List<string>();
         if (root.TryGetProperty("conversationStarters", out var startersProp) &&
@@ -295,12 +282,26 @@ public class ClaudeCmaAnalyzer(
             ValueMid = valueMid,
             ValueHigh = valueHigh,
             MarketNarrative = narrative,
-            PricingRecommendation = pricingRec,
             PricingStrategy = pricingStrategy,
             LeadInsights = leadInsights,
             ConversationStarters = starters,
             MarketTrend = matchedTrend,
             MedianDaysOnMarket = medianDom
         };
+    }
+
+    /// <summary>
+    /// Case-insensitive property lookup on a JsonElement.
+    /// Claude may return "pricingStrategy", "PricingStrategy", "pricing_strategy", etc.
+    /// </summary>
+    private static string? GetStringPropertyCaseInsensitive(JsonElement root, string normalizedKey)
+    {
+        foreach (var prop in root.EnumerateObject())
+        {
+            var key = prop.Name.Replace("_", "").ToLowerInvariant();
+            if (key == normalizedKey && prop.Value.ValueKind == JsonValueKind.String)
+                return prop.Value.GetString();
+        }
+        return null;
     }
 }
