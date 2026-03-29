@@ -32,8 +32,8 @@ public class ClaudeCmaAnalyzer(
         6. Use the comparable sales provided to estimate value. If comps vary widely, use your best judgment and explain in marketNarrative.
         7. Weight recent sales (< 6 months old, marked [Recent]) more heavily than older sales when estimating value. Older sales are included for context but may not reflect current market conditions.
         8. If seller notes are provided, you MUST reference them in BOTH the marketNarrative AND the pricingStrategy. Specifically mention the improvements or issues by name (e.g., "the recently renovated roof and exterior"). Do not just generically say "based on property condition" — be specific about what the seller told us.
-
-        9. ALWAYS include a "pricingStrategy" field — this is the agent's strategy to get the seller top dollar quickly. Factor in: seller's timeline urgency, property condition (from notes), local market trend, and comp data. Write as if you are the agent advising the seller on list price positioning.
+        9. ALWAYS include a "pricingStrategy" field — this is REQUIRED, never null. This is the agent's strategy to get the seller top dollar quickly. Factor in: seller's timeline urgency, property condition (from notes), local market trend, and comp data. Write as if you are the agent advising the seller on list price positioning.
+        10. If a comp is at the SAME address as the subject (0.0 miles distance, identical specs), state clearly "This is the subject property's prior sale at $X" — do NOT hedge with "almost certainly" or "likely". Be direct and use it as the strongest anchor for valuation.
 
         Output this exact JSON schema:
         {
@@ -265,6 +265,12 @@ public class ClaudeCmaAnalyzer(
         if (root.TryGetProperty("pricingStrategy", out var pricingStrategyProp) &&
             pricingStrategyProp.ValueKind != JsonValueKind.Null)
             pricingStrategy = pricingStrategyProp.GetString();
+
+        // Also check camelCase variant "pricing_strategy" in case Claude uses snake_case
+        if (pricingStrategy is null &&
+            root.TryGetProperty("pricing_strategy", out var snakeProp) &&
+            snakeProp.ValueKind != JsonValueKind.Null)
+            pricingStrategy = snakeProp.GetString();
 
         string? leadInsights = null;
         if (root.TryGetProperty("leadInsights", out var insightsProp) &&
