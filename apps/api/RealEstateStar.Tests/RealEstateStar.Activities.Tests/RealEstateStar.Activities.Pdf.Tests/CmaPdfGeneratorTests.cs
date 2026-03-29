@@ -918,4 +918,144 @@ public class CmaPdfGeneratorTests
         analysis.PricingStrategy.Should().NotBe(analysis.PricingRecommendation,
             "PricingStrategy and PricingRecommendation are distinct — don't merge them");
     }
+
+    // ---------------------------------------------------------------------------
+    // GetTimezoneId — state-to-Windows-timezone-ID mapping
+    // ---------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("NJ", "Eastern Standard Time")]
+    [InlineData("NY", "Eastern Standard Time")]
+    [InlineData("FL", "Eastern Standard Time")]
+    [InlineData("OH", "Eastern Standard Time")]
+    [InlineData("MS", "Eastern Standard Time")]
+    [InlineData("IL", "Central Standard Time")]
+    [InlineData("TX", "Central Standard Time")]
+    [InlineData("ND", "Central Standard Time")]
+    [InlineData("CO", "Mountain Standard Time")]
+    [InlineData("AZ", "Mountain Standard Time")]
+    [InlineData("CA", "Pacific Standard Time")]
+    [InlineData("WA", "Pacific Standard Time")]
+    [InlineData("AK", "Alaskan Standard Time")]
+    [InlineData("HI", "Hawaiian Standard Time")]
+    [InlineData(null, "Eastern Standard Time")]
+    [InlineData("XX", "Eastern Standard Time")]
+    public void GetTimezoneId_ReturnsExpectedWindowsTimezoneId(string? state, string expectedId)
+    {
+        CmaPdfGenerator.GetTimezoneId(state).Should().Be(expectedId);
+    }
+
+    [Theory]
+    [InlineData("nj", "Eastern Standard Time")]  // lowercase is handled
+    [InlineData("ca", "Pacific Standard Time")]
+    public void GetTimezoneId_IsCaseInsensitive(string state, string expectedId)
+    {
+        CmaPdfGenerator.GetTimezoneId(state).Should().Be(expectedId);
+    }
+
+    // ---------------------------------------------------------------------------
+    // GetTimezoneAbbr — state-to-abbreviation mapping
+    // ---------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("NJ", "ET")]
+    [InlineData("NY", "ET")]
+    [InlineData("FL", "ET")]
+    [InlineData("OH", "ET")]
+    [InlineData("MS", "ET")]
+    [InlineData("IL", "CT")]
+    [InlineData("TX", "CT")]
+    [InlineData("CO", "MT")]
+    [InlineData("AZ", "MT")]
+    [InlineData("CA", "PT")]
+    [InlineData("WA", "PT")]
+    [InlineData("AK", "AKT")]
+    [InlineData("HI", "HT")]
+    [InlineData(null, "ET")]
+    [InlineData("ZZ", "ET")]
+    public void GetTimezoneAbbr_ReturnsExpectedAbbreviation(string? state, string expectedAbbr)
+    {
+        CmaPdfGenerator.GetTimezoneAbbr(state).Should().Be(expectedAbbr);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Header layout — brokerage office address rendered when present
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GenerateAsync_WithBrokerageOfficeAddress_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead();
+        var analysis = MakeAnalysis();
+        var comps = MakeComps();
+        var agent = new AccountConfig
+        {
+            Handle = "test-agent",
+            Agent = new AccountAgent
+            {
+                Name = "Test Agent",
+                Title = "REALTOR®",
+                Phone = "555-999-1234",
+                Email = "agent@test.com"
+            },
+            Brokerage = new AccountBrokerage
+            {
+                Name = "Premier Realty",
+                OfficeAddress = "100 Main St, Suite 200, Springfield, NJ 07081"
+            },
+            Location = new AccountLocation { State = "NJ" }
+        };
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+            new FileInfo(path).Length.Should().BeGreaterThan(0);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Footer — local timezone rendered for various states
+    // ---------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("NJ")]
+    [InlineData("TX")]
+    [InlineData("CO")]
+    [InlineData("CA")]
+    [InlineData("AK")]
+    [InlineData("HI")]
+    [InlineData(null)]
+    public async Task GenerateAsync_FooterUsesLocalTimezone_CreatesPdfSuccessfully(string? state)
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead();
+        var analysis = MakeAnalysis();
+        var comps = MakeComps();
+        var agent = new AccountConfig
+        {
+            Handle = "test-agent",
+            Agent = new AccountAgent { Name = "Test Agent", Phone = "555-000-0001", Email = "a@b.com" },
+            Location = state is not null ? new AccountLocation { State = state } : null
+        };
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
 }
