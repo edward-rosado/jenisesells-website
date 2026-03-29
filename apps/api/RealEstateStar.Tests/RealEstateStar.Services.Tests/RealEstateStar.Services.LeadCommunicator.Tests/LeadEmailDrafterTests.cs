@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Models;
@@ -558,5 +559,145 @@ public class LeadEmailDrafterTests
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
             It.Is<int>(t => t >= 1000),
             It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -----------------------------------------------------------------------
+    // Agent Context — Voice/Personality/Brand Voice injection (CTX-030/031)
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void BuildSystemPrompt_WithAgentContext_InjectsVoiceSkillSection()
+    {
+        var agentContext = new AgentContext
+        {
+            VoiceSkill = "Always lead with empathy and local market expertise.",
+            IsActivated = true
+        };
+
+        var prompt = LeadEmailDrafter.BuildSystemPrompt(DefaultAgent, agentContext);
+
+        prompt.Should().Contain("=== VOICE SKILL (WHAT to say) ===");
+        prompt.Should().Contain("Always lead with empathy and local market expertise.");
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_WithAgentContext_InjectsPersonalitySkillSection()
+    {
+        var agentContext = new AgentContext
+        {
+            PersonalitySkill = "Warm, conversational, never pushy.",
+            IsActivated = true
+        };
+
+        var prompt = LeadEmailDrafter.BuildSystemPrompt(DefaultAgent, agentContext);
+
+        prompt.Should().Contain("=== PERSONALITY SKILL (HOW to say it) ===");
+        prompt.Should().Contain("Warm, conversational, never pushy.");
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_WithAgentContext_InjectsBrandVoiceSection()
+    {
+        var agentContext = new AgentContext
+        {
+            BrandVoice = "Professional, community-focused, always include Equal Housing disclaimer.",
+            IsActivated = true
+        };
+
+        var prompt = LeadEmailDrafter.BuildSystemPrompt(DefaultAgent, agentContext);
+
+        prompt.Should().Contain("=== BRAND VOICE (brokerage communication standards — MANDATORY) ===");
+        prompt.Should().Contain("Professional, community-focused");
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_WithAgentContext_InjectsCoachingReportSection()
+    {
+        var agentContext = new AgentContext
+        {
+            CoachingReport = "Respond faster. Include specific neighborhood stats.",
+            IsActivated = true
+        };
+
+        var prompt = LeadEmailDrafter.BuildSystemPrompt(DefaultAgent, agentContext);
+
+        prompt.Should().Contain("=== COACHING IMPROVEMENTS (apply these) ===");
+        prompt.Should().Contain("Respond faster.");
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_WithNullAgentContext_FallsBackToGenericPrompt()
+    {
+        var prompt = LeadEmailDrafter.BuildSystemPrompt(DefaultAgent, agentContext: null);
+
+        // Should not contain any skill sections
+        prompt.Should().NotContain("=== VOICE SKILL");
+        prompt.Should().NotContain("=== PERSONALITY SKILL");
+        prompt.Should().NotContain("=== BRAND VOICE");
+        prompt.Should().NotContain("=== COACHING IMPROVEMENTS");
+
+        // Should still contain the base agent info
+        prompt.Should().Contain("Jenise Buckalew");
+        prompt.Should().Contain("CRITICAL RULES:");
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_WithPartialContext_OnlyInjectsAvailableSections()
+    {
+        var agentContext = new AgentContext
+        {
+            VoiceSkill = "Warm and professional.",
+            // PersonalitySkill is null
+            BrandVoice = null,
+            IsActivated = false
+        };
+
+        var prompt = LeadEmailDrafter.BuildSystemPrompt(DefaultAgent, agentContext);
+
+        prompt.Should().Contain("=== VOICE SKILL (WHAT to say) ===");
+        prompt.Should().NotContain("=== PERSONALITY SKILL");
+        prompt.Should().NotContain("=== BRAND VOICE");
+    }
+
+    [Fact]
+    public async Task DraftAsync_WithAgentContext_PassesContextToClaudePrompt()
+    {
+        var (drafter, anthropicMock) = CreateDrafter();
+        var agentContext = new AgentContext
+        {
+            VoiceSkill = "Lead with neighborhood expertise.",
+            IsActivated = true
+        };
+
+        await drafter.DraftAsync(MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
+            CancellationToken.None, agentContext);
+
+        // Verify Claude was called with a system prompt that includes the voice skill
+        anthropicMock.Verify(c => c.SendAsync(
+            It.IsAny<string>(),
+            It.Is<string>(s => s.Contains("Lead with neighborhood expertise.")),
+            It.IsAny<string>(),
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DraftAsync_WithNullAgentContext_UsesFallbackGenericPrompt()
+    {
+        var (drafter, anthropicMock) = CreateDrafter();
+
+        // Call without agentContext (null)
+        await drafter.DraftAsync(MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
+            CancellationToken.None, agentContext: null);
+
+        // Verify Claude was called — system prompt should NOT contain skill sections
+        anthropicMock.Verify(c => c.SendAsync(
+            It.IsAny<string>(),
+            It.Is<string>(s => !s.Contains("=== VOICE SKILL")),
+            It.IsAny<string>(),
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }
