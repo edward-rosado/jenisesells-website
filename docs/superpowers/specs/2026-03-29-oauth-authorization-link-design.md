@@ -643,6 +643,25 @@ If the pipeline encounters passwords, recovery phrases, private keys, API keys, 
 - The `IContentSanitizer` scans for: password patterns, seed phrases (12/24 word BIP-39), private key formats, SSN patterns, credit card numbers, API key formats
 - Our platform has no legitimate reason to store these — if we find them, we discard them
 
+**Agent Marketing Opt-In Tracking:**
+
+When an agent authorizes via the OAuth link, their consent to our platform's data usage is recorded. This follows the same triple-write pattern as lead consent:
+
+| Tier | Location | What's stored |
+|------|----------|--------------|
+| Agent's Google Drive | `real-estate-star/{agentId}/Consent Log.md` | Timestamp, scopes authorized, IP, email, consent version |
+| Platform Blob | Fan-out copy | Same |
+| Azure Table | `agentconsent` table | PartitionKey=accountId, RowKey=agentId, HMAC-signed |
+
+The consent record captures:
+- What the agent authorized (OAuth scopes — email send, email read, Drive access)
+- When they authorized (UTC timestamp)
+- Which version of our terms they agreed to (from the landing page)
+- That the activation pipeline will analyze their emails and documents
+- Their marketing communication preference (opt-in/out for platform updates)
+
+This is stored in the agent's own Drive so THEY have a copy of what they consented to — not just us.
+
 **Right to Be Forgotten / Agent Removal:**
 
 When an agent requests data deletion or is removed from the platform, ALL activation data must be purged across every storage tier:
@@ -653,6 +672,7 @@ When an agent requests data deletion or is removed from the platform, ALL activa
 | Account Drive | Agent's contribution signals in `real-estate-star/{accountId}/` | Rebuild Brand Profile/Voice from remaining agents, or delete if last agent |
 | Platform Blob | All fan-out copies of agent's activation outputs | `IFileStorageProvider.DeleteAsync()` per file |
 | Azure Table | OAuth tokens (`ITokenStore.DeleteAsync()`) | Already exists — `oauthtokens` table |
+| Azure Table | Agent consent record (`agentconsent` table) | Delete row |
 | Azure Table | Checkpoint files | Delete `activation/checkpoint-*` entries |
 | Config files | `config/accounts/{agentId}/` (single agent) or `config/accounts/{accountId}/agents/{agentId}/` (brokerage) | Delete directory |
 | Config files | `account.json` (single agent only — if brokerage, leave brokerage config) | Delete only if accountId == agentId |
@@ -1566,6 +1586,7 @@ real-estate-star/                          (root folder in agent's Drive)
   │   ├── Third Party Profiles.md          (Zillow, Realtor.com, Homes.com data)
   │   ├── Agent Discovery.md              (phone, social, WhatsApp, URLs)
   │   ├── headshot.jpg                     (Google profile photo)
+  │   ├── Consent Log.md                   (what they authorized, when, which terms version)
   │   ├── Drive Index.md                   (catalog of Drive docs found)
   │   ├── sold/                            (recently sold listing photos)
   │   ├── listings/                        (active/featured listing photos)
