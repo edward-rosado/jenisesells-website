@@ -346,63 +346,109 @@ public class CompAggregatorTests
     }
 
     // ---------------------------------------------------------------------------
-    // Subject property exclusion (Problem 1)
+    // Property type filtering (AGG-009)
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public void FilterAndRankComps_ExcludesSubjectProperty_AtZeroDistance()
+    public void FilterAndRankComps_ExcludesCompsWithMismatchedPropertyType()
     {
-        // 308 Myrtle St shows up as Comp 1 at 0.0 miles — it's the subject itself
-        var subjectAsComp = MakeCompWithZip("308 Myrtle St, Keansburg, NJ 07734", distanceMiles: 0.0);
-        var validComp1 = MakeCompWithZip("100 Oak Ave, Keansburg, NJ 07734", distanceMiles: 0.3);
-        var validComp2 = MakeCompWithZip("200 Pine St, Keansburg, NJ 07734", distanceMiles: 0.5);
+        // Subject is Single Family — commercial/multi-family comps should be excluded
+        var residential = new Comp
+        {
+            Address = "100 Oak Ave, Keansburg, NJ 07734",
+            SalePrice = 300_000m,
+            SaleDate = new DateOnly(2024, 10, 1),
+            Beds = 3, Baths = 2, Sqft = 1400,
+            DistanceMiles = 0.3,
+            Source = CompSource.RentCast,
+            PropertyType = "Single Family"
+        };
+        var commercial = new Comp
+        {
+            Address = "200 Commerce Dr, Keansburg, NJ 07734",
+            SalePrice = 500_000m,
+            SaleDate = new DateOnly(2024, 10, 1),
+            Beds = 0, Baths = 0, Sqft = 3000,
+            DistanceMiles = 0.5,
+            Source = CompSource.RentCast,
+            PropertyType = "Commercial"
+        };
 
         var request = new CompSearchRequest
         {
-            Address = "308 Myrtle St",
+            Address = "50 Main St",
             City = "Keansburg",
             State = "NJ",
-            Zip = "07734"
+            Zip = "07734",
+            PropertyType = "Single Family"
         };
 
         var result = CompAggregator.FilterAndRankComps(
-            [subjectAsComp, validComp1, validComp2], "07734", null, request);
+            [residential, commercial], "07734", null, request);
 
-        result.Should().NotContain(c => c.DistanceMiles < 0.01);
-        result.Should().Contain(c => c.Address == validComp1.Address);
-        result.Should().Contain(c => c.Address == validComp2.Address);
+        result.Should().NotContain(c => c.Address == commercial.Address);
+        result.Should().Contain(c => c.Address == residential.Address);
     }
 
     [Fact]
-    public void FilterAndRankComps_ExcludesSubjectProperty_ByMatchingAddress()
+    public void FilterAndRankComps_KeepsCompsWithUnknownPropertyType_WhenSubjectTypeIsKnown()
     {
-        // Subject property returned by RentCast with a tiny distance (> 0.01) but matching address
-        var subjectAsComp = new Comp
+        // Comps with null/empty PropertyType are kept even when subject type is set —
+        // permissive fallback for data gaps.
+        var unknownType = new Comp
         {
-            Address = "308 Myrtle St, Keansburg, NJ 07734",
-            SalePrice = 280_000m,
-            SaleDate = new DateOnly(2024, 6, 1),
-            Beds = 3,
-            Baths = 2,
-            Sqft = 1200,
-            DistanceMiles = 0.05, // Small but > 0.01 — address match should catch it
-            Source = CompSource.RentCast
+            Address = "300 Pine St, Keansburg, NJ 07734",
+            SalePrice = 310_000m,
+            SaleDate = new DateOnly(2024, 10, 1),
+            Beds = 3, Baths = 2, Sqft = 1300,
+            DistanceMiles = 0.4,
+            Source = CompSource.RentCast,
+            PropertyType = null
         };
-        var validComp = MakeCompWithZip("100 Oak Ave, Keansburg, NJ 07734", distanceMiles: 0.4);
 
         var request = new CompSearchRequest
         {
-            Address = "308 Myrtle St",
+            Address = "50 Main St",
             City = "Keansburg",
             State = "NJ",
-            Zip = "07734"
+            Zip = "07734",
+            PropertyType = "Single Family"
         };
 
         var result = CompAggregator.FilterAndRankComps(
-            [subjectAsComp, validComp], "07734", null, request);
+            [unknownType], "07734", null, request);
 
-        result.Should().NotContain(c => c.Address == subjectAsComp.Address);
-        result.Should().Contain(c => c.Address == validComp.Address);
+        result.Should().Contain(c => c.Address == unknownType.Address);
+    }
+
+    [Fact]
+    public void FilterAndRankComps_SkipsPropertyTypeFilter_WhenSubjectTypeIsNull()
+    {
+        // When request.PropertyType is null, all comps pass regardless of their type.
+        var commercial = new Comp
+        {
+            Address = "200 Commerce Dr, Keansburg, NJ 07734",
+            SalePrice = 500_000m,
+            SaleDate = new DateOnly(2024, 10, 1),
+            Beds = 0, Baths = 0, Sqft = 3000,
+            DistanceMiles = 0.5,
+            Source = CompSource.RentCast,
+            PropertyType = "Commercial"
+        };
+
+        var request = new CompSearchRequest
+        {
+            Address = "50 Main St",
+            City = "Keansburg",
+            State = "NJ",
+            Zip = "07734",
+            PropertyType = null
+        };
+
+        var result = CompAggregator.FilterAndRankComps(
+            [commercial], "07734", null, request);
+
+        result.Should().Contain(c => c.Address == commercial.Address);
     }
 
     // ---------------------------------------------------------------------------

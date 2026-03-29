@@ -144,7 +144,8 @@ public class RentCastCompSource(
                 DistanceMiles = rc.Distance ?? 0.0,
                 Source = CompSource.RentCast,
                 IsRecent = isRecent,
-                Correlation = rc.Correlation
+                Correlation = rc.Correlation,
+                PropertyType = rc.PropertyType
             });
         }
 

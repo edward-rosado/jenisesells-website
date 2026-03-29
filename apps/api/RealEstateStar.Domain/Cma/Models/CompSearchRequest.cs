@@ -9,4 +9,5 @@ public record CompSearchRequest
     public int? Beds { get; init; }
     public int? Baths { get; init; }
     public int? SqFt { get; init; }
+    public string? PropertyType { get; init; }
 }

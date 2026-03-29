@@ -176,8 +176,8 @@ public class CompAggregator(
 
     /// <summary>
     /// Filters and ranks comps by geographic proximity to the subject property zip code,
-    /// deprioritizes comps beyond 10 miles, removes the subject property itself,
-    /// removes price/sqft outliers using the IQR method, and returns the best 5.
+    /// deprioritizes comps beyond 10 miles, removes price/sqft outliers using the IQR method,
+    /// and returns the best 5.
     /// </summary>
     internal static List<Comp> FilterAndRankComps(
         List<Comp> comps,
@@ -188,33 +188,23 @@ public class CompAggregator(
         if (comps.Count == 0)
             return comps;
 
-        // --- Problem 1: Exclude the subject property itself ---
-        // RentCast frequently returns the subject's own recent sale as Comp 1 at 0.0 miles.
-        // request.Address is the street portion only (e.g. "308 Myrtle St"), so we check
-        // whether the comp's normalized full address *starts with* or *contains* the
-        // normalized subject street — in addition to the distance check.
-        var subjectStreet = NormalizeAddress(request?.Address ?? "");
-        var beforeSubjectExclusion = comps.Count;
-        comps = comps.Where(c =>
+        // --- Property type filtering ---
+        // Exclude comps with a different property type than the subject (e.g., commercial vs residential).
+        // Keep comps with an unknown type (null/empty) to be permissive when data is missing.
+        var subjectPropertyType = request?.PropertyType;
+        if (!string.IsNullOrEmpty(subjectPropertyType))
         {
-            if (c.DistanceMiles <= 0.01)
-                return false; // At the exact same location — always exclude
+            var beforeCount = comps.Count;
+            comps = comps.Where(c =>
+                string.IsNullOrEmpty(c.PropertyType) ||
+                c.PropertyType.Equals(subjectPropertyType, StringComparison.OrdinalIgnoreCase)
+            ).ToList();
 
-            // If a subject street was provided, also exclude by address match
-            if (subjectStreet.Length > 0)
-            {
-                var compNorm = NormalizeAddress(c.Address);
-                if (compNorm.StartsWith(subjectStreet, StringComparison.OrdinalIgnoreCase))
-                    return false;
-            }
-
-            return true;
-        }).ToList();
-
-        if (comps.Count < beforeSubjectExclusion)
-            logger?.LogInformation(
-                "[AGG-008] Excluded {Count} subject property comp(s) at {Address}",
-                beforeSubjectExclusion - comps.Count, subjectStreet);
+            if (comps.Count < beforeCount)
+                logger?.LogInformation(
+                    "[AGG-009] Removed {Count} comps with mismatched property type (subject: {SubjectType})",
+                    beforeCount - comps.Count, subjectPropertyType);
+        }
 
         if (comps.Count == 0)
             return comps;
