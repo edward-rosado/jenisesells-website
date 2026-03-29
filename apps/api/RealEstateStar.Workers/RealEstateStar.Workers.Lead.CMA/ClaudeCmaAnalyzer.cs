@@ -41,7 +41,6 @@ public class ClaudeCmaAnalyzer(
             "valueMid": <number>,
             "valueHigh": <number>,
             "marketNarrative": "<string max 2000 chars>",
-            "pricingRecommendation": "<string or null>",
             "pricingStrategy": "<string — agent's strategy for pricing, factoring timeline, condition, market, and comps>",
             "leadInsights": "<string or null — include data quality observations here if any>",
             "conversationStarters": ["<string>", ...],

@@ -344,4 +344,200 @@ public class CompAggregatorTests
 
         zip.Should().BeEmpty();
     }
+
+    // ---------------------------------------------------------------------------
+    // Subject property exclusion (Problem 1)
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void FilterAndRankComps_ExcludesSubjectProperty_AtZeroDistance()
+    {
+        // 308 Myrtle St shows up as Comp 1 at 0.0 miles — it's the subject itself
+        var subjectAsComp = MakeCompWithZip("308 Myrtle St, Keansburg, NJ 07734", distanceMiles: 0.0);
+        var validComp1 = MakeCompWithZip("100 Oak Ave, Keansburg, NJ 07734", distanceMiles: 0.3);
+        var validComp2 = MakeCompWithZip("200 Pine St, Keansburg, NJ 07734", distanceMiles: 0.5);
+
+        var request = new CompSearchRequest
+        {
+            Address = "308 Myrtle St",
+            City = "Keansburg",
+            State = "NJ",
+            Zip = "07734"
+        };
+
+        var result = CompAggregator.FilterAndRankComps(
+            [subjectAsComp, validComp1, validComp2], "07734", null, request);
+
+        result.Should().NotContain(c => c.DistanceMiles < 0.01);
+        result.Should().Contain(c => c.Address == validComp1.Address);
+        result.Should().Contain(c => c.Address == validComp2.Address);
+    }
+
+    [Fact]
+    public void FilterAndRankComps_ExcludesSubjectProperty_ByMatchingAddress()
+    {
+        // Subject property returned by RentCast with a tiny distance (> 0.01) but matching address
+        var subjectAsComp = new Comp
+        {
+            Address = "308 Myrtle St, Keansburg, NJ 07734",
+            SalePrice = 280_000m,
+            SaleDate = new DateOnly(2024, 6, 1),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 1200,
+            DistanceMiles = 0.05, // Small but > 0.01 — address match should catch it
+            Source = CompSource.RentCast
+        };
+        var validComp = MakeCompWithZip("100 Oak Ave, Keansburg, NJ 07734", distanceMiles: 0.4);
+
+        var request = new CompSearchRequest
+        {
+            Address = "308 Myrtle St",
+            City = "Keansburg",
+            State = "NJ",
+            Zip = "07734"
+        };
+
+        var result = CompAggregator.FilterAndRankComps(
+            [subjectAsComp, validComp], "07734", null, request);
+
+        result.Should().NotContain(c => c.Address == subjectAsComp.Address);
+        result.Should().Contain(c => c.Address == validComp.Address);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Cross-zip dedup (Problem 2)
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void Deduplicate_SameUnitDifferentZips_DedupsToOne()
+    {
+        // "49 Middlesex Rd, Unit B" appears twice — once with Matawan zip, once with Old Bridge zip.
+        // These are the same physical unit; only one should survive dedup.
+        var matawan = new Comp
+        {
+            Address = "49 Middlesex Rd, Unit B, Matawan, NJ 07747",
+            SalePrice = 310_000m,
+            SaleDate = new DateOnly(2024, 9, 1),
+            Beds = 2,
+            Baths = 1,
+            Sqft = 950,
+            DistanceMiles = 1.2,
+            Source = CompSource.RentCast
+        };
+        var oldBridge = new Comp
+        {
+            Address = "49 Middlesex Rd, Unit B, Old Bridge, NJ 08857",
+            SalePrice = 310_000m,
+            SaleDate = new DateOnly(2024, 9, 1),
+            Beds = 2,
+            Baths = 1,
+            Sqft = 950,
+            DistanceMiles = 1.2,
+            Source = CompSource.RentCast
+        };
+
+        var result = CompAggregator.Deduplicate([matawan, oldBridge]);
+
+        result.Should().HaveCount(1);
+    }
+
+    // ---------------------------------------------------------------------------
+    // IQR outlier removal (Problem 3)
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void FilterAndRankComps_ExcludesPricePerSqftOutliers()
+    {
+        // Real data from failed 308 Myrtle St CMA:
+        // $275K for 5,000 sqft = $55/sqft — clearly outlier vs others at $294-$566/sqft.
+        var outlier = new Comp
+        {
+            Address = "1 Outlier Ln, Keansburg, NJ 07734",
+            SalePrice = 275_000m,
+            SaleDate = new DateOnly(2024, 10, 1),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 5000,  // $55/sqft
+            DistanceMiles = 0.8,
+            Source = CompSource.RentCast
+        };
+        var comp1 = new Comp
+        {
+            Address = "100 A St, Keansburg, NJ 07734",
+            SalePrice = 280_000m,
+            SaleDate = new DateOnly(2024, 10, 1),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 950,   // $294/sqft
+            DistanceMiles = 0.3,
+            Source = CompSource.RentCast
+        };
+        var comp2 = new Comp
+        {
+            Address = "200 B St, Keansburg, NJ 07734",
+            SalePrice = 320_000m,
+            SaleDate = new DateOnly(2024, 9, 1),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 1100,  // $291/sqft
+            DistanceMiles = 0.5,
+            Source = CompSource.RentCast
+        };
+        var comp3 = new Comp
+        {
+            Address = "300 C St, Keansburg, NJ 07734",
+            SalePrice = 310_000m,
+            SaleDate = new DateOnly(2024, 8, 1),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 1000,  // $310/sqft
+            DistanceMiles = 0.6,
+            Source = CompSource.RentCast
+        };
+        var comp4 = new Comp
+        {
+            Address = "400 D St, Keansburg, NJ 07734",
+            SalePrice = 350_000m,
+            SaleDate = new DateOnly(2024, 7, 1),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 1200,  // $292/sqft
+            DistanceMiles = 0.7,
+            Source = CompSource.RentCast
+        };
+
+        var result = CompAggregator.FilterAndRankComps(
+            [outlier, comp1, comp2, comp3, comp4], "07734");
+
+        result.Should().NotContain(c => c.Address == outlier.Address);
+        result.Should().Contain(c => c.Address == comp1.Address);
+    }
+
+    // ---------------------------------------------------------------------------
+    // NormalizeStreetOnly
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void NormalizeStreetOnly_ExtractsStreetWithUnit()
+    {
+        // "49 Middlesex Rd Unit B, Matawan, NJ 07747" → "49 MIDDLESEX RD UNIT B"
+        var result = CompAggregator.NormalizeStreetOnly("49 Middlesex Rd Unit B, Matawan, NJ 07747");
+
+        result.Should().Contain("49");
+        result.Should().Contain("MIDDLESEX");
+        result.Should().Contain("RD");
+        // City name should not appear in the result
+        result.Should().NotContain("MATAWAN");
+        result.Should().NotContain("07747");
+    }
+
+    [Fact]
+    public void NormalizeStreetOnly_SameStreetDifferentCities_ReturnSameKey()
+    {
+        var key1 = CompAggregator.NormalizeStreetOnly("49 Middlesex Rd Unit B, Matawan, NJ 07747");
+        var key2 = CompAggregator.NormalizeStreetOnly("49 Middlesex Rd Unit B, Old Bridge, NJ 08857");
+
+        key1.Should().Be(key2);
+    }
 }
