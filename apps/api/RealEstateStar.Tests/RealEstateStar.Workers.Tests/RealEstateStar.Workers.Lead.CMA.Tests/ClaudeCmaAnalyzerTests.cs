@@ -540,7 +540,7 @@ public class ClaudeCmaAnalyzerTests
 
         var prompt = ClaudeCmaAnalyzer.BuildPrompt(lead, []);
 
-        prompt.Should().Contain("Seller Notes (property condition and improvements)");
+        prompt.Should().Contain("Seller Notes (property condition, improvements, or issues)");
         prompt.Should().Contain("New roof installed in 2023. Kitchen fully remodeled.");
     }
 
