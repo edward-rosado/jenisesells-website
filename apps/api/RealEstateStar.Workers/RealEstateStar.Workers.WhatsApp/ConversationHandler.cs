@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.WhatsApp.Interfaces;
 using RealEstateStar.Domain.WhatsApp.Models;
 
@@ -12,7 +13,8 @@ namespace RealEstateStar.Workers.WhatsApp;
 public class ConversationHandler(
     IIntentClassifier classifier,
     IResponseGenerator generator,
-    ILogger<ConversationHandler>? logger = null) : IConversationHandler
+    ILogger<ConversationHandler>? logger = null,
+    IAgentContextLoader? agentContextLoader = null) : IConversationHandler
 {
     // Static deflections — no LLM cost for out-of-scope messages.
     // {0} = agentFirstName where applicable.
@@ -43,6 +45,37 @@ public class ConversationHandler(
         string? leadName,
         CancellationToken ct)
     {
+        // Load agent context for voice + personality + brand voice application
+        if (agentContextLoader is not null && !string.IsNullOrEmpty(agentId))
+        {
+            try
+            {
+                var agentContext = await agentContextLoader.LoadAsync(agentId, agentId, ct);
+                if (agentContext is not null)
+                {
+                    logger?.LogInformation(
+                        "[CTX-030] Agent context loaded for WhatsApp conversation. AgentId: {AgentId}, " +
+                        "HasVoice={HasVoice}, HasPersonality={HasPersonality}, HasBrandVoice={HasBrandVoice}",
+                        agentId,
+                        !string.IsNullOrEmpty(agentContext.VoiceSkill),
+                        !string.IsNullOrEmpty(agentContext.PersonalitySkill),
+                        !string.IsNullOrEmpty(agentContext.BrandVoice));
+                }
+                else
+                {
+                    logger?.LogInformation(
+                        "[CTX-031] Agent context unavailable for WhatsApp — using generic responses. AgentId: {AgentId}",
+                        agentId);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex,
+                    "[CTX-032] Agent context load failed for WhatsApp; continuing without. AgentId: {AgentId}",
+                    agentId);
+            }
+        }
+
         // Stage 1: Classify intent with Haiku (fast + cheap)
         var classification = await classifier.ClassifyAsync(body, ct);
 
