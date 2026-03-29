@@ -510,4 +510,114 @@ public class ClaudeCmaAnalyzerTests
 
         prompt.Should().NotContain("Days on Market:");
     }
+
+    // ---------------------------------------------------------------------------
+    // BuildPrompt — seller notes
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void BuildPrompt_IncludesSellerNotes_WhenPresent()
+    {
+        var lead = new RealEstateStar.Domain.Leads.Models.Lead
+        {
+            Id = Guid.NewGuid(),
+            AgentId = "test",
+            LeadType = LeadType.Seller,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "j@e.com",
+            Phone = "555",
+            Timeline = "3-6 months",
+            SellerDetails = new SellerDetails
+            {
+                Address = "123 Main St",
+                City = "Springfield",
+                State = "NJ",
+                Zip = "07081",
+                Notes = "New roof installed in 2023. Kitchen fully remodeled."
+            }
+        };
+
+        var prompt = ClaudeCmaAnalyzer.BuildPrompt(lead, []);
+
+        prompt.Should().Contain("Seller Notes (property condition and improvements)");
+        prompt.Should().Contain("New roof installed in 2023. Kitchen fully remodeled.");
+    }
+
+    [Fact]
+    public void BuildPrompt_OmitsSellerNotes_WhenNull()
+    {
+        var lead = MakeLead(); // MakeLead creates SellerDetails with no Notes
+
+        var prompt = ClaudeCmaAnalyzer.BuildPrompt(lead, []);
+
+        prompt.Should().NotContain("Seller Notes");
+        prompt.Should().NotContain("<user_data>");
+    }
+
+    [Fact]
+    public void BuildPrompt_TruncatesLongNotes_At500Chars()
+    {
+        var longNotes = new string('x', 1000);
+        var lead = new RealEstateStar.Domain.Leads.Models.Lead
+        {
+            Id = Guid.NewGuid(),
+            AgentId = "test",
+            LeadType = LeadType.Seller,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "j@e.com",
+            Phone = "555",
+            Timeline = "3-6 months",
+            SellerDetails = new SellerDetails
+            {
+                Address = "123 Main St",
+                City = "Springfield",
+                State = "NJ",
+                Zip = "07081",
+                Notes = longNotes
+            }
+        };
+
+        var prompt = ClaudeCmaAnalyzer.BuildPrompt(lead, []);
+
+        // Notes section should contain exactly 500 x's followed by "..."
+        prompt.Should().Contain(new string('x', 500) + "...");
+        prompt.Should().NotContain(new string('x', 501));
+    }
+
+    [Fact]
+    public void BuildPrompt_WrapsNotesInUserDataTags()
+    {
+        var lead = new RealEstateStar.Domain.Leads.Models.Lead
+        {
+            Id = Guid.NewGuid(),
+            AgentId = "test",
+            LeadType = LeadType.Seller,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "j@e.com",
+            Phone = "555",
+            Timeline = "3-6 months",
+            SellerDetails = new SellerDetails
+            {
+                Address = "123 Main St",
+                City = "Springfield",
+                State = "NJ",
+                Zip = "07081",
+                Notes = "Updated exterior paint in 2024."
+            }
+        };
+
+        var prompt = ClaudeCmaAnalyzer.BuildPrompt(lead, []);
+
+        var userDataStart = prompt.IndexOf("<user_data>", StringComparison.Ordinal);
+        var userDataEnd = prompt.IndexOf("</user_data>", StringComparison.Ordinal);
+
+        userDataStart.Should().BeGreaterThanOrEqualTo(0, "prompt should contain <user_data> tag");
+        userDataEnd.Should().BeGreaterThan(userDataStart, "</user_data> should come after <user_data>");
+
+        var insideUserData = prompt[(userDataStart + "<user_data>".Length)..userDataEnd];
+        insideUserData.Should().Contain("Updated exterior paint in 2024.");
+    }
 }
