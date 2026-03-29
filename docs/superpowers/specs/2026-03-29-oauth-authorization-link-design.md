@@ -887,6 +887,16 @@ The activation pipeline is a **discovery** phase. Agents already have leads in G
 
 **The agent's Google Drive is the canonical store.** Our platform blob storage is a fan-out fallback copy, not the source of truth. All artifacts we create (Lead Profiles, CMA Reports, Brand Voice) are written TO the agent's Drive first, then fan-out copied to platform storage.
 
+**Lead data isolation rule:** Leads that originate from an agent are stored in the agent's Drive and Platform Blob ONLY — never in the brokerage Account Drive. A brokerage should not have access to individual agent lead files. The fan-out for leads is 2-tier (Agent Drive + Platform Blob), not 3-tier.
+
+| Data type | Agent Drive | Account Drive | Platform Blob |
+|-----------|:-----------:|:-------------:|:-------------:|
+| Activation outputs (Voice, Personality, etc.) | ✅ | ❌ | ✅ |
+| Lead files (profiles, emails, CMAs) | ✅ | ❌ | ✅ |
+| Lead consent records | ✅ | ❌ | ✅ |
+| Brand Profile / Brand Voice | ❌ | ✅ | ✅ |
+| Brokerage-level config | ❌ | ✅ | ✅ |
+
 **What we discover vs what we create:**
 
 | Source | We discover | We create |
