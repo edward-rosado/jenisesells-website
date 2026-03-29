@@ -130,6 +130,38 @@ public sealed class MemoryContentCacheTests : IDisposable
         result.Should().NotBeNull();
     }
 
+    // ── SizeLimit (production config) ─────────────────────────────────────────
+
+    [Fact]
+    public async Task SetAsync_WithSizeLimit_DoesNotThrow()
+    {
+        // Production uses SizeLimit = 100_000 on MemoryCache.
+        // This test ensures SetAsync specifies Size on the cache entry.
+        // Without Size, MemoryCache throws:
+        //   InvalidOperationException: Cache entry must specify a value for Size when SizeLimit is set.
+        using var sizeLimitedCache = new MemoryCache(new MemoryCacheOptions { SizeLimit = 100_000 });
+        var sut = new MemoryContentCache(sizeLimitedCache);
+
+        var act = async () => await sut.SetAsync(
+            "key", BuildCmaResult(), TimeSpan.FromMinutes(5), CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task SetAsync_WithSizeLimit_ValueIsRetrievable()
+    {
+        using var sizeLimitedCache = new MemoryCache(new MemoryCacheOptions { SizeLimit = 100_000 });
+        var sut = new MemoryContentCache(sizeLimitedCache);
+        var value = BuildCmaResult();
+
+        await sut.SetAsync("key", value, TimeSpan.FromMinutes(5), CancellationToken.None);
+        var result = await sut.GetAsync<CmaWorkerResult>("key", CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.LeadId.Should().Be(value.LeadId);
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private static CmaWorkerResult BuildCmaResult(string leadId = "lead-001") => new(
