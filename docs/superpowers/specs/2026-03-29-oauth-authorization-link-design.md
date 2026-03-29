@@ -634,6 +634,39 @@ Every worker validates Claude's output before storing it:
 | `activation.injection_detected` | Counter | `source` (email/drive/website/review), `agentId` |
 | `activation.output_anomaly` | Counter | `worker`, `agentId` |
 
+**Sensitive Data Handling:**
+
+If the pipeline encounters passwords, recovery phrases, private keys, API keys, SSNs, financial account numbers, or any credentials in an agent's data:
+- **DO NOT store them** — not in Drive, not in Platform Blob, not in any output file
+- **Strip them during sanitization** before they reach Claude
+- Log `[ACTV-083]` "Sensitive credential detected and redacted" (without the actual value)
+- The `IContentSanitizer` scans for: password patterns, seed phrases (12/24 word BIP-39), private key formats, SSN patterns, credit card numbers, API key formats
+- Our platform has no legitimate reason to store these — if we find them, we discard them
+
+**Right to Be Forgotten / Agent Removal:**
+
+When an agent requests data deletion or is removed from the platform, ALL activation data must be purged across every storage tier:
+
+| Storage | Data to delete | Method |
+|---------|---------------|--------|
+| Agent's Google Drive | `real-estate-star/{agentId}/` folder (all files) | `IGDriveClient.DeleteFolderAsync()` |
+| Account Drive | Agent's contribution signals in `real-estate-star/{accountId}/` | Rebuild Brand Profile/Voice from remaining agents, or delete if last agent |
+| Platform Blob | All fan-out copies of agent's activation outputs | `IFileStorageProvider.DeleteAsync()` per file |
+| Azure Table | OAuth tokens (`ITokenStore.DeleteAsync()`) | Already exists — `oauthtokens` table |
+| Azure Table | Checkpoint files | Delete `activation/checkpoint-*` entries |
+| Config files | `config/accounts/{agentId}/` (single agent) or `config/accounts/{accountId}/agents/{agentId}/` (brokerage) | Delete directory |
+| Config files | `account.json` (single agent only — if brokerage, leave brokerage config) | Delete only if accountId == agentId |
+
+**Brand Profile cleanup on agent removal from brokerage:**
+- If other agents remain: re-run `BrandMergeService` WITHOUT the removed agent's signals to produce a clean Brand Profile + Brand Voice that doesn't reflect the removed agent
+- If last agent removed: delete the entire `real-estate-star/{accountId}/` folder and brokerage config
+
+**Integration with existing deletion infrastructure:**
+- Extends `ILeadDataDeletion` (already handles lead GDPR deletion) or new `IAgentDataDeletion` interface in Domain
+- Triggered by existing `RequestDeletionEndpoint` or new admin endpoint
+- Deletion is logged with `[DEL-010]` "Agent activation data deletion completed" for audit trail
+- Deletion is **irreversible** — no soft delete, no retention period for activation data
+
 **Per-source sanitization rules:**
 
 | Source | Additional sanitization |
