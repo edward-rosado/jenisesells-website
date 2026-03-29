@@ -118,9 +118,9 @@ public class CompAggregatorTests
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public void Deduplicate_RemovesDuplicatesByAddressAndDate_KeepsLowerEnumValue()
+    public void Deduplicate_RemovesDuplicatesByAddress_KeepsLowerEnumValue()
     {
-        // Same address + date from two sources — Zillow (0) wins over Redfin (2)
+        // Same address from two sources — Zillow (0) wins over Redfin (2)
         var saleDate = new DateOnly(2025, 3, 1);
         var zillowComp = MakeComp("123 Main St", saleDate, CompSource.Zillow);
         var redfinComp = MakeComp("123 Main St", saleDate, CompSource.Redfin);
@@ -132,14 +132,16 @@ public class CompAggregatorTests
     }
 
     [Fact]
-    public void Deduplicate_KeepsDifferentDates()
+    public void Deduplicate_SameAddressDifferentSaleDates_DedupsToOne()
     {
+        // RentCast can return the same property with different sale dates for the same
+        // underlying transaction — street+zip dedup collapses them to one record.
         var comp1 = MakeComp("123 Main St", new DateOnly(2025, 1, 1));
         var comp2 = MakeComp("123 Main St", new DateOnly(2025, 6, 1));
 
         var result = CompAggregator.Deduplicate([comp1, comp2]);
 
-        result.Should().HaveCount(2);
+        result.Should().HaveCount(1);
     }
 
     // ---------------------------------------------------------------------------

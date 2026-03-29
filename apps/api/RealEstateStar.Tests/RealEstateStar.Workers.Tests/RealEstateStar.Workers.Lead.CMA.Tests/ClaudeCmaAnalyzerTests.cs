@@ -54,6 +54,7 @@ public class ClaudeCmaAnalyzerTests
             "valueHigh": {{valueHigh}},
             "marketNarrative": "{{narrative}}",
             "pricingRecommendation": "List at $510,000",
+            "pricingStrategy": "Price at $515,000 to leverage the renovated kitchen.",
             "leadInsights": "Motivated seller.",
             "conversationStarters": ["How soon are you hoping to move?", "Have you toured comps?"],
             "marketTrend": "{{marketTrend}}",
@@ -191,6 +192,35 @@ public class ClaudeCmaAnalyzerTests
         result.MarketNarrative.Should().Contain("Strong seller");
         result.MedianDaysOnMarket.Should().Be(21);
         result.ConversationStarters.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void ParseResponse_WithPricingStrategy_MapsToAnalysis()
+    {
+        var json = MakeValidJson();
+
+        var result = ClaudeCmaAnalyzer.ParseResponse(json);
+
+        result.PricingStrategy.Should().Be("Price at $515,000 to leverage the renovated kitchen.");
+    }
+
+    [Fact]
+    public void ParseResponse_MissingPricingStrategy_ReturnsNull()
+    {
+        var json = """
+        {
+            "valueLow": 480000,
+            "valueMid": 510000,
+            "valueHigh": 540000,
+            "marketNarrative": "Strong seller's market.",
+            "marketTrend": "Seller's",
+            "medianDaysOnMarket": 21
+        }
+        """;
+
+        var result = ClaudeCmaAnalyzer.ParseResponse(json);
+
+        result.PricingStrategy.Should().BeNull();
     }
 
     // ---------------------------------------------------------------------------
@@ -542,6 +572,7 @@ public class ClaudeCmaAnalyzerTests
 
         prompt.Should().Contain("Seller Notes (property condition, improvements, or issues)");
         prompt.Should().Contain("New roof installed in 2023. Kitchen fully remodeled.");
+        prompt.Should().Contain("You MUST reference these specific details in your marketNarrative and pricingStrategy");
     }
 
     [Fact]

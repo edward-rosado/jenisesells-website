@@ -42,7 +42,8 @@ public class CmaPdfGeneratorTests
 
     internal static CmaAnalysis MakeAnalysis(
         string? pricingRecommendation = null,
-        string? leadInsights = null) => new()
+        string? leadInsights = null,
+        string? pricingStrategy = null) => new()
         {
             ValueLow = 480_000m,
             ValueMid = 510_000m,
@@ -51,6 +52,7 @@ public class CmaPdfGeneratorTests
             MarketTrend = "Seller's Market",
             MedianDaysOnMarket = 14,
             PricingRecommendation = pricingRecommendation,
+            PricingStrategy = pricingStrategy,
             LeadInsights = leadInsights
         };
 
@@ -764,6 +766,83 @@ public class CmaPdfGeneratorTests
         var agent = MakeAgentConfig(tagline: null);
 
         var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Lean,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // PricingStrategy field rendering
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GenerateAsync_Comprehensive_WithPricingStrategy_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead();
+        var analysis = MakeAnalysis(
+            pricingStrategy: "Price at $515,000 to leverage the renovated kitchen and new roof. The seller's 3-6 month timeline allows patience for the right buyer.");
+        var comps = MakeComps();
+        var agent = MakeAgentConfig();
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+            new FileInfo(path).Length.Should().BeGreaterThan(0);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateAsync_Comprehensive_PricingStrategyNullFallsBackToPricingRecommendation_CreatesPdf()
+    {
+        // When PricingStrategy is null, the legacy PricingRecommendation field renders instead.
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead();
+        var analysis = MakeAnalysis(
+            pricingRecommendation: "List at $510,000 to attract multiple offers.",
+            pricingStrategy: null);
+        var comps = MakeComps();
+        var agent = MakeAgentConfig();
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
+            logoBytes: null, headshotBytes: null, CancellationToken.None);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+            new FileInfo(path).Length.Should().BeGreaterThan(0);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateAsync_Comprehensive_NoPricingStrategyOrRecommendation_SkipsPricingSection()
+    {
+        // When both PricingStrategy and PricingRecommendation are null, the section is omitted.
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead();
+        var analysis = MakeAnalysis(pricingRecommendation: null, pricingStrategy: null);
+        var comps = MakeComps();
+        var agent = MakeAgentConfig();
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Comprehensive,
             logoBytes: null, headshotBytes: null, CancellationToken.None);
 
         try
