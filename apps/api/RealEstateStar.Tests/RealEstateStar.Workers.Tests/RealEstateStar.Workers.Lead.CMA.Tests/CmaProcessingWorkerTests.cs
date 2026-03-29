@@ -232,17 +232,16 @@ public class CmaProcessingWorkerTests
     }
 
     [Fact]
-    public void DetermineReportType_Comprehensive()
+    public void DetermineReportType_Standard_WhenFiveComps()
     {
         var result = CmaProcessingWorker.DetermineReportType(5);
 
-        result.Should().Be(ReportType.Comprehensive);
+        result.Should().Be(ReportType.Standard);
     }
 
     [Fact]
     public void DetermineReportType_Standard_WhenFourComps()
     {
-        // 4 comps is Standard (below the >= 5 Comprehensive threshold)
         var result = CmaProcessingWorker.DetermineReportType(4);
 
         result.Should().Be(ReportType.Standard);
@@ -251,7 +250,7 @@ public class CmaProcessingWorkerTests
     [Fact]
     public void DetermineReportType_Standard()
     {
-        var result = CmaProcessingWorker.DetermineReportType(4);
+        var result = CmaProcessingWorker.DetermineReportType(3);
 
         result.Should().Be(ReportType.Standard);
     }

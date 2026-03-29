@@ -147,7 +147,6 @@ public sealed class CmaProcessingWorker(
     internal static ReportType DetermineReportType(int compCount) =>
         compCount switch
         {
-            >= 5 => ReportType.Comprehensive,
             >= 3 => ReportType.Standard,
             _ => ReportType.Lean
         };

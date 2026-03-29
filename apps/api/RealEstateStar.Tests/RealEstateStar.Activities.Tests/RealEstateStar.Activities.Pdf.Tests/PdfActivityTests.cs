@@ -174,7 +174,7 @@ public sealed class PdfActivityTests
             // Act
             var result = await _activity.ExecuteAsync(
                 lead, analysis, comps, config,
-                ReportType.Comprehensive,
+                ReportType.Standard,
                 logoBytes: null, headshotBytes: null,
                 correlationId: "corr-001",
                 ct: CancellationToken.None);
@@ -184,7 +184,7 @@ public sealed class PdfActivityTests
 
             _generatorMock.Verify(g => g.GenerateAsync(
                 lead, analysis, comps, config,
-                ReportType.Comprehensive,
+                ReportType.Standard,
                 null, null,
                 CancellationToken.None), Times.Once);
 
