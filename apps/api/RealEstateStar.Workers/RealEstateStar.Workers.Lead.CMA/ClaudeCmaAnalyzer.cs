@@ -60,7 +60,7 @@ public class ClaudeCmaAnalyzer(
             "[CMA-ANALYZE-000] Full prompt for lead {LeadId}:\n{Prompt}",
             lead.Id, prompt);
 
-        logger.LogInformation(
+        logger.LogDebug(
             "[CMA-ANALYZE-000] Prompt stats for lead {LeadId}: {Length} chars, ContainsSellerNotes={HasNotes}, ContainsSellerTimeline={HasTimeline}",
             lead.Id, prompt.Length,
             prompt.Contains("Seller Notes"),

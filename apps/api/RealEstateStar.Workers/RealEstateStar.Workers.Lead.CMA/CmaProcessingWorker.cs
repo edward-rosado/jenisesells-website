@@ -59,7 +59,7 @@ public sealed class CmaProcessingWorker(
             ctx.Analysis.MarketNarrative,
             ctx.Analysis.PricingStrategy);
 
-        logger.LogInformation(
+        logger.LogDebug(
             "[CmaWorker-011] Result for lead {LeadId}: PricingStrategy={HasStrategy}, " +
             "EstimatedValue={Value}, PriceRange={Low}-{High}, Comps={CompCount}",
             ctx.Request.Id,

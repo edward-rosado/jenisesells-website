@@ -565,7 +565,7 @@ public sealed class LeadOrchestrator(
                 MedianDaysOnMarket = 0
             };
 
-            logger.LogInformation(
+            logger.LogDebug(
                 "[{Worker}-035b] PDF input for lead {LeadId}: PricingStrategy={HasStrategy} ({StrategyLength} chars), " +
                 "MarketNarrative={NarrativeLength} chars, ValueRange={Low}-{Mid}-{High}, Comps={CompCount}",
                 WorkerName, ctx.Lead.Id,
