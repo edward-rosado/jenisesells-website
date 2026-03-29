@@ -152,15 +152,17 @@ public class ClaudeCmaAnalyzer(
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(lead.SellerDetails?.Notes))
+        // Notes can come from SellerDetails.Notes OR the top-level Lead.Notes field
+        var sellerNotes = lead.SellerDetails?.Notes ?? lead.Notes;
+        if (!string.IsNullOrWhiteSpace(sellerNotes))
         {
             sb.AppendLine();
             sb.AppendLine("## Seller Notes (property condition, improvements, or issues)");
             sb.AppendLine();
             sb.AppendLine("<user_data>");
-            var notes = lead.SellerDetails.Notes.Length > 500
-                ? lead.SellerDetails.Notes[..500] + "..."
-                : lead.SellerDetails.Notes;
+            var notes = sellerNotes.Length > 500
+                ? sellerNotes[..500] + "..."
+                : sellerNotes;
             sb.AppendLine(notes);
             sb.AppendLine("</user_data>");
             sb.AppendLine();
