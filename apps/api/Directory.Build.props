@@ -6,5 +6,7 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <!-- Required for IDE0005 to run during build (Roslyn requirement) -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Suppress CS1591 (missing XML comments) — we only need GenerateDocumentationFile for IDE0005 -->
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 </Project>
