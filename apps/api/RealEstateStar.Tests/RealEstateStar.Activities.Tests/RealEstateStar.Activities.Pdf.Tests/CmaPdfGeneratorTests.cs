@@ -934,8 +934,8 @@ public class CmaPdfGeneratorTests
     [InlineData("CT", "Eastern Standard Time")]
     [InlineData("CA", "Pacific Standard Time")]
     [InlineData("PR", "SA Western Standard Time")]
-    [InlineData(null, "Eastern Standard Time")]
-    [InlineData("XX", "Eastern Standard Time")]
+    [InlineData(null, "UTC")]
+    [InlineData("XX", "UTC")]
     public void GetTimezoneId_ReturnsExpectedWindowsTimezoneId(string? state, string expectedId)
     {
         CmaPdfGenerator.GetTimezoneId(state).Should().Be(expectedId);
@@ -964,8 +964,8 @@ public class CmaPdfGeneratorTests
     [InlineData("CT", "ET")]
     [InlineData("CA", "PT")]
     [InlineData("PR", "AST")]
-    [InlineData(null, "ET")]
-    [InlineData("ZZ", "ET")]
+    [InlineData(null, "UTC")]
+    [InlineData("ZZ", "UTC")]
     public void GetTimezoneAbbr_ReturnsExpectedAbbreviation(string? state, string expectedAbbr)
     {
         CmaPdfGenerator.GetTimezoneAbbr(state).Should().Be(expectedAbbr);

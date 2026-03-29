@@ -482,13 +482,13 @@ public class CmaPdfGenerator : ICmaPdfGenerator
             });
     }
 
-    // Supported go-to-market states only: NY, NJ, PA, CA, FL, SC, MA, CT, PR
+    // Timezone from SupportedMarkets states. Unsupported states default to UTC.
     internal static string GetTimezoneId(string? state) => state?.ToUpperInvariant() switch
     {
         "NJ" or "NY" or "PA" or "SC" or "MA" or "CT" or "FL" => "Eastern Standard Time",
         "CA" => "Pacific Standard Time",
         "PR" => "SA Western Standard Time", // Atlantic (UTC-4, no DST)
-        _ => "Eastern Standard Time"
+        _ => "UTC"
     };
 
     internal static string GetTimezoneAbbr(string? state) => state?.ToUpperInvariant() switch
@@ -496,7 +496,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         "NJ" or "NY" or "PA" or "SC" or "MA" or "CT" or "FL" => "ET",
         "CA" => "PT",
         "PR" => "AST",
-        _ => "ET"
+        _ => "UTC"
     };
 
     // -------------------------------------------------------------------------
