@@ -3,12 +3,15 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.DataServices.Activation;
 using RealEstateStar.DataServices.Cache;
 using RealEstateStar.DataServices.Cma;
 using RealEstateStar.DataServices.Config;
 using RealEstateStar.DataServices.Leads;
 using RealEstateStar.DataServices.Privacy;
+using RealEstateStar.DataServices.Shared;
 using RealEstateStar.DataServices.Storage;
+using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Privacy.Interfaces;
@@ -99,6 +102,15 @@ public static class ServiceCollectionExtensions
 
         // CMA PDF storage service
         services.AddSingleton<IPdfDataService, PdfDataService>();
+
+        // Content sanitizer — strips HTML, removes invisible Unicode, redacts PII/secrets
+        // Used by synthesis workers (VoiceExtraction, Personality, BrandingDiscovery, Coaching)
+        // before injecting external data into LLM prompts.
+        services.AddSingleton<IContentSanitizer, ContentSanitizer>();
+
+        // Agent activation context loader — loads Voice Skill, Personality, Brand Voice, CMA Style, etc.
+        // Returns null if no activation files exist for the agent (pipeline falls back to generic behavior).
+        services.AddSingleton<IAgentContextLoader, AgentContextLoader>();
 
         return services;
     }
