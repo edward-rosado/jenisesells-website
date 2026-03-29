@@ -7,6 +7,7 @@ public class CmaAnalysis
     public required decimal ValueHigh { get; init; }
     public required string MarketNarrative { get; init; }
     public string? PricingRecommendation { get; init; }
+    public string? PricingStrategy { get; init; }
     public string? LeadInsights { get; init; }
     public List<string> ConversationStarters { get; init; } = [];
     public required string MarketTrend { get; init; }
