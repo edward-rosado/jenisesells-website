@@ -565,6 +565,16 @@ public sealed class LeadOrchestrator(
                 MedianDaysOnMarket = 0
             };
 
+            logger.LogInformation(
+                "[{Worker}-035b] PDF input for lead {LeadId}: PricingStrategy={HasStrategy} ({StrategyLength} chars), " +
+                "MarketNarrative={NarrativeLength} chars, ValueRange={Low}-{Mid}-{High}, Comps={CompCount}",
+                WorkerName, ctx.Lead.Id,
+                analysis.PricingStrategy is not null,
+                analysis.PricingStrategy?.Length ?? 0,
+                analysis.MarketNarrative.Length,
+                analysis.ValueLow, analysis.ValueMid, analysis.ValueHigh,
+                cmaResult.Comps?.Count ?? 0);
+
             // Convert CompSummary → Comp for PDF generation (use defaults for required fields missing in summary)
             var comps = (cmaResult.Comps ?? [])
                 .Select(c => new Domain.Cma.Models.Comp

@@ -58,6 +58,17 @@ public sealed class CmaProcessingWorker(
                 c.Address, c.SalePrice, c.Beds, c.Baths, c.Sqft, c.DaysOnMarket, c.DistanceMiles, c.SaleDate)).ToList(),
             ctx.Analysis.MarketNarrative,
             ctx.Analysis.PricingStrategy);
+
+        logger.LogInformation(
+            "[CmaWorker-011] Result for lead {LeadId}: PricingStrategy={HasStrategy}, " +
+            "EstimatedValue={Value}, PriceRange={Low}-{High}, Comps={CompCount}",
+            ctx.Request.Id,
+            result.PricingStrategy is not null,
+            result.EstimatedValue,
+            result.PriceRangeLow,
+            result.PriceRangeHigh,
+            result.Comps?.Count ?? 0);
+
         ctx.ProcessingRequest.Completion.TrySetResult(result);
 
         CmaDiagnostics.CmaGenerated.Add(1);
