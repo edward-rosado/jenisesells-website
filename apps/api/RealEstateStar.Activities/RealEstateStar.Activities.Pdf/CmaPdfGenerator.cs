@@ -380,10 +380,21 @@ public class CmaPdfGenerator : ICmaPdfGenerator
 
     private static void AddPricingStrategy(ColumnDescriptor col, CmaAnalysis analysis)
     {
-        if (analysis.PricingRecommendation is null && analysis.LeadInsights is null)
+        if (analysis.PricingStrategy is null && analysis.PricingRecommendation is null && analysis.LeadInsights is null)
             return;
 
-        if (analysis.PricingRecommendation is { } recommendation)
+        // Render PricingStrategy (always present per system prompt rule 9)
+        if (analysis.PricingStrategy is { } strategy)
+        {
+            col.Item().ShowEntire().Column(section =>
+            {
+                section.Item().PaddingBottom(6).Text("Pricing Strategy").FontSize(11).Bold();
+                section.Item().PaddingBottom(12).Text(strategy).FontSize(10);
+            });
+        }
+
+        // Fallback to PricingRecommendation if PricingStrategy is null (legacy)
+        if (analysis.PricingStrategy is null && analysis.PricingRecommendation is { } recommendation)
         {
             col.Item().ShowEntire().Column(section =>
             {

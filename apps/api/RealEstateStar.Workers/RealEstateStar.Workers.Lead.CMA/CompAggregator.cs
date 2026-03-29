@@ -44,11 +44,13 @@ public class CompAggregator(
         }
     }
 
-    // Dedup by normalized address + sale date. When duplicates exist, prefer the source
-    // with the lower CompSource enum value (Zillow < RealtorCom < Redfin).
+    // Dedup by normalized address (street+zip only). SaleDate is intentionally excluded
+    // because RentCast can return the same physical property with different municipality names
+    // AND slightly different sale dates for the same underlying transaction.
+    // When duplicates exist, prefer the source with the lower CompSource enum value.
     internal static List<Comp> Deduplicate(List<Comp> comps) =>
         comps
-            .GroupBy(c => (NormalizeAddressForDedup(c.Address), c.SaleDate))
+            .GroupBy(c => NormalizeAddressForDedup(c.Address))
             .Select(g => g.OrderBy(c => (int)c.Source).First())
             .ToList();
 
@@ -62,18 +64,19 @@ public class CompAggregator(
     /// </summary>
     internal static string NormalizeAddressForDedup(string address)
     {
-        // Normalize separators first
         var normalized = address.Trim().ToUpperInvariant()
             .Replace(".", "")
             .Replace(",", " ")
             .Replace("  ", " ")
             .Replace("  ", " ");
 
-        // Extract zip code (5 digits)
+        // Strip municipality suffixes that cause false non-matches
+        foreach (var suffix in new[] { " TOWNSHIP", " TWP", " BOROUGH", " BORO", " VILLAGE", " CITY" })
+            normalized = normalized.Replace(suffix, "");
+
         var zipMatch = Regex.Match(normalized, @"\b(\d{5})\b");
         var zip = zipMatch.Success ? zipMatch.Groups[1].Value : "";
 
-        // Extract street number + first two words of street (e.g. "123 MAIN ST")
         var streetMatch = Regex.Match(normalized, @"^(\d+\s+\S+(?:\s+\S+)?)");
         var streetPart = streetMatch.Success ? streetMatch.Groups[1].Value.Trim() : normalized;
 
