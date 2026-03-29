@@ -106,7 +106,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
                     AddMarketAnalysis(col, analysis, primaryColor);
 
                     // Section 6: Pricing Strategy + Lead Insights (always shown when data is present)
-                    AddPricingStrategy(col, analysis);
+                    AddPricingStrategy(col, analysis, primaryColor);
                 });
 
                 // Section 7: Footer
@@ -415,7 +415,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
     // Section 6: Pricing Strategy
     // -------------------------------------------------------------------------
 
-    private static void AddPricingStrategy(ColumnDescriptor col, CmaAnalysis analysis)
+    private static void AddPricingStrategy(ColumnDescriptor col, CmaAnalysis analysis, string primaryColor)
     {
         if (analysis.PricingStrategy is null && analysis.LeadInsights is null)
             return;
@@ -425,7 +425,8 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         {
             col.Item().ShowEntire().Column(section =>
             {
-                section.Item().PaddingBottom(6).Text("Pricing Strategy").FontSize(11).Bold();
+                section.Item().PaddingBottom(6).Text("Pricing Strategy")
+                    .FontSize(11).Bold().FontColor(primaryColor);
                 section.Item().PaddingBottom(12).Text(strategy).FontSize(10);
             });
         }
@@ -434,7 +435,8 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         {
             col.Item().ShowEntire().Column(section =>
             {
-                section.Item().PaddingBottom(6).Text("Seller Insights").FontSize(11).Bold();
+                section.Item().PaddingBottom(6).Text("Seller Insights")
+                    .FontSize(11).Bold().FontColor(primaryColor);
                 section.Item().PaddingBottom(12).Text(insights).FontSize(10);
             });
         }
