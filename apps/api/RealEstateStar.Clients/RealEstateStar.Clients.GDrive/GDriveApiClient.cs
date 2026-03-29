@@ -319,6 +319,187 @@ internal sealed class GDriveApiClient(
         }
     }
 
+    public async Task<IReadOnlyList<Domain.Shared.Interfaces.External.DriveFileInfo>> ListAllFilesAsync(
+        string accountId,
+        string agentId,
+        CancellationToken ct)
+    {
+        var service = await BuildServiceAsync(accountId, agentId, ct);
+        if (service is null)
+            return [];
+
+        var sw = Stopwatch.GetTimestamp();
+        using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.list_all");
+        activity?.SetTag("gdrive.account_id", accountId);
+
+        try
+        {
+            GDriveDiagnostics.Operations.Add(1);
+
+            var results = new List<Domain.Shared.Interfaces.External.DriveFileInfo>();
+            string? pageToken = null;
+
+            do
+            {
+                var listRequest = service.Files.List();
+                listRequest.Q = "trashed = false";
+                listRequest.Fields = "nextPageToken, files(id, name, mimeType, modifiedTime)";
+                listRequest.PageSize = 200;
+                listRequest.PageToken = pageToken;
+                var result = await listRequest.ExecuteAsync(ct);
+
+                if (result.Files is not null)
+                {
+                    foreach (var f in result.Files)
+                    {
+                        results.Add(new Domain.Shared.Interfaces.External.DriveFileInfo(
+                            f.Id ?? string.Empty,
+                            f.Name ?? string.Empty,
+                            f.MimeType ?? string.Empty,
+                            f.ModifiedTimeDateTimeOffset?.UtcDateTime));
+                    }
+                }
+
+                pageToken = result.NextPageToken;
+            }
+            while (pageToken is not null);
+
+            var durationMs = Stopwatch.GetElapsedTime(sw).TotalMilliseconds;
+            GDriveDiagnostics.Duration.Record(durationMs);
+
+            logger.LogInformation(
+                "[GDRIVE-040] ListAllFiles for account {AccountId}, agent {AgentId}. Count: {Count}, Duration: {Duration}ms",
+                accountId, agentId, results.Count, durationMs);
+
+            return results;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            GDriveDiagnostics.Failed.Add(1);
+            logger.LogError(ex,
+                "[GDRIVE-041] ListAllFiles failed for account {AccountId}, agent {AgentId}",
+                accountId, agentId);
+            throw;
+        }
+    }
+
+    public async Task<string?> GetFileContentAsync(
+        string accountId,
+        string agentId,
+        string fileId,
+        CancellationToken ct)
+    {
+        var service = await BuildServiceAsync(accountId, agentId, ct);
+        if (service is null)
+            return null;
+
+        var sw = Stopwatch.GetTimestamp();
+        using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.get_content");
+        activity?.SetTag("gdrive.account_id", accountId);
+
+        try
+        {
+            GDriveDiagnostics.Operations.Add(1);
+
+            var getRequest = service.Files.Get(fileId);
+            using var memStream = new MemoryStream();
+            var downloadProgress = await getRequest.DownloadAsync(memStream, ct);
+
+            if (downloadProgress.Status == Google.Apis.Download.DownloadStatus.Failed)
+            {
+                logger.LogWarning(
+                    "[GDRIVE-043] GetFileContent download failed for account {AccountId}, agent {AgentId}, fileId {FileId}",
+                    accountId, agentId, fileId);
+                return null;
+            }
+
+            var content = System.Text.Encoding.UTF8.GetString(memStream.ToArray());
+
+            var durationMs = Stopwatch.GetElapsedTime(sw).TotalMilliseconds;
+            GDriveDiagnostics.Duration.Record(durationMs);
+
+            logger.LogInformation(
+                "[GDRIVE-042] GetFileContent for account {AccountId}, agent {AgentId}, fileId {FileId}. Duration: {Duration}ms",
+                accountId, agentId, fileId, durationMs);
+
+            return content;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            GDriveDiagnostics.Failed.Add(1);
+            logger.LogError(ex,
+                "[GDRIVE-044] GetFileContent failed for account {AccountId}, agent {AgentId}",
+                accountId, agentId);
+            throw;
+        }
+    }
+
+    public async Task<string> GetOrCreateFolderAsync(
+        string accountId,
+        string agentId,
+        string folderName,
+        CancellationToken ct)
+    {
+        var service = await BuildServiceAsync(accountId, agentId, ct);
+        if (service is null)
+            return string.Empty;
+
+        var sw = Stopwatch.GetTimestamp();
+        using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.get_or_create_folder");
+        activity?.SetTag("gdrive.account_id", accountId);
+
+        try
+        {
+            GDriveDiagnostics.Operations.Add(1);
+
+            var listRequest = service.Files.List();
+            listRequest.Q = $"name = '{EscapeQuery(folderName)}' and mimeType = '{FolderMimeType}' and 'root' in parents and trashed = false";
+            listRequest.Fields = "files(id)";
+            var result = await listRequest.ExecuteAsync(ct);
+
+            var existingId = result.Files?.FirstOrDefault()?.Id;
+            if (existingId is not null)
+            {
+                var durationMs = Stopwatch.GetElapsedTime(sw).TotalMilliseconds;
+                GDriveDiagnostics.Duration.Record(durationMs);
+
+                logger.LogInformation(
+                    "[GDRIVE-045] Folder '{FolderName}' found for account {AccountId}, agent {AgentId}. FolderId: {FolderId}, Duration: {Duration}ms",
+                    folderName, accountId, agentId, existingId, durationMs);
+
+                return existingId;
+            }
+
+            // Create the folder
+            var metadata = new Google.Apis.Drive.v3.Data.File
+            {
+                Name = folderName,
+                MimeType = FolderMimeType
+            };
+
+            var createRequest = service.Files.Create(metadata);
+            createRequest.Fields = "id";
+            var folder = await createRequest.ExecuteAsync(ct);
+
+            var createDurationMs = Stopwatch.GetElapsedTime(sw).TotalMilliseconds;
+            GDriveDiagnostics.Duration.Record(createDurationMs);
+
+            logger.LogInformation(
+                "[GDRIVE-046] Folder '{FolderName}' created for account {AccountId}, agent {AgentId}. FolderId: {FolderId}, Duration: {Duration}ms",
+                folderName, accountId, agentId, folder.Id, createDurationMs);
+
+            return folder.Id ?? string.Empty;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            GDriveDiagnostics.Failed.Add(1);
+            logger.LogError(ex,
+                "[GDRIVE-047] GetOrCreateFolder failed for account {AccountId}, agent {AgentId}",
+                accountId, agentId);
+            throw;
+        }
+    }
+
     private async Task<DriveService?> BuildServiceAsync(
         string accountId,
         string agentId,
