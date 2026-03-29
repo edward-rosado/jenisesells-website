@@ -56,6 +56,16 @@ public class ClaudeCmaAnalyzer(
 
         var prompt = BuildPrompt(lead, comps);
 
+        logger.LogDebug(
+            "[CMA-ANALYZE-000] Full prompt for lead {LeadId}:\n{Prompt}",
+            lead.Id, prompt);
+
+        logger.LogInformation(
+            "[CMA-ANALYZE-000] Prompt stats for lead {LeadId}: {Length} chars, ContainsSellerNotes={HasNotes}, ContainsSellerTimeline={HasTimeline}",
+            lead.Id, prompt.Length,
+            prompt.Contains("Seller Notes"),
+            prompt.Contains("Seller Timeline"));
+
         logger.LogInformation(
             "[CMA-ANALYZE-001] Sending analysis request for lead {LeadId}, {CompCount} comps",
             lead.Id, comps.Count);
@@ -66,6 +76,10 @@ public class ClaudeCmaAnalyzer(
             "[CMA-ANALYZE-002] Received response for lead {LeadId}, {Length} chars",
             lead.Id, response.Content.Length);
 
+        logger.LogDebug(
+            "[CMA-ANALYZE-002a] Raw Claude response for lead {LeadId}:\n{Response}",
+            lead.Id, response.Content);
+
         CmaDiagnostics.LlmTokensInput.Add(response.InputTokens);
         CmaDiagnostics.LlmTokensOutput.Add(response.OutputTokens);
 
@@ -73,8 +87,17 @@ public class ClaudeCmaAnalyzer(
         {
             var analysis = ParseResponse(response.Content);
             logger.LogInformation(
-                "[CMA-ANALYZE-003] Parsed response for lead {LeadId}. PricingStrategy={HasStrategy}, LeadInsights={HasInsights}, MarketTrend={Trend}",
-                lead.Id, analysis.PricingStrategy is not null, analysis.LeadInsights is not null, analysis.MarketTrend);
+                "[CMA-ANALYZE-003] Parsed for lead {LeadId}: PricingStrategy={HasStrategy} ({StrategyLength} chars), " +
+                "MarketTrend={Trend}, MedianDOM={DOM}, ValueRange={Low}-{Mid}-{High}, " +
+                "Comps analyzed={CompCount}, LeadInsights={HasInsights}",
+                lead.Id,
+                analysis.PricingStrategy is not null,
+                analysis.PricingStrategy?.Length ?? 0,
+                analysis.MarketTrend,
+                analysis.MedianDaysOnMarket,
+                analysis.ValueLow, analysis.ValueMid, analysis.ValueHigh,
+                comps.Count,
+                analysis.LeadInsights is not null);
             return analysis;
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException)

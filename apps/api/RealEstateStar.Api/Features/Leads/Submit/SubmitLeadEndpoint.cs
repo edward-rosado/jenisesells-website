@@ -133,8 +133,12 @@ public class SubmitLeadEndpoint : IEndpoint
             isUpdate = false;
 
             logger.LogInformation(
-                "[LEAD-001] New lead received. LeadId: {LeadId}, AgentId: {AgentId}, Type: {LeadType}, Email: {EmailHash}",
-                lead.Id, agentId, lead.LeadType, HashEmail(lead.Email));
+                "[LEAD-001] New lead received. LeadId: {LeadId}, AgentId: {AgentId}, Type: {LeadType}, " +
+                "Email: {EmailHash}, HasSellerNotes: {HasSellerNotes}, HasBuyerNotes: {HasBuyerNotes}, HasTopLevelNotes: {HasTopLevelNotes}",
+                lead.Id, agentId, lead.LeadType, HashEmail(lead.Email),
+                lead.SellerDetails?.Notes is not null,
+                lead.BuyerDetails?.Notes is not null,
+                lead.Notes is not null);
         }
 
         activity?.SetTag("lead.id", lead.Id.ToString());
