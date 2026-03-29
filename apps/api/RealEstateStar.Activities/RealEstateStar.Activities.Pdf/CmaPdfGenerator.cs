@@ -482,41 +482,20 @@ public class CmaPdfGenerator : ICmaPdfGenerator
             });
     }
 
+    // Supported go-to-market states only: NY, NJ, PA, CA, FL, SC, MA, CT, PR
     internal static string GetTimezoneId(string? state) => state?.ToUpperInvariant() switch
     {
-        "NJ" or "NY" or "CT" or "PA" or "MA" or "FL" or "GA" or "NC" or "SC" or "VA" or "MD" or "DE"
-            or "NH" or "VT" or "ME" or "RI" or "DC" or "WV" or "OH" or "MI" or "IN" or "KY" or "TN"
-            or "AL" or "MS" => "Eastern Standard Time",
-
-        "IL" or "WI" or "MN" or "IA" or "MO" or "AR" or "LA" or "TX" or "OK" or "KS" or "NE"
-            or "SD" or "ND" => "Central Standard Time",
-
-        "MT" or "WY" or "CO" or "NM" or "AZ" or "UT" or "ID" => "Mountain Standard Time",
-
-        "CA" or "OR" or "WA" or "NV" => "Pacific Standard Time",
-
-        "AK" => "Alaskan Standard Time",
-        "HI" => "Hawaiian Standard Time",
-
+        "NJ" or "NY" or "PA" or "SC" or "MA" or "CT" or "FL" => "Eastern Standard Time",
+        "CA" => "Pacific Standard Time",
+        "PR" => "SA Western Standard Time", // Atlantic (UTC-4, no DST)
         _ => "Eastern Standard Time"
     };
 
     internal static string GetTimezoneAbbr(string? state) => state?.ToUpperInvariant() switch
     {
-        "NJ" or "NY" or "CT" or "PA" or "MA" or "FL" or "GA" or "NC" or "SC" or "VA" or "MD" or "DE"
-            or "NH" or "VT" or "ME" or "RI" or "DC" or "WV" or "OH" or "MI" or "IN" or "KY" or "TN"
-            or "AL" or "MS" => "ET",
-
-        "IL" or "WI" or "MN" or "IA" or "MO" or "AR" or "LA" or "TX" or "OK" or "KS" or "NE"
-            or "SD" or "ND" => "CT",
-
-        "MT" or "WY" or "CO" or "NM" or "AZ" or "UT" or "ID" => "MT",
-
-        "CA" or "OR" or "WA" or "NV" => "PT",
-
-        "AK" => "AKT",
-        "HI" => "HT",
-
+        "NJ" or "NY" or "PA" or "SC" or "MA" or "CT" or "FL" => "ET",
+        "CA" => "PT",
+        "PR" => "AST",
         _ => "ET"
     };
 

@@ -923,21 +923,17 @@ public class CmaPdfGeneratorTests
     // GetTimezoneId — state-to-Windows-timezone-ID mapping
     // ---------------------------------------------------------------------------
 
+    // Supported go-to-market states: NY, NJ, PA, CA, FL, SC, MA, CT, PR
     [Theory]
     [InlineData("NJ", "Eastern Standard Time")]
     [InlineData("NY", "Eastern Standard Time")]
+    [InlineData("PA", "Eastern Standard Time")]
     [InlineData("FL", "Eastern Standard Time")]
-    [InlineData("OH", "Eastern Standard Time")]
-    [InlineData("MS", "Eastern Standard Time")]
-    [InlineData("IL", "Central Standard Time")]
-    [InlineData("TX", "Central Standard Time")]
-    [InlineData("ND", "Central Standard Time")]
-    [InlineData("CO", "Mountain Standard Time")]
-    [InlineData("AZ", "Mountain Standard Time")]
+    [InlineData("SC", "Eastern Standard Time")]
+    [InlineData("MA", "Eastern Standard Time")]
+    [InlineData("CT", "Eastern Standard Time")]
     [InlineData("CA", "Pacific Standard Time")]
-    [InlineData("WA", "Pacific Standard Time")]
-    [InlineData("AK", "Alaskan Standard Time")]
-    [InlineData("HI", "Hawaiian Standard Time")]
+    [InlineData("PR", "SA Western Standard Time")]
     [InlineData(null, "Eastern Standard Time")]
     [InlineData("XX", "Eastern Standard Time")]
     public void GetTimezoneId_ReturnsExpectedWindowsTimezoneId(string? state, string expectedId)
@@ -946,8 +942,9 @@ public class CmaPdfGeneratorTests
     }
 
     [Theory]
-    [InlineData("nj", "Eastern Standard Time")]  // lowercase is handled
+    [InlineData("nj", "Eastern Standard Time")]
     [InlineData("ca", "Pacific Standard Time")]
+    [InlineData("pr", "SA Western Standard Time")]
     public void GetTimezoneId_IsCaseInsensitive(string state, string expectedId)
     {
         CmaPdfGenerator.GetTimezoneId(state).Should().Be(expectedId);
@@ -960,17 +957,13 @@ public class CmaPdfGeneratorTests
     [Theory]
     [InlineData("NJ", "ET")]
     [InlineData("NY", "ET")]
+    [InlineData("PA", "ET")]
     [InlineData("FL", "ET")]
-    [InlineData("OH", "ET")]
-    [InlineData("MS", "ET")]
-    [InlineData("IL", "CT")]
-    [InlineData("TX", "CT")]
-    [InlineData("CO", "MT")]
-    [InlineData("AZ", "MT")]
+    [InlineData("SC", "ET")]
+    [InlineData("MA", "ET")]
+    [InlineData("CT", "ET")]
     [InlineData("CA", "PT")]
-    [InlineData("WA", "PT")]
-    [InlineData("AK", "AKT")]
-    [InlineData("HI", "HT")]
+    [InlineData("PR", "AST")]
     [InlineData(null, "ET")]
     [InlineData("ZZ", "ET")]
     public void GetTimezoneAbbr_ReturnsExpectedAbbreviation(string? state, string expectedAbbr)
@@ -1027,11 +1020,11 @@ public class CmaPdfGeneratorTests
 
     [Theory]
     [InlineData("NJ")]
-    [InlineData("TX")]
-    [InlineData("CO")]
+    [InlineData("NY")]
+    [InlineData("PA")]
     [InlineData("CA")]
-    [InlineData("AK")]
-    [InlineData("HI")]
+    [InlineData("FL")]
+    [InlineData("PR")]
     [InlineData(null)]
     public async Task GenerateAsync_FooterUsesLocalTimezone_CreatesPdfSuccessfully(string? state)
     {
