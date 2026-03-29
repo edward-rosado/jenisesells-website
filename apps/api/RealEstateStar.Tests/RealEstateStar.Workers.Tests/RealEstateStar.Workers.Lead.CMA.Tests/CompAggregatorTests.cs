@@ -344,4 +344,297 @@ public class CompAggregatorTests
 
         zip.Should().BeEmpty();
     }
+
+    // ---------------------------------------------------------------------------
+    // Property type filtering (AGG-009)
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void FilterAndRankComps_ExcludesCompsWithMismatchedPropertyType()
+    {
+        // Subject is Single Family — commercial/multi-family comps should be excluded
+        var residential = new Comp
+        {
+            Address = "100 Oak Ave, Keansburg, NJ 07734",
+            SalePrice = 300_000m,
+            SaleDate = new DateOnly(2024, 10, 1),
+            Beds = 3, Baths = 2, Sqft = 1400,
+            DistanceMiles = 0.3,
+            Source = CompSource.RentCast,
+            PropertyType = "Single Family"
+        };
+        var commercial = new Comp
+        {
+            Address = "200 Commerce Dr, Keansburg, NJ 07734",
+            SalePrice = 500_000m,
+            SaleDate = new DateOnly(2024, 10, 1),
+            Beds = 0, Baths = 0, Sqft = 3000,
+            DistanceMiles = 0.5,
+            Source = CompSource.RentCast,
+            PropertyType = "Commercial"
+        };
+
+        var request = new CompSearchRequest
+        {
+            Address = "50 Main St",
+            City = "Keansburg",
+            State = "NJ",
+            Zip = "07734",
+            PropertyType = "Single Family"
+        };
+
+        var result = CompAggregator.FilterAndRankComps(
+            [residential, commercial], "07734", null, request);
+
+        result.Should().NotContain(c => c.Address == commercial.Address);
+        result.Should().Contain(c => c.Address == residential.Address);
+    }
+
+    [Fact]
+    public void FilterAndRankComps_KeepsCompsWithUnknownPropertyType_WhenSubjectTypeIsKnown()
+    {
+        // Comps with null/empty PropertyType are kept even when subject type is set —
+        // permissive fallback for data gaps.
+        var unknownType = new Comp
+        {
+            Address = "300 Pine St, Keansburg, NJ 07734",
+            SalePrice = 310_000m,
+            SaleDate = new DateOnly(2024, 10, 1),
+            Beds = 3, Baths = 2, Sqft = 1300,
+            DistanceMiles = 0.4,
+            Source = CompSource.RentCast,
+            PropertyType = null
+        };
+
+        var request = new CompSearchRequest
+        {
+            Address = "50 Main St",
+            City = "Keansburg",
+            State = "NJ",
+            Zip = "07734",
+            PropertyType = "Single Family"
+        };
+
+        var result = CompAggregator.FilterAndRankComps(
+            [unknownType], "07734", null, request);
+
+        result.Should().Contain(c => c.Address == unknownType.Address);
+    }
+
+    [Fact]
+    public void FilterAndRankComps_SkipsPropertyTypeFilter_WhenSubjectTypeIsNull()
+    {
+        // When request.PropertyType is null, all comps pass regardless of their type.
+        var commercial = new Comp
+        {
+            Address = "200 Commerce Dr, Keansburg, NJ 07734",
+            SalePrice = 500_000m,
+            SaleDate = new DateOnly(2024, 10, 1),
+            Beds = 0, Baths = 0, Sqft = 3000,
+            DistanceMiles = 0.5,
+            Source = CompSource.RentCast,
+            PropertyType = "Commercial"
+        };
+
+        var request = new CompSearchRequest
+        {
+            Address = "50 Main St",
+            City = "Keansburg",
+            State = "NJ",
+            Zip = "07734",
+            PropertyType = null
+        };
+
+        var result = CompAggregator.FilterAndRankComps(
+            [commercial], "07734", null, request);
+
+        result.Should().Contain(c => c.Address == commercial.Address);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Cross-zip dedup (Problem 2)
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void Deduplicate_SameUnitDifferentZips_DedupsToOne()
+    {
+        // "49 Middlesex Rd, Unit B" appears twice — once with Matawan zip, once with Old Bridge zip.
+        // These are the same physical unit; only one should survive dedup.
+        var matawan = new Comp
+        {
+            Address = "49 Middlesex Rd, Unit B, Matawan, NJ 07747",
+            SalePrice = 310_000m,
+            SaleDate = new DateOnly(2024, 9, 1),
+            Beds = 2,
+            Baths = 1,
+            Sqft = 950,
+            DistanceMiles = 1.2,
+            Source = CompSource.RentCast
+        };
+        var oldBridge = new Comp
+        {
+            Address = "49 Middlesex Rd, Unit B, Old Bridge, NJ 08857",
+            SalePrice = 310_000m,
+            SaleDate = new DateOnly(2024, 9, 1),
+            Beds = 2,
+            Baths = 1,
+            Sqft = 950,
+            DistanceMiles = 1.2,
+            Source = CompSource.RentCast
+        };
+
+        var result = CompAggregator.Deduplicate([matawan, oldBridge]);
+
+        result.Should().HaveCount(1);
+    }
+
+    // ---------------------------------------------------------------------------
+    // IQR outlier removal (Problem 3)
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void FilterAndRankComps_ExcludesPricePerSqftOutliers()
+    {
+        // Real data from failed 308 Myrtle St CMA:
+        // $275K for 5,000 sqft = $55/sqft — clearly outlier vs others at $294-$566/sqft.
+        var outlier = new Comp
+        {
+            Address = "1 Outlier Ln, Keansburg, NJ 07734",
+            SalePrice = 275_000m,
+            SaleDate = new DateOnly(2024, 10, 1),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 5000,  // $55/sqft
+            DistanceMiles = 0.8,
+            Source = CompSource.RentCast
+        };
+        var comp1 = new Comp
+        {
+            Address = "100 A St, Keansburg, NJ 07734",
+            SalePrice = 280_000m,
+            SaleDate = new DateOnly(2024, 10, 1),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 950,   // $294/sqft
+            DistanceMiles = 0.3,
+            Source = CompSource.RentCast
+        };
+        var comp2 = new Comp
+        {
+            Address = "200 B St, Keansburg, NJ 07734",
+            SalePrice = 320_000m,
+            SaleDate = new DateOnly(2024, 9, 1),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 1100,  // $291/sqft
+            DistanceMiles = 0.5,
+            Source = CompSource.RentCast
+        };
+        var comp3 = new Comp
+        {
+            Address = "300 C St, Keansburg, NJ 07734",
+            SalePrice = 310_000m,
+            SaleDate = new DateOnly(2024, 8, 1),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 1000,  // $310/sqft
+            DistanceMiles = 0.6,
+            Source = CompSource.RentCast
+        };
+        var comp4 = new Comp
+        {
+            Address = "400 D St, Keansburg, NJ 07734",
+            SalePrice = 350_000m,
+            SaleDate = new DateOnly(2024, 7, 1),
+            Beds = 3,
+            Baths = 2,
+            Sqft = 1200,  // $292/sqft
+            DistanceMiles = 0.7,
+            Source = CompSource.RentCast
+        };
+
+        var result = CompAggregator.FilterAndRankComps(
+            [outlier, comp1, comp2, comp3, comp4], "07734");
+
+        result.Should().NotContain(c => c.Address == outlier.Address);
+        result.Should().Contain(c => c.Address == comp1.Address);
+    }
+
+    // ---------------------------------------------------------------------------
+    // NormalizeStreetOnly
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void NormalizeStreetOnly_ExtractsStreetWithUnit()
+    {
+        // "49 Middlesex Rd Unit B, Matawan, NJ 07747" → "49 MIDDLESEX RD UNIT B"
+        var result = CompAggregator.NormalizeStreetOnly("49 Middlesex Rd Unit B, Matawan, NJ 07747");
+
+        result.Should().Contain("49");
+        result.Should().Contain("MIDDLESEX");
+        result.Should().Contain("RD");
+        // City name should not appear in the result
+        result.Should().NotContain("MATAWAN");
+        result.Should().NotContain("07747");
+    }
+
+    [Fact]
+    public void NormalizeStreetOnly_SameStreetDifferentCities_ReturnSameKey()
+    {
+        var key1 = CompAggregator.NormalizeStreetOnly("49 Middlesex Rd Unit B, Matawan, NJ 07747");
+        var key2 = CompAggregator.NormalizeStreetOnly("49 Middlesex Rd Unit B, Old Bridge, NJ 08857");
+
+        key1.Should().Be(key2);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Subject property self-sale filtering
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void FilterAndRankComps_KeepsRecentSubjectSelfSale()
+    {
+        // A flip — the subject sold 2 months ago. Keep it as a comp.
+        var recentSelfSale = MakeComp("308 Myrtle St, Cliffwood, NJ 07721", 625_000m,
+            saleDate: DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-2)), distance: 0.0);
+        var otherComp = MakeComp("100 Oak Ave, Aberdeen, NJ 07721", 550_000m, distance: 0.5);
+
+        var result = CompAggregator.FilterAndRankComps(
+            [recentSelfSale, otherComp], "07721");
+
+        result.Should().Contain(c => c.DistanceMiles <= 0.01,
+            "recent self-sale (< 6 months) should be kept as a valid comp");
+    }
+
+    [Fact]
+    public void FilterAndRankComps_ExcludesStaleSubjectSelfSale()
+    {
+        // The subject sold 2 years ago — not useful as a comp.
+        var staleSelfSale = MakeComp("308 Myrtle St, Cliffwood, NJ 07721", 400_000m,
+            saleDate: DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-24)), distance: 0.0);
+        var otherComp = MakeComp("100 Oak Ave, Aberdeen, NJ 07721", 550_000m, distance: 0.5);
+
+        var result = CompAggregator.FilterAndRankComps(
+            [staleSelfSale, otherComp], "07721");
+
+        result.Should().NotContain(c => c.DistanceMiles <= 0.01,
+            "stale self-sale (> 6 months) should be excluded");
+        result.Should().HaveCount(1);
+    }
+
+    private static Comp MakeComp(string address, decimal price,
+        DateOnly? saleDate = null, double distance = 1.0) => new()
+    {
+        Address = address,
+        SalePrice = price,
+        SaleDate = saleDate ?? DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-1)),
+        Beds = 3,
+        Baths = 2,
+        Sqft = 1500,
+        DaysOnMarket = 30,
+        DistanceMiles = distance,
+        Correlation = 0.85,
+        IsRecent = true,
+        Source = Domain.Cma.Models.CompSource.RentCast
+    };
 }

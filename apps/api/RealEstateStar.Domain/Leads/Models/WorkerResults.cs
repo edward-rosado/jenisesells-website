@@ -5,7 +5,8 @@ public abstract record WorkerResult(string LeadId, bool Success, string? Error);
 public sealed record CmaWorkerResult(
     string LeadId, bool Success, string? Error,
     decimal? EstimatedValue, decimal? PriceRangeLow, decimal? PriceRangeHigh,
-    IReadOnlyList<CompSummary>? Comps, string? MarketAnalysis
+    IReadOnlyList<CompSummary>? Comps, string? MarketAnalysis,
+    string? PricingStrategy = null
 ) : WorkerResult(LeadId, Success, Error);
 
 public sealed record HomeSearchWorkerResult(

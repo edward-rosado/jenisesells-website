@@ -23,7 +23,7 @@ public class CompAggregator(
         var deduplicated = Deduplicate(allComps);
         logger.LogInformation("[AGG-003] Deduplicated to {Count} unique comps", deduplicated.Count);
 
-        var ranked = FilterAndRankComps(deduplicated, request.Zip, logger);
+        var ranked = FilterAndRankComps(deduplicated, request.Zip, logger, request);
         logger.LogInformation("[AGG-005] After FilterAndRankComps: {Count} comps selected", ranked.Count);
 
         return ranked;
@@ -48,11 +48,26 @@ public class CompAggregator(
     // because RentCast can return the same physical property with different municipality names
     // AND slightly different sale dates for the same underlying transaction.
     // When duplicates exist, prefer the source with the lower CompSource enum value.
-    internal static List<Comp> Deduplicate(List<Comp> comps) =>
-        comps
+    //
+    // Two-pass strategy:
+    //   Pass 1: street+zip dedup (handles same-zip duplicates)
+    //   Pass 2: street-only dedup (handles same-unit-different-zip duplicates,
+    //           e.g., "49 Middlesex Rd Unit B, Matawan 07747" vs
+    //                 "49 Middlesex Rd Unit B, Old Bridge 08857")
+    internal static List<Comp> Deduplicate(List<Comp> comps)
+    {
+        // Pass 1: Exact dedup by street+zip
+        var pass1 = comps
             .GroupBy(c => NormalizeAddressForDedup(c.Address))
             .Select(g => g.OrderBy(c => (int)c.Source).First())
             .ToList();
+
+        // Pass 2: Street-only dedup (strips city, state, zip)
+        return pass1
+            .GroupBy(c => NormalizeStreetOnly(c.Address))
+            .Select(g => g.OrderBy(c => (int)c.Source).First())
+            .ToList();
+    }
 
     internal static string NormalizeAddress(string address) =>
         address.Trim().ToUpperInvariant().Replace(".", "").Replace(",", " ").Replace("  ", " ");
@@ -84,14 +99,171 @@ public class CompAggregator(
     }
 
     /// <summary>
-    /// Filters and ranks comps by geographic proximity to the subject property zip code,
-    /// deprioritizes comps beyond 10 miles, and returns the best 5.
+    /// Street-only normalization for cross-zip dedup.
+    /// Extracts the street number + full street name (including unit), stripping
+    /// city, state, and zip. Used in pass 2 of <see cref="Deduplicate"/>.
+    /// Example: "49 Middlesex Rd Unit B, Matawan, NJ 07747" → "49 MIDDLESEX RD UNIT B"
+    /// Example: "49 Middlesex Rd Unit B, Old Bridge, NJ 08857" → "49 MIDDLESEX RD UNIT B"
+    /// Strategy: truncate at the 2-letter state code followed by a 5-digit zip.
+    /// After truncation, strip the city (everything after the last street/unit token
+    /// that is NOT a US state abbreviation). Since we truncate at "ST 00000", we
+    /// then remove the state-abbreviated city by stripping the trailing "[A-Z]{2}" token.
     /// </summary>
-    internal static List<Comp> FilterAndRankComps(List<Comp> comps, string? subjectZip, ILogger? logger = null)
+    internal static string NormalizeStreetOnly(string address)
+    {
+        var normalized = address.Trim().ToUpperInvariant()
+            .Replace(".", "")
+            .Replace(",", " ")
+            .Replace("  ", " ")
+            .Replace("  ", " ");
+
+        // Strip municipality suffixes
+        foreach (var suffix in new[] { " TOWNSHIP", " TWP", " BOROUGH", " BORO", " VILLAGE", " CITY" })
+            normalized = normalized.Replace(suffix, "");
+
+        // Collapse any double spaces introduced by suffix stripping
+        while (normalized.Contains("  "))
+            normalized = normalized.Replace("  ", " ");
+
+        // Truncate at "ST 00000" — the 2-letter state abbreviation followed by a 5-digit zip.
+        // This reliably marks the boundary between address and city/state/zip.
+        var stateZipMatch = Regex.Match(normalized, @"^(.*?)\s+[A-Z]{2}\s+\d{5}");
+        if (stateZipMatch.Success)
+        {
+            var beforeStateZip = stateZipMatch.Groups[1].Value.Trim();
+
+            // Strip trailing state abbreviation token (last 2-letter all-caps word that is a state)
+            // e.g., "49 MIDDLESEX RD UNIT B MATAWAN" — "MATAWAN" is the city, strip it
+            // e.g., "49 MIDDLESEX RD UNIT B OLD BRIDGE" — "OLD BRIDGE" is multi-word city, strip last word
+            // Approach: strip tokens from the end until we hit a recognized street/unit token
+            // Simplest reliable approach: strip all trailing tokens that do NOT look like
+            // street suffixes, unit designators, or alphanumeric unit identifiers (single/few chars)
+            var streetSuffixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "ST", "AVE", "BLVD", "DR", "LN", "RD", "CT", "PL", "WAY", "TER", "TERR",
+                "CIR", "LOOP", "PATH", "PKWY", "HWY", "EXPY", "FWY", "RTE", "ROUTE",
+                "UNIT", "APT", "SUITE", "STE", "#",
+                "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K",
+                "1A", "1B", "2A", "2B", "3A", "3B"
+            };
+
+            // Remove city tokens by stripping words from the end that are longer than 2 chars
+            // and not known street suffixes/unit designators.
+            // We stop as soon as we see a known street suffix or a short unit letter.
+            var tokens = beforeStateZip.Split(' ');
+            var streetEnd = tokens.Length;
+            for (var i = tokens.Length - 1; i >= 1; i--)
+            {
+                var token = tokens[i];
+                if (streetSuffixes.Contains(token) ||
+                    (token.Length <= 2 && !Regex.IsMatch(token, @"^[A-Z]{2}$")))
+                {
+                    // This is a street suffix or unit identifier — stop here
+                    streetEnd = i + 1;
+                    break;
+                }
+                // This looks like a city word — continue stripping
+                streetEnd = i;
+            }
+
+            return string.Join(" ", tokens[..streetEnd]).Trim();
+        }
+
+        // Fallback: just take the first two tokens (number + street name)
+        var streetMatch = Regex.Match(normalized, @"^(\d+\s+\S+(?:\s+\S+)?)");
+        return streetMatch.Success ? streetMatch.Groups[1].Value.Trim() : normalized;
+    }
+
+    /// <summary>
+    /// Filters and ranks comps by geographic proximity to the subject property zip code,
+    /// deprioritizes comps beyond 10 miles, removes price/sqft outliers using the IQR method,
+    /// and returns the best 5.
+    /// </summary>
+    internal static List<Comp> FilterAndRankComps(
+        List<Comp> comps,
+        string? subjectZip,
+        ILogger? logger = null,
+        CompSearchRequest? request = null)
     {
         if (comps.Count == 0)
             return comps;
 
+        // --- Subject property: keep only if recent ---
+        // If the comp is at 0.0 miles (the subject itself), keep only if < 6 months old.
+        // Older self-sales are not useful comps; recent ones are (e.g., flips).
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        {
+            var beforeCount = comps.Count;
+            comps = comps.Where(c =>
+            {
+                if (c.DistanceMiles > 0.01) return true; // Not the subject
+                var monthsAgo = ((today.Year - c.SaleDate.Year) * 12) + (today.Month - c.SaleDate.Month);
+                return monthsAgo <= 6; // Keep recent self-sales
+            }).ToList();
+
+            if (comps.Count < beforeCount)
+                logger?.LogInformation(
+                    "[AGG-008] Removed {Count} stale subject property self-sale(s) (> 6 months old)",
+                    beforeCount - comps.Count);
+        }
+
+        // --- Property type filtering ---
+        // Exclude comps with a different property type than the subject (e.g., commercial vs residential).
+        // Keep comps with an unknown type (null/empty) to be permissive when data is missing.
+        var subjectPropertyType = request?.PropertyType;
+        if (!string.IsNullOrEmpty(subjectPropertyType))
+        {
+            var beforeCount = comps.Count;
+            comps = comps.Where(c =>
+                string.IsNullOrEmpty(c.PropertyType) ||
+                c.PropertyType.Equals(subjectPropertyType, StringComparison.OrdinalIgnoreCase)
+            ).ToList();
+
+            if (comps.Count < beforeCount)
+                logger?.LogInformation(
+                    "[AGG-009] Removed {Count} comps with mismatched property type (subject: {SubjectType})",
+                    beforeCount - comps.Count, subjectPropertyType);
+        }
+
+        if (comps.Count == 0)
+            return comps;
+
+        // --- Problem 3: Remove price/sqft outliers using IQR method ---
+        if (comps.Count >= 3)
+        {
+            var pricesPerSqft = comps
+                .Where(c => c.Sqft > 0)
+                .Select(c => (double)(c.SalePrice / c.Sqft))
+                .OrderBy(p => p)
+                .ToList();
+
+            if (pricesPerSqft.Count >= 3)
+            {
+                var q1 = pricesPerSqft[pricesPerSqft.Count / 4];
+                var q3 = pricesPerSqft[3 * pricesPerSqft.Count / 4];
+                var iqr = q3 - q1;
+                var lowerBound = q1 - 1.5 * iqr;
+                var upperBound = q3 + 1.5 * iqr;
+
+                var beforeCount = comps.Count;
+                comps = comps.Where(c =>
+                {
+                    if (c.Sqft <= 0) return true; // Can't evaluate without sqft, keep
+                    var ppsf = (double)(c.SalePrice / c.Sqft);
+                    return ppsf >= lowerBound && ppsf <= upperBound;
+                }).ToList();
+
+                if (comps.Count < beforeCount)
+                    logger?.LogInformation(
+                        "[AGG-007] Removed {Count} outlier comp(s) (price/sqft outside IQR bounds ${Low:F0}-${High:F0})",
+                        beforeCount - comps.Count, lowerBound, upperBound);
+            }
+        }
+
+        if (comps.Count == 0)
+            return comps;
+
+        // --- Zip-based proximity scoring and ranking ---
         var subjectZipNorm = subjectZip?.Trim() ?? "";
         var subjectPrefix = subjectZipNorm.Length >= 3 ? subjectZipNorm[..3] : "";
 

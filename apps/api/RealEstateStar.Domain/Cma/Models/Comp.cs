@@ -24,6 +24,7 @@ public class Comp
     public required CompSource Source { get; init; }
     public bool IsRecent { get; init; } = true;
     public double? Correlation { get; init; }
+    public string? PropertyType { get; init; }
 
     public decimal PricePerSqft => Sqft > 0 ? SalePrice / Sqft : 0;
 }

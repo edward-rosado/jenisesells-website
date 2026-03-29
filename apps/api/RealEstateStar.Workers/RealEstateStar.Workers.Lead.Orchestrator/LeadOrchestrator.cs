@@ -560,6 +560,7 @@ public sealed class LeadOrchestrator(
                 ValueMid = cmaResult.EstimatedValue ?? 0m,
                 ValueHigh = cmaResult.PriceRangeHigh ?? cmaResult.EstimatedValue ?? 0m,
                 MarketNarrative = cmaResult.MarketAnalysis ?? string.Empty,
+                PricingStrategy = cmaResult.PricingStrategy,
                 MarketTrend = "Stable",
                 MedianDaysOnMarket = 0
             };

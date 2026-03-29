@@ -93,12 +93,13 @@ public class CmaProcessingWorkerTests
             Source = CompSource.RentCast
         }).ToList();
 
-    private static CmaAnalysis MakeAnalysis() => new()
+    private static CmaAnalysis MakeAnalysis(string? pricingStrategy = null) => new()
     {
         ValueLow = 300000,
         ValueMid = 350000,
         ValueHigh = 400000,
         MarketNarrative = "test",
+        PricingStrategy = pricingStrategy,
         MarketTrend = "Balanced",
         MedianDaysOnMarket = 30
     };
@@ -134,11 +135,41 @@ public class CmaProcessingWorkerTests
         result.PriceRangeLow.Should().Be(300000);
         result.PriceRangeHigh.Should().Be(400000);
         result.MarketAnalysis.Should().Be("test");
+        result.PricingStrategy.Should().BeNull();
         result.Comps.Should().HaveCount(5);
         result.Comps![0].Price.Should().Be(300000);
         result.Comps![0].Beds.Should().Be(3);
         result.Comps![0].Baths.Should().Be(2);
         result.Comps![0].Sqft.Should().Be(1500);
+    }
+
+    [Fact]
+    public async Task SetsCmaWorkerResult_WithPricingStrategy_WhenAnalysisIncludesOne()
+    {
+        var comps = MakeComps(3);
+        var analysis = MakeAnalysis(pricingStrategy: "Price at $349,999 to attract multiple offers.");
+
+        _compAggregator
+            .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(comps);
+        _cmaAnalyzer
+            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(analysis);
+
+        var request = MakeRequest();
+        var worker = CreateWorker();
+        var cts = new CancellationTokenSource();
+
+        await _channel.Writer.WriteAsync(request, CancellationToken.None);
+        _channel.Writer.Complete();
+
+        await worker.StartAsync(cts.Token);
+        await worker.ExecuteTask!;
+
+        var result = await request.Completion.Task;
+
+        result.Success.Should().BeTrue();
+        result.PricingStrategy.Should().Be("Price at $349,999 to attract multiple offers.");
     }
 
     [Fact]

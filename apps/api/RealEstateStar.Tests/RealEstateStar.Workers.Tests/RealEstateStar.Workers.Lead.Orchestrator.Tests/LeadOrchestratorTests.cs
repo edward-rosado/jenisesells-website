@@ -1072,4 +1072,77 @@ public sealed class LeadOrchestratorTests
         // Assert — CMA channel should be empty (cache hit, no dispatch needed)
         _cmaChannel.Count.Should().Be(0, "second lead reuses cached CMA result");
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PricingStrategy flows from CmaWorkerResult into CmaAnalysis for PDF
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task SellerLead_PricingStrategyFromCmaResult_PassedToPdfGenerator()
+    {
+        // Arrange — CMA worker returns a result with a PricingStrategy
+        var lead = BuildSellerLead();
+        var orchestrator = BuildOrchestrator(timeoutSeconds: 10);
+        const string expectedStrategy = "List at $499,000 to generate multiple offers.";
+
+        SetupAccountConfig();
+        SetupScorer();
+        SetupEmailDrafter();
+        SetupGmail();
+        SetupWhatsApp();
+        SetupLeadStore();
+
+        Domain.Cma.Models.CmaAnalysis? capturedAnalysis = null;
+        var tempFile = Path.GetTempFileName();
+        File.WriteAllBytes(tempFile, [0x25, 0x50, 0x44, 0x46]);
+        _pdfGeneratorMock
+            .Setup(g => g.GenerateAsync(
+                It.IsAny<Domain.Leads.Models.Lead>(),
+                It.IsAny<Domain.Cma.Models.CmaAnalysis>(),
+                It.IsAny<List<Domain.Cma.Models.Comp>>(),
+                It.IsAny<AccountConfig>(),
+                It.IsAny<Domain.Cma.Models.ReportType>(),
+                It.IsAny<byte[]?>(),
+                It.IsAny<byte[]?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<Domain.Leads.Models.Lead, Domain.Cma.Models.CmaAnalysis, List<Domain.Cma.Models.Comp>,
+                AccountConfig, Domain.Cma.Models.ReportType, byte[]?, byte[]?, CancellationToken>(
+                (_, analysis, _, _, _, _, _, _) => capturedAnalysis = analysis)
+            .ReturnsAsync(tempFile);
+
+        _pdfDataServiceMock
+            .Setup(s => s.StorePdfAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("path/to/cma.pdf");
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+        // Auto-resolve CMA channel with a result that includes PricingStrategy
+        _ = Task.Run(async () =>
+        {
+            await foreach (var req in _cmaChannel.Reader.ReadAllAsync(cts.Token))
+            {
+                req.Completion.TrySetResult(new CmaWorkerResult(
+                    LeadId: req.Lead.Id.ToString(),
+                    Success: true,
+                    Error: null,
+                    EstimatedValue: 500_000m,
+                    PriceRangeLow: 480_000m,
+                    PriceRangeHigh: 520_000m,
+                    Comps: [],
+                    MarketAnalysis: "Strong market.",
+                    PricingStrategy: expectedStrategy));
+                return;
+            }
+        }, cts.Token);
+
+        var request = new LeadOrchestrationRequest("agent-1", lead, "corr-pricing-strategy-001");
+
+        // Act
+        await orchestrator.ProcessRequestAsync(request, cts.Token);
+
+        // Assert — PricingStrategy must be on the CmaAnalysis passed to PdfGenerator
+        capturedAnalysis.Should().NotBeNull();
+        capturedAnalysis!.PricingStrategy.Should().Be(expectedStrategy);
+    }
 }
