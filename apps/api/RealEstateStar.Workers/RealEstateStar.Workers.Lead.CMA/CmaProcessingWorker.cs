@@ -141,7 +141,7 @@ public sealed class CmaProcessingWorker(
 
     private async Task AnalyzeAsync(CmaPipelineContext ctx, CancellationToken ct)
     {
-        ctx.Analysis = await cmaAnalyzer.AnalyzeAsync(ctx.Request, ctx.Comps!, ct);
+        ctx.Analysis = await cmaAnalyzer.AnalyzeAsync(ctx.Request, ctx.Comps!, ct, ctx.ProcessingRequest.AgentContext);
     }
 
     internal static ReportType DetermineReportType(int compCount) =>

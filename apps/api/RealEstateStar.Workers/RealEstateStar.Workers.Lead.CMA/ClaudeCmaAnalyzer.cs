@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
@@ -49,12 +50,13 @@ public class ClaudeCmaAnalyzer(
         }
         """;
 
-    public async Task<CmaAnalysis> AnalyzeAsync(RealEstateStar.Domain.Leads.Models.Lead lead, List<Comp> comps, CancellationToken ct)
+    public async Task<CmaAnalysis> AnalyzeAsync(RealEstateStar.Domain.Leads.Models.Lead lead, List<Comp> comps, CancellationToken ct,
+        AgentContext? agentContext = null)
     {
         // Validate subject property data against comps — detect fat-finger errors
         ValidateSubjectData(lead, comps, logger);
 
-        var prompt = BuildPrompt(lead, comps);
+        var prompt = BuildPrompt(lead, comps, agentContext);
 
         logger.LogDebug(
             "[CMA-ANALYZE-000] Full prompt for lead {LeadId}:\n{Prompt}",
@@ -109,7 +111,7 @@ public class ClaudeCmaAnalyzer(
         }
     }
 
-    internal static string BuildPrompt(RealEstateStar.Domain.Leads.Models.Lead lead, List<Comp> comps)
+    internal static string BuildPrompt(RealEstateStar.Domain.Leads.Models.Lead lead, List<Comp> comps, AgentContext? agentContext = null)
     {
         var sd = lead.SellerDetails!;
         var fullAddress = $"{sd.Address}, {sd.City}, {sd.State} {sd.Zip}";
@@ -174,6 +176,31 @@ public class ClaudeCmaAnalyzer(
             sb.AppendLine();
             sb.AppendLine($"## Seller Timeline: {lead.Timeline}");
             sb.AppendLine("Factor the seller's urgency into your pricing strategy — ASAP sellers may benefit from aggressive pricing to generate offers quickly, while 6-12 month timelines allow patience for top-dollar positioning.");
+        }
+
+        // Inject agent context for CMA style and brand voice when available
+        if (agentContext is not null)
+        {
+            if (!string.IsNullOrWhiteSpace(agentContext.CmaStyleGuide))
+            {
+                sb.AppendLine();
+                sb.AppendLine("## CMA Style Guide (apply these presentation standards)");
+                sb.AppendLine(agentContext.CmaStyleGuide);
+            }
+
+            if (!string.IsNullOrWhiteSpace(agentContext.BrandVoice))
+            {
+                sb.AppendLine();
+                sb.AppendLine("## Brand Voice (write marketNarrative and pricingStrategy in this voice)");
+                sb.AppendLine(agentContext.BrandVoice);
+            }
+
+            if (!string.IsNullOrWhiteSpace(agentContext.VoiceSkill))
+            {
+                sb.AppendLine();
+                sb.AppendLine("## Voice Skill (agent's communication style)");
+                sb.AppendLine(agentContext.VoiceSkill);
+            }
         }
 
         sb.AppendLine();
