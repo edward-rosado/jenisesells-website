@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Threading.Channels;
 using System.Threading.RateLimiting;
+using RealEstateStar.Domain.Activation.Models;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
@@ -60,6 +62,22 @@ if (!builder.Environment.IsDevelopment() && !args.Contains("--export-openapi")
         $"Otel:Endpoint is '{otelEndpoint}' — telemetry would be lost in production. " +
         "Set OTEL_EXPORTER_OTLP_ENDPOINT secret in GitHub Actions to point to Grafana Cloud.");
 }
+
+// OAuthLink secret validation — required in production, warn in Development
+var oauthLinkSecret = builder.Configuration["OAuthLink:Secret"];
+if (string.IsNullOrWhiteSpace(oauthLinkSecret))
+{
+    if (builder.Environment.IsDevelopment())
+        Log.Warning("[STARTUP-WARN] OAuthLink:Secret is not configured — OAuth authorization link signing will fail if attempted in dev");
+    else
+        throw new InvalidOperationException(
+            "OAuthLink:Secret is required in non-Development environments. Set the OAuthLink:Secret configuration value.");
+}
+
+// Activation pipeline channel — unbounded, single channel; writer/reader registered for DI injection
+builder.Services.AddSingleton(Channel.CreateUnbounded<ActivationRequest>());
+builder.Services.AddSingleton(sp => sp.GetRequiredService<Channel<ActivationRequest>>().Reader);
+builder.Services.AddSingleton(sp => sp.GetRequiredService<Channel<ActivationRequest>>().Writer);
 
 // Agent config — Docker image uses /app/config/accounts, local dev uses relative path to repo root
 var dockerConfigPath = Path.Combine(builder.Environment.ContentRootPath, "config", "accounts");
@@ -539,6 +557,18 @@ builder.Services.AddRateLimiter(options =>
         RateLimitPartition.GetFixedWindowLimiter(
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1) }));
+
+    // OAuth link generation: 10 per hour per IP (prevents link farming)
+    options.AddPolicy("oauth-link-generate", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1) }));
+
+    // OAuth link authorization: 5 per hour per IP (prevents brute-force on short codes)
+    options.AddPolicy("oauth-link-authorize", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromHours(1) }));
 
     // Telemetry events: 60 per minute per IP (one event per second per visitor, generous for analytics)
     options.AddPolicy("telemetry", context =>
