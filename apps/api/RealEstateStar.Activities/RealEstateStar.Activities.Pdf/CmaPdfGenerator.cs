@@ -106,7 +106,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
                     AddMarketAnalysis(col, analysis, primaryColor);
 
                     // Section 6: Pricing Strategy + Lead Insights (always shown when data is present)
-                    AddPricingStrategy(col, analysis);
+                    AddPricingStrategy(col, analysis, primaryColor);
                 });
 
                 // Section 7: Footer
@@ -132,44 +132,82 @@ public class CmaPdfGenerator : ICmaPdfGenerator
             .PaddingVertical(8)
             .Row(row =>
             {
-                // Left: brokerage logo with white background for readability
-                row.ConstantItem(120).AlignMiddle().Column(c =>
+                // Left column (20%): logo image OR brokerage name + address
+                row.RelativeItem(2).AlignMiddle().Column(c =>
                 {
                     if (logoBytes is { Length: > 0 })
                     {
                         c.Item().Background(Colors.White).Padding(4)
-                            .Width(112).Height(50).Image(logoBytes).FitArea();
+                            .Width(80).Height(40).Image(logoBytes).FitArea();
                     }
                     else if (config.Brokerage?.Name is { } brokerageName)
                     {
                         c.Item().Text(brokerageName)
                             .FontSize(9).Bold().FontColor(Colors.White);
                     }
+
+                    if (config.Brokerage?.OfficeAddress is { Length: > 0 } officeAddress)
+                    {
+                        c.Item().PaddingTop(2).Text(officeAddress)
+                            .FontSize(7).FontColor(Colors.White);
+                    }
                 });
 
-                // Center: CMA title + agent name + license (compact)
-                row.RelativeItem().AlignCenter().AlignMiddle().Column(c =>
+                // Center column (40%): report title, vertically centered
+                row.RelativeItem(4).AlignCenter().AlignMiddle().Column(c =>
                 {
                     c.Item().Text("Comparative Market Analysis")
-                        .FontSize(9).FontColor(Colors.White).Italic();
-
-                    c.Item().Text(config.Agent?.Name ?? "")
-                        .FontSize(11).Bold().FontColor(Colors.White);
-
-                    var subtitle = string.Join(" | ",
-                        new[] { config.Agent?.Title, config.Agent?.LicenseNumber is { } lic ? $"Lic# {lic}" : null }
-                        .Where(s => s is not null));
-                    if (subtitle.Length > 0)
-                        c.Item().Text(subtitle).FontSize(8).FontColor(Colors.White);
+                        .FontSize(13).Italic().FontColor(Colors.White);
                 });
 
-                // Right: headshot (compact)
-                row.ConstantItem(56).AlignRight().AlignMiddle().Column(c =>
+                // Right column (40%): headshot + agent details
+                row.RelativeItem(4).AlignRight().AlignMiddle().Column(c =>
                 {
-                    if (headshotBytes is { Length: > 0 })
+                    c.Item().Row(r =>
                     {
-                        c.Item().Width(50).Height(50).Image(headshotBytes).FitArea();
-                    }
+                        // Agent info block
+                        r.RelativeItem().AlignRight().AlignMiddle().Column(info =>
+                        {
+                            if (config.Agent?.Name is { Length: > 0 } agentName)
+                            {
+                                info.Item().Text(agentName)
+                                    .FontSize(10).Bold().FontColor(Colors.White);
+                            }
+
+                            var subtitle = string.Join(" | ",
+                                new[]
+                                {
+                                    config.Agent?.Title,
+                                    config.Agent?.LicenseNumber is { } lic ? $"Lic# {lic}" : null
+                                }
+                                .Where(s => s is not null));
+                            if (subtitle.Length > 0)
+                            {
+                                info.Item().Text(subtitle)
+                                    .FontSize(7).FontColor(Colors.White);
+                            }
+
+                            if (config.Agent?.Phone is { Length: > 0 } phone)
+                            {
+                                info.Item().Text(phone)
+                                    .FontSize(7).FontColor(Colors.White);
+                            }
+
+                            if (config.Agent?.Email is { Length: > 0 } email)
+                            {
+                                info.Item().Text(email)
+                                    .FontSize(7).FontColor(Colors.White);
+                            }
+                        });
+
+                        // Headshot image
+                        if (headshotBytes is { Length: > 0 })
+                        {
+                            r.ConstantItem(8); // spacer
+                            r.ConstantItem(50).AlignMiddle()
+                                .Width(50).Height(50).Image(headshotBytes).FitArea();
+                        }
+                    });
                 });
             });
     }
@@ -377,7 +415,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
     // Section 6: Pricing Strategy
     // -------------------------------------------------------------------------
 
-    private static void AddPricingStrategy(ColumnDescriptor col, CmaAnalysis analysis)
+    private static void AddPricingStrategy(ColumnDescriptor col, CmaAnalysis analysis, string primaryColor)
     {
         if (analysis.PricingStrategy is null && analysis.LeadInsights is null)
             return;
@@ -387,7 +425,8 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         {
             col.Item().ShowEntire().Column(section =>
             {
-                section.Item().PaddingBottom(6).Text("Pricing Strategy").FontSize(11).Bold();
+                section.Item().PaddingBottom(6).Text("Pricing Strategy")
+                    .FontSize(11).Bold().FontColor(primaryColor);
                 section.Item().PaddingBottom(12).Text(strategy).FontSize(10);
             });
         }
@@ -396,7 +435,8 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         {
             col.Item().ShowEntire().Column(section =>
             {
-                section.Item().PaddingBottom(6).Text("Seller Insights").FontSize(11).Bold();
+                section.Item().PaddingBottom(6).Text("Seller Insights")
+                    .FontSize(11).Bold().FontColor(primaryColor);
                 section.Item().PaddingBottom(12).Text(insights).FontSize(10);
             });
         }
@@ -408,6 +448,12 @@ public class CmaPdfGenerator : ICmaPdfGenerator
 
     private static void AddFooter(IContainer container, AccountConfig config, byte[]? logoBytes, string primaryColor)
     {
+        var tzId = GetTimezoneId(config.Location?.State);
+        var tz = TimeZoneInfo.FindSystemTimeZoneById(tzId);
+        var localTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+        var tzAbbr = GetTimezoneAbbr(config.Location?.State);
+        var date = $"{localTime:MMM d, yyyy h:mm tt} {tzAbbr}";
+
         container
             .PaddingHorizontal(30)
             .PaddingVertical(6)
@@ -426,15 +472,53 @@ public class CmaPdfGenerator : ICmaPdfGenerator
                     row.RelativeItem().Text(string.Join(" | ", contactParts))
                         .FontSize(7).FontColor(Colors.Grey.Darken1);
 
-                    // Right: disclaimer + date
+                    // Right: disclaimer + local date/time
                     row.RelativeItem().AlignRight().Text(t =>
                     {
                         t.Span("This is not an appraisal. ").FontSize(6).Italic().FontColor(Colors.Grey.Medium);
-                        t.Span($"Generated {DateTime.UtcNow:MMM d, yyyy}").FontSize(6).FontColor(Colors.Grey.Medium);
+                        t.Span($"Generated {date}").FontSize(6).FontColor(Colors.Grey.Medium);
                     });
                 });
             });
     }
+
+    internal static string GetTimezoneId(string? state) => state?.ToUpperInvariant() switch
+    {
+        "NJ" or "NY" or "CT" or "PA" or "MA" or "FL" or "GA" or "NC" or "SC" or "VA" or "MD" or "DE"
+            or "NH" or "VT" or "ME" or "RI" or "DC" or "WV" or "OH" or "MI" or "IN" or "KY" or "TN"
+            or "AL" or "MS" => "Eastern Standard Time",
+
+        "IL" or "WI" or "MN" or "IA" or "MO" or "AR" or "LA" or "TX" or "OK" or "KS" or "NE"
+            or "SD" or "ND" => "Central Standard Time",
+
+        "MT" or "WY" or "CO" or "NM" or "AZ" or "UT" or "ID" => "Mountain Standard Time",
+
+        "CA" or "OR" or "WA" or "NV" => "Pacific Standard Time",
+
+        "AK" => "Alaskan Standard Time",
+        "HI" => "Hawaiian Standard Time",
+
+        _ => "Eastern Standard Time"
+    };
+
+    internal static string GetTimezoneAbbr(string? state) => state?.ToUpperInvariant() switch
+    {
+        "NJ" or "NY" or "CT" or "PA" or "MA" or "FL" or "GA" or "NC" or "SC" or "VA" or "MD" or "DE"
+            or "NH" or "VT" or "ME" or "RI" or "DC" or "WV" or "OH" or "MI" or "IN" or "KY" or "TN"
+            or "AL" or "MS" => "ET",
+
+        "IL" or "WI" or "MN" or "IA" or "MO" or "AR" or "LA" or "TX" or "OK" or "KS" or "NE"
+            or "SD" or "ND" => "CT",
+
+        "MT" or "WY" or "CO" or "NM" or "AZ" or "UT" or "ID" => "MT",
+
+        "CA" or "OR" or "WA" or "NV" => "PT",
+
+        "AK" => "AKT",
+        "HI" => "HT",
+
+        _ => "ET"
+    };
 
     // -------------------------------------------------------------------------
     // Helpers
