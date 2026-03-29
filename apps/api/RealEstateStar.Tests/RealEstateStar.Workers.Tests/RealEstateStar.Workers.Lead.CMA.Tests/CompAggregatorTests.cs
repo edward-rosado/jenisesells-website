@@ -586,4 +586,55 @@ public class CompAggregatorTests
 
         key1.Should().Be(key2);
     }
+
+    // ---------------------------------------------------------------------------
+    // Subject property self-sale filtering
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void FilterAndRankComps_KeepsRecentSubjectSelfSale()
+    {
+        // A flip — the subject sold 2 months ago. Keep it as a comp.
+        var recentSelfSale = MakeComp("308 Myrtle St, Cliffwood, NJ 07721", 625_000m,
+            saleDate: DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-2)), distance: 0.0);
+        var otherComp = MakeComp("100 Oak Ave, Aberdeen, NJ 07721", 550_000m, distance: 0.5);
+
+        var result = CompAggregator.FilterAndRankComps(
+            [recentSelfSale, otherComp], "07721");
+
+        result.Should().Contain(c => c.DistanceMiles <= 0.01,
+            "recent self-sale (< 6 months) should be kept as a valid comp");
+    }
+
+    [Fact]
+    public void FilterAndRankComps_ExcludesStaleSubjectSelfSale()
+    {
+        // The subject sold 2 years ago — not useful as a comp.
+        var staleSelfSale = MakeComp("308 Myrtle St, Cliffwood, NJ 07721", 400_000m,
+            saleDate: DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-24)), distance: 0.0);
+        var otherComp = MakeComp("100 Oak Ave, Aberdeen, NJ 07721", 550_000m, distance: 0.5);
+
+        var result = CompAggregator.FilterAndRankComps(
+            [staleSelfSale, otherComp], "07721");
+
+        result.Should().NotContain(c => c.DistanceMiles <= 0.01,
+            "stale self-sale (> 6 months) should be excluded");
+        result.Should().HaveCount(1);
+    }
+
+    private static Comp MakeComp(string address, decimal price,
+        DateOnly? saleDate = null, double distance = 1.0) => new()
+    {
+        Address = address,
+        SalePrice = price,
+        SaleDate = saleDate ?? DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-1)),
+        Beds = 3,
+        Baths = 2,
+        Sqft = 1500,
+        DaysOnMarket = 30,
+        DistanceMiles = distance,
+        Correlation = 0.85,
+        IsRecent = true,
+        Source = Domain.Cma.Models.CompSource.RentCast
+    };
 }

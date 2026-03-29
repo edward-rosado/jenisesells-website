@@ -188,6 +188,25 @@ public class CompAggregator(
         if (comps.Count == 0)
             return comps;
 
+        // --- Subject property: keep only if recent ---
+        // If the comp is at 0.0 miles (the subject itself), keep only if < 6 months old.
+        // Older self-sales are not useful comps; recent ones are (e.g., flips).
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        {
+            var beforeCount = comps.Count;
+            comps = comps.Where(c =>
+            {
+                if (c.DistanceMiles > 0.01) return true; // Not the subject
+                var monthsAgo = ((today.Year - c.SaleDate.Year) * 12) + (today.Month - c.SaleDate.Month);
+                return monthsAgo <= 6; // Keep recent self-sales
+            }).ToList();
+
+            if (comps.Count < beforeCount)
+                logger?.LogInformation(
+                    "[AGG-008] Removed {Count} stale subject property self-sale(s) (> 6 months old)",
+                    beforeCount - comps.Count);
+        }
+
         // --- Property type filtering ---
         // Exclude comps with a different property type than the subject (e.g., commercial vs residential).
         // Keep comps with an unknown type (null/empty) to be permissive when data is missing.
