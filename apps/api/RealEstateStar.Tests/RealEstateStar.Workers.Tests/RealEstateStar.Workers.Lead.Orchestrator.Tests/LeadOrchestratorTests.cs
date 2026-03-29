@@ -3,6 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Activities.Persist;
+using RealEstateStar.Domain.Activation.Interfaces;
+using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
@@ -42,7 +44,8 @@ public sealed class LeadOrchestratorTests
 
     // ── builder ──────────────────────────────────────────────────────────────
 
-    private LeadOrchestrator BuildOrchestrator(int? timeoutSeconds = null, IContentCache? contentCache = null)
+    private LeadOrchestrator BuildOrchestrator(int? timeoutSeconds = null, IContentCache? contentCache = null,
+        IAgentContextLoader? agentContextLoader = null)
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(timeoutSeconds.HasValue
@@ -97,7 +100,8 @@ public sealed class LeadOrchestratorTests
             contentCache,
             _healthTracker,
             NullLogger<LeadOrchestrator>.Instance,
-            config);
+            config,
+            agentContextLoader);
     }
 
     // ── test data ─────────────────────────────────────────────────────────────
@@ -235,7 +239,8 @@ public sealed class LeadOrchestratorTests
             .Setup(d => d.DraftAsync(
                 It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<LeadScore>(),
                 It.IsAny<CmaWorkerResult?>(), It.IsAny<HomeSearchWorkerResult?>(),
-                It.IsAny<AgentNotificationConfig>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AgentNotificationConfig>(), It.IsAny<CancellationToken>(),
+                It.IsAny<AgentContext?>()))
             .ReturnsAsync(BuildEmailDraft());
 
     private void SetupGmail() =>
@@ -1144,5 +1149,114 @@ public sealed class LeadOrchestratorTests
         // Assert — PricingStrategy must be on the CmaAnalysis passed to PdfGenerator
         capturedAnalysis.Should().NotBeNull();
         capturedAnalysis!.PricingStrategy.Should().Be(expectedStrategy);
+    }
+
+    // ── Agent Context (CTX-001 / CTX-002 / CTX-003) tests ───────────────────
+
+    [Fact]
+    public async Task ProcessRequestAsync_WhenContextLoaderReturnsFullContext_LogsCTX001()
+    {
+        // Arrange
+        SetupAccountConfig();
+        SetupScorer();
+        SetupEmailDrafter();
+        SetupGmail();
+
+        var contextLoader = new Mock<IAgentContextLoader>();
+        contextLoader
+            .Setup(l => l.LoadAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AgentContext
+            {
+                VoiceSkill = "Warm, conversational tone",
+                PersonalitySkill = "Empathetic and professional",
+                BrandVoice = "Always lead with value",
+                IsActivated = true,
+                IsLowConfidence = false
+            });
+
+        var orchestrator = BuildOrchestrator(agentContextLoader: contextLoader.Object);
+        var lead = BuildSellerLead();
+        var request = new LeadOrchestrationRequest("agent-1", lead, "corr-ctx-001");
+
+        // Act — should not throw
+        await orchestrator.ProcessRequestAsync(request, CancellationToken.None);
+
+        // Assert — context loader was called once
+        contextLoader.Verify(
+            l => l.LoadAsync(It.IsAny<string>(), "agent-1", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ProcessRequestAsync_WhenContextLoaderReturnsNull_PipelineContinuesWithoutContext()
+    {
+        // Arrange
+        SetupAccountConfig();
+        SetupScorer();
+        SetupEmailDrafter();
+        SetupGmail();
+
+        var contextLoader = new Mock<IAgentContextLoader>();
+        contextLoader
+            .Setup(l => l.LoadAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((AgentContext?)null);
+
+        var orchestrator = BuildOrchestrator(agentContextLoader: contextLoader.Object);
+        var lead = BuildBuyerLead();
+        var request = new LeadOrchestrationRequest("agent-1", lead, "corr-ctx-003");
+
+        // Act — should not throw even with null context
+        await orchestrator.ProcessRequestAsync(request, CancellationToken.None);
+
+        // Assert — completed without exception, context loader was called
+        contextLoader.Verify(
+            l => l.LoadAsync(It.IsAny<string>(), "agent-1", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ProcessRequestAsync_WhenContextLoaderThrows_PipelineContinuesGracefully()
+    {
+        // Arrange
+        SetupAccountConfig();
+        SetupScorer();
+        SetupEmailDrafter();
+        SetupGmail();
+
+        var contextLoader = new Mock<IAgentContextLoader>();
+        contextLoader
+            .Setup(l => l.LoadAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Context load failed"));
+
+        var orchestrator = BuildOrchestrator(agentContextLoader: contextLoader.Object);
+        var lead = BuildBuyerLead();
+        var request = new LeadOrchestrationRequest("agent-1", lead, "corr-ctx-err");
+
+        // Act — should NOT throw; pipeline logs warning and continues with null context
+        await orchestrator.ProcessRequestAsync(request, CancellationToken.None);
+
+        // Assert — context loader was called once (and exception was swallowed with warning)
+        contextLoader.Verify(
+            l => l.LoadAsync(It.IsAny<string>(), "agent-1", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ProcessRequestAsync_WhenNoContextLoader_PipelineRunsNormally()
+    {
+        // Arrange — no agentContextLoader passed (null)
+        SetupAccountConfig();
+        SetupScorer();
+        SetupEmailDrafter();
+        SetupGmail();
+
+        var orchestrator = BuildOrchestrator(); // no contextLoader
+        var lead = BuildBuyerLead();
+        var request = new LeadOrchestrationRequest("agent-1", lead, "corr-no-loader");
+
+        // Act
+        await orchestrator.ProcessRequestAsync(request, CancellationToken.None);
+
+        // Assert — no exception thrown, pipeline completed normally
     }
 }

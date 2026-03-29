@@ -1,3 +1,5 @@
+using RealEstateStar.Domain.Activation.Models;
+
 namespace RealEstateStar.Domain.Leads.Models;
 
 /// <summary>
@@ -16,6 +18,12 @@ public class LeadPipelineContext
     public required AgentNotificationConfig AgentConfig { get; init; }
     public required string CorrelationId { get; init; }
     public LeadRetryState RetryState { get; set; } = new();
+
+    /// <summary>
+    /// Agent activation context loaded at the start of the pipeline.
+    /// Null when the agent has not yet completed activation (backward compatible — falls back to generic behavior).
+    /// </summary>
+    public AgentContext? AgentContext { get; set; }
 
     // Activity outputs (set by each activity)
     public LeadScore? Score { get; set; }

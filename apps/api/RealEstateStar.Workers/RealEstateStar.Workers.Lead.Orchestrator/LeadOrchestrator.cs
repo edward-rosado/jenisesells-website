@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Activities.Persist;
+using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared;
@@ -42,7 +43,8 @@ public sealed class LeadOrchestrator(
     IContentCache contentCache,
     BackgroundServiceHealthTracker healthTracker,
     ILogger<LeadOrchestrator> logger,
-    IConfiguration configuration)
+    IConfiguration configuration,
+    IAgentContextLoader? agentContextLoader = null)
     : BackgroundService
 {
     private const string WorkerName = "LeadOrchestrator";
@@ -101,13 +103,48 @@ public sealed class LeadOrchestrator(
 
             var agentConfig = BuildAgentNotificationConfig(agentId, accountConfig);
 
+            // Step 1b: Load agent activation context (skills, brand voice, coaching)
+            Domain.Activation.Models.AgentContext? agentContext = null;
+            if (agentContextLoader is not null)
+            {
+                try
+                {
+                    agentContext = await agentContextLoader.LoadAsync(accountConfig.Handle ?? agentId, agentId, ct);
+                    if (agentContext is null)
+                    {
+                        logger.LogInformation(
+                            "[CTX-003] Agent context not available for {AgentId}. Using generic prompts. CorrelationId: {CorrelationId}",
+                            agentId, correlationId);
+                    }
+                    else if (agentContext.IsLowConfidence)
+                    {
+                        logger.LogInformation(
+                            "[CTX-002] Agent context loaded (partial/low-confidence) for {AgentId}. CorrelationId: {CorrelationId}",
+                            agentId, correlationId);
+                    }
+                    else
+                    {
+                        logger.LogInformation(
+                            "[CTX-001] Agent context fully loaded for {AgentId}. CorrelationId: {CorrelationId}",
+                            agentId, correlationId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex,
+                        "[CTX-004] Agent context load failed for {AgentId}; continuing with generic prompts. CorrelationId: {CorrelationId}",
+                        agentId, correlationId);
+                }
+            }
+
             // Build the shared pipeline context — load existing RetryState from lead if available
             var ctx = new LeadPipelineContext
             {
                 Lead = lead,
                 AgentConfig = agentConfig,
                 CorrelationId = correlationId,
-                RetryState = lead.RetryState ?? new LeadRetryState()
+                RetryState = lead.RetryState ?? new LeadRetryState(),
+                AgentContext = agentContext
             };
 
             // Step 2: Score the lead
@@ -132,7 +169,7 @@ public sealed class LeadOrchestrator(
 
             var (cmaTcs, hsTcs) = await DispatchWorkersAsync(
                 lead, agentId, agentConfig, correlationId,
-                ctx.RetryState, cmaInputHash, hsInputHash, ct);
+                ctx.RetryState, cmaInputHash, hsInputHash, ct, ctx.AgentContext);
 
             // Step 4: Wait for workers with configurable timeout
             var pendingTasks = BuildPendingTasks(cmaTcs, hsTcs);
@@ -363,7 +400,8 @@ public sealed class LeadOrchestrator(
             LeadRetryState retryState,
             string cmaInputHash,
             string hsInputHash,
-            CancellationToken ct)
+            CancellationToken ct,
+            Domain.Activation.Models.AgentContext? agentContext = null)
     {
         TaskCompletionSource<CmaWorkerResult>? cmaTcs = null;
         TaskCompletionSource<HomeSearchWorkerResult>? hsTcs = null;
@@ -394,7 +432,7 @@ public sealed class LeadOrchestrator(
                     cmaTcs.TrySetResult(cached);
                     OrchestratorDiagnostics.WorkerCompletions.Add(1);
                 }
-                else if (!cmaChannel.Writer.TryWrite(new CmaProcessingRequest(agentId, lead, agentConfig, correlationId, cmaTcs)))
+                else if (!cmaChannel.Writer.TryWrite(new CmaProcessingRequest(agentId, lead, agentConfig, correlationId, cmaTcs, agentContext)))
                 {
                     logger.LogError(
                         "[{Worker}-024] CMA channel full — request dropped for lead {LeadId}. CorrelationId: {CorrelationId}",

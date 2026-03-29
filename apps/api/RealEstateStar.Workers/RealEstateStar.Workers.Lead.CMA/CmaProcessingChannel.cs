@@ -1,3 +1,4 @@
+using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Shared;
 
@@ -13,4 +14,5 @@ public sealed record CmaProcessingRequest(
     RealEstateStar.Domain.Leads.Models.Lead Lead,
     AgentNotificationConfig AgentConfig,
     string CorrelationId,
-    TaskCompletionSource<CmaWorkerResult> Completion);
+    TaskCompletionSource<CmaWorkerResult> Completion,
+    AgentContext? AgentContext = null);
