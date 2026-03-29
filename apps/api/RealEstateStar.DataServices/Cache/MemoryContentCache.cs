@@ -20,7 +20,12 @@ internal sealed class MemoryContentCache(IMemoryCache cache) : IContentCache
     public Task SetAsync<T>(string key, T value, TimeSpan ttl, CancellationToken ct) where T : class
     {
         ct.ThrowIfCancellationRequested();
-        cache.Set(key, value, ttl);
+        var options = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = ttl,
+            Size = 1
+        };
+        cache.Set(key, value, options);
         return Task.CompletedTask;
     }
 }
