@@ -13,10 +13,26 @@ public class GenerateAuthLinkEndpoint : IEndpoint
 
     internal static async Task<IResult> Handle(
         [FromBody] GenerateAuthLinkRequest request,
+        HttpContext context,
+        IConfiguration configuration,
         AuthorizationLinkService authorizationLinkService,
         ILogger<GenerateAuthLinkEndpoint> logger,
         CancellationToken ct)
     {
+        // CRIT-2: Bearer token guard — required in production, optional (no-op) in dev if not configured
+        var adminToken = configuration["OAuthLink:AdminToken"];
+        if (!string.IsNullOrEmpty(adminToken))
+        {
+            var authHeader = context.Request.Headers.Authorization.ToString();
+            if (!authHeader.StartsWith("Bearer ", StringComparison.Ordinal)
+                || authHeader["Bearer ".Length..] != adminToken)
+            {
+                logger.LogWarning("[OAUTH-LINK-090] Unauthorized generate-link attempt from {Ip}",
+                    context.Connection.RemoteIpAddress);
+                return Results.Unauthorized();
+            }
+        }
+
         var validationErrors = new List<ValidationResult>();
         if (!Validator.TryValidateObject(request, new ValidationContext(request), validationErrors, true))
         {

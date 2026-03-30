@@ -17,7 +17,8 @@ namespace RealEstateStar.Api.Features.OAuth.AuthorizeLink;
 public class AuthorizeLinkCallbackEndpoint : IEndpoint
 {
     public void MapEndpoint(WebApplication app) =>
-        app.MapGet("/oauth/google/authorize/callback", Handle);
+        app.MapGet("/oauth/google/authorize/callback", Handle)
+            .RequireRateLimiting("oauth-link-authorize");
 
     internal static async Task<IResult> Handle(
         string? code,
@@ -37,7 +38,7 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
                 "Google authorization was denied. Please try again."), "text/html");
         }
 
-        // Parse state: accountId:agentId:nonce
+        // Parse state to extract nonce: accountId:agentId:nonce (used only for logging until nonce is validated)
         var parts = state.Split(':', 3);
         if (parts.Length != 3)
         {
@@ -46,19 +47,22 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
                 "The authorization request was invalid. Please try again."), "text/html");
         }
 
-        var accountId = parts[0];
-        var agentId = parts[1];
         var nonce = parts[2];
 
-        // Validate and consume nonce (single-use, constant-time)
+        // Validate and consume nonce (single-use, constant-time).
+        // HIGH-2: Use the nonce-bound accountId/agentId — not the raw state values.
+        // This prevents an attacker from substituting a valid nonce with forged accountId/agentId parts.
         var linkState = authorizationLinkService.ValidateAndConsumeNonce(nonce);
         if (linkState is null)
         {
-            logger.LogWarning("[OAUTH-LINK-402] Invalid or expired nonce. AccountId={AccountId}, AgentId={AgentId}",
-                accountId, agentId);
+            logger.LogWarning("[OAUTH-LINK-402] Invalid or expired nonce.");
             return Results.Content(BuildErrorHtml("Link Expired", "This Link Has Expired",
                 "This link has expired. Please request a new one."), "text/html");
         }
+
+        // Use nonce-bound values — not the potentially-forged values from the raw state string
+        var accountId = linkState.AccountId;
+        var agentId = linkState.AgentId;
 
         if (code is null)
         {

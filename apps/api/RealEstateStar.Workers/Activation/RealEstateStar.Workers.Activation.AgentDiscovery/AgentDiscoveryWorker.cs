@@ -126,6 +126,13 @@ public sealed class AgentDiscoveryWorker(
             if (photoUrl is null)
                 return null;
 
+            if (!IsAllowedUrl(photoUrl))
+            {
+                logger.LogWarning(
+                    "[AGENTDISCOVERY-051] Headshot URL rejected by SSRF filter: {Url}", photoUrl);
+                return null;
+            }
+
             var photoResponse = await http.GetAsync(photoUrl, ct);
             if (!photoResponse.IsSuccessStatusCode)
                 return null;
@@ -164,11 +171,39 @@ public sealed class AgentDiscoveryWorker(
         return null;
     }
 
+    /// <summary>
+    /// Validates a URL before fetching to prevent SSRF attacks.
+    /// Only HTTPS URLs to public internet hosts are allowed.
+    /// </summary>
+    internal static bool IsAllowedUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return false;
+        if (!uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)) return false;
+        var host = uri.Host.ToLowerInvariant();
+        if (host is "localhost" or "127.0.0.1" or "0.0.0.0" or "::1") return false;
+        if (host.StartsWith("169.254.")) return false; // link-local
+        if (host.StartsWith("10.")) return false;      // RFC 1918
+        if (host.StartsWith("192.168.")) return false; // RFC 1918
+        if (host.StartsWith("172.") &&
+            host.Split('.').Length >= 2 &&
+            int.TryParse(host.Split('.')[1], out var second) &&
+            second >= 16 && second <= 31) return false; // RFC 1918 172.16-31.x.x
+        if (host.StartsWith("fc00:") || host.StartsWith("fd")) return false; // IPv6 ULA
+        return true;
+    }
+
     private async Task<byte[]?> DownloadLogoAsync(EmailSignature? signature, CancellationToken ct)
     {
         var logoUrl = signature?.LogoUrl;
         if (logoUrl is null)
             return null;
+
+        if (!IsAllowedUrl(logoUrl))
+        {
+            logger.LogWarning(
+                "[AGENTDISCOVERY-050] Logo URL rejected by SSRF filter: {Url}", logoUrl);
+            return null;
+        }
 
         try
         {
@@ -224,6 +259,14 @@ public sealed class AgentDiscoveryWorker(
         foreach (var (url, source) in urlSources)
         {
             ct.ThrowIfCancellationRequested();
+
+            if (!IsAllowedUrl(url))
+            {
+                logger.LogWarning(
+                    "[AGENTDISCOVERY-052] Website URL rejected by SSRF filter: {Url} ({Source})", url, source);
+                results.Add(new DiscoveredWebsite(url, source, null));
+                continue;
+            }
 
             try
             {

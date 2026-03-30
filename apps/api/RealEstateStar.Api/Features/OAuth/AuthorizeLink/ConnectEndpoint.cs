@@ -11,7 +11,8 @@ namespace RealEstateStar.Api.Features.OAuth.AuthorizeLink;
 public class ConnectEndpoint : IEndpoint
 {
     public void MapEndpoint(WebApplication app) =>
-        app.MapPost("/oauth/google/authorize/connect", Handle);
+        app.MapPost("/oauth/google/authorize/connect", Handle)
+            .RequireRateLimiting("oauth-link-authorize");
 
     internal static Task<IResult> Handle(
         [FromForm] ConnectRequest request,
