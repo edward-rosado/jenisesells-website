@@ -58,24 +58,24 @@ public class ActivationOrchestrator : BackgroundService
 
     // ── Skip-if-complete file list ────────────────────────────────────────────
 
-    internal static readonly IReadOnlyList<(string Folder, string File)> RequiredAgentFiles =
+    internal static readonly IReadOnlyList<string> RequiredAgentFiles =
     [
-        ("agentId", "Voice Skill.md"),
-        ("agentId", "Personality Skill.md"),
-        ("agentId", "Marketing Style.md"),
-        ("agentId", "Sales Pipeline.md"),
-        ("agentId", "Coaching Report.md"),
-        ("agentId", "Agent Discovery.md"),
-        ("agentId", "Branding Kit.md"),
-        ("agentId", "Email Signature.md"),
-        ("agentId", "headshot.jpg"),
-        ("agentId", "Drive Index.md"),
+        "Voice Skill.md",
+        "Personality Skill.md",
+        "Marketing Style.md",
+        "Sales Pipeline.md",
+        "Coaching Report.md",
+        "Agent Discovery.md",
+        "Branding Kit.md",
+        "Email Signature.md",
+        "headshot.jpg",
+        "Drive Index.md",
     ];
 
-    internal static readonly IReadOnlyList<(string Folder, string File)> RequiredAccountFiles =
+    internal static readonly IReadOnlyList<string> RequiredAccountFiles =
     [
-        ("accountId", "Brand Profile.md"),
-        ("accountId", "Brand Voice.md"),
+        "Brand Profile.md",
+        "Brand Voice.md",
     ];
 
     // ── Dependencies ──────────────────────────────────────────────────────────
@@ -263,17 +263,11 @@ public class ActivationOrchestrator : BackgroundService
 
         var checkTasks = new List<Task<bool>>();
 
-        foreach (var (folderToken, file) in RequiredAgentFiles)
-        {
-            _ = folderToken; // token identifies that this is the agent folder
+        foreach (var file in RequiredAgentFiles)
             checkTasks.Add(FileExistsAsync(agentFolder, file, ct));
-        }
 
-        foreach (var (folderToken, file) in RequiredAccountFiles)
-        {
-            _ = folderToken; // token identifies that this is the account folder
+        foreach (var file in RequiredAccountFiles)
             checkTasks.Add(FileExistsAsync(accountFolder, file, ct));
-        }
 
         var results = await Task.WhenAll(checkTasks);
         return results.All(exists => exists);
@@ -297,9 +291,9 @@ public class ActivationOrchestrator : BackgroundService
         var emailTask = _emailFetchWorker.RunAsync(request.AccountId, request.AgentId, ct);
         var driveTask = _driveIndexWorker.RunAsync(request.AccountId, request.AgentId, ct);
 
-        // Load context for agent name before discovery
-        var context = await _contextLoader.LoadAsync(request.AccountId, request.AgentId, ct);
-        var agentName = context?.VoiceSkill ?? request.Email.Split('@')[0];
+        // Derive an initial display name from the email prefix.
+        // The confirmed name is later taken from the email corpus signature (outputs.AgentName).
+        var agentName = request.Email.Split('@')[0];
 
         await Task.WhenAll(emailTask, driveTask);
 
@@ -391,7 +385,7 @@ public class ActivationOrchestrator : BackgroundService
         var marketingResult = marketingTask.Result;
 
         // Derive identity from email corpus signature + discovery
-        var sig = emailCorpus.Signature;
+        var emailSignature = emailCorpus.Signature;
         var serviceAreas = discovery.Profiles
             .SelectMany(p => p.ServiceAreas)
             .Distinct()
@@ -414,15 +408,15 @@ public class ActivationOrchestrator : BackgroundService
             FeeStructure = feeTask.Result,
             DriveIndex = BuildDriveIndexMarkdown(driveIndex),
             AgentDiscoveryMarkdown = BuildDiscoveryMarkdown(discovery),
-            EmailSignature = BuildEmailSignatureMarkdown(sig),
+            EmailSignature = BuildEmailSignatureMarkdown(emailSignature),
             HeadshotBytes = discovery.HeadshotBytes,
             BrokerageLogoBytes = discovery.LogoBytes,
             Discovery = discovery,
-            AgentName = sig?.Name,
+            AgentName = emailSignature?.Name,
             AgentEmail = request.Email,
-            AgentPhone = sig?.Phone ?? discovery.Phone,
-            AgentTitle = sig?.Title,
-            AgentLicenseNumber = sig?.LicenseNumber,
+            AgentPhone = emailSignature?.Phone ?? discovery.Phone,
+            AgentTitle = emailSignature?.Title,
+            AgentLicenseNumber = emailSignature?.LicenseNumber,
             ServiceAreas = serviceAreas,
         };
     }
@@ -557,24 +551,6 @@ public class ActivationOrchestrator : BackgroundService
             // Non-fatal: checkpoint cleanup failure should not stop the pipeline
             _logger.LogWarning(ex,
                 "[ACTV-060] Failed to clear checkpoints for agentId={AgentId}", request.AgentId);
-        }
-    }
-
-    internal async Task<Phase1Checkpoint?> TryLoadPhase1CheckpointAsync(
-        ActivationRequest request,
-        CancellationToken ct)
-    {
-        var folder = CheckpointFolderPath(request);
-        var json = await _storage.ReadDocumentAsync(folder, Phase1CheckpointFile, ct);
-        if (json is null) return null;
-
-        try
-        {
-            return JsonSerializer.Deserialize<Phase1Checkpoint>(json);
-        }
-        catch
-        {
-            return null;
         }
     }
 

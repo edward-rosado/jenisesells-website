@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using RealEstateStar.Api.Features.OAuth.Services;
 using RealEstateStar.Api.Features.Onboarding.Services;
@@ -31,7 +32,8 @@ public class ConnectEndpoint : IEndpoint
         }
 
         var nonce = authorizationLinkService.GenerateNonce(request.AccountId, request.AgentId, request.Email);
-        var state = $"{request.AccountId}:{request.AgentId}:{nonce}";
+        // State is the nonce itself — avoids colon delimiter injection; identity is bound inside the nonce via AuthorizationLinkState
+        var state = nonce;
 
         var activationRedirectUri = configuration["Google:AuthorizeLinkRedirectUri"]
             ?? configuration["Api:BaseUrl"]?.TrimEnd('/') + "/oauth/google/authorize/callback"
@@ -47,8 +49,8 @@ public class ConnectEndpoint : IEndpoint
 }
 
 public sealed record ConnectRequest(
-    string AccountId,
-    string AgentId,
-    string Email,
+    [property: Required, MinLength(1)] string AccountId,
+    [property: Required, MinLength(1)] string AgentId,
+    [property: Required, EmailAddress] string Email,
     long Exp,
-    string Sig);
+    [property: Required, MinLength(1)] string Sig);

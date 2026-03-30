@@ -193,10 +193,10 @@ public class ActivationPipelineIntegrationTests
         var agentFolder = $"real-estate-star/{AgentId}";
         var accountFolder = $"real-estate-star/{AccountId}";
 
-        foreach (var (_, file) in ActivationOrchestrator.RequiredAgentFiles)
+        foreach (var file in ActivationOrchestrator.RequiredAgentFiles)
             _fileStorage.Write(agentFolder, file, $"# {file}");
 
-        foreach (var (_, file) in ActivationOrchestrator.RequiredAccountFiles)
+        foreach (var file in ActivationOrchestrator.RequiredAccountFiles)
             _fileStorage.Write(accountFolder, file, $"# {file}");
 
         var orchestrator = BuildOrchestrator();

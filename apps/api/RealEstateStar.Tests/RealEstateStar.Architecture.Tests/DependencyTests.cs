@@ -46,6 +46,35 @@ public class DependencyTests
     [InlineData("RealEstateStar.Workers.Lead.CMA", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Lead.HomeSearch", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.WhatsApp", new[] { "Domain", "Workers.Shared" })]
+    // Activation workers — each is a pure compute worker with Domain + Workers.Shared only
+    [InlineData("RealEstateStar.Workers.Activation.AgentDiscovery", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.BrandExtraction", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.BrandingDiscovery", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.BrandVoice", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.CmaStyle", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.Coaching", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.ComplianceAnalysis", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.DriveIndex", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.EmailFetch", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.FeeStructure", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.MarketingStyle", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.Personality", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.PipelineAnalysis", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.VoiceExtraction", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.WebsiteStyle", new[] { "Domain", "Workers.Shared" })]
+    // Activation orchestrator — coordinates all activation workers + activities
+    [InlineData("RealEstateStar.Workers.Activation.Orchestrator", new[] {
+        "Domain", "Workers.Shared",
+        "Workers.Activation.AgentDiscovery", "Workers.Activation.BrandExtraction",
+        "Workers.Activation.BrandingDiscovery", "Workers.Activation.BrandVoice",
+        "Workers.Activation.CmaStyle", "Workers.Activation.Coaching",
+        "Workers.Activation.ComplianceAnalysis", "Workers.Activation.DriveIndex",
+        "Workers.Activation.EmailFetch", "Workers.Activation.FeeStructure",
+        "Workers.Activation.MarketingStyle", "Workers.Activation.Personality",
+        "Workers.Activation.PipelineAnalysis", "Workers.Activation.VoiceExtraction",
+        "Workers.Activation.WebsiteStyle",
+        "Activities.Activation.PersistAgentProfile", "Activities.Activation.BrandMerge",
+    })]
     [InlineData("RealEstateStar.Clients.Anthropic", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.Scraper", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.WhatsApp", new[] { "Domain" })]

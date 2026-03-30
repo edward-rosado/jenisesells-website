@@ -33,26 +33,23 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
     {
         if (error is not null)
         {
-            logger.LogWarning("[OAUTH-LINK-400] Google returned error: {Error}", error);
+            logger.LogWarning("[OAUTH-LINK-400] Google returned error: {Error}", error[..Math.Min(error.Length, 64)]);
             return Results.Content(BuildErrorHtml("Authorization Denied", "Something Went Wrong",
                 "Google authorization was denied. Please try again."), "text/html");
         }
 
-        // Parse state to extract nonce: accountId:agentId:nonce (used only for logging until nonce is validated)
-        var parts = state.Split(':', 3);
-        if (parts.Length != 3)
+        // State is the nonce itself — a 32-char lowercase hex string.
+        // Validate format before lookup to distinguish malformed requests from expired nonces.
+        if (state.Length != 32 || !state.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f'))
         {
-            logger.LogWarning("[OAUTH-LINK-401] Invalid state format. State={State}", state);
+            logger.LogWarning("[OAUTH-LINK-401] Invalid state format.");
             return Results.Content(BuildErrorHtml("Invalid Request", "Something Went Wrong",
                 "The authorization request was invalid. Please try again."), "text/html");
         }
 
-        var nonce = parts[2];
-
-        // Validate and consume nonce (single-use, constant-time).
-        // HIGH-2: Use the nonce-bound accountId/agentId — not the raw state values.
-        // This prevents an attacker from substituting a valid nonce with forged accountId/agentId parts.
-        var linkState = authorizationLinkService.ValidateAndConsumeNonce(nonce);
+        // Validate and consume nonce (single-use). Identity (accountId/agentId/email) is
+        // bound inside the nonce via AuthorizationLinkState — never taken from the raw state string.
+        var linkState = authorizationLinkService.ValidateAndConsumeNonce(state);
         if (linkState is null)
         {
             logger.LogWarning("[OAUTH-LINK-402] Invalid or expired nonce.");
@@ -102,7 +99,9 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
 
             logger.LogInformation("[OAUTH-LINK-406] Activation enqueued. AccountId={AccountId}, AgentId={AgentId}", accountId, agentId);
 
-            return Results.Content(BuildSuccessHtml(tokens.Name, tokens.Email), "text/html");
+            return Results.Content(BuildSuccessHtml(
+            tokens.Name[..Math.Min(tokens.Name.Length, 128)],
+            tokens.Email), "text/html");
         }
         catch (InvalidOperationException ex)
         {
@@ -135,6 +134,7 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
             <!DOCTYPE html>
             <html lang="en">
             <head>
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Google account connected — Real Estate Star</title>
@@ -163,6 +163,7 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
             <!DOCTYPE html>
             <html lang="en">
             <head>
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>{{safeTitle}} — Real Estate Star</title>
