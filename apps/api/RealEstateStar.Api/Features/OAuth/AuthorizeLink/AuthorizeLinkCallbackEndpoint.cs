@@ -144,12 +144,14 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
                     .email { color: #555; font-style: italic; }
                 </style>
             </head>
+            <!--email_off-->
             <body>
                 <h1>Google account connected!</h1>
                 <p>Welcome, <strong>{{safeName}}</strong>.</p>
                 <p class="email">Connected as {{safeEmail}}</p>
                 <p>Your Real Estate Star automation is being activated. You'll receive a confirmation email shortly.</p>
             </body>
+            <!--/email_off-->
             </html>
             """;
     }
