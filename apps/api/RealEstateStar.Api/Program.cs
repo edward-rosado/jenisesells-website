@@ -72,14 +72,10 @@ if (!builder.Environment.IsDevelopment() && !args.Contains("--export-openapi")
 
 // OAuthLink secret validation — required in production, warn in Development
 var oauthLinkSecret = builder.Configuration["OAuthLink:Secret"];
+// OAuthLink:Secret is validated lazily by AuthorizationLinkService — if missing, OAuth endpoints
+// return 500 on first request, but the container starts and all other features work.
 if (string.IsNullOrWhiteSpace(oauthLinkSecret))
-{
-    if (builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "OpenApiExport")
-        Log.Warning("[STARTUP-WARN] OAuthLink:Secret is not configured — OAuth authorization link signing will fail if attempted");
-    else
-        throw new InvalidOperationException(
-            "OAuthLink:Secret is required in production. Set the OAuthLink:Secret configuration value.");
-}
+    Log.Warning("[STARTUP-WARN] OAuthLink:Secret is not configured — OAuth authorization link endpoints will fail until the secret is set");
 
 // Activation pipeline channel — unbounded, single channel; writer/reader registered for DI injection
 builder.Services.AddSingleton(Channel.CreateUnbounded<ActivationRequest>());
