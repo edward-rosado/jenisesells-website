@@ -191,6 +191,8 @@ public class DependencyTests
             "RealEstateStar.Workers.Lead.CMA",
             "RealEstateStar.Workers.Lead.HomeSearch",
             "RealEstateStar.Workers.WhatsApp",
+            // Activation pipeline: Api references the orchestrator directly to register it as a HostedService
+            "RealEstateStar.Workers.Activation.Orchestrator",
             "RealEstateStar.Clients.Anthropic",
             "RealEstateStar.Clients.Scraper",
             "RealEstateStar.Clients.WhatsApp",
