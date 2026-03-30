@@ -15,6 +15,10 @@ public sealed record ActivationOutputs
     public string? SalesPipeline { get; init; }
     public string? CoachingReport { get; init; }
     public string? BrandingKitMarkdown { get; init; }
+    /// <summary>Raw brand extraction signals (intermediate output, not persisted as a skill file).</summary>
+    public string? BrandExtractionSignals { get; init; }
+    /// <summary>Raw brand voice signals (intermediate output, merged into Brand Voice.md by BrandMergeActivity).</summary>
+    public string? BrandVoiceSignals { get; init; }
     public string? ComplianceAnalysis { get; init; }
     public string? FeeStructure { get; init; }
     public string? DriveIndex { get; init; }

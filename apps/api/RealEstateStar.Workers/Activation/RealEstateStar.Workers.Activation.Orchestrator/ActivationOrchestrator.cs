@@ -408,6 +408,8 @@ public class ActivationOrchestrator : BackgroundService
             CoachingReport = coachingResult?.CoachingReportMarkdown,
             BrandingKitMarkdown = brandingResult?.BrandingKitMarkdown,
             BrandingKit = brandingResult?.Kit,
+            BrandExtractionSignals = brandExtractionTask.Result,
+            BrandVoiceSignals = brandVoiceTask.Result,
             ComplianceAnalysis = complianceTask.Result,
             FeeStructure = feeTask.Result,
             DriveIndex = BuildDriveIndexMarkdown(driveIndex),
@@ -445,7 +447,7 @@ public class ActivationOrchestrator : BackgroundService
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex,
-                "[ACTV-030] Phase 3 persist failed for accountId={AccountId}, agentId={AgentId} — pipeline aborted",
+                "[ACTV-041] Phase 3 persist failed for accountId={AccountId}, agentId={AgentId} — pipeline aborted",
                 request.AccountId, request.AgentId);
             throw;
         }
@@ -461,7 +463,7 @@ public class ActivationOrchestrator : BackgroundService
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex,
-                "[ACTV-040] Phase 3 brand merge failed for accountId={AccountId}, agentId={AgentId} — pipeline aborted",
+                "[ACTV-042] Phase 3 brand merge failed for accountId={AccountId}, agentId={AgentId} — pipeline aborted",
                 request.AccountId, request.AgentId);
             throw;
         }
@@ -525,8 +527,8 @@ public class ActivationOrchestrator : BackgroundService
             ["pipeline"] = outputs.SalesPipeline is not null ? "completed" : "skipped",
             ["coaching"] = outputs.CoachingReport is not null ? "completed" : "skipped",
             ["branding"] = outputs.BrandingKitMarkdown is not null ? "completed" : "skipped",
-            ["brand-extraction"] = outputs.BrandingKitMarkdown is not null ? "completed" : "skipped",
-            ["brand-voice"] = outputs.VoiceSkill is not null ? "completed" : "skipped",
+            ["brand-extraction"] = outputs.BrandExtractionSignals is not null ? "completed" : "skipped",
+            ["brand-voice"] = outputs.BrandVoiceSignals is not null ? "completed" : "skipped",
             ["compliance"] = outputs.ComplianceAnalysis is not null ? "completed" : "skipped",
             ["fee-structure"] = outputs.FeeStructure is not null ? "completed" : "skipped",
         };
