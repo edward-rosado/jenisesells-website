@@ -604,7 +604,7 @@ public class ActivationOrchestrator : BackgroundService
     private async Task<T?> RunSafeAsync<T>(
         string logPrefix,
         ActivationRequest request,
-        Func<Task<T>> work) where T : class
+        Func<Task<T>> work) where T : class?
     {
         try
         {

@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
 
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
