@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using RealEstateStar.Activities.Persist;
+using RealEstateStar.Activities.Lead.Persist;
 using RealEstateStar.Domain.Leads.Interfaces;
 
 namespace RealEstateStar.Workers.Lead.Orchestrator;

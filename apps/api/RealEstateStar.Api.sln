@@ -17,7 +17,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.What
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Activities.Pdf", "RealEstateStar.Activities\RealEstateStar.Activities.Pdf\RealEstateStar.Activities.Pdf.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Activities.Persist", "RealEstateStar.Activities\RealEstateStar.Activities.Persist\RealEstateStar.Activities.Persist.csproj", "{C3D4E5F6-A7B8-9012-CDEF-234567890123}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Activities.Lead.Persist", "RealEstateStar.Activities\Lead\RealEstateStar.Activities.Lead.Persist\RealEstateStar.Activities.Lead.Persist.csproj", "{C3D4E5F6-A7B8-9012-CDEF-234567890123}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Services.LeadCommunicator", "RealEstateStar.Services\RealEstateStar.Services.LeadCommunicator\RealEstateStar.Services.LeadCommunicator.csproj", "{C2D3E4F5-A6B7-8901-BCDE-F12345678901}"
 EndProject
@@ -67,7 +67,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.Acti
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Activities.Pdf.Tests", "RealEstateStar.Tests\RealEstateStar.Activities.Tests\RealEstateStar.Activities.Pdf.Tests\RealEstateStar.Activities.Pdf.Tests.csproj", "{B9C8D7E6-F5A4-3210-FEDC-BA9876543210}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Activities.Persist.Tests", "RealEstateStar.Tests\RealEstateStar.Activities.Tests\RealEstateStar.Activities.Persist.Tests\RealEstateStar.Activities.Persist.Tests.csproj", "{D4E5F6A7-B8C9-0123-DEFA-345678901234}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Activities.Lead.Persist.Tests", "RealEstateStar.Tests\RealEstateStar.Activities.Tests\RealEstateStar.Activities.Lead.Persist.Tests\RealEstateStar.Activities.Lead.Persist.Tests.csproj", "{D4E5F6A7-B8C9-0123-DEFA-345678901234}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Services.LeadCommunicator.Tests", "RealEstateStar.Tests\RealEstateStar.Services.Tests\RealEstateStar.Services.LeadCommunicator.Tests\RealEstateStar.Services.LeadCommunicator.Tests.csproj", "{D3E4F5A6-B7C8-9012-CDEF-123456789012}"
 EndProject
@@ -115,13 +115,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RealEstateStar.Workers", "R
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Services.AgentNotifier.Tests", "RealEstateStar.Tests\RealEstateStar.Services.Tests\RealEstateStar.Services.AgentNotifier.Tests\RealEstateStar.Services.AgentNotifier.Tests.csproj", "{77A30494-63D5-42DD-9EF0-6EBD18712E40}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.Lead.Orchestrator", "RealEstateStar.Workers\RealEstateStar.Workers.Lead.Orchestrator\RealEstateStar.Workers.Lead.Orchestrator.csproj", "{AFE0EF01-988A-4FB9-A872-D36503FBEE8D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.Lead.Orchestrator", "RealEstateStar.Workers\Lead\RealEstateStar.Workers.Lead.Orchestrator\RealEstateStar.Workers.Lead.Orchestrator.csproj", "{AFE0EF01-988A-4FB9-A872-D36503FBEE8D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.Lead.Orchestrator.Tests", "RealEstateStar.Tests\RealEstateStar.Workers.Tests\RealEstateStar.Workers.Lead.Orchestrator.Tests\RealEstateStar.Workers.Lead.Orchestrator.Tests.csproj", "{E326E62E-4EB6-47D5-A98B-200D71E4513B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.Lead.CMA", "RealEstateStar.Workers\RealEstateStar.Workers.Lead.CMA\RealEstateStar.Workers.Lead.CMA.csproj", "{AFF2D4F3-2515-4C83-8AD0-1EAF4683F8BF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.Lead.CMA", "RealEstateStar.Workers\Lead\RealEstateStar.Workers.Lead.CMA\RealEstateStar.Workers.Lead.CMA.csproj", "{AFF2D4F3-2515-4C83-8AD0-1EAF4683F8BF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.Lead.HomeSearch", "RealEstateStar.Workers\RealEstateStar.Workers.Lead.HomeSearch\RealEstateStar.Workers.Lead.HomeSearch.csproj", "{83B0FFE2-91D2-4E3E-BFA2-603F844D4D3F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.Lead.HomeSearch", "RealEstateStar.Workers\Lead\RealEstateStar.Workers.Lead.HomeSearch\RealEstateStar.Workers.Lead.HomeSearch.csproj", "{83B0FFE2-91D2-4E3E-BFA2-603F844D4D3F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.Lead.CMA.Tests", "RealEstateStar.Tests\RealEstateStar.Workers.Tests\RealEstateStar.Workers.Lead.CMA.Tests\RealEstateStar.Workers.Lead.CMA.Tests.csproj", "{49AE8660-E281-46A4-9CA4-CAFA1F203F98}"
 EndProject
