@@ -1,3 +1,4 @@
+using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Leads.Models;
 using FluentAssertions;
 using RealEstateStar.Domain.Cma.Models;
@@ -650,5 +651,85 @@ public class ClaudeCmaAnalyzerTests
 
         var insideUserData = prompt[(userDataStart + "<user_data>".Length)..userDataEnd];
         insideUserData.Should().Contain("Updated exterior paint in 2024.");
+    }
+
+    // -----------------------------------------------------------------------
+    // Agent Context — CMA Style Guide + Brand Voice injection
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void BuildPrompt_WithCmaStyleGuide_InjectsCmaStyleSection()
+    {
+        var agentContext = new AgentContext
+        {
+            CmaStyleGuide = "Lead with value estimate. Always show price per sqft.",
+            IsActivated = true
+        };
+
+        var prompt = ClaudeCmaAnalyzer.BuildPrompt(MakeLead(), [], agentContext);
+
+        prompt.Should().Contain("## CMA Style Guide (apply these presentation standards)");
+        prompt.Should().Contain("Lead with value estimate. Always show price per sqft.");
+    }
+
+    [Fact]
+    public void BuildPrompt_WithBrandVoice_InjectsBrandVoiceSection()
+    {
+        var agentContext = new AgentContext
+        {
+            BrandVoice = "Professional, data-driven, always cite sources.",
+            IsActivated = true
+        };
+
+        var prompt = ClaudeCmaAnalyzer.BuildPrompt(MakeLead(), [], agentContext);
+
+        prompt.Should().Contain("## Brand Voice (write marketNarrative and pricingStrategy in this voice)");
+        prompt.Should().Contain("Professional, data-driven, always cite sources.");
+    }
+
+    [Fact]
+    public void BuildPrompt_WithVoiceSkill_InjectsVoiceSkillSection()
+    {
+        var agentContext = new AgentContext
+        {
+            VoiceSkill = "Use clear, jargon-free language for first-time sellers.",
+            IsActivated = true
+        };
+
+        var prompt = ClaudeCmaAnalyzer.BuildPrompt(MakeLead(), [], agentContext);
+
+        prompt.Should().Contain("## Voice Skill (agent's communication style)");
+        prompt.Should().Contain("Use clear, jargon-free language for first-time sellers.");
+    }
+
+    [Fact]
+    public void BuildPrompt_WithNullAgentContext_DoesNotInjectSkillSections()
+    {
+        var prompt = ClaudeCmaAnalyzer.BuildPrompt(MakeLead(), [], agentContext: null);
+
+        prompt.Should().NotContain("## CMA Style Guide");
+        prompt.Should().NotContain("## Brand Voice");
+        prompt.Should().NotContain("## Voice Skill");
+        // Base sections should still be present
+        prompt.Should().Contain("## Subject Property");
+        prompt.Should().Contain("## Comparable Sales");
+    }
+
+    [Fact]
+    public void BuildPrompt_WithPartialContext_OnlyInjectsNonNullSections()
+    {
+        var agentContext = new AgentContext
+        {
+            CmaStyleGuide = "Focus on price per sqft.",
+            BrandVoice = null,
+            VoiceSkill = null
+        };
+
+        var prompt = ClaudeCmaAnalyzer.BuildPrompt(MakeLead(), [], agentContext);
+
+        prompt.Should().Contain("## CMA Style Guide (apply these presentation standards)");
+        prompt.Should().Contain("Focus on price per sqft.");
+        prompt.Should().NotContain("## Brand Voice");
+        prompt.Should().NotContain("## Voice Skill");
     }
 }

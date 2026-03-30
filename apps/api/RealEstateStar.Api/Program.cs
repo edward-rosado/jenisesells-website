@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Threading.Channels;
 using System.Threading.RateLimiting;
+using RealEstateStar.Domain.Activation.Models;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
@@ -16,12 +18,18 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.DataProtection;
 using RealEstateStar.Api.Health;
+using RealEstateStar.Api.Features.OAuth.Services;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Features.Onboarding.Tools;
 using RealEstateStar.Workers.Lead.Orchestrator;
 using RealEstateStar.Services.AgentNotifier;
 using RealEstateStar.Services.LeadCommunicator;
+using RealEstateStar.Services.AgentConfig;
+using RealEstateStar.Services.BrandMerge;
+using RealEstateStar.Services.WelcomeNotification;
 using RealEstateStar.Activities.Pdf;
+using RealEstateStar.Activities.Activation.PersistAgentProfile;
+using RealEstateStar.Activities.Activation.BrandMerge;
 using RealEstateStar.Clients.Anthropic;
 using RealEstateStar.Clients.Azure;
 using RealEstateStar.Clients.GDocs;
@@ -45,6 +53,7 @@ using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.WhatsApp;
+using RealEstateStar.Workers.Activation.Orchestrator;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -60,6 +69,22 @@ if (!builder.Environment.IsDevelopment() && !args.Contains("--export-openapi")
         $"Otel:Endpoint is '{otelEndpoint}' — telemetry would be lost in production. " +
         "Set OTEL_EXPORTER_OTLP_ENDPOINT secret in GitHub Actions to point to Grafana Cloud.");
 }
+
+// OAuthLink secret validation — required in production, warn in Development
+var oauthLinkSecret = builder.Configuration["OAuthLink:Secret"];
+if (string.IsNullOrWhiteSpace(oauthLinkSecret))
+{
+    if (builder.Environment.IsDevelopment())
+        Log.Warning("[STARTUP-WARN] OAuthLink:Secret is not configured — OAuth authorization link signing will fail if attempted in dev");
+    else
+        throw new InvalidOperationException(
+            "OAuthLink:Secret is required in non-Development environments. Set the OAuthLink:Secret configuration value.");
+}
+
+// Activation pipeline channel — unbounded, single channel; writer/reader registered for DI injection
+builder.Services.AddSingleton(Channel.CreateUnbounded<ActivationRequest>());
+builder.Services.AddSingleton(sp => sp.GetRequiredService<Channel<ActivationRequest>>().Reader);
+builder.Services.AddSingleton(sp => sp.GetRequiredService<Channel<ActivationRequest>>().Writer);
 
 // Agent config — Docker image uses /app/config/accounts, local dev uses relative path to repo root
 var dockerConfigPath = Path.Combine(builder.Environment.ContentRootPath, "config", "accounts");
@@ -200,6 +225,7 @@ builder.Services.AddSingleton(sp =>
         googleClientSecret,
         googleRedirectUri,
         sp.GetRequiredService<ILogger<GoogleOAuthService>>()));
+builder.Services.AddSingleton<AuthorizationLinkService>();
 builder.Services.AddSingleton<IOnboardingTool, GoogleAuthCardTool>();
 builder.Services.AddSingleton<IProcessRunner, ProcessRunner>();
 builder.Services.AddSingleton(cloudflareOptions);
@@ -284,6 +310,7 @@ builder.Services.AddSingleton<IOAuthRefresher>(sp =>
         sp.GetRequiredService<ILogger<GoogleOAuthRefresher>>());
 });
 builder.Services.AddGmailSender(googleClientId, googleClientSecret);
+builder.Services.AddGmailReader(googleClientId, googleClientSecret);
 
 // Google Drive, Docs, Sheets API clients — all backed by IOAuthRefresher
 builder.Services.AddGDriveClient(googleClientId, googleClientSecret);
@@ -299,6 +326,22 @@ builder.Services.AddLeadOrchestrator();
 builder.Services.AddPdfService();
 builder.Services.AddAgentNotifier();
 builder.Services.AddLeadCommunicator();
+builder.Services.AddAgentConfigService();
+builder.Services.AddBrandMergeService();
+builder.Services.AddWelcomeNotificationService();
+builder.Services.AddPersistAgentProfileActivity();
+builder.Services.AddBrandMergeActivity();
+
+// Activation pipeline — 15 workers (transient) + ActivationOrchestrator (BackgroundService)
+builder.Services.AddActivationPipeline();
+
+// Named HttpClient for AgentDiscovery worker
+builder.Services.AddHttpClient("AgentDiscovery", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(
+        "Mozilla/5.0 (compatible; RealEstateStar-Activation/1.0; +https://real-estate-star.com)");
+});
 
 // RentCast client (options, IRentCastClient, HttpClient "RentCast" with resilience)
 builder.Services.AddRentCastClient(builder.Configuration, pollyLogger);
@@ -460,13 +503,13 @@ builder.Services.AddCors(options =>
 });
 
 // ForwardedHeaders — must be configured before rate limiter so RemoteIpAddress is correct behind proxy.
-// KnownIPNetworks and KnownProxies are cleared because Cloudflare + Azure Container Apps use rotating IPs
-// that cannot be enumerated statically. All forwarded headers from the proxy chain are trusted.
+// ForwardLimit = 1 trusts only the immediately-adjacent proxy (Cloudflare / Azure Container Apps).
+// We do NOT clear KnownProxies/KnownIPNetworks — that would trust arbitrary X-Forwarded-For headers
+// from untrusted sources, enabling IP spoofing for rate-limit bypass.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
+    options.ForwardLimit = 1; // Trust one proxy hop (Cloudflare → Container Apps → API)
 });
 
 // Rate limiting
@@ -539,6 +582,18 @@ builder.Services.AddRateLimiter(options =>
         RateLimitPartition.GetFixedWindowLimiter(
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1) }));
+
+    // OAuth link generation: 10 per hour per IP (prevents link farming)
+    options.AddPolicy("oauth-link-generate", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1) }));
+
+    // OAuth link authorization: 5 per hour per IP (prevents brute-force on short codes)
+    options.AddPolicy("oauth-link-authorize", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromHours(1) }));
 
     // Telemetry events: 60 per minute per IP (one event per second per visitor, generous for analytics)
     options.AddPolicy("telemetry", context =>

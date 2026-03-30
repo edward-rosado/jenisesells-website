@@ -1,3 +1,4 @@
+using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Leads.Models;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
@@ -114,7 +115,7 @@ public class CmaProcessingWorkerTests
             .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(comps);
         _cmaAnalyzer
-            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
+            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>(), It.IsAny<AgentContext?>()))
             .ReturnsAsync(analysis);
 
         var request = MakeRequest();
@@ -153,7 +154,7 @@ public class CmaProcessingWorkerTests
             .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(comps);
         _cmaAnalyzer
-            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
+            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>(), It.IsAny<AgentContext?>()))
             .ReturnsAsync(analysis);
 
         var request = MakeRequest();
@@ -197,7 +198,7 @@ public class CmaProcessingWorkerTests
         result.Comps.Should().BeNull();
 
         _cmaAnalyzer.Verify(
-            a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()),
+            a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>(), It.IsAny<AgentContext?>()),
             Times.Never);
     }
 
@@ -209,7 +210,7 @@ public class CmaProcessingWorkerTests
             .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(comps);
         _cmaAnalyzer
-            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
+            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>(), It.IsAny<AgentContext?>()))
             .ThrowsAsync(new InvalidOperationException("claude down"));
 
         var request = MakeRequest();
@@ -303,8 +304,8 @@ public class CmaProcessingWorkerTests
             .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(comps);
         _cmaAnalyzer
-            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
-            .Callback<RealEstateStar.Domain.Leads.Models.Lead, List<Comp>, CancellationToken>((lead, _, _) => capturedLead = lead)
+            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>(), It.IsAny<AgentContext?>()))
+            .Callback<RealEstateStar.Domain.Leads.Models.Lead, List<Comp>, CancellationToken, AgentContext?>((lead, _, _, _) => capturedLead = lead)
             .ReturnsAsync(MakeAnalysis());
 
         // Lead has no beds
@@ -342,8 +343,8 @@ public class CmaProcessingWorkerTests
             .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(comps);
         _cmaAnalyzer
-            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
-            .Callback<RealEstateStar.Domain.Leads.Models.Lead, List<Comp>, CancellationToken>((lead, _, _) => capturedLead = lead)
+            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>(), It.IsAny<AgentContext?>()))
+            .Callback<RealEstateStar.Domain.Leads.Models.Lead, List<Comp>, CancellationToken, AgentContext?>((lead, _, _, _) => capturedLead = lead)
             .ReturnsAsync(MakeAnalysis());
 
         // Lead has no baths — 2.5 from RentCast should round to 3
@@ -381,8 +382,8 @@ public class CmaProcessingWorkerTests
             .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(comps);
         _cmaAnalyzer
-            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
-            .Callback<RealEstateStar.Domain.Leads.Models.Lead, List<Comp>, CancellationToken>((lead, _, _) => capturedLead = lead)
+            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>(), It.IsAny<AgentContext?>()))
+            .Callback<RealEstateStar.Domain.Leads.Models.Lead, List<Comp>, CancellationToken, AgentContext?>((lead, _, _, _) => capturedLead = lead)
             .ReturnsAsync(MakeAnalysis());
 
         var lead = MakeLead();
@@ -419,8 +420,8 @@ public class CmaProcessingWorkerTests
             .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(comps);
         _cmaAnalyzer
-            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
-            .Callback<RealEstateStar.Domain.Leads.Models.Lead, List<Comp>, CancellationToken>((lead, _, _) => capturedLead = lead)
+            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>(), It.IsAny<AgentContext?>()))
+            .Callback<RealEstateStar.Domain.Leads.Models.Lead, List<Comp>, CancellationToken, AgentContext?>((lead, _, _, _) => capturedLead = lead)
             .ReturnsAsync(MakeAnalysis());
 
         // Lead already has all three fields — should not be overwritten
@@ -453,8 +454,8 @@ public class CmaProcessingWorkerTests
             .Setup(a => a.FetchCompsAsync(It.IsAny<CompSearchRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(comps);
         _cmaAnalyzer
-            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>()))
-            .Callback<RealEstateStar.Domain.Leads.Models.Lead, List<Comp>, CancellationToken>((lead, _, _) => capturedLead = lead)
+            .Setup(a => a.AnalyzeAsync(It.IsAny<RealEstateStar.Domain.Leads.Models.Lead>(), It.IsAny<List<Comp>>(), It.IsAny<CancellationToken>(), It.IsAny<AgentContext?>()))
+            .Callback<RealEstateStar.Domain.Leads.Models.Lead, List<Comp>, CancellationToken, AgentContext?>((lead, _, _, _) => capturedLead = lead)
             .ReturnsAsync(MakeAnalysis());
 
         var lead = MakeLead();

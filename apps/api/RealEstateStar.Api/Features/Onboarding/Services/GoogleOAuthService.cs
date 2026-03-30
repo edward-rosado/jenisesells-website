@@ -17,16 +17,20 @@ public class GoogleOAuthService(
     private const string TokenEndpoint = "https://oauth2.googleapis.com/token";
     private const string UserInfoEndpoint = "https://www.googleapis.com/oauth2/v2/userinfo";
 
-    private static readonly string[] Scopes =
+    public static readonly string[] ActivationScopes =
     [
         "https://www.googleapis.com/auth/userinfo.profile",
         "https://www.googleapis.com/auth/userinfo.email",
         "https://www.googleapis.com/auth/gmail.send",
+        "https://www.googleapis.com/auth/gmail.readonly",
         "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive.readonly",
         "https://www.googleapis.com/auth/documents",
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/calendar.events",
     ];
+
+    private static readonly string[] Scopes = ActivationScopes;
 
     public virtual (string Url, string Nonce) BuildAuthorizationUrl(string sessionId)
     {
@@ -35,6 +39,16 @@ public class GoogleOAuthService(
         var scopeStr = Uri.EscapeDataString(string.Join(" ", Scopes));
         var url = $"{AuthEndpoint}?client_id={clientId}&redirect_uri={Uri.EscapeDataString(redirectUri)}&response_type=code&scope={scopeStr}&access_type=offline&prompt=consent&state={Uri.EscapeDataString(state)}";
         return (url, nonce);
+    }
+
+    /// <summary>
+    /// Builds a Google authorization URL for the activation link flow, using a custom redirect URI
+    /// (activation callback) instead of the default onboarding redirect URI.
+    /// </summary>
+    public virtual string BuildActivationAuthorizationUrl(string state, string activationRedirectUri)
+    {
+        var scopeStr = Uri.EscapeDataString(string.Join(" ", Scopes));
+        return $"{AuthEndpoint}?client_id={clientId}&redirect_uri={Uri.EscapeDataString(activationRedirectUri)}&response_type=code&scope={scopeStr}&access_type=offline&prompt=consent&state={Uri.EscapeDataString(state)}";
     }
 
     public virtual async Task<OAuthCredential> ExchangeCodeAsync(string code, CancellationToken ct)

@@ -59,6 +59,8 @@ public static class OpenTelemetryExtensions
                 .AddSource("RealEstateStar.Pdf")
                 .AddSource("RealEstateStar.LeadCommunicator")
                 .AddSource("RealEstateStar.AgentNotifier")
+                .AddSource("RealEstateStar.Activation")
+                .AddSource("RealEstateStar.AgentContext")
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>
@@ -87,6 +89,8 @@ public static class OpenTelemetryExtensions
                 .AddMeter("RealEstateStar.Pdf")
                 .AddMeter("RealEstateStar.LeadCommunicator")
                 .AddMeter("RealEstateStar.AgentNotifier")
+                .AddMeter("RealEstateStar.Activation")
+                .AddMeter("RealEstateStar.AgentContext")
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter(options =>

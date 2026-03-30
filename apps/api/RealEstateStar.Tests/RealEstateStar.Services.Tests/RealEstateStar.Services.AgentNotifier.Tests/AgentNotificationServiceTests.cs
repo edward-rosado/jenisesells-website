@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
@@ -449,5 +450,53 @@ public class AgentNotifierServiceTests
         capturedHtml.Should().Contain(config.PrimaryColor);
         capturedHtml.Should().Contain("Jenise Buckalew");
         capturedHtml.Should().Contain("Keller Williams");
+    }
+
+    // ─── Agent Context: BuildAgentNotificationEmail includes activation badge ──
+
+    [Fact]
+    public void BuildAgentNotificationEmail_WithActivatedContext_IncludesVoicePersonalizedBadge()
+    {
+        var lead = MakeLead();
+        var score = MakeScore();
+        var config = MakeConfig(whatsAppPhoneNumberId: null);
+        var agentContext = new AgentContext
+        {
+            VoiceSkill = "Warm and empathetic",
+            IsActivated = true
+        };
+
+        var html = AgentNotifierService.BuildAgentNotificationEmail(lead, score, null, null, config, agentContext);
+
+        html.Should().Contain("Voice-Personalized");
+    }
+
+    [Fact]
+    public void BuildAgentNotificationEmail_WithNullContext_DoesNotIncludeActivationBadge()
+    {
+        var lead = MakeLead();
+        var score = MakeScore();
+        var config = MakeConfig(whatsAppPhoneNumberId: null);
+
+        var html = AgentNotifierService.BuildAgentNotificationEmail(lead, score, null, null, config, agentContext: null);
+
+        html.Should().NotContain("Voice-Personalized");
+    }
+
+    [Fact]
+    public void BuildAgentNotificationEmail_WithNotActivatedContext_DoesNotIncludeActivationBadge()
+    {
+        var lead = MakeLead();
+        var score = MakeScore();
+        var config = MakeConfig(whatsAppPhoneNumberId: null);
+        var agentContext = new AgentContext
+        {
+            VoiceSkill = "Warm and empathetic",
+            IsActivated = false  // not activated
+        };
+
+        var html = AgentNotifierService.BuildAgentNotificationEmail(lead, score, null, null, config, agentContext);
+
+        html.Should().NotContain("Voice-Personalized");
     }
 }

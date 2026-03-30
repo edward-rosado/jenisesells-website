@@ -44,7 +44,8 @@ public class LeadCommunicatorService(
             ctx.CmaResult,
             ctx.HsResult,
             agentConfig,
-            ct);
+            ct,
+            ctx.AgentContext);
 
         LeadCommunicatorDiagnostics.DraftDurationMs.Record(
             Stopwatch.GetElapsedTime(draftStarted).TotalMilliseconds);

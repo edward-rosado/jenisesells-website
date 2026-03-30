@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="RealEstateStar.Clients.Gmail.Tests" />
+    <InternalsVisibleTo Include="RealEstateStar.Clients.Gmail.Reader.Tests" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />

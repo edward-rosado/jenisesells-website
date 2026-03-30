@@ -2,6 +2,7 @@ using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Cma.Models;
+using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.HomeSearch.Interfaces;
 using RealEstateStar.Domain.Privacy.Interfaces;
@@ -117,7 +118,7 @@ file sealed class NoOpCompAggregator : ICompAggregator
 
 file sealed class NoOpCmaAnalyzer : ICmaAnalyzer
 {
-    public Task<CmaAnalysis> AnalyzeAsync(Lead lead, List<Comp> comps, CancellationToken ct) =>
+    public Task<CmaAnalysis> AnalyzeAsync(Lead lead, List<Comp> comps, CancellationToken ct, AgentContext? agentContext = null) =>
         Task.FromResult(new CmaAnalysis
         {
             ValueLow = 0,

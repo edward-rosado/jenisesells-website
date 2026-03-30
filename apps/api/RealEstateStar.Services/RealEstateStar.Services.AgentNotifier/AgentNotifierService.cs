@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Activation.Interfaces;
+using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
@@ -9,7 +11,8 @@ namespace RealEstateStar.Services.AgentNotifier;
 public class AgentNotifierService(
     IWhatsAppSender whatsAppSender,
     IGmailSender gmailSender,
-    ILogger<AgentNotifierService> logger) : IAgentNotifier
+    ILogger<AgentNotifierService> logger,
+    IAgentContextLoader? agentContextLoader = null) : IAgentNotifier
 {
     public async Task NotifyAsync(Lead lead, LeadScore score,
         CmaWorkerResult? cmaResult, HomeSearchWorkerResult? homeSearchResult,
@@ -18,6 +21,34 @@ public class AgentNotifierService(
         using var span = AgentNotifierDiagnostics.ActivitySource.StartActivity("activity.send_agent_notification");
         span?.SetTag("lead.id", lead.Id.ToString());
         span?.SetTag("agent.id", agentConfig.AgentId);
+
+        // Load agent activation context for voice + brand voice application
+        AgentContext? agentContext = null;
+        if (agentContextLoader is not null)
+        {
+            try
+            {
+                agentContext = await agentContextLoader.LoadAsync(agentConfig.AgentId, agentConfig.AgentId, ct);
+                if (agentContext is not null)
+                {
+                    logger.LogInformation(
+                        "[CTX-030] Agent context loaded for notification. AgentId: {AgentId}, Lead: {LeadId}",
+                        agentConfig.AgentId, lead.Id);
+                }
+                else
+                {
+                    logger.LogInformation(
+                        "[CTX-031] Agent context unavailable for notification — using generic format. AgentId: {AgentId}",
+                        agentConfig.AgentId);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "[CTX-032] Agent context load failed for notification; continuing without. AgentId: {AgentId}",
+                    agentConfig.AgentId);
+            }
+        }
 
         if (!string.IsNullOrEmpty(agentConfig.WhatsAppPhoneNumberId))
         {
@@ -47,7 +78,7 @@ public class AgentNotifierService(
 
         try
         {
-            var html = BuildAgentNotificationEmail(lead, score, cmaResult, homeSearchResult, agentConfig);
+            var html = BuildAgentNotificationEmail(lead, score, cmaResult, homeSearchResult, agentConfig, agentContext);
             await gmailSender.SendAsync(
                 agentConfig.AgentId,
                 agentConfig.AgentId,
@@ -112,7 +143,7 @@ public class AgentNotifierService(
     internal static string BuildAgentNotificationEmail(
         Lead lead, LeadScore score,
         CmaWorkerResult? cmaResult, HomeSearchWorkerResult? homeSearchResult,
-        AgentNotificationConfig agentConfig)
+        AgentNotificationConfig agentConfig, AgentContext? agentContext = null)
     {
         var scoreColor = score.Bucket switch
         {
@@ -127,6 +158,10 @@ public class AgentNotifierService(
 
         var buyerSection = lead.BuyerDetails is { } buyer
             ? BuildBuyerSection(buyer, homeSearchResult)
+            : string.Empty;
+
+        var activationBadge = agentContext?.IsActivated == true
+            ? " \u00b7 <span style=\"color:#16a34a;\">Voice-Personalized</span>"
             : string.Empty;
 
         return "<html>" +
@@ -166,7 +201,7 @@ public class AgentNotifierService(
                sellerSection +
                buyerSection +
                "</div>" +
-               $"<div class=\"footer\">Sent by Real Estate Star \u00b7 {agentConfig.Name} \u00b7 {agentConfig.Email}</div>" +
+               $"<div class=\"footer\">Sent by Real Estate Star \u00b7 {agentConfig.Name} \u00b7 {agentConfig.Email}{activationBadge}</div>" +
                "</div>" +
                "</body>" +
                "</html>";
