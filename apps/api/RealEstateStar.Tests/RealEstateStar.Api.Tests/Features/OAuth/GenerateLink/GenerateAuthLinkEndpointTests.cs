@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using RealEstateStar.Api.Features.OAuth.GenerateLink;
@@ -19,6 +20,12 @@ public class GenerateAuthLinkEndpointTests
                 .Build(),
             NullLogger<AuthorizationLinkService>.Instance);
 
+    // No admin token configured — bearer guard is a no-op in tests
+    private static IConfiguration EmptyConfig() =>
+        new ConfigurationBuilder().Build();
+
+    private static HttpContext NoAuthContext() => new DefaultHttpContext();
+
     [Fact]
     public async Task Handle_ValidRequest_Returns200WithAuthUrl()
     {
@@ -26,7 +33,7 @@ public class GenerateAuthLinkEndpointTests
         var request = new GenerateAuthLinkRequest("acct-1", "agent-1", "agent@example.com");
         var logger = NullLogger<GenerateAuthLinkEndpoint>.Instance;
 
-        var result = await GenerateAuthLinkEndpoint.Handle(request, svc, logger, CancellationToken.None);
+        var result = await GenerateAuthLinkEndpoint.Handle(request, NoAuthContext(), EmptyConfig(), svc, logger, CancellationToken.None);
 
         var response = Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.Ok<GenerateAuthLinkResponse>>(result);
         Assert.NotNull(response.Value);
@@ -43,7 +50,7 @@ public class GenerateAuthLinkEndpointTests
         var request = new GenerateAuthLinkRequest("", "agent-1", "agent@example.com");
         var logger = NullLogger<GenerateAuthLinkEndpoint>.Instance;
 
-        var result = await GenerateAuthLinkEndpoint.Handle(request, svc, logger, CancellationToken.None);
+        var result = await GenerateAuthLinkEndpoint.Handle(request, NoAuthContext(), EmptyConfig(), svc, logger, CancellationToken.None);
 
         var problem = Assert.IsAssignableFrom<Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult>(result);
         Assert.Equal(400, problem.StatusCode);
@@ -56,7 +63,7 @@ public class GenerateAuthLinkEndpointTests
         var request = new GenerateAuthLinkRequest("acct-1", "", "agent@example.com");
         var logger = NullLogger<GenerateAuthLinkEndpoint>.Instance;
 
-        var result = await GenerateAuthLinkEndpoint.Handle(request, svc, logger, CancellationToken.None);
+        var result = await GenerateAuthLinkEndpoint.Handle(request, NoAuthContext(), EmptyConfig(), svc, logger, CancellationToken.None);
 
         var problem = Assert.IsAssignableFrom<Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult>(result);
         Assert.Equal(400, problem.StatusCode);
@@ -69,7 +76,7 @@ public class GenerateAuthLinkEndpointTests
         var request = new GenerateAuthLinkRequest("acct-1", "agent-1", "");
         var logger = NullLogger<GenerateAuthLinkEndpoint>.Instance;
 
-        var result = await GenerateAuthLinkEndpoint.Handle(request, svc, logger, CancellationToken.None);
+        var result = await GenerateAuthLinkEndpoint.Handle(request, NoAuthContext(), EmptyConfig(), svc, logger, CancellationToken.None);
 
         var problem = Assert.IsAssignableFrom<Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult>(result);
         Assert.Equal(400, problem.StatusCode);
@@ -82,7 +89,7 @@ public class GenerateAuthLinkEndpointTests
         var request = new GenerateAuthLinkRequest("acct-1", "agent-1", "not-an-email");
         var logger = NullLogger<GenerateAuthLinkEndpoint>.Instance;
 
-        var result = await GenerateAuthLinkEndpoint.Handle(request, svc, logger, CancellationToken.None);
+        var result = await GenerateAuthLinkEndpoint.Handle(request, NoAuthContext(), EmptyConfig(), svc, logger, CancellationToken.None);
 
         var problem = Assert.IsAssignableFrom<Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult>(result);
         Assert.Equal(400, problem.StatusCode);
@@ -96,7 +103,7 @@ public class GenerateAuthLinkEndpointTests
         var logger = NullLogger<GenerateAuthLinkEndpoint>.Instance;
 
         var before = DateTimeOffset.UtcNow;
-        var result = await GenerateAuthLinkEndpoint.Handle(request, svc, logger, CancellationToken.None);
+        var result = await GenerateAuthLinkEndpoint.Handle(request, NoAuthContext(), EmptyConfig(), svc, logger, CancellationToken.None);
         var after = DateTimeOffset.UtcNow;
 
         var response = Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.Ok<GenerateAuthLinkResponse>>(result);

@@ -1,3 +1,5 @@
+using System.Threading.Channels;
+using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Lead.CMA;
@@ -17,10 +19,11 @@ public class BackgroundServiceHealthCheckTests
     private readonly LeadOrchestratorChannel _leadChannel = new();
     private readonly CmaProcessingChannel _cmaChannel = new();
     private readonly HomeSearchProcessingChannel _homeSearchChannel = new();
+    private readonly Channel<ActivationRequest> _activationChannel = Channel.CreateUnbounded<ActivationRequest>();
     private readonly Mock<ILogger<BackgroundServiceHealthCheck>> _logger = new();
 
     private BackgroundServiceHealthCheck CreateCheck() =>
-        new(_tracker, _leadChannel, _cmaChannel, _homeSearchChannel, _logger.Object);
+        new(_tracker, _leadChannel, _cmaChannel, _homeSearchChannel, _activationChannel, _logger.Object);
 
     private static HealthCheckContext MakeContext() => new()
     {
