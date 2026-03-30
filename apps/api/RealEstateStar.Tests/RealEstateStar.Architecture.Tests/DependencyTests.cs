@@ -34,7 +34,7 @@ public class DependencyTests
     [InlineData("RealEstateStar.DataServices", new[] { "Domain", "Data" })]
     [InlineData("RealEstateStar.Workers.Shared", new[] { "Domain" })]
     [InlineData("RealEstateStar.Activities.Pdf", new[] { "Domain", "DataServices", "Workers.Shared" })]
-    [InlineData("RealEstateStar.Activities.Persist", new[] { "Domain", "DataServices" })]
+    [InlineData("RealEstateStar.Activities.Lead.Persist", new[] { "Domain" })]
     [InlineData("RealEstateStar.Services.AgentNotifier", new[] { "Domain", "DataServices", "Clients", "Workers.Shared" })]
     [InlineData("RealEstateStar.Services.LeadCommunicator", new[] { "Domain", "DataServices", "Clients", "Workers.Shared" })]
     [InlineData("RealEstateStar.Services.AgentConfig", new[] { "Domain" })]
@@ -42,7 +42,7 @@ public class DependencyTests
     [InlineData("RealEstateStar.Services.WelcomeNotification", new[] { "Domain" })]
     [InlineData("RealEstateStar.Activities.Activation.PersistAgentProfile", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Activities.Activation.BrandMerge", new[] { "Domain", "Workers.Shared" })]
-    [InlineData("RealEstateStar.Workers.Lead.Orchestrator", new[] { "Domain", "Workers.Shared", "Activities.Pdf", "Activities.Persist", "Services.AgentNotifier", "Services.LeadCommunicator", "Workers.Lead.CMA", "Workers.Lead.HomeSearch" })]
+    [InlineData("RealEstateStar.Workers.Lead.Orchestrator", new[] { "Domain", "Workers.Shared", "Activities.Pdf", "Activities.Lead.Persist", "Services.AgentNotifier", "Services.LeadCommunicator", "Workers.Lead.CMA", "Workers.Lead.HomeSearch" })]
     [InlineData("RealEstateStar.Workers.Lead.CMA", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Lead.HomeSearch", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.WhatsApp", new[] { "Domain", "Workers.Shared" })]
@@ -208,7 +208,7 @@ public class DependencyTests
             "RealEstateStar.DataServices",
             "RealEstateStar.Workers.Shared",
             "RealEstateStar.Activities.Pdf",
-            "RealEstateStar.Activities.Persist",
+            "RealEstateStar.Activities.Lead.Persist",
             "RealEstateStar.Activities.Activation.PersistAgentProfile",
             "RealEstateStar.Activities.Activation.BrandMerge",
             "RealEstateStar.Services.AgentNotifier",
@@ -519,7 +519,7 @@ public class DependencyTests
             "RealEstateStar.DataServices",
             "RealEstateStar.Workers.Shared",
             "RealEstateStar.Activities.Pdf",
-            "RealEstateStar.Activities.Persist",
+            "RealEstateStar.Activities.Lead.Persist",
             "RealEstateStar.Activities.Activation.PersistAgentProfile",
             "RealEstateStar.Activities.Activation.BrandMerge",
             "RealEstateStar.Services.AgentNotifier",

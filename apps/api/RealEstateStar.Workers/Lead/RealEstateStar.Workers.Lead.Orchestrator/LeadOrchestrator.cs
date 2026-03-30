@@ -2,7 +2,7 @@ using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using RealEstateStar.Activities.Persist;
+using RealEstateStar.Activities.Lead.Persist;
 using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;

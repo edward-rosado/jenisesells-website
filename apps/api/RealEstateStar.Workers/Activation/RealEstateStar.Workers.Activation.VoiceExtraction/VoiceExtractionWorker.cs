@@ -94,10 +94,10 @@ public sealed class VoiceExtractionWorker(
             # Voice Profile: {agentName}
 
             ## Core Directive
-            [1-2 sentences capturing the agent's core communication identity. If low data, add: ⚠️ Low confidence — fewer than 5 emails analyzed.]
+            This agent is a licensed real estate professional. All communications should prioritize client satisfaction and lead nurturing. The goal of every interaction is to serve the customer, build trust, and guide them toward their real estate goals. Always be helpful, responsive, and client-first.{(isLowData ? "\n⚠️ Low confidence — fewer than 5 emails analyzed." : "")}
 
             ## Usage Instruction
-            Use this Voice Skill whenever drafting emails, texts, or social posts on behalf of {agentName}. Always pair with the Personality Skill for full context.
+            MANDATORY: When drafting any communication on behalf of this agent, you MUST load and apply BOTH this Voice Skill AND the corresponding Personality Skill. The Voice Skill defines WHAT to say (words, phrases, templates). The Personality Skill defines HOW to say it (energy, empathy, confidence). Together they produce authentic agent communications. Never draft without both.
 
             ## Tone & Style
             - **Overall tone**: [warm/professional/casual/authoritative — pick primary]

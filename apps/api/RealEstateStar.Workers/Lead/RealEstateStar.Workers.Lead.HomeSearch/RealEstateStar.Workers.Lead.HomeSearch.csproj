@@ -12,7 +12,7 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />
-    <ProjectReference Include="..\RealEstateStar.Workers.Shared\RealEstateStar.Workers.Shared.csproj" />
+    <ProjectReference Include="..\..\..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />
+    <ProjectReference Include="..\..\RealEstateStar.Workers.Shared\RealEstateStar.Workers.Shared.csproj" />
   </ItemGroup>
 </Project>

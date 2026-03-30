@@ -33,19 +33,21 @@ public class FeeStructureWorkerTests
 
     private static AnthropicResponse MakeValidResponse() =>
         new(Content: """
-            ## Fee Structure
-            ### Commission Rates
-            Buyer side: 2.5%, Seller side: 2.5%, Total: 5%.
+            ## Commission Structure
+            - Seller-side rate: 2.5%
+            - Buyer-side rate: 2.5%
+            - Total typical commission: 5%
             ### Brokerage Split
             70/30 agent/brokerage split.
             ### Fee Model
             Percentage-based, negotiable.
+            ### Referral Fees
+            25% referral fee for agent-to-agent referrals.
             ### Negotiation Patterns
             Commission discussed early in listing presentations.
-            ### Earnest Money
-            Typically 1% of purchase price.
-            ### Closing Cost Allocation
-            Seller pays transfer tax, buyer pays mortgage fees.
+            ### Other Fees
+            - Earnest money typical: 1% of purchase price
+            - Closing cost allocation: Seller pays transfer tax, buyer pays mortgage fees.
             """,
             InputTokens: 100, OutputTokens: 200, DurationMs: 1500);
 
@@ -121,8 +123,8 @@ public class FeeStructureWorkerTests
 
         var result = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), [], CancellationToken.None);
 
-        result.Should().Contain("## Fee Structure");
-        result.Should().Contain("### Commission Rates");
+        result.Should().Contain("## Commission Structure");
+        result.Should().Contain("### Brokerage Split");
         result.Should().Contain("### Negotiation Patterns");
     }
 
@@ -235,7 +237,7 @@ public class FeeStructureWorkerTests
     [Fact]
     public void ValidateMarkdownOutput_MissingBrokerageSplit_Throws()
     {
-        var content = "## Fee Structure\n### Commission Rates\ntext\n### Negotiation Patterns\ntext";
+        var content = "## Commission Structure\ntext\n### Negotiation Patterns\ntext";
 
         var act = () => FeeStructureWorker.ValidateMarkdownOutput(content);
         act.Should().Throw<InvalidOperationException>()

@@ -5,7 +5,7 @@ using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
-namespace RealEstateStar.Activities.Persist.Tests;
+namespace RealEstateStar.Activities.Lead.Persist.Tests;
 
 public sealed class PersistActivityTests
 {
@@ -271,7 +271,7 @@ public sealed class PersistActivityTests
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 
-    private static Lead BuildLead() => new()
+    private static Domain.Leads.Models.Lead BuildLead() => new()
     {
         Id = Guid.NewGuid(),
         AgentId = "agent-1",

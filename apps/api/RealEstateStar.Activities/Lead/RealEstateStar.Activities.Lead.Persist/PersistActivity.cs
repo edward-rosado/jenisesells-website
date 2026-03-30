@@ -5,7 +5,7 @@ using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
-namespace RealEstateStar.Activities.Persist;
+namespace RealEstateStar.Activities.Lead.Persist;
 
 /// <summary>
 /// Writes all pipeline artifacts to the lead's storage folder in a single batch.

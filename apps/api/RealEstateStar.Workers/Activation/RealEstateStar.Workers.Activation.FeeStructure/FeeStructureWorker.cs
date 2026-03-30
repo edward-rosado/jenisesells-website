@@ -15,7 +15,7 @@ public sealed class FeeStructureWorker(
     private const int MaxTokens = 2048;
 
     private static readonly string[] RequiredSections =
-        ["## Fee Structure", "### Commission Rates", "### Brokerage Split", "### Negotiation Patterns"];
+        ["## Commission Structure", "### Brokerage Split", "### Negotiation Patterns"];
 
     private const string SystemPrompt = """
         You are an expert real estate financial analyst.
@@ -31,19 +31,28 @@ public sealed class FeeStructureWorker(
         5. This data is stored for internal reference only — it is NOT wired into client communications.
 
         Required markdown structure:
-        ## Fee Structure
-        ### Commission Rates
-        [Buyer side rate, seller side rate, total commission structure]
+        ## Commission Structure
+        - Seller-side rate: {X%} (observed in {N} transactions)
+        - Buyer-side rate: {X%}
+        - Total typical commission: {X%}
+        - Evidence: {summarized from email threads / contracts}
         ### Brokerage Split
-        [Agent/brokerage split structure if detectable]
+        - Agent take: {X%}
+        - Brokerage take: {X%}
+        - Split model: {fixed / graduated / cap}
         ### Fee Model
-        [Flat fee, percentage, tiered, negotiable]
+        - Primary model: {percentage / flat fee / tiered / hybrid}
+        - Variations observed: {discount for repeat clients, different rates by price tier}
+        ### Referral Fees
+        [Referral fee structure if detectable — agent-to-agent referrals, relocation referrals, lead source referrals]
         ### Negotiation Patterns
-        [How commission is discussed/negotiated based on email patterns]
-        ### Earnest Money
-        [Typical earnest money amounts or percentages observed]
-        ### Closing Cost Allocation
-        [How closing costs are typically structured/allocated]
+        - How they respond to commission pushback: {examples}
+        - Common concessions offered: {reduced rate, credit at closing, etc.}
+        - Firmness level: {always negotiates / firm / depends on deal size}
+        ### Other Fees
+        - Admin/transaction fees: {amount if found}
+        - Earnest money typical: {amount or percentage}
+        - Closing cost allocation: {patterns observed}
         """;
 
     public async Task<string?> AnalyzeAsync(
@@ -99,6 +108,7 @@ public sealed class FeeStructureWorker(
                         f.Name.ToLowerInvariant().Contains("listing agreement") ||
                         f.Name.ToLowerInvariant().Contains("buyer agreement") ||
                         f.Name.ToLowerInvariant().Contains("fee") ||
+                        f.Name.ToLowerInvariant().Contains("referral") ||
                         f.Category.Contains("contract", StringComparison.OrdinalIgnoreCase))
             .Take(10)
             .ToList();
@@ -110,13 +120,14 @@ public sealed class FeeStructureWorker(
         return combined.Contains("commission") || combined.Contains("% fee") ||
                combined.Contains("percent") || combined.Contains("split") ||
                combined.Contains("earnest money") || combined.Contains("listing agreement") ||
-               combined.Contains("buyer agency") || combined.Contains("closing cost");
+               combined.Contains("buyer agency") || combined.Contains("closing cost") ||
+               combined.Contains("referral fee") || combined.Contains("referral agreement");
     }
 
     internal static bool HasFeeContent(string url)
     {
         var lower = url.ToLowerInvariant();
-        return lower.Contains("fee") || lower.Contains("commission") || lower.Contains("pricing");
+        return lower.Contains("fee") || lower.Contains("commission") || lower.Contains("pricing") || lower.Contains("referral");
     }
 
     internal static string BuildPrompt(

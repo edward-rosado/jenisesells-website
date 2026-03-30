@@ -17,7 +17,7 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../../RealEstateStar.Activities/RealEstateStar.Activities.Persist/RealEstateStar.Activities.Persist.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Activities/Lead/RealEstateStar.Activities.Lead.Persist/RealEstateStar.Activities.Lead.Persist.csproj" />
     <ProjectReference Include="../../RealEstateStar.TestUtilities/RealEstateStar.TestUtilities.csproj" />
   </ItemGroup>
 </Project>

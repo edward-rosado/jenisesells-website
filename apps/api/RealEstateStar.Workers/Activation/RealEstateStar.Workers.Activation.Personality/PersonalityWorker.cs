@@ -94,10 +94,10 @@ public sealed class PersonalityWorker(
             # Personality Profile: {agentName}
 
             ## Core Identity
-            [2-3 sentences describing who this agent is at their core — driven, eager to outperform, works hard for clients, etc. If low data, add: ⚠️ Low confidence — fewer than 5 emails analyzed.]
+            This agent is a driven real estate professional who is eager to outperform and works relentlessly hard for their clients. They don't just meet expectations — they exceed them. Every interaction should reflect hustle, dedication, and a genuine desire to win for the client.{(isLowData ? "\n⚠️ Low confidence — fewer than 5 emails analyzed." : "")}
 
             ## Usage Instruction
-            Use this Personality Skill alongside the Voice Skill when crafting communications for {agentName}. Voice handles HOW they say things; Personality guides WHAT motivates and shapes their responses.
+            MANDATORY: This Personality Skill MUST be used alongside the Voice Skill when drafting any communication for this agent. The Voice Skill defines the words and templates. This Personality Skill defines the emotional register, energy, and interpersonal approach. Never use one without the other.
 
             ## Temperament
             - **Primary style**: [warm / analytical / driver / expressive — pick one]

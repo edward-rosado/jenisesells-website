@@ -19,7 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="../../RealEstateStar.Domain/RealEstateStar.Domain.csproj" />
     <ProjectReference Include="../../RealEstateStar.DataServices/RealEstateStar.DataServices.csproj" />
-    <ProjectReference Include="../../RealEstateStar.Workers/RealEstateStar.Workers.Lead.CMA/RealEstateStar.Workers.Lead.CMA.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Workers/Lead/RealEstateStar.Workers.Lead.CMA/RealEstateStar.Workers.Lead.CMA.csproj" />
     <ProjectReference Include="../RealEstateStar.TestUtilities/RealEstateStar.TestUtilities.csproj" />
   </ItemGroup>
 </Project>
