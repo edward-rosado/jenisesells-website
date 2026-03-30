@@ -1,4 +1,6 @@
+using System.Threading.Channels;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Workers.Lead.Orchestrator;
 using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
@@ -18,6 +20,7 @@ public sealed class BackgroundServiceHealthCheck(
     LeadOrchestratorChannel orchestratorChannel,
     CmaProcessingChannel cmaChannel,
     HomeSearchProcessingChannel homeSearchChannel,
+    Channel<ActivationRequest> activationChannel,
     ILogger<BackgroundServiceHealthCheck> logger) : IHealthCheck
 {
     internal static readonly TimeSpan StalenessThreshold = TimeSpan.FromMinutes(5);
@@ -33,6 +36,7 @@ public sealed class BackgroundServiceHealthCheck(
         CheckWorker("LeadOrchestrator", orchestratorChannel.Count, now, stuckWorkers, data);
         CheckWorker("CmaProcessingWorker", cmaChannel.Count, now, stuckWorkers, data);
         CheckWorker("HomeSearchProcessingWorker", homeSearchChannel.Count, now, stuckWorkers, data);
+        CheckWorker("ActivationOrchestrator", activationChannel.Reader.Count, now, stuckWorkers, data);
 
         if (stuckWorkers.Count > 0)
         {

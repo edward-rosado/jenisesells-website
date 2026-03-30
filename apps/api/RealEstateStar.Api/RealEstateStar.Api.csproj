@@ -35,6 +35,7 @@
     <ProjectReference Include="..\RealEstateStar.DataServices\RealEstateStar.DataServices.csproj" />
 <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Shared\RealEstateStar.Workers.Shared.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Lead.Orchestrator\RealEstateStar.Workers.Lead.Orchestrator.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.Orchestrator\RealEstateStar.Workers.Activation.Orchestrator.csproj" />
     <ProjectReference Include="..\RealEstateStar.Services\RealEstateStar.Services.AgentNotifier\RealEstateStar.Services.AgentNotifier.csproj" />
     <ProjectReference Include="..\RealEstateStar.Services\Activation\RealEstateStar.Services.AgentConfig\RealEstateStar.Services.AgentConfig.csproj" />
     <ProjectReference Include="..\RealEstateStar.Services\Activation\RealEstateStar.Services.BrandMerge\RealEstateStar.Services.BrandMerge.csproj" />

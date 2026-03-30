@@ -53,6 +53,7 @@ using RealEstateStar.Workers.Lead.CMA;
 using RealEstateStar.Workers.Lead.HomeSearch;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.WhatsApp;
+using RealEstateStar.Workers.Activation.Orchestrator;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -331,6 +332,17 @@ builder.Services.AddWelcomeNotificationService();
 builder.Services.AddPersistAgentProfileActivity();
 builder.Services.AddBrandMergeActivity();
 
+// Activation pipeline — 15 workers (transient) + ActivationOrchestrator (BackgroundService)
+builder.Services.AddActivationPipeline();
+
+// Named HttpClient for AgentDiscovery worker
+builder.Services.AddHttpClient("AgentDiscovery", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(
+        "Mozilla/5.0 (compatible; RealEstateStar-Activation/1.0; +https://real-estate-star.com)");
+});
+
 // RentCast client (options, IRentCastClient, HttpClient "RentCast" with resilience)
 builder.Services.AddRentCastClient(builder.Configuration, pollyLogger);
 
@@ -491,13 +503,13 @@ builder.Services.AddCors(options =>
 });
 
 // ForwardedHeaders — must be configured before rate limiter so RemoteIpAddress is correct behind proxy.
-// KnownIPNetworks and KnownProxies are cleared because Cloudflare + Azure Container Apps use rotating IPs
-// that cannot be enumerated statically. All forwarded headers from the proxy chain are trusted.
+// ForwardLimit = 1 trusts only the immediately-adjacent proxy (Cloudflare / Azure Container Apps).
+// We do NOT clear KnownProxies/KnownIPNetworks — that would trust arbitrary X-Forwarded-For headers
+// from untrusted sources, enabling IP spoofing for rate-limit bypass.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
+    options.ForwardLimit = 1; // Trust one proxy hop (Cloudflare → Container Apps → API)
 });
 
 // Rate limiting
