@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="FluentAssertions" Version="8.8.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Orchestrator under test (transitively pulls all workers + activities) -->
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.Orchestrator/RealEstateStar.Workers.Activation.Orchestrator.csproj" />
+    <!-- Domain — for interface types used directly in tests -->
+    <ProjectReference Include="../../../RealEstateStar.Domain/RealEstateStar.Domain.csproj" />
+    <!-- Workers — explicit refs for concrete worker construction in tests -->
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.EmailFetch/RealEstateStar.Workers.Activation.EmailFetch.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.DriveIndex/RealEstateStar.Workers.Activation.DriveIndex.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.AgentDiscovery/RealEstateStar.Workers.Activation.AgentDiscovery.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.VoiceExtraction/RealEstateStar.Workers.Activation.VoiceExtraction.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.Personality/RealEstateStar.Workers.Activation.Personality.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.BrandingDiscovery/RealEstateStar.Workers.Activation.BrandingDiscovery.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.CmaStyle/RealEstateStar.Workers.Activation.CmaStyle.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.MarketingStyle/RealEstateStar.Workers.Activation.MarketingStyle.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.WebsiteStyle/RealEstateStar.Workers.Activation.WebsiteStyle.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.PipelineAnalysis/RealEstateStar.Workers.Activation.PipelineAnalysis.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.Coaching/RealEstateStar.Workers.Activation.Coaching.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.BrandExtraction/RealEstateStar.Workers.Activation.BrandExtraction.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.BrandVoice/RealEstateStar.Workers.Activation.BrandVoice.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.ComplianceAnalysis/RealEstateStar.Workers.Activation.ComplianceAnalysis.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.FeeStructure/RealEstateStar.Workers.Activation.FeeStructure.csproj" />
+    <!-- Activities -->
+    <ProjectReference Include="../../../RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.PersistAgentProfile/RealEstateStar.Activities.Activation.PersistAgentProfile.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.BrandMerge/RealEstateStar.Activities.Activation.BrandMerge.csproj" />
+    <!-- Test utilities -->
+    <ProjectReference Include="../../RealEstateStar.TestUtilities/RealEstateStar.TestUtilities.csproj" />
+  </ItemGroup>
+</Project>
