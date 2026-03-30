@@ -31,18 +31,19 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | [Observability Span Tree](observability-span-tree.md) | Trace span hierarchy with per-activity metrics |
 | [Security Hardening Layers](security-hardening-layers.md) | Defense-in-depth: input sanitization, output encoding, secret management |
 
-## API Project Structure (21 Projects + 23 Test Projects)
+## API Project Structure (44+ Projects + 34 Test Projects)
 
-The .NET 10 backend (`apps/api/`) is split into 21 isolated production projects and 23 test projects following a strict dependency graph:
+The .NET 10 backend (`apps/api/`) is split into 44+ isolated production projects and 34 test projects following a strict dependency graph:
 
 | Layer | Projects | Depends On |
 |-------|----------|------------|
 | **Domain** | `RealEstateStar.Domain` | Nothing (pure models, interfaces, enums) |
 | **Data** | `RealEstateStar.Data` | Domain only |
 | **DataServices** | `RealEstateStar.DataServices` | Domain only |
-| **Notifications** | `RealEstateStar.Notifications` | Domain only |
-| **Workers** | `Workers.Shared`, `Workers.Leads`, `Workers.Cma`, `Workers.HomeSearch`, `Workers.WhatsApp` | Domain + Workers.Shared |
-| **Clients** | `Clients.Anthropic`, `Clients.Scraper`, `Clients.WhatsApp`, `Clients.GDrive`, `Clients.Gmail`, `Clients.GoogleOAuth`, `Clients.Stripe`, `Clients.Cloudflare`, `Clients.Turnstile`, `Clients.Azure`, `Clients.Gws` | Domain only (own internal DTOs) |
+| **Workers** | `Workers.Shared`, `Workers.Lead.Orchestrator`, `Workers.Lead.CMA`, `Workers.Lead.HomeSearch`, `Workers.WhatsApp`, + 16 Activation workers | Domain + Workers.Shared |
+| **Activities** | `Activities.Pdf`, `Activities.Persist`, `Activities.Activation.PersistAgentProfile`, `Activities.Activation.BrandMerge` | Domain + Workers.Shared |
+| **Services** | `Services.AgentNotifier`, `Services.LeadCommunicator`, `Services.AgentConfig`, `Services.BrandMerge`, `Services.WelcomeNotification` | Domain only |
+| **Clients** | `Clients.Anthropic`, `Clients.Scraper`, `Clients.WhatsApp`, `Clients.GDrive`, `Clients.Gmail`, `Clients.GDocs`, `Clients.GSheets`, `Clients.GoogleOAuth`, `Clients.Stripe`, `Clients.Cloudflare`, `Clients.Turnstile`, `Clients.Azure`, `Clients.Gws`, `Clients.RentCast` | Domain only (own internal DTOs) |
 | **Api** | `RealEstateStar.Api` | Everything (sole composition root) |
 
 Key rules:
@@ -93,6 +94,13 @@ Design spec: `docs/superpowers/specs/2026-03-21-api-project-restructure-design.m
 |----------|------------|
 | [Lead Processing Pipeline](lead-processing-pipeline.md) | Lead submission through enrichment to parallel CMA and Home Search pipelines |
 | [Background Service Health](background-service-health.md) | Channel-aware health checks detecting stuck workers via queue depth + activity timestamps |
+
+## Agent Activation (OAuth + Profiling)
+
+| Document | Description |
+|----------|------------|
+| [OAuth Authorization Flow](oauth-authorization-flow.md) | HMAC-signed link → Google OAuth → token storage → activation enqueue |
+| [Agent Activation Pipeline](agent-activation-pipeline.md) | 5-phase pipeline: Gather → Synthesize (12 workers) → Persist → Notify |
 
 ## WhatsApp Integration
 

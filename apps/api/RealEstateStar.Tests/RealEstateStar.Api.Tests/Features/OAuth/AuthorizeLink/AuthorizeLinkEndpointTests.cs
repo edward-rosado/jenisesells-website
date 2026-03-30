@@ -184,12 +184,9 @@ public class AuthorizeLinkEndpointTests
         var redirectUri = new Uri(redirect.Url!);
         var qs = System.Web.HttpUtility.ParseQueryString(redirectUri.Query);
         var state = qs["state"];
+        // State is the nonce — 32 lowercase hex chars; identity is bound inside via AuthorizationLinkState
         Assert.NotNull(state);
-        var parts = state!.Split(':');
-        Assert.Equal(3, parts.Length);
-        Assert.Equal(accountId, parts[0]);
-        Assert.Equal(agentId, parts[1]);
-        Assert.Matches("^[0-9a-f]{32}$", parts[2]);
+        Assert.Matches("^[0-9a-f]{32}$", state);
     }
 }
 
@@ -244,7 +241,6 @@ public class AuthorizeLinkCallbackEndpointTests
     {
         var svc = CreateLinkService();
         var nonce = svc.GenerateNonce("acct-1", "agent-1", "agent@example.com");
-        var state = $"acct-1:agent-1:{nonce}";
         var tokens = MakeTokens("agent@example.com");
         var oauthMock = CreateOAuthMock(tokens);
         var tokenStoreMock = new Mock<ITokenStore>();
@@ -253,7 +249,7 @@ public class AuthorizeLinkCallbackEndpointTests
         var (writer, channel) = CreateChannel();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
-            "auth-code", state, null,
+            "auth-code", nonce, null,
             svc, oauthMock.Object, tokenStoreMock.Object, writer,
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
@@ -283,7 +279,7 @@ public class AuthorizeLinkCallbackEndpointTests
         var (writer, _) = CreateChannel();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
-            null, "acct-1:agent-1:somenonce", "access_denied",
+            null, "0000000000000000ffffffffffffffff", "access_denied",
             svc, oauthMock.Object, tokenStoreMock.Object, writer,
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
@@ -319,7 +315,7 @@ public class AuthorizeLinkCallbackEndpointTests
         var (writer, _) = CreateChannel();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
-            "auth-code", $"acct-1:agent-1:{nonce}", null,
+            "auth-code", nonce, null,
             svc, oauthMock.Object, tokenStoreMock.Object, writer,
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
@@ -336,7 +332,7 @@ public class AuthorizeLinkCallbackEndpointTests
         var (writer, _) = CreateChannel();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
-            "auth-code", "acct-1:agent-1:0000000000000000ffffffffffffffff", null,
+            "auth-code", "0000000000000000ffffffffffffffff", null,
             svc, oauthMock.Object, tokenStoreMock.Object, writer,
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
@@ -355,7 +351,7 @@ public class AuthorizeLinkCallbackEndpointTests
         var (writer, _) = CreateChannel();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
-            "auth-code", $"acct-1:agent-1:{nonce}", null,
+            "auth-code", nonce, null,
             svc, oauthMock.Object, tokenStoreMock.Object, writer,
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
@@ -376,7 +372,7 @@ public class AuthorizeLinkCallbackEndpointTests
         var (writer, _) = CreateChannel();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
-            null, $"acct-1:agent-1:{nonce}", null,
+            null, nonce, null,
             svc, oauthMock.Object, tokenStoreMock.Object, writer,
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
@@ -396,7 +392,7 @@ public class AuthorizeLinkCallbackEndpointTests
         var (writer, _) = CreateChannel();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
-            "auth-code", $"acct-1:agent-1:{nonce}", null,
+            "auth-code", nonce, null,
             svc, oauthMock.Object, tokenStoreMock.Object, writer,
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
@@ -418,13 +414,13 @@ public class AuthorizeLinkCallbackEndpointTests
 
         // First call succeeds
         await AuthorizeLinkCallbackEndpoint.Handle(
-            "auth-code", $"acct-1:agent-1:{nonce}", null,
+            "auth-code", nonce, null,
             svc, oauthMock.Object, tokenStoreMock.Object, writer,
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         // Second call with same nonce should show expired page
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
-            "auth-code", $"acct-1:agent-1:{nonce}", null,
+            "auth-code", nonce, null,
             svc, oauthMock.Object, tokenStoreMock.Object, writer,
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
@@ -443,7 +439,7 @@ public class AuthorizeLinkCallbackEndpointTests
         var (writer, _) = CreateChannel();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
-            null, $"acct-1:agent-1:{nonce}", "<script>alert(1)</script>",
+            null, nonce, "<script>alert(1)</script>",
             svc, oauthMock.Object, tokenStoreMock.Object, writer,
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 

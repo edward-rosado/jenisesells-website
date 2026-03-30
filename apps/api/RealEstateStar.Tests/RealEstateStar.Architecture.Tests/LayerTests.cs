@@ -158,6 +158,48 @@ public class LayerTests
             " — HomeSearch is a pure compute worker; storage orchestration belongs in Workers.Lead.Orchestrator");
     }
 
+    [Fact]
+    public void ActivationWorkers_types_should_not_depend_on_Data()
+    {
+        var activationWorkerAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.Workers.Activation.*.dll")
+            .Where(f => !f.Contains("Orchestrator") && !f.Contains("Tests"))
+            .Select(System.Reflection.Assembly.LoadFrom)
+            .ToList();
+
+        foreach (var assembly in activationWorkerAssemblies)
+        {
+            var result = Types.InAssembly(assembly)
+                .ShouldNot()
+                .HaveDependencyOn("RealEstateStar.Data")
+                .GetResult();
+
+            Assert.True(result.IsSuccessful,
+                $"{assembly.GetName().Name} types depend on Data:\n{FormatFailures(result)}" +
+                " — Activation workers are pure compute workers; storage belongs in the orchestrator");
+        }
+    }
+
+    [Fact]
+    public void ActivationWorkers_types_should_not_depend_on_DataServices()
+    {
+        var activationWorkerAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.Workers.Activation.*.dll")
+            .Where(f => !f.Contains("Orchestrator") && !f.Contains("Tests"))
+            .Select(System.Reflection.Assembly.LoadFrom)
+            .ToList();
+
+        foreach (var assembly in activationWorkerAssemblies)
+        {
+            var result = Types.InAssembly(assembly)
+                .ShouldNot()
+                .HaveDependencyOn("RealEstateStar.DataServices")
+                .GetResult();
+
+            Assert.True(result.IsSuccessful,
+                $"{assembly.GetName().Name} types depend on DataServices:\n{FormatFailures(result)}" +
+                " — Activation workers are pure compute workers; storage orchestration belongs in the orchestrator");
+        }
+    }
+
     private static string FormatFailures(TestResult result) =>
         result.FailingTypeNames is null
             ? "(no details)"

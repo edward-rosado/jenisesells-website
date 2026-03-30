@@ -56,6 +56,7 @@ public class AuthorizeLinkEndpoint : IEndpoint
             <!DOCTYPE html>
             <html lang="en">
             <head>
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; form-action /oauth/google/authorize/connect">
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Connect Google Account — Real Estate Star</title>
@@ -71,7 +72,7 @@ public class AuthorizeLinkEndpoint : IEndpoint
             </head>
             <body>
                 <h1>Connect Your Business Google Account</h1>
-                <p class="subtitle">Hello, {{safeAgentId}} — link your Google Workspace account to activate Real Estate Star automation.</p>
+                <p class="subtitle">Hello, {{safeEmail}} — link your Google Workspace account to activate Real Estate Star automation.</p>
                 <div class="warning">
                     <strong>Important:</strong> Please sign in with your <em>business</em> Google account, not a personal one.
                     This account will be used to send emails and manage your Google Drive files on your behalf.

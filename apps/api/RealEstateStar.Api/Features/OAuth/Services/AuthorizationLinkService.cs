@@ -34,7 +34,7 @@ public class AuthorizationLinkService : IDisposable
     {
         _secret = configuration["OAuthLink:Secret"]
             ?? throw new InvalidOperationException("OAuthLink:Secret configuration is required");
-        _expirationHours = int.TryParse(configuration["OAuthLink:ExpirationHours"], out var h) ? h : 24;
+        _expirationHours = int.TryParse(configuration["OAuthLink:ExpirationHours"], out var h) ? Math.Clamp(h, 1, 72) : 24;
         _baseUrl = (configuration["Api:BaseUrl"] ?? "").TrimEnd('/');
         _logger = logger;
 
@@ -78,23 +78,13 @@ public class AuthorizationLinkService : IDisposable
 
         var expected = ComputeSignature(accountId, agentId, email, exp);
 
-        // Normalize lengths for constant-time comparison — pad short sigs to prevent length leak
-        // If sig is invalid length, pad with zeros so FixedTimeEquals always compares equal-length arrays
+        // Both HMAC-SHA256 hex strings are always 64 chars.
+        // If lengths differ, the sig is definitely wrong — but still compare constant-time to avoid oracle.
         var expectedBytes = Encoding.ASCII.GetBytes(expected);
-        var actualBytes = Encoding.ASCII.GetBytes(sig.PadRight(expected.Length, '0'));
-
-        // If lengths still differ after padding (sig is longer), truncate to expected length
-        // This still causes them to be different, just avoids ArgumentException in FixedTimeEquals
-        if (actualBytes.Length != expectedBytes.Length)
-        {
-            // Lengths differ — sig is definitely wrong, but still do constant-time compare to avoid oracle
-            var normalized = new byte[expectedBytes.Length];
-            actualBytes[..Math.Min(actualBytes.Length, normalized.Length)].CopyTo(normalized, 0);
-            return CryptographicOperations.FixedTimeEquals(expectedBytes, normalized) &&
-                   actualBytes.Length == expectedBytes.Length; // always false since lengths differ
-        }
-
-        return CryptographicOperations.FixedTimeEquals(expectedBytes, actualBytes);
+        var actualBytes = Encoding.ASCII.GetBytes(sig);
+        var lengthsMatch = actualBytes.Length == expectedBytes.Length;
+        var compareTarget = lengthsMatch ? actualBytes : new byte[expectedBytes.Length];
+        return CryptographicOperations.FixedTimeEquals(expectedBytes, compareTarget) && lengthsMatch;
     }
 
     /// <summary>

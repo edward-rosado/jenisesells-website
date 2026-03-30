@@ -32,6 +32,29 @@ COPY ["RealEstateStar.Clients/RealEstateStar.Clients.Turnstile/RealEstateStar.Cl
 COPY ["RealEstateStar.Clients/RealEstateStar.Clients.Azure/RealEstateStar.Clients.Azure.csproj", "RealEstateStar.Clients/RealEstateStar.Clients.Azure/"]
 COPY ["RealEstateStar.Clients/RealEstateStar.Clients.Gws/RealEstateStar.Clients.Gws.csproj", "RealEstateStar.Clients/RealEstateStar.Clients.Gws/"]
 COPY ["RealEstateStar.Clients/RealEstateStar.Clients.RentCast/RealEstateStar.Clients.RentCast.csproj", "RealEstateStar.Clients/RealEstateStar.Clients.RentCast/"]
+# Activation workers
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.Orchestrator/RealEstateStar.Workers.Activation.Orchestrator.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.Orchestrator/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.AgentDiscovery/RealEstateStar.Workers.Activation.AgentDiscovery.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.AgentDiscovery/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.BrandExtraction/RealEstateStar.Workers.Activation.BrandExtraction.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.BrandExtraction/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.BrandingDiscovery/RealEstateStar.Workers.Activation.BrandingDiscovery.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.BrandingDiscovery/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.BrandVoice/RealEstateStar.Workers.Activation.BrandVoice.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.BrandVoice/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.CmaStyle/RealEstateStar.Workers.Activation.CmaStyle.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.CmaStyle/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.Coaching/RealEstateStar.Workers.Activation.Coaching.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.Coaching/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.ComplianceAnalysis/RealEstateStar.Workers.Activation.ComplianceAnalysis.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.ComplianceAnalysis/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.DriveIndex/RealEstateStar.Workers.Activation.DriveIndex.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.DriveIndex/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.EmailFetch/RealEstateStar.Workers.Activation.EmailFetch.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.EmailFetch/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.FeeStructure/RealEstateStar.Workers.Activation.FeeStructure.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.FeeStructure/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.MarketingStyle/RealEstateStar.Workers.Activation.MarketingStyle.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.MarketingStyle/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.Personality/RealEstateStar.Workers.Activation.Personality.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.Personality/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.PipelineAnalysis/RealEstateStar.Workers.Activation.PipelineAnalysis.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.PipelineAnalysis/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.VoiceExtraction/RealEstateStar.Workers.Activation.VoiceExtraction.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.VoiceExtraction/"]
+COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.WebsiteStyle/RealEstateStar.Workers.Activation.WebsiteStyle.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.WebsiteStyle/"]
+# Activation activities and services
+COPY ["RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.PersistAgentProfile/RealEstateStar.Activities.Activation.PersistAgentProfile.csproj", "RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.PersistAgentProfile/"]
+COPY ["RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.BrandMerge/RealEstateStar.Activities.Activation.BrandMerge.csproj", "RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.BrandMerge/"]
+COPY ["RealEstateStar.Services/Activation/RealEstateStar.Services.AgentConfig/RealEstateStar.Services.AgentConfig.csproj", "RealEstateStar.Services/Activation/RealEstateStar.Services.AgentConfig/"]
+COPY ["RealEstateStar.Services/Activation/RealEstateStar.Services.BrandMerge/RealEstateStar.Services.BrandMerge.csproj", "RealEstateStar.Services/Activation/RealEstateStar.Services.BrandMerge/"]
+COPY ["RealEstateStar.Services/Activation/RealEstateStar.Services.WelcomeNotification/RealEstateStar.Services.WelcomeNotification.csproj", "RealEstateStar.Services/Activation/RealEstateStar.Services.WelcomeNotification/"]
 
 # Restore dependencies (cached layer — only invalidated when csproj files change)
 RUN dotnet restore "RealEstateStar.Api/RealEstateStar.Api.csproj"

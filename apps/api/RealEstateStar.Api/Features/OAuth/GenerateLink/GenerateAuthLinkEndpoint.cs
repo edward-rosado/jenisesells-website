@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using RealEstateStar.Api.Features.OAuth.Services;
 using RealEstateStar.Api.Infrastructure;
@@ -24,8 +26,12 @@ public class GenerateAuthLinkEndpoint : IEndpoint
         if (!string.IsNullOrEmpty(adminToken))
         {
             var authHeader = context.Request.Headers.Authorization.ToString();
-            if (!authHeader.StartsWith("Bearer ", StringComparison.Ordinal)
-                || authHeader["Bearer ".Length..] != adminToken)
+            var token = authHeader.StartsWith("Bearer ", StringComparison.Ordinal)
+                ? authHeader["Bearer ".Length..]
+                : string.Empty;
+            if (!CryptographicOperations.FixedTimeEquals(
+                    Encoding.UTF8.GetBytes(token),
+                    Encoding.UTF8.GetBytes(adminToken)))
             {
                 logger.LogWarning("[OAUTH-LINK-090] Unauthorized generate-link attempt from {Ip}",
                     context.Connection.RemoteIpAddress);

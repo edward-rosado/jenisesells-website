@@ -74,11 +74,11 @@ if (!builder.Environment.IsDevelopment() && !args.Contains("--export-openapi")
 var oauthLinkSecret = builder.Configuration["OAuthLink:Secret"];
 if (string.IsNullOrWhiteSpace(oauthLinkSecret))
 {
-    if (builder.Environment.IsDevelopment())
-        Log.Warning("[STARTUP-WARN] OAuthLink:Secret is not configured — OAuth authorization link signing will fail if attempted in dev");
+    if (builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "OpenApiExport")
+        Log.Warning("[STARTUP-WARN] OAuthLink:Secret is not configured — OAuth authorization link signing will fail if attempted");
     else
         throw new InvalidOperationException(
-            "OAuthLink:Secret is required in non-Development environments. Set the OAuthLink:Secret configuration value.");
+            "OAuthLink:Secret is required in production. Set the OAuthLink:Secret configuration value.");
 }
 
 // Activation pipeline channel — unbounded, single channel; writer/reader registered for DI injection
