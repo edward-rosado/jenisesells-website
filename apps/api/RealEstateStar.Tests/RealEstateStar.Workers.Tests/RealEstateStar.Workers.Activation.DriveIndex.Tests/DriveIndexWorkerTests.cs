@@ -11,13 +11,11 @@ public class DriveIndexWorkerTests
     private const string AgentId = "test-agent";
     private const string FolderId = "folder-123";
 
-    private static DriveIndexWorker BuildWorker(
-        Mock<IGDriveClient>? mockClient = null,
+    private static DriveIndexWorker BuildWorker(Mock<IGDriveClient>? mockClient = null)
     {
         mockClient ??= new Mock<IGDriveClient>();
         return new DriveIndexWorker(
             mockClient.Object,
-            
             NullLogger<DriveIndexWorker>.Instance);
     }
 
