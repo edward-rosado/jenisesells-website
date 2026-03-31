@@ -139,7 +139,9 @@ public sealed class WelcomeNotificationService(
             "- Include one actionable coaching tip relevant to their pipeline\n" +
             "- Include their agent site URL with (beta) appended to the end\n" +
             "- Close with an encouraging, forward-looking sign-off from Real Estate Star\n" +
-            "- Warm, confident, modern. Think trusted tech partner, not corporate marketing.\n" +
+            "- TONE: Confident, professional, and polished. Real Estate Star is the best partner " +
+            "an agent can have to expand their business. Convey that this platform is built to " +
+            "help them win more clients, close more deals, and grow. Not salesy — authoritative.\n" +
             "- Plain text only, no markdown, no HTML";
 
         var voiceContext = outputs.VoiceSkill ?? "professional and approachable tone";
