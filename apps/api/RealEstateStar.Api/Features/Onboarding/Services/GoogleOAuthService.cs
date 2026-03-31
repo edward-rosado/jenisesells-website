@@ -52,6 +52,9 @@ public class GoogleOAuthService(
     }
 
     public virtual async Task<OAuthCredential> ExchangeCodeAsync(string code, CancellationToken ct)
+        => await ExchangeCodeAsync(code, redirectUri, ct);
+
+    public virtual async Task<OAuthCredential> ExchangeCodeAsync(string code, string callbackUri, CancellationToken ct)
     {
         var httpClient = httpClientFactory.CreateClient(nameof(GoogleOAuthService));
         var tokenRequest = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -59,7 +62,7 @@ public class GoogleOAuthService(
             ["code"] = code,
             ["client_id"] = clientId,
             ["client_secret"] = clientSecret,
-            ["redirect_uri"] = redirectUri,
+            ["redirect_uri"] = callbackUri,
             ["grant_type"] = "authorization_code",
         });
 
