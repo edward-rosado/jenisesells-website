@@ -1,5 +1,4 @@
 using System.Net;
-using System.Threading.Channels;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -126,10 +125,8 @@ public class ActivationPipelineIntegrationTests
 
     private ActivationOrchestrator BuildOrchestrator()
     {
-        var channel = Channel.CreateUnbounded<ActivationRequest>();
-
         return new ActivationOrchestrator(
-            channel.Reader,
+            new Mock<IActivationQueue>().Object,
             new AgentEmailFetchWorker(_gmailReader.Object, NullLogger<AgentEmailFetchWorker>.Instance),
             new DriveIndexWorker(_driveClient.Object, NullLogger<DriveIndexWorker>.Instance),
             new AgentDiscoveryWorker(_oauthRefresher.Object, _httpClientFactory.Object, _whatsAppSender.Object, NullLogger<AgentDiscoveryWorker>.Instance),

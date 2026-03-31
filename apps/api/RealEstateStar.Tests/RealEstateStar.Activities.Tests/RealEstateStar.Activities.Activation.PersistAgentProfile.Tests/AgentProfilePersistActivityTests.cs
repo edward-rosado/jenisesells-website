@@ -1,3 +1,5 @@
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Domain.Activation.Interfaces;
@@ -264,5 +266,101 @@ public class AgentProfilePersistActivityTests
     public void ConsentSubfolder_IsCorrect()
     {
         Assert.Equal("leads/consent", AgentProfilePersistActivity.ConsentSubfolder);
+    }
+
+    // ── Drive sync verification ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task VerifyDriveSyncAsync_LogsError_WhenProbeFileNotFound()
+    {
+        var agentFolder = $"real-estate-star/{AgentId}";
+        var mockLogger = new Mock<ILogger<AgentProfilePersistActivity>>();
+        var sut = new AgentProfilePersistActivity(
+            _storage.Object,
+            _agentConfig.Object,
+            mockLogger.Object);
+
+        _storage.Setup(s => s.ReadDocumentAsync(agentFolder, AgentProfilePersistActivity.VoiceSkillFile, Ct))
+            .ReturnsAsync((string?)null);
+
+        var outputs = MakeOutputs(voiceSkill: "Voice content");
+
+        await sut.VerifyDriveSyncAsync(agentFolder, outputs, Ct);
+
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, _) => o.ToString()!.Contains("[PERSIST-AGENT-060]")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task VerifyDriveSyncAsync_NoError_WhenProbeFileExists()
+    {
+        var agentFolder = $"real-estate-star/{AgentId}";
+        var mockLogger = new Mock<ILogger<AgentProfilePersistActivity>>();
+        var sut = new AgentProfilePersistActivity(
+            _storage.Object,
+            _agentConfig.Object,
+            mockLogger.Object);
+
+        _storage.Setup(s => s.ReadDocumentAsync(agentFolder, AgentProfilePersistActivity.VoiceSkillFile, Ct))
+            .ReturnsAsync("Voice content");
+
+        var outputs = MakeOutputs(voiceSkill: "Voice content");
+
+        await sut.VerifyDriveSyncAsync(agentFolder, outputs, Ct);
+
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task VerifyDriveSyncAsync_FallsBackToPersonalityProbe_WhenVoiceIsNull()
+    {
+        var agentFolder = $"real-estate-star/{AgentId}";
+        var mockLogger = new Mock<ILogger<AgentProfilePersistActivity>>();
+        var sut = new AgentProfilePersistActivity(
+            _storage.Object,
+            _agentConfig.Object,
+            mockLogger.Object);
+
+        _storage.Setup(s => s.ReadDocumentAsync(agentFolder, AgentProfilePersistActivity.PersonalitySkillFile, Ct))
+            .ReturnsAsync("Personality content");
+
+        var outputs = MakeOutputs(voiceSkill: null, personalitySkill: "Personality content");
+
+        await sut.VerifyDriveSyncAsync(agentFolder, outputs, Ct);
+
+        _storage.Verify(s => s.ReadDocumentAsync(agentFolder, AgentProfilePersistActivity.PersonalitySkillFile, Ct), Times.Once);
+    }
+
+    [Fact]
+    public async Task VerifyDriveSyncAsync_DoesNotThrow_WhenReadThrows()
+    {
+        var agentFolder = $"real-estate-star/{AgentId}";
+        var mockLogger = new Mock<ILogger<AgentProfilePersistActivity>>();
+        var sut = new AgentProfilePersistActivity(
+            _storage.Object,
+            _agentConfig.Object,
+            mockLogger.Object);
+
+        _storage.Setup(s => s.ReadDocumentAsync(agentFolder, AgentProfilePersistActivity.VoiceSkillFile, Ct))
+            .ThrowsAsync(new InvalidOperationException("Drive unavailable"));
+
+        var outputs = MakeOutputs(voiceSkill: "Voice content");
+
+        var act = async () => await sut.VerifyDriveSyncAsync(agentFolder, outputs, Ct);
+
+        await act.Should().NotThrowAsync();
     }
 }

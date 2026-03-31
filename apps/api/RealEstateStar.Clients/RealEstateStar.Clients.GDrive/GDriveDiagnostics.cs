@@ -15,6 +15,8 @@ public static class GDriveDiagnostics
         "gdrive.failed", description: "Drive API operation failures");
     public static readonly Counter<long> TokenMissing = Meter.CreateCounter<long>(
         "gdrive.token_missing", description: "Drive calls skipped due to missing token");
+    public static readonly Counter<long> TokenRefreshRetries = Meter.CreateCounter<long>(
+        "gdrive.token_refresh_retries", description: "Drive calls retried after OAuth token refresh");
     public static readonly Histogram<double> Duration = Meter.CreateHistogram<double>(
         "gdrive.duration_ms", unit: "ms", description: "Drive API call duration");
 }

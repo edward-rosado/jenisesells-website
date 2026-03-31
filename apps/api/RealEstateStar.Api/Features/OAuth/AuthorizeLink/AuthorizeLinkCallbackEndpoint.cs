@@ -1,12 +1,12 @@
 using RealEstateStar.Api.Features.OAuth.Services;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Infrastructure;
+using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Channels;
 using System.Web;
 
 namespace RealEstateStar.Api.Features.OAuth.AuthorizeLink;
@@ -27,7 +27,7 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
         AuthorizationLinkService authorizationLinkService,
         GoogleOAuthService googleOAuthService,
         ITokenStore tokenStore,
-        ChannelWriter<ActivationRequest> activationChannel,
+        IActivationQueue activationQueue,
         IConfiguration configuration,
         ILogger<AuthorizeLinkCallbackEndpoint> logger,
         CancellationToken ct)
@@ -97,8 +97,8 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
 
             logger.LogInformation("[OAUTH-LINK-405] Tokens persisted. AccountId={AccountId}, AgentId={AgentId}", accountId, agentId);
 
-            // Enqueue activation request
-            await activationChannel.WriteAsync(
+            // Enqueue activation request to durable queue
+            await activationQueue.EnqueueAsync(
                 new ActivationRequest(accountId, agentId, linkState.Email, DateTime.UtcNow),
                 ct);
 

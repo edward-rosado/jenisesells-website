@@ -1,6 +1,5 @@
 using System.Diagnostics.Metrics;
 using System.Net;
-using System.Threading.Channels;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -169,8 +168,6 @@ public class ActivationOrchestratorTests
 
     private ActivationOrchestrator BuildOrchestrator()
     {
-        var channel = Channel.CreateUnbounded<ActivationRequest>();
-
         var emailFetchWorker = new AgentEmailFetchWorker(
             _gmailReader.Object,
             NullLogger<AgentEmailFetchWorker>.Instance);
@@ -256,7 +253,7 @@ public class ActivationOrchestratorTests
             NullLogger<BrandMergeActivity>.Instance);
 
         return new ActivationOrchestrator(
-            channel.Reader,
+            new Mock<IActivationQueue>().Object,
             emailFetchWorker,
             driveIndexWorker,
             discoveryWorker,
@@ -364,7 +361,6 @@ public class ActivationOrchestratorTests
         var mockLogger = new Mock<Microsoft.Extensions.Logging.ILogger<ActivationOrchestrator>>();
         mockLogger.Setup(l => l.IsEnabled(It.IsAny<Microsoft.Extensions.Logging.LogLevel>())).Returns(true);
 
-        var channel = Channel.CreateUnbounded<ActivationRequest>();
         var emailFetchWorker = new AgentEmailFetchWorker(
             _gmailReader.Object, NullLogger<AgentEmailFetchWorker>.Instance);
         var driveIndexWorker = new DriveIndexWorker(
@@ -374,7 +370,7 @@ public class ActivationOrchestratorTests
             _whatsAppSender.Object, NullLogger<AgentDiscoveryWorker>.Instance);
 
         var sut = new ActivationOrchestrator(
-            channel.Reader,
+            new Mock<IActivationQueue>().Object,
             emailFetchWorker,
             driveIndexWorker,
             discoveryWorker,

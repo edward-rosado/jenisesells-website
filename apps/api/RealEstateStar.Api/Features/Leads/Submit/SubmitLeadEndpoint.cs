@@ -28,7 +28,7 @@ public class SubmitLeadEndpoint : IEndpoint
         IAccountConfigService accountConfig,
         ILeadStore leadStore,
         IMarketingConsentLog consentLog,
-        LeadOrchestratorChannel orchestratorChannel,
+        ILeadOrchestrationQueue leadQueue,
         HttpContext httpContext,
         ILogger<SubmitLeadEndpoint> logger,
         IConsentAuditService consentAudit,
@@ -213,8 +213,8 @@ public class SubmitLeadEndpoint : IEndpoint
         var correlationId = httpContext.Items[CorrelationIdMiddleware.CorrelationIdKey]?.ToString() ?? Guid.NewGuid().ToString();
         activity?.SetTag("correlation.id", correlationId);
 
-        await orchestratorChannel.Writer.WriteAsync(
-            new LeadOrchestrationRequest(agentId, lead, correlationId), ct);
+        await leadQueue.EnqueueAsync(
+            new LeadOrchestrationMessage(agentId, lead.Id, correlationId), ct);
 
         LeadDiagnostics.LeadsReceived.Add(1);
 

@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Net;
+using Google;
 using Google.Apis.Drive.v3;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Shared.Interfaces.External;
@@ -20,16 +22,12 @@ internal sealed class GDriveApiClient(
         string folderPath,
         CancellationToken ct)
     {
-        var service = await BuildServiceAsync(accountId, agentId, ct);
-        if (service is null)
-            return string.Empty;
-
-        var sw = Stopwatch.GetTimestamp();
-        using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.create_folder");
-        activity?.SetTag("gdrive.account_id", accountId);
-
-        try
+        return await WithRetryOnAuthErrorAsync(accountId, agentId, async service =>
         {
+            var sw = Stopwatch.GetTimestamp();
+            using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.create_folder");
+            activity?.SetTag("gdrive.account_id", accountId);
+
             GDriveDiagnostics.Operations.Add(1);
 
             var metadata = new Google.Apis.Drive.v3.Data.File
@@ -50,15 +48,7 @@ internal sealed class GDriveApiClient(
                 accountId, agentId, folder.Id, durationMs);
 
             return folder.Id ?? string.Empty;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            GDriveDiagnostics.Failed.Add(1);
-            logger.LogError(ex,
-                "[GDRIVE-031] CreateFolder failed for account {AccountId}, agent {AgentId}",
-                accountId, agentId);
-            throw;
-        }
+        }, "[GDRIVE-031]", string.Empty, ct);
     }
 
     public async Task<string> UploadFileAsync(
@@ -82,16 +72,12 @@ internal sealed class GDriveApiClient(
         string mimeType,
         CancellationToken ct)
     {
-        var service = await BuildServiceAsync(accountId, agentId, ct);
-        if (service is null)
-            return string.Empty;
-
-        var sw = Stopwatch.GetTimestamp();
-        using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.upload");
-        activity?.SetTag("gdrive.account_id", accountId);
-
-        try
+        return await WithRetryOnAuthErrorAsync(accountId, agentId, async service =>
         {
+            var sw = Stopwatch.GetTimestamp();
+            using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.upload");
+            activity?.SetTag("gdrive.account_id", accountId);
+
             GDriveDiagnostics.Operations.Add(1);
 
             var metadata = new Google.Apis.Drive.v3.Data.File
@@ -116,15 +102,7 @@ internal sealed class GDriveApiClient(
                 accountId, agentId, fileId, durationMs);
 
             return fileId;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            GDriveDiagnostics.Failed.Add(1);
-            logger.LogError(ex,
-                "[GDRIVE-032] UploadBinary failed for account {AccountId}, agent {AgentId}",
-                accountId, agentId);
-            throw;
-        }
+        }, "[GDRIVE-032]", string.Empty, ct);
     }
 
     public async Task<string?> DownloadFileAsync(
@@ -134,16 +112,12 @@ internal sealed class GDriveApiClient(
         string fileName,
         CancellationToken ct)
     {
-        var service = await BuildServiceAsync(accountId, agentId, ct);
-        if (service is null)
-            return null;
-
-        var sw = Stopwatch.GetTimestamp();
-        using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.download");
-        activity?.SetTag("gdrive.account_id", accountId);
-
-        try
+        return await WithRetryOnAuthErrorAsync<string?>(accountId, agentId, async service =>
         {
+            var sw = Stopwatch.GetTimestamp();
+            using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.download");
+            activity?.SetTag("gdrive.account_id", accountId);
+
             GDriveDiagnostics.Operations.Add(1);
 
             // Find file by name within the folder
@@ -171,15 +145,7 @@ internal sealed class GDriveApiClient(
                 accountId, agentId, fileId, durationMs);
 
             return content;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            GDriveDiagnostics.Failed.Add(1);
-            logger.LogError(ex,
-                "[GDRIVE-033] DownloadFile failed for account {AccountId}, agent {AgentId}",
-                accountId, agentId);
-            throw;
-        }
+        }, "[GDRIVE-033]", null, ct);
     }
 
     public async Task DeleteFileAsync(
@@ -277,16 +243,12 @@ internal sealed class GDriveApiClient(
         string folderId,
         CancellationToken ct)
     {
-        var service = await BuildServiceAsync(accountId, agentId, ct);
-        if (service is null)
-            return [];
-
-        var sw = Stopwatch.GetTimestamp();
-        using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.list");
-        activity?.SetTag("gdrive.account_id", accountId);
-
-        try
+        return await WithRetryOnAuthErrorAsync(accountId, agentId, async service =>
         {
+            var sw = Stopwatch.GetTimestamp();
+            using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.list");
+            activity?.SetTag("gdrive.account_id", accountId);
+
             GDriveDiagnostics.Operations.Add(1);
 
             var listRequest = service.Files.List();
@@ -308,15 +270,7 @@ internal sealed class GDriveApiClient(
                 accountId, agentId, names.Count, durationMs);
 
             return names;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            GDriveDiagnostics.Failed.Add(1);
-            logger.LogError(ex,
-                "[GDRIVE-035] ListFiles failed for account {AccountId}, agent {AgentId}",
-                accountId, agentId);
-            throw;
-        }
+        }, "[GDRIVE-035]", [], ct);
     }
 
     public async Task<IReadOnlyList<Domain.Shared.Interfaces.External.DriveFileInfo>> ListAllFilesAsync(
@@ -499,6 +453,67 @@ internal sealed class GDriveApiClient(
             throw;
         }
     }
+
+    // ── Token retry logic ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Wraps a Drive API operation with automatic retry on 401/403: refreshes the OAuth
+    /// token and rebuilds the DriveService, then retries the operation once.
+    /// </summary>
+    private async Task<T> WithRetryOnAuthErrorAsync<T>(
+        string accountId,
+        string agentId,
+        Func<DriveService, Task<T>> operation,
+        string errorCode,
+        T noTokenFallback,
+        CancellationToken ct)
+    {
+        var service = await BuildServiceAsync(accountId, agentId, ct);
+        if (service is null)
+            return noTokenFallback;
+
+        try
+        {
+            return await operation(service);
+        }
+        catch (GoogleApiException ex) when (IsAuthError(ex))
+        {
+            logger.LogWarning(
+                "[GDRIVE-050] Auth error ({StatusCode}) for account {AccountId}, agent {AgentId}. Refreshing token and retrying once.",
+                ex.HttpStatusCode, accountId, agentId);
+            GDriveDiagnostics.TokenRefreshRetries.Add(1);
+
+            var retryService = await BuildServiceAsync(accountId, agentId, ct);
+            if (retryService is null)
+                return noTokenFallback;
+
+            try
+            {
+                return await operation(retryService);
+            }
+            catch (Exception retryEx) when (retryEx is not OperationCanceledException)
+            {
+                GDriveDiagnostics.Failed.Add(1);
+                logger.LogError(retryEx,
+                    "{ErrorCode} Retry after token refresh also failed for account {AccountId}, agent {AgentId}",
+                    errorCode, accountId, agentId);
+                throw;
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            GDriveDiagnostics.Failed.Add(1);
+            logger.LogError(ex,
+                "{ErrorCode} Operation failed for account {AccountId}, agent {AgentId}",
+                errorCode, accountId, agentId);
+            throw;
+        }
+    }
+
+    internal static bool IsAuthError(GoogleApiException ex) =>
+        ex.HttpStatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden;
+
+    // ── Service builder ──────────────────────────────────────────────────────
 
     private async Task<DriveService?> BuildServiceAsync(
         string accountId,

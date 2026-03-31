@@ -29,6 +29,12 @@ public sealed class FanOutStorageProvider : IFileStorageProvider
     private readonly string _platformEmail;
     private readonly ILogger _logger;
 
+    /// <summary>
+    /// When true, the Account Drive tier and Agent Drive tier write to the same
+    /// Google Drive folder. Skips the Account tier to avoid wasted API calls and 409 conflicts.
+    /// </summary>
+    private readonly bool _isSingleAgent;
+
     public FanOutStorageProvider(
         IGDriveClient driveClient,
         IGSheetsClient sheetsClient,
@@ -47,6 +53,7 @@ public sealed class FanOutStorageProvider : IFileStorageProvider
         _agentId = agentId;
         _platformEmail = platformEmail;
         _logger = logger;
+        _isSingleAgent = string.Equals(accountId, agentId, StringComparison.Ordinal);
     }
 
     // ── Document methods ──────────────────────────────────────────────────────
@@ -56,12 +63,14 @@ public sealed class FanOutStorageProvider : IFileStorageProvider
         var sw = Stopwatch.StartNew();
         FanOutDiagnostics.Writes.Add(1);
 
-        var tasks = new[]
+        var tasks = new List<Task>
         {
             ExecuteTierAsync("Agent", () => _driveClient.UploadFileAsync(_accountId, _agentId, folder, fileName, content, ct)),
-            ExecuteTierAsync("Account", () => _driveClient.UploadFileAsync(_accountId, AccountTierAgentId, folder, fileName, content, ct)),
             ExecuteTierAsync("Platform", () => _platformStore.WriteDocumentAsync(folder, fileName, content, ct)),
         };
+
+        if (!_isSingleAgent)
+            tasks.Add(ExecuteTierAsync("Account", () => _driveClient.UploadFileAsync(_accountId, AccountTierAgentId, folder, fileName, content, ct)));
 
         await Task.WhenAll(tasks);
         FanOutDiagnostics.Duration.Record(sw.Elapsed.TotalMilliseconds);
@@ -106,12 +115,14 @@ public sealed class FanOutStorageProvider : IFileStorageProvider
         var sw = Stopwatch.StartNew();
         FanOutDiagnostics.Writes.Add(1);
 
-        var tasks = new[]
+        var tasks = new List<Task>
         {
             ExecuteTierAsync("Agent", () => _driveClient.UploadFileAsync(_accountId, _agentId, folder, fileName, content, ct)),
-            ExecuteTierAsync("Account", () => _driveClient.UploadFileAsync(_accountId, AccountTierAgentId, folder, fileName, content, ct)),
             ExecuteTierAsync("Platform", () => _platformStore.UpdateDocumentAsync(folder, fileName, content, ct)),
         };
+
+        if (!_isSingleAgent)
+            tasks.Add(ExecuteTierAsync("Account", () => _driveClient.UploadFileAsync(_accountId, AccountTierAgentId, folder, fileName, content, ct)));
 
         await Task.WhenAll(tasks);
         FanOutDiagnostics.Duration.Record(sw.Elapsed.TotalMilliseconds);
@@ -122,9 +133,12 @@ public sealed class FanOutStorageProvider : IFileStorageProvider
         var tasks = new List<Task>
         {
             ExecuteTierAsync("Agent", () => _driveClient.DeleteFileByNameAsync(_accountId, _agentId, folder, fileName, ct)),
-            ExecuteTierAsync("Account", () => _driveClient.DeleteFileByNameAsync(_accountId, AccountTierAgentId, folder, fileName, ct)),
             ExecuteTierAsync("Platform", () => _platformStore.DeleteDocumentAsync(folder, fileName, ct)),
         };
+
+        if (!_isSingleAgent)
+            tasks.Add(ExecuteTierAsync("Account", () => _driveClient.DeleteFileByNameAsync(_accountId, AccountTierAgentId, folder, fileName, ct)));
+
         await Task.WhenAll(tasks);
     }
 
@@ -199,12 +213,14 @@ public sealed class FanOutStorageProvider : IFileStorageProvider
 
     public async Task EnsureFolderExistsAsync(string folder, CancellationToken ct)
     {
-        var tasks = new[]
+        var tasks = new List<Task>
         {
             ExecuteTierAsync("Agent", () => _driveClient.CreateFolderAsync(_accountId, _agentId, folder, ct)),
-            ExecuteTierAsync("Account", () => _driveClient.CreateFolderAsync(_accountId, AccountTierAgentId, folder, ct)),
             ExecuteTierAsync("Platform", () => _platformStore.EnsureFolderExistsAsync(folder, ct)),
         };
+
+        if (!_isSingleAgent)
+            tasks.Add(ExecuteTierAsync("Account", () => _driveClient.CreateFolderAsync(_accountId, AccountTierAgentId, folder, ct)));
 
         await Task.WhenAll(tasks);
     }
