@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real Estate Star — Reseller Recruitment Deck</title>
+<style>
+  :root {
+    --emerald-400: #34d399;
+    --emerald-500: #10b981;
+    --emerald-600: #059669;
+    --bg: #030712;
+    --card: #111827;
+    --border: #1f2937;
+    --text: #f9fafb;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .deck { position: relative; width: 100%; height: 100vh; }
+
+  .slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4rem 8rem;
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    pointer-events: none;
+    background: var(--bg);
+  }
+
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  .slide.prev { transform: translateX(-40px); }
+
+  h1 { font-size: 3.2rem; font-weight: 800; line-height: 1.1; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+  h2 { font-size: 2.2rem; font-weight: 700; line-height: 1.2; margin-bottom: 1rem; letter-spacing: -0.01em; }
+  h3 { font-size: 0.85rem; font-weight: 600; color: var(--emerald-400); margin-bottom: 1.5rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  p { font-size: 1.1rem; line-height: 1.7; color: var(--text-secondary); margin-bottom: 1rem; }
+
+  ul { list-style: none; padding: 0; }
+  ul li {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    padding: 0.4rem 0 0.4rem 1.5rem;
+    position: relative;
+    color: var(--text-secondary);
+  }
+  ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.9rem;
+    width: 6px;
+    height: 6px;
+    background: var(--emerald-500);
+    border-radius: 50%;
+  }
+  ul li strong { color: var(--text); }
+
+  .emerald { color: var(--emerald-400); }
+  .big-number { font-size: 3rem; font-weight: 800; color: var(--emerald-400); line-height: 1; }
+  .stat-row { display: flex; gap: 3rem; margin: 2rem 0; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-label { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.3rem; max-width: 160px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.92rem; }
+  th { text-align: left; padding: 0.65rem 0.8rem; background: var(--gray-900); color: var(--emerald-400); font-weight: 600; border-bottom: 2px solid var(--emerald-600); font-size: 0.85rem; }
+  td { padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+  tr.highlight-row td { background: rgba(16,185,129,0.06); font-weight: 600; color: var(--text); }
+
+  .green-text { color: var(--emerald-400); font-weight: 600; }
+
+  .quote {
+    font-size: 1.3rem;
+    font-style: italic;
+    color: var(--emerald-400);
+    border-left: 3px solid var(--emerald-500);
+    padding-left: 1.5rem;
+    margin: 2rem 0;
+    font-weight: 500;
+  }
+
+  .pill {
+    display: inline-block;
+    background: rgba(16,185,129,0.1);
+    color: var(--emerald-400);
+    padding: 0.35rem 1rem;
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid rgba(16,185,129,0.2);
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+  .card {
+    background: var(--gray-900);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--emerald-600); }
+  .card h4 { color: var(--text); font-size: 1rem; margin-bottom: 0.5rem; font-weight: 600; }
+  .card p { font-size: 0.95rem; }
+  .card-accent { border-color: var(--emerald-500); background: rgba(16,185,129,0.04); }
+
+  .nav {
+    position: fixed;
+    bottom: 2rem;
+    right: 3rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 100;
+  }
+  .nav button {
+    background: var(--gray-800);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .nav button:hover { background: var(--emerald-600); border-color: var(--emerald-500); }
+  .nav .counter { font-size: 0.85rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+  .progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--emerald-600), var(--emerald-400));
+    transition: width 0.4s ease;
+    z-index: 100;
+  }
+
+  .logo {
+    position: fixed;
+    top: 1.5rem;
+    left: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 100;
+  }
+  .logo svg { width: 24px; height: 24px; }
+  .logo-text { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.06em; }
+
+  .steps { counter-reset: step; margin: 1rem 0; }
+  .steps li {
+    counter-increment: step;
+    padding-left: 2.5rem;
+  }
+  .steps li::before {
+    content: counter(step);
+    background: var(--emerald-600);
+    color: var(--text);
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    position: absolute;
+    left: 0;
+    top: 0.4rem;
+  }
+
+  .contact-card {
+    margin-top: 2rem;
+    padding: 1.5rem 2rem;
+    background: var(--gray-900);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: inline-block;
+  }
+
+  @media print {
+    .slide { position: relative; page-break-after: always; opacity: 1; transform: none; pointer-events: auto; height: 100vh; }
+    .nav, .progress, .logo { display: none; }
+    body { overflow: visible; }
+  }
+
+  @media (max-width: 1024px) {
+    .slide { padding: 2rem 3rem; }
+    h1 { font-size: 2.4rem; }
+    h2 { font-size: 1.6rem; }
+    .two-col { grid-template-columns: 1fr; }
+    .stat-row { gap: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="logo">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Real Estate Star logo">
+    <polygon points="50,8 61,36 92,36 67,55 76,84 50,67 24,84 33,55 8,36 39,36" fill="none" stroke="#10b981" stroke-width="1.5"/>
+    <polygon points="50,22 57,40 76,40 61,51 67,70 50,59 33,70 39,51 24,40 43,40" fill="#10b981"/>
+  </svg>
+  <span class="logo-text">REAL ESTATE STAR</span>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- Slide 1: Cover -->
+  <div class="slide active">
+    <h3>Reseller Opportunity</h3>
+    <h1>Sell the Future of<br>Real Estate Tech</h1>
+    <p style="font-size:1.25rem; color:var(--text-secondary); margin-bottom:2rem;">A channel sales opportunity in real estate's most underserved market.</p>
+    <div>
+      <span class="pill">$14.99/mo product</span>
+      <span class="pill">$49 &ndash; $149 setup fee (yours to keep)</span>
+      <span class="pill">Zero inventory risk</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: The Opportunity -->
+  <div class="slide">
+    <h3>The Opportunity</h3>
+    <h2>1.2 million agents. Most priced out of good tech.</h2>
+    <div class="stat-row">
+      <div class="stat">
+        <div class="big-number">$12.3B</div>
+        <div class="stat-label">Real estate SaaS market (2026)</div>
+      </div>
+      <div class="stat">
+        <div class="big-number">54%</div>
+        <div class="stat-label">of agents spend $50 &ndash; $500/mo on tech</div>
+      </div>
+      <div class="stat">
+        <div class="big-number">68%</div>
+        <div class="stat-label">already use AI tools</div>
+      </div>
+      <div class="stat">
+        <div class="big-number">$8,100</div>
+        <div class="stat-label">median new agent income/yr</div>
+      </div>
+    </div>
+    <p>The appetite for AI-powered tools is massive. Affordable supply doesn't exist. <span class="emerald">That's the gap.</span></p>
+  </div>
+
+  <!-- Slide 3: The Gap -->
+  <div class="slide">
+    <h3>The Gap in the Market</h3>
+    <h2>No platform combines website + CMA + lead automation + compliance under $100/mo.</h2>
+    <div class="two-col">
+      <div class="card">
+        <h4>Premium Tier: $300 &ndash; $1,700/mo</h4>
+        <p>KVCore, Ylopo, Chime, BoomTown &mdash; built for teams and brokerages, overkill for solo agents.</p>
+      </div>
+      <div class="card">
+        <h4>Budget Tier: $40 &ndash; $150/mo</h4>
+        <p>Placester, iNCOM &mdash; basic websites, no CMA, no automation. You get what you pay for.</p>
+      </div>
+      <div class="card">
+        <h4>CMA-Only Tools: $40 &ndash; $99/mo</h4>
+        <p>Cloud CMA, Saleswise, PropStream &mdash; separate subscriptions on top of everything else.</p>
+      </div>
+      <div class="card card-accent">
+        <h4 style="color:var(--emerald-400);">Real Estate Star: $14.99/mo</h4>
+        <p><strong style="color:var(--text);">Everything included.</strong> Website, CMA, lead automation, compliance, AI, analytics. One platform.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 4: Meet Real Estate Star -->
+  <div class="slide">
+    <h3>Meet Real Estate Star</h3>
+    <h2>Everything an agent needs. One platform. $14.99/mo.</h2>
+    <ul>
+      <li><strong>Professional white-label website</strong> &mdash; 12 beautiful, luxurious templates</li>
+      <li><strong>AI-powered CMA automation</strong> &mdash; lead comes in, branded PDF goes out</li>
+      <li><strong>Lead capture</strong> with bot protection and auto-enrichment</li>
+      <li><strong>State-specific legal compliance</strong> &mdash; disclosures, consent tracking built in</li>
+      <li><strong>Google Workspace integration</strong> &mdash; agent's own Drive, Gmail, Sheets</li>
+      <li><strong>SEO &amp; AEO ready</strong> &mdash; found by Google search and AI answer engines</li>
+      <li><strong>Google Analytics</strong> &mdash; track visitors and leads out of the box</li>
+      <li><strong>10-minute AI-powered setup</strong> &mdash; connect Google, AI discovers their brand</li>
+    </ul>
+  </div>
+
+  <!-- Slide 5: Why It Sells Itself -->
+  <div class="slide">
+    <h3>Why It Sells Itself</h3>
+    <h2>You're selling a $15/month product that replaces $300 &ndash; $500/month of tools.</h2>
+    <table>
+      <tr><th>What Agents Pay Now</th><th>Real Estate Star</th></tr>
+      <tr><td>Website: $59 &ndash; $329/mo</td><td class="green-text">Included</td></tr>
+      <tr><td>CMA tool: $40 &ndash; $99/mo</td><td class="green-text">Included</td></tr>
+      <tr><td>Lead capture: $50 &ndash; $100/mo</td><td class="green-text">Included</td></tr>
+      <tr><td>Compliance: manual / risky</td><td class="green-text">Included</td></tr>
+      <tr style="font-weight:700; font-size:1.05rem;"><td style="color:var(--text);">Total: $149 &ndash; $528+/mo</td><td style="color:var(--emerald-400); font-size:1.1rem;">$14.99/mo</td></tr>
+    </table>
+    <div class="quote">&ldquo;This isn't a hard sell. It's a math problem.&rdquo;</div>
+  </div>
+
+  <!-- Slide 6: Your Economics -->
+  <div class="slide">
+    <h3>Your Economics</h3>
+    <h2>You keep 100% of the setup fee. Every sale.</h2>
+    <table>
+      <tr><th>Deal Type</th><th>Your Setup Fee</th><th>Agent Monthly</th><th>Your Earnings</th></tr>
+      <tr><td>Solo agent</td><td>$49 &ndash; $149</td><td>$14.99/mo</td><td><strong class="emerald">$49 &ndash; $149</strong> per sale</td></tr>
+      <tr><td>Small brokerage (10)</td><td>$79 &ndash; $99/agent</td><td>$14.99/mo/agent</td><td><strong class="emerald">$790 &ndash; $990</strong> per deal</td></tr>
+      <tr><td>Mid brokerage (25)</td><td>$49 &ndash; $79/agent</td><td>$14.99/mo/agent</td><td><strong class="emerald">$1,225 &ndash; $1,975</strong> per deal</td></tr>
+      <tr><td>Large brokerage (50+)</td><td>Negotiated</td><td>$14.99/mo/agent</td><td><strong class="emerald">$2,450+</strong> per deal</td></tr>
+    </table>
+    <div class="stat-row" style="margin-top:1.5rem;">
+      <div class="stat"><div class="big-number">$1,490</div><div class="stat-label">10 solo agents/mo (high end)</div></div>
+      <div class="stat"><div class="big-number">$1,975</div><div class="stat-label">1 brokerage deal (25 agents)</div></div>
+    </div>
+    <p>No cap on earnings. No territory restrictions.</p>
+  </div>
+
+  <!-- Slide 7: Competitive Landscape -->
+  <div class="slide">
+    <h3>Competitive Landscape</h3>
+    <h2>How Real Estate Star compares</h2>
+    <table style="font-size:0.82rem;">
+      <tr><th>Platform</th><th>Monthly</th><th>Setup</th><th>Site</th><th>CMA</th><th>Leads</th><th>Compliance</th><th>AI</th></tr>
+      <tr class="highlight-row"><td><strong>Real Estate Star</strong></td><td><strong>$14.99</strong></td><td><strong>$0</strong></td><td class="green-text">Yes</td><td class="green-text">Yes</td><td class="green-text">Yes</td><td class="green-text">Yes</td><td class="green-text">Yes</td></tr>
+      <tr><td>KVCore</td><td>~$499</td><td>$500+</td><td>Yes</td><td>Add-on</td><td>Yes</td><td>No</td><td>Partial</td></tr>
+      <tr><td>Ylopo</td><td>Custom</td><td>?</td><td>Yes</td><td>No</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+      <tr><td>Chime / Lofty</td><td>~$449</td><td>?</td><td>Yes</td><td>No</td><td>Yes</td><td>No</td><td>Partial</td></tr>
+      <tr><td>Real Geeks</td><td>$249+</td><td>$250</td><td>Yes</td><td>No</td><td>Partial</td><td>No</td><td>No</td></tr>
+      <tr><td>Placester</td><td>$59+</td><td>$0</td><td>Yes</td><td>No</td><td>No</td><td>No</td><td>No</td></tr>
+      <tr><td>Luxury Presence</td><td>$300+</td><td>$500+</td><td>Yes</td><td>No</td><td>No</td><td>No</td><td>Partial</td></tr>
+    </table>
+    <div class="quote">&ldquo;You're paying $300 &ndash; $500/month. This does the same thing for $15. And I'll set it up for you.&rdquo;</div>
+  </div>
+
+  <!-- Slide 8: The Product -->
+  <div class="slide">
+    <h3>The Product</h3>
+    <h2>What agents see when they sign up</h2>
+    <div class="two-col">
+      <div class="card">
+        <h4>Professional Website</h4>
+        <p>12 luxurious templates &mdash; modern, mobile-ready, branded to the agent. Custom looks available for agents with existing sites.</p>
+      </div>
+      <div class="card">
+        <h4>CMA Reports</h4>
+        <p>AI-generated, agent-branded PDF reports. Sent automatically when a lead submits their property.</p>
+      </div>
+      <div class="card">
+        <h4>Lead Capture</h4>
+        <p>Forms with Turnstile bot protection. AI enrichment and instant notifications via email or WhatsApp.</p>
+      </div>
+      <div class="card">
+        <h4>AI Activation</h4>
+        <p>Connect Google, AI discovers their brand, site goes live in 10 minutes. No manual configuration.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: How Activation Works -->
+  <div class="slide">
+    <h3>How Activation Works</h3>
+    <h2>Agent connects Google. AI does the rest.</h2>
+    <ul class="steps">
+      <li>Agent clicks your setup link</li>
+      <li>Google OAuth &mdash; connects Gmail, Drive</li>
+      <li>AI scans their existing data (emails, contacts, listings)</li>
+      <li>AI extracts: brand colors, voice, personality, headshot</li>
+      <li>Website goes live at {handle}.real-estate-star.com</li>
+      <li>CMA pipeline activated &mdash; ready for leads</li>
+      <li>Total time: ~10 minutes</li>
+    </ul>
+    <p style="margin-top:1.5rem;">You don't need to build anything. You don't need to configure anything. <span class="emerald">The AI does the setup.</span></p>
+  </div>
+
+  <!-- Slide 10: Brokerage Deals -->
+  <div class="slide">
+    <h3>Brokerage Deals</h3>
+    <h2>Volume pricing &mdash; your biggest earning opportunity.</h2>
+    <ul>
+      <li>Brokerages want <strong>uniform tech</strong> across their agents</li>
+      <li>One conversation &rarr; <strong>10 &ndash; 50+ agent signups</strong></li>
+      <li>You negotiate the setup fee per agent (suggested: $49 &ndash; $99 for volume)</li>
+      <li>Monthly stays $14.99/agent &mdash; no brokerage markup from us</li>
+      <li><strong>50+ agent deals</strong>: recurring revenue share is negotiable</li>
+    </ul>
+    <div class="quote">&ldquo;Give your agents professional websites and automation for less than their monthly coffee budget.&rdquo;</div>
+  </div>
+
+  <!-- Slide 11: Support & Commitment -->
+  <div class="slide">
+    <h3>Support &amp; Your Commitment</h3>
+    <h2>What we provide. What we expect.</h2>
+    <div class="two-col">
+      <div>
+        <h4 style="color:var(--emerald-400); margin-bottom:1rem; font-size:1rem;">We provide:</h4>
+        <ul>
+          <li>Agent Sales Deck (ready to present)</li>
+          <li>Setup link generation</li>
+          <li>Product training materials</li>
+          <li>Dedicated reseller support channel</li>
+          <li>Feature roadmap visibility</li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="color:var(--emerald-400); margin-bottom:1rem; font-size:1rem;">Your commitment:</h4>
+        <ul>
+          <li><strong>Customer satisfaction</strong> &mdash; follow through until the agent is happy</li>
+          <li>12 templates cover most; custom looks available (extra time)</li>
+          <li>Your reputation is tied to the product</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:2rem;">This is a partnership, not a drop-ship. Your setup fee is for your <strong style="color:var(--text);">personal attention</strong> &mdash; we handle the tech, you handle the relationship.</p>
+  </div>
+
+  <!-- Slide 12: Get Started -->
+  <div class="slide">
+    <h3>Get Started</h3>
+    <h1>Ready to start selling?</h1>
+    <ul style="margin:1.5rem 0;">
+      <li><strong>No upfront cost</strong> to become a reseller</li>
+      <li><strong>Start earning</strong> on your first sale</li>
+      <li>Setup fee: $49 &ndash; $149 per agent (you keep 100%)</li>
+      <li>Brokerage deals: volume pricing negotiable</li>
+    </ul>
+    <div class="contact-card">
+      <p style="font-size:1.2rem; color:var(--text); margin-bottom:0.25rem;"><strong>Eddie Rosado</strong>, Founder</p>
+      <p style="color:var(--emerald-400); margin-bottom:0.25rem;">Real Estate Star</p>
+      <p style="color:var(--text-muted); margin:0;">https://real-estate-star.com</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="nav">
+  <span class="counter" id="counter">1 / 12</span>
+  <button onclick="prev()" aria-label="Previous slide">&#8592;</button>
+  <button onclick="next()" aria-label="Next slide">&#8594;</button>
+</div>
+
+<script>
+  let current = 0;
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+
+  function show(index) {
+    slides.forEach((s, i) => {
+      s.classList.remove('active', 'prev');
+      if (i < index) s.classList.add('prev');
+    });
+    slides[index].classList.add('active');
+    counter.textContent = `${index + 1} / ${total}`;
+    progress.style.width = `${((index + 1) / total) * 100}%`;
+  }
+
+  function next() { if (current < total - 1) { current++; show(current); } }
+  function prev() { if (current > 0) { current--; show(current); } }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+    if (e.key === 'Home') { current = 0; show(current); }
+    if (e.key === 'End') { current = total - 1; show(current); }
+  });
+
+  show(0);
+</script>
+</body>
+</html>
