@@ -19,7 +19,7 @@ public sealed class BrandMergeService(
     internal const string FolderPrefix = "real-estate-star";
     internal const string BrandProfileFile = "Brand Profile.md";
     internal const string BrandVoiceFile = "Brand Voice.md";
-    internal const string Model = "claude-opus-4-5";
+    internal const string Model = "claude-sonnet-4-6";
     internal const string Pipeline = "brand-merge";
     internal const int MaxTokens = 2000;
 
