@@ -88,7 +88,8 @@ public sealed class AgentDiscoveryWorker(
             Reviews: allReviews,
             Profiles: profiles,
             Ga4MeasurementId: ga4Id,
-            WhatsAppEnabled: whatsAppEnabled);
+            WhatsAppEnabled: whatsAppEnabled,
+            Languages: ["English"]);
     }
 
     private async Task<byte[]?> DownloadHeadshotAsync(string accountId, string agentId, CancellationToken ct)

@@ -14,13 +14,13 @@ public class MarketingStyleWorkerTests
         new(Id: Guid.NewGuid().ToString(), Subject: subject,
             Body: "Just listed a beautiful home! View listing at http://example.com",
             From: "agent@example.com", To: ["client@example.com"],
-            Date: DateTime.UtcNow, SignatureBlock: null);
+            Date: DateTime.UtcNow, SignatureBlock: null, Attachments: []);
 
     private static EmailMessage MakeRegularEmail() =>
         new(Id: Guid.NewGuid().ToString(), Subject: "Your closing date",
             Body: "Hi, your closing is scheduled for next week.",
             From: "agent@example.com", To: ["client@example.com"],
-            Date: DateTime.UtcNow, SignatureBlock: null);
+            Date: DateTime.UtcNow, SignatureBlock: null, Attachments: []);
 
     private static DriveIndex MakeEmptyDriveIndex() => new(
         FolderId: "folder-1", Files: [],
@@ -159,7 +159,7 @@ public class MarketingStyleWorkerTests
     {
         var email = new EmailMessage(
             Id: "1", Subject: subject, Body: body,
-            From: "a@b.com", To: ["c@d.com"], Date: DateTime.UtcNow, SignatureBlock: null);
+            From: "a@b.com", To: ["c@d.com"], Date: DateTime.UtcNow, SignatureBlock: null, Attachments: []);
 
         var result = MarketingStyleWorker.IsMarketingEmail(email);
         result.Should().Be(expected);
@@ -192,7 +192,7 @@ public class MarketingStyleWorkerTests
 
         var emails = new List<EmailMessage>
         {
-            new("1", "Just Listed", "raw body content", "a@b.com", ["c@d.com"], DateTime.UtcNow, null)
+            new("1", "Just Listed", "raw body content", "a@b.com", ["c@d.com"], DateTime.UtcNow, null, [])
         };
 
         MarketingStyleWorker.BuildPrompt(emails, MakeEmptyDriveIndex(), sanitizer.Object);

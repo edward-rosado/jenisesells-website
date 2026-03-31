@@ -13,12 +13,12 @@ public class WebsiteStyleWorkerTests
     private static AgentDiscovery MakeEmptyDiscovery() =>
         new(HeadshotBytes: null, LogoBytes: null, Phone: null,
             Websites: [], Reviews: [], Profiles: [],
-            Ga4MeasurementId: null, WhatsAppEnabled: false);
+            Ga4MeasurementId: null, WhatsAppEnabled: false, Languages: ["English"]);
 
     private static AgentDiscovery MakeDiscoveryWith(params DiscoveredWebsite[] websites) =>
         new(HeadshotBytes: null, LogoBytes: null, Phone: null,
             Websites: websites, Reviews: [], Profiles: [],
-            Ga4MeasurementId: null, WhatsAppEnabled: false);
+            Ga4MeasurementId: null, WhatsAppEnabled: false, Languages: ["English"]);
 
     private static DiscoveredWebsite MakeWebsite(string html = "<html><body>Agent website</body></html>") =>
         new(Url: "https://agent.example.com", Source: "agent-site", Html: html);

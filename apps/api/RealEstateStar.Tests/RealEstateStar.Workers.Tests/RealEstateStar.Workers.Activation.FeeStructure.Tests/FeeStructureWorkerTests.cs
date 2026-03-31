@@ -13,13 +13,13 @@ public class FeeStructureWorkerTests
     private static EmailMessage MakeFeeEmail(string subject = "Commission discussion", string body = "The commission is 2.5% on buyer side.") =>
         new(Id: Guid.NewGuid().ToString(), Subject: subject, Body: body,
             From: "agent@example.com", To: ["client@example.com"],
-            Date: DateTime.UtcNow, SignatureBlock: null);
+            Date: DateTime.UtcNow, SignatureBlock: null, Attachments: []);
 
     private static EmailMessage MakeRegularEmail() =>
         new(Id: Guid.NewGuid().ToString(), Subject: "Showing confirmed",
             Body: "I confirmed the showing for Tuesday at 3pm.",
             From: "agent@example.com", To: ["client@example.com"],
-            Date: DateTime.UtcNow, SignatureBlock: null);
+            Date: DateTime.UtcNow, SignatureBlock: null, Attachments: []);
 
     private static DriveFile MakeFeeDoc(string name = "Listing Agreement.pdf") =>
         new(Id: "doc-1", Name: name, MimeType: "application/pdf", Category: "contract", ModifiedDate: DateTime.UtcNow);
@@ -190,7 +190,7 @@ public class FeeStructureWorkerTests
     [InlineData("Open house this weekend", "come visit", false)]
     public void IsFeeRelated_FiltersCorrectly(string subject, string body, bool expected)
     {
-        var email = new EmailMessage("1", subject, body, "a@b.com", ["c@d.com"], DateTime.UtcNow, null);
+        var email = new EmailMessage("1", subject, body, "a@b.com", ["c@d.com"], DateTime.UtcNow, null, []);
         var result = FeeStructureWorker.IsFeeRelated(email);
         result.Should().Be(expected);
     }

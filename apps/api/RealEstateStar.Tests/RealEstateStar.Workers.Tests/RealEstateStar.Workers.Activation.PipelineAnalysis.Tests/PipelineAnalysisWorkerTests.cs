@@ -13,7 +13,7 @@ public class PipelineAnalysisWorkerTests
     private static EmailMessage MakeEmail(string subject = "Showing request", string body = "I would like to schedule a showing.") =>
         new(Id: Guid.NewGuid().ToString(), Subject: subject, Body: body,
             From: "client@example.com", To: ["agent@example.com"],
-            Date: DateTime.UtcNow, SignatureBlock: null);
+            Date: DateTime.UtcNow, SignatureBlock: null, Attachments: []);
 
     private static EmailCorpus MakeCorpusWithInboxEmails(int inboxCount, int sentCount = 5) =>
         new(SentEmails: Enumerable.Range(0, sentCount).Select(_ => MakeEmail("Sent email", "body")).ToList(),

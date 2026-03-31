@@ -13,7 +13,7 @@ public class BrandVoiceWorkerTests
     private static EmailMessage MakeEmail(string subject = "Great news!", string body = "Hi, I wanted to share some exciting updates.") =>
         new(Id: Guid.NewGuid().ToString(), Subject: subject, Body: body,
             From: "agent@kw.com", To: ["client@example.com"],
-            Date: DateTime.UtcNow, SignatureBlock: null);
+            Date: DateTime.UtcNow, SignatureBlock: null, Attachments: []);
 
     private static EmailCorpus MakeCorpusWith(params EmailMessage[] sent) =>
         new(SentEmails: sent, InboxEmails: [], Signature: null);
@@ -28,12 +28,12 @@ public class BrandVoiceWorkerTests
     private static AgentDiscovery MakeDiscoveryWithBrokerageWebsite() =>
         new(HeadshotBytes: null, LogoBytes: null, Phone: null,
             Websites: [new DiscoveredWebsite("https://kw.com", "brokerage", "<html>Together Everyone Achieves More.</html>")],
-            Reviews: [], Profiles: [], Ga4MeasurementId: null, WhatsAppEnabled: false);
+            Reviews: [], Profiles: [], Ga4MeasurementId: null, WhatsAppEnabled: false, Languages: ["English"]);
 
     private static AgentDiscovery MakeEmptyDiscovery() =>
         new(HeadshotBytes: null, LogoBytes: null, Phone: null,
             Websites: [], Reviews: [], Profiles: [],
-            Ga4MeasurementId: null, WhatsAppEnabled: false);
+            Ga4MeasurementId: null, WhatsAppEnabled: false, Languages: ["English"]);
 
     private static AnthropicResponse MakeBrandVoiceResponse() =>
         new(Content: """

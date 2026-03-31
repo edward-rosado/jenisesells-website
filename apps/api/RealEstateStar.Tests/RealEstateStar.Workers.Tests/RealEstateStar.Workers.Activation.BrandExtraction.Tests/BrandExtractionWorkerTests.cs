@@ -27,12 +27,12 @@ public class BrandExtractionWorkerTests
     private static AgentDiscovery MakeDiscoveryWithBrokerageWebsite() =>
         new(HeadshotBytes: null, LogoBytes: null, Phone: null,
             Websites: [new DiscoveredWebsite("https://kw.com", "brokerage", "<html>Keller Williams brand content</html>")],
-            Reviews: [], Profiles: [], Ga4MeasurementId: null, WhatsAppEnabled: false);
+            Reviews: [], Profiles: [], Ga4MeasurementId: null, WhatsAppEnabled: false, Languages: ["English"]);
 
     private static AgentDiscovery MakeEmptyDiscovery() =>
         new(HeadshotBytes: null, LogoBytes: null, Phone: null,
             Websites: [], Reviews: [], Profiles: [],
-            Ga4MeasurementId: null, WhatsAppEnabled: false);
+            Ga4MeasurementId: null, WhatsAppEnabled: false, Languages: ["English"]);
 
     private static AnthropicResponse MakeBrandSignalsResponse() =>
         new(Content: """

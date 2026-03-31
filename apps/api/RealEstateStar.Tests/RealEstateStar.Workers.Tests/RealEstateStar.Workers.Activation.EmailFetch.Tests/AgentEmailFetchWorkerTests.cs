@@ -21,7 +21,7 @@ public class AgentEmailFetchWorkerTests
 
     private static EmailMessage MakeEmail(string id, string body, DateTime? date = null) =>
         new(id, $"Subject-{id}", body, "agent@example.com", ["buyer@example.com"],
-            date ?? DateTime.UtcNow, null);
+            date ?? DateTime.UtcNow, null, []);
 
     // ──────────────────────────────────────────────────────────
     // RunAsync — fetch counts

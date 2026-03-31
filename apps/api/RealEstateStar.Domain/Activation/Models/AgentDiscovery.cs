@@ -8,7 +8,8 @@ public sealed record AgentDiscovery(
     IReadOnlyList<Review> Reviews,
     IReadOnlyList<ThirdPartyProfile> Profiles,
     string? Ga4MeasurementId,
-    bool WhatsAppEnabled);
+    bool WhatsAppEnabled,
+    IReadOnlyList<string> Languages);
 
 public sealed record DiscoveredWebsite(
     string Url,

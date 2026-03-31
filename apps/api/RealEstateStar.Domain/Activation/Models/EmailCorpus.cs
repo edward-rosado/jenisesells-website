@@ -5,6 +5,12 @@ public sealed record EmailCorpus(
     IReadOnlyList<EmailMessage> InboxEmails,
     EmailSignature? Signature);
 
+public sealed record EmailAttachment(
+    string AttachmentId,
+    string Filename,
+    string MimeType,
+    long SizeBytes);
+
 public sealed record EmailMessage(
     string Id,
     string Subject,
@@ -12,7 +18,8 @@ public sealed record EmailMessage(
     string From,
     string[] To,
     DateTime Date,
-    string? SignatureBlock);
+    string? SignatureBlock,
+    IReadOnlyList<EmailAttachment> Attachments);
 
 public sealed record EmailSignature(
     string? Name,

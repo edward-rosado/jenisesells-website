@@ -28,7 +28,7 @@ public class VoiceExtractionWorkerTests
 
     private static EmailMessage MakeEmail(string subject = "Test subject", string body = "Test body") =>
         new("id1", subject, body, "jenise@example.com", ["client@example.com"],
-            new DateTime(2026, 1, 15), null);
+            new DateTime(2026, 1, 15), null, []);
 
     private static EmailCorpus MakeCorpus(int sentCount) =>
         new(
@@ -40,7 +40,7 @@ public class VoiceExtractionWorkerTests
         new("folder-id", [], new Dictionary<string, string>(), []);
 
     private static AgentDiscovery EmptyDiscovery() =>
-        new(null, null, null, [], [], [], null, false);
+        new(null, null, null, [], [], [], null, false, ["English"]);
 
     private static AnthropicResponse MakeResponse(string content = "# Voice Profile: Jenise\n## Core Directive\nTest") =>
         new(content, 100, 200, 1500.0);
@@ -210,7 +210,7 @@ public class VoiceExtractionWorkerTests
     {
         var corpus = MakeCorpus(sentCount: 5);
         var profile = new ThirdPartyProfile("Zillow", "Jenise is a top NJ agent.", [], null, null, null, [], [], [], []);
-        var discovery = new AgentDiscovery(null, null, null, [], [], [profile], null, false);
+        var discovery = new AgentDiscovery(null, null, null, [], [], [profile], null, false, ["English"]);
 
         string? capturedUserMessage = null;
         _anthropic.Setup(a => a.SendAsync(

@@ -287,7 +287,7 @@ public class ActivationOrchestratorTests
         new(accountId, agentId, email, DateTime.UtcNow);
 
     private static AgentDiscoveryModel EmptyDiscovery() =>
-        new(null, null, null, [], [], [], null, false);
+        new(null, null, null, [], [], [], null, false, ["English"]);
 
     private static DriveIndexModel EmptyDrive() =>
         new("folder-id", [], new Dictionary<string, string>(), []);
@@ -440,7 +440,7 @@ public class ActivationOrchestratorTests
         // Return a single sent email to force signature extraction
         var emailWithSig = new EmailMessage(
             "id1", "Subject", "Hello\n\nBest regards,\nJane Doe\n555-111-2222\nSunrise Realty",
-            "agent@example.com", ["client@example.com"], DateTime.UtcNow, null);
+            "agent@example.com", ["client@example.com"], DateTime.UtcNow, null, []);
         _gmailReader.Setup(r => r.GetSentEmailsAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<EmailMessage> { emailWithSig });

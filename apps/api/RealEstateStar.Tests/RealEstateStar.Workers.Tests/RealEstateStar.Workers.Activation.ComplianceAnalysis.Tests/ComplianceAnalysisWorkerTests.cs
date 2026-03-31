@@ -14,13 +14,13 @@ public class ComplianceAnalysisWorkerTests
         new(Id: Guid.NewGuid().ToString(), Subject: subject,
             Body: "Equal Housing Opportunity. Licensed in NJ. This email may be confidential.",
             From: "agent@example.com", To: ["client@example.com"],
-            Date: DateTime.UtcNow, SignatureBlock: null);
+            Date: DateTime.UtcNow, SignatureBlock: null, Attachments: []);
 
     private static EmailMessage MakeEmailWithoutDisclaimer() =>
         new(Id: Guid.NewGuid().ToString(), Subject: "Following up",
             Body: "Just wanted to check in on the showing.",
             From: "agent@example.com", To: ["client@example.com"],
-            Date: DateTime.UtcNow, SignatureBlock: null);
+            Date: DateTime.UtcNow, SignatureBlock: null, Attachments: []);
 
     private static EmailCorpus MakeCorpusWith(params EmailMessage[] sent) =>
         new(SentEmails: sent, InboxEmails: [], Signature: null);
@@ -32,7 +32,7 @@ public class ComplianceAnalysisWorkerTests
     private static AgentDiscovery MakeEmptyDiscovery() =>
         new(HeadshotBytes: null, LogoBytes: null, Phone: null,
             Websites: [], Reviews: [], Profiles: [],
-            Ga4MeasurementId: null, WhatsAppEnabled: false);
+            Ga4MeasurementId: null, WhatsAppEnabled: false, Languages: ["English"]);
 
     private static AnthropicResponse MakeValidResponse() =>
         new(Content: """

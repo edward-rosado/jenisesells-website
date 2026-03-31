@@ -28,7 +28,7 @@ public class PersonalityWorkerTests
 
     private static EmailMessage MakeEmail(string body = "I work hard for every client.") =>
         new("id1", "Subject", body, "agent@example.com", ["client@example.com"],
-            new DateTime(2026, 2, 10), null);
+            new DateTime(2026, 2, 10), null, []);
 
     private static EmailCorpus MakeCorpus(int sentCount) =>
         new(Enumerable.Range(0, sentCount).Select(_ => MakeEmail()).ToList(), [], null);
@@ -37,7 +37,7 @@ public class PersonalityWorkerTests
         new("fid", [], new Dictionary<string, string>(), []);
 
     private static AgentDiscovery EmptyDiscovery() =>
-        new(null, null, null, [], [], [], null, false);
+        new(null, null, null, [], [], [], null, false, ["English"]);
 
     private static AnthropicResponse MakeResponse(string content = "# Personality Profile: Agent") =>
         new(content, 80, 150, 900.0);

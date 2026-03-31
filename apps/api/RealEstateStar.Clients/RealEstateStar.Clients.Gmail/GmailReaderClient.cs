@@ -137,7 +137,8 @@ internal sealed class GmailReaderClient(
                 from,
                 to,
                 date,
-                SignatureBlock: null);
+                SignatureBlock: null,
+                Attachments: []);
         }
         catch
         {

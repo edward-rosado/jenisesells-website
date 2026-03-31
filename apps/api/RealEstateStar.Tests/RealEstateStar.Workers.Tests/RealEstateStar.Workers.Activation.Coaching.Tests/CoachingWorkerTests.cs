@@ -28,7 +28,7 @@ public class CoachingWorkerTests
 
     private static EmailMessage MakeEmail(string subject = "Subject", string body = "Body") =>
         new("id", subject, body, "agent@example.com", ["client@example.com"],
-            new DateTime(2026, 1, 20, 9, 0, 0), null);
+            new DateTime(2026, 1, 20, 9, 0, 0), null, []);
 
     private static EmailCorpus MakeCorpus(int sentCount, int inboxCount) =>
         new(
@@ -40,7 +40,7 @@ public class CoachingWorkerTests
         new("fid", [], new Dictionary<string, string>(), []);
 
     private static AgentDiscovery EmptyDiscovery() =>
-        new(null, null, null, [], [], [], null, false);
+        new(null, null, null, [], [], [], null, false, ["English"]);
 
     private static AnthropicResponse MakeResponse(string content = "# Coaching Report") =>
         new(content, 200, 400, 2000.0);
@@ -179,7 +179,7 @@ public class CoachingWorkerTests
         var corpus = MakeCorpus(sentCount: 5, inboxCount: 5);
         var review = new Review("Great agent!", 5, "Jane D.", "Zillow", new DateTime(2026, 1, 1));
         var profile = new ThirdPartyProfile("Zillow", null, [review], null, null, null, [], [], [], []);
-        var discovery = new AgentDiscovery(null, null, null, [], [], [profile], null, false);
+        var discovery = new AgentDiscovery(null, null, null, [], [], [profile], null, false, ["English"]);
 
         string? capturedMsg = null;
         _anthropic.Setup(a => a.SendAsync(

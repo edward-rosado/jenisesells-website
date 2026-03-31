@@ -51,7 +51,7 @@ public class WelcomeNotificationServiceTests
             Discovery = new AgentDiscovery(
                 null, null, phone,
                 [], [], [],
-                null, whatsAppEnabled),
+                null, whatsAppEnabled, ["English"]),
         };
     }
 

@@ -30,7 +30,7 @@ public class BrandingDiscoveryWorkerTests
         new($"Template: {template}\nReason: {reason}", 50, 30, 400.0);
 
     private static AgentDiscovery EmptyDiscovery() =>
-        new(null, null, null, [], [], [], null, false);
+        new(null, null, null, [], [], [], null, false, ["English"]);
 
     private static EmailCorpus EmptyCorpus() =>
         new([], [], null);
@@ -158,7 +158,7 @@ public class BrandingDiscoveryWorkerTests
     public void ExtractLogos_WithLogoBytes_ReturnsFullLogo()
     {
         var logoBytes = new byte[] { 1, 2, 3 };
-        var discovery = new AgentDiscovery(null, logoBytes, null, [], [], [], null, false);
+        var discovery = new AgentDiscovery(null, logoBytes, null, [], [], [], null, false, ["English"]);
 
         var logos = _sut.ExtractLogos(discovery, EmptyCorpus());
 
@@ -169,7 +169,7 @@ public class BrandingDiscoveryWorkerTests
     public void ExtractLogos_WithHeadshotBytes_ReturnsHeadshot()
     {
         var headshotBytes = new byte[] { 4, 5, 6 };
-        var discovery = new AgentDiscovery(headshotBytes, null, null, [], [], [], null, false);
+        var discovery = new AgentDiscovery(headshotBytes, null, null, [], [], [], null, false, ["English"]);
 
         var logos = _sut.ExtractLogos(discovery, EmptyCorpus());
 
@@ -231,7 +231,7 @@ public class BrandingDiscoveryWorkerTests
         var html = "<style>.brand { color: #4A90E2; } .bg { background-color: #F5F5F5; }</style>" +
                    "<link href=\"https://fonts.googleapis.com/css?family=Open+Sans\" rel=\"stylesheet\">";
         var websites = new List<DiscoveredWebsite> { new("https://example.com", "own-site", html) };
-        var discovery = new AgentDiscovery(null, null, null, websites, [], [], null, false);
+        var discovery = new AgentDiscovery(null, null, null, websites, [], [], null, false, ["English"]);
 
         _anthropic.Setup(a => a.SendAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
