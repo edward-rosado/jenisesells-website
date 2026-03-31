@@ -14,10 +14,13 @@ namespace RealEstateStar.Activities.Activation.PersistAgentProfile;
 /// never to Account Drive (brokerage folder).
 /// </summary>
 public sealed class AgentProfilePersistActivity(
-    IFileStorageProvider storage,
+    IFileStorageProviderFactory storageFactory,
     IAgentConfigService agentConfigService,
     ILogger<AgentProfilePersistActivity> logger)
 {
+    private IFileStorageProvider? _storage;
+    private IFileStorageProvider storage => _storage ?? throw new InvalidOperationException("Call ExecuteAsync first");
+
     internal const string FolderPrefix = "real-estate-star";
 
     // Per-agent markdown skill files
@@ -53,6 +56,7 @@ public sealed class AgentProfilePersistActivity(
         ActivationOutputs outputs,
         CancellationToken ct)
     {
+        _storage = storageFactory.CreateForAgent(accountId, agentId);
         var agentFolder = $"{FolderPrefix}/{agentId}";
 
         logger.LogInformation(
@@ -74,6 +78,11 @@ public sealed class AgentProfilePersistActivity(
 
         logger.LogInformation(
             "[PERSIST-AGENT-050] Markdown and binary assets persisted for agentId={AgentId}", agentId);
+
+        // Verify critical files landed in the Agent Drive tier.
+        // FanOutStorageProvider swallows Drive failures as warnings (correct for best-effort lead storage),
+        // but during activation the agent expects to see files in their Google Drive.
+        await VerifyDriveSyncAsync(agentFolder, outputs, ct);
 
         // Delegate config generation to AgentConfigService
         await agentConfigService.GenerateAsync(accountId, agentId, handle, outputs, ct);
@@ -141,6 +150,42 @@ public sealed class AgentProfilePersistActivity(
                 Convert.ToBase64String(outputs.BrokerageIconBytes), ct));
 
         return tasks;
+    }
+
+    /// <summary>
+    /// Spot-checks a representative file to confirm the Agent Drive tier received the write.
+    /// Logs an ERROR if the file is missing — indicates the Drive tier silently failed.
+    /// </summary>
+    internal async Task VerifyDriveSyncAsync(
+        string agentFolder,
+        ActivationOutputs outputs,
+        CancellationToken ct)
+    {
+        // Pick the first non-null markdown file as the verification probe
+        var probeFile = outputs.VoiceSkill is not null ? VoiceSkillFile
+            : outputs.PersonalitySkill is not null ? PersonalitySkillFile
+            : outputs.DriveIndex is not null ? DriveIndexFile
+            : null;
+
+        if (probeFile is null) return;
+
+        try
+        {
+            var content = await storage.ReadDocumentAsync(agentFolder, probeFile, ct);
+            if (content is null)
+            {
+                logger.LogError(
+                    "[PERSIST-AGENT-060] Drive sync verification failed — {ProbeFile} not found in {AgentFolder}. " +
+                    "The Agent Drive tier may have silently failed during activation.",
+                    probeFile, agentFolder);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex,
+                "[PERSIST-AGENT-061] Drive sync verification threw for {ProbeFile} in {AgentFolder}",
+                probeFile, agentFolder);
+        }
     }
 
     private async Task WriteOrUpdateAsync(

@@ -1,8 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Threading.Channels;
 using System.Threading.RateLimiting;
-using RealEstateStar.Domain.Activation.Models;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
@@ -77,10 +75,45 @@ var oauthLinkSecret = builder.Configuration["OAuthLink:Secret"];
 if (string.IsNullOrWhiteSpace(oauthLinkSecret))
     Log.Warning("[STARTUP-WARN] OAuthLink:Secret is not configured — OAuth authorization link endpoints will fail until the secret is set");
 
-// Activation pipeline channel — unbounded, single channel; writer/reader registered for DI injection
-builder.Services.AddSingleton(Channel.CreateUnbounded<ActivationRequest>());
-builder.Services.AddSingleton(sp => sp.GetRequiredService<Channel<ActivationRequest>>().Reader);
-builder.Services.AddSingleton(sp => sp.GetRequiredService<Channel<ActivationRequest>>().Writer);
+// Durable queue for activation pipeline — Azure Queue Storage when connection string is available,
+// in-memory channel fallback for local development.
+if (!string.IsNullOrEmpty(builder.Configuration["AzureStorage:ConnectionString"]))
+{
+    var activationQueueClient = new Azure.Storage.Queues.QueueClient(
+        builder.Configuration["AzureStorage:ConnectionString"],
+        "activation-requests",
+        new Azure.Storage.Queues.QueueClientOptions
+        {
+            MessageEncoding = Azure.Storage.Queues.QueueMessageEncoding.Base64
+        });
+    activationQueueClient.CreateIfNotExists();
+    builder.Services.AddSingleton<RealEstateStar.Domain.Activation.Interfaces.IActivationQueue>(sp =>
+        new AzureQueueActivationStore(
+            activationQueueClient,
+            sp.GetRequiredService<ILogger<AzureQueueActivationStore>>()));
+
+    var leadQueueClient = new Azure.Storage.Queues.QueueClient(
+        builder.Configuration["AzureStorage:ConnectionString"],
+        "lead-requests",
+        new Azure.Storage.Queues.QueueClientOptions
+        {
+            MessageEncoding = Azure.Storage.Queues.QueueMessageEncoding.Base64
+        });
+    leadQueueClient.CreateIfNotExists();
+    builder.Services.AddSingleton<RealEstateStar.Domain.Leads.Interfaces.ILeadOrchestrationQueue>(sp =>
+        new AzureQueueLeadStore(
+            leadQueueClient,
+            sp.GetRequiredService<ILogger<AzureQueueLeadStore>>()));
+
+    Log.Information("[STARTUP-085] Durable queues: activation-requests, lead-requests (Azure Queue Storage)");
+}
+else
+{
+    // In-memory fallback for local dev — messages do not survive restarts
+    builder.Services.AddSingleton<RealEstateStar.Domain.Activation.Interfaces.IActivationQueue, InMemoryActivationQueue>();
+    builder.Services.AddSingleton<RealEstateStar.Domain.Leads.Interfaces.ILeadOrchestrationQueue, InMemoryLeadOrchestrationQueue>();
+    Log.Warning("[STARTUP-086] AzureStorage:ConnectionString not configured — queues are in-memory (messages lost on restart)");
+}
 
 // Agent config — Docker image uses /app/config/accounts, local dev uses relative path to repo root
 var dockerConfigPath = Path.Combine(builder.Environment.ContentRootPath, "config", "accounts");
@@ -470,7 +503,8 @@ builder.Services.AddHealthChecks()
     .AddCheck<ScraperApiHealthCheck>("scraper_api", tags: ["ready"])
     .AddCheck<RentCastHealthCheck>("rentcast_api", tags: ["ready"])
     .AddCheck<TurnstileHealthCheck>("turnstile", tags: ["ready"])
-    .AddCheck<BackgroundServiceHealthCheck>("background_workers", tags: ["ready", "workers"]);
+    .AddCheck<BackgroundServiceHealthCheck>("background_workers", tags: ["ready", "workers"])
+    .AddCheck<AzureQueueHealthCheck>("azure_queues", tags: ["ready"]);
 
 // CORS
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()

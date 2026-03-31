@@ -4,10 +4,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Api.Features.OAuth.AuthorizeLink;
 using RealEstateStar.Api.Features.OAuth.Services;
+using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Shared.Models;
-using System.Threading.Channels;
 
 namespace RealEstateStar.Api.Tests.Features.OAuth.AuthorizeLink;
 
@@ -236,10 +236,12 @@ public class AuthorizeLinkCallbackEndpointTests
             })
             .Build();
 
-    private static (ChannelWriter<ActivationRequest> writer, Channel<ActivationRequest> channel) CreateChannel()
+    private static Mock<IActivationQueue> CreateActivationQueue()
     {
-        var channel = Channel.CreateUnbounded<ActivationRequest>();
-        return (channel.Writer, channel);
+        var mock = new Mock<IActivationQueue>();
+        mock.Setup(q => q.EnqueueAsync(It.IsAny<ActivationRequest>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return mock;
     }
 
     // ─── Callback happy path ──────────────────────────────────────────────────
@@ -254,11 +256,11 @@ public class AuthorizeLinkCallbackEndpointTests
         var tokenStoreMock = new Mock<ITokenStore>();
         tokenStoreMock.Setup(t => t.SaveAsync(It.IsAny<OAuthCredential>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        var (writer, channel) = CreateChannel();
+        var queueMock = CreateActivationQueue();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", nonce, null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
+            svc, oauthMock.Object, tokenStoreMock.Object, queueMock.Object, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         // Should return success HTML
@@ -272,10 +274,10 @@ public class AuthorizeLinkCallbackEndpointTests
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Once);
 
-        // Channel should have a message
-        Assert.True(channel.Reader.TryRead(out var req));
-        Assert.Equal("acct-1", req.AccountId);
-        Assert.Equal("agent-1", req.AgentId);
+        // Queue should have received the activation request
+        queueMock.Verify(q => q.EnqueueAsync(
+            It.Is<ActivationRequest>(r => r.AccountId == "acct-1" && r.AgentId == "agent-1"),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -284,11 +286,11 @@ public class AuthorizeLinkCallbackEndpointTests
         var svc = CreateLinkService();
         var oauthMock = CreateOAuthMock();
         var tokenStoreMock = new Mock<ITokenStore>();
-        var (writer, _) = CreateChannel();
+        var queueMock = CreateActivationQueue();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             null, "0000000000000000ffffffffffffffff", "access_denied",
-            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
+            svc, oauthMock.Object, tokenStoreMock.Object, queueMock.Object, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -301,11 +303,11 @@ public class AuthorizeLinkCallbackEndpointTests
         var svc = CreateLinkService();
         var oauthMock = CreateOAuthMock();
         var tokenStoreMock = new Mock<ITokenStore>();
-        var (writer, _) = CreateChannel();
+        var queueMock = CreateActivationQueue();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", "no-colons-at-all", null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
+            svc, oauthMock.Object, tokenStoreMock.Object, queueMock.Object, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -320,11 +322,11 @@ public class AuthorizeLinkCallbackEndpointTests
         svc.ForceExpireNonce(nonce);
         var oauthMock = CreateOAuthMock();
         var tokenStoreMock = new Mock<ITokenStore>();
-        var (writer, _) = CreateChannel();
+        var queueMock = CreateActivationQueue();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", nonce, null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
+            svc, oauthMock.Object, tokenStoreMock.Object, queueMock.Object, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -337,11 +339,11 @@ public class AuthorizeLinkCallbackEndpointTests
         var svc = CreateLinkService();
         var oauthMock = CreateOAuthMock();
         var tokenStoreMock = new Mock<ITokenStore>();
-        var (writer, _) = CreateChannel();
+        var queueMock = CreateActivationQueue();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", "0000000000000000ffffffffffffffff", null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
+            svc, oauthMock.Object, tokenStoreMock.Object, queueMock.Object, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -356,11 +358,11 @@ public class AuthorizeLinkCallbackEndpointTests
         var tokens = MakeTokens("wrong@example.com"); // different email
         var oauthMock = CreateOAuthMock(tokens);
         var tokenStoreMock = new Mock<ITokenStore>();
-        var (writer, _) = CreateChannel();
+        var queueMock = CreateActivationQueue();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", nonce, null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
+            svc, oauthMock.Object, tokenStoreMock.Object, queueMock.Object, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -377,11 +379,11 @@ public class AuthorizeLinkCallbackEndpointTests
         var nonce = svc.GenerateNonce("acct-1", "agent-1", "agent@example.com");
         var oauthMock = CreateOAuthMock();
         var tokenStoreMock = new Mock<ITokenStore>();
-        var (writer, _) = CreateChannel();
+        var queueMock = CreateActivationQueue();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             null, nonce, null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
+            svc, oauthMock.Object, tokenStoreMock.Object, queueMock.Object, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -397,11 +399,11 @@ public class AuthorizeLinkCallbackEndpointTests
         oauthMock.Setup(o => o.ExchangeCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Token exchange failed"));
         var tokenStoreMock = new Mock<ITokenStore>();
-        var (writer, _) = CreateChannel();
+        var queueMock = CreateActivationQueue();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", nonce, null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
+            svc, oauthMock.Object, tokenStoreMock.Object, queueMock.Object, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -418,18 +420,18 @@ public class AuthorizeLinkCallbackEndpointTests
         var tokenStoreMock = new Mock<ITokenStore>();
         tokenStoreMock.Setup(t => t.SaveAsync(It.IsAny<OAuthCredential>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        var (writer, _) = CreateChannel();
+        var queueMock = CreateActivationQueue();
 
         // First call succeeds
         await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", nonce, null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
+            svc, oauthMock.Object, tokenStoreMock.Object, queueMock.Object, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         // Second call with same nonce should show expired page
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", nonce, null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
+            svc, oauthMock.Object, tokenStoreMock.Object, queueMock.Object, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -444,11 +446,11 @@ public class AuthorizeLinkCallbackEndpointTests
         var nonce = svc.GenerateNonce("acct-1", "agent-1", "agent@example.com");
         var oauthMock = CreateOAuthMock();
         var tokenStoreMock = new Mock<ITokenStore>();
-        var (writer, _) = CreateChannel();
+        var queueMock = CreateActivationQueue();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             null, nonce, "<script>alert(1)</script>",
-            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
+            svc, oauthMock.Object, tokenStoreMock.Object, queueMock.Object, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);

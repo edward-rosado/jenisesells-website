@@ -486,4 +486,87 @@ public class FanOutStorageProviderTests
         _driveClient.Verify(d => d.UploadFileAsync(AccountId, AccountTierAgentId, folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
         _platformStore.Verify(p => p.UpdateDocumentAsync(folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    // ── Single-agent dedup (accountId == agentId) ─────────────────────────────
+
+    [Fact]
+    public async Task WriteDocumentAsync_SkipsAccountTier_WhenSingleAgent()
+    {
+        const string sameId = "solo-agent";
+        const string folder = "1 - Leads/Jane Doe";
+        const string fileName = "Lead Profile.md";
+        const string content = "# Lead Profile";
+
+        var driveClient = new Mock<IGDriveClient>(MockBehavior.Strict);
+        var sheetsClient = new Mock<IGSheetsClient>(MockBehavior.Strict);
+        var gwsService = new Mock<IGwsService>(MockBehavior.Strict);
+        var platformStore = new Mock<IDocumentStorageProvider>(MockBehavior.Strict);
+
+        var sut = new FanOutStorageProvider(
+            driveClient.Object, sheetsClient.Object, gwsService.Object,
+            platformStore.Object, sameId, sameId, PlatformEmail, _logger.Object);
+
+        driveClient.Setup(d => d.UploadFileAsync(sameId, sameId, folder, fileName, content, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("file-agent-id");
+        platformStore.Setup(p => p.WriteDocumentAsync(folder, fileName, content, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await sut.WriteDocumentAsync(folder, fileName, content, CancellationToken.None);
+
+        driveClient.Verify(d => d.UploadFileAsync(sameId, sameId, folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
+        driveClient.Verify(d => d.UploadFileAsync(sameId, AccountTierAgentId, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteDocumentAsync_SkipsAccountTier_WhenSingleAgent()
+    {
+        const string sameId = "solo-agent";
+        const string folder = "1 - Leads/Jane Doe";
+        const string fileName = "Lead Profile.md";
+
+        var driveClient = new Mock<IGDriveClient>(MockBehavior.Strict);
+        var sheetsClient = new Mock<IGSheetsClient>(MockBehavior.Strict);
+        var gwsService = new Mock<IGwsService>(MockBehavior.Strict);
+        var platformStore = new Mock<IDocumentStorageProvider>(MockBehavior.Strict);
+
+        var sut = new FanOutStorageProvider(
+            driveClient.Object, sheetsClient.Object, gwsService.Object,
+            platformStore.Object, sameId, sameId, PlatformEmail, _logger.Object);
+
+        driveClient.Setup(d => d.DeleteFileByNameAsync(sameId, sameId, folder, fileName, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        platformStore.Setup(p => p.DeleteDocumentAsync(folder, fileName, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await sut.DeleteDocumentAsync(folder, fileName, CancellationToken.None);
+
+        driveClient.Verify(d => d.DeleteFileByNameAsync(sameId, sameId, folder, fileName, It.IsAny<CancellationToken>()), Times.Once);
+        driveClient.Verify(d => d.DeleteFileByNameAsync(sameId, AccountTierAgentId, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task EnsureFolderExistsAsync_SkipsAccountTier_WhenSingleAgent()
+    {
+        const string sameId = "solo-agent";
+        const string folder = "1 - Leads/Jane Doe";
+
+        var driveClient = new Mock<IGDriveClient>(MockBehavior.Strict);
+        var sheetsClient = new Mock<IGSheetsClient>(MockBehavior.Strict);
+        var gwsService = new Mock<IGwsService>(MockBehavior.Strict);
+        var platformStore = new Mock<IDocumentStorageProvider>(MockBehavior.Strict);
+
+        var sut = new FanOutStorageProvider(
+            driveClient.Object, sheetsClient.Object, gwsService.Object,
+            platformStore.Object, sameId, sameId, PlatformEmail, _logger.Object);
+
+        driveClient.Setup(d => d.CreateFolderAsync(sameId, sameId, folder, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("folder-agent-id");
+        platformStore.Setup(p => p.EnsureFolderExistsAsync(folder, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await sut.EnsureFolderExistsAsync(folder, CancellationToken.None);
+
+        driveClient.Verify(d => d.CreateFolderAsync(sameId, sameId, folder, It.IsAny<CancellationToken>()), Times.Once);
+        driveClient.Verify(d => d.CreateFolderAsync(sameId, AccountTierAgentId, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

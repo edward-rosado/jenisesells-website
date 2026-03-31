@@ -17,7 +17,7 @@ using RealEstateStar.Activities.Pdf;
 namespace RealEstateStar.Workers.Lead.Orchestrator;
 
 /// <summary>
-/// Per-lead orchestrator. Reads from <see cref="LeadOrchestratorChannel"/>,
+/// Per-lead orchestrator. Reads from <see cref="ILeadOrchestrationQueue"/> (Azure Queue Storage),
 /// scores the lead, dispatches CMA and HomeSearch workers in parallel via channels,
 /// calls <see cref="PdfActivity"/> inline, drafts and sends the lead email via
 /// <see cref="ILeadCommunicatorService"/>, and notifies the agent via
@@ -31,7 +31,8 @@ namespace RealEstateStar.Workers.Lead.Orchestrator;
 /// to avoid re-running expensive analysis for the same property across multiple leads.
 /// </remarks>
 public sealed class LeadOrchestrator(
-    LeadOrchestratorChannel channel,
+    ILeadOrchestrationQueue leadQueue,
+    ILeadStore leadStore,
     IAccountConfigService accountConfigService,
     ILeadScorer scorer,
     CmaProcessingChannel cmaChannel,
@@ -56,13 +57,54 @@ public sealed class LeadOrchestrator(
     private int WorkerTimeoutSeconds =>
         configuration.GetValue<int?>("Pipeline:Lead:WorkerTimeoutSeconds") ?? 300;
 
+    /// <summary>Visibility timeout for queue messages. Lead processing takes ~30s-2min; 5 min gives retry room.</summary>
+    internal static readonly TimeSpan MessageVisibilityTimeout = TimeSpan.FromMinutes(5);
+
+    /// <summary>Delay between empty queue polls to avoid hot-looping.</summary>
+    internal static readonly TimeSpan EmptyQueueDelay = TimeSpan.FromSeconds(2);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("[{Worker}-001] {Worker} started.", WorkerName, WorkerName);
 
-        await foreach (var request in channel.Reader.ReadAllAsync(stoppingToken))
+        while (!stoppingToken.IsCancellationRequested)
         {
-            await ProcessRequestAsync(request, stoppingToken);
+            var message = await leadQueue.DequeueAsync(MessageVisibilityTimeout, stoppingToken);
+            if (message is null)
+            {
+                await Task.Delay(EmptyQueueDelay, stoppingToken);
+                continue;
+            }
+
+            var queueMsg = message.Value;
+            var lead = await leadStore.GetAsync(queueMsg.AgentId, queueMsg.LeadId, stoppingToken);
+            if (lead is null)
+            {
+                logger.LogWarning(
+                    "[{Worker}-002] Lead {LeadId} not found for agent {AgentId}. Completing message. CorrelationId: {CorrelationId}",
+                    WorkerName, queueMsg.LeadId, queueMsg.AgentId, queueMsg.CorrelationId);
+                await leadQueue.CompleteAsync(message.MessageId, message.PopReceipt, stoppingToken);
+                continue;
+            }
+
+            try
+            {
+                await ProcessRequestAsync(
+                    new LeadOrchestrationRequest(queueMsg.AgentId, lead, queueMsg.CorrelationId),
+                    stoppingToken);
+                await leadQueue.CompleteAsync(message.MessageId, message.PopReceipt, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Message becomes visible again after visibility timeout for automatic retry
+                logger.LogError(ex,
+                    "[{Worker}-004] Lead processing failed — message will retry. LeadId={LeadId}, CorrelationId={CorrelationId}",
+                    WorkerName, queueMsg.LeadId, queueMsg.CorrelationId);
+            }
         }
 
         logger.LogInformation("[{Worker}-003] {Worker} stopping.", WorkerName, WorkerName);
