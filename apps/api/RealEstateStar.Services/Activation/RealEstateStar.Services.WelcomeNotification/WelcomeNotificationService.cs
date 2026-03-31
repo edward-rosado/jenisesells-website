@@ -23,9 +23,9 @@ public sealed class WelcomeNotificationService(
 {
     internal const string FolderPrefix = "real-estate-star";
     internal const string WelcomeSentFile = "Welcome Sent.md";
-    internal const string Model = "claude-haiku-4-5";
+    internal const string Model = "claude-opus-4-6";
     internal const string Pipeline = "welcome-notification";
-    internal const int MaxTokens = 400;
+    internal const int MaxTokens = 600;
 
     public async Task SendAsync(
         string accountId,
@@ -119,18 +119,25 @@ public sealed class WelcomeNotificationService(
             : $"https://{accountId}.real-estate-star.com/agents/{agentId}";
 
         const string systemPrompt =
-            "You are writing a personalized welcome message for a real estate agent " +
-            "who just activated their Real Estate Star account. " +
-            "Rules:\n" +
-            "- Under 150 words total\n" +
-            "- Open with the agent's catchphrase or their signature sign-on style\n" +
-            "- Include 1-2 sentence brand synthesis\n" +
-            "- Include one insight about their sales pipeline (from the pipeline skill)\n" +
-            "- Include 1 coaching tip (from the coaching report)\n" +
+            "You are writing a personalized welcome email from Real Estate Star to a real estate " +
+            "agent who just connected their Google account and activated the platform for the first time.\n\n" +
+            "CONTEXT: Real Estate Star is an AI-powered platform that automates real estate agent " +
+            "workflows — from instant lead response and CMA generation to personalized agent websites " +
+            "and smart follow-up. The agent's site is already live and ready to capture leads.\n\n" +
+            "CRITICAL RULES:\n" +
+            "- ONLY mention Real Estate Star by name. Do NOT reference any other company, " +
+            "bank, brand, or organization found in the agent's data — those are from their " +
+            "personal email and must NEVER appear in this welcome message.\n" +
+            "- Under 200 words total\n" +
+            "- Open with a warm welcome using the agent's first name\n" +
+            "- Convey excitement — their automation is live, their site is ready\n" +
+            "- Briefly highlight what's now working for them (auto lead response, CMA generation, " +
+            "personalized website) — make them feel the value immediately\n" +
+            "- Include one actionable coaching tip relevant to their pipeline\n" +
             "- Include their agent site URL\n" +
-            "- Close with their sign-off style\n" +
-            "- Warm, personal, NOT corporate. Use their own voice.\n" +
-            "- Plain text only, no markdown";
+            "- Close with an encouraging, forward-looking sign-off from Real Estate Star\n" +
+            "- Warm, confident, modern. Think trusted tech partner, not corporate marketing.\n" +
+            "- Plain text only, no markdown, no HTML";
 
         var voiceContext = outputs.VoiceSkill ?? "professional and approachable tone";
         var personalityContext = outputs.PersonalitySkill ?? "dedicated REALTOR";
