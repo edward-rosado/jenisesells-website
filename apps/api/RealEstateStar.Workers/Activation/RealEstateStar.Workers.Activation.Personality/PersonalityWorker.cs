@@ -14,7 +14,7 @@ public sealed class PersonalityWorker(
     IContentSanitizer sanitizer,
     ILogger<PersonalityWorker> logger)
 {
-    private const string Model = "claude-opus-4-5";
+    private const string Model = "claude-sonnet-4-6";
     private const int MaxTokens = 6144;
     private const int MinEmailsForFullProfile = 5;
     private const string Pipeline = "activation.personality";

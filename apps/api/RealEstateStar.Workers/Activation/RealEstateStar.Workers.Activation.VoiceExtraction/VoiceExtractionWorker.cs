@@ -14,7 +14,7 @@ public sealed class VoiceExtractionWorker(
     IContentSanitizer sanitizer,
     ILogger<VoiceExtractionWorker> logger)
 {
-    private const string Model = "claude-opus-4-5";
+    private const string Model = "claude-opus-4-6";
     private const int MaxTokens = 8192;
     private const int MinEmailsForFullProfile = 5;
     private const string Pipeline = "activation.voice-extraction";
