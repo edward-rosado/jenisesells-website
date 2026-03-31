@@ -213,7 +213,7 @@ public class AuthorizeLinkCallbackEndpointTests
             NullLogger<RealEstateStar.Api.Features.Onboarding.Services.GoogleOAuthService>.Instance);
 
         if (tokens is not null)
-            mock.Setup(o => o.ExchangeCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            mock.Setup(o => o.ExchangeCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(tokens);
         return mock;
     }
@@ -394,7 +394,7 @@ public class AuthorizeLinkCallbackEndpointTests
         var svc = CreateLinkService();
         var nonce = svc.GenerateNonce("acct-1", "agent-1", "agent@example.com");
         var oauthMock = CreateOAuthMock();
-        oauthMock.Setup(o => o.ExchangeCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        oauthMock.Setup(o => o.ExchangeCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Token exchange failed"));
         var tokenStoreMock = new Mock<ITokenStore>();
         var (writer, _) = CreateChannel();
