@@ -129,12 +129,15 @@ public sealed class WelcomeNotificationService(
             "bank, brand, or organization found in the agent's data — those are from their " +
             "personal email and must NEVER appear in this welcome message.\n" +
             "- Under 200 words total\n" +
+            "- MUST include a catchphrase or signature phrase from the Voice Skill data. " +
+            "If the Voice Skill contains a catchphrase, tagline, or sign-off, weave it naturally " +
+            "into the message. This makes the email feel personal and shows we understand the agent.\n" +
             "- Open with a warm welcome using the agent's first name\n" +
             "- Convey excitement — their automation is live, their site is ready\n" +
             "- Briefly highlight what's now working for them (auto lead response, CMA generation, " +
             "personalized website) — make them feel the value immediately\n" +
             "- Include one actionable coaching tip relevant to their pipeline\n" +
-            "- Include their agent site URL\n" +
+            "- Include their agent site URL with (beta) appended to the end\n" +
             "- Close with an encouraging, forward-looking sign-off from Real Estate Star\n" +
             "- Warm, confident, modern. Think trusted tech partner, not corporate marketing.\n" +
             "- Plain text only, no markdown, no HTML";
