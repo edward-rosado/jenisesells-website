@@ -28,6 +28,8 @@
     overflow: hidden;
     height: 100vh;
     width: 100vw;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   .deck { position: relative; width: 100%; height: 100vh; }
@@ -38,8 +40,13 @@
     width: 100%; height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     padding: 4rem 8rem;
+    padding-top: 5rem;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
     opacity: 0;
     transform: translateX(40px);
     transition: opacity 0.5s ease, transform 0.5s ease;
@@ -223,12 +230,41 @@
     body { overflow: visible; }
   }
 
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
   @media (max-width: 1024px) {
-    .slide { padding: 2rem 3rem; }
+    .slide { padding: 2rem 3rem; padding-top: 4.5rem; }
     h1 { font-size: 2.4rem; }
     h2 { font-size: 1.6rem; }
     .price-hero { font-size: 2rem; }
     .two-col { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 600px) {
+    .slide { padding: 1.25rem 1.25rem 5rem; padding-top: 4rem; }
+    h1 { font-size: 1.6rem; }
+    h2 { font-size: 1.25rem; }
+    h3 { font-size: 0.75rem; margin-bottom: 1rem; }
+    p { font-size: 0.95rem; }
+    .price-hero { font-size: 1.5rem; }
+    ul li { font-size: 0.92rem; }
+    .quote { font-size: 1rem; padding-left: 1rem; margin: 1.25rem 0; }
+    .pill { font-size: 0.75rem; padding: 0.25rem 0.75rem; }
+    .pill-gray { font-size: 0.7rem; padding: 0.2rem 0.6rem; }
+    .card { padding: 1rem; }
+    .card h4 { font-size: 0.9rem; }
+    .card p { font-size: 0.85rem; }
+    .feature-icon { width: 36px; height: 36px; font-size: 1.1rem; margin-bottom: 0.75rem; }
+    table { font-size: 0.78rem; }
+    th, td { padding: 0.4rem 0.5rem; }
+    .nav { bottom: 1rem; right: 1rem; gap: 0.6rem; }
+    .nav button { width: 36px; height: 36px; font-size: 0.95rem; }
+    .nav .counter { font-size: 0.75rem; }
+    .logo { top: 0.75rem; left: 1rem; }
+    .logo svg { width: 18px; height: 18px; }
+    .logo-text { font-size: 0.65rem; }
+    .steps li { padding-left: 2rem; }
+    .steps li::before { width: 20px; height: 20px; font-size: 0.65rem; }
   }
 </style>
 </head>
@@ -248,7 +284,7 @@
   <!-- Slide 1: Cover -->
   <div class="slide active">
     <h3>For Real Estate Professionals</h3>
-    <h1>Your business,<br>automated by AI.</h1>
+    <h1>Your business,<br>fully automated.</h1>
     <div class="price-hero">14 days free. $14.99/mo after.</div>
     <p style="font-size:1.2rem;">Professional website. CMA automation. Lead capture. Compliance. All included.</p>
     <div style="margin-top:1rem;">
@@ -276,7 +312,7 @@
   <div class="slide">
     <h3>The Real Cost</h3>
     <h2>What top platforms charge solo agents:</h2>
-    <table>
+    <div class="table-wrap"><table>
       <tr><th>Platform</th><th>Monthly Cost</th><th>Setup Fee</th></tr>
       <tr><td>KVCore / BoldTrail</td><td>~$499/mo</td><td>$500 &ndash; $1,000</td></tr>
       <tr><td>Chime / Lofty</td><td>~$449/mo</td><td>Unknown</td></tr>
@@ -284,7 +320,7 @@
       <tr><td>Luxury Presence</td><td>$300 &ndash; $1,500/mo</td><td>$500 &ndash; $6,000</td></tr>
       <tr><td>Placester</td><td>$59 &ndash; $329/mo</td><td>$0 &ndash; $50/mo</td></tr>
       <tr class="highlight-row"><td><strong>Real Estate Star</strong></td><td><strong style="color:var(--emerald-400);">$14.99/mo</strong></td><td><strong>Included with setup</strong></td></tr>
-    </table>
+    </table></div>
     <p>These platforms were built for teams and brokerages. <strong style="color:var(--text);">You shouldn't be paying enterprise prices.</strong></p>
   </div>
 
@@ -295,7 +331,7 @@
     <ul>
       <li>Professional branded website at <strong>{yourname}.real-estate-star.com</strong></li>
       <li><strong>12 beautiful, luxurious templates</strong> to choose from</li>
-      <li>AI-powered CMA reports &mdash; lead submits, PDF arrives in their inbox</li>
+      <li>Automated CMA reports &mdash; lead submits, branded PDF arrives in their inbox</li>
       <li>Lead capture forms with bot protection and instant notifications</li>
       <li>State-specific legal compliance built in</li>
       <li><strong>SEO &amp; AEO optimized</strong> &mdash; found by Google AND AI search engines</li>
@@ -308,15 +344,16 @@
   <!-- Slide 5: How It Works -->
   <div class="slide">
     <h3>How It Works</h3>
-    <h2>Connect Google. AI does the rest.</h2>
+    <h2>Connect Google. We handle the rest.</h2>
     <ul class="steps">
       <li><strong>Click the setup link</strong> your representative sends you</li>
       <li><strong>Connect your Google account</strong> (Gmail, Drive)</li>
-      <li><strong>AI scans</strong> your emails and web presence</li>
-      <li><strong>AI builds your brand profile</strong> (colors, voice, headshot)</li>
+      <li><strong>We scan your web presence</strong> to learn your brand</li>
+      <li><strong>Your brand profile is built automatically</strong> (colors, voice, headshot)</li>
+      <li><strong>We review your site</strong> before it goes live &mdash; quality checked, not just generated</li>
       <li><strong>Your website goes live</strong> &mdash; ready for leads</li>
     </ul>
-    <p style="margin-top:1.5rem;">No forms to fill out. No branding questionnaires. No waiting weeks for a designer.<br><span class="emerald">The AI already knows who you are from your digital footprint.</span></p>
+    <p style="margin-top:1.5rem;">No forms to fill out. No branding questionnaires. No waiting weeks for a designer.<br><span class="emerald">We already know who you are from your digital footprint.</span></p>
   </div>
 
   <!-- Slide 6: Professional Website -->
@@ -337,7 +374,9 @@
           <li><strong>AEO ready</strong> &mdash; Answer Engine Optimization for AI search (ChatGPT, Gemini, Perplexity)</li>
           <li><strong>Google Analytics</strong> built in &mdash; know who's visiting</li>
           <li>About page, testimonials, service areas &mdash; auto-populated</li>
+          <li>Every site personally reviewed before going live</li>
           <li>Have an existing site or want a different look? <strong>We can accommodate</strong></li>
+          <li><strong>Satisfaction guaranteed</strong> &mdash; we'll work with you until you love it</li>
         </ul>
       </div>
     </div>
@@ -349,8 +388,8 @@
     <h2>A lead asks about their home's value.<br>The CMA arrives before you pick up the phone.</h2>
     <ul class="steps">
       <li>Lead submits their property address on your website</li>
-      <li>AI pulls comparable sales data (real MLS-grade data)</li>
-      <li>AI generates a <strong>branded PDF report</strong> with your colors, logo, and contact info</li>
+      <li>Comparable sales data is pulled automatically (real MLS-grade data)</li>
+      <li>A <strong>branded PDF report</strong> is generated with your colors, logo, and contact info</li>
       <li>PDF is emailed to the lead AND saved to your Google Drive</li>
       <li><strong>Fully automated. No manual work.</strong></li>
     </ul>
@@ -368,7 +407,7 @@
       </div>
       <div class="card">
         <h4>Enrich</h4>
-        <p>AI automatically researches the lead and their property. You know more before you pick up the phone.</p>
+        <p>Each lead is automatically researched and enriched. You know more before you pick up the phone.</p>
       </div>
       <div class="card">
         <h4>Notify</h4>
@@ -401,7 +440,7 @@
     <h3>Pricing</h3>
     <h2>$14.99/mo. Everything included.</h2>
     <p style="margin-bottom:0.5rem;">No add-ons. No surprises.</p>
-    <table>
+    <div class="table-wrap"><table>
       <tr><th>Feature</th><th>Real Estate Star</th><th>Typical Competitor Stack</th></tr>
       <tr><td>Website</td><td class="green-text">Included</td><td>$59 &ndash; $329/mo</td></tr>
       <tr><td>CMA Tool</td><td class="green-text">Included</td><td>$40 &ndash; $99/mo</td></tr>
@@ -409,9 +448,9 @@
       <tr><td>Compliance</td><td class="green-text">Included</td><td>DIY (risky)</td></tr>
       <tr><td>SEO &amp; AEO</td><td class="green-text">Included</td><td>$50 &ndash; $200/mo add-on</td></tr>
       <tr><td>Google Analytics</td><td class="green-text">Included</td><td>Extra or DIY</td></tr>
-      <tr><td>AI Automation</td><td class="green-text">Included</td><td>$100 &ndash; $200/mo add-on</td></tr>
+      <tr><td>Automation</td><td class="green-text">Included</td><td>$100 &ndash; $200/mo add-on</td></tr>
       <tr style="font-weight:700; font-size:1.05rem;"><td style="color:var(--text);">Total</td><td style="color:var(--emerald-400); font-size:1.1rem;">$14.99/mo</td><td style="color:#f87171;">$249 &ndash; $928/mo</td></tr>
-    </table>
+    </table></div>
     <div class="quote">&ldquo;That's less than your monthly Netflix subscription.&rdquo;</div>
   </div>
 
@@ -422,7 +461,7 @@
     <div class="two-col" style="margin-top:1rem;">
       <div class="card">
         <h4>Auto-Replies</h4>
-        <p>AI-powered instant lead response in your voice. <span class="pill-gray">Coming Soon</span></p>
+        <p>Instant lead response in your voice, sent automatically. <span class="pill-gray">Coming Soon</span></p>
       </div>
       <div class="card">
         <h4>Contract Drafting</h4>
@@ -451,7 +490,7 @@
       <li>Start capturing leads immediately</li>
     </ul>
     <p style="font-size:1.25rem; color:var(--text); font-weight:600;">The only thing you have to lose is the $300/mo you're spending now.</p>
-    <p style="margin-top:1rem;">We stand behind every site &mdash; if you're not happy, we'll work with you until you are.</p>
+    <p style="margin-top:1rem; color:var(--emerald-400); font-weight:600;">Satisfaction guaranteed &mdash; we'll work with you until you love your site.</p>
     <div style="margin-top:1.5rem;">
       <span class="pill" style="font-size:1rem; padding:0.5rem 1.5rem;">Get Started Free &rarr;</span>
     </div>
@@ -491,6 +530,28 @@
     if (e.key === 'Home') { current = 0; show(current); }
     if (e.key === 'End') { current = total - 1; show(current); }
   });
+
+  // Touch swipe support
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
+
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+    touchStartTime = Date.now();
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    const dy = e.changedTouches[0].screenY - touchStartY;
+    const dt = Date.now() - touchStartTime;
+    // Only trigger on horizontal swipes: >50px, faster than 400ms, more horizontal than vertical
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 400) {
+      if (dx < 0) next();
+      else prev();
+    }
+  }, { passive: true });
 
   show(0);
 </script>
