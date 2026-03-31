@@ -108,10 +108,10 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
             tokens.Name[..Math.Min(tokens.Name.Length, 128)],
             tokens.Email), "text/html");
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
-            logger.LogError(ex, "[OAUTH-LINK-407] Token exchange failed. AccountId={AccountId}, AgentId={AgentId}",
-                accountId, agentId);
+            logger.LogError(ex, "[OAUTH-LINK-407] OAuth callback failed. AccountId={AccountId}, AgentId={AgentId}, ExType={ExType}",
+                accountId, agentId, ex.GetType().Name);
             return Results.Content(BuildErrorHtml("Exchange Failed", "Something Went Wrong",
                 "Failed to connect your Google account. Please try again."), "text/html");
         }
