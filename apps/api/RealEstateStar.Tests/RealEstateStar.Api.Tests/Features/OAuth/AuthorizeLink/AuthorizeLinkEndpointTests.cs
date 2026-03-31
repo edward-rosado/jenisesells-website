@@ -213,7 +213,7 @@ public class AuthorizeLinkCallbackEndpointTests
             NullLogger<RealEstateStar.Api.Features.Onboarding.Services.GoogleOAuthService>.Instance);
 
         if (tokens is not null)
-            mock.Setup(o => o.ExchangeCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            mock.Setup(o => o.ExchangeCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(tokens);
         return mock;
     }
@@ -227,6 +227,14 @@ public class AuthorizeLinkCallbackEndpointTests
         Email = email,
         Name = "Test Agent",
     };
+
+    private static IConfiguration CallbackConfig() =>
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Api:BaseUrl"] = "https://api.real-estate-star.com",
+            })
+            .Build();
 
     private static (ChannelWriter<ActivationRequest> writer, Channel<ActivationRequest> channel) CreateChannel()
     {
@@ -250,7 +258,7 @@ public class AuthorizeLinkCallbackEndpointTests
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", nonce, null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer,
+            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         // Should return success HTML
@@ -280,7 +288,7 @@ public class AuthorizeLinkCallbackEndpointTests
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             null, "0000000000000000ffffffffffffffff", "access_denied",
-            svc, oauthMock.Object, tokenStoreMock.Object, writer,
+            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -297,7 +305,7 @@ public class AuthorizeLinkCallbackEndpointTests
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", "no-colons-at-all", null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer,
+            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -316,7 +324,7 @@ public class AuthorizeLinkCallbackEndpointTests
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", nonce, null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer,
+            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -333,7 +341,7 @@ public class AuthorizeLinkCallbackEndpointTests
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", "0000000000000000ffffffffffffffff", null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer,
+            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -352,7 +360,7 @@ public class AuthorizeLinkCallbackEndpointTests
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", nonce, null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer,
+            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -373,7 +381,7 @@ public class AuthorizeLinkCallbackEndpointTests
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             null, nonce, null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer,
+            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -386,14 +394,14 @@ public class AuthorizeLinkCallbackEndpointTests
         var svc = CreateLinkService();
         var nonce = svc.GenerateNonce("acct-1", "agent-1", "agent@example.com");
         var oauthMock = CreateOAuthMock();
-        oauthMock.Setup(o => o.ExchangeCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        oauthMock.Setup(o => o.ExchangeCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Token exchange failed"));
         var tokenStoreMock = new Mock<ITokenStore>();
         var (writer, _) = CreateChannel();
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", nonce, null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer,
+            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -415,13 +423,13 @@ public class AuthorizeLinkCallbackEndpointTests
         // First call succeeds
         await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", nonce, null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer,
+            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         // Second call with same nonce should show expired page
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             "auth-code", nonce, null,
-            svc, oauthMock.Object, tokenStoreMock.Object, writer,
+            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);
@@ -440,7 +448,7 @@ public class AuthorizeLinkCallbackEndpointTests
 
         var result = await AuthorizeLinkCallbackEndpoint.Handle(
             null, nonce, "<script>alert(1)</script>",
-            svc, oauthMock.Object, tokenStoreMock.Object, writer,
+            svc, oauthMock.Object, tokenStoreMock.Object, writer, CallbackConfig(),
             NullLogger<AuthorizeLinkCallbackEndpoint>.Instance, CancellationToken.None);
 
         var html = Assert.IsType<ContentHttpResult>(result);

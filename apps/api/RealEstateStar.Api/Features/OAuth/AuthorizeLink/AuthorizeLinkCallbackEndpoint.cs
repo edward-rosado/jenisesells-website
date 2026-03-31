@@ -28,6 +28,7 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
         GoogleOAuthService googleOAuthService,
         ITokenStore tokenStore,
         ChannelWriter<ActivationRequest> activationChannel,
+        IConfiguration configuration,
         ILogger<AuthorizeLinkCallbackEndpoint> logger,
         CancellationToken ct)
     {
@@ -71,7 +72,11 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
 
         try
         {
-            var tokens = await googleOAuthService.ExchangeCodeAsync(code, ct);
+            var activationRedirectUri = configuration["Google:AuthorizeLinkRedirectUri"]
+                ?? configuration["Api:BaseUrl"]?.TrimEnd('/') + "/oauth/google/authorize/callback"
+                ?? throw new InvalidOperationException("Google:AuthorizeLinkRedirectUri or Api:BaseUrl must be configured");
+
+            var tokens = await googleOAuthService.ExchangeCodeAsync(code, activationRedirectUri, ct);
 
             // SEC: Verify Google email matches the expected email from the signed link
             if (!IsEmailMatch(linkState.Email, tokens.Email))
