@@ -596,11 +596,11 @@ builder.Services.AddRateLimiter(options =>
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1) }));
 
-    // OAuth link authorization: 5 per hour per IP (prevents brute-force on short codes)
+    // OAuth link authorization: 50 per hour per IP (temporarily raised for testing — TODO: revert to 5)
     options.AddPolicy("oauth-link-authorize", context =>
         RateLimitPartition.GetFixedWindowLimiter(
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromHours(1) }));
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 50, Window = TimeSpan.FromHours(1) }));
 
     // Telemetry events: 60 per minute per IP (one event per second per visitor, generous for analytics)
     options.AddPolicy("telemetry", context =>
