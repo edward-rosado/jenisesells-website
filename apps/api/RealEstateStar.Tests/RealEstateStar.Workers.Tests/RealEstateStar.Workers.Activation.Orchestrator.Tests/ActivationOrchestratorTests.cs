@@ -611,13 +611,13 @@ public class ActivationOrchestratorTests
             Reviews: [],
             Profiles: [],
             Ga4MeasurementId: null,
-            WhatsAppEnabled: true);
+            WhatsAppEnabled: true, Languages: []);
 
         var corpus = new EmailCorpus(
             SentEmails: Enumerable.Range(0, 5).Select(_ =>
-                new EmailMessage("id", "subj", "body", "from", [], DateTime.UtcNow, null)).ToList(),
+                new EmailMessage("id", "subj", "body", "from", [], DateTime.UtcNow, null, [])).ToList(),
             InboxEmails: Enumerable.Range(0, 3).Select(_ =>
-                new EmailMessage("id", "subj", "body", "from", [], DateTime.UtcNow, null)).ToList(),
+                new EmailMessage("id", "subj", "body", "from", [], DateTime.UtcNow, null, [])).ToList(),
             Signature: null);
 
         await orchestrator.SavePhase1CheckpointAsync(

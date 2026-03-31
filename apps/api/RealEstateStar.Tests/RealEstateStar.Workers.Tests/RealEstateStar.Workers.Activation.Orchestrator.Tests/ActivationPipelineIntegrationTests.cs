@@ -223,7 +223,7 @@ public class ActivationPipelineIntegrationTests
                 $"id{i}", $"Subject {i}",
                 "Hello, following up on our conversation.",
                 "agent@example.com", ["client@example.com"],
-                DateTime.UtcNow.AddDays(-i), null))
+                DateTime.UtcNow.AddDays(-i), null, []))
             .ToList();
 
         _gmailReader.Setup(r => r.GetSentEmailsAsync(

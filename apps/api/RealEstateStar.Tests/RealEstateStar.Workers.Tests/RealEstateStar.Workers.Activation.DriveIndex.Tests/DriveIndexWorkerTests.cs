@@ -13,13 +13,11 @@ public class DriveIndexWorkerTests
 
     private static DriveIndexWorker BuildWorker(
         Mock<IGDriveClient>? mockClient = null,
-        Mock<IAnthropicClient>? mockAnthropic = null)
     {
         mockClient ??= new Mock<IGDriveClient>();
-        mockAnthropic ??= new Mock<IAnthropicClient>();
         return new DriveIndexWorker(
             mockClient.Object,
-            mockAnthropic.Object,
+            
             NullLogger<DriveIndexWorker>.Instance);
     }
 
