@@ -14,10 +14,13 @@ namespace RealEstateStar.Activities.Activation.PersistAgentProfile;
 /// never to Account Drive (brokerage folder).
 /// </summary>
 public sealed class AgentProfilePersistActivity(
-    IFileStorageProvider storage,
+    IFileStorageProviderFactory storageFactory,
     IAgentConfigService agentConfigService,
     ILogger<AgentProfilePersistActivity> logger)
 {
+    private IFileStorageProvider? _storage;
+    private IFileStorageProvider storage => _storage ?? throw new InvalidOperationException("Call ExecuteAsync first");
+
     internal const string FolderPrefix = "real-estate-star";
 
     // Per-agent markdown skill files
@@ -53,6 +56,7 @@ public sealed class AgentProfilePersistActivity(
         ActivationOutputs outputs,
         CancellationToken ct)
     {
+        _storage = storageFactory.CreateForAgent(accountId, agentId);
         var agentFolder = $"{FolderPrefix}/{agentId}";
 
         logger.LogInformation(

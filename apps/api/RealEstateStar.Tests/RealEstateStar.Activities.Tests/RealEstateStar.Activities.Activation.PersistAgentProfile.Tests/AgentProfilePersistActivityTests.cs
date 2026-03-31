@@ -11,6 +11,7 @@ namespace RealEstateStar.Activities.Activation.PersistAgentProfile.Tests;
 public class AgentProfilePersistActivityTests
 {
     private readonly Mock<IFileStorageProvider> _storage = new(MockBehavior.Strict);
+    private readonly Mock<IFileStorageProviderFactory> _storageFactory = new();
     private readonly Mock<IAgentConfigService> _agentConfig = new(MockBehavior.Strict);
     private readonly AgentProfilePersistActivity _sut;
     private const string AccountId = "test-account";
@@ -20,8 +21,10 @@ public class AgentProfilePersistActivityTests
 
     public AgentProfilePersistActivityTests()
     {
+        _storageFactory.Setup(f => f.CreateForAgent(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(_storage.Object);
         _sut = new AgentProfilePersistActivity(
-            _storage.Object,
+            _storageFactory.Object,
             _agentConfig.Object,
             NullLogger<AgentProfilePersistActivity>.Instance);
     }
@@ -276,7 +279,7 @@ public class AgentProfilePersistActivityTests
         var agentFolder = $"real-estate-star/{AgentId}";
         var mockLogger = new Mock<ILogger<AgentProfilePersistActivity>>();
         var sut = new AgentProfilePersistActivity(
-            _storage.Object,
+            _storageFactory.Object,
             _agentConfig.Object,
             mockLogger.Object);
 
@@ -303,7 +306,7 @@ public class AgentProfilePersistActivityTests
         var agentFolder = $"real-estate-star/{AgentId}";
         var mockLogger = new Mock<ILogger<AgentProfilePersistActivity>>();
         var sut = new AgentProfilePersistActivity(
-            _storage.Object,
+            _storageFactory.Object,
             _agentConfig.Object,
             mockLogger.Object);
 
@@ -330,7 +333,7 @@ public class AgentProfilePersistActivityTests
         var agentFolder = $"real-estate-star/{AgentId}";
         var mockLogger = new Mock<ILogger<AgentProfilePersistActivity>>();
         var sut = new AgentProfilePersistActivity(
-            _storage.Object,
+            _storageFactory.Object,
             _agentConfig.Object,
             mockLogger.Object);
 
@@ -350,7 +353,7 @@ public class AgentProfilePersistActivityTests
         var agentFolder = $"real-estate-star/{AgentId}";
         var mockLogger = new Mock<ILogger<AgentProfilePersistActivity>>();
         var sut = new AgentProfilePersistActivity(
-            _storage.Object,
+            _storageFactory.Object,
             _agentConfig.Object,
             mockLogger.Object);
 

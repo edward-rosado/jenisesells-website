@@ -503,7 +503,8 @@ builder.Services.AddHealthChecks()
     .AddCheck<ScraperApiHealthCheck>("scraper_api", tags: ["ready"])
     .AddCheck<RentCastHealthCheck>("rentcast_api", tags: ["ready"])
     .AddCheck<TurnstileHealthCheck>("turnstile", tags: ["ready"])
-    .AddCheck<BackgroundServiceHealthCheck>("background_workers", tags: ["ready", "workers"]);
+    .AddCheck<BackgroundServiceHealthCheck>("background_workers", tags: ["ready", "workers"])
+    .AddCheck<AzureQueueHealthCheck>("azure_queues", tags: ["ready"]);
 
 // CORS
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()

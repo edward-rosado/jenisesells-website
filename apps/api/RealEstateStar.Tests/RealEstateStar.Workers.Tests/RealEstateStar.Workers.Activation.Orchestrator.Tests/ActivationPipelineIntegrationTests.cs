@@ -60,9 +60,13 @@ public class ActivationPipelineIntegrationTests
     // ── In-memory storage (real implementation, not mock) ─────────────────────
 
     private readonly InMemoryFileProvider _fileStorage = new();
+    private readonly Mock<IFileStorageProviderFactory> _fileStorageFactory = new();
 
     public ActivationPipelineIntegrationTests()
     {
+        _fileStorageFactory.Setup(f => f.CreateForAgent(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(_fileStorage);
+
         _sanitizer.Setup(s => s.Sanitize(It.IsAny<string>())).Returns<string>(s => s);
 
         _anthropic.Setup(a => a.SendAsync(
@@ -142,7 +146,7 @@ public class ActivationPipelineIntegrationTests
             new BrandVoiceWorker(_anthropic.Object, _sanitizer.Object, NullLogger<BrandVoiceWorker>.Instance),
             new ComplianceAnalysisWorker(_anthropic.Object, _sanitizer.Object, NullLogger<ComplianceAnalysisWorker>.Instance),
             new FeeStructureWorker(_anthropic.Object, _sanitizer.Object, NullLogger<FeeStructureWorker>.Instance),
-            new AgentProfilePersistActivity(_fileStorage, _agentConfigService.Object, NullLogger<AgentProfilePersistActivity>.Instance),
+            new AgentProfilePersistActivity(_fileStorageFactory.Object, _agentConfigService.Object, NullLogger<AgentProfilePersistActivity>.Instance),
             new BrandMergeActivity(_brandMergeService.Object, _fileStorage, NullLogger<BrandMergeActivity>.Instance),
             _welcomeService.Object,
             _fileStorage,

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Azure.Storage.Queues;
 using Microsoft.Extensions.Logging;
@@ -10,53 +11,104 @@ public sealed class AzureQueueLeadStore(
     QueueClient queueClient,
     ILogger<AzureQueueLeadStore> logger) : ILeadOrchestrationQueue
 {
+    internal const string QueueName = "lead-requests";
+
     public async Task EnqueueAsync(LeadOrchestrationMessage message, CancellationToken ct)
     {
-        var json = JsonSerializer.Serialize(message);
-        await queueClient.SendMessageAsync(json, ct);
+        using var activity = QueueDiagnostics.StartEnqueue(QueueName);
+        try
+        {
+            var json = JsonSerializer.Serialize(message);
+            var response = await queueClient.SendMessageAsync(json, ct);
 
-        logger.LogInformation(
-            "[QUEUE-010] Lead orchestration request enqueued. AgentId={AgentId}, LeadId={LeadId}, CorrelationId={CorrelationId}",
-            message.AgentId, message.LeadId, message.CorrelationId);
+            QueueDiagnostics.RecordEnqueue(QueueName, response.Value.MessageId, activity);
+
+            logger.LogInformation(
+                "[QUEUE-001] Lead orchestration request enqueued. AgentId={AgentId}, LeadId={LeadId}, CorrelationId={CorrelationId}",
+                message.AgentId, message.LeadId, message.CorrelationId);
+        }
+        catch (Exception ex)
+        {
+            QueueDiagnostics.RecordFailure(QueueName, activity, ex);
+
+            logger.LogError(ex,
+                "[QUEUE-010] Failed to enqueue lead orchestration request. AgentId={AgentId}, LeadId={LeadId}",
+                message.AgentId, message.LeadId);
+
+            throw;
+        }
     }
 
     public async Task<QueueMessage<LeadOrchestrationMessage>?> DequeueAsync(
         TimeSpan visibilityTimeout,
         CancellationToken ct)
     {
-        var response = await queueClient.ReceiveMessageAsync(visibilityTimeout, ct);
-        var message = response?.Value;
-
-        if (message is null)
-            return null;
-
+        using var activity = QueueDiagnostics.StartDequeue(QueueName);
         try
         {
-            var request = JsonSerializer.Deserialize<LeadOrchestrationMessage>(message.Body.ToString())
-                ?? throw new JsonException("Deserialized LeadOrchestrationMessage was null");
+            var response = await queueClient.ReceiveMessageAsync(visibilityTimeout, ct);
+            var message = response?.Value;
 
-            logger.LogInformation(
-                "[QUEUE-011] Lead orchestration request dequeued. MessageId={MessageId}, AgentId={AgentId}, LeadId={LeadId}",
-                message.MessageId, request.AgentId, request.LeadId);
+            if (message is null)
+            {
+                logger.LogDebug("[QUEUE-002] Lead queue empty — no messages to dequeue");
+                return null;
+            }
 
-            return new QueueMessage<LeadOrchestrationMessage>(request, message.MessageId, message.PopReceipt);
+            try
+            {
+                var request = JsonSerializer.Deserialize<LeadOrchestrationMessage>(message.Body.ToString())
+                    ?? throw new JsonException("Deserialized LeadOrchestrationMessage was null");
+
+                activity?.SetTag("message.id", message.MessageId);
+
+                logger.LogInformation(
+                    "[QUEUE-002] Lead orchestration request dequeued. MessageId={MessageId}, AgentId={AgentId}, LeadId={LeadId}",
+                    message.MessageId, request.AgentId, request.LeadId);
+
+                return new QueueMessage<LeadOrchestrationMessage>(request, message.MessageId, message.PopReceipt);
+            }
+            catch (JsonException ex)
+            {
+                QueueDiagnostics.RecordFailure(QueueName, activity, ex);
+
+                logger.LogError(ex,
+                    "[QUEUE-011] Failed to deserialize lead queue message. MessageId={MessageId}",
+                    message.MessageId);
+
+                // Delete the poison message so it doesn't block the queue
+                await queueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt, ct);
+                return null;
+            }
         }
-        catch (JsonException ex)
+        catch (Exception ex) when (ex is not JsonException)
         {
-            logger.LogError(ex,
-                "[QUEUE-012] Failed to deserialize lead queue message. MessageId={MessageId}",
-                message.MessageId);
+            QueueDiagnostics.RecordFailure(QueueName, activity, ex);
 
-            // Delete the poison message so it doesn't block the queue
-            await queueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt, ct);
-            return null;
+            logger.LogError(ex, "[QUEUE-011] Failed to dequeue lead orchestration request");
+            throw;
         }
     }
 
     public async Task CompleteAsync(string messageId, string popReceipt, CancellationToken ct)
     {
-        await queueClient.DeleteMessageAsync(messageId, popReceipt, ct);
+        using var activity = QueueDiagnostics.StartComplete(QueueName);
+        try
+        {
+            await queueClient.DeleteMessageAsync(messageId, popReceipt, ct);
 
-        logger.LogInformation("[QUEUE-013] Lead message completed. MessageId={MessageId}", messageId);
+            QueueDiagnostics.RecordComplete(QueueName, messageId, activity);
+
+            logger.LogInformation("[QUEUE-003] Lead message completed. MessageId={MessageId}", messageId);
+        }
+        catch (Exception ex)
+        {
+            QueueDiagnostics.RecordFailure(QueueName, activity, ex);
+
+            logger.LogError(ex,
+                "[QUEUE-012] Failed to complete lead message. MessageId={MessageId}", messageId);
+
+            throw;
+        }
     }
 }
