@@ -116,11 +116,22 @@ else
 {
     var kvUri = builder.Configuration["AzureKeyVault:VaultUri"];
     var blobUri = builder.Configuration["DataProtection:BlobUri"];
-    if (!string.IsNullOrEmpty(kvUri) && !string.IsNullOrEmpty(blobUri))
+    if (!string.IsNullOrEmpty(blobUri))
     {
-        dpBuilder
-            .PersistKeysToAzureBlobStorage(new Uri(blobUri), new Azure.Identity.DefaultAzureCredential())
-            .ProtectKeysWithAzureKeyVault(new Uri(kvUri + "/keys/dataprotection"), new Azure.Identity.DefaultAzureCredential());
+        dpBuilder.PersistKeysToAzureBlobStorage(new Uri(blobUri), new Azure.Identity.DefaultAzureCredential());
+
+        if (!string.IsNullOrEmpty(kvUri))
+        {
+            dpBuilder.ProtectKeysWithAzureKeyVault(new Uri(kvUri + "/keys/dataprotection"), new Azure.Identity.DefaultAzureCredential());
+        }
+        else
+        {
+            Log.Warning("[STARTUP-082] DataProtection keys persisted to Blob Storage without Key Vault encryption — keys stored unencrypted");
+        }
+    }
+    else
+    {
+        Log.Warning("[STARTUP-083] No DataProtection:BlobUri configured — DPAPI keys are ephemeral and will not survive container restarts");
     }
 }
 
