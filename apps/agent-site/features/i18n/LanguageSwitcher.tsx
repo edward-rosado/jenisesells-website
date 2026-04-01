@@ -21,20 +21,11 @@ function GlobeIcon({ size = 16 }: { size?: number }) {
 export function LanguageSwitcher({ locales, currentLocale }: LanguageSwitcherProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  // Only render if more than one language is supported
-  if (locales.length <= 1) return null;
-
-  function handleSelect(locale: SupportedLocale) {
-    document.cookie = `locale=${locale};path=/;max-age=${365 * 24 * 60 * 60};samesite=lax`;
-    setOpen(false);
-    // Reload the page so middleware re-resolves the locale from the cookie
-    window.location.reload();
-  }
+  const hidden = locales.length <= 1;
 
   // Close on outside click
   useEffect(() => {
-    if (!open) return;
+    if (!open || hidden) return;
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
@@ -42,17 +33,26 @@ export function LanguageSwitcher({ locales, currentLocale }: LanguageSwitcherPro
     }
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
-  }, [open]);
+  }, [open, hidden]);
 
   // Close on Escape
   useEffect(() => {
-    if (!open) return;
+    if (!open || hidden) return;
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [open]);
+  }, [open, hidden]);
+
+  if (hidden) return null;
+
+  function handleSelect(locale: SupportedLocale) {
+    document.cookie = `locale=${locale};path=/;max-age=${365 * 24 * 60 * 60};samesite=lax`;
+    setOpen(false);
+    // Reload the page so middleware re-resolves the locale from the cookie
+    window.location.reload();
+  }
 
   return (
     <div ref={ref} style={{ position: "relative" }}>

@@ -3,7 +3,6 @@ import { extractAgentId, resolveAgentFromCustomDomain, isWwwCustomDomain, getAge
 import { applySecurityHeaders, safeCspUrl } from "@/features/shared/security-headers";
 import { accountLanguages } from "@/features/config/config-registry";
 import { resolveLocale as resolveLocaleFromHeaders } from "@/features/i18n/resolve-locale";
-import { languagesToLocales } from "@/features/i18n/locale-map";
 import type { SupportedLocale } from "@/features/i18n/locale-map";
 
 function buildCspHeader(nonce: string): string {

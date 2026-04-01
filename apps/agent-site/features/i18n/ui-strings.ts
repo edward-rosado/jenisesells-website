@@ -1,4 +1,4 @@
-import type { SupportedLocale } from "./locale-map";
+// Locale keys used as Record keys below
 
 export interface UiStrings {
   // Layout
