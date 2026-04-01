@@ -22,7 +22,7 @@ public class PipelineAnalysisWorkerTests
 
     private static DriveIndex MakeEmptyDriveIndex() => new(
         FolderId: "folder-1", Files: [],
-        Contents: new Dictionary<string, string>(), DiscoveredUrls: []);
+        Contents: new Dictionary<string, string>(), DiscoveredUrls: [], Extractions: []);
 
     private static AnthropicResponse MakeValidResponse() =>
         new(Content: """

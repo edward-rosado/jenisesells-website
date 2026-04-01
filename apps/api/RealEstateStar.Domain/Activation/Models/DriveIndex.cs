@@ -4,7 +4,8 @@ public sealed record DriveIndex(
     string FolderId,
     IReadOnlyList<DriveFile> Files,
     IReadOnlyDictionary<string, string> Contents,
-    IReadOnlyList<string> DiscoveredUrls);
+    IReadOnlyList<string> DiscoveredUrls,
+    IReadOnlyList<DocumentExtraction> Extractions);
 
 public sealed record DriveFile(
     string Id,

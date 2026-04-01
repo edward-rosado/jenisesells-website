@@ -52,6 +52,8 @@ COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.Websi
 # Activation activities and services
 COPY ["RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.PersistAgentProfile/RealEstateStar.Activities.Activation.PersistAgentProfile.csproj", "RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.PersistAgentProfile/"]
 COPY ["RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.BrandMerge/RealEstateStar.Activities.Activation.BrandMerge.csproj", "RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.BrandMerge/"]
+COPY ["RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.ContactImportPersist/RealEstateStar.Activities.Activation.ContactImportPersist.csproj", "RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.ContactImportPersist/"]
+COPY ["RealEstateStar.Activities/Lead/RealEstateStar.Activities.Lead.ContactDetection/RealEstateStar.Activities.Lead.ContactDetection.csproj", "RealEstateStar.Activities/Lead/RealEstateStar.Activities.Lead.ContactDetection/"]
 COPY ["RealEstateStar.Services/Activation/RealEstateStar.Services.AgentConfig/RealEstateStar.Services.AgentConfig.csproj", "RealEstateStar.Services/Activation/RealEstateStar.Services.AgentConfig/"]
 COPY ["RealEstateStar.Services/Activation/RealEstateStar.Services.BrandMerge/RealEstateStar.Services.BrandMerge.csproj", "RealEstateStar.Services/Activation/RealEstateStar.Services.BrandMerge/"]
 COPY ["RealEstateStar.Services/Activation/RealEstateStar.Services.WelcomeNotification/RealEstateStar.Services.WelcomeNotification.csproj", "RealEstateStar.Services/Activation/RealEstateStar.Services.WelcomeNotification/"]

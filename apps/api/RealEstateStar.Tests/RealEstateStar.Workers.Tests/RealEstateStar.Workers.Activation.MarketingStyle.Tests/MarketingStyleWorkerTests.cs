@@ -24,7 +24,7 @@ public class MarketingStyleWorkerTests
 
     private static DriveIndex MakeEmptyDriveIndex() => new(
         FolderId: "folder-1", Files: [],
-        Contents: new Dictionary<string, string>(), DiscoveredUrls: []);
+        Contents: new Dictionary<string, string>(), DiscoveredUrls: [], Extractions: []);
 
     private static EmailCorpus MakeCorpusWith(params EmailMessage[] sent) =>
         new(SentEmails: sent, InboxEmails: [], Signature: null);

@@ -464,6 +464,107 @@ internal sealed class GDriveApiClient(
         }
     }
 
+    public async Task<byte[]?> DownloadBinaryAsync(
+        string accountId,
+        string agentId,
+        string fileId,
+        CancellationToken ct)
+    {
+        var service = await BuildServiceAsync(accountId, agentId, ct);
+        if (service is null)
+            return null;
+
+        var sw = Stopwatch.GetTimestamp();
+        using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.download_binary");
+        activity?.SetTag("gdrive.file_id", fileId);
+
+        try
+        {
+            GDriveDiagnostics.Operations.Add(1);
+
+            var request = service.Files.Get(fileId);
+            using var stream = new MemoryStream();
+            var downloadProgress = await request.DownloadAsync(stream, ct);
+
+            if (downloadProgress.Status == Google.Apis.Download.DownloadStatus.Failed)
+            {
+                logger.LogWarning(
+                    "[GDRIVE-049] DownloadBinary download failed for account {AccountId}, agent {AgentId}, fileId {FileId}",
+                    accountId, agentId, fileId);
+                return null;
+            }
+
+            var data = stream.ToArray();
+
+            var durationMs = Stopwatch.GetElapsedTime(sw).TotalMilliseconds;
+            GDriveDiagnostics.Duration.Record(durationMs);
+
+            logger.LogInformation(
+                "[GDRIVE-048] Binary downloaded for account {AccountId}, agent {AgentId}. FileId: {FileId}, Bytes: {Bytes}, Duration: {Duration}ms",
+                accountId, agentId, fileId, data.Length, durationMs);
+
+            return data;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            GDriveDiagnostics.Failed.Add(1);
+            logger.LogError(ex,
+                "[GDRIVE-050] DownloadBinary failed for account {AccountId}, agent {AgentId}",
+                accountId, agentId);
+            throw;
+        }
+    }
+
+    public async Task<string> CopyFileAsync(
+        string accountId,
+        string agentId,
+        string sourceFileId,
+        string destinationFolderId,
+        string? newName,
+        CancellationToken ct)
+    {
+        var service = await BuildServiceAsync(accountId, agentId, ct);
+        if (service is null)
+            return string.Empty;
+
+        var sw = Stopwatch.GetTimestamp();
+        using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.copy_file");
+        activity?.SetTag("gdrive.source_file_id", sourceFileId);
+        activity?.SetTag("gdrive.destination_folder_id", destinationFolderId);
+
+        try
+        {
+            GDriveDiagnostics.Operations.Add(1);
+
+            var copyMetadata = new Google.Apis.Drive.v3.Data.File
+            {
+                Parents = [destinationFolderId],
+                Name = newName
+            };
+
+            var copyRequest = service.Files.Copy(copyMetadata, sourceFileId);
+            copyRequest.Fields = "id";
+            var copiedFile = await copyRequest.ExecuteAsync(ct);
+
+            var durationMs = Stopwatch.GetElapsedTime(sw).TotalMilliseconds;
+            GDriveDiagnostics.Duration.Record(durationMs);
+
+            logger.LogInformation(
+                "[GDRIVE-051] File copied for account {AccountId}, agent {AgentId}. SourceFileId: {SourceFileId}, NewFileId: {NewFileId}, Duration: {Duration}ms",
+                accountId, agentId, sourceFileId, copiedFile.Id, durationMs);
+
+            return copiedFile.Id ?? string.Empty;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            GDriveDiagnostics.Failed.Add(1);
+            logger.LogError(ex,
+                "[GDRIVE-052] CopyFile failed for account {AccountId}, agent {AgentId}",
+                accountId, agentId);
+            throw;
+        }
+    }
+
     // ── Token retry logic ────────────────────────────────────────────────────
 
     /// <summary>

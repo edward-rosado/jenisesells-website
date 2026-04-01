@@ -190,6 +190,7 @@ public class VoiceExtractionWorkerTests
             "folder-id",
             [],
             new Dictionary<string, string> { ["Marketing Deck.docx"] = "Our properties are top-tier" },
+            [],
             []);
 
         string? capturedUserMessage = null;

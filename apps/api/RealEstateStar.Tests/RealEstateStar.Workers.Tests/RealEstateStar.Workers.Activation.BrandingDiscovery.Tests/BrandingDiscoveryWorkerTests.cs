@@ -238,7 +238,7 @@ public class BrandingDiscoveryWorkerTests
                 It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeTemplateResponse("modern", "Clean design"));
 
-        var result = await _sut.DiscoverAsync("Jenise", discovery, EmptyCorpus(), new DriveIndex("fid", [], new Dictionary<string, string>(), []), default);
+        var result = await _sut.DiscoverAsync("Jenise", discovery, EmptyCorpus(), new DriveIndex("fid", [], new Dictionary<string, string>(), [], []), default);
 
         result.Kit.Should().NotBeNull();
         result.BrandingKitMarkdown.Should().Contain("# Branding Kit: Jenise");
@@ -254,7 +254,7 @@ public class BrandingDiscoveryWorkerTests
                 It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Claude unavailable"));
 
-        var result = await _sut.DiscoverAsync("Jenise", discovery, EmptyCorpus(), new DriveIndex("fid", [], new Dictionary<string, string>(), []), default);
+        var result = await _sut.DiscoverAsync("Jenise", discovery, EmptyCorpus(), new DriveIndex("fid", [], new Dictionary<string, string>(), [], []), default);
 
         result.Kit.RecommendedTemplate.Should().Be("modern");
     }
@@ -268,7 +268,7 @@ public class BrandingDiscoveryWorkerTests
                 It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(MakeTemplateResponse());
 
-        await _sut.DiscoverAsync("Jenise", discovery, EmptyCorpus(), new DriveIndex("fid", [], new Dictionary<string, string>(), []), default);
+        await _sut.DiscoverAsync("Jenise", discovery, EmptyCorpus(), new DriveIndex("fid", [], new Dictionary<string, string>(), [], []), default);
 
         _sanitizer.Verify(s => s.Sanitize(It.IsAny<string>()), Times.AtLeastOnce);
     }

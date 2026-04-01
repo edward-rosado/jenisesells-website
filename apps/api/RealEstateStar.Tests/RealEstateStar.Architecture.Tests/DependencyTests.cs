@@ -40,8 +40,10 @@ public class DependencyTests
     [InlineData("RealEstateStar.Services.AgentConfig", new[] { "Domain" })]
     [InlineData("RealEstateStar.Services.BrandMerge", new[] { "Domain" })]
     [InlineData("RealEstateStar.Services.WelcomeNotification", new[] { "Domain" })]
+    [InlineData("RealEstateStar.Activities.Lead.ContactDetection", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Activities.Activation.PersistAgentProfile", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Activities.Activation.BrandMerge", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Activities.Activation.ContactImportPersist", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Lead.Orchestrator", new[] { "Domain", "Workers.Shared", "Activities.Pdf", "Activities.Lead.Persist", "Services.AgentNotifier", "Services.LeadCommunicator", "Workers.Lead.CMA", "Workers.Lead.HomeSearch" })]
     [InlineData("RealEstateStar.Workers.Lead.CMA", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Lead.HomeSearch", new[] { "Domain", "Workers.Shared" })]
@@ -74,6 +76,7 @@ public class DependencyTests
         "Workers.Activation.PipelineAnalysis", "Workers.Activation.VoiceExtraction",
         "Workers.Activation.WebsiteStyle",
         "Activities.Activation.PersistAgentProfile", "Activities.Activation.BrandMerge",
+        "Activities.Lead.ContactDetection", "Activities.Activation.ContactImportPersist",
     })]
     [InlineData("RealEstateStar.Clients.Anthropic", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.Scraper", new[] { "Domain" })]
@@ -211,6 +214,8 @@ public class DependencyTests
             "RealEstateStar.Activities.Lead.Persist",
             "RealEstateStar.Activities.Activation.PersistAgentProfile",
             "RealEstateStar.Activities.Activation.BrandMerge",
+            "RealEstateStar.Activities.Lead.ContactDetection",
+            "RealEstateStar.Activities.Activation.ContactImportPersist",
             "RealEstateStar.Services.AgentNotifier",
             "RealEstateStar.Services.LeadCommunicator",
             "RealEstateStar.Services.AgentConfig",
@@ -522,6 +527,8 @@ public class DependencyTests
             "RealEstateStar.Activities.Lead.Persist",
             "RealEstateStar.Activities.Activation.PersistAgentProfile",
             "RealEstateStar.Activities.Activation.BrandMerge",
+            "RealEstateStar.Activities.Lead.ContactDetection",
+            "RealEstateStar.Activities.Activation.ContactImportPersist",
             "RealEstateStar.Services.AgentNotifier",
             "RealEstateStar.Services.LeadCommunicator",
             "RealEstateStar.Services.AgentConfig",
@@ -546,7 +553,7 @@ public class DependencyTests
             "RealEstateStar.Clients.Gws",
             "RealEstateStar.Clients.RentCast",
         };
-        apiAllowedProjects.Count.Should().Be(32,
+        apiAllowedProjects.Count.Should().Be(34,
             "Api allowed-project count changed — was a new dependency added to the composition root without approval?");
     }
 
