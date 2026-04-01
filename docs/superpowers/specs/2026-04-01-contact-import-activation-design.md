@@ -1,7 +1,7 @@
 # Contact Import During Activation
 
 **Date:** 2026-04-01
-**Status:** Draft
+**Status:** Implementing
 **Scope:** Enhanced Phase 1 DriveIndex + new Phase 2.5 classifier + new Phase 3 persist activity
 
 ---
