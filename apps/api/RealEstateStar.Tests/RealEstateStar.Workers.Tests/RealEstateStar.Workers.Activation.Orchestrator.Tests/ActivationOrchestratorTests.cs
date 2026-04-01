@@ -5,9 +5,12 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Activities.Activation.BrandMerge;
+using RealEstateStar.Activities.Activation.ContactImportPersist;
 using RealEstateStar.Activities.Activation.PersistAgentProfile;
+using RealEstateStar.Activities.Lead.ContactDetection;
 using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.Activation.Models;
+using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
@@ -64,6 +67,7 @@ public class ActivationOrchestratorTests
     private readonly Mock<IFileStorageProvider> _fileStorage = new();
     private readonly Mock<IAgentConfigService> _agentConfigService = new();
     private readonly Mock<IBrandMergeService> _brandMergeService = new();
+    private readonly Mock<ILeadStore> _leadStore = new();
 
     public ActivationOrchestratorTests()
     {
@@ -259,6 +263,16 @@ public class ActivationOrchestratorTests
             _fileStorage.Object,
             NullLogger<BrandMergeActivity>.Instance);
 
+        var contactDetectionActivity = new ContactDetectionActivity(
+            _anthropic.Object,
+            NullLoggerFactory.Instance);
+
+        var contactImportPersistActivity = new ContactImportPersistActivity(
+            _storage.Object,
+            _driveClient.Object,
+            _leadStore.Object,
+            NullLogger<ContactImportPersistActivity>.Instance);
+
         return new ActivationOrchestrator(
             channel.Reader,
             emailFetchWorker,
@@ -278,6 +292,8 @@ public class ActivationOrchestratorTests
             feeWorker,
             persistActivity,
             brandMergeActivity,
+            contactDetectionActivity,
+            contactImportPersistActivity,
             _welcomeService.Object,
             _storage.Object,
             _contextLoader.Object,
@@ -396,6 +412,8 @@ public class ActivationOrchestratorTests
             new FeeStructureWorker(_anthropic.Object, _sanitizer.Object, NullLogger<FeeStructureWorker>.Instance),
             new AgentProfilePersistActivity(_fileStorage.Object, _agentConfigService.Object, NullLogger<AgentProfilePersistActivity>.Instance),
             new BrandMergeActivity(_brandMergeService.Object, _fileStorage.Object, NullLogger<BrandMergeActivity>.Instance),
+            new ContactDetectionActivity(_anthropic.Object, NullLoggerFactory.Instance),
+            new ContactImportPersistActivity(_storage.Object, _driveClient.Object, _leadStore.Object, NullLogger<ContactImportPersistActivity>.Instance),
             _welcomeService.Object,
             _storage.Object,
             _contextLoader.Object,
@@ -536,7 +554,7 @@ public class ActivationOrchestratorTests
         var orchestrator = BuildOrchestrator();
         var outputs = new ActivationOutputs { VoiceSkill = "# Voice Skill" };
 
-        await orchestrator.RunPhase3Async(MakeRequest(), outputs, EmptyDiscovery(), CancellationToken.None);
+        await orchestrator.RunPhase3Async(MakeRequest(), outputs, EmptyDiscovery(), Array.Empty<ImportedContact>(), CancellationToken.None);
 
         // PersistActivity depends on _fileStorage and _agentConfigService
         _fileStorage.Verify(s => s.WriteDocumentAsync(
@@ -554,7 +572,7 @@ public class ActivationOrchestratorTests
             VoiceSkill = "# Voice Skill"
         };
 
-        await orchestrator.RunPhase3Async(MakeRequest(), outputs, EmptyDiscovery(), CancellationToken.None);
+        await orchestrator.RunPhase3Async(MakeRequest(), outputs, EmptyDiscovery(), Array.Empty<ImportedContact>(), CancellationToken.None);
 
         _brandMergeService.Verify(b => b.MergeAsync(
             AccountId, AgentId, "# Branding Kit", "# Voice Skill", It.IsAny<CancellationToken>()),
@@ -572,7 +590,7 @@ public class ActivationOrchestratorTests
         var orchestrator = BuildOrchestrator();
 
         var act = async () => await orchestrator.RunPhase3Async(
-            MakeRequest(), new ActivationOutputs(), EmptyDiscovery(), CancellationToken.None);
+            MakeRequest(), new ActivationOutputs(), EmptyDiscovery(), Array.Empty<ImportedContact>(), CancellationToken.None);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Config generation failed");

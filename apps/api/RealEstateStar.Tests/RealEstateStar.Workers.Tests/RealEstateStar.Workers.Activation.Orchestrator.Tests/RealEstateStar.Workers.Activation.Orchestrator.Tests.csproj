@@ -40,6 +40,8 @@
     <!-- Activities -->
     <ProjectReference Include="../../../RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.PersistAgentProfile/RealEstateStar.Activities.Activation.PersistAgentProfile.csproj" />
     <ProjectReference Include="../../../RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.BrandMerge/RealEstateStar.Activities.Activation.BrandMerge.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Activities/Lead/RealEstateStar.Activities.Lead.ContactDetection/RealEstateStar.Activities.Lead.ContactDetection.csproj" />
+    <ProjectReference Include="../../../RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.ContactImportPersist/RealEstateStar.Activities.Activation.ContactImportPersist.csproj" />
     <!-- Test utilities -->
     <ProjectReference Include="../../RealEstateStar.TestUtilities/RealEstateStar.TestUtilities.csproj" />
   </ItemGroup>
