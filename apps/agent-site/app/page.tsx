@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { loadAccountConfig, loadAccountContent } from "@/features/config/config";
+import { loadAccountConfig, loadAccountContent, loadLocalizedContent, getAccountLocales } from "@/features/config/config";
 import { buildCssVariableStyle } from "@/features/config/branding";
 import { getTemplate } from "@/features/templates";
 import { Analytics } from "@/features/shared/Analytics";
 import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 
 interface PageProps {
-  searchParams: Promise<{ accountId?: string; template?: string }>;
+  searchParams: Promise<{ accountId?: string; template?: string; locale?: string }>;
 }
 
 export const revalidate = 60; // ISR: revalidate every 60 seconds
@@ -48,12 +48,12 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 }
 
 export default async function AgentPage({ searchParams }: PageProps) {
-  const { accountId, template: templateOverride } = await searchParams;
+  const { accountId, template: templateOverride, locale } = await searchParams;
   const handle = resolveHandle(accountId);
 
   try {
     const account = loadAccountConfig(handle);
-    const content = loadAccountContent(handle, account);
+    const content = locale ? loadLocalizedContent(handle, locale) : loadAccountContent(handle, account);
 
     const cssVars = buildCssVariableStyle(account.branding);
     const Template = await getTemplate(resolveTemplateOverride(templateOverride) ?? account.template);
@@ -81,7 +81,7 @@ export default async function AgentPage({ searchParams }: PageProps) {
           dangerouslySetInnerHTML={{ __html: jsonLdHtml }}
         />
         <Analytics tracking={account.integrations?.tracking} />
-        <Template account={account} content={content} />
+        <Template account={account} content={content} locale={locale} />
         <CookieConsentBanner accountId={handle} />
       </div>
     );

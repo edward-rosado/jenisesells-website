@@ -51,10 +51,26 @@ function main() {
 
   const accountsMap = {};
   const accountContentMap = {};
+  const localizedContentMap = {};
+  const accountLanguagesMap = {};
   const agentConfigsMap = {};
   const agentContentMap = {};
   const legalContentMap = {};
   const customDomains = {};
+
+  // Language name -> BCP 47 code mapping (matches features/i18n/locale-map.ts)
+  const LANGUAGE_TO_LOCALE = {
+    English: "en",
+    Spanish: "es",
+    Portuguese: "pt",
+    French: "fr",
+    Chinese: "zh",
+    Korean: "ko",
+    Vietnamese: "vi",
+    Tagalog: "tl",
+    Arabic: "ar",
+    Hindi: "hi",
+  };
 
   for (const handle of handles) {
     const accountDir = path.join(ACCOUNTS_DIR, handle);
@@ -64,6 +80,26 @@ function main() {
     const contentPath = path.join(accountDir, "content.json");
     if (fs.existsSync(contentPath)) {
       accountContentMap[handle] = loadJson(contentPath);
+    }
+
+    // Discover content-{locale}.json files for localized content
+    const localeContentFiles = fs.readdirSync(accountDir).filter(
+      (f) => /^content-[a-z]{2}(-[a-z]{2})?\.json$/i.test(f),
+    );
+    if (localeContentFiles.length > 0) {
+      localizedContentMap[handle] = {};
+      for (const file of localeContentFiles) {
+        const locale = file.replace(/^content-/, "").replace(/\.json$/, "").toLowerCase();
+        localizedContentMap[handle][locale] = loadJson(path.join(accountDir, file));
+      }
+    }
+
+    // Map agent.languages to locale codes
+    const agentLanguages = account.agent?.languages ?? [];
+    if (agentLanguages.length > 0) {
+      accountLanguagesMap[handle] = agentLanguages.map(
+        (lang) => LANGUAGE_TO_LOCALE[lang] ?? "en",
+      );
     }
 
     const legalDir = path.join(accountDir, "legal");
@@ -115,6 +151,10 @@ export const agentContent: Record<string, Record<string, ContentConfig>> = ${JSO
 export const legalContent: Record<string, Record<string, { above?: string; below?: string }>> = ${JSON.stringify(legalContentMap)};
 
 export const customDomains: Record<string, string> = ${JSON.stringify(customDomains)};
+
+export const localizedContent: Record<string, Record<string, ContentConfig>> = ${JSON.stringify(localizedContentMap)} as unknown as Record<string, Record<string, ContentConfig>>;
+
+export const accountLanguages: Record<string, string[]> = ${JSON.stringify(accountLanguagesMap)};
 
 export const accountHandles: Set<string> = new Set(${JSON.stringify(handles)});
 

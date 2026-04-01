@@ -1,5 +1,6 @@
 import "./globals.css";
 import { WebVitalsReporter } from "./WebVitalsReporter";
+import { HtmlLangSetter } from "./HtmlLangSetter";
 
 export default function RootLayout({
   children,
@@ -19,6 +20,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <HtmlLangSetter />
         <WebVitalsReporter />
         <a href="#main-content" className="skip-nav">
           Skip to main content

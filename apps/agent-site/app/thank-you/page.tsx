@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { loadAccountConfig, loadAccountContent } from "@/features/config/config";
+import { loadAccountConfig, loadAccountContent, loadLocalizedContent } from "@/features/config/config";
 import { loadNavConfig } from "@/features/config/nav-config";
 import { buildCssVariableStyle } from "@/features/config/branding";
 import { Nav } from "@/features/shared/Nav";
@@ -10,7 +10,7 @@ import { safeTelHref } from "@/features/lead-capture/safe-contact";
 import type { ThankYouData } from "@/features/config/types";
 
 interface PageProps {
-  searchParams: Promise<{ accountId?: string }>;
+  searchParams: Promise<{ accountId?: string; locale?: string }>;
 }
 
 const DEFAULT_THANK_YOU: ThankYouData = {
@@ -27,7 +27,7 @@ function interpolate(template: string, vars: Record<string, string>): string {
 }
 
 export default async function ThankYouPage({ searchParams }: PageProps) {
-  const { accountId } = await searchParams;
+  const { accountId, locale } = await searchParams;
   const handle = accountId || process.env.DEFAULT_AGENT_ID || "jenise-buckalew";
 
   let account: ReturnType<typeof loadAccountConfig>;
@@ -38,7 +38,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
     notFound();
   }
 
-  const content = loadAccountContent(handle, account);
+  const content = locale ? loadLocalizedContent(handle, locale) : loadAccountContent(handle, account);
   const thankYou = content.pages?.thank_you ?? DEFAULT_THANK_YOU;
   const navConfig = loadNavConfig(handle);
   const cssVars = buildCssVariableStyle(account.branding);
@@ -49,7 +49,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
 
   return (
     <div style={cssVars as React.CSSProperties}>
-      <Nav account={account} navigation={navConfig.navigation} enabledSections={navConfig.enabledSections} />
+      <Nav account={account} navigation={navConfig.navigation} enabledSections={navConfig.enabledSections} locale={locale} />
       <main id="main-content" tabIndex={-1} className="pt-[74px] min-h-[70vh] flex items-center justify-center">
         <div className="text-center max-w-lg px-6">
           <div style={{
@@ -118,7 +118,7 @@ export default async function ThankYouPage({ searchParams }: PageProps) {
           </div>
         </div>
       </main>
-      <Footer agent={account} accountId={handle} />
+      <Footer agent={account} accountId={handle} locale={locale} />
       <CookieConsentBanner accountId={handle} />
     </div>
   );

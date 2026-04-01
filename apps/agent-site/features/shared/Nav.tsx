@@ -7,12 +7,19 @@ import Link from "next/link";
 import type { AccountConfig, NavigationConfig, ContactMethod } from "@/features/config/types";
 import { useFocusTrap } from "./use-focus-trap";
 import { safeMailtoHref, safeTelHref } from "@/features/shared/safe-contact";
+import { getUiStrings } from "@/features/i18n/ui-strings";
+import { LanguageSwitcher } from "@/features/i18n/LanguageSwitcher";
+import { languageToLocale } from "@/features/i18n/locale-map";
 
 interface NavProps {
   account: AccountConfig;
   navigation?: NavigationConfig;
   /** Set of enabled section IDs (e.g. "features", "testimonials") — nav items linking to disabled sections are hidden */
   enabledSections?: Set<string>;
+  /** BCP 47 locale code resolved by middleware (e.g. "en", "es") */
+  locale?: string;
+  /** Available locale codes for this agent (e.g. ["en", "es"]) — shows language switcher when > 1 */
+  languages?: string[];
 }
 
 function OfficeIcon({ size = 14 }: { size?: number }) {
@@ -62,7 +69,10 @@ function formatPhoneDisplay(value: string, ext?: string | null): string {
   return ext ? `${value} ext ${ext}` : value;
 }
 
-export function Nav({ account, navigation, enabledSections }: NavProps) {
+export function Nav({ account, navigation, enabledSections, locale, languages }: NavProps) {
+  const strings = getUiStrings(locale);
+  // Derive locale codes from account.agent.languages when not explicitly provided
+  const localeCodes = languages ?? (account.agent?.languages?.map(languageToLocale) ?? ["en"]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { branding } = account;
   const hamburgerRef = useRef<HTMLButtonElement>(null);
@@ -217,6 +227,11 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* Language switcher — only shown when agent supports multiple languages */}
+          {localeCodes.length > 1 && (
+            <LanguageSwitcher languages={localeCodes} currentLocale={locale ?? "en"} />
+          )}
+
           {/* Desktop contact links — visible >1024px */}
           <div className="nav-contact" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {emails[0] && (
@@ -292,7 +307,7 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
               minHeight: "44px",
             }}
           >
-            <PhoneIcon /> Contact Me
+            <PhoneIcon /> {strings.contactMe}
           </button>
 
           {/* Mobile call button — visible <=768px */}

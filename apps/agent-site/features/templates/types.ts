@@ -5,6 +5,8 @@ export interface TemplateProps {
   content: ContentConfig;
   /** When rendering an agent sub-page, this is the agent's identity */
   agent?: AgentConfig;
+  /** BCP 47 locale code resolved by middleware (e.g. "en", "es"). Defaults to "en" when omitted. */
+  locale?: string;
 }
 
 export type TemplateComponent = (props: TemplateProps) => React.JSX.Element;

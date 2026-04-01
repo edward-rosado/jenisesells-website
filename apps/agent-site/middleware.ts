@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractAgentId, resolveAgentFromCustomDomain, isWwwCustomDomain, getAgentIds } from "@/features/config/routing";
 import { applySecurityHeaders, safeCspUrl } from "@/features/shared/security-headers";
+import { accountLanguages } from "@/features/config/config-registry";
+import { resolveLocale } from "@/features/i18n/resolve-locale";
 
 function buildCspHeader(nonce: string): string {
   const apiUrl = safeCspUrl(process.env.NEXT_PUBLIC_API_URL);
@@ -26,6 +28,28 @@ function notFoundResponse(nonce: string): NextResponse {
   return response;
 }
 
+/** Resolve the locale for this request and add it to the URL searchParams. Returns the locale. */
+function addLocaleParam(request: NextRequest, url: URL, agentId: string): string | undefined {
+  const agentLocales = accountLanguages[agentId] ?? ["en"];
+  if (agentLocales.length <= 1) return undefined; // single-language agent, skip locale handling
+
+  const cookieLocale = request.cookies?.get("locale")?.value;
+  const acceptLanguage = request.headers.get("accept-language");
+  const locale = resolveLocale(acceptLanguage, cookieLocale, agentLocales);
+  url.searchParams.set("locale", locale);
+  return locale;
+}
+
+/** Set the locale cookie on the response so client components and future requests can read it. */
+function setLocaleCookie(response: NextResponse, locale: string | undefined): void {
+  if (!locale) return;
+  response.cookies?.set("locale", locale, {
+    path: "/",
+    sameSite: "lax",
+    maxAge: 365 * 24 * 60 * 60, // 1 year
+  });
+}
+
 export function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") || "localhost:3000";
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
@@ -47,7 +71,9 @@ export function middleware(request: NextRequest) {
     }
     const url = request.nextUrl.clone();
     url.searchParams.set("accountId", agentId);
+    const locale = addLocaleParam(request, url, agentId);
     const response = NextResponse.rewrite(url);
+    setLocaleCookie(response, locale);
     response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
     response.headers.set("x-nonce", nonce);
     applySecurityHeaders(response);
@@ -59,7 +85,9 @@ export function middleware(request: NextRequest) {
   if (customAgentId) {
     const url = request.nextUrl.clone();
     url.searchParams.set("accountId", customAgentId);
+    const locale = addLocaleParam(request, url, customAgentId);
     const response = NextResponse.rewrite(url);
+    setLocaleCookie(response, locale);
     response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
     response.headers.set("x-nonce", nonce);
     applySecurityHeaders(response);
@@ -80,7 +108,9 @@ export function middleware(request: NextRequest) {
     if (getAgentIds().has(resolvedId)) {
       const url = request.nextUrl.clone();
       url.searchParams.set("accountId", resolvedId);
+      const locale = addLocaleParam(request, url, resolvedId);
       const response = NextResponse.rewrite(url);
+      setLocaleCookie(response, locale);
       response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
       response.headers.set("x-nonce", nonce);
       applySecurityHeaders(response);

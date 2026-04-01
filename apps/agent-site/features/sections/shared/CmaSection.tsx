@@ -4,7 +4,9 @@ import type { ContactFormData, AccountTracking } from "@/features/config/types";
 import { trackCmaConversion } from "@/features/shared/Analytics";
 import { trackFormEvent, EventType } from "@/features/shared/telemetry";
 import { LeadForm } from "@real-estate-star/forms";
+import type { LeadFormProps, LeadFormLabels } from "@real-estate-star/forms";
 import type { LeadFormData } from "@real-estate-star/domain";
+import { getUiStrings } from "@/features/i18n/ui-strings";
 import dynamic from "next/dynamic";
 
 const Turnstile = dynamic(
@@ -22,6 +24,7 @@ interface CmaSectionProps {
   tracking?: AccountTracking;
   data: ContactFormData;
   serviceAreas?: string[];
+  locale?: string;
 }
 
 export function CmaSection({
@@ -31,7 +34,9 @@ export function CmaSection({
   tracking,
   data,
   serviceAreas = [],
+  locale,
 }: CmaSectionProps) {
+  const strings = getUiStrings(locale);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -81,7 +86,7 @@ export function CmaSection({
       }
     } catch (err) {
       console.error("[agent-site] Lead submission failed:", err);
-      setErrorMessage("Something went wrong. Please try again.");
+      setErrorMessage(strings.somethingWentWrong);
       trackFormEvent(EventType.Failed, accountId, "network_error");
       return;
     } finally {
@@ -149,14 +154,57 @@ export function CmaSection({
             initialMode={["selling"]}
             agentFirstName={agentName.split(" ")[0]}
             submitLabel={(isBuying, isSelling) => {
-              if (isSelling) return "Get My Free Home Value Report \u2192";
-              if (isBuying) return "Find My Dream Home \u2192";
-              return "Get Started \u2192";
+              if (isSelling) return strings.getMyFreeHomeValueReport;
+              if (isBuying) return strings.findMyDreamHome;
+              return strings.getStarted;
             }}
             disabled={isProcessing}
             error={errorMessage ?? undefined}
             serviceAreas={serviceAreas}
             showCmaDisclaimer
+            labels={locale && locale !== "en" ? {
+              imBuying: strings.imBuying,
+              imSelling: strings.imSelling,
+              firstName: strings.firstName,
+              lastName: strings.lastName,
+              email: strings.email,
+              phone: strings.phone,
+              desiredArea: strings.desiredArea,
+              minPrice: strings.minPrice,
+              maxPrice: strings.maxPrice,
+              minBeds: strings.minBeds,
+              minBaths: strings.minBaths,
+              preApproved: strings.preApproved,
+              preApprovalAmount: strings.preApprovalAmount,
+              propertyAddress: strings.propertyAddress,
+              city: strings.city,
+              state: strings.state,
+              zip: strings.zip,
+              beds: strings.beds,
+              baths: strings.baths,
+              sqft: strings.sqft,
+              selectArea: strings.selectArea,
+              select: strings.select,
+              yes: strings.yes,
+              no: strings.no,
+              inProgress: strings.inProgress,
+              asap: strings.asap,
+              oneToThreeMonths: strings.oneToThreeMonths,
+              threeToSixMonths: strings.threeToSixMonths,
+              sixToTwelveMonths: strings.sixToTwelveMonths,
+              justCurious: strings.justCurious,
+              tellUsAboutTheProperty: strings.tellUsAboutTheProperty,
+              describeYourDreamHome: strings.describeYourDreamHome,
+              tellUsAboutYourPropertyAndWhatYoureLookingFor: strings.tellUsAboutYourPropertyAndWhatYoureLookingFor,
+              additionalNotes: strings.additionalNotes,
+              notesPlaceholderSelling: strings.notesPlaceholderSelling,
+              notesPlaceholderBuying: strings.notesPlaceholderBuying,
+              notesPlaceholderBoth: strings.notesPlaceholderBoth,
+              addressAutocompletePoweredByGoogleMaps: strings.addressAutocompletePoweredByGoogleMaps,
+              whenLookingToBuy: strings.whenLookingToBuy,
+              whenLookingToSell: strings.whenLookingToSell,
+              whenLookingToBuyOrSell: strings.whenLookingToBuyOrSell,
+            } : undefined}
             turnstileToken={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? turnstileToken : undefined}
             captchaSlot={
               process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
