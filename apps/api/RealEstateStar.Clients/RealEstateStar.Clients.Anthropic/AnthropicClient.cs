@@ -109,6 +109,111 @@ public sealed class AnthropicClient(
         }
     }
 
+    public async Task<AnthropicResponse> SendWithImagesAsync(
+        string model, string systemPrompt, string userMessage,
+        IReadOnlyList<(byte[] Data, string MimeType)> images,
+        int maxTokens, string pipeline, CancellationToken ct)
+    {
+        var sw = Stopwatch.GetTimestamp();
+
+        using var activity = ClaudeDiagnostics.ActivitySource.StartActivity("claude.send_with_images");
+        activity?.SetTag("claude.pipeline", pipeline);
+        activity?.SetTag("claude.model", model);
+        activity?.SetTag("claude.image_count", images.Count);
+
+        var contentBlocks = new List<object>();
+        foreach (var (data, mimeType) in images)
+        {
+            contentBlocks.Add(new
+            {
+                type = "image",
+                source = new { type = "base64", media_type = mimeType, data = Convert.ToBase64String(data) }
+            });
+        }
+        contentBlocks.Add(new { type = "text", text = userMessage });
+
+        var requestBody = new
+        {
+            model,
+            max_tokens = maxTokens,
+            system = systemPrompt,
+            messages = new[] { new { role = "user", content = contentBlocks.ToArray() } }
+        };
+
+        try
+        {
+            var client = httpClientFactory.CreateClient(ClientName);
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages");
+            request.Headers.Add("x-api-key", apiKey);
+            request.Headers.Add("anthropic-version", AnthropicVersion);
+            request.Content = JsonContent.Create(requestBody);
+            var response = await client.SendAsync(request, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                logger.LogError("[CLAUDE-040] Anthropic Vision API error. Pipeline: {Pipeline}, Model: {Model}, Status: {Status}, Body: {Body}",
+                    pipeline, model, (int)response.StatusCode, errorBody);
+                throw new HttpRequestException(
+                    $"Anthropic API returned {(int)response.StatusCode}: {errorBody}",
+                    null,
+                    response.StatusCode);
+            }
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+
+            string content;
+            int inputTokens;
+            int outputTokens;
+
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                content = root
+                    .GetProperty("content")[0]
+                    .GetProperty("text")
+                    .GetString() ?? string.Empty;
+
+                var usage = root.GetProperty("usage");
+                inputTokens = usage.GetProperty("input_tokens").GetInt32();
+                outputTokens = usage.GetProperty("output_tokens").GetInt32();
+            }
+            catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)
+            {
+                logger.LogError(ex, "[CLAUDE-050] Failed to parse Anthropic Vision response. Pipeline: {Pipeline}, Model: {Model}",
+                    pipeline, model);
+                throw;
+            }
+
+            content = StripCodeFences(content);
+
+            var durationMs = Stopwatch.GetElapsedTime(sw).TotalMilliseconds;
+            ClaudeDiagnostics.RecordUsage(pipeline, model, inputTokens, outputTokens, durationMs);
+
+            logger.LogInformation(
+                "[CLAUDE-041] Claude Vision call succeeded. Pipeline: {Pipeline}, Model: {Model}, InputTokens: {InputTokens}, OutputTokens: {OutputTokens}, Duration: {Duration}ms",
+                pipeline, model, inputTokens, outputTokens, durationMs);
+
+            return new AnthropicResponse(content, inputTokens, outputTokens, durationMs);
+        }
+        catch (TaskCanceledException ex)
+        {
+            ClaudeDiagnostics.RecordFailure(pipeline, model);
+            logger.LogWarning(ex, "[CLAUDE-042] Anthropic Vision API call timed out. Pipeline: {Pipeline}, Model: {Model}",
+                pipeline, model);
+            throw;
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogError(ex, "[CLAUDE-043] Vision API error for {Pipeline}: {Message}", pipeline, ex.Message);
+            ClaudeDiagnostics.RecordFailure(pipeline, model);
+            throw;
+        }
+    }
+
     internal static string StripCodeFences(string content)
     {
         var trimmed = content.Trim();
