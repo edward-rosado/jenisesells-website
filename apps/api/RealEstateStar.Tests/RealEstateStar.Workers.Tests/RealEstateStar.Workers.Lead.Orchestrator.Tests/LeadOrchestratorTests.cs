@@ -37,7 +37,7 @@ public sealed class LeadOrchestratorTests
     private readonly Mock<IPdfDataService> _pdfDataServiceMock = new();
 
     // ── channels + infrastructure ────────────────────────────────────────────
-    private readonly LeadOrchestratorChannel _orchestratorChannel = new();
+    private readonly Mock<ILeadOrchestrationQueue> _leadQueueMock = new();
     private readonly CmaProcessingChannel _cmaChannel = new();
     private readonly HomeSearchProcessingChannel _hsChannel = new();
     private readonly BackgroundServiceHealthTracker _healthTracker = new();
@@ -88,7 +88,8 @@ public sealed class LeadOrchestratorTests
             NullLogger<AgentNotifierService>.Instance);
 
         return new LeadOrchestrator(
-            _orchestratorChannel,
+            _leadQueueMock.Object,
+            _leadStoreMock.Object,
             _accountConfigMock.Object,
             _scorerMock.Object,
             _cmaChannel,

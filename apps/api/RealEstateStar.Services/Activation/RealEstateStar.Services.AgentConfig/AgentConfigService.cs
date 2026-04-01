@@ -38,6 +38,11 @@ public sealed class AgentConfigService(
         ActivationOutputs outputs,
         CancellationToken ct)
     {
+        // Normalize handle to lowercase — AccountConfigService enforces ^[a-z0-9-]+$ pattern
+        handle = handle.ToLowerInvariant();
+        accountId = accountId.ToLowerInvariant();
+        agentId = agentId.ToLowerInvariant();
+
         var isSingleAgent = accountId == agentId;
 
         logger.LogInformation(

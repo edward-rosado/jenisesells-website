@@ -16,7 +16,7 @@ public sealed class CoachingWorker(
     IContentSanitizer sanitizer,
     ILogger<CoachingWorker> logger)
 {
-    private const string Model = "claude-opus-4-5";
+    private const string Model = "claude-sonnet-4-6";
     private const int MaxTokens = 8192;
     private const int MinEmailsRequired = 5;
     private const string Pipeline = "activation.coaching";

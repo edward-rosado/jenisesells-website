@@ -13,13 +13,13 @@ namespace RealEstateStar.Services.BrandMerge;
 /// </summary>
 public sealed class BrandMergeService(
     IAnthropicClient anthropic,
-    IFileStorageProvider storage,
+    IFileStorageProviderFactory storageFactory,
     ILogger<BrandMergeService> logger) : IBrandMergeService
 {
     internal const string FolderPrefix = "real-estate-star";
     internal const string BrandProfileFile = "Brand Profile.md";
     internal const string BrandVoiceFile = "Brand Voice.md";
-    internal const string Model = "claude-opus-4-5";
+    internal const string Model = "claude-sonnet-4-6";
     internal const string Pipeline = "brand-merge";
     internal const int MaxTokens = 2000;
 
@@ -30,6 +30,7 @@ public sealed class BrandMergeService(
         string newVoiceSkill,
         CancellationToken ct)
     {
+        var storage = storageFactory.CreateForAgent(accountId, agentId);
         var accountFolder = $"{FolderPrefix}/{accountId}";
 
         // Load existing brand files (null = first agent)

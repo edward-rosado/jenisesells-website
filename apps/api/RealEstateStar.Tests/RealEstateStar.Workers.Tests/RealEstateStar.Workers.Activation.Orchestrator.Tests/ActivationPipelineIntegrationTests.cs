@@ -1,5 +1,4 @@
 using System.Net;
-using System.Threading.Channels;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -65,9 +64,13 @@ public class ActivationPipelineIntegrationTests
     // ── In-memory storage (real implementation, not mock) ─────────────────────
 
     private readonly InMemoryFileProvider _fileStorage = new();
+    private readonly Mock<IFileStorageProviderFactory> _fileStorageFactory = new();
 
     public ActivationPipelineIntegrationTests()
     {
+        _fileStorageFactory.Setup(f => f.CreateForAgent(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(_fileStorage);
+
         _sanitizer.Setup(s => s.Sanitize(It.IsAny<string>())).Returns<string>(s => s);
 
         _anthropic.Setup(a => a.SendAsync(
@@ -133,10 +136,8 @@ public class ActivationPipelineIntegrationTests
 
     private ActivationOrchestrator BuildOrchestrator()
     {
-        var channel = Channel.CreateUnbounded<ActivationRequest>();
-
         return new ActivationOrchestrator(
-            channel.Reader,
+            new Mock<IActivationQueue>().Object,
             new AgentEmailFetchWorker(_gmailReader.Object, NullLogger<AgentEmailFetchWorker>.Instance),
             new DriveIndexWorker(_driveClient.Object, _anthropic.Object, NullLogger<DriveIndexWorker>.Instance),
             new AgentDiscoveryWorker(_oauthRefresher.Object, _httpClientFactory.Object, _whatsAppSender.Object, NullLogger<AgentDiscoveryWorker>.Instance),
@@ -152,7 +153,7 @@ public class ActivationPipelineIntegrationTests
             new BrandVoiceWorker(_anthropic.Object, _sanitizer.Object, NullLogger<BrandVoiceWorker>.Instance),
             new ComplianceAnalysisWorker(_anthropic.Object, _sanitizer.Object, NullLogger<ComplianceAnalysisWorker>.Instance),
             new FeeStructureWorker(_anthropic.Object, _sanitizer.Object, NullLogger<FeeStructureWorker>.Instance),
-            new AgentProfilePersistActivity(_fileStorage, _agentConfigService.Object, NullLogger<AgentProfilePersistActivity>.Instance),
+            new AgentProfilePersistActivity(_fileStorageFactory.Object, _agentConfigService.Object, NullLogger<AgentProfilePersistActivity>.Instance),
             new BrandMergeActivity(_brandMergeService.Object, _fileStorage, NullLogger<BrandMergeActivity>.Instance),
             new ContactDetectionActivity(_anthropic.Object, NullLoggerFactory.Instance),
             new ContactImportPersistActivity(_fileStorage, _driveClient.Object, _leadStore.Object, NullLogger<ContactImportPersistActivity>.Instance),

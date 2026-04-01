@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Net;
+using Google;
 using Google.Apis.Drive.v3;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Shared.Interfaces.External;
@@ -20,45 +22,25 @@ internal sealed class GDriveApiClient(
         string folderPath,
         CancellationToken ct)
     {
-        var service = await BuildServiceAsync(accountId, agentId, ct);
-        if (service is null)
-            return string.Empty;
-
-        var sw = Stopwatch.GetTimestamp();
-        using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.create_folder");
-        activity?.SetTag("gdrive.account_id", accountId);
-
-        try
+        return await WithRetryOnAuthErrorAsync(accountId, agentId, async service =>
         {
+            var sw = Stopwatch.GetTimestamp();
+            using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.create_folder");
+            activity?.SetTag("gdrive.account_id", accountId);
+
             GDriveDiagnostics.Operations.Add(1);
 
-            var metadata = new Google.Apis.Drive.v3.Data.File
-            {
-                Name = folderPath,
-                MimeType = FolderMimeType
-            };
-
-            var request = service.Files.Create(metadata);
-            request.Fields = "id";
-            var folder = await request.ExecuteAsync(ct);
+            var parentId = await ResolveFolderPathAsync(service, folderPath, ct);
 
             var durationMs = Stopwatch.GetElapsedTime(sw).TotalMilliseconds;
             GDriveDiagnostics.Duration.Record(durationMs);
 
             logger.LogInformation(
-                "[GDRIVE-001] Folder created for account {AccountId}, agent {AgentId}. FolderId: {FolderId}, Duration: {Duration}ms",
-                accountId, agentId, folder.Id, durationMs);
+                "[GDRIVE-001] Folder path '{FolderPath}' ensured for account {AccountId}, agent {AgentId}. LeafFolderId: {FolderId}, Duration: {Duration}ms",
+                folderPath, accountId, agentId, parentId, durationMs);
 
-            return folder.Id ?? string.Empty;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            GDriveDiagnostics.Failed.Add(1);
-            logger.LogError(ex,
-                "[GDRIVE-031] CreateFolder failed for account {AccountId}, agent {AgentId}",
-                accountId, agentId);
-            throw;
-        }
+            return parentId;
+        }, "[GDRIVE-031]", string.Empty, ct);
     }
 
     public async Task<string> UploadFileAsync(
@@ -82,22 +64,23 @@ internal sealed class GDriveApiClient(
         string mimeType,
         CancellationToken ct)
     {
-        var service = await BuildServiceAsync(accountId, agentId, ct);
-        if (service is null)
-            return string.Empty;
-
-        var sw = Stopwatch.GetTimestamp();
-        using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.upload");
-        activity?.SetTag("gdrive.account_id", accountId);
-
-        try
+        return await WithRetryOnAuthErrorAsync(accountId, agentId, async service =>
         {
+            var sw = Stopwatch.GetTimestamp();
+            using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.upload");
+            activity?.SetTag("gdrive.account_id", accountId);
+
             GDriveDiagnostics.Operations.Add(1);
+
+            // If folderId looks like a path (contains "/"), resolve it to a Drive folder ID
+            var resolvedParentId = folderId.Contains('/')
+                ? await ResolveFolderPathAsync(service, folderId, ct)
+                : folderId;
 
             var metadata = new Google.Apis.Drive.v3.Data.File
             {
                 Name = fileName,
-                Parents = [folderId]
+                Parents = [resolvedParentId]
             };
 
             using var stream = new MemoryStream(data);
@@ -116,15 +99,7 @@ internal sealed class GDriveApiClient(
                 accountId, agentId, fileId, durationMs);
 
             return fileId;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            GDriveDiagnostics.Failed.Add(1);
-            logger.LogError(ex,
-                "[GDRIVE-032] UploadBinary failed for account {AccountId}, agent {AgentId}",
-                accountId, agentId);
-            throw;
-        }
+        }, "[GDRIVE-032]", string.Empty, ct);
     }
 
     public async Task<string?> DownloadFileAsync(
@@ -134,21 +109,22 @@ internal sealed class GDriveApiClient(
         string fileName,
         CancellationToken ct)
     {
-        var service = await BuildServiceAsync(accountId, agentId, ct);
-        if (service is null)
-            return null;
-
-        var sw = Stopwatch.GetTimestamp();
-        using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.download");
-        activity?.SetTag("gdrive.account_id", accountId);
-
-        try
+        return await WithRetryOnAuthErrorAsync<string?>(accountId, agentId, async service =>
         {
+            var sw = Stopwatch.GetTimestamp();
+            using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.download");
+            activity?.SetTag("gdrive.account_id", accountId);
+
             GDriveDiagnostics.Operations.Add(1);
+
+            // Resolve folder path to Drive ID if needed
+            var resolvedFolderId = folderId.Contains('/')
+                ? await ResolveFolderPathAsync(service, folderId, ct)
+                : folderId;
 
             // Find file by name within the folder
             var listRequest = service.Files.List();
-            listRequest.Q = $"name = '{EscapeQuery(fileName)}' and '{EscapeQuery(folderId)}' in parents and trashed = false";
+            listRequest.Q = $"name = '{EscapeQuery(fileName)}' and '{resolvedFolderId}' in parents and trashed = false";
             listRequest.Fields = "files(id)";
             var listResult = await listRequest.ExecuteAsync(ct);
 
@@ -171,15 +147,7 @@ internal sealed class GDriveApiClient(
                 accountId, agentId, fileId, durationMs);
 
             return content;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            GDriveDiagnostics.Failed.Add(1);
-            logger.LogError(ex,
-                "[GDRIVE-033] DownloadFile failed for account {AccountId}, agent {AgentId}",
-                accountId, agentId);
-            throw;
-        }
+        }, "[GDRIVE-033]", null, ct);
     }
 
     public async Task DeleteFileAsync(
@@ -238,8 +206,12 @@ internal sealed class GDriveApiClient(
         {
             GDriveDiagnostics.Operations.Add(1);
 
+            var resolvedFolderId = folderId.Contains('/')
+                ? await ResolveFolderPathAsync(service, folderId, ct)
+                : folderId;
+
             var listRequest = service.Files.List();
-            listRequest.Q = $"name = '{EscapeQuery(fileName)}' and '{EscapeQuery(folderId)}' in parents and trashed = false";
+            listRequest.Q = $"name = '{EscapeQuery(fileName)}' and '{resolvedFolderId}' in parents and trashed = false";
             listRequest.Fields = "files(id)";
             var listResult = await listRequest.ExecuteAsync(ct);
 
@@ -277,20 +249,20 @@ internal sealed class GDriveApiClient(
         string folderId,
         CancellationToken ct)
     {
-        var service = await BuildServiceAsync(accountId, agentId, ct);
-        if (service is null)
-            return [];
-
-        var sw = Stopwatch.GetTimestamp();
-        using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.list");
-        activity?.SetTag("gdrive.account_id", accountId);
-
-        try
+        return await WithRetryOnAuthErrorAsync(accountId, agentId, async service =>
         {
+            var sw = Stopwatch.GetTimestamp();
+            using var activity = GDriveDiagnostics.ActivitySource.StartActivity("gdrive.list");
+            activity?.SetTag("gdrive.account_id", accountId);
+
             GDriveDiagnostics.Operations.Add(1);
 
+            var resolvedFolderId = folderId.Contains('/')
+                ? await ResolveFolderPathAsync(service, folderId, ct)
+                : folderId;
+
             var listRequest = service.Files.List();
-            listRequest.Q = $"'{EscapeQuery(folderId)}' in parents and trashed = false";
+            listRequest.Q = $"'{resolvedFolderId}' in parents and trashed = false";
             listRequest.Fields = "files(name)";
             var result = await listRequest.ExecuteAsync(ct);
 
@@ -308,15 +280,7 @@ internal sealed class GDriveApiClient(
                 accountId, agentId, names.Count, durationMs);
 
             return names;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            GDriveDiagnostics.Failed.Add(1);
-            logger.LogError(ex,
-                "[GDRIVE-035] ListFiles failed for account {AccountId}, agent {AgentId}",
-                accountId, agentId);
-            throw;
-        }
+        }, "[GDRIVE-035]", [], ct);
     }
 
     public async Task<IReadOnlyList<Domain.Shared.Interfaces.External.DriveFileInfo>> ListAllFilesAsync(
@@ -601,6 +565,67 @@ internal sealed class GDriveApiClient(
         }
     }
 
+    // ── Token retry logic ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Wraps a Drive API operation with automatic retry on 401/403: refreshes the OAuth
+    /// token and rebuilds the DriveService, then retries the operation once.
+    /// </summary>
+    private async Task<T> WithRetryOnAuthErrorAsync<T>(
+        string accountId,
+        string agentId,
+        Func<DriveService, Task<T>> operation,
+        string errorCode,
+        T noTokenFallback,
+        CancellationToken ct)
+    {
+        var service = await BuildServiceAsync(accountId, agentId, ct);
+        if (service is null)
+            return noTokenFallback;
+
+        try
+        {
+            return await operation(service);
+        }
+        catch (GoogleApiException ex) when (IsAuthError(ex))
+        {
+            logger.LogWarning(
+                "[GDRIVE-050] Auth error ({StatusCode}) for account {AccountId}, agent {AgentId}. Refreshing token and retrying once.",
+                ex.HttpStatusCode, accountId, agentId);
+            GDriveDiagnostics.TokenRefreshRetries.Add(1);
+
+            var retryService = await BuildServiceAsync(accountId, agentId, ct);
+            if (retryService is null)
+                return noTokenFallback;
+
+            try
+            {
+                return await operation(retryService);
+            }
+            catch (Exception retryEx) when (retryEx is not OperationCanceledException)
+            {
+                GDriveDiagnostics.Failed.Add(1);
+                logger.LogError(retryEx,
+                    "{ErrorCode} Retry after token refresh also failed for account {AccountId}, agent {AgentId}",
+                    errorCode, accountId, agentId);
+                throw;
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            GDriveDiagnostics.Failed.Add(1);
+            logger.LogError(ex,
+                "{ErrorCode} Operation failed for account {AccountId}, agent {AgentId}",
+                errorCode, accountId, agentId);
+            throw;
+        }
+    }
+
+    internal static bool IsAuthError(GoogleApiException ex) =>
+        ex.HttpStatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden;
+
+    // ── Service builder ──────────────────────────────────────────────────────
+
     private async Task<DriveService?> BuildServiceAsync(
         string accountId,
         string agentId,
@@ -621,6 +646,45 @@ internal sealed class GDriveApiClient(
 
     private DriveService BuildDriveService(Domain.Shared.Models.OAuthCredential credential) =>
         new(RealEstateStar.Clients.GoogleOAuth.GoogleCredentialFactory.BuildInitializer(credential, clientId, clientSecret));
+
+    /// <summary>
+    /// Resolves a slash-separated folder path (e.g. "real-estate-star/edward-rosado/leads")
+    /// to a Google Drive folder ID by walking each segment and finding or creating it.
+    /// </summary>
+    private static async Task<string> ResolveFolderPathAsync(
+        DriveService service, string folderPath, CancellationToken ct)
+    {
+        var segments = folderPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var parentId = "root";
+
+        foreach (var segment in segments)
+        {
+            var listRequest = service.Files.List();
+            listRequest.Q = $"name = '{EscapeQuery(segment)}' and mimeType = '{FolderMimeType}' and '{parentId}' in parents and trashed = false";
+            listRequest.Fields = "files(id)";
+            var existing = await listRequest.ExecuteAsync(ct);
+
+            if (existing.Files.Count > 0)
+            {
+                parentId = existing.Files[0].Id;
+                continue;
+            }
+
+            var metadata = new Google.Apis.Drive.v3.Data.File
+            {
+                Name = segment,
+                MimeType = FolderMimeType,
+                Parents = [parentId]
+            };
+
+            var createRequest = service.Files.Create(metadata);
+            createRequest.Fields = "id";
+            var folder = await createRequest.ExecuteAsync(ct);
+            parentId = folder.Id;
+        }
+
+        return parentId;
+    }
 
     internal static string EscapeQuery(string value) =>
         value.Replace("\\", "\\\\").Replace("'", "\\'");

@@ -58,6 +58,9 @@ public static class StorageServiceCollectionExtensions
         services.AddSingleton<IDocumentStorageProvider>(sp => sp.GetRequiredService<IFileStorageProvider>());
         services.AddSingleton<ISheetStorageProvider>(sp => sp.GetRequiredService<IFileStorageProvider>());
 
+        // Factory for per-agent storage instances (activation persist writes to agent's Drive)
+        services.AddSingleton<IFileStorageProviderFactory, FanOutStorageProviderFactory>();
+
         return services;
     }
 }

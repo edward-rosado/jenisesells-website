@@ -29,7 +29,15 @@ public sealed class AnthropicClient(
         {
             model,
             max_tokens = maxTokens,
-            system = systemPrompt,
+            system = new[]
+            {
+                new
+                {
+                    type = "text",
+                    text = systemPrompt,
+                    cache_control = new { type = "ephemeral" }
+                }
+            },
             messages = new[] { new { role = "user", content = userMessage } }
         };
 
@@ -42,6 +50,7 @@ public sealed class AnthropicClient(
             using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages");
             request.Headers.Add("x-api-key", apiKey);
             request.Headers.Add("anthropic-version", AnthropicVersion);
+            request.Headers.Add("anthropic-beta", "prompt-caching-2024-07-31");
             request.Content = JsonContent.Create(requestBody);
             var response = await client.SendAsync(request, ct);
 
@@ -75,6 +84,20 @@ public sealed class AnthropicClient(
                 var usage = root.GetProperty("usage");
                 inputTokens = usage.GetProperty("input_tokens").GetInt32();
                 outputTokens = usage.GetProperty("output_tokens").GetInt32();
+
+                // Log cache metrics if present
+                if (usage.TryGetProperty("cache_creation_input_tokens", out var cacheCreation) &&
+                    usage.TryGetProperty("cache_read_input_tokens", out var cacheRead))
+                {
+                    var created = cacheCreation.GetInt32();
+                    var read = cacheRead.GetInt32();
+                    if (created > 0 || read > 0)
+                    {
+                        logger.LogInformation(
+                            "[CLAUDE-025] Prompt cache stats. Pipeline: {Pipeline}, CacheCreated: {CacheCreated}, CacheRead: {CacheRead}",
+                            pipeline, created, read);
+                    }
+                }
             }
             catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)
             {

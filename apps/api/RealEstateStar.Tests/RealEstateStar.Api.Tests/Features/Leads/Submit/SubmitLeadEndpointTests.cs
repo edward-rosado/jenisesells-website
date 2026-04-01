@@ -19,7 +19,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using RealEstateStar.Api.Tests.Integration;
-using RealEstateStar.Workers.Lead.Orchestrator;
 
 namespace RealEstateStar.Api.Tests.Features.Leads.Submit;
 
@@ -305,7 +304,7 @@ public class SubmitLeadEndpointUnitTests
         Mock<IAccountConfigService> AccountConfig,
         Mock<ILeadStore> LeadStore,
         Mock<IMarketingConsentLog> ConsentLog,
-        LeadOrchestratorChannel OrchestratorChannel,
+        Mock<ILeadOrchestrationQueue> LeadQueue,
         Mock<ILogger<SubmitLeadEndpoint>> Logger,
         Mock<IConsentAuditService> ConsentAudit,
         Mock<IComplianceConsentWriter> ComplianceWriter,
@@ -329,7 +328,10 @@ public class SubmitLeadEndpointUnitTests
             .Setup(s => s.RecordConsentAsync(It.IsAny<string>(), It.IsAny<MarketingConsent>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var orchestratorChannel = new LeadOrchestratorChannel();
+        var leadQueue = new Mock<ILeadOrchestrationQueue>();
+        leadQueue
+            .Setup(q => q.EnqueueAsync(It.IsAny<LeadOrchestrationMessage>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         var logger = new Mock<ILogger<SubmitLeadEndpoint>>();
 
         var consentAudit = new Mock<IConsentAuditService>();
@@ -349,7 +351,7 @@ public class SubmitLeadEndpointUnitTests
             .Setup(s => s.RecordAsync(It.IsAny<Lead>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        return new Mocks(accountConfig, leadStore, consentLog, orchestratorChannel, logger, consentAudit, complianceWriter, consentHmacOptions, deadLetterStore);
+        return new Mocks(accountConfig, leadStore, consentLog, leadQueue, logger, consentAudit, complianceWriter, consentHmacOptions, deadLetterStore);
     }
 
     private static HttpContext MakeHttpContext(
@@ -373,7 +375,7 @@ public class SubmitLeadEndpointUnitTests
             m.AccountConfig.Object,
             m.LeadStore.Object,
             m.ConsentLog.Object,
-            m.OrchestratorChannel,
+            m.LeadQueue.Object,
             httpContext ?? MakeHttpContext(),
             m.Logger.Object,
             m.ConsentAudit.Object,
@@ -603,15 +605,22 @@ public class SubmitLeadEndpointUnitTests
     public async Task Handle_EnqueuesProcessingRequest_ToChannel()
     {
         var m = CreateMocks();
+        LeadOrchestrationMessage? capturedMessage = null;
+        m.LeadQueue
+            .Setup(q => q.EnqueueAsync(It.IsAny<LeadOrchestrationMessage>(), It.IsAny<CancellationToken>()))
+            .Callback<LeadOrchestrationMessage, CancellationToken>((msg, _) => capturedMessage = msg)
+            .Returns(Task.CompletedTask);
 
         await CallHandle(m);
 
-        // The orchestrator channel should have exactly one item
-        m.OrchestratorChannel.Reader.TryRead(out var orchestrationRequest).Should().BeTrue();
-        orchestrationRequest.Should().NotBeNull();
-        orchestrationRequest!.AgentId.Should().Be("test-agent");
-        orchestrationRequest.Lead.Email.Should().Be("jane@example.com");
-        orchestrationRequest.CorrelationId.Should().NotBeNullOrEmpty();
+        // The queue should have been called exactly once
+        m.LeadQueue.Verify(
+            q => q.EnqueueAsync(It.IsAny<LeadOrchestrationMessage>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        capturedMessage.Should().NotBeNull();
+        capturedMessage!.AgentId.Should().Be("test-agent");
+        capturedMessage.LeadId.Should().NotBeEmpty();
+        capturedMessage.CorrelationId.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
@@ -622,8 +631,9 @@ public class SubmitLeadEndpointUnitTests
 
         await CallHandle(m, request);
 
-        m.OrchestratorChannel.Reader.TryRead(out var orchestrationRequest).Should().BeTrue();
-        orchestrationRequest!.Lead.LeadType.Should().Be(LeadType.Seller);
+        m.LeadQueue.Verify(
+            q => q.EnqueueAsync(It.IsAny<LeadOrchestrationMessage>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     // -------------------------------------------------------------------------

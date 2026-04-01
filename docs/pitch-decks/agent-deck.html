@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real Estate Star — Agent Sales Deck</title>
+<style>
+  :root {
+    --emerald-400: #34d399;
+    --emerald-500: #10b981;
+    --emerald-600: #059669;
+    --bg: #030712;
+    --card: #111827;
+    --border: #1f2937;
+    --text: #f9fafb;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  .deck { position: relative; width: 100%; height: 100vh; }
+
+  .slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 4rem 8rem;
+    padding-top: 5rem;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    pointer-events: none;
+    background: var(--bg);
+  }
+
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  .slide.prev { transform: translateX(-40px); }
+
+  h1 { font-size: 3.2rem; font-weight: 800; line-height: 1.1; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+  h2 { font-size: 2.2rem; font-weight: 700; line-height: 1.2; margin-bottom: 1rem; letter-spacing: -0.01em; }
+  h3 { font-size: 0.85rem; font-weight: 600; color: var(--emerald-400); margin-bottom: 1.5rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  p { font-size: 1.1rem; line-height: 1.7; color: var(--text-secondary); margin-bottom: 1rem; }
+
+  .price-hero { font-size: 2.8rem; font-weight: 800; color: var(--emerald-400); margin-bottom: 0.5rem; }
+
+  ul { list-style: none; padding: 0; }
+  ul li {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    padding: 0.4rem 0 0.4rem 1.5rem;
+    position: relative;
+    color: var(--text-secondary);
+  }
+  ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.9rem;
+    width: 6px;
+    height: 6px;
+    background: var(--emerald-500);
+    border-radius: 50%;
+  }
+  ul li strong { color: var(--text); }
+
+  .emerald { color: var(--emerald-400); }
+  .green-text { color: var(--emerald-400); font-weight: 600; }
+  .red-text { color: #f87171; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.92rem; }
+  th { text-align: left; padding: 0.65rem 0.8rem; background: var(--gray-900); color: var(--emerald-400); font-weight: 600; border-bottom: 2px solid var(--emerald-600); font-size: 0.85rem; }
+  td { padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+  tr.highlight-row td { background: rgba(16,185,129,0.06); font-weight: 600; color: var(--text); }
+
+  .quote {
+    font-size: 1.3rem;
+    font-style: italic;
+    color: var(--emerald-400);
+    border-left: 3px solid var(--emerald-500);
+    padding-left: 1.5rem;
+    margin: 2rem 0;
+    font-weight: 500;
+  }
+
+  .pill {
+    display: inline-block;
+    background: rgba(16,185,129,0.1);
+    color: var(--emerald-400);
+    padding: 0.35rem 1rem;
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid rgba(16,185,129,0.2);
+  }
+
+  .pill-gray {
+    display: inline-block;
+    background: rgba(156,163,175,0.1);
+    color: var(--text-muted);
+    padding: 0.3rem 0.8rem;
+    border-radius: 100px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-right: 0.3rem;
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+  .card {
+    background: var(--gray-900);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--emerald-600); }
+  .card h4 { color: var(--text); font-size: 1rem; margin-bottom: 0.5rem; font-weight: 600; }
+  .card p { font-size: 0.95rem; }
+
+  .steps { counter-reset: step; margin: 1.5rem 0; }
+  .steps li {
+    counter-increment: step;
+    padding-left: 2.5rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  .steps li::before {
+    content: counter(step);
+    background: var(--emerald-600);
+    color: var(--text);
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    position: absolute;
+    left: 0;
+    top: 0.45rem;
+  }
+
+  .feature-icon {
+    width: 48px; height: 48px;
+    background: rgba(16,185,129,0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+  }
+
+  .nav {
+    position: fixed;
+    bottom: 2rem;
+    right: 3rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 100;
+  }
+  .nav button {
+    background: var(--gray-800);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .nav button:hover { background: var(--emerald-600); border-color: var(--emerald-500); }
+  .nav .counter { font-size: 0.85rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+  .progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--emerald-600), var(--emerald-400));
+    transition: width 0.4s ease;
+    z-index: 100;
+  }
+
+  .logo {
+    position: fixed;
+    top: 1.5rem;
+    left: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 100;
+  }
+  .logo svg { width: 24px; height: 24px; }
+  .logo-text { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.06em; }
+
+  @media print {
+    .slide { position: relative; page-break-after: always; opacity: 1; transform: none; pointer-events: auto; height: 100vh; }
+    .nav, .progress, .logo { display: none; }
+    body { overflow: visible; }
+  }
+
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+  @media (max-width: 1024px) {
+    .slide { padding: 2rem 3rem; padding-top: 4.5rem; }
+    h1 { font-size: 2.4rem; }
+    h2 { font-size: 1.6rem; }
+    .price-hero { font-size: 2rem; }
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 600px) {
+    .slide { padding: 1.25rem 1.25rem 5rem; padding-top: 4rem; }
+    h1 { font-size: 1.6rem; }
+    h2 { font-size: 1.25rem; }
+    h3 { font-size: 0.75rem; margin-bottom: 1rem; }
+    p { font-size: 0.95rem; }
+    .price-hero { font-size: 1.5rem; }
+    ul li { font-size: 0.92rem; }
+    .quote { font-size: 1rem; padding-left: 1rem; margin: 1.25rem 0; }
+    .pill { font-size: 0.75rem; padding: 0.25rem 0.75rem; }
+    .pill-gray { font-size: 0.7rem; padding: 0.2rem 0.6rem; }
+    .card { padding: 1rem; }
+    .card h4 { font-size: 0.9rem; }
+    .card p { font-size: 0.85rem; }
+    .feature-icon { width: 36px; height: 36px; font-size: 1.1rem; margin-bottom: 0.75rem; }
+    table { font-size: 0.78rem; }
+    th, td { padding: 0.4rem 0.5rem; }
+    .nav { bottom: 1rem; right: 1rem; gap: 0.6rem; }
+    .nav button { width: 36px; height: 36px; font-size: 0.95rem; }
+    .nav .counter { font-size: 0.75rem; }
+    .logo { top: 0.75rem; left: 1rem; }
+    .logo svg { width: 18px; height: 18px; }
+    .logo-text { font-size: 0.65rem; }
+    .steps li { padding-left: 2rem; }
+    .steps li::before { width: 20px; height: 20px; font-size: 0.65rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="logo">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Real Estate Star logo">
+    <polygon points="50,8 61,36 92,36 67,55 76,84 50,67 24,84 33,55 8,36 39,36" fill="none" stroke="#10b981" stroke-width="1.5"/>
+    <polygon points="50,22 57,40 76,40 61,51 67,70 50,59 33,70 39,51 24,40 43,40" fill="#10b981"/>
+  </svg>
+  <span class="logo-text">REAL ESTATE STAR</span>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- Slide 1: Cover -->
+  <div class="slide active">
+    <h3>For Real Estate Professionals</h3>
+    <h1>Your business,<br>fully automated.</h1>
+    <div class="price-hero">14 days free. $14.99/mo after.</div>
+    <p style="font-size:1.2rem;">Professional website. CMA automation. Lead capture. Compliance. All included.</p>
+    <div style="margin-top:1rem;">
+      <span class="pill">12 Luxurious Templates</span>
+      <span class="pill">AI-Powered Setup</span>
+      <span class="pill">SEO &amp; AEO Ready</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: The Problem -->
+  <div class="slide">
+    <h3>The Problem</h3>
+    <h2>You're paying too much for tools that don't talk to each other.</h2>
+    <div style="margin:1.5rem 0;">
+      <p style="font-size:1.15rem;"><span class="red-text">Website builder:</span> $59 &ndash; $329/mo</p>
+      <p style="font-size:1.15rem;"><span class="red-text">CMA tool:</span> $40 &ndash; $99/mo</p>
+      <p style="font-size:1.15rem;"><span class="red-text">Lead capture:</span> $50 &ndash; $100/mo</p>
+      <p style="font-size:1.15rem;"><span class="red-text">Compliance:</span> &ldquo;I'll figure it out later&rdquo; (risky)</p>
+      <p style="font-size:1.3rem; color:var(--text); font-weight:700; margin-top:1rem;">Total: $149 &ndash; $528/mo &mdash; and none of them integrate.</p>
+    </div>
+    <div class="quote">&ldquo;What if one platform did all of this for $14.99?&rdquo;</div>
+  </div>
+
+  <!-- Slide 3: The Real Cost -->
+  <div class="slide">
+    <h3>The Real Cost</h3>
+    <h2>What top platforms charge solo agents:</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Platform</th><th>Monthly Cost</th><th>Setup Fee</th></tr>
+      <tr><td>KVCore / BoldTrail</td><td>~$499/mo</td><td>$500 &ndash; $1,000</td></tr>
+      <tr><td>Chime / Lofty</td><td>~$449/mo</td><td>Unknown</td></tr>
+      <tr><td>Real Geeks</td><td>$249 &ndash; $399/mo</td><td>$250</td></tr>
+      <tr><td>Luxury Presence</td><td>$300 &ndash; $1,500/mo</td><td>$500 &ndash; $6,000</td></tr>
+      <tr><td>Placester</td><td>$59 &ndash; $329/mo</td><td>$0 &ndash; $50/mo</td></tr>
+      <tr class="highlight-row"><td><strong>Real Estate Star</strong></td><td><strong style="color:var(--emerald-400);">$14.99/mo</strong></td><td><strong>Included with setup</strong></td></tr>
+    </table></div>
+    <p>These platforms were built for teams and brokerages. <strong style="color:var(--text);">You shouldn't be paying enterprise prices.</strong></p>
+  </div>
+
+  <!-- Slide 4: Meet Real Estate Star -->
+  <div class="slide">
+    <h3>Meet Real Estate Star</h3>
+    <h2>Everything you need. Nothing you don't.</h2>
+    <ul>
+      <li>Professional branded website at <strong>{yourname}.real-estate-star.com</strong></li>
+      <li><strong>12 beautiful, luxurious templates</strong> to choose from</li>
+      <li>Automated CMA reports &mdash; lead submits, branded PDF arrives in their inbox</li>
+      <li>Lead capture forms with bot protection and instant notifications</li>
+      <li>State-specific legal compliance built in</li>
+      <li><strong>SEO &amp; AEO optimized</strong> &mdash; found by Google AND AI search engines</li>
+      <li><strong>Google Analytics</strong> &mdash; track your visitors and leads</li>
+      <li>Your data stays in YOUR Google Drive &mdash; you own everything</li>
+      <li>Setup takes <strong>10 minutes</strong>, not 2 &ndash; 4 weeks</li>
+    </ul>
+  </div>
+
+  <!-- Slide 5: How It Works -->
+  <div class="slide">
+    <h3>How It Works</h3>
+    <h2>Connect Google. We handle the rest.</h2>
+    <ul class="steps">
+      <li><strong>Click the setup link</strong> your representative sends you</li>
+      <li><strong>Connect your Google account</strong> (Gmail, Drive)</li>
+      <li><strong>We scan your web presence</strong> to learn your brand</li>
+      <li><strong>Your brand profile is built automatically</strong> (colors, voice, headshot)</li>
+      <li><strong>We review your site</strong> before it goes live &mdash; quality checked, not just generated</li>
+      <li><strong>Your website goes live</strong> &mdash; ready for leads</li>
+    </ul>
+    <p style="margin-top:1.5rem;">No forms to fill out. No branding questionnaires. No waiting weeks for a designer.<br><span class="emerald">We already know who you are from your digital footprint.</span></p>
+  </div>
+
+  <!-- Slide 6: Professional Website -->
+  <div class="slide">
+    <h3>Feature</h3>
+    <h2>Your brand. Your site. Live in minutes.</h2>
+    <div class="two-col">
+      <div>
+        <ul>
+          <li><strong>12 luxurious templates</strong> &mdash; modern designs built for real estate</li>
+          <li>White-label design branded to you (colors, logo, headshot)</li>
+          <li>Mobile-responsive, fast-loading (Cloudflare global edge network)</li>
+          <li><strong>SEO optimized</strong> &mdash; proper meta tags, structured data, fast load times</li>
+        </ul>
+      </div>
+      <div>
+        <ul>
+          <li><strong>AEO ready</strong> &mdash; Answer Engine Optimization for AI search (ChatGPT, Gemini, Perplexity)</li>
+          <li><strong>Google Analytics</strong> built in &mdash; know who's visiting</li>
+          <li>About page, testimonials, service areas &mdash; auto-populated</li>
+          <li>Every site personally reviewed before going live</li>
+          <li>Have an existing site or want a different look? <strong>We can accommodate</strong></li>
+          <li><strong>Satisfaction guaranteed</strong> &mdash; we'll work with you until you love it</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 7: CMA Automation -->
+  <div class="slide">
+    <h3>Feature</h3>
+    <h2>A lead asks about their home's value.<br>The CMA arrives before you pick up the phone.</h2>
+    <ul class="steps">
+      <li>Lead submits their property address on your website</li>
+      <li>Comparable sales data is pulled automatically (real MLS-grade data)</li>
+      <li>A <strong>branded PDF report</strong> is generated with your colors, logo, and contact info</li>
+      <li>PDF is emailed to the lead AND saved to your Google Drive</li>
+      <li><strong>Fully automated. No manual work.</strong></li>
+    </ul>
+    <div class="quote">&ldquo;Your competitors are spending 30 &ndash; 60 minutes per CMA. Yours takes seconds.&rdquo;</div>
+  </div>
+
+  <!-- Slide 8: Lead Capture -->
+  <div class="slide">
+    <h3>Feature</h3>
+    <h2>Every lead captured. Every lead enriched. Every lead notified.</h2>
+    <div class="two-col">
+      <div class="card">
+        <h4>Capture</h4>
+        <p>Lead forms on your website (buyer and seller). Cloudflare Turnstile bot protection &mdash; no fake leads.</p>
+      </div>
+      <div class="card">
+        <h4>Enrich</h4>
+        <p>Each lead is automatically researched and enriched. You know more before you pick up the phone.</p>
+      </div>
+      <div class="card">
+        <h4>Notify</h4>
+        <p>Instant notification to you via email or WhatsApp. Never miss a lead again.</p>
+      </div>
+      <div class="card">
+        <h4>Comply</h4>
+        <p>Consent tracking and opt-out management built in. TCPA, CAN-SPAM, GDPR/CCPA compliant.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: Legal Compliance -->
+  <div class="slide">
+    <h3>Feature</h3>
+    <h2>Legal compliance. Built-in. Not bolted on.</h2>
+    <ul>
+      <li><strong>State-specific disclosure requirements</strong> (lead-based paint, property condition, etc.)</li>
+      <li><strong>Consent tracking</strong> (TCPA, CAN-SPAM, GDPR/CCPA compliant)</li>
+      <li><strong>Equal housing notice</strong> &mdash; always displayed</li>
+      <li><strong>Cookie consent</strong> &mdash; automatic</li>
+      <li><strong>Fair housing compliance</strong> &mdash; built into every template</li>
+    </ul>
+    <div class="quote">&ldquo;Your competitors make you figure this out yourself. We handle it.&rdquo;</div>
+    <p style="margin-top:1rem;">You are <em>personally liable</em> for compliance failures. Most platforms leave this entirely to you. We build it in because it should never be optional.</p>
+  </div>
+
+  <!-- Slide 10: Pricing -->
+  <div class="slide">
+    <h3>Pricing</h3>
+    <h2>$14.99/mo. Everything included.</h2>
+    <p style="margin-bottom:0.5rem;">No add-ons. No surprises.</p>
+    <div class="table-wrap"><table>
+      <tr><th>Feature</th><th>Real Estate Star</th><th>Typical Competitor Stack</th></tr>
+      <tr><td>Website</td><td class="green-text">Included</td><td>$59 &ndash; $329/mo</td></tr>
+      <tr><td>CMA Tool</td><td class="green-text">Included</td><td>$40 &ndash; $99/mo</td></tr>
+      <tr><td>Lead Capture</td><td class="green-text">Included</td><td>$50 &ndash; $100/mo</td></tr>
+      <tr><td>Compliance</td><td class="green-text">Included</td><td>DIY (risky)</td></tr>
+      <tr><td>SEO &amp; AEO</td><td class="green-text">Included</td><td>$50 &ndash; $200/mo add-on</td></tr>
+      <tr><td>Google Analytics</td><td class="green-text">Included</td><td>Extra or DIY</td></tr>
+      <tr><td>Automation</td><td class="green-text">Included</td><td>$100 &ndash; $200/mo add-on</td></tr>
+      <tr style="font-weight:700; font-size:1.05rem;"><td style="color:var(--text);">Total</td><td style="color:var(--emerald-400); font-size:1.1rem;">$14.99/mo</td><td style="color:#f87171;">$249 &ndash; $928/mo</td></tr>
+    </table></div>
+    <div class="quote">&ldquo;That's less than your monthly Netflix subscription.&rdquo;</div>
+  </div>
+
+  <!-- Slide 11: What's Coming Next -->
+  <div class="slide">
+    <h3>Roadmap</h3>
+    <h2>The platform grows with you.</h2>
+    <div class="two-col" style="margin-top:1rem;">
+      <div class="card">
+        <h4>Auto-Replies</h4>
+        <p>Instant lead response in your voice, sent automatically. <span class="pill-gray">Coming Soon</span></p>
+      </div>
+      <div class="card">
+        <h4>Contract Drafting</h4>
+        <p>State-specific contracts, auto-filled from lead data. <span class="pill-gray">Coming Soon</span></p>
+      </div>
+      <div class="card">
+        <h4>DocuSign Integration</h4>
+        <p>Send contracts for signature directly from the platform. <span class="pill-gray">Coming Soon</span></p>
+      </div>
+      <div class="card">
+        <h4>MLS Automation</h4>
+        <p>List properties without re-entering data. <span class="pill-gray">Coming Soon</span></p>
+      </div>
+    </div>
+    <p style="margin-top:2rem;">You're getting in early. <strong style="color:var(--text);">These features are included at $14.99/mo &mdash; no price increases for early adopters.</strong></p>
+  </div>
+
+  <!-- Slide 12: Get Started -->
+  <div class="slide">
+    <h3>Get Started</h3>
+    <h1>14 days free.<br>No credit card required.</h1>
+    <ul class="steps" style="margin:2rem 0;">
+      <li>Your representative sends you a setup link</li>
+      <li>Connect your Google account (10 minutes)</li>
+      <li>AI builds your profile and website</li>
+      <li>Start capturing leads immediately</li>
+    </ul>
+    <p style="font-size:1.25rem; color:var(--text); font-weight:600;">The only thing you have to lose is the $300/mo you're spending now.</p>
+    <p style="margin-top:1rem; color:var(--emerald-400); font-weight:600;">Satisfaction guaranteed &mdash; we'll work with you until you love your site.</p>
+    <div style="margin-top:1.5rem;">
+      <span class="pill" style="font-size:1rem; padding:0.5rem 1.5rem;">Get Started Free &rarr;</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="nav">
+  <span class="counter" id="counter">1 / 12</span>
+  <button onclick="prev()" aria-label="Previous slide">&#8592;</button>
+  <button onclick="next()" aria-label="Next slide">&#8594;</button>
+</div>
+
+<script>
+  let current = 0;
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+
+  function show(index) {
+    slides.forEach((s, i) => {
+      s.classList.remove('active', 'prev');
+      if (i < index) s.classList.add('prev');
+    });
+    slides[index].classList.add('active');
+    counter.textContent = `${index + 1} / ${total}`;
+    progress.style.width = `${((index + 1) / total) * 100}%`;
+  }
+
+  function next() { if (current < total - 1) { current++; show(current); } }
+  function prev() { if (current > 0) { current--; show(current); } }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+    if (e.key === 'Home') { current = 0; show(current); }
+    if (e.key === 'End') { current = total - 1; show(current); }
+  });
+
+  // Touch swipe support
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
+
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+    touchStartTime = Date.now();
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    const dy = e.changedTouches[0].screenY - touchStartY;
+    const dt = Date.now() - touchStartTime;
+    // Only trigger on horizontal swipes: >50px, faster than 400ms, more horizontal than vertical
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 400) {
+      if (dx < 0) next();
+      else prev();
+    }
+  }, { passive: true });
+
+  show(0);
+</script>
+</body>
+</html>

@@ -56,7 +56,6 @@ public class AuthorizeLinkEndpoint : IEndpoint
             <!DOCTYPE html>
             <html lang="en">
             <head>
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; form-action /oauth/google/authorize/connect">
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Connect Google Account — Real Estate Star</title>
@@ -70,6 +69,7 @@ public class AuthorizeLinkEndpoint : IEndpoint
                     form { display: inline; }
                 </style>
             </head>
+            <!--email_off-->
             <body>
                 <h1>Connect Your Business Google Account</h1>
                 <p class="subtitle">Hello, {{safeEmail}} — link your Google Workspace account to activate Real Estate Star automation.</p>
@@ -86,6 +86,7 @@ public class AuthorizeLinkEndpoint : IEndpoint
                     <button type="submit" class="btn">Connect with Google</button>
                 </form>
             </body>
+            <!--/email_off-->
             </html>
             """;
     }

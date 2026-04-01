@@ -23,9 +23,9 @@ public sealed class WelcomeNotificationService(
 {
     internal const string FolderPrefix = "real-estate-star";
     internal const string WelcomeSentFile = "Welcome Sent.md";
-    internal const string Model = "claude-haiku-4-5";
+    internal const string Model = "claude-opus-4-6";
     internal const string Pipeline = "welcome-notification";
-    internal const int MaxTokens = 400;
+    internal const int MaxTokens = 600;
 
     public async Task SendAsync(
         string accountId,
@@ -82,7 +82,8 @@ public sealed class WelcomeNotificationService(
                     var htmlBody = WrapHtml(message, outputs.AgentName);
                     await gmailSender.SendAsync(
                         accountId, agentId, agentEmail,
-                        "Welcome to Real Estate Star!", htmlBody, ct);
+                        "Welcome to Real Estate Star! The premier AI automation platform for real estate agents.",
+                        htmlBody, ct);
                     sent = true;
                     logger.LogInformation(
                         "[WELCOME-032] Welcome sent via email for agentId={AgentId}", agentId);
@@ -119,18 +120,30 @@ public sealed class WelcomeNotificationService(
             : $"https://{accountId}.real-estate-star.com/agents/{agentId}";
 
         const string systemPrompt =
-            "You are writing a personalized welcome message for a real estate agent " +
-            "who just activated their Real Estate Star account. " +
-            "Rules:\n" +
-            "- Under 150 words total\n" +
-            "- Open with the agent's catchphrase or their signature sign-on style\n" +
-            "- Include 1-2 sentence brand synthesis\n" +
-            "- Include one insight about their sales pipeline (from the pipeline skill)\n" +
-            "- Include 1 coaching tip (from the coaching report)\n" +
-            "- Include their agent site URL\n" +
-            "- Close with their sign-off style\n" +
-            "- Warm, personal, NOT corporate. Use their own voice.\n" +
-            "- Plain text only, no markdown";
+            "You are writing a personalized welcome email from Real Estate Star to a real estate " +
+            "agent who just connected their Google account and activated the platform for the first time.\n\n" +
+            "CONTEXT: Real Estate Star is an AI-powered platform that automates real estate agent " +
+            "workflows — from instant lead response and CMA generation to personalized agent websites " +
+            "and smart follow-up. The agent's site is already live and ready to capture leads.\n\n" +
+            "CRITICAL RULES:\n" +
+            "- ONLY mention Real Estate Star by name. Do NOT reference any other company, " +
+            "bank, brand, or organization found in the agent's data — those are from their " +
+            "personal email and must NEVER appear in this welcome message.\n" +
+            "- Under 200 words total\n" +
+            "- MUST include a catchphrase or signature phrase from the Voice Skill data. " +
+            "If the Voice Skill contains a catchphrase, tagline, or sign-off, weave it naturally " +
+            "into the message. This makes the email feel personal and shows we understand the agent.\n" +
+            "- Open with a warm welcome using the agent's first name\n" +
+            "- Convey excitement — their automation is live, their site is ready\n" +
+            "- Briefly highlight what's now working for them (auto lead response, CMA generation, " +
+            "personalized website) — make them feel the value immediately\n" +
+            "- Include one actionable coaching tip relevant to their pipeline\n" +
+            "- Include their agent site URL with (beta) appended to the end\n" +
+            "- Close with an encouraging, forward-looking sign-off from Real Estate Star\n" +
+            "- TONE: Confident, professional, and polished. Real Estate Star is the best partner " +
+            "an agent can have to expand their business. Convey that this platform is built to " +
+            "help them win more clients, close more deals, and grow. Not salesy — authoritative.\n" +
+            "- Plain text only, no markdown, no HTML";
 
         var voiceContext = outputs.VoiceSkill ?? "professional and approachable tone";
         var personalityContext = outputs.PersonalitySkill ?? "dedicated REALTOR";
@@ -157,12 +170,42 @@ public sealed class WelcomeNotificationService(
 
     internal static string WrapHtml(string message, string? agentName)
     {
-        var encoded = System.Net.WebUtility.HtmlEncode(message).Replace("\n", "<br />");
+        // Strip any Claude-generated header/greeting line that duplicates our hardcoded h2
+        var cleaned = StripFirstLineIfHeader(message);
+        var encoded = System.Net.WebUtility.HtmlEncode(cleaned).Replace("\n", "<br />");
+
+        var firstName = agentName?.Split(' ').FirstOrDefault() ?? "";
+        var greeting = string.IsNullOrEmpty(firstName)
+            ? "Welcome to Real Estate Star!"
+            : $"Welcome to Real Estate Star, {System.Net.WebUtility.HtmlEncode(firstName)}!";
+
         return
             "<html><body style=\"font-family:Arial,sans-serif;max-width:600px;margin:24px auto;\">" +
-            $"<h2>Welcome to Real Estate Star{(agentName is not null ? $", {System.Net.WebUtility.HtmlEncode(agentName)}" : "")}!</h2>" +
+            $"<h2>{greeting}</h2>" +
+            "<p style=\"font-size:14px;color:#555;\">The premier AI automation platform for real estate agents.</p>" +
             $"<p>{encoded}</p>" +
             "<p style=\"color:#6b7280;font-size:12px;\">Sent by Real Estate Star</p>" +
             "</body></html>";
+    }
+
+    /// <summary>
+    /// Strips the first line if it looks like a greeting/header that Claude generated
+    /// (e.g., "Welcome to Real Estate Star, Thank you for choosing...").
+    /// Prevents duplicate headers in the email.
+    /// </summary>
+    internal static string StripFirstLineIfHeader(string message)
+    {
+        var lines = message.Split('\n', 2);
+        if (lines.Length < 2) return message;
+
+        var firstLine = lines[0].Trim();
+        if (firstLine.StartsWith("Welcome", StringComparison.OrdinalIgnoreCase) ||
+            firstLine.StartsWith("Thank you", StringComparison.OrdinalIgnoreCase) ||
+            firstLine.StartsWith("Congratulations", StringComparison.OrdinalIgnoreCase))
+        {
+            return lines[1].TrimStart();
+        }
+
+        return message;
     }
 }

@@ -1,6 +1,5 @@
 using System.Diagnostics.Metrics;
 using System.Net;
-using System.Threading.Channels;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -65,12 +64,17 @@ public class ActivationOrchestratorTests
 
     // Activity dependencies
     private readonly Mock<IFileStorageProvider> _fileStorage = new();
+    private readonly Mock<IFileStorageProviderFactory> _fileStorageFactory = new();
     private readonly Mock<IAgentConfigService> _agentConfigService = new();
     private readonly Mock<IBrandMergeService> _brandMergeService = new();
     private readonly Mock<ILeadStore> _leadStore = new();
 
     public ActivationOrchestratorTests()
     {
+        // Default factory returns the file storage mock
+        _fileStorageFactory.Setup(f => f.CreateForAgent(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(_fileStorage.Object);
+
         // Default sanitizer passthrough
         _sanitizer.Setup(s => s.Sanitize(It.IsAny<string>())).Returns<string>(s => s);
 
@@ -176,8 +180,6 @@ public class ActivationOrchestratorTests
 
     private ActivationOrchestrator BuildOrchestrator()
     {
-        var channel = Channel.CreateUnbounded<ActivationRequest>();
-
         var emailFetchWorker = new AgentEmailFetchWorker(
             _gmailReader.Object,
             NullLogger<AgentEmailFetchWorker>.Instance);
@@ -254,7 +256,7 @@ public class ActivationOrchestratorTests
             NullLogger<FeeStructureWorker>.Instance);
 
         var persistActivity = new AgentProfilePersistActivity(
-            _fileStorage.Object,
+            _fileStorageFactory.Object,
             _agentConfigService.Object,
             NullLogger<AgentProfilePersistActivity>.Instance);
 
@@ -274,7 +276,7 @@ public class ActivationOrchestratorTests
             NullLogger<ContactImportPersistActivity>.Instance);
 
         return new ActivationOrchestrator(
-            channel.Reader,
+            new Mock<IActivationQueue>().Object,
             emailFetchWorker,
             driveIndexWorker,
             discoveryWorker,
@@ -384,7 +386,6 @@ public class ActivationOrchestratorTests
         var mockLogger = new Mock<Microsoft.Extensions.Logging.ILogger<ActivationOrchestrator>>();
         mockLogger.Setup(l => l.IsEnabled(It.IsAny<Microsoft.Extensions.Logging.LogLevel>())).Returns(true);
 
-        var channel = Channel.CreateUnbounded<ActivationRequest>();
         var emailFetchWorker = new AgentEmailFetchWorker(
             _gmailReader.Object, NullLogger<AgentEmailFetchWorker>.Instance);
         var driveIndexWorker = new DriveIndexWorker(
@@ -394,7 +395,7 @@ public class ActivationOrchestratorTests
             _whatsAppSender.Object, NullLogger<AgentDiscoveryWorker>.Instance);
 
         var sut = new ActivationOrchestrator(
-            channel.Reader,
+            new Mock<IActivationQueue>().Object,
             emailFetchWorker,
             driveIndexWorker,
             discoveryWorker,
@@ -410,7 +411,7 @@ public class ActivationOrchestratorTests
             new BrandVoiceWorker(_anthropic.Object, _sanitizer.Object, NullLogger<BrandVoiceWorker>.Instance),
             new ComplianceAnalysisWorker(_anthropic.Object, _sanitizer.Object, NullLogger<ComplianceAnalysisWorker>.Instance),
             new FeeStructureWorker(_anthropic.Object, _sanitizer.Object, NullLogger<FeeStructureWorker>.Instance),
-            new AgentProfilePersistActivity(_fileStorage.Object, _agentConfigService.Object, NullLogger<AgentProfilePersistActivity>.Instance),
+            new AgentProfilePersistActivity(_fileStorageFactory.Object, _agentConfigService.Object, NullLogger<AgentProfilePersistActivity>.Instance),
             new BrandMergeActivity(_brandMergeService.Object, _fileStorage.Object, NullLogger<BrandMergeActivity>.Instance),
             new ContactDetectionActivity(_anthropic.Object, NullLoggerFactory.Instance),
             new ContactImportPersistActivity(_storage.Object, _driveClient.Object, _leadStore.Object, NullLogger<ContactImportPersistActivity>.Instance),

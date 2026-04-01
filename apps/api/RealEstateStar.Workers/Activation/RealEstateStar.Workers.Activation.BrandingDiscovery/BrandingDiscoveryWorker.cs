@@ -17,7 +17,7 @@ public sealed partial class BrandingDiscoveryWorker(
     IContentSanitizer sanitizer,
     ILogger<BrandingDiscoveryWorker> logger)
 {
-    private const string Model = "claude-opus-4-5";
+    private const string Model = "claude-sonnet-4-6";
     private const int MaxTokens = 2048;
     private const string Pipeline = "activation.branding-discovery";
 

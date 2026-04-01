@@ -1,12 +1,12 @@
 using RealEstateStar.Api.Features.OAuth.Services;
 using RealEstateStar.Api.Features.Onboarding.Services;
 using RealEstateStar.Api.Infrastructure;
+using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Channels;
 using System.Web;
 
 namespace RealEstateStar.Api.Features.OAuth.AuthorizeLink;
@@ -27,7 +27,8 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
         AuthorizationLinkService authorizationLinkService,
         GoogleOAuthService googleOAuthService,
         ITokenStore tokenStore,
-        ChannelWriter<ActivationRequest> activationChannel,
+        IActivationQueue activationQueue,
+        IConfiguration configuration,
         ILogger<AuthorizeLinkCallbackEndpoint> logger,
         CancellationToken ct)
     {
@@ -71,7 +72,11 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
 
         try
         {
-            var tokens = await googleOAuthService.ExchangeCodeAsync(code, ct);
+            var activationRedirectUri = configuration["Google:AuthorizeLinkRedirectUri"]
+                ?? configuration["Api:BaseUrl"]?.TrimEnd('/') + "/oauth/google/authorize/callback"
+                ?? throw new InvalidOperationException("Google:AuthorizeLinkRedirectUri or Api:BaseUrl must be configured");
+
+            var tokens = await googleOAuthService.ExchangeCodeAsync(code, activationRedirectUri, ct);
 
             // SEC: Verify Google email matches the expected email from the signed link
             if (!IsEmailMatch(linkState.Email, tokens.Email))
@@ -92,8 +97,8 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
 
             logger.LogInformation("[OAUTH-LINK-405] Tokens persisted. AccountId={AccountId}, AgentId={AgentId}", accountId, agentId);
 
-            // Enqueue activation request
-            await activationChannel.WriteAsync(
+            // Enqueue activation request to durable queue
+            await activationQueue.EnqueueAsync(
                 new ActivationRequest(accountId, agentId, linkState.Email, DateTime.UtcNow),
                 ct);
 
@@ -103,10 +108,10 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
             tokens.Name[..Math.Min(tokens.Name.Length, 128)],
             tokens.Email), "text/html");
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
-            logger.LogError(ex, "[OAUTH-LINK-407] Token exchange failed. AccountId={AccountId}, AgentId={AgentId}",
-                accountId, agentId);
+            logger.LogError(ex, "[OAUTH-LINK-407] OAuth callback failed. AccountId={AccountId}, AgentId={AgentId}, ExType={ExType}",
+                accountId, agentId, ex.GetType().Name);
             return Results.Content(BuildErrorHtml("Exchange Failed", "Something Went Wrong",
                 "Failed to connect your Google account. Please try again."), "text/html");
         }
@@ -144,12 +149,14 @@ public class AuthorizeLinkCallbackEndpoint : IEndpoint
                     .email { color: #555; font-style: italic; }
                 </style>
             </head>
+            <!--email_off-->
             <body>
                 <h1>Google account connected!</h1>
                 <p>Welcome, <strong>{{safeName}}</strong>.</p>
                 <p class="email">Connected as {{safeEmail}}</p>
                 <p>Your Real Estate Star automation is being activated. You'll receive a confirmation email shortly.</p>
             </body>
+            <!--/email_off-->
             </html>
             """;
     }

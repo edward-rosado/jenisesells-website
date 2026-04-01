@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Text.Json;
-using System.Threading.Channels;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Activities.Activation.BrandMerge;
@@ -32,9 +31,11 @@ using RealEstateStar.Workers.Activation.WebsiteStyle;
 namespace RealEstateStar.Workers.Activation.Orchestrator;
 
 /// <summary>
-/// BackgroundService that reads from Channel&lt;ActivationRequest&gt; and coordinates
-/// the 5-phase activation pipeline. Dispatches workers in parallel, calls activities
-/// and services, and manages checkpoints for retry/resume semantics.
+/// BackgroundService that reads from <see cref="IActivationQueue"/> (Azure Queue Storage)
+/// and coordinates the 5-phase activation pipeline. Dispatches workers in parallel,
+/// calls activities and services, and manages checkpoints for retry/resume semantics.
+/// Messages are deleted after successful processing; on failure they become visible
+/// again for automatic retry.
 /// </summary>
 public class ActivationOrchestrator : BackgroundService
 {
@@ -82,7 +83,7 @@ public class ActivationOrchestrator : BackgroundService
 
     // ── Dependencies ──────────────────────────────────────────────────────────
 
-    private readonly ChannelReader<ActivationRequest> _channel;
+    private readonly IActivationQueue _queue;
 
     // Phase 1: gather workers
     private readonly AgentEmailFetchWorker _emailFetchWorker;
@@ -120,7 +121,7 @@ public class ActivationOrchestrator : BackgroundService
     private readonly ILogger<ActivationOrchestrator> _logger;
 
     public ActivationOrchestrator(
-        ChannelReader<ActivationRequest> channel,
+        IActivationQueue queue,
         AgentEmailFetchWorker emailFetchWorker,
         DriveIndexWorker driveIndexWorker,
         AgentDiscoveryNs.AgentDiscoveryWorker discoveryWorker,
@@ -145,7 +146,7 @@ public class ActivationOrchestrator : BackgroundService
         IAgentContextLoader contextLoader,
         ILogger<ActivationOrchestrator> logger)
     {
-        _channel = channel;
+        _queue = queue;
         _emailFetchWorker = emailFetchWorker;
         _driveIndexWorker = driveIndexWorker;
         _discoveryWorker = discoveryWorker;
@@ -173,11 +174,39 @@ public class ActivationOrchestrator : BackgroundService
 
     // ── BackgroundService ─────────────────────────────────────────────────────
 
+    /// <summary>Visibility timeout for queue messages. Activation takes ~2 min; 5 min gives retry room.</summary>
+    internal static readonly TimeSpan MessageVisibilityTimeout = TimeSpan.FromMinutes(5);
+
+    /// <summary>Delay between empty queue polls to avoid hot-looping.</summary>
+    internal static readonly TimeSpan EmptyQueueDelay = TimeSpan.FromSeconds(5);
+
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        await foreach (var request in _channel.ReadAllAsync(ct))
+        while (!ct.IsCancellationRequested)
         {
-            await ProcessActivationAsync(request, ct);
+            var message = await _queue.DequeueAsync(MessageVisibilityTimeout, ct);
+            if (message is null)
+            {
+                await Task.Delay(EmptyQueueDelay, ct);
+                continue;
+            }
+
+            try
+            {
+                await ProcessActivationAsync(message.Value, ct);
+                await _queue.CompleteAsync(message.MessageId, message.PopReceipt, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Message becomes visible again after visibility timeout for automatic retry
+                _logger.LogError(ex,
+                    "[ACTV-098] Activation failed — message will retry after visibility timeout. AccountId={AccountId}, AgentId={AgentId}",
+                    message.Value.AccountId, message.Value.AgentId);
+            }
         }
     }
 

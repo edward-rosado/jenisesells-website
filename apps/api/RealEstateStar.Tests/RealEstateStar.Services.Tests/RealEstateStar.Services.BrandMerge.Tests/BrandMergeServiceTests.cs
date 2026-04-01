@@ -10,6 +10,7 @@ public class BrandMergeServiceTests
 {
     private readonly Mock<IAnthropicClient> _anthropic = new(MockBehavior.Strict);
     private readonly Mock<IFileStorageProvider> _storage = new(MockBehavior.Strict);
+    private readonly Mock<IFileStorageProviderFactory> _storageFactory = new();
     private readonly BrandMergeService _sut;
     private const string AccountId = "test-account";
     private const string AgentId = "test-agent";
@@ -17,9 +18,11 @@ public class BrandMergeServiceTests
 
     public BrandMergeServiceTests()
     {
+        _storageFactory.Setup(f => f.CreateForAgent(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(_storage.Object);
         _sut = new BrandMergeService(
             _anthropic.Object,
-            _storage.Object,
+            _storageFactory.Object,
             NullLogger<BrandMergeService>.Instance);
     }
 
