@@ -94,6 +94,9 @@ public class ActivationOrchestratorTests
         _driveClient.Setup(d => d.GetFileContentAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
+        _driveClient.Setup(d => d.DownloadBinaryAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
 
         // Default OAuth returns no credential (forces discovery to return minimal)
         _oauthRefresher.Setup(o => o.GetValidCredentialAsync(
@@ -177,6 +180,7 @@ public class ActivationOrchestratorTests
 
         var driveIndexWorker = new DriveIndexWorker(
             _driveClient.Object,
+            _anthropic.Object,
             NullLogger<DriveIndexWorker>.Instance);
 
         var discoveryWorker = new AgentDiscoveryWorker(
@@ -368,7 +372,7 @@ public class ActivationOrchestratorTests
         var emailFetchWorker = new AgentEmailFetchWorker(
             _gmailReader.Object, NullLogger<AgentEmailFetchWorker>.Instance);
         var driveIndexWorker = new DriveIndexWorker(
-            _driveClient.Object, NullLogger<DriveIndexWorker>.Instance);
+            _driveClient.Object, _anthropic.Object, NullLogger<DriveIndexWorker>.Instance);
         var discoveryWorker = new AgentDiscoveryWorker(
             _oauthRefresher.Object, _httpClientFactory.Object,
             _whatsAppSender.Object, NullLogger<AgentDiscoveryWorker>.Instance);

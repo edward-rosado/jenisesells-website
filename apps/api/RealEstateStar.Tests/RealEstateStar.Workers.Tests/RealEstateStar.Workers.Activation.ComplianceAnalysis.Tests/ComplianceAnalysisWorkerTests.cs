@@ -27,7 +27,7 @@ public class ComplianceAnalysisWorkerTests
 
     private static DriveIndex MakeEmptyDriveIndex() => new(
         FolderId: "f1", Files: [],
-        Contents: new Dictionary<string, string>(), DiscoveredUrls: []);
+        Contents: new Dictionary<string, string>(), DiscoveredUrls: [], Extractions: []);
 
     private static AgentDiscovery MakeEmptyDiscovery() =>
         new(HeadshotBytes: null, LogoBytes: null, Phone: null,

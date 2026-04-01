@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.Workers.Activation.DriveIndex.Tests;
 
@@ -11,12 +12,31 @@ public class DriveIndexWorkerTests
     private const string AgentId = "test-agent";
     private const string FolderId = "folder-123";
 
-    private static DriveIndexWorker BuildWorker(Mock<IGDriveClient>? mockClient = null)
+    private static DriveIndexWorker BuildWorker(
+        Mock<IGDriveClient>? mockClient = null,
+        Mock<IAnthropicClient>? mockAnthropic = null)
     {
         mockClient ??= new Mock<IGDriveClient>();
+        mockAnthropic ??= BuildDefaultAnthropicMock();
         return new DriveIndexWorker(
             mockClient.Object,
+            mockAnthropic.Object,
             NullLogger<DriveIndexWorker>.Instance);
+    }
+
+    private static Mock<IAnthropicClient> BuildDefaultAnthropicMock()
+    {
+        var mock = new Mock<IAnthropicClient>();
+        mock.Setup(a => a.SendAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AnthropicResponse("{}", 10, 20, 50));
+        mock.Setup(a => a.SendWithImagesAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<IReadOnlyList<(byte[], string)>>(),
+            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AnthropicResponse("{}", 10, 20, 50));
+        return mock;
     }
 
     private static Mock<IGDriveClient> SetupMockClient(
@@ -29,6 +49,10 @@ public class DriveIndexWorkerTests
             .ReturnsAsync(folderId);
         mock.Setup(c => c.ListAllFilesAsync(AccountId, AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(files ?? []);
+
+        // Default: DownloadBinaryAsync returns null (no PDF bytes available)
+        mock.Setup(c => c.DownloadBinaryAsync(AccountId, AgentId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
 
         if (contents is not null)
         {

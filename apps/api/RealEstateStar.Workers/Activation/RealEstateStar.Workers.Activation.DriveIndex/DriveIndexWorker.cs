@@ -1,3 +1,5 @@
+using System.Diagnostics.Metrics;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Activation.Models;
@@ -10,15 +12,53 @@ namespace RealEstateStar.Workers.Activation.DriveIndex;
 /// <summary>
 /// Phase 1 gather worker: indexes the agent's Google Drive.
 /// Finds or creates the "real-estate-star" platform folder, catalogs real-estate documents,
-/// reads their content, and surfaces any URLs discovered in documents.
+/// reads their content, surfaces any URLs discovered in documents, and uses Claude Vision
+/// to extract contact/property data from PDFs.
 ///
-/// Pure compute — calls IGDriveClient only. No storage, no DataServices.
+/// Pure compute — calls IGDriveClient and IAnthropicClient only. No storage, no DataServices.
 /// </summary>
 public sealed class DriveIndexWorker(
     IGDriveClient driveClient,
+    IAnthropicClient anthropicClient,
     ILogger<DriveIndexWorker> logger)
 {
     internal const string PlatformFolderName = "real-estate-star";
+
+    // ── Observability ─────────────────────────────────────────────────────────
+
+    private static readonly Meter _meter = new("RealEstateStar.Activation.DriveIndex");
+    internal static readonly Counter<long> PdfsProcessedCounter =
+        _meter.CreateCounter<long>("activation.driveindex.pdfs.processed", description: "PDFs processed for contact extraction");
+    internal static readonly Counter<long> PdfPagesReadCounter =
+        _meter.CreateCounter<long>("activation.driveindex.pdfs.pages_read", description: "PDF page-equivalent entries sent to Claude");
+
+    // ── Constants ─────────────────────────────────────────────────────────────
+
+    private const int MaxPdfPages = 10;
+    private const int PdfParallelism = 5;
+    private const int ClaudeMaxTokens = 1024;
+    private const string ClaudePipeline = "activation-driveindex";
+    private const string ClaudeModel = "claude-3-5-haiku-20241022";
+
+    internal const string DocumentExtractionSystemPrompt =
+        """
+        You are a real estate document parser. Extract structured contact and property data from the document.
+
+        Return ONLY valid JSON matching this schema (no explanation, no markdown fences):
+        {"type":"<one of: ListingAgreement, BuyerAgreement, PurchaseContract, Disclosure, ClosingStatement, Cma, Inspection, Appraisal, Other>","date":"<ISO 8601 date or null>","clients":[{"name":"<full name>","role":"<one of: Buyer, Seller, Both, Unknown>","email":"<email or null>","phone":"<phone or null>"}],"property":{"address":"<street address>","city":"<city or null>","state":"<state abbreviation or null>","zip":"<zip or null>"},"keyTerms":{"price":"<sale price as string or null>","commission":"<commission as string or null>","contingencies":["<contingency description>"]}}
+
+        If a field is not present in the document, use null (or empty array for contingencies).
+        Do not invent data. Only extract what is explicitly stated.
+        """;
+
+    internal const string DocumentExtractionUserTemplate =
+        """
+        <user-data>
+        {0}
+        </user-data>
+        """;
+
+    // ── File type arrays ──────────────────────────────────────────────────────
 
     private static readonly string[] RealEstateKeywords =
     [
@@ -100,6 +140,50 @@ public sealed class DriveIndexWorker(
             "[DRIVEINDEX-004] Read {ContentCount} documents, discovered {UrlCount} URLs for account {AccountId}, agent {AgentId}.",
             contents.Count, discoveredUrls.Count, accountId, agentId);
 
+        // ── PDF extraction (parallel, max 5 in-flight) ────────────────────────
+
+        var pdfFiles = realEstateFiles
+            .Where(f => f.MimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var extractions = new List<DocumentExtraction>();
+
+        var semaphore = new SemaphoreSlim(PdfParallelism);
+        var extractionTasks = pdfFiles.Select(async file =>
+        {
+            await semaphore.WaitAsync(ct);
+            try
+            {
+                return await ExtractFromPdfAsync(accountId, agentId, file, ct);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }).ToList();
+
+        var pdfResults = await Task.WhenAll(extractionTasks);
+        extractions.AddRange(pdfResults.Where(e => e is not null)!);
+
+        // ── Text-doc extraction (non-PDF) ─────────────────────────────────────
+
+        foreach (var (fileId, content) in contents)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var file = realEstateFiles.FirstOrDefault(f => f.Id == fileId);
+            if (file is not null && !file.MimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                var extraction = await ExtractFromTextAsync(file, content, ct);
+                if (extraction is not null)
+                    extractions.Add(extraction);
+            }
+        }
+
+        logger.LogInformation(
+            "[DRIVEINDEX-005] Extracted {ExtractionCount} document contacts for account {AccountId}, agent {AgentId}.",
+            extractions.Count, accountId, agentId);
+
         // Map to domain DriveFile records
         var driveFiles = realEstateFiles.Select(f => new DriveFileModel(
             f.Id,
@@ -108,13 +192,187 @@ public sealed class DriveIndexWorker(
             CategorizeFile(f.Name),
             f.ModifiedTime ?? DateTime.MinValue)).ToList();
 
-        return new DriveIndexModel(
-            folderId,
-            driveFiles,
-            contents,
-            discoveredUrls.ToList(),
-            Array.Empty<DocumentExtraction>());
+        return new DriveIndexModel(folderId, driveFiles, contents, discoveredUrls.ToList(), extractions);
     }
+
+    // ── PDF extraction ────────────────────────────────────────────────────────
+
+    private async Task<DocumentExtraction?> ExtractFromPdfAsync(
+        string accountId,
+        string agentId,
+        DriveFileInfo file,
+        CancellationToken ct)
+    {
+        try
+        {
+            var pdfBytes = await driveClient.DownloadBinaryAsync(accountId, agentId, file.Id, ct);
+            if (pdfBytes is null || pdfBytes.Length == 0)
+                return null;
+
+            var pageImages = PdfPageExtractor.ExtractPageImages(pdfBytes, MaxPdfPages);
+            if (pageImages.Count == 0)
+                return null;
+
+            PdfsProcessedCounter.Add(1);
+            PdfPagesReadCounter.Add(pageImages.Count);
+
+            var systemPrompt = DocumentExtractionSystemPrompt;
+            var userMessage = string.Format(DocumentExtractionUserTemplate, $"File: {file.Name}");
+
+            var response = await anthropicClient.SendWithImagesAsync(
+                ClaudeModel,
+                systemPrompt,
+                userMessage,
+                pageImages,
+                ClaudeMaxTokens,
+                ClaudePipeline,
+                ct);
+
+            return ParseDocumentExtraction(file.Id, file.Name, response.Content);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex,
+                "[DRIVEINDEX-020] Failed to extract contacts from PDF {FileId} ({FileName}) for account {AccountId}",
+                file.Id, file.Name, accountId);
+            return null;
+        }
+    }
+
+    // ── Text extraction ────────────────────────────────────────────────────────
+
+    private async Task<DocumentExtraction?> ExtractFromTextAsync(
+        DriveFileInfo file,
+        string content,
+        CancellationToken ct)
+    {
+        try
+        {
+            var systemPrompt = DocumentExtractionSystemPrompt;
+            var userMessage = string.Format(DocumentExtractionUserTemplate, content);
+
+            var response = await anthropicClient.SendAsync(
+                ClaudeModel,
+                systemPrompt,
+                userMessage,
+                ClaudeMaxTokens,
+                ClaudePipeline,
+                ct);
+
+            return ParseDocumentExtraction(file.Id, file.Name, response.Content);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex,
+                "[DRIVEINDEX-021] Failed to extract contacts from text doc {FileId} ({FileName})",
+                file.Id, file.Name);
+            return null;
+        }
+    }
+
+    // ── JSON parsing helpers ──────────────────────────────────────────────────
+
+    internal static DocumentExtraction? ParseDocumentExtraction(string fileId, string fileName, string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            var type = ParseDocumentType(root.TryGetProperty("type", out var typeProp) ? typeProp.GetString() : null);
+            var date = root.TryGetProperty("date", out var dateProp) && dateProp.ValueKind != JsonValueKind.Null
+                ? dateProp.GetString() is string ds && DateTime.TryParse(ds, out var dt) ? dt : (DateTime?)null
+                : null;
+
+            var clients = new List<ExtractedClient>();
+            if (root.TryGetProperty("clients", out var clientsProp) && clientsProp.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var c in clientsProp.EnumerateArray())
+                {
+                    var name = c.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+                    if (string.IsNullOrWhiteSpace(name)) continue;
+
+                    var role = ParseContactRole(c.TryGetProperty("role", out var roleProp) ? roleProp.GetString() : null);
+                    var email = c.TryGetProperty("email", out var emailProp) && emailProp.ValueKind != JsonValueKind.Null
+                        ? emailProp.GetString() : null;
+                    var phone = c.TryGetProperty("phone", out var phoneProp) && phoneProp.ValueKind != JsonValueKind.Null
+                        ? phoneProp.GetString() : null;
+
+                    clients.Add(new ExtractedClient(name, role, email, phone));
+                }
+            }
+
+            ExtractedProperty? property = null;
+            if (root.TryGetProperty("property", out var propProp) && propProp.ValueKind == JsonValueKind.Object)
+            {
+                var address = propProp.TryGetProperty("address", out var addrProp) ? addrProp.GetString() : null;
+                if (!string.IsNullOrWhiteSpace(address))
+                {
+                    var city = propProp.TryGetProperty("city", out var cityProp) && cityProp.ValueKind != JsonValueKind.Null
+                        ? cityProp.GetString() : null;
+                    var state = propProp.TryGetProperty("state", out var stateProp) && stateProp.ValueKind != JsonValueKind.Null
+                        ? stateProp.GetString() : null;
+                    var zip = propProp.TryGetProperty("zip", out var zipProp) && zipProp.ValueKind != JsonValueKind.Null
+                        ? zipProp.GetString() : null;
+                    property = new ExtractedProperty(address, city, state, zip);
+                }
+            }
+
+            ExtractedKeyTerms? keyTerms = null;
+            if (root.TryGetProperty("keyTerms", out var termsProp) && termsProp.ValueKind == JsonValueKind.Object)
+            {
+                var price = termsProp.TryGetProperty("price", out var priceProp) && priceProp.ValueKind != JsonValueKind.Null
+                    ? priceProp.GetString() : null;
+                var commission = termsProp.TryGetProperty("commission", out var commProp) && commProp.ValueKind != JsonValueKind.Null
+                    ? commProp.GetString() : null;
+                var contingencies = new List<string>();
+                if (termsProp.TryGetProperty("contingencies", out var contProp) && contProp.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var c in contProp.EnumerateArray())
+                    {
+                        var val = c.GetString();
+                        if (!string.IsNullOrWhiteSpace(val))
+                            contingencies.Add(val);
+                    }
+                }
+                keyTerms = new ExtractedKeyTerms(price, commission, contingencies);
+            }
+
+            return new DocumentExtraction(fileId, fileName, type, clients, property, date, keyTerms);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    internal static DocumentType ParseDocumentType(string? value) =>
+        value switch
+        {
+            "ListingAgreement" => DocumentType.ListingAgreement,
+            "BuyerAgreement" => DocumentType.BuyerAgreement,
+            "PurchaseContract" => DocumentType.PurchaseContract,
+            "Disclosure" => DocumentType.Disclosure,
+            "ClosingStatement" => DocumentType.ClosingStatement,
+            "Cma" => DocumentType.Cma,
+            "Inspection" => DocumentType.Inspection,
+            "Appraisal" => DocumentType.Appraisal,
+            _ => DocumentType.Other
+        };
+
+    internal static ContactRole ParseContactRole(string? value) =>
+        value switch
+        {
+            "Buyer" => ContactRole.Buyer,
+            "Seller" => ContactRole.Seller,
+            "Both" => ContactRole.Both,
+            _ => ContactRole.Unknown
+        };
+
+    // ── Static helpers ────────────────────────────────────────────────────────
 
     internal static bool IsRealEstateFile(string name, string mimeType)
     {
