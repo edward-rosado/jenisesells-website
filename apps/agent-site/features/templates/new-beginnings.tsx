@@ -10,13 +10,13 @@ import { CmaSection, Footer, ScrollRevealSection } from "@/features/sections/sha
 import { AboutWarm } from "@/features/sections/about";
 import { type TemplateProps, getEnabledSections } from "./types";
 
-export function NewBeginnings({ account, content, agent }: TemplateProps) {
+export function NewBeginnings({ account, content, agent, locale }: TemplateProps) {
   const s = content.pages.home.sections;
   const identity = agent ?? account.agent ?? { id: account.handle, name: account.broker?.name ?? account.brokerage.name, title: account.broker?.title ?? "", phone: "", email: "" };
   const enabledSections = getEnabledSections(s);
   return (
     <>
-      <Nav account={account} navigation={content.navigation} enabledSections={enabledSections} />
+      <Nav account={account} navigation={content.navigation} enabledSections={enabledSections} locale={locale} />
       <div id="main-content" tabIndex={-1} style={{ paddingTop: "0" }}>
         {s.hero?.enabled && (
           <HeroStory
@@ -87,6 +87,7 @@ export function NewBeginnings({ account, content, agent }: TemplateProps) {
               tracking={account.integrations?.tracking}
               data={s.contact_form.data}
               serviceAreas={account.location.service_areas}
+              locale={locale}
             />
           </ScrollRevealSection>
         )}
@@ -95,7 +96,7 @@ export function NewBeginnings({ account, content, agent }: TemplateProps) {
             <AboutWarm agent={identity} data={s.about.data} />
           </ScrollRevealSection>
         )}
-        <Footer agent={account} accountId={identity.id} />
+        <Footer agent={account} accountId={identity.id} locale={locale} />
       </div>
     </>
   );

@@ -3,7 +3,9 @@
 import type { ContactFormData, AccountTracking } from "@/features/config/types";
 import { trackCmaConversion } from "@/features/shared/Analytics";
 import { trackFormEvent, EventType } from "@/features/shared/telemetry";
+import { getUiStrings } from "@/features/i18n";
 import { LeadForm } from "@real-estate-star/forms";
+import type { LeadFormLabels } from "@real-estate-star/forms";
 import type { LeadFormData } from "@real-estate-star/domain";
 import dynamic from "next/dynamic";
 
@@ -22,6 +24,7 @@ interface CmaSectionProps {
   tracking?: AccountTracking;
   data: ContactFormData;
   serviceAreas?: string[];
+  locale?: string;
 }
 
 export function CmaSection({
@@ -31,10 +34,12 @@ export function CmaSection({
   tracking,
   data,
   serviceAreas = [],
+  locale,
 }: CmaSectionProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const ui = getUiStrings(locale);
 
   const sectionRef = useRef<HTMLElement>(null);
   const viewedRef = useRef(false);
@@ -81,7 +86,7 @@ export function CmaSection({
       }
     } catch (err) {
       console.error("[agent-site] Lead submission failed:", err);
-      setErrorMessage("Something went wrong. Please try again.");
+      setErrorMessage(ui.submissionError);
       trackFormEvent(EventType.Failed, accountId, "network_error");
       return;
     } finally {
@@ -97,7 +102,7 @@ export function CmaSection({
     <section
       ref={sectionRef}
       id="contact_form"
-      aria-label="Home Value Request Form"
+      aria-label={ui.formAriaLabel}
       style={{
         background: "#f7f7f7",
         padding: "70px 20px",
@@ -149,14 +154,15 @@ export function CmaSection({
             initialMode={["selling"]}
             agentFirstName={agentName.split(" ")[0]}
             submitLabel={(isBuying, isSelling) => {
-              if (isSelling) return "Get My Free Home Value Report \u2192";
-              if (isBuying) return "Find My Dream Home \u2192";
-              return "Get Started \u2192";
+              if (isSelling) return ui.submitSellingLabel;
+              if (isBuying) return ui.submitBuyingLabel;
+              return ui.submitDefaultLabel;
             }}
             disabled={isProcessing}
             error={errorMessage ?? undefined}
             serviceAreas={serviceAreas}
             showCmaDisclaimer
+            labels={ui as unknown as LeadFormLabels}
             turnstileToken={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? turnstileToken : undefined}
             captchaSlot={
               process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (

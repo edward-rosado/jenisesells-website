@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractAgentId, resolveAgentFromCustomDomain, isWwwCustomDomain, getAgentIds } from "@/features/config/routing";
 import { applySecurityHeaders, safeCspUrl } from "@/features/shared/security-headers";
+import { accountLanguages } from "@/features/config/config-registry";
+import { resolveLocale as resolveLocaleFromHeaders } from "@/features/i18n/resolve-locale";
+import { languagesToLocales } from "@/features/i18n/locale-map";
+import type { SupportedLocale } from "@/features/i18n/locale-map";
 
 function buildCspHeader(nonce: string): string {
   const apiUrl = safeCspUrl(process.env.NEXT_PUBLIC_API_URL);
@@ -26,6 +30,22 @@ function notFoundResponse(nonce: string): NextResponse {
   return response;
 }
 
+function resolveLocaleForAccount(request: NextRequest, accountId: string): SupportedLocale {
+  const cookieLocale = request.cookies?.get("locale")?.value ?? null;
+  const acceptLanguage = request.headers.get("accept-language");
+  const agentLangs = accountLanguages[accountId] as SupportedLocale[] | undefined;
+  const locales = agentLangs ?? ["en" as SupportedLocale];
+  return resolveLocaleFromHeaders(acceptLanguage, cookieLocale, locales);
+}
+
+function applyLocale(response: NextResponse, url: URL, locale: SupportedLocale): void {
+  url.searchParams.set("locale", locale);
+  response.headers.set("x-locale", locale);
+  if (locale !== "en") {
+    response.cookies.set("locale", locale, { path: "/", maxAge: 365 * 24 * 60 * 60, sameSite: "lax" });
+  }
+}
+
 export function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") || "localhost:3000";
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
@@ -45,9 +65,11 @@ export function middleware(request: NextRequest) {
     if (!getAgentIds().has(agentId)) {
       return notFoundResponse(nonce);
     }
+    const locale = resolveLocaleForAccount(request, agentId);
     const url = request.nextUrl.clone();
     url.searchParams.set("accountId", agentId);
     const response = NextResponse.rewrite(url);
+    applyLocale(response, url, locale);
     response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
     response.headers.set("x-nonce", nonce);
     applySecurityHeaders(response);
@@ -57,9 +79,11 @@ export function middleware(request: NextRequest) {
   // 3. Custom domain match
   const customAgentId = resolveAgentFromCustomDomain(hostname);
   if (customAgentId) {
+    const locale = resolveLocaleForAccount(request, customAgentId);
     const url = request.nextUrl.clone();
     url.searchParams.set("accountId", customAgentId);
     const response = NextResponse.rewrite(url);
+    applyLocale(response, url, locale);
     response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
     response.headers.set("x-nonce", nonce);
     applySecurityHeaders(response);
@@ -78,9 +102,11 @@ export function middleware(request: NextRequest) {
       : (process.env.DEFAULT_AGENT_ID || "jenise-buckalew");
 
     if (getAgentIds().has(resolvedId)) {
+      const locale = resolveLocaleForAccount(request, resolvedId);
       const url = request.nextUrl.clone();
       url.searchParams.set("accountId", resolvedId);
       const response = NextResponse.rewrite(url);
+      applyLocale(response, url, locale);
       response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
       response.headers.set("x-nonce", nonce);
       applySecurityHeaders(response);

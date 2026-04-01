@@ -19,6 +19,98 @@ const TCPA_CONSENT_TEXT = (agentName: string) =>
   `You may unsubscribe from emails at any time. Consent is not a condition of purchasing ` +
   `any property or service.`;
 
+/** Translatable labels for all visible text in the LeadForm. All fields optional — English defaults used when omitted. */
+export interface LeadFormLabels {
+  imBuying: string;
+  imSelling: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  desiredArea: string;
+  selectArea: string;
+  minPrice: string;
+  maxPrice: string;
+  minBeds: string;
+  minBaths: string;
+  preApproved: string;
+  preApprovalAmount: string;
+  propertyAddress: string;
+  city: string;
+  state: string;
+  zip: string;
+  beds: string;
+  baths: string;
+  sqft: string;
+  timelineLabel: string;
+  timelineAsap: string;
+  timeline1to3: string;
+  timeline3to6: string;
+  timeline6to12: string;
+  timelineJustCurious: string;
+  select: string;
+  notesSellingOnly: string;
+  notesBuyingOnly: string;
+  notesBoth: string;
+  notesDefault: string;
+  notesPlaceholderSelling: string;
+  notesPlaceholderBuying: string;
+  notesPlaceholderBoth: string;
+  optional: string;
+  addressPoweredBy: string;
+  cmaDisclaimer: string;
+  validationSelectMode: string;
+  validationSelectTimeline: string;
+  validationConsent: string;
+}
+
+const DEFAULT_LABELS: LeadFormLabels = {
+  imBuying: "I'm Buying",
+  imSelling: "I'm Selling",
+  firstName: "First Name",
+  lastName: "Last Name",
+  email: "Email",
+  phone: "Phone",
+  desiredArea: "Desired Area",
+  selectArea: "Select area...",
+  minPrice: "Min Price",
+  maxPrice: "Max Price",
+  minBeds: "Min Beds",
+  minBaths: "Min Baths",
+  preApproved: "Pre-Approved?",
+  preApprovalAmount: "Pre-Approval Amount",
+  propertyAddress: "Property Address",
+  city: "City",
+  state: "State",
+  zip: "Zip",
+  beds: "Beds",
+  baths: "Baths",
+  sqft: "Sqft",
+  timelineLabel: "When are you looking to",
+  timelineAsap: "ASAP",
+  timeline1to3: "1-3 Months",
+  timeline3to6: "3-6 Months",
+  timeline6to12: "6-12 Months",
+  timelineJustCurious: "Just Curious",
+  select: "Select...",
+  notesSellingOnly: "Tell us about the property",
+  notesBuyingOnly: "Describe your dream home",
+  notesBoth: "Tell us about your property and what you're looking for",
+  notesDefault: "Additional Notes",
+  notesPlaceholderSelling: "Recent renovations, unique features, timeline, price expectations...",
+  notesPlaceholderBuying: "Must-haves, neighborhood preferences, school districts, budget flexibility...",
+  notesPlaceholderBoth: "Describe your property for sale and what you're looking for in your next home...",
+  optional: "optional",
+  addressPoweredBy: "Address autocomplete powered by Google Maps.",
+  cmaDisclaimer:
+    "This Comparative Market Analysis is not an appraisal. It is an estimate of market " +
+    "value based on comparable sales data and market conditions. It should not be used in " +
+    "lieu of an appraisal for lending purposes. Only a licensed appraiser can provide an appraisal.",
+  validationSelectMode: "Please select at least one: buying or selling.",
+  validationSelectTimeline: "Please select a timeline.",
+  validationConsent: "You must consent to receive communications before submitting.",
+};
+
 export interface LeadFormProps {
   defaultState: string;
   googleMapsApiKey?: string;
@@ -34,6 +126,8 @@ export interface LeadFormProps {
   turnstileToken?: string | null;
   /** Render slot for a Turnstile widget (or any CAPTCHA). Rendered above the submit button. */
   captchaSlot?: React.ReactNode;
+  /** Translated labels for form fields. TCPA consent stays in English (legally required). */
+  labels?: Partial<LeadFormLabels>;
 }
 
 function parseOptionalNumber(value: string): number | undefined {
@@ -79,7 +173,9 @@ export function LeadForm({
   agentFirstName,
   turnstileToken,
   captchaSlot,
+  labels: labelsProp,
 }: LeadFormProps) {
+  const L = { ...DEFAULT_LABELS, ...labelsProp };
   const [isBuying, setIsBuying] = useState(initialMode.includes("buying"));
   const [isSelling, setIsSelling] = useState(initialMode.includes("selling"));
   const submitLabel: string | ((b: boolean, s: boolean) => string) = submitLabelProp
@@ -165,7 +261,7 @@ export function LeadForm({
     e.preventDefault();
 
     if (!isBuying && !isSelling) {
-      setValidationError("Please select at least one: buying or selling.");
+      setValidationError(L.validationSelectMode);
       return;
     }
 
@@ -173,12 +269,12 @@ export function LeadForm({
     if (submitting) return;
 
     if (!fields.timeline) {
-      setValidationError("Please select a timeline.");
+      setValidationError(L.validationSelectTimeline);
       return;
     }
 
     if (!tcpaConsent) {
-      setValidationError("You must consent to receive communications before submitting.");
+      setValidationError(L.validationConsent);
       return;
     }
 
@@ -395,7 +491,7 @@ export function LeadForm({
             ...(validationError && !isBuying && !isSelling ? { borderColor: "red" } : {}),
           }}
         >
-          I&apos;m Buying
+          {L.imBuying}
         </button>
         <button
           type="button"
@@ -408,28 +504,28 @@ export function LeadForm({
             ...(validationError && !isBuying && !isSelling ? { borderColor: "red" } : {}),
           }}
         >
-          I&apos;m Selling
+          {L.imSelling}
         </button>
       </div>
 
       {/* Contact fields */}
       <div className="res-lead-form-row">
         <div style={fieldGroupStyle}>
-          <label style={labelStyle} htmlFor="lf-firstName">First Name{requiredMark}</label>
+          <label style={labelStyle} htmlFor="lf-firstName">{L.firstName}{requiredMark}</label>
           <input {...field("firstName", { required: true })} />
         </div>
         <div style={fieldGroupStyle}>
-          <label style={labelStyle} htmlFor="lf-lastName">Last Name{requiredMark}</label>
+          <label style={labelStyle} htmlFor="lf-lastName">{L.lastName}{requiredMark}</label>
           <input {...field("lastName", { required: true })} />
         </div>
       </div>
       <div className="res-lead-form-row">
         <div style={fieldGroupStyle}>
-          <label style={labelStyle} htmlFor="lf-email">Email{requiredMark}</label>
+          <label style={labelStyle} htmlFor="lf-email">{L.email}{requiredMark}</label>
           <input {...field("email", { type: "email", required: true })} />
         </div>
         <div style={fieldGroupStyle}>
-          <label style={labelStyle} htmlFor="lf-phone">Phone{requiredMark}</label>
+          <label style={labelStyle} htmlFor="lf-phone">{L.phone}{requiredMark}</label>
           <input {...field("phone", { type: "tel", required: true })} />
         </div>
       </div>
@@ -452,10 +548,10 @@ export function LeadForm({
         {isBuying && (
           <>
             <div style={fieldGroupStyle}>
-              <label style={labelStyle} htmlFor="lf-desiredArea">Desired Area{requiredMark}</label>
+              <label style={labelStyle} htmlFor="lf-desiredArea">{L.desiredArea}{requiredMark}</label>
               {serviceAreas.length > 0 ? (
                 <select {...field("desiredArea", { required: true })}>
-                  <option value="">Select area...</option>
+                  <option value="">{L.selectArea}</option>
                   {serviceAreas.map((area) => (
                     <option key={area} value={area}>{area}</option>
                   ))}
@@ -466,36 +562,36 @@ export function LeadForm({
             </div>
             <div className="res-lead-form-row">
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-minPrice">Min Price</label>
+                <label style={labelStyle} htmlFor="lf-minPrice">{L.minPrice}</label>
                 <input {...field("minPrice", { type: "number" })} />
               </div>
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-maxPrice">Max Price</label>
+                <label style={labelStyle} htmlFor="lf-maxPrice">{L.maxPrice}</label>
                 <input {...field("maxPrice", { type: "number" })} />
               </div>
             </div>
             <div className="res-lead-form-row">
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-minBeds">Min Beds</label>
+                <label style={labelStyle} htmlFor="lf-minBeds">{L.minBeds}</label>
                 <input {...field("minBeds", { type: "number" })} />
               </div>
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-minBaths">Min Baths</label>
+                <label style={labelStyle} htmlFor="lf-minBaths">{L.minBaths}</label>
                 <input {...field("minBaths", { type: "number" })} />
               </div>
             </div>
             <div className="res-lead-form-row">
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-preApproved">Pre-Approved?</label>
+                <label style={labelStyle} htmlFor="lf-preApproved">{L.preApproved}</label>
                 <select {...field("preApproved")}>
-                  <option value="">Select...</option>
+                  <option value="">{L.select}</option>
                   <option value="yes">Yes</option>
                   <option value="no">No</option>
                   <option value="in-progress">In Progress</option>
                 </select>
               </div>
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-preApprovalAmount">Pre-Approval Amount</label>
+                <label style={labelStyle} htmlFor="lf-preApprovalAmount">{L.preApprovalAmount}</label>
                 <input {...field("preApprovalAmount", { type: "number" })} />
               </div>
             </div>
@@ -521,7 +617,7 @@ export function LeadForm({
         {isSelling && (
           <>
             <div style={fieldGroupStyle}>
-              <label style={labelStyle} htmlFor="lf-address">Property Address{requiredMark}</label>
+              <label style={labelStyle} htmlFor="lf-address">{L.propertyAddress}{requiredMark}</label>
               <AddressAutocomplete
                 query={autocomplete.query || fields.address}
                 setQuery={(value) => {
@@ -541,34 +637,34 @@ export function LeadForm({
             </div>
             <div className="res-lead-form-row">
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-city">City{requiredMark}</label>
+                <label style={labelStyle} htmlFor="lf-city">{L.city}{requiredMark}</label>
                 <input {...field("city", { required: true })} />
               </div>
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-sellerState">State{requiredMark}</label>
+                <label style={labelStyle} htmlFor="lf-sellerState">{L.state}{requiredMark}</label>
                 <input {...field("sellerState", { id: "lf-sellerState", required: true })} readOnly aria-readonly="true" style={{ ...inputStyle, backgroundColor: "#f5f5f5", cursor: "default" }} />
               </div>
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-zip">Zip{requiredMark}</label>
+                <label style={labelStyle} htmlFor="lf-zip">{L.zip}{requiredMark}</label>
                 <input {...field("zip", { required: true })} />
               </div>
             </div>
             <div className="res-lead-form-row">
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-beds">Beds</label>
+                <label style={labelStyle} htmlFor="lf-beds">{L.beds}</label>
                 <input {...field("beds", { type: "number" })} />
               </div>
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-baths">Baths</label>
+                <label style={labelStyle} htmlFor="lf-baths">{L.baths}</label>
                 <input {...field("baths", { type: "number" })} />
               </div>
               <div style={fieldGroupStyle}>
-                <label style={labelStyle} htmlFor="lf-sqft">Sqft</label>
+                <label style={labelStyle} htmlFor="lf-sqft">{L.sqft}</label>
                 <input {...field("sqft", { type: "number" })} />
               </div>
             </div>
             <p style={{ fontSize: 11, color: "#595959", marginTop: 4, marginBottom: 0 }}>
-              Address autocomplete powered by Google Maps.
+              {L.addressPoweredBy}
             </p>
           </>
         )}
@@ -578,15 +674,15 @@ export function LeadForm({
       {(isBuying || isSelling) && (
         <div style={fieldGroupStyle}>
           <label style={labelStyle} htmlFor="lf-timeline">
-            When are you looking to {getTimelineLabel()}?{requiredMark}
+            {L.timelineLabel} {getTimelineLabel()}?{requiredMark}
           </label>
           <select {...field("timeline", { required: true })}>
-            <option value="">Select...</option>
-            <option value="asap">ASAP</option>
-            <option value="1-3months">1-3 Months</option>
-            <option value="3-6months">3-6 Months</option>
-            <option value="6-12months">6-12 Months</option>
-            <option value="justcurious">Just Curious</option>
+            <option value="">{L.select}</option>
+            <option value="asap">{L.timelineAsap}</option>
+            <option value="1-3months">{L.timeline1to3}</option>
+            <option value="3-6months">{L.timeline3to6}</option>
+            <option value="6-12months">{L.timeline6to12}</option>
+            <option value="justcurious">{L.timelineJustCurious}</option>
           </select>
         </div>
       )}
@@ -594,22 +690,22 @@ export function LeadForm({
       {/* Notes */}
       {(() => {
         const notesLabel = isSelling && !isBuying
-          ? "Tell us about the property"
+          ? L.notesSellingOnly
           : !isSelling && isBuying
-          ? "Describe your dream home"
+          ? L.notesBuyingOnly
           : isSelling && isBuying
-          ? "Tell us about your property and what you're looking for"
-          : "Additional Notes";
+          ? L.notesBoth
+          : L.notesDefault;
         const notesPlaceholder = isSelling && !isBuying
-          ? "Recent renovations, unique features, timeline, price expectations..."
+          ? L.notesPlaceholderSelling
           : !isSelling && isBuying
-          ? "Must-haves, neighborhood preferences, school districts, budget flexibility..."
+          ? L.notesPlaceholderBuying
           : isSelling && isBuying
-          ? "Describe your property for sale and what you're looking for in your next home..."
+          ? L.notesPlaceholderBoth
           : undefined;
         return (
           <div style={fieldGroupStyle}>
-            <label style={labelStyle} htmlFor="lf-notes">{notesLabel} (optional)</label>
+            <label style={labelStyle} htmlFor="lf-notes">{notesLabel} ({L.optional})</label>
             <textarea
               {...field("notes")}
               placeholder={notesPlaceholder}
@@ -678,10 +774,7 @@ export function LeadForm({
             lineHeight: 1.5,
           }}
         >
-          This Comparative Market Analysis is not an appraisal. It is an estimate of market
-          value based on comparable sales data and market conditions. It should not be used in
-          lieu of an appraisal for lending purposes. Only a licensed appraiser can provide an
-          appraisal.
+          {L.cmaDisclaimer}
         </span>
       )}
     </form>

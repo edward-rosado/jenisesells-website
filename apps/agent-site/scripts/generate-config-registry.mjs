@@ -51,6 +51,8 @@ function main() {
 
   const accountsMap = {};
   const accountContentMap = {};
+  const localizedContentMap = {};
+  const accountLanguagesMap = {};
   const agentConfigsMap = {};
   const agentContentMap = {};
   const legalContentMap = {};
@@ -65,6 +67,26 @@ function main() {
     if (fs.existsSync(contentPath)) {
       accountContentMap[handle] = loadJson(contentPath);
     }
+
+    // Discover localized content files (content-es.json, content-pt.json, etc.)
+    const localeContentPattern = /^content-([a-z]{2})\.json$/;
+    for (const file of fs.readdirSync(accountDir)) {
+      const match = file.match(localeContentPattern);
+      if (match) {
+        const locale = match[1];
+        if (!localizedContentMap[handle]) localizedContentMap[handle] = {};
+        localizedContentMap[handle][locale] = loadJson(path.join(accountDir, file));
+        console.log(`  ${handle}: found locale content for "${locale}"`);
+      }
+    }
+
+    // Extract supported locales from account.agent.languages
+    const LANGUAGE_TO_LOCALE = { English: "en", Spanish: "es", Portuguese: "pt" };
+    const languages = account.agent?.languages ?? ["English"];
+    accountLanguagesMap[handle] = languages
+      .map((lang) => LANGUAGE_TO_LOCALE[lang])
+      .filter(Boolean);
+    if (accountLanguagesMap[handle].length === 0) accountLanguagesMap[handle] = ["en"];
 
     const legalDir = path.join(accountDir, "legal");
     if (fs.existsSync(legalDir)) {
@@ -111,6 +133,10 @@ export const accountContent: Record<string, ContentConfig> = ${JSON.stringify(ac
 export const agentConfigs: Record<string, Record<string, AgentConfig>> = ${JSON.stringify(agentConfigsMap)} as unknown as Record<string, Record<string, AgentConfig>>;
 
 export const agentContent: Record<string, Record<string, ContentConfig>> = ${JSON.stringify(agentContentMap)} as unknown as Record<string, Record<string, ContentConfig>>;
+
+export const localizedContent: Record<string, Record<string, ContentConfig>> = ${JSON.stringify(localizedContentMap)} as unknown as Record<string, Record<string, ContentConfig>>;
+
+export const accountLanguages: Record<string, string[]> = ${JSON.stringify(accountLanguagesMap)};
 
 export const legalContent: Record<string, Record<string, { above?: string; below?: string }>> = ${JSON.stringify(legalContentMap)};
 

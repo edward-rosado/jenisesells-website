@@ -7,12 +7,15 @@ import Link from "next/link";
 import type { AccountConfig, NavigationConfig, ContactMethod } from "@/features/config/types";
 import { useFocusTrap } from "./use-focus-trap";
 import { safeMailtoHref, safeTelHref } from "@/features/shared/safe-contact";
+import { getUiStrings, LanguageSwitcher, languagesToLocales } from "@/features/i18n";
+import type { SupportedLocale } from "@/features/i18n";
 
 interface NavProps {
   account: AccountConfig;
   navigation?: NavigationConfig;
   /** Set of enabled section IDs (e.g. "features", "testimonials") — nav items linking to disabled sections are hidden */
   enabledSections?: Set<string>;
+  locale?: string;
 }
 
 function OfficeIcon({ size = 14 }: { size?: number }) {
@@ -62,7 +65,7 @@ function formatPhoneDisplay(value: string, ext?: string | null): string {
   return ext ? `${value} ext ${ext}` : value;
 }
 
-export function Nav({ account, navigation, enabledSections }: NavProps) {
+export function Nav({ account, navigation, enabledSections, locale }: NavProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { branding } = account;
   const hamburgerRef = useRef<HTMLButtonElement>(null);
@@ -73,6 +76,7 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
   const searchParams = useSearchParams();
   const isHome = pathname === "/";
   const qs = searchParams?.toString() ?? "";
+  const ui = getUiStrings(locale);
 
   // Resolve identity for display
   const displayName = account.agent?.name ?? account.broker?.name ?? account.brokerage.name;
@@ -113,6 +117,11 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
     label: item.label,
     href: item.href,
   }));
+
+  // Resolve locale support for language switcher
+  const agentLanguages = account.agent?.languages ?? ["English"];
+  const supportedLocales = languagesToLocales(agentLanguages);
+  const currentLocale = (locale ?? "en") as SupportedLocale;
 
   // Resolve contact methods from account.contact_info or fallback
   const contacts = account.contact_info ?? buildFallbackContacts(account);
@@ -217,6 +226,9 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* Language switcher — only shown when agent supports multiple languages */}
+          <LanguageSwitcher locales={supportedLocales} currentLocale={currentLocale} />
+
           {/* Desktop contact links — visible >1024px */}
           <div className="nav-contact" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {emails[0] && (
@@ -292,7 +304,7 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
               minHeight: "44px",
             }}
           >
-            <PhoneIcon /> Contact Me
+            <PhoneIcon /> {ui.contactMe}
           </button>
 
           {/* Mobile call button — visible <=768px */}
@@ -324,7 +336,7 @@ export function Nav({ account, navigation, enabledSections }: NavProps) {
             ref={hamburgerRef}
             className="nav-hamburger"
             onClick={toggleDrawer}
-            aria-label={drawerOpen ? "Close menu" : "Open menu"}
+            aria-label={drawerOpen ? ui.closeMenu : ui.openMenu}
             aria-expanded={drawerOpen}
             aria-controls="nav-drawer"
             style={{
