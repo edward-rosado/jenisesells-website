@@ -5,7 +5,9 @@ using System.Threading.Channels;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Activities.Activation.BrandMerge;
+using RealEstateStar.Activities.Activation.ContactImportPersist;
 using RealEstateStar.Activities.Activation.PersistAgentProfile;
+using RealEstateStar.Activities.Lead.ContactDetection;
 using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
@@ -101,9 +103,13 @@ public class ActivationOrchestrator : BackgroundService
     private readonly ComplianceAnalysisWorker _complianceWorker;
     private readonly FeeStructureWorker _feeWorker;
 
+    // Phase 2.5: contact detection
+    private readonly ContactDetectionActivity _contactDetectionActivity;
+
     // Phase 3: activities
     private readonly AgentProfilePersistActivity _persistActivity;
     private readonly BrandMergeActivity _brandMergeActivity;
+    private readonly ContactImportPersistActivity _contactImportPersistActivity;
 
     // Phase 4: service
     private readonly IWelcomeNotificationService _welcomeService;
@@ -132,6 +138,8 @@ public class ActivationOrchestrator : BackgroundService
         FeeStructureWorker feeWorker,
         AgentProfilePersistActivity persistActivity,
         BrandMergeActivity brandMergeActivity,
+        ContactDetectionActivity contactDetectionActivity,
+        ContactImportPersistActivity contactImportPersistActivity,
         IWelcomeNotificationService welcomeService,
         IDocumentStorageProvider storage,
         IAgentContextLoader contextLoader,
@@ -155,6 +163,8 @@ public class ActivationOrchestrator : BackgroundService
         _feeWorker = feeWorker;
         _persistActivity = persistActivity;
         _brandMergeActivity = brandMergeActivity;
+        _contactDetectionActivity = contactDetectionActivity;
+        _contactImportPersistActivity = contactImportPersistActivity;
         _welcomeService = welcomeService;
         _storage = storage;
         _contextLoader = contextLoader;
@@ -221,9 +231,30 @@ public class ActivationOrchestrator : BackgroundService
             await SavePhase2CheckpointAsync(request, outputs, ct);
             phase2Span?.SetTag("outcome", "complete");
 
+            // Phase 2.5: Contact Detection
+            using var phase25Span = ActivitySource.StartActivity("activation.phase2_5.classify");
+            IReadOnlyList<ImportedContact> importedContacts;
+            try
+            {
+                importedContacts = await _contactDetectionActivity.ExecuteAsync(driveIndex.Extractions, emailCorpus, ct);
+                phase25Span?.SetTag("outcome", "complete");
+                phase25Span?.SetTag("contacts.count", importedContacts.Count);
+                _logger.LogInformation(
+                    "[ACTV-035] Phase 2.5: detected {Count} contacts for accountId={AccountId}, agentId={AgentId}",
+                    importedContacts.Count, request.AccountId, request.AgentId);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex,
+                    "[ACTV-036] Phase 2.5 contact detection failed for accountId={AccountId}, agentId={AgentId} — continuing without contacts",
+                    request.AccountId, request.AgentId);
+                importedContacts = Array.Empty<ImportedContact>();
+                phase25Span?.SetTag("outcome", "failed");
+            }
+
             // Phase 3: Persist + Merge
             using var phase3Span = ActivitySource.StartActivity("activation.phase3.persist");
-            await RunPhase3Async(request, outputs, discovery, ct);
+            await RunPhase3Async(request, outputs, discovery, importedContacts, ct);
             phase3Span?.SetTag("outcome", "complete");
 
             // Phase 4: Notify
@@ -427,6 +458,7 @@ public class ActivationOrchestrator : BackgroundService
         ActivationRequest request,
         ActivationOutputs outputs,
         AgentDiscoveryModel discovery,
+        IReadOnlyList<ImportedContact> importedContacts,
         CancellationToken ct)
     {
         _logger.LogInformation(
@@ -460,6 +492,21 @@ public class ActivationOrchestrator : BackgroundService
                 "[ACTV-042] Phase 3 brand merge failed for accountId={AccountId}, agentId={AgentId} — pipeline aborted",
                 request.AccountId, request.AgentId);
             throw;
+        }
+
+        if (importedContacts.Count > 0)
+        {
+            try
+            {
+                await _contactImportPersistActivity.ExecuteAsync(
+                    request.AccountId, request.AgentId, importedContacts, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex,
+                    "[ACTV-043] Phase 3 contact import persist failed for accountId={AccountId}, agentId={AgentId} — non-fatal, continuing",
+                    request.AccountId, request.AgentId);
+            }
         }
     }
 

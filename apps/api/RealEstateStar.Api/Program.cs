@@ -30,6 +30,8 @@ using RealEstateStar.Services.WelcomeNotification;
 using RealEstateStar.Activities.Pdf;
 using RealEstateStar.Activities.Activation.PersistAgentProfile;
 using RealEstateStar.Activities.Activation.BrandMerge;
+using RealEstateStar.Activities.Activation.ContactImportPersist;
+using RealEstateStar.Activities.Lead.ContactDetection;
 using RealEstateStar.Clients.Anthropic;
 using RealEstateStar.Clients.Azure;
 using RealEstateStar.Clients.GDocs;
@@ -327,6 +329,8 @@ builder.Services.AddBrandMergeService();
 builder.Services.AddWelcomeNotificationService();
 builder.Services.AddPersistAgentProfileActivity();
 builder.Services.AddBrandMergeActivity();
+builder.Services.AddContactImportPersistActivity();
+builder.Services.AddTransient<ContactDetectionActivity>();
 
 // Activation pipeline — 15 workers (transient) + ActivationOrchestrator (BackgroundService)
 builder.Services.AddActivationPipeline();
