@@ -30,24 +30,16 @@ internal sealed class GDriveApiClient(
 
             GDriveDiagnostics.Operations.Add(1);
 
-            var metadata = new Google.Apis.Drive.v3.Data.File
-            {
-                Name = folderPath,
-                MimeType = FolderMimeType
-            };
-
-            var request = service.Files.Create(metadata);
-            request.Fields = "id";
-            var folder = await request.ExecuteAsync(ct);
+            var parentId = await ResolveFolderPathAsync(service, folderPath, ct);
 
             var durationMs = Stopwatch.GetElapsedTime(sw).TotalMilliseconds;
             GDriveDiagnostics.Duration.Record(durationMs);
 
             logger.LogInformation(
-                "[GDRIVE-001] Folder created for account {AccountId}, agent {AgentId}. FolderId: {FolderId}, Duration: {Duration}ms",
-                accountId, agentId, folder.Id, durationMs);
+                "[GDRIVE-001] Folder path '{FolderPath}' ensured for account {AccountId}, agent {AgentId}. LeafFolderId: {FolderId}, Duration: {Duration}ms",
+                folderPath, accountId, agentId, parentId, durationMs);
 
-            return folder.Id ?? string.Empty;
+            return parentId;
         }, "[GDRIVE-031]", string.Empty, ct);
     }
 
@@ -80,10 +72,15 @@ internal sealed class GDriveApiClient(
 
             GDriveDiagnostics.Operations.Add(1);
 
+            // If folderId looks like a path (contains "/"), resolve it to a Drive folder ID
+            var resolvedParentId = folderId.Contains('/')
+                ? await ResolveFolderPathAsync(service, folderId, ct)
+                : folderId;
+
             var metadata = new Google.Apis.Drive.v3.Data.File
             {
                 Name = fileName,
-                Parents = [folderId]
+                Parents = [resolvedParentId]
             };
 
             using var stream = new MemoryStream(data);
@@ -120,9 +117,14 @@ internal sealed class GDriveApiClient(
 
             GDriveDiagnostics.Operations.Add(1);
 
+            // Resolve folder path to Drive ID if needed
+            var resolvedFolderId = folderId.Contains('/')
+                ? await ResolveFolderPathAsync(service, folderId, ct)
+                : folderId;
+
             // Find file by name within the folder
             var listRequest = service.Files.List();
-            listRequest.Q = $"name = '{EscapeQuery(fileName)}' and '{EscapeQuery(folderId)}' in parents and trashed = false";
+            listRequest.Q = $"name = '{EscapeQuery(fileName)}' and '{resolvedFolderId}' in parents and trashed = false";
             listRequest.Fields = "files(id)";
             var listResult = await listRequest.ExecuteAsync(ct);
 
@@ -204,8 +206,12 @@ internal sealed class GDriveApiClient(
         {
             GDriveDiagnostics.Operations.Add(1);
 
+            var resolvedFolderId = folderId.Contains('/')
+                ? await ResolveFolderPathAsync(service, folderId, ct)
+                : folderId;
+
             var listRequest = service.Files.List();
-            listRequest.Q = $"name = '{EscapeQuery(fileName)}' and '{EscapeQuery(folderId)}' in parents and trashed = false";
+            listRequest.Q = $"name = '{EscapeQuery(fileName)}' and '{resolvedFolderId}' in parents and trashed = false";
             listRequest.Fields = "files(id)";
             var listResult = await listRequest.ExecuteAsync(ct);
 
@@ -251,8 +257,12 @@ internal sealed class GDriveApiClient(
 
             GDriveDiagnostics.Operations.Add(1);
 
+            var resolvedFolderId = folderId.Contains('/')
+                ? await ResolveFolderPathAsync(service, folderId, ct)
+                : folderId;
+
             var listRequest = service.Files.List();
-            listRequest.Q = $"'{EscapeQuery(folderId)}' in parents and trashed = false";
+            listRequest.Q = $"'{resolvedFolderId}' in parents and trashed = false";
             listRequest.Fields = "files(name)";
             var result = await listRequest.ExecuteAsync(ct);
 
@@ -535,6 +545,45 @@ internal sealed class GDriveApiClient(
 
     private DriveService BuildDriveService(Domain.Shared.Models.OAuthCredential credential) =>
         new(RealEstateStar.Clients.GoogleOAuth.GoogleCredentialFactory.BuildInitializer(credential, clientId, clientSecret));
+
+    /// <summary>
+    /// Resolves a slash-separated folder path (e.g. "real-estate-star/edward-rosado/leads")
+    /// to a Google Drive folder ID by walking each segment and finding or creating it.
+    /// </summary>
+    private static async Task<string> ResolveFolderPathAsync(
+        DriveService service, string folderPath, CancellationToken ct)
+    {
+        var segments = folderPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var parentId = "root";
+
+        foreach (var segment in segments)
+        {
+            var listRequest = service.Files.List();
+            listRequest.Q = $"name = '{EscapeQuery(segment)}' and mimeType = '{FolderMimeType}' and '{parentId}' in parents and trashed = false";
+            listRequest.Fields = "files(id)";
+            var existing = await listRequest.ExecuteAsync(ct);
+
+            if (existing.Files.Count > 0)
+            {
+                parentId = existing.Files[0].Id;
+                continue;
+            }
+
+            var metadata = new Google.Apis.Drive.v3.Data.File
+            {
+                Name = segment,
+                MimeType = FolderMimeType,
+                Parents = [parentId]
+            };
+
+            var createRequest = service.Files.Create(metadata);
+            createRequest.Fields = "id";
+            var folder = await createRequest.ExecuteAsync(ct);
+            parentId = folder.Id;
+        }
+
+        return parentId;
+    }
 
     internal static string EscapeQuery(string value) =>
         value.Replace("\\", "\\\\").Replace("'", "\\'");
