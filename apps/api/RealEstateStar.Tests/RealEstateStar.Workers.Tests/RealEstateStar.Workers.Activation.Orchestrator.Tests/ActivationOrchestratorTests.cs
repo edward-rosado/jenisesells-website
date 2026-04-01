@@ -290,7 +290,7 @@ public class ActivationOrchestratorTests
         new(null, null, null, [], [], [], null, false);
 
     private static DriveIndexModel EmptyDrive() =>
-        new("folder-id", [], new Dictionary<string, string>(), []);
+        new("folder-id", [], new Dictionary<string, string>(), [], []);
 
     private static EmailCorpus EmptyCorpus() =>
         new([], [], null);

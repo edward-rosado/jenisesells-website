@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using DriveIndexModel = RealEstateStar.Domain.Activation.Models.DriveIndex;
 using DriveFileModel = RealEstateStar.Domain.Activation.Models.DriveFile;
@@ -111,7 +112,8 @@ public sealed class DriveIndexWorker(
             folderId,
             driveFiles,
             contents,
-            discoveredUrls.ToList());
+            discoveredUrls.ToList(),
+            Array.Empty<DocumentExtraction>());
     }
 
     internal static bool IsRealEstateFile(string name, string mimeType)
