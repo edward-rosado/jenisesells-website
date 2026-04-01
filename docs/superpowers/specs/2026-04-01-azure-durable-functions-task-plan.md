@@ -59,6 +59,15 @@ gantt
 
 All tasks in this phase can run in parallel except 0.4 (depends on 0.3).
 
+### 0.0 Fix health check abstraction violation (pre-existing bug)
+| | |
+|---|---|
+| **Files** | `Api/Health/BackgroundServiceHealthCheck.cs`, `Domain/Shared/Interfaces/IActivationQueue.cs` (or wherever the queue interface lives) |
+| **Bug** | `BackgroundServiceHealthCheck` takes a raw `Channel<ActivationRequest>` instead of going through `IActivationQueue`. The channel was never registered as a standalone DI service — it's encapsulated inside `InMemoryActivationQueue`/`AzureQueueActivationStore`. This causes the readiness check to fail on DI resolution. |
+| **Fix** | Add a `Count` or `QueueDepth` property to `IActivationQueue` (and `ILeadOrchestrationQueue` if the same pattern exists). Health check injects the queue interfaces, not raw channels. |
+| **Why now** | This bug will silently carry forward into the Functions migration. Once the orchestrator moves to Durable Functions, `Channel<ActivationRequest>` disappears entirely — the health check would break with no fallback. Fix it now so Phase 4 (decommission) is clean. |
+| **Risk** | Low — small interface change + health check update. |
+
 ### 0.1 Create Functions host project
 | | |
 |---|---|
@@ -112,6 +121,8 @@ All tasks in this phase can run in parallel except 0.4 (depends on 0.3).
 
 ### Phase 0 Review Gate
 
+- [ ] Health check uses `IActivationQueue`/`ILeadOrchestrationQueue` interfaces, not raw `Channel<T>`
+- [ ] Readiness probe passes in local dev and production
 - [ ] `RealEstateStar.Functions` project builds, all architecture tests pass
 - [ ] `TableStorageContentCache` and `TableStorageIdempotencyStore` at 100% branch coverage
 - [ ] Idempotency guards wired into all send services, existing tests still pass
