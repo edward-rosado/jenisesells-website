@@ -82,7 +82,8 @@ public sealed class WelcomeNotificationService(
                     var htmlBody = WrapHtml(message, outputs.AgentName);
                     await gmailSender.SendAsync(
                         accountId, agentId, agentEmail,
-                        "Welcome to Real Estate Star!", htmlBody, ct);
+                        "Welcome to Real Estate Star! The premier AI automation platform for real estate agents.",
+                        htmlBody, ct);
                     sent = true;
                     logger.LogInformation(
                         "[WELCOME-032] Welcome sent via email for agentId={AgentId}", agentId);
@@ -169,12 +170,42 @@ public sealed class WelcomeNotificationService(
 
     internal static string WrapHtml(string message, string? agentName)
     {
-        var encoded = System.Net.WebUtility.HtmlEncode(message).Replace("\n", "<br />");
+        // Strip any Claude-generated header/greeting line that duplicates our hardcoded h2
+        var cleaned = StripFirstLineIfHeader(message);
+        var encoded = System.Net.WebUtility.HtmlEncode(cleaned).Replace("\n", "<br />");
+
+        var firstName = agentName?.Split(' ').FirstOrDefault() ?? "";
+        var greeting = string.IsNullOrEmpty(firstName)
+            ? "Welcome to Real Estate Star!"
+            : $"Welcome to Real Estate Star, {System.Net.WebUtility.HtmlEncode(firstName)}!";
+
         return
             "<html><body style=\"font-family:Arial,sans-serif;max-width:600px;margin:24px auto;\">" +
-            $"<h2>Welcome to Real Estate Star{(agentName is not null ? $", {System.Net.WebUtility.HtmlEncode(agentName)}" : "")}!</h2>" +
+            $"<h2>{greeting}</h2>" +
+            "<p style=\"font-size:14px;color:#555;\">The premier AI automation platform for real estate agents.</p>" +
             $"<p>{encoded}</p>" +
             "<p style=\"color:#6b7280;font-size:12px;\">Sent by Real Estate Star</p>" +
             "</body></html>";
+    }
+
+    /// <summary>
+    /// Strips the first line if it looks like a greeting/header that Claude generated
+    /// (e.g., "Welcome to Real Estate Star, Thank you for choosing...").
+    /// Prevents duplicate headers in the email.
+    /// </summary>
+    internal static string StripFirstLineIfHeader(string message)
+    {
+        var lines = message.Split('\n', 2);
+        if (lines.Length < 2) return message;
+
+        var firstLine = lines[0].Trim();
+        if (firstLine.StartsWith("Welcome", StringComparison.OrdinalIgnoreCase) ||
+            firstLine.StartsWith("Thank you", StringComparison.OrdinalIgnoreCase) ||
+            firstLine.StartsWith("Congratulations", StringComparison.OrdinalIgnoreCase))
+        {
+            return lines[1].TrimStart();
+        }
+
+        return message;
     }
 }
