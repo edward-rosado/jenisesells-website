@@ -21,6 +21,13 @@ public interface IGDriveClient
 
     /// <summary>Find or create a top-level folder by name. Returns the folder ID.</summary>
     Task<string> GetOrCreateFolderAsync(string accountId, string agentId, string folderName, CancellationToken ct);
+
+    /// <summary>Download raw binary content of a file by its Drive file ID. Returns null if the token is missing or the download fails.</summary>
+    Task<byte[]?> DownloadBinaryAsync(string accountId, string agentId, string fileId, CancellationToken ct);
+
+    /// <summary>Copy a file to a destination folder and optionally rename it. Returns the new file ID.</summary>
+    Task<string> CopyFileAsync(string accountId, string agentId, string sourceFileId,
+        string destinationFolderId, string? newName, CancellationToken ct);
 }
 
 /// <summary>Lightweight metadata returned from listing Drive files.</summary>
