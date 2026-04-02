@@ -64,8 +64,9 @@ public sealed class LeadOrchestratorFunction
 
         if (!configOutput.Found || configOutput.AgentNotificationConfig is null)
         {
-            logger.LogError("[ORCH-010] Agent config not found for {AgentId}. Lead {LeadId} cannot be processed. CorrelationId={CorrelationId}",
-                input.AgentId, input.LeadId, input.CorrelationId);
+            if (!ctx.IsReplaying)
+                logger.LogError("[ORCH-010] Agent config not found for {AgentId}. Lead {LeadId} cannot be processed. CorrelationId={CorrelationId}",
+                    input.AgentId, input.LeadId, input.CorrelationId);
             return;
         }
 
@@ -192,12 +193,13 @@ public sealed class LeadOrchestratorFunction
             if (winner == timeoutTask)
             {
                 timedOut = true;
-                logger.LogWarning("[ORCH-030] Worker timeout for lead {LeadId}. CorrelationId={CorrelationId}",
-                    input.LeadId, input.CorrelationId);
+                if (!ctx.IsReplaying)
+                    logger.LogWarning("[ORCH-030] Worker timeout for lead {LeadId}. CorrelationId={CorrelationId}",
+                        input.LeadId, input.CorrelationId);
             }
         }
 
-        if (timedOut)
+        if (timedOut && !ctx.IsReplaying)
             logger.LogWarning("[ORCH-031] Proceeding with partial results after timeout. LeadId={LeadId}", input.LeadId);
 
         // Step 5: Generate PDF (only if CMA succeeded)
@@ -354,8 +356,9 @@ public sealed class LeadOrchestratorFunction
                     input.LeadId, input.CorrelationId);
         }
 
-        logger.LogInformation("[ORCH-090] Lead {LeadId} pipeline complete. CorrelationId={CorrelationId}",
-            input.LeadId, input.CorrelationId);
+        if (!ctx.IsReplaying)
+            logger.LogInformation("[ORCH-090] Lead {LeadId} pipeline complete. CorrelationId={CorrelationId}",
+                input.LeadId, input.CorrelationId);
     }
 }
 

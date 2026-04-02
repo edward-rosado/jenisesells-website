@@ -129,9 +129,12 @@ public class DependencyTests
             "RealEstateStar.Clients.GSheets"
         };
 
+        // Composition roots (Api and Functions) are allowed to reference Clients.*
+        var compositionRoots = new HashSet<string> { "Api", "Functions" };
+
         var productionAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.*.dll")
             .Select(Assembly.LoadFrom)
-            .Where(a => !a.GetName().Name!.Contains("Api"))
+            .Where(a => !compositionRoots.Any(k => a.GetName().Name!.Contains(k)))
             .Where(a => !a.GetName().Name!.Contains("Tests"))
             .Where(a => !a.GetName().Name!.Contains("TestUtilities"));
 
@@ -146,7 +149,7 @@ public class DependencyTests
                 .ToList();
 
             Assert.True(clientRefs.Count == 0,
-                $"{assemblyName} references {string.Join(", ", clientRefs)} — only Api may reference Clients.* (GoogleOAuth is the only permitted shared infrastructure dep for Google API clients)");
+                $"{assemblyName} references {string.Join(", ", clientRefs)} — only Api and Functions may reference Clients.* (GoogleOAuth is the only permitted shared infrastructure dep for Google API clients)");
         }
     }
 
@@ -315,6 +318,10 @@ public class DependencyTests
             "RealEstateStar.Services.AgentConfig",
             "RealEstateStar.Services.BrandMerge",
             "RealEstateStar.Services.WelcomeNotification",
+            // Phase 2: Clients.Azure — Functions is a composition root and may reference Clients.*
+            // to register IDistributedContentCache, IIdempotencyStore, ITokenStore.
+            // [arch-change-approved]
+            "RealEstateStar.Clients.Azure",
         };
 
         var violations = assembly.GetReferencedAssemblies()

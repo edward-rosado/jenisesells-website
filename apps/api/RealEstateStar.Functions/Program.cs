@@ -1,7 +1,11 @@
+using Azure.Data.Tables;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using RealEstateStar.Clients.Azure;
 using RealEstateStar.DataServices.WhatsApp;
+using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
 using RealEstateStar.Domain.WhatsApp.Interfaces;
 using RealEstateStar.Workers.WhatsApp;
@@ -28,13 +32,45 @@ builder.Services.AddSingleton<IWhatsAppAuditService, DisabledWhatsAppAuditServic
 // not through IWebhookQueueService.DequeueAsync. Registered for DI completeness.
 builder.Services.AddSingleton<IWebhookQueueService, DisabledWebhookQueueService>();
 
+// IDistributedContentCache — Azure Table Storage when connection string is available,
+// no-op (null object) fallback for local development.
+var storageConnStr = builder.Configuration["AzureStorage:ConnectionString"];
+if (!string.IsNullOrEmpty(storageConnStr))
+{
+    var contentCacheTableClient = new TableClient(storageConnStr, "contentcache");
+    contentCacheTableClient.CreateIfNotExists();
+    builder.Services.AddSingleton<IDistributedContentCache>(sp =>
+        new TableStorageContentCache(
+            contentCacheTableClient,
+            sp.GetRequiredService<ILogger<TableStorageContentCache>>()));
+}
+else
+{
+    builder.Services.AddSingleton<IDistributedContentCache, NullDistributedContentCache>();
+}
+
 // IWhatsAppSender: disabled — real WhatsApp API sending will be wired in Phase 3
 // when Clients.WhatsApp is added to the Functions composition root.
-// Note: Functions cannot reference Clients.* directly per architecture rules —
-// the real sender will be registered via a dedicated WhatsApp DI extension in Phase 3.
+// Note: Functions already references Clients.Azure (Phase 2). Clients.WhatsApp will be added in Phase 3.
 builder.Services.AddSingleton<IWhatsAppSender, DisabledFunctionsWhatsAppSender>();
 
 builder.Build().Run();
+
+/// <summary>
+/// No-op <see cref="IDistributedContentCache"/> used when AzureStorage:ConnectionString is not configured.
+/// Returns null for all Gets and discards all Sets — content cache misses are safe (pipeline still runs).
+/// </summary>
+file sealed class NullDistributedContentCache : IDistributedContentCache
+{
+    public Task<T?> GetAsync<T>(string key, CancellationToken ct) where T : class
+        => Task.FromResult((T?)null);
+
+    public Task SetAsync<T>(string key, T value, TimeSpan ttl, CancellationToken ct) where T : class
+        => Task.CompletedTask;
+
+    public Task RemoveAsync(string key, CancellationToken ct)
+        => Task.CompletedTask;
+}
 
 /// <summary>
 /// Minimal no-op WhatsApp sender for use in the Functions host during Phase 1-2.

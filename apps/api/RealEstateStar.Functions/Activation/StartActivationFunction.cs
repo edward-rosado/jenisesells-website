@@ -31,27 +31,26 @@ public sealed class StartActivationFunction(
             "[ACTV-FN-500] StartActivation: accountId={AccountId}, agentId={AgentId}, instanceId={InstanceId}",
             request.AccountId, request.AgentId, instanceId);
 
-        // Check if orchestration is already running to avoid duplicate starts.
-        // Durable Functions ensures idempotency: if the instance already exists and is
-        // Running/Pending, ScheduleNewOrchestrationInstanceAsync with the same instance ID
-        // throws an exception. We catch it and log a skip.
-        try
+        // Pre-check: query the instance state before scheduling to avoid duplicate starts.
+        // This is more reliable than catching InvalidOperationException (which is brittle —
+        // the exception message format is an implementation detail of the Durable Task SDK).
+        var existing = await client.GetInstanceAsync(instanceId, ct);
+        if (existing is not null &&
+            existing.RuntimeStatus is OrchestrationRuntimeStatus.Running or OrchestrationRuntimeStatus.Pending)
         {
-            await client.ScheduleNewOrchestrationInstanceAsync(
-                orchestratorName: "ActivationOrchestrator",
-                input: request,
-                options: new Microsoft.DurableTask.StartOrchestrationOptions(instanceId),
-                cancellation: ct);
-
             logger.LogInformation(
-                "[ACTV-FN-501] Orchestration scheduled: instanceId={InstanceId}", instanceId);
-        }
-        catch (InvalidOperationException ex) when (ex.Message.Contains(instanceId, StringComparison.OrdinalIgnoreCase))
-        {
-            // Instance already running — skip (idempotent dedup)
-            logger.LogInformation(
-                "[ACTV-FN-502] Orchestration already running for instanceId={InstanceId} — skipping duplicate start",
+                "[ACTV-FN-002] Skipping duplicate activation — orchestration already Running/Pending. instanceId={InstanceId}",
                 instanceId);
+            return;
         }
+
+        await client.ScheduleNewOrchestrationInstanceAsync(
+            orchestratorName: "ActivationOrchestrator",
+            input: request,
+            options: new Microsoft.DurableTask.StartOrchestrationOptions(instanceId),
+            cancellation: ct);
+
+        logger.LogInformation(
+            "[ACTV-FN-501] Orchestration scheduled: instanceId={InstanceId}", instanceId);
     }
 }

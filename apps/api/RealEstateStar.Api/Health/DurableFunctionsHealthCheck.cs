@@ -34,6 +34,38 @@ public sealed class DurableFunctionsHealthCheck(
                 });
         }
 
+        // SSRF guard: validate URL before making any outbound request.
+        // Only HTTPS is allowed in production; HTTP is permitted only on localhost.
+        // The host must be an Azure Functions domain or localhost.
+        if (!Uri.TryCreate(healthUrl, UriKind.Absolute, out var parsedUrl))
+        {
+            logger.LogWarning("[HEALTH-DF-003] AzureFunctions:HealthUrl is not a valid absolute URL: {Url}", healthUrl);
+            return HealthCheckResult.Degraded(
+                "AzureFunctions:HealthUrl is not a valid absolute URL",
+                data: new Dictionary<string, object> { ["configured"] = true });
+        }
+
+        var isLocalhost = parsedUrl.Host == "localhost" || parsedUrl.Host == "127.0.0.1";
+        var isAllowedHost = isLocalhost
+            || parsedUrl.Host.EndsWith(".azurewebsites.net", StringComparison.OrdinalIgnoreCase)
+            || parsedUrl.Host.EndsWith(".azurefunctions.net", StringComparison.OrdinalIgnoreCase);
+
+        if (!isAllowedHost)
+        {
+            logger.LogWarning("[HEALTH-DF-004] AzureFunctions:HealthUrl host {Host} is not an allowed Azure Functions domain", parsedUrl.Host);
+            return HealthCheckResult.Degraded(
+                $"AzureFunctions:HealthUrl host '{parsedUrl.Host}' is not an allowed Azure Functions domain (*.azurewebsites.net, *.azurefunctions.net)",
+                data: new Dictionary<string, object> { ["configured"] = true, ["url"] = healthUrl });
+        }
+
+        if (parsedUrl.Scheme != Uri.UriSchemeHttps && !isLocalhost)
+        {
+            logger.LogWarning("[HEALTH-DF-005] AzureFunctions:HealthUrl must use HTTPS in non-localhost environments: {Url}", healthUrl);
+            return HealthCheckResult.Degraded(
+                "AzureFunctions:HealthUrl must use HTTPS (non-localhost)",
+                data: new Dictionary<string, object> { ["configured"] = true, ["url"] = healthUrl });
+        }
+
         try
         {
             var client = httpClientFactory.CreateClient(HttpClientName);

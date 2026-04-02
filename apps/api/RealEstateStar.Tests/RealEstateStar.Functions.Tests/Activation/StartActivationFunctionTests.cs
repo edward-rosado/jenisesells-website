@@ -11,7 +11,8 @@ namespace RealEstateStar.Functions.Tests.Activation;
 /// <summary>
 /// Tests for <see cref="StartActivationFunction"/>:
 /// - Starts orchestration with correct instance ID
-/// - Skips duplicate when already running
+/// - Skips duplicate when already Running or Pending (pre-check, not exception-catch)
+/// - Propagates unexpected exceptions
 /// </summary>
 public sealed class StartActivationFunctionTests
 {
@@ -25,6 +26,10 @@ public sealed class StartActivationFunctionTests
             new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc));
 
         var expectedInstanceId = ActivationOrchestratorFunction.InstanceId("acc1", "agent1");
+
+        // No existing instance
+        client.Setup(c => c.GetInstanceAsync(expectedInstanceId, Ct))
+            .ReturnsAsync((OrchestrationMetadata?)null);
 
         client.Setup(c => c.ScheduleNewOrchestrationInstanceAsync(
                 It.IsAny<TaskName>(),
@@ -44,8 +49,10 @@ public sealed class StartActivationFunctionTests
             Times.Once);
     }
 
-    [Fact]
-    public async Task StartActivation_AlreadyRunning_DoesNotThrow_SkipsDuplicate()
+    [Theory]
+    [InlineData(OrchestrationRuntimeStatus.Running)]
+    [InlineData(OrchestrationRuntimeStatus.Pending)]
+    public async Task StartActivation_AlreadyRunningOrPending_SkipsDuplicate_DoesNotSchedule(OrchestrationRuntimeStatus status)
     {
         var client = new Mock<DurableTaskClient>(MockBehavior.Loose, "test");
         var request = new ActivationRequest("acc1", "agent1", "jane@example.com",
@@ -53,28 +60,67 @@ public sealed class StartActivationFunctionTests
 
         var expectedInstanceId = ActivationOrchestratorFunction.InstanceId("acc1", "agent1");
 
-        // Simulate instance already running by throwing InvalidOperationException with instanceId in message
-        client.Setup(c => c.ScheduleNewOrchestrationInstanceAsync(
-                It.IsAny<TaskName>(), It.IsAny<object>(),
-                It.IsAny<StartOrchestrationOptions>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException(
-                $"An orchestration with instanceId '{expectedInstanceId}' already exists."));
+        // Return a metadata object with Running/Pending status — pre-check should skip
+        var metadata = new OrchestrationMetadata("ActivationOrchestrator", expectedInstanceId)
+        {
+            RuntimeStatus = status
+        };
+        client.Setup(c => c.GetInstanceAsync(expectedInstanceId, Ct))
+            .ReturnsAsync(metadata);
 
         var fn = new StartActivationFunction(NullLogger<StartActivationFunction>.Instance);
+        await fn.RunAsync(request, client.Object, Ct);
 
-        // Should not propagate the exception
-        var act = async () => await fn.RunAsync(request, client.Object, Ct);
-        await act.Should().NotThrowAsync();
+        // ScheduleNewOrchestrationInstanceAsync should NOT be called when already Running/Pending
+        client.Verify(c => c.ScheduleNewOrchestrationInstanceAsync(
+                It.IsAny<TaskName>(), It.IsAny<object>(),
+                It.IsAny<StartOrchestrationOptions>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
-    [Fact]
-    public async Task StartActivation_OtherException_Propagates()
+    [Theory]
+    [InlineData(OrchestrationRuntimeStatus.Completed)]
+    [InlineData(OrchestrationRuntimeStatus.Failed)]
+    [InlineData(OrchestrationRuntimeStatus.Terminated)]
+    public async Task StartActivation_TerminalStatus_ReschedulesOrchestration(OrchestrationRuntimeStatus status)
     {
         var client = new Mock<DurableTaskClient>(MockBehavior.Loose, "test");
         var request = new ActivationRequest("acc1", "agent1", "jane@example.com",
             new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc));
 
-        // Throw with message that does NOT contain the instanceId
+        var expectedInstanceId = ActivationOrchestratorFunction.InstanceId("acc1", "agent1");
+
+        // Existing instance in a terminal state — should be rescheduled
+        var metadata = new OrchestrationMetadata("ActivationOrchestrator", expectedInstanceId)
+        {
+            RuntimeStatus = status
+        };
+        client.Setup(c => c.GetInstanceAsync(expectedInstanceId, Ct))
+            .ReturnsAsync(metadata);
+        client.Setup(c => c.ScheduleNewOrchestrationInstanceAsync(
+                It.IsAny<TaskName>(), It.IsAny<object>(),
+                It.IsAny<StartOrchestrationOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedInstanceId);
+
+        var fn = new StartActivationFunction(NullLogger<StartActivationFunction>.Instance);
+        await fn.RunAsync(request, client.Object, Ct);
+
+        client.Verify(c => c.ScheduleNewOrchestrationInstanceAsync(
+                It.IsAny<TaskName>(), It.IsAny<object>(),
+                It.IsAny<StartOrchestrationOptions>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task StartActivation_ScheduleThrows_Propagates()
+    {
+        var client = new Mock<DurableTaskClient>(MockBehavior.Loose, "test");
+        var request = new ActivationRequest("acc1", "agent1", "jane@example.com",
+            new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc));
+
+        client.Setup(c => c.GetInstanceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OrchestrationMetadata?)null);
+
         client.Setup(c => c.ScheduleNewOrchestrationInstanceAsync(
                 It.IsAny<TaskName>(), It.IsAny<object>(),
                 It.IsAny<StartOrchestrationOptions>(), It.IsAny<CancellationToken>()))

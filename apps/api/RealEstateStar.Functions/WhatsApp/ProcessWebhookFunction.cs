@@ -48,14 +48,26 @@ public class ProcessWebhookFunction(
             throw;
         }
 
+        // TODO [Phase 3 - Task 11]: Resolve agentId from PhoneNumberId via a phone-number-to-agent
+        // lookup (e.g. IAgentPhoneNumberResolver.ResolveAsync(envelope.PhoneNumberId)).
+        // PhoneNumberId is the WhatsApp Business phone number ID that received the message.
+        // The lookup maps it to the agent who owns that number in their account config.
+        // Until then, agentId is empty and IConversationHandler uses a default/fallback context.
+        var phoneNumberId = envelope.PhoneNumberId ?? string.Empty;
+        _ = phoneNumberId; // used by TODO above; suppresses unused-variable warning
+
         // Poison-threshold audit — record in audit table before host moves to poison queue
         if (dequeueCount >= PoisonThreshold)
         {
+            // H-4: No PII in logs — use phone hash (last 4 digits) and body length only
+            var phoneHash = envelope.FromPhone.Length >= 4
+                ? $"****{envelope.FromPhone[^4..]}"
+                : "****";
             logger.LogWarning(
                 "[WA-FN-002] Poison message detected: {MessageId} dequeued {Count} times. " +
-                "Host will move to whatsapp-webhooks-poison. From: {Phone}, Body: {BodySnippet}",
+                "Host will move to whatsapp-webhooks-poison. PhoneHash: {PhoneHash}, BodyLength: {BodyLength}",
                 envelope.MessageId, dequeueCount,
-                envelope.FromPhone, envelope.Body[..Math.Min(100, envelope.Body.Length)]);
+                phoneHash, envelope.Body.Length);
 
             await audit.UpdatePoisonAsync(
                 envelope.MessageId,

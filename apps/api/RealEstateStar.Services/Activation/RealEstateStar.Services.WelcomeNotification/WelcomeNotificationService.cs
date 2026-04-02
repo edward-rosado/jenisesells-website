@@ -112,6 +112,7 @@ public sealed class WelcomeNotificationService(
         {
             var record = $"---\nsent: true\nsent_at: {DateTime.UtcNow:O}\n---\n\n{message}";
             await storage.WriteDocumentAsync(agentFolder, WelcomeSentFile, record, ct);
+            await idempotencyStore.MarkCompletedAsync(idempotencyKey, ct);
             logger.LogInformation("[WELCOME-090] Welcome sent flag recorded for agentId={AgentId}", agentId);
         }
     }

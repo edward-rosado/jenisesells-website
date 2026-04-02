@@ -345,6 +345,7 @@ if (!string.IsNullOrEmpty(storageConnStr))
     builder.Services.AddSingleton<IIdempotencyStore>(sp =>
     {
         var tableClient = new Azure.Data.Tables.TableClient(storageConnStr, "idempotency");
+        tableClient.CreateIfNotExists();
         return new TableStorageIdempotencyStore(
             tableClient,
             sp.GetRequiredService<ILogger<TableStorageIdempotencyStore>>());
