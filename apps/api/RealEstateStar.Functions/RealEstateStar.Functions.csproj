@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>RealEstateStar.Functions</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.0.*" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.*" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.*" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask" Version="1.2.*" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.*" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.*" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.*" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="8.*" />
+  </ItemGroup>
+
+  <!-- Minimal references for Phase 0 — more will be added in Phases 1-3 as functions are built -->
+  <ItemGroup>
+    <ProjectReference Include="..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />
+    <ProjectReference Include="..\RealEstateStar.DataServices\RealEstateStar.DataServices.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Data\RealEstateStar.Data.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Shared\RealEstateStar.Workers.Shared.csproj" />
+  </ItemGroup>
+</Project>

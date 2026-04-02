@@ -45,6 +45,8 @@ using RealEstateStar.DataServices;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Onboarding.Interfaces;
 using RealEstateStar.Domain.Onboarding.Services;
+using RealEstateStar.Domain.Shared;
+using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
@@ -334,6 +336,25 @@ if (!string.IsNullOrEmpty(storageConnStr))
             sp.GetRequiredService<IDataProtectionProvider>(),
             sp.GetRequiredService<ILogger<AzureTableTokenStore>>());
     });
+}
+
+// IIdempotencyStore — Azure Table Storage when connection string is available, no-op fallback for dev.
+// Must stay in Program.cs (TableStorageIdempotencyStore is in Clients.Azure).
+if (!string.IsNullOrEmpty(storageConnStr))
+{
+    builder.Services.AddSingleton<IIdempotencyStore>(sp =>
+    {
+        var tableClient = new Azure.Data.Tables.TableClient(storageConnStr, "idempotency");
+        return new TableStorageIdempotencyStore(
+            tableClient,
+            sp.GetRequiredService<ILogger<TableStorageIdempotencyStore>>());
+    });
+    Log.Information("[STARTUP-087] IIdempotencyStore: TableStorageIdempotencyStore (table: idempotency)");
+}
+else
+{
+    builder.Services.AddSingleton<IIdempotencyStore, NullIdempotencyStore>();
+    Log.Warning("[STARTUP-088] AzureStorage:ConnectionString not configured — idempotency store is no-op (no replay protection)");
 }
 
 // Gmail API client — IGmailSender backed by GmailApiClient (needs IOAuthRefresher)

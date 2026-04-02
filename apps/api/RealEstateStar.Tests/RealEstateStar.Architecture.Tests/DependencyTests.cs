@@ -155,10 +155,11 @@ public class DependencyTests
     {
         // Services persist failure/fallback records via DataServices.
         // Activities persist pipeline artifacts via DataServices.
+        // Functions is a second composition root alongside Api — it wires DI and may reference DataServices.
         // Everyone else goes through Domain interfaces only.
         var allowed = new HashSet<string>
         {
-            "Api", "Services", "Activities", "DataServices", "Tests", "TestUtilities"
+            "Api", "Services", "Activities", "DataServices", "Tests", "TestUtilities", "Functions"
         };
 
         var productionAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.*.dll")
@@ -180,9 +181,12 @@ public class DependencyTests
     [Fact]
     public void No_project_outside_Api_references_Data()
     {
+        // Functions is a second composition root alongside Api — both are allowed to reference Data.
+        var compositionRoots = new HashSet<string> { "Api", "Functions" };
+
         var productionAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.*.dll")
             .Select(Assembly.LoadFrom)
-            .Where(a => !a.GetName().Name!.Contains("Api"))
+            .Where(a => !compositionRoots.Any(r => a.GetName().Name!.Contains(r)))
             .Where(a => !a.GetName().Name!.Contains("Tests"))
             .Where(a => !a.GetName().Name!.Contains("TestUtilities"))
             .Where(a => a.GetName().Name != "RealEstateStar.Data");
@@ -195,7 +199,7 @@ public class DependencyTests
                 .ToList();
 
             Assert.True(dataRefs.Count == 0,
-                $"{assembly.GetName().Name} references {string.Join(", ", dataRefs)} — only Api may reference Data");
+                $"{assembly.GetName().Name} references {string.Join(", ", dataRefs)} — only composition roots (Api, Functions) may reference Data");
         }
     }
 
@@ -241,6 +245,38 @@ public class DependencyTests
             "RealEstateStar.Clients.Azure",
             "RealEstateStar.Clients.Gws",
             "RealEstateStar.Clients.RentCast",
+        };
+
+        var violations = assembly.GetReferencedAssemblies()
+            .Where(a => a.Name!.StartsWith("RealEstateStar"))
+            .Where(a => !allowed.Contains(a.Name!))
+            .Select(a => a.Name!)
+            .ToList();
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void Functions_only_depends_on_allowed_projects()
+    {
+        // Functions is a second composition root alongside Api.
+        // Phase 0: minimal refs — Domain, DataServices, Data, Workers.Shared.
+        // More refs will be added in Phases 1-3 as functions are built.
+        //
+        // Note: Functions is referenced with ReferenceOutputAssembly=false to avoid a Program class
+        // name collision with Api. The DLL is loaded from its build output path directly.
+        var functionsPath = Path.Combine(AppContext.BaseDirectory, "RealEstateStar.Functions.dll");
+        Assert.True(File.Exists(functionsPath),
+            $"RealEstateStar.Functions.dll not found at {functionsPath} — ensure Functions project is built");
+
+        var assembly = Assembly.LoadFrom(functionsPath);
+        var allowed = new HashSet<string>
+        {
+            "RealEstateStar.Functions",
+            "RealEstateStar.Domain",
+            "RealEstateStar.DataServices",
+            "RealEstateStar.Data",
+            "RealEstateStar.Workers.Shared",
         };
 
         var violations = assembly.GetReferencedAssemblies()
@@ -507,11 +543,12 @@ public class DependencyTests
 
         // Keywords that exempt an assembly from the DataServices reference check.
         // This set controls which projects are allowed to depend on DataServices.
+        // "Functions" added 2026-04-02: Functions is a second composition root alongside Api.
         var dataServicesAllowedKeywords = new HashSet<string>
         {
-            "Api", "Services", "Activities", "DataServices", "Tests", "TestUtilities"
+            "Api", "Services", "Activities", "DataServices", "Tests", "TestUtilities", "Functions"
         };
-        dataServicesAllowedKeywords.Count.Should().Be(6,
+        dataServicesAllowedKeywords.Count.Should().Be(7,
             "DataServices allowed-caller keyword set changed — was a new caller exempted without approval?");
 
         // Api allowed-project allowlist — all projects Api may directly reference.

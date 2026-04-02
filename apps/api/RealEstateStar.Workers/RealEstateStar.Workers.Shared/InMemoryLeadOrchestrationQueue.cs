@@ -12,6 +12,8 @@ public sealed class InMemoryLeadOrchestrationQueue : ILeadOrchestrationQueue
 {
     private readonly Channel<LeadOrchestrationMessage> _channel = Channel.CreateUnbounded<LeadOrchestrationMessage>();
 
+    public int QueueDepth => _channel.Reader.Count;
+
     public async Task EnqueueAsync(LeadOrchestrationMessage message, CancellationToken ct)
     {
         await _channel.Writer.WriteAsync(message, ct);

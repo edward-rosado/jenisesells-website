@@ -4,7 +4,9 @@ using Moq;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared;
+using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.TestUtilities;
 
 namespace RealEstateStar.Services.LeadCommunicator.Tests;
 
@@ -57,7 +59,10 @@ public class LeadCommunicatorServiceTests
     };
 
     private static (LeadCommunicatorService service, Mock<ILeadEmailDrafter> drafterMock, Mock<IGmailSender> gmailMock)
-        CreateService(LeadEmail? emailResult = null, Exception? gmailException = null)
+        CreateService(
+            LeadEmail? emailResult = null,
+            Exception? gmailException = null,
+            IIdempotencyStore? idempotencyStore = null)
     {
         var drafterMock = new Mock<ILeadEmailDrafter>();
         var email = emailResult ?? new LeadEmail("Test Subject", "<p>Hello</p>", null);
@@ -81,7 +86,8 @@ public class LeadCommunicatorServiceTests
         }
 
         var logger = new Mock<ILogger<LeadCommunicatorService>>();
-        var service = new LeadCommunicatorService(drafterMock.Object, gmailMock.Object, logger.Object);
+        var store = idempotencyStore ?? new NullIdempotencyStore();
+        var service = new LeadCommunicatorService(drafterMock.Object, gmailMock.Object, store, logger.Object);
         return (service, drafterMock, gmailMock);
     }
 
@@ -306,5 +312,84 @@ public class LeadCommunicatorServiceTests
     {
         var hash = ContentHash.Compute("Subject", "<p>Body</p>");
         hash.Should().MatchRegex("^[0-9a-f]+$");
+    }
+
+    // -----------------------------------------------------------------------
+    // Idempotency guard
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public async Task SendAsync_WhenAlreadyCompleted_SkipsSendAndReturnsSentTrue()
+    {
+        var store = new InMemoryIdempotencyStore();
+        var (service, _, gmailMock) = CreateService(idempotencyStore: store);
+        var ctx = MakeContext();
+        var draft = new CommunicationRecord
+        {
+            Subject = "Test Subject",
+            HtmlBody = "<p>Hello</p>",
+            Channel = "email",
+            DraftedAt = DateTimeOffset.UtcNow,
+            ContentHash = "abc123"
+        };
+
+        // Pre-mark the key as completed
+        var key = $"lead:{DefaultAgent.AgentId}-{ctx.Lead.Id}:email-send";
+        await store.MarkCompletedAsync(key, CancellationToken.None);
+
+        var result = await service.SendAsync(draft, ctx, CancellationToken.None);
+
+        result.Sent.Should().BeTrue();
+        gmailMock.Verify(g => g.SendAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task SendAsync_WhenNotCompleted_SendsProceedsAndMarksCompleted()
+    {
+        var store = new InMemoryIdempotencyStore();
+        var (service, _, _) = CreateService(idempotencyStore: store);
+        var ctx = MakeContext();
+        var draft = new CommunicationRecord
+        {
+            Subject = "Test Subject",
+            HtmlBody = "<p>Hello</p>",
+            Channel = "email",
+            DraftedAt = DateTimeOffset.UtcNow,
+            ContentHash = "abc123"
+        };
+
+        var result = await service.SendAsync(draft, ctx, CancellationToken.None);
+
+        result.Sent.Should().BeTrue();
+        var key = $"lead:{DefaultAgent.AgentId}-{ctx.Lead.Id}:email-send";
+        var completed = await store.HasCompletedAsync(key, CancellationToken.None);
+        completed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SendAsync_WhenSendFails_MarkCompletedIsNotCalled()
+    {
+        var store = new InMemoryIdempotencyStore();
+        var (service, _, _) = CreateService(
+            gmailException: new HttpRequestException("Gmail down"),
+            idempotencyStore: store);
+        var ctx = MakeContext();
+        var draft = new CommunicationRecord
+        {
+            Subject = "Test Subject",
+            HtmlBody = "<p>Hello</p>",
+            Channel = "email",
+            DraftedAt = DateTimeOffset.UtcNow,
+            ContentHash = "abc123"
+        };
+
+        await service.SendAsync(draft, ctx, CancellationToken.None);
+
+        var key = $"lead:{DefaultAgent.AgentId}-{ctx.Lead.Id}:email-send";
+        var completed = await store.HasCompletedAsync(key, CancellationToken.None);
+        completed.Should().BeFalse();
     }
 }

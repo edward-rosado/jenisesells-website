@@ -8,6 +8,7 @@ using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
@@ -80,11 +81,13 @@ public sealed class LeadOrchestratorTests
         var communicationService = new LeadCommunicatorService(
             _emailDrafterMock.Object,
             _gmailMock.Object,
+            new NullIdempotencyStore(),
             NullLogger<LeadCommunicatorService>.Instance);
 
         var agentNotificationService = new AgentNotifierService(
             _whatsAppMock.Object,
             _gmailMock.Object,
+            new NullIdempotencyStore(),
             NullLogger<AgentNotifierService>.Instance);
 
         return new LeadOrchestrator(

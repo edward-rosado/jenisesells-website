@@ -1,5 +1,5 @@
-using System.Threading.Channels;
-using RealEstateStar.Domain.Activation.Models;
+using RealEstateStar.Domain.Activation.Interfaces;
+using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.Lead.CMA;
@@ -19,11 +19,20 @@ public class BackgroundServiceHealthCheckTests
     private readonly LeadOrchestratorChannel _leadChannel = new();
     private readonly CmaProcessingChannel _cmaChannel = new();
     private readonly HomeSearchProcessingChannel _homeSearchChannel = new();
-    private readonly Channel<ActivationRequest> _activationChannel = Channel.CreateUnbounded<ActivationRequest>();
+    private readonly Mock<IActivationQueue> _activationQueue = new();
+    private readonly Mock<ILeadOrchestrationQueue> _leadOrchestrationQueue = new();
     private readonly Mock<ILogger<BackgroundServiceHealthCheck>> _logger = new();
 
+    public BackgroundServiceHealthCheckTests()
+    {
+        // Default queue depths to 0 (idle/empty)
+        _activationQueue.Setup(q => q.QueueDepth).Returns(0);
+        _leadOrchestrationQueue.Setup(q => q.QueueDepth).Returns(0);
+    }
+
     private BackgroundServiceHealthCheck CreateCheck() =>
-        new(_tracker, _leadChannel, _cmaChannel, _homeSearchChannel, _activationChannel, _logger.Object);
+        new(_tracker, _leadChannel, _cmaChannel, _homeSearchChannel,
+            _activationQueue.Object, _leadOrchestrationQueue.Object, _logger.Object);
 
     private static HealthCheckContext MakeContext() => new()
     {
@@ -133,6 +142,86 @@ public class BackgroundServiceHealthCheckTests
         var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
 
         result.Data["LeadOrchestrator.lastActivity"].Should().Be("never");
+    }
+
+    [Fact]
+    public async Task ReturnsUnhealthy_WhenActivationQueue_HasItems_AndWorkerNeverActive()
+    {
+        // Activation queue reports a non-zero depth
+        _activationQueue.Setup(q => q.QueueDepth).Returns(3);
+
+        var check = CreateCheck();
+        var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
+
+        result.Status.Should().Be(HealthStatus.Unhealthy);
+        result.Description.Should().Contain("ActivationOrchestrator");
+        result.Description.Should().Contain("never active");
+    }
+
+    [Fact]
+    public async Task ReturnsHealthy_WhenActivationQueue_HasItems_AndWorkerRecentlyActive()
+    {
+        _activationQueue.Setup(q => q.QueueDepth).Returns(2);
+        _tracker.RecordActivity("ActivationOrchestrator");
+
+        var check = CreateCheck();
+        var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
+
+        result.Status.Should().Be(HealthStatus.Healthy);
+    }
+
+    [Fact]
+    public async Task ReturnsUnhealthy_WhenActivationQueue_HasItems_AndWorkerStale()
+    {
+        _activationQueue.Setup(q => q.QueueDepth).Returns(1);
+        _tracker.RecordActivity("ActivationOrchestrator", DateTime.UtcNow.AddMinutes(-10));
+
+        var check = CreateCheck();
+        var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
+
+        result.Status.Should().Be(HealthStatus.Unhealthy);
+        result.Description.Should().Contain("ActivationOrchestrator");
+        result.Description.Should().Contain("queued, idle");
+    }
+
+    [Fact]
+    public async Task ReturnsUnhealthy_WhenLeadOrchestrationQueue_HasItems_AndWorkerNeverActive()
+    {
+        _leadOrchestrationQueue.Setup(q => q.QueueDepth).Returns(5);
+
+        var check = CreateCheck();
+        var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
+
+        result.Status.Should().Be(HealthStatus.Unhealthy);
+        result.Description.Should().Contain("LeadOrchestrationQueue");
+        result.Description.Should().Contain("never active");
+    }
+
+    [Fact]
+    public async Task ReturnsHealthy_WhenLeadOrchestrationQueue_HasItems_AndWorkerRecentlyActive()
+    {
+        _leadOrchestrationQueue.Setup(q => q.QueueDepth).Returns(2);
+        _tracker.RecordActivity("LeadOrchestrationQueue");
+
+        var check = CreateCheck();
+        var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
+
+        result.Status.Should().Be(HealthStatus.Healthy);
+    }
+
+    [Fact]
+    public async Task IncludesActivationAndLeadQueueDepth_InData()
+    {
+        _activationQueue.Setup(q => q.QueueDepth).Returns(0);
+        _leadOrchestrationQueue.Setup(q => q.QueueDepth).Returns(0);
+
+        var check = CreateCheck();
+        var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
+
+        result.Data.Should().ContainKey("ActivationOrchestrator.queueDepth");
+        result.Data.Should().ContainKey("LeadOrchestrationQueue.queueDepth");
+        result.Data["ActivationOrchestrator.queueDepth"].Should().Be(0);
+        result.Data["LeadOrchestrationQueue.queueDepth"].Should().Be(0);
     }
 
     private static AgentNotificationConfig MakeAgentConfig() => new()
