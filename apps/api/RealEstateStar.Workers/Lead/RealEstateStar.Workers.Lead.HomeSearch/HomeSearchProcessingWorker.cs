@@ -6,6 +6,10 @@ using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Workers.Lead.HomeSearch;
 
+// TODO(phase-4): Remove this Channel-based BackgroundService after HomeSearchFunction
+// (Durable Functions activity) is live and verified in production.
+// The Durable Functions equivalent is RealEstateStar.Functions.Lead.Activities.HomeSearchFunction.
+
 public sealed class HomeSearchProcessingWorker(
     HomeSearchProcessingChannel channel,
     IHomeSearchProvider homeSearchProvider,

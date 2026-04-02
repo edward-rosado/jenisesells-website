@@ -16,6 +16,10 @@ using RealEstateStar.Activities.Pdf;
 
 namespace RealEstateStar.Workers.Lead.Orchestrator;
 
+// TODO(phase-4): Remove this BackgroundService after LeadOrchestratorFunction (Durable Functions)
+// is live and verified in production. Feature flag: Features:Lead:UseBackgroundService=false.
+// The Durable Functions equivalent is RealEstateStar.Functions.Lead.LeadOrchestratorFunction.
+
 /// <summary>
 /// Per-lead orchestrator. Reads from <see cref="ILeadOrchestrationQueue"/> (Azure Queue Storage),
 /// scores the lead, dispatches CMA and HomeSearch workers in parallel via channels,

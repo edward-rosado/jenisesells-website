@@ -36,6 +36,13 @@ namespace RealEstateStar.Workers.Activation.Orchestrator;
 /// calls activities and services, and manages checkpoints for retry/resume semantics.
 /// Messages are deleted after successful processing; on failure they become visible
 /// again for automatic retry.
+///
+/// TODO(Phase 4 — DF migration): Remove this BackgroundService once the Durable Functions
+/// orchestrator (<c>ActivationOrchestratorFunction</c> in RealEstateStar.Functions) is
+/// fully validated in production. The feature flag <c>Features:Activation:UseBackgroundService</c>
+/// controls which path is active. When the flag is false, the API writes to the
+/// <c>activation-requests</c> queue and the Durable orchestrator picks it up.
+/// Tracked in: docs/superpowers/plans/2026-04-01-durable-functions-migration.md Phase 4.
 /// </summary>
 public class ActivationOrchestrator : BackgroundService
 {

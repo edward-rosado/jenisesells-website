@@ -7,6 +7,10 @@ using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Workers.Lead.CMA;
 
+// TODO(phase-4): Remove this Channel-based BackgroundService after CmaProcessingFunction
+// (Durable Functions activity) is live and verified in production.
+// The Durable Functions equivalent is RealEstateStar.Functions.Lead.Activities.CmaProcessingFunction.
+
 public sealed class CmaProcessingWorker(
     CmaProcessingChannel channel,
     ICompAggregator compAggregator,
