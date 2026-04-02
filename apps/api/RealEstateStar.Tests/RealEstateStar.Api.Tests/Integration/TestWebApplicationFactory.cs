@@ -9,7 +9,6 @@ using RealEstateStar.Domain.Privacy.Interfaces;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using RealEstateStar.Workers.Lead.Orchestrator;
 
 namespace RealEstateStar.Api.Tests.Integration;
 
@@ -38,7 +37,6 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         // Subclasses may override these with more specific implementations.
         builder.ConfigureServices(services =>
         {
-            services.AddSingleton<LeadOrchestratorChannel>();
             services.AddSingleton<ILeadStore, NoOpLeadStore>();
             services.AddSingleton<IMarketingConsentLog, NoOpMarketingConsentLog>();
             // TODO: Pipeline redesign — ILeadEnricher and ILeadNotifier removed in Phase 1.5; replaced in Phase 2/3/4

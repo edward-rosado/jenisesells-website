@@ -7,14 +7,13 @@ namespace RealEstateStar.Workers.WhatsApp;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers the WhatsApp conversation pipeline services owned by this project:
-    /// intent classifier, response generator, and conversation handler stubs.
-    /// The conditional Azure queue/table services, IWhatsAppSender, IWhatsAppNotifier,
-    /// IEmailNotifier, IConversationLogger, and the "WhatsApp" HttpClient resilience
-    /// pipeline are registered by the Api composition root (Program.cs), as they
-    /// depend on projects outside the Workers.* → Domain + Workers.Shared constraint.
-    /// When WhatsApp is enabled (PhoneNumberId configured), the hosted services
-    /// WebhookProcessorWorker and WhatsAppRetryJob are also registered by the Api layer.
+    /// Registers WhatsApp conversation pipeline services: intent classifier, response generator,
+    /// conversation handler stubs, and <c>WhatsAppRetryJob</c>.
+    /// The conditional <c>WebhookProcessorWorker</c> and <c>WhatsAppRetryJob</c> hosted services
+    /// were removed in Phase 4; Azure Durable Functions queue/timer triggers now handle that role.
+    /// The Azure queue/table, IWhatsAppSender, IWhatsAppNotifier, IEmailNotifier, IConversationLogger,
+    /// and the "WhatsApp" HttpClient resilience pipeline are registered by the Api composition root
+    /// (Program.cs), as they depend on projects outside the Workers.* → Domain + Workers.Shared constraint.
     /// </summary>
     public static IServiceCollection AddWhatsAppWorkers(this IServiceCollection services, IConfiguration configuration)
     {
@@ -23,28 +22,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IConversationHandler, ConversationHandler>();
 
         // Always register WhatsAppRetryJob so it can be resolved by WhatsAppRetryFunction
-        // (timer-triggered Azure Function) regardless of the BackgroundService feature flag.
+        // (timer-triggered Azure Function).
         services.AddSingleton<WhatsAppRetryJob>();
-
-        var phoneNumberId = configuration["WhatsApp:PhoneNumberId"];
-        if (!string.IsNullOrEmpty(phoneNumberId))
-        {
-            // Feature flag: Features:WhatsApp:UseBackgroundService (default true during transition).
-            // Set to false when Azure Functions (ProcessWebhookFunction, WhatsAppRetryFunction)
-            // are fully active to stop the BackgroundService polling loops.
-            // Both can be active simultaneously — queue trigger auto-completes messages,
-            // preventing duplicates.
-            //
-            // TODO [Phase 4]: Remove UseBackgroundService flag and these hosted services entirely
-            // once Azure Functions are proven stable in production.
-            var flagValue = configuration["Features:WhatsApp:UseBackgroundService"];
-            var useBackgroundService = !string.Equals(flagValue, "false", StringComparison.OrdinalIgnoreCase);
-            if (useBackgroundService)
-            {
-                services.AddHostedService<WebhookProcessorWorker>();
-                services.AddHostedService<WhatsAppRetryJob>();
-            }
-        }
 
         return services;
     }

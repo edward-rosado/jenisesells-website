@@ -19,7 +19,6 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Privacy.Interfaces;
-using RealEstateStar.Workers.Lead.Orchestrator;
 using RealEstateStar.Activities.Pdf;
 
 namespace RealEstateStar.Architecture.Tests;
@@ -82,7 +81,6 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
     [InlineData(typeof(ILeadEmailDrafter))]
     [InlineData(typeof(ILeadCommunicatorService))]
     [InlineData(typeof(IAgentNotifier))]
-    [InlineData(typeof(LeadOrchestratorChannel))]
     [InlineData(typeof(PdfActivity))]
     [InlineData(typeof(ILeadDataDeletion))]
     [InlineData(typeof(IMarketingConsentLog))]
@@ -103,8 +101,8 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
     {
         // If you add a new Domain interface to the [InlineData] list above, update this count.
         // This prevents AI agents from silently removing interfaces from the registration check.
-        // Current count verified on 2026-03-29.
-        const int expectedInterfaceCount = 23;
+        // Current count verified on 2026-04-02 — removed LeadOrchestratorChannel (Phase 4 DF migration).
+        const int expectedInterfaceCount = 22;
 
         var inlineDataTypes = new[]
         {
@@ -124,7 +122,6 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
             typeof(ILeadEmailDrafter),
             typeof(ILeadCommunicatorService),
             typeof(IAgentNotifier),
-            typeof(LeadOrchestratorChannel),
             typeof(PdfActivity),
             typeof(ILeadDataDeletion),
             typeof(IMarketingConsentLog),

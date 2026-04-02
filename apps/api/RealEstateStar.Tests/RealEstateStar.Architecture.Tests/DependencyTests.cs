@@ -467,8 +467,9 @@ public class DependencyTests
     public void CmaWorker_ShouldNotReference_StorageInterfaces()
     {
         // Verify Workers.Lead.CMA assembly does not reference IFileStorageProvider or IDocumentStorageProvider.
-        // CMA is a pure compute worker — storage is handled upstream by the orchestrator (Workers.Lead.Orchestrator).
-        var assembly = typeof(Workers.Lead.CMA.CmaProcessingWorker).Assembly;
+        // CMA is a pure compute worker — storage is handled upstream by the orchestrator (Durable Functions in Phase 4+).
+        // Phase 4: CmaProcessingWorker (BackgroundService) removed; use RentCastCompSource as assembly anchor.
+        var assembly = typeof(Workers.Lead.CMA.RentCastCompSource).Assembly;
         var forbiddenTypeNames = new HashSet<string>
         {
             "IFileStorageProvider",
@@ -514,8 +515,9 @@ public class DependencyTests
     public void HomeSearchWorker_ShouldNotReference_NotificationInterfaces()
     {
         // Verify Workers.Lead.HomeSearch does not reference IAgentNotifier or IHomeSearchNotifier.
-        // HomeSearch is a pure compute worker — notifications are dispatched by the orchestrator (Workers.Lead.Orchestrator).
-        var assembly = typeof(Workers.Lead.HomeSearch.HomeSearchProcessingWorker).Assembly;
+        // HomeSearch is a pure compute worker — notifications are dispatched by the orchestrator (Durable Functions in Phase 4+).
+        // Phase 4: HomeSearchProcessingWorker (BackgroundService) removed; use ScraperHomeSearchProvider as assembly anchor.
+        var assembly = typeof(Workers.Lead.HomeSearch.ScraperHomeSearchProvider).Assembly;
         var forbiddenTypeNames = new HashSet<string>
         {
             "IAgentNotifier",

@@ -520,7 +520,10 @@ builder.Services.AddProblemDetails();
 builder.Services.AddSignalR();
 
 // Health checks
-builder.Services.AddSingleton<BackgroundServiceHealthTracker>();
+builder.Services.AddHttpClient(DurableFunctionsHealthCheck.HttpClientName, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 builder.Services.AddHealthChecks()
     .AddCheck<OtlpExportHealthCheck>("otlp_export", tags: ["ready"])
     .AddCheck<ClaudeApiHealthCheck>("claude_api", tags: ["ready"])
@@ -528,7 +531,7 @@ builder.Services.AddHealthChecks()
     .AddCheck<ScraperApiHealthCheck>("scraper_api", tags: ["ready"])
     .AddCheck<RentCastHealthCheck>("rentcast_api", tags: ["ready"])
     .AddCheck<TurnstileHealthCheck>("turnstile", tags: ["ready"])
-    .AddCheck<BackgroundServiceHealthCheck>("background_workers", tags: ["ready", "workers"])
+    .AddCheck<DurableFunctionsHealthCheck>("durable_functions", tags: ["ready", "workers"])
     .AddCheck<AzureQueueHealthCheck>("azure_queues", tags: ["ready"]);
 
 // CORS
