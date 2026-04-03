@@ -147,11 +147,23 @@ public sealed class AnthropicClient(
         var contentBlocks = new List<object>();
         foreach (var (data, mimeType) in images)
         {
-            contentBlocks.Add(new
+            if (mimeType == "application/pdf")
             {
-                type = "image",
-                source = new { type = "base64", media_type = mimeType, data = Convert.ToBase64String(data) }
-            });
+                // PDFs use "document" content block type, not "image"
+                contentBlocks.Add(new
+                {
+                    type = "document",
+                    source = new { type = "base64", media_type = mimeType, data = Convert.ToBase64String(data) }
+                });
+            }
+            else
+            {
+                contentBlocks.Add(new
+                {
+                    type = "image",
+                    source = new { type = "base64", media_type = mimeType, data = Convert.ToBase64String(data) }
+                });
+            }
         }
         contentBlocks.Add(new { type = "text", text = userMessage });
 
