@@ -316,6 +316,13 @@ public class ActivationOrchestrator : BackgroundService
 
     // ── Phase 0: skip check ───────────────────────────────────────────────────
 
+    // Per-language skill files required when Spanish is in the agent's languages
+    internal static readonly IReadOnlyList<string> RequiredSpanishAgentFiles =
+    [
+        "Voice Skill.es.md",
+        "Personality Skill.es.md",
+    ];
+
     internal async Task<bool> IsAlreadyCompleteAsync(ActivationRequest request, CancellationToken ct)
     {
         var agentFolder = $"real-estate-star/{request.AgentId}";
@@ -330,7 +337,58 @@ public class ActivationOrchestrator : BackgroundService
             checkTasks.Add(FileExistsAsync(accountFolder, file, ct));
 
         var results = await Task.WhenAll(checkTasks);
-        return results.All(exists => exists);
+        if (!results.All(exists => exists))
+            return false;
+
+        // Check per-language files if the agent supports Spanish
+        var hasSpanish = await AgentHasSpanishAsync(request, ct);
+        if (hasSpanish)
+        {
+            var langCheckTasks = new List<Task<(string file, bool exists)>>();
+            foreach (var file in RequiredSpanishAgentFiles)
+                langCheckTasks.Add(FileExistsWithNameAsync(agentFolder, file, ct));
+
+            var langResults = await Task.WhenAll(langCheckTasks);
+            var missing = langResults.Where(r => !r.exists).Select(r => r.file).ToList();
+
+            if (missing.Count > 0)
+            {
+                _logger.LogInformation(
+                    "[ACTV-004] Per-language files missing for agentId={AgentId}: {MissingFiles}",
+                    request.AgentId, string.Join(", ", missing));
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private async Task<(string file, bool exists)> FileExistsWithNameAsync(
+        string folder, string file, CancellationToken ct)
+    {
+        var content = await _storage.ReadDocumentAsync(folder, file, ct);
+        return (file, content is not null);
+    }
+
+    /// <summary>
+    /// Checks if the agent's activation outputs indicate Spanish language support.
+    /// Uses the context loader to check the agent's persisted languages list.
+    /// </summary>
+    private async Task<bool> AgentHasSpanishAsync(ActivationRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var context = await _contextLoader.LoadAsync(request.AccountId, request.AgentId, ct);
+            // If localized skills contain any ".es" key, the agent has Spanish
+            return context?.LocalizedSkills?.Keys.Any(k => k.EndsWith(".es", StringComparison.Ordinal)) == true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "[ACTV-005] Failed to check agent languages for agentId={AgentId}, assuming no Spanish",
+                request.AgentId);
+            return false;
+        }
     }
 
     private async Task<bool> FileExistsAsync(string folder, string file, CancellationToken ct)
@@ -529,7 +587,7 @@ public class ActivationOrchestrator : BackgroundService
             var voiceSkill = outputs.VoiceSkill ?? string.Empty;
 
             await _brandMergeActivity.ExecuteAsync(
-                request.AccountId, request.AgentId, brandingKit, voiceSkill, ct);
+                request.AccountId, request.AgentId, brandingKit, voiceSkill, ct, outputs);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

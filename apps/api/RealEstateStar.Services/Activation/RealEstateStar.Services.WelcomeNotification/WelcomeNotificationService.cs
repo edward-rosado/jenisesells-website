@@ -119,7 +119,16 @@ public sealed class WelcomeNotificationService(
             ? $"https://{handle}.real-estate-star.com"
             : $"https://{accountId}.real-estate-star.com/agents/{agentId}";
 
-        const string systemPrompt =
+        // Determine if we should draft in Spanish
+        var useSpanish = outputs.Languages?.Contains("Spanish", StringComparer.OrdinalIgnoreCase) == true
+            && outputs.LocalizedSkills is not null
+            && outputs.LocalizedSkills.ContainsKey("VoiceSkill.es");
+
+        var spanishInstruction = useSpanish
+            ? "\n- Draft this welcome message in Spanish. Use the agent's Spanish catchphrase and sign-off style. Keep the warm, professional tone."
+            : string.Empty;
+
+        var systemPrompt =
             "You are writing a personalized welcome email from Real Estate Star to a real estate " +
             "agent who just connected their Google account and activated the platform for the first time.\n\n" +
             "CONTEXT: Real Estate Star is an AI-powered platform that automates real estate agent " +
@@ -143,9 +152,13 @@ public sealed class WelcomeNotificationService(
             "- TONE: Confident, professional, and polished. Real Estate Star is the best partner " +
             "an agent can have to expand their business. Convey that this platform is built to " +
             "help them win more clients, close more deals, and grow. Not salesy — authoritative.\n" +
-            "- Plain text only, no markdown, no HTML";
+            "- Plain text only, no markdown, no HTML" +
+            spanishInstruction;
 
-        var voiceContext = outputs.VoiceSkill ?? "professional and approachable tone";
+        // Use Spanish voice skill if available, fallback to English
+        var voiceContext = useSpanish
+            ? outputs.LocalizedSkills!["VoiceSkill.es"]
+            : outputs.VoiceSkill ?? "professional and approachable tone";
         var personalityContext = outputs.PersonalitySkill ?? "dedicated REALTOR";
         var pipelineContext = outputs.SalesPipeline ?? "strong pipeline management";
         var coachingContext = outputs.CoachingReport ?? "focus on follow-up";
