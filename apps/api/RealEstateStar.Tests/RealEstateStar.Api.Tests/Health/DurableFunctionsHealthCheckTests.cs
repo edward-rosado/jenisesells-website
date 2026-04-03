@@ -28,7 +28,7 @@ public class DurableFunctionsHealthCheckTests
                 null)
         };
 
-    private DurableFunctionsHealthCheck CreateCheck(HttpStatusCode? statusCode = null, string? healthUrl = "http://functions/health") =>
+    private DurableFunctionsHealthCheck CreateCheck(HttpStatusCode? statusCode = null, string? healthUrl = "https://real-estate-star-functions.azurewebsites.net/health") =>
         new(
             CreateHttpClientFactory(statusCode),
             CreateConfig(healthUrl),
@@ -94,7 +94,7 @@ public class DurableFunctionsHealthCheckTests
 
         var check = new DurableFunctionsHealthCheck(
             factory.Object,
-            CreateConfig("http://functions/health"),
+            CreateConfig("https://real-estate-star-functions.azurewebsites.net/health"),
             NullLogger<DurableFunctionsHealthCheck>.Instance);
 
         var result = await check.CheckHealthAsync(MakeContext(HealthStatus.Unhealthy), CancellationToken.None);
@@ -103,17 +103,17 @@ public class DurableFunctionsHealthCheckTests
         result.Description.Should().Contain("unreachable");
         result.Exception.Should().NotBeNull();
         result.Data["configured"].Should().Be(true);
-        result.Data["url"].Should().Be("http://functions/health");
+        result.Data["url"].Should().Be("https://real-estate-star-functions.azurewebsites.net/health");
     }
 
     [Fact]
     public async Task IncludesUrlInData_WhenConfigured()
     {
-        var check = CreateCheck(HttpStatusCode.OK, "http://my-functions/health");
+        var check = CreateCheck(HttpStatusCode.OK, "https://my-functions.azurewebsites.net/health");
 
         var result = await check.CheckHealthAsync(MakeContext(), CancellationToken.None);
 
-        result.Data["url"].Should().Be("http://my-functions/health");
+        result.Data["url"].Should().Be("https://my-functions.azurewebsites.net/health");
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class DurableFunctionsHealthCheckTests
 
         var check = new DurableFunctionsHealthCheck(
             factory.Object,
-            CreateConfig("http://functions/health"),
+            CreateConfig("https://real-estate-star-functions.azurewebsites.net/health"),
             NullLogger<DurableFunctionsHealthCheck>.Instance);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(

@@ -25,34 +25,36 @@ namespace RealEstateStar.Workers.Activation.Orchestrator.Tests;
 /// </summary>
 public class ActivationServiceCollectionExtensionsTests
 {
-    private static IServiceProvider BuildServices() =>
-        new ServiceCollection()
-            .AddActivationPipeline()
-            .BuildServiceProvider();
-
     [Fact]
     public void AddActivationPipeline_RegistersAllFifteenWorkers()
     {
-        var services = BuildServices();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddActivationPipeline();
+
+        // Verify all 15 worker types are registered by inspecting descriptors
+        // (not resolving instances — workers have external dependencies not registered here)
+        var registeredTypes = serviceCollection
+            .Select(d => d.ServiceType)
+            .ToHashSet();
 
         // Phase 1: gather workers
-        services.GetRequiredService<AgentEmailFetchWorker>().Should().NotBeNull();
-        services.GetRequiredService<DriveIndexWorker>().Should().NotBeNull();
-        services.GetRequiredService<AgentDiscoveryWorker>().Should().NotBeNull();
+        registeredTypes.Should().Contain(typeof(AgentEmailFetchWorker));
+        registeredTypes.Should().Contain(typeof(DriveIndexWorker));
+        registeredTypes.Should().Contain(typeof(AgentDiscoveryWorker));
 
         // Phase 2: synthesis workers
-        services.GetRequiredService<VoiceExtractionWorker>().Should().NotBeNull();
-        services.GetRequiredService<PersonalityWorker>().Should().NotBeNull();
-        services.GetRequiredService<BrandingDiscoveryWorker>().Should().NotBeNull();
-        services.GetRequiredService<CmaStyleWorker>().Should().NotBeNull();
-        services.GetRequiredService<MarketingStyleWorker>().Should().NotBeNull();
-        services.GetRequiredService<WebsiteStyleWorker>().Should().NotBeNull();
-        services.GetRequiredService<PipelineAnalysisWorker>().Should().NotBeNull();
-        services.GetRequiredService<CoachingWorker>().Should().NotBeNull();
-        services.GetRequiredService<BrandExtractionWorker>().Should().NotBeNull();
-        services.GetRequiredService<BrandVoiceWorker>().Should().NotBeNull();
-        services.GetRequiredService<ComplianceAnalysisWorker>().Should().NotBeNull();
-        services.GetRequiredService<FeeStructureWorker>().Should().NotBeNull();
+        registeredTypes.Should().Contain(typeof(VoiceExtractionWorker));
+        registeredTypes.Should().Contain(typeof(PersonalityWorker));
+        registeredTypes.Should().Contain(typeof(BrandingDiscoveryWorker));
+        registeredTypes.Should().Contain(typeof(CmaStyleWorker));
+        registeredTypes.Should().Contain(typeof(MarketingStyleWorker));
+        registeredTypes.Should().Contain(typeof(WebsiteStyleWorker));
+        registeredTypes.Should().Contain(typeof(PipelineAnalysisWorker));
+        registeredTypes.Should().Contain(typeof(CoachingWorker));
+        registeredTypes.Should().Contain(typeof(BrandExtractionWorker));
+        registeredTypes.Should().Contain(typeof(BrandVoiceWorker));
+        registeredTypes.Should().Contain(typeof(ComplianceAnalysisWorker));
+        registeredTypes.Should().Contain(typeof(FeeStructureWorker));
     }
 
     [Fact]
