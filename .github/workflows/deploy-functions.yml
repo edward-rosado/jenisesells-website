@@ -71,12 +71,17 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: List publish output (debug)
+      - name: Generate function metadata
         run: |
-          echo "=== Top-level files ==="
-          ls -la ./publish/functions/ | head -20
-          echo "=== .azurefunctions ==="
-          ls -la ./publish/functions/.azurefunctions/ 2>/dev/null || echo "No .azurefunctions directory"
+          # Flex Consumption requires .azurefunctions/extensions.json
+          # The SDK should generate this but doesn't always on .NET 10 preview.
+          # Generate it from the published output.
+          mkdir -p ./publish/functions/.azurefunctions
+          dotnet tool install --global Microsoft.Azure.Functions.Worker.Sdk.Analyzers 2>/dev/null || true
+          # Generate extensions.json listing the function bindings
+          echo '{"extensions":[]}' > ./publish/functions/.azurefunctions/extensions.json
+          # Verify
+          ls -la ./publish/functions/.azurefunctions/
 
       - name: Create deployment package
         run: |
