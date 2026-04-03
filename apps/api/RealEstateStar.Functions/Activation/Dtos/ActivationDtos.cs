@@ -140,7 +140,8 @@ public sealed record ListingInfoDto(
 /// <summary>Input to the CheckActivationComplete activity function.</summary>
 public sealed record CheckActivationCompleteInput(
     [property: JsonPropertyName("accountId")] string AccountId,
-    [property: JsonPropertyName("agentId")] string AgentId);
+    [property: JsonPropertyName("agentId")] string AgentId,
+    [property: JsonPropertyName("languages")] IReadOnlyList<string>? Languages = null);
 
 /// <summary>Output from the CheckActivationComplete activity function.</summary>
 public sealed record CheckActivationCompleteOutput(
@@ -165,12 +166,14 @@ public sealed record StringOutput(
 /// <summary>Output from VoiceExtraction activity.</summary>
 public sealed record VoiceExtractionOutput(
     [property: JsonPropertyName("voiceSkillMarkdown")] string? VoiceSkillMarkdown,
-    [property: JsonPropertyName("isLowConfidence")] bool IsLowConfidence);
+    [property: JsonPropertyName("isLowConfidence")] bool IsLowConfidence,
+    [property: JsonPropertyName("localizedSkills")] IReadOnlyDictionary<string, string>? LocalizedSkills = null);
 
 /// <summary>Output from Personality activity.</summary>
 public sealed record PersonalityOutput(
     [property: JsonPropertyName("personalitySkillMarkdown")] string? PersonalitySkillMarkdown,
-    [property: JsonPropertyName("isLowConfidence")] bool IsLowConfidence);
+    [property: JsonPropertyName("isLowConfidence")] bool IsLowConfidence,
+    [property: JsonPropertyName("localizedSkills")] IReadOnlyDictionary<string, string>? LocalizedSkills = null);
 
 /// <summary>Output from BrandingDiscovery activity.</summary>
 public sealed record BrandingDiscoveryOutput(
@@ -210,7 +213,18 @@ public sealed record CoachingOutput(
 /// <summary>Output from MarketingStyle activity (returns two strings).</summary>
 public sealed record MarketingStyleOutput(
     [property: JsonPropertyName("styleGuide")] string? StyleGuide,
-    [property: JsonPropertyName("brandSignals")] string? BrandSignals);
+    [property: JsonPropertyName("brandSignals")] string? BrandSignals,
+    [property: JsonPropertyName("localizedSkills")] IReadOnlyDictionary<string, string>? LocalizedSkills = null);
+
+/// <summary>Output from BrandExtraction activity.</summary>
+public sealed record BrandExtractionOutput(
+    [property: JsonPropertyName("signals")] string? Signals,
+    [property: JsonPropertyName("localizedSkills")] IReadOnlyDictionary<string, string>? LocalizedSkills = null);
+
+/// <summary>Output from BrandVoice activity.</summary>
+public sealed record BrandVoiceOutput(
+    [property: JsonPropertyName("signals")] string? Signals,
+    [property: JsonPropertyName("localizedSkills")] IReadOnlyDictionary<string, string>? LocalizedSkills = null);
 
 // ── Phase 2.5 Contact Detection ───────────────────────────────────────────────
 
@@ -267,7 +281,8 @@ public sealed record PersistProfileInput(
     [property: JsonPropertyName("agentTitle")] string? AgentTitle,
     [property: JsonPropertyName("agentLicenseNumber")] string? AgentLicenseNumber,
     [property: JsonPropertyName("serviceAreas")] IReadOnlyList<string> ServiceAreas,
-    [property: JsonPropertyName("discovery")] AgentDiscoveryOutput Discovery);
+    [property: JsonPropertyName("discovery")] AgentDiscoveryOutput Discovery,
+    [property: JsonPropertyName("localizedSkills")] IReadOnlyDictionary<string, string>? LocalizedSkills = null);
 
 public sealed record BrandMergeInput(
     [property: JsonPropertyName("accountId")] string AccountId,
@@ -288,4 +303,5 @@ public sealed record WelcomeNotificationInput(
     [property: JsonPropertyName("handle")] string Handle,
     [property: JsonPropertyName("agentName")] string? AgentName,
     [property: JsonPropertyName("agentPhone")] string? AgentPhone,
-    [property: JsonPropertyName("whatsAppEnabled")] bool WhatsAppEnabled);
+    [property: JsonPropertyName("whatsAppEnabled")] bool WhatsAppEnabled,
+    [property: JsonPropertyName("localizedSkills")] IReadOnlyDictionary<string, string>? LocalizedSkills = null);

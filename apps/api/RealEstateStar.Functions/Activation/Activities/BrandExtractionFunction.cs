@@ -14,19 +14,19 @@ public sealed class BrandExtractionFunction(
     ILogger<BrandExtractionFunction> logger)
 {
     [Function(ActivityNames.BrandExtraction)]
-    public async Task<StringOutput> RunAsync(
+    public async Task<BrandExtractionOutput> RunAsync(
         [ActivityTrigger] SynthesisInput input,
         CancellationToken ct)
     {
         logger.LogInformation(
             "[ACTV-FN-180] BrandExtraction for agentId={AgentId}", input.AgentId);
 
-        var result = await worker.AnalyzeAsync(
+        var (signals, localizedSkills) = await worker.AnalyzeAsync(
             emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
             driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
             discovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 
-        return new StringOutput(result);
+        return new BrandExtractionOutput(signals, localizedSkills);
     }
 }

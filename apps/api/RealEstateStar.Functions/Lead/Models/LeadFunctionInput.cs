@@ -49,6 +49,10 @@ public sealed record LeadOrchestratorInput
     /// <summary>SHA-256 hash of the HomeSearch input (buyer criteria fields). Used for cross-lead dedup.</summary>
     [JsonPropertyName("hsInputHash")]
     public required string HsInputHash { get; init; }
+
+    /// <summary>BCP 47 locale from the lead form submission (e.g., "en", "es"). Null when not provided.</summary>
+    [JsonPropertyName("locale")]
+    public string? Locale { get; init; }
 }
 
 /// <summary>
@@ -206,6 +210,10 @@ public sealed record GeneratePdfInput
 
     [JsonPropertyName("cmaResult")]
     public required CmaWorkerResult CmaResult { get; init; }
+
+    /// <summary>BCP 47 locale from the lead form submission (e.g., "en", "es"). Null when not provided.</summary>
+    [JsonPropertyName("locale")]
+    public string? Locale { get; init; }
 }
 
 /// <summary>
@@ -242,6 +250,10 @@ public sealed record DraftLeadEmailInput
 
     [JsonPropertyName("hsResult")]
     public HomeSearchWorkerResult? HsResult { get; init; }
+
+    /// <summary>BCP 47 locale from the lead form submission (e.g., "en", "es"). Null when not provided.</summary>
+    [JsonPropertyName("locale")]
+    public string? Locale { get; init; }
 }
 
 /// <summary>
@@ -320,6 +332,10 @@ public sealed record NotifyAgentInput
 
     [JsonPropertyName("hsResult")]
     public HomeSearchWorkerResult? HsResult { get; init; }
+
+    /// <summary>BCP 47 locale from the lead form submission (e.g., "en", "es"). Null when not provided.</summary>
+    [JsonPropertyName("locale")]
+    public string? Locale { get; init; }
 }
 
 /// <summary>
@@ -362,6 +378,10 @@ public sealed record PersistLeadResultsInput
 
     [JsonPropertyName("hsInputHash")]
     public required string HsInputHash { get; init; }
+
+    /// <summary>BCP 47 locale from the lead form submission (e.g., "en", "es"). Null when not provided.</summary>
+    [JsonPropertyName("locale")]
+    public string? Locale { get; init; }
 }
 
 /// <summary>

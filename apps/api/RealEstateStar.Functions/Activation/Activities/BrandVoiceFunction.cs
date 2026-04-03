@@ -14,19 +14,19 @@ public sealed class BrandVoiceFunction(
     ILogger<BrandVoiceFunction> logger)
 {
     [Function(ActivityNames.BrandVoice)]
-    public async Task<StringOutput> RunAsync(
+    public async Task<BrandVoiceOutput> RunAsync(
         [ActivityTrigger] SynthesisInput input,
         CancellationToken ct)
     {
         logger.LogInformation(
             "[ACTV-FN-190] BrandVoice for agentId={AgentId}", input.AgentId);
 
-        var result = await worker.AnalyzeAsync(
+        var (signals, localizedSkills) = await worker.AnalyzeAsync(
             emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
             driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
             discovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 
-        return new StringOutput(result);
+        return new BrandVoiceOutput(signals, localizedSkills);
     }
 }

@@ -21,11 +21,11 @@ public sealed class MarketingStyleFunction(
         logger.LogInformation(
             "[ACTV-FN-140] MarketingStyle for agentId={AgentId}", input.AgentId);
 
-        var (styleGuide, brandSignals) = await worker.AnalyzeAsync(
+        var (styleGuide, brandSignals, localizedSkills) = await worker.AnalyzeAsync(
             emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
             driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
             ct: ct);
 
-        return new MarketingStyleOutput(styleGuide, brandSignals);
+        return new MarketingStyleOutput(styleGuide, brandSignals, localizedSkills);
     }
 }

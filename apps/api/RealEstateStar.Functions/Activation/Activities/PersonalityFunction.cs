@@ -28,6 +28,6 @@ public sealed class PersonalityFunction(
             agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 
-        return new PersonalityOutput(result.PersonalitySkillMarkdown, result.IsLowConfidence);
+        return new PersonalityOutput(result.PersonalitySkillMarkdown, result.IsLowConfidence, result.LocalizedSkills);
     }
 }

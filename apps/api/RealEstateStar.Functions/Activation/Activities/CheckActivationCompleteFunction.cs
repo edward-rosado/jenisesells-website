@@ -37,6 +37,13 @@ public sealed class CheckActivationCompleteFunction(
         "Brand Voice.md",
     ];
 
+    // Spanish skill files required when agent supports "es" locale
+    internal static readonly IReadOnlyList<string> SpanishAgentFiles =
+    [
+        "Voice Skill.es.md",
+        "Personality Skill.es.md",
+    ];
+
     [Function(ActivityNames.CheckActivationComplete)]
     public async Task<CheckActivationCompleteOutput> RunAsync(
         [ActivityTrigger] CheckActivationCompleteInput input,
@@ -56,6 +63,13 @@ public sealed class CheckActivationCompleteFunction(
 
         foreach (var file in RequiredAccountFiles)
             checkTasks.Add(FileExistsAsync(accountFolder, file, ct));
+
+        // If the agent supports Spanish, also require localized skill files
+        if (input.Languages is not null && input.Languages.Contains("es", StringComparer.OrdinalIgnoreCase))
+        {
+            foreach (var file in SpanishAgentFiles)
+                checkTasks.Add(FileExistsAsync(agentFolder, file, ct));
+        }
 
         var results = await Task.WhenAll(checkTasks);
         var isComplete = results.All(exists => exists);

@@ -24,8 +24,8 @@ public sealed class DraftLeadEmailFunction(
             ?? throw new InvalidOperationException(
                 $"[DLE-001] Lead {input.LeadId} not found. CorrelationId={input.CorrelationId}");
 
-        logger.LogInformation("[DLE-010] Drafting email for lead {LeadId}. CorrelationId={CorrelationId}",
-            input.LeadId, input.CorrelationId);
+        logger.LogInformation("[DLE-010] Drafting email for lead {LeadId}. Locale={Locale}. CorrelationId={CorrelationId}",
+            input.LeadId, input.Locale ?? "en", input.CorrelationId);
 
         var email = await emailDrafter.DraftAsync(
             lead,

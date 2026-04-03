@@ -66,7 +66,8 @@ public sealed class GeneratePdfFunction(
         var storagePath = await pdfActivity.ExecuteAsync(
             lead, analysis, comps, accountConfig, reportType,
             logoBytes: null, headshotBytes: null,
-            correlationId: input.CorrelationId, ct: ct);
+            correlationId: input.CorrelationId, ct: ct,
+            locale: input.Locale);
 
         logger.LogInformation("[PDF-F-020] PDF stored at {Path}. LeadId={LeadId}. CorrelationId={CorrelationId}",
             storagePath, input.LeadId, input.CorrelationId);

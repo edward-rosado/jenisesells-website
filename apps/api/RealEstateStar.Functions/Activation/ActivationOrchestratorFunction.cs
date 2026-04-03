@@ -134,9 +134,9 @@ public sealed class ActivationOrchestratorFunction
             ctx, ActivityNames.PipelineAnalysis, synthesisInput, "[ACTV-FN-027] pipeline", logger);
         var coachingTask = WrapAsync<CoachingOutput>(
             ctx, ActivityNames.Coaching, synthesisInput, "[ACTV-FN-028] coaching", logger);
-        var brandExtractionTask = WrapAsync<StringOutput>(
+        var brandExtractionTask = WrapAsync<BrandExtractionOutput>(
             ctx, ActivityNames.BrandExtraction, synthesisInput, "[ACTV-FN-029] brand-extraction", logger);
-        var brandVoiceTask = WrapAsync<StringOutput>(
+        var brandVoiceTask = WrapAsync<BrandVoiceOutput>(
             ctx, ActivityNames.BrandVoice, synthesisInput, "[ACTV-FN-030] brand-voice", logger);
         var complianceTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.ComplianceAnalysis, synthesisInput, "[ACTV-FN-031] compliance", logger);
@@ -156,8 +156,10 @@ public sealed class ActivationOrchestratorFunction
         var websiteStyle = websiteTask.Result?.Value;
         var salesPipeline = pipelineTask.Result?.Value;
         var coaching = coachingTask.Result;
-        var brandExtraction = brandExtractionTask.Result?.Value;
-        var brandVoice = brandVoiceTask.Result?.Value;
+        var brandExtractionResult = brandExtractionTask.Result;
+        var brandExtraction = brandExtractionResult?.Signals;
+        var brandVoiceResult = brandVoiceTask.Result;
+        var brandVoice = brandVoiceResult?.Signals;
         var compliance = complianceTask.Result?.Value;
         var feeStructure = feeTask.Result?.Value;
 
@@ -202,6 +204,14 @@ public sealed class ActivationOrchestratorFunction
             .Distinct()
             .ToList();
 
+        // Merge all LocalizedSkills from Phase 2 outputs
+        var mergedLocalizedSkills = MergeLocalizedSkills(
+            voice?.LocalizedSkills,
+            personality?.LocalizedSkills,
+            marketing?.LocalizedSkills,
+            brandExtractionResult?.LocalizedSkills,
+            brandVoiceResult?.LocalizedSkills);
+
         var persistInput = new PersistProfileInput(
             AccountId: request.AccountId,
             AgentId: request.AgentId,
@@ -229,7 +239,8 @@ public sealed class ActivationOrchestratorFunction
             AgentTitle: emailCorpus.Signature?.Title,
             AgentLicenseNumber: emailCorpus.Signature?.LicenseNumber,
             ServiceAreas: serviceAreas,
-            Discovery: discovery);
+            Discovery: discovery,
+            LocalizedSkills: mergedLocalizedSkills);
 
         // PersistProfile is fatal if it fails — let it propagate
         await ctx.CallActivityAsync(ActivityNames.PersistProfile, persistInput);
@@ -279,7 +290,8 @@ public sealed class ActivationOrchestratorFunction
                 Handle: request.AgentId,
                 AgentName: emailCorpus.Signature?.Name,
                 AgentPhone: emailCorpus.Signature?.Phone ?? discovery.Phone,
-                WhatsAppEnabled: discovery.WhatsAppEnabled));
+                WhatsAppEnabled: discovery.WhatsAppEnabled,
+                LocalizedSkills: mergedLocalizedSkills));
 
         if (!ctx.IsReplaying)
         {
@@ -316,6 +328,26 @@ public sealed class ActivationOrchestratorFunction
             }
             return null;
         }
+    }
+
+    // ── Deterministic merge of localized skills from all Phase 2 outputs ──────
+
+    /// <summary>
+    /// Merges LocalizedSkills dictionaries from all Phase 2 outputs into a single dictionary.
+    /// Later entries overwrite earlier ones if keys conflict (last-writer-wins).
+    /// Returns null if no localized skills were produced.
+    /// </summary>
+    private static IReadOnlyDictionary<string, string>? MergeLocalizedSkills(
+        params IReadOnlyDictionary<string, string>?[] sources)
+    {
+        var merged = new Dictionary<string, string>();
+        foreach (var source in sources)
+        {
+            if (source is null) continue;
+            foreach (var kvp in source)
+                merged[kvp.Key] = kvp.Value;
+        }
+        return merged.Count > 0 ? merged : null;
     }
 
     // ── Deterministic markdown builders (no I/O, replay-safe) ────────────────

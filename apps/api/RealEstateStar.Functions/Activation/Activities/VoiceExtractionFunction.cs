@@ -28,6 +28,6 @@ public sealed class VoiceExtractionFunction(
             agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 
-        return new VoiceExtractionOutput(result.VoiceSkillMarkdown, result.IsLowConfidence);
+        return new VoiceExtractionOutput(result.VoiceSkillMarkdown, result.IsLowConfidence, result.LocalizedSkills);
     }
 }

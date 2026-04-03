@@ -213,7 +213,8 @@ public sealed class LeadOrchestratorFunction
                         AgentId = input.AgentId,
                         LeadId = input.LeadId,
                         CorrelationId = input.CorrelationId,
-                        CmaResult = cmaOutput.Result
+                        CmaResult = cmaOutput.Result,
+                        Locale = input.Locale
                     });
             }
             catch (Exception ex)
@@ -239,7 +240,8 @@ public sealed class LeadOrchestratorFunction
                     AgentNotificationConfig = agentConfig,
                     Score = score,
                     CmaResult = cmaOutput?.Result,
-                    HsResult = hsOutput?.Result
+                    HsResult = hsOutput?.Result,
+                    Locale = input.Locale
                 });
         }
         catch (Exception ex)
@@ -294,7 +296,8 @@ public sealed class LeadOrchestratorFunction
                     AgentNotificationConfig = agentConfig,
                     Score = score,
                     CmaResult = cmaOutput?.Result,
-                    HsResult = hsOutput?.Result
+                    HsResult = hsOutput?.Result,
+                    Locale = input.Locale
                 });
             agentNotified = true;
         }
@@ -323,7 +326,8 @@ public sealed class LeadOrchestratorFunction
                     EmailSent = emailSent,
                     AgentNotified = agentNotified,
                     CmaInputHash = input.CmaInputHash,
-                    HsInputHash = input.HsInputHash
+                    HsInputHash = input.HsInputHash,
+                    Locale = input.Locale
                 });
         }
         catch (Exception ex)
