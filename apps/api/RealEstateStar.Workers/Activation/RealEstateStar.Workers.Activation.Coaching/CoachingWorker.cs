@@ -53,8 +53,35 @@ public sealed class CoachingWorker(
 
         var userMessage = BuildUserMessage(agentName, emailCorpus, driveIndex, agentDiscovery);
 
+        // Compute language distribution for multilingual coaching
+        var englishEmailCount = emailCorpus.SentEmails.Count(e => e.DetectedLocale is null or "en");
+        var spanishEmailCount = emailCorpus.SentEmails.Count(e => e.DetectedLocale == "es");
+        var hasSpanishData = spanishEmailCount > 0;
+
+        var systemPrompt = SystemPrompt;
+        if (hasSpanishData)
+        {
+            logger.LogInformation(
+                "[LANG-003] Including multilingual coaching analysis: {EnglishCount} English, {SpanishCount} Spanish emails",
+                englishEmailCount, spanishEmailCount);
+
+            userMessage += $"""
+
+
+                MULTILINGUAL CONTEXT: This agent supports English and Spanish.
+                Language distribution: {englishEmailCount} English emails, {spanishEmailCount} Spanish emails.
+                Analyze their lead pipeline PER LANGUAGE: Are they responding to Spanish leads in Spanish? Do they have marketing campaigns in Spanish? Are there language-specific nurture gaps?
+                Add a '## Multilingual Pipeline Health' section to your analysis with:
+                - **Language distribution**: {englishEmailCount} English, {spanishEmailCount} Spanish
+                - **Spanish response coverage**: [are Spanish leads getting Spanish replies?]
+                - **Spanish marketing presence**: [any Spanish marketing campaigns detected?]
+                - **Language-specific nurture gaps**: [missing drip sequences in Spanish?]
+                - **Recommendation**: [specific actions to improve multilingual coverage]
+                """;
+        }
+
         var response = await anthropicClient.SendAsync(
-            Model, SystemPrompt, userMessage, MaxTokens, Pipeline, ct);
+            Model, systemPrompt, userMessage, MaxTokens, Pipeline, ct);
 
         logger.LogDebug(
             "[ACTV-042] Coaching analysis complete for {AgentName}: {InputTokens} in, {OutputTokens} out, {DurationMs}ms",

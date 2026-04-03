@@ -13,6 +13,7 @@ public sealed class BrandExtractionWorker(
 {
     private const string Model = "claude-sonnet-4-6";
     private const int MaxTokens = 2048;
+    private const int MinSpanishItemsForExtraction = 3;
 
     private const string SystemPrompt = """
         You are an expert real estate brand strategist.
@@ -41,7 +42,7 @@ public sealed class BrandExtractionWorker(
         - team_culture: [how they describe their team]
         """;
 
-    public async Task<string?> AnalyzeAsync(
+    public async Task<(string? Signals, Dictionary<string, string>? LocalizedSkills)> AnalyzeAsync(
         EmailCorpus emailCorpus,
         DriveIndex driveIndex,
         AgentDiscovery discovery,
@@ -60,7 +61,44 @@ public sealed class BrandExtractionWorker(
             "[BRAND-EXTRACT-002] Received brand extraction response ({Length} chars)",
             response.Content.Length);
 
-        return response.Content;
+        // Spanish brand extraction — check for Spanish website content and docs
+        Dictionary<string, string>? localizedSkills = null;
+        var spanishEmails = emailCorpus.SentEmails.Where(e => e.DetectedLocale == "es").ToList();
+        var spanishDocs = driveIndex.Files.Where(f => f.DetectedLocale == "es").ToList();
+        var spanishCount = spanishEmails.Count + spanishDocs.Count;
+
+        if (spanishCount >= MinSpanishItemsForExtraction)
+        {
+            logger.LogInformation(
+                "[LANG-003] Starting es brand extraction: {Count} Spanish items",
+                spanishCount);
+
+            var spanishSystemPrompt = SystemPrompt + "\n\n" +
+                "If the brokerage has Spanish marketing materials or website sections, extract Spanish-specific brand positioning, taglines, and value propositions separately.";
+
+            var spanishCorpus = new EmailCorpus(spanishEmails, [], emailCorpus.Signature);
+            var spanishPrompt = BuildPrompt(spanishCorpus, driveIndex, discovery, sanitizer);
+
+            var spanishResponse = await anthropicClient.SendAsync(
+                Model, spanishSystemPrompt, spanishPrompt, MaxTokens, "activation-brand-extraction.es", ct);
+
+            logger.LogInformation(
+                "[BRAND-EXTRACT-003] Received Spanish brand extraction response ({Length} chars)",
+                spanishResponse.Content.Length);
+
+            localizedSkills = new Dictionary<string, string>
+            {
+                ["BrandExtraction.es"] = spanishResponse.Content
+            };
+        }
+        else if (spanishCount > 0)
+        {
+            logger.LogInformation(
+                "[LANG-010] Skipping es extraction for BrandExtraction: only {Count} Spanish items in corpus",
+                spanishCount);
+        }
+
+        return (response.Content, localizedSkills);
     }
 
     internal static string BuildPrompt(

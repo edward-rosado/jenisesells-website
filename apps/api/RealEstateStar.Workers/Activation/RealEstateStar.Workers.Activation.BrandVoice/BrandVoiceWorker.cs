@@ -13,6 +13,7 @@ public sealed class BrandVoiceWorker(
 {
     private const string Model = "claude-sonnet-4-6";
     private const int MaxTokens = 2048;
+    private const int MinSpanishItemsForExtraction = 3;
 
     private const string SystemPrompt = """
         You are an expert brand voice and communication style analyst.
@@ -42,7 +43,7 @@ public sealed class BrandVoiceWorker(
         - sentence_length_preference: [concise bullets, flowing paragraphs, mixed]
         """;
 
-    public async Task<string?> AnalyzeAsync(
+    public async Task<(string? Signals, Dictionary<string, string>? LocalizedSkills)> AnalyzeAsync(
         EmailCorpus emailCorpus,
         DriveIndex driveIndex,
         AgentDiscovery discovery,
@@ -61,7 +62,44 @@ public sealed class BrandVoiceWorker(
             "[BRAND-VOICE-002] Received brand voice response ({Length} chars)",
             response.Content.Length);
 
-        return response.Content;
+        // Spanish brand voice extraction
+        Dictionary<string, string>? localizedSkills = null;
+        var spanishEmails = emailCorpus.SentEmails.Where(e => e.DetectedLocale == "es").ToList();
+        var spanishDocs = driveIndex.Files.Where(f => f.DetectedLocale == "es").ToList();
+        var spanishCount = spanishEmails.Count + spanishDocs.Count;
+
+        if (spanishCount >= MinSpanishItemsForExtraction)
+        {
+            logger.LogInformation(
+                "[LANG-003] Starting es brand voice extraction: {Count} Spanish items",
+                spanishCount);
+
+            var spanishSystemPrompt = SystemPrompt + "\n\n" +
+                "Extract brand voice patterns from Spanish communications. Note Spanish-specific greeting formulas, sign-off conventions, formality registers, and self-reference patterns.";
+
+            var spanishCorpus = new EmailCorpus(spanishEmails, [], emailCorpus.Signature);
+            var spanishPrompt = BuildPrompt(spanishCorpus, driveIndex, discovery, sanitizer);
+
+            var spanishResponse = await anthropicClient.SendAsync(
+                Model, spanishSystemPrompt, spanishPrompt, MaxTokens, "activation-brand-voice.es", ct);
+
+            logger.LogInformation(
+                "[BRAND-VOICE-003] Received Spanish brand voice response ({Length} chars)",
+                spanishResponse.Content.Length);
+
+            localizedSkills = new Dictionary<string, string>
+            {
+                ["BrandVoice.es"] = spanishResponse.Content
+            };
+        }
+        else if (spanishCount > 0)
+        {
+            logger.LogInformation(
+                "[LANG-010] Skipping es extraction for BrandVoice: only {Count} Spanish items in corpus",
+                spanishCount);
+        }
+
+        return (response.Content, localizedSkills);
     }
 
     internal static string BuildPrompt(

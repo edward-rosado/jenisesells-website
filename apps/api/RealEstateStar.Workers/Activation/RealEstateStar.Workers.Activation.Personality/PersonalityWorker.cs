@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Services;
 
 namespace RealEstateStar.Workers.Activation.Personality;
 
@@ -17,6 +18,7 @@ public sealed class PersonalityWorker(
     private const string Model = "claude-sonnet-4-6";
     private const int MaxTokens = 6144;
     private const int MinEmailsForFullProfile = 5;
+    private const int MinSpanishItemsForExtraction = 3;
     private const string Pipeline = "activation.personality";
 
     private const string SystemPrompt =
@@ -49,7 +51,43 @@ public sealed class PersonalityWorker(
             "[ACTV-021] Personality extraction complete for {AgentName}: {InputTokens} in, {OutputTokens} out, {DurationMs}ms",
             agentName, response.InputTokens, response.OutputTokens, response.DurationMs);
 
-        return new PersonalityResult(response.Content, isLowData);
+        // Spanish extraction — run only if sufficient Spanish data exists
+        Dictionary<string, string>? localizedSkills = null;
+        var spanishEmails = emailCorpus.SentEmails.Where(e => e.DetectedLocale == "es").ToList();
+        var spanishDocs = driveIndex.Files.Where(f => f.DetectedLocale == "es").ToList();
+        var spanishCount = spanishEmails.Count + spanishDocs.Count;
+
+        if (spanishCount >= MinSpanishItemsForExtraction)
+        {
+            logger.LogInformation(
+                "[LANG-003] Starting es personality extraction for {AgentName}: {Count} Spanish items",
+                agentName, spanishCount);
+
+            var spanishUserMessage = BuildSpanishUserMessage(agentName, spanishEmails, spanishDocs, driveIndex, isLowData);
+
+            var spanishSystemPrompt = SystemPrompt + "\n\n" +
+                "Extract personality expression patterns in Spanish. Note culturally-specific communication norms — formality levels, warmth expressions, humor style, and relationship-building patterns specific to Spanish-speaking client interactions.";
+
+            var spanishResponse = await anthropicClient.SendAsync(
+                Model, spanishSystemPrompt, spanishUserMessage, MaxTokens, Pipeline + ".es", ct);
+
+            logger.LogDebug(
+                "[ACTV-022] Spanish personality extraction complete for {AgentName}: {InputTokens} in, {OutputTokens} out, {DurationMs}ms",
+                agentName, spanishResponse.InputTokens, spanishResponse.OutputTokens, spanishResponse.DurationMs);
+
+            localizedSkills = new Dictionary<string, string>
+            {
+                ["PersonalitySkill.es"] = spanishResponse.Content
+            };
+        }
+        else if (spanishCount > 0)
+        {
+            logger.LogInformation(
+                "[LANG-010] Skipping es extraction for PersonalitySkill: only {Count} Spanish items in corpus",
+                spanishCount);
+        }
+
+        return new PersonalityResult(response.Content, isLowData, localizedSkills);
     }
 
     private string BuildUserMessage(
@@ -132,6 +170,78 @@ public sealed class PersonalityWorker(
         return sb.ToString();
     }
 
+    private string BuildSpanishUserMessage(
+        string agentName,
+        List<EmailMessage> spanishEmails,
+        List<DriveFile> spanishDocs,
+        DriveIndex driveIndex,
+        bool isLowData)
+    {
+        var sb = new System.Text.StringBuilder();
+
+        var sentEmailsContent = BuildEmailContent(spanishEmails);
+        var sanitizedSentEmails = sanitizer.Sanitize(sentEmailsContent);
+        sb.AppendLine($"<user-data source=\"spanish_sent_emails\" count=\"{spanishEmails.Count}\">");
+        sb.AppendLine(sanitizedSentEmails);
+        sb.AppendLine("</user-data>");
+        sb.AppendLine();
+
+        if (spanishDocs.Count > 0)
+        {
+            var driveContent = BuildSpanishDriveContent(spanishDocs, driveIndex);
+            var sanitizedDriveContent = sanitizer.Sanitize(driveContent);
+            sb.AppendLine("<user-data source=\"spanish_drive_docs\">");
+            sb.AppendLine(sanitizedDriveContent);
+            sb.AppendLine("</user-data>");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine($"""
+            Extract a Spanish Personality Profile in this exact markdown format:
+
+            # Personality Profile ({LanguageDetector.GetLanguageName("es")}): {agentName}
+
+            ## Core Identity (Spanish)
+            This profile captures the agent's personality as expressed in Spanish communications. Note culturally-specific emotional expression, formality norms, and interpersonal dynamics.{(isLowData ? "\n⚠️ Low confidence — limited Spanish data analyzed." : "")}
+
+            ## Temperament (Spanish Context)
+            - **Primary style**: [warm / analytical / driver / expressive — as expressed in Spanish]
+            - **Formality register**: [usted-dominant / tú-dominant / mixed / context-dependent]
+            - **Evidence**: [1-2 sentences from Spanish emails that demonstrate this]
+
+            ## Emotional Intelligence (Spanish Context)
+            - **Empathy expression**: [how they show care in Spanish — direct, effusive, understated]
+            - **Warmth indicators**: [culturally-specific warmth expressions]
+            - **Celebration style**: [how they celebrate wins in Spanish]
+
+            ## Communication Energy (Spanish)
+            - **Enthusiasm level**: [1-10 scale with evidence from Spanish text]
+            - **Confidence level**: [1-10 scale with evidence]
+
+            ## Relationship Style (Spanish)
+            - **Focus**: [relationship-first vs transaction-first in Spanish interactions]
+            - **Trust-building approach**: [how they build trust with Spanish-speaking clients]
+            - **Cultural sensitivity markers**: [regional awareness, demographic adaptation]
+            """);
+
+        return sb.ToString();
+    }
+
+    private static string BuildSpanishDriveContent(List<DriveFile> spanishDocs, DriveIndex driveIndex)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var doc in spanishDocs.Take(10))
+        {
+            if (driveIndex.Contents.TryGetValue(doc.Id, out var content))
+            {
+                sb.AppendLine($"--- Document: {doc.Name} ---");
+                sb.AppendLine(content);
+                sb.AppendLine();
+            }
+        }
+        return sb.Length > 0 ? sb.ToString() : "(No Spanish Drive documents with content available)";
+    }
+
     private static string BuildEmailContent(IReadOnlyList<EmailMessage> emails)
     {
         if (emails.Count == 0)
@@ -184,4 +294,7 @@ public sealed class PersonalityWorker(
     }
 }
 
-public sealed record PersonalityResult(string PersonalitySkillMarkdown, bool IsLowConfidence);
+public sealed record PersonalityResult(
+    string PersonalitySkillMarkdown,
+    bool IsLowConfidence,
+    Dictionary<string, string>? LocalizedSkills = null);

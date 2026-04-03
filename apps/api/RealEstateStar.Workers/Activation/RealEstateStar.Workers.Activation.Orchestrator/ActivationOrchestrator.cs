@@ -417,13 +417,9 @@ public class ActivationOrchestrator : BackgroundService
             "[ACTV-028] coaching", request,
             () => _coachingWorker.AnalyzeAsync(agentName, emailCorpus, driveIndex, discovery, ct));
 
-        var brandExtractionTask = RunSafeAsync(
-            "[ACTV-029] brand-extraction", request,
-            () => _brandExtractionWorker.AnalyzeAsync(emailCorpus, driveIndex, discovery, ct));
+        var brandExtractionTask = RunSafeBrandExtractionAsync(request, emailCorpus, driveIndex, discovery, ct);
 
-        var brandVoiceTask = RunSafeAsync(
-            "[ACTV-030] brand-voice", request,
-            () => _brandVoiceWorker.AnalyzeAsync(emailCorpus, driveIndex, discovery, ct));
+        var brandVoiceTask = RunSafeBrandVoiceAsync(request, emailCorpus, driveIndex, discovery, ct);
 
         var complianceTask = RunSafeAsync(
             "[ACTV-031] compliance", request,
@@ -443,6 +439,16 @@ public class ActivationOrchestrator : BackgroundService
         var brandingResult = brandingTask.Result;
         var coachingResult = coachingTask.Result;
         var marketingResult = marketingTask.Result;
+        var brandExtractionResult = brandExtractionTask.Result;
+        var brandVoiceResult = brandVoiceTask.Result;
+
+        // Collect all localized skills from workers into a single dictionary
+        var localizedSkills = new Dictionary<string, string>();
+        MergeLocalizedSkills(localizedSkills, voiceResult?.LocalizedSkills);
+        MergeLocalizedSkills(localizedSkills, personalityResult?.LocalizedSkills);
+        MergeLocalizedSkills(localizedSkills, marketingResult.LocalizedSkills);
+        MergeLocalizedSkills(localizedSkills, brandExtractionResult?.LocalizedSkills);
+        MergeLocalizedSkills(localizedSkills, brandVoiceResult?.LocalizedSkills);
 
         // Derive identity from email corpus signature + discovery
         var emailSignature = emailCorpus.Signature;
@@ -462,8 +468,8 @@ public class ActivationOrchestrator : BackgroundService
             CoachingReport = coachingResult?.CoachingReportMarkdown,
             BrandingKitMarkdown = brandingResult?.BrandingKitMarkdown,
             BrandingKit = brandingResult?.Kit,
-            BrandExtractionSignals = brandExtractionTask.Result,
-            BrandVoiceSignals = brandVoiceTask.Result,
+            BrandExtractionSignals = brandExtractionResult?.Signals,
+            BrandVoiceSignals = brandVoiceResult?.Signals,
             ComplianceAnalysis = complianceTask.Result,
             FeeStructure = feeTask.Result,
             DriveIndex = BuildDriveIndexMarkdown(driveIndex),
@@ -478,7 +484,17 @@ public class ActivationOrchestrator : BackgroundService
             AgentTitle = emailSignature?.Title,
             AgentLicenseNumber = emailSignature?.LicenseNumber,
             ServiceAreas = serviceAreas,
+            LocalizedSkills = localizedSkills.Count > 0 ? localizedSkills : null,
         };
+    }
+
+    private static void MergeLocalizedSkills(
+        Dictionary<string, string> target,
+        Dictionary<string, string>? source)
+    {
+        if (source is null) return;
+        foreach (var kvp in source)
+            target[kvp.Key] = kvp.Value;
     }
 
     // ── Phase 3: Persist + Merge ──────────────────────────────────────────────
@@ -601,6 +617,7 @@ public class ActivationOrchestrator : BackgroundService
             ["brand-voice"] = outputs.BrandVoiceSignals is not null ? "completed" : "skipped",
             ["compliance"] = outputs.ComplianceAnalysis is not null ? "completed" : "skipped",
             ["fee-structure"] = outputs.FeeStructure is not null ? "completed" : "skipped",
+            ["localized-skills"] = outputs.LocalizedSkills is not null ? $"completed ({outputs.LocalizedSkills.Count} skills)" : "skipped",
         };
 
         var checkpoint = new Phase2Checkpoint(workerStatus, SavedAt: DateTime.UtcNow);
@@ -632,7 +649,7 @@ public class ActivationOrchestrator : BackgroundService
 
     // ── Marketing-specific wrapper (value tuple return) ───────────────────────
 
-    private async Task<(string? StyleGuide, string? BrandSignals)> RunSafeMarketingAsync(
+    private async Task<(string? StyleGuide, string? BrandSignals, Dictionary<string, string>? LocalizedSkills)> RunSafeMarketingAsync(
         ActivationRequest request,
         EmailCorpus emailCorpus,
         DriveIndexModel driveIndex,
@@ -647,7 +664,47 @@ public class ActivationOrchestrator : BackgroundService
             _logger.LogWarning(ex,
                 "[ACTV-025] marketing worker failed for accountId={AccountId}, agentId={AgentId} — continuing with remaining workers",
                 request.AccountId, request.AgentId);
-            return (null, null);
+            return (null, null, null);
+        }
+    }
+
+    private async Task<(string? Signals, Dictionary<string, string>? LocalizedSkills)?> RunSafeBrandExtractionAsync(
+        ActivationRequest request,
+        EmailCorpus emailCorpus,
+        DriveIndexModel driveIndex,
+        AgentDiscoveryModel discovery,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await _brandExtractionWorker.AnalyzeAsync(emailCorpus, driveIndex, discovery, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "[ACTV-029] brand-extraction worker failed for accountId={AccountId}, agentId={AgentId} — continuing with remaining workers",
+                request.AccountId, request.AgentId);
+            return null;
+        }
+    }
+
+    private async Task<(string? Signals, Dictionary<string, string>? LocalizedSkills)?> RunSafeBrandVoiceAsync(
+        ActivationRequest request,
+        EmailCorpus emailCorpus,
+        DriveIndexModel driveIndex,
+        AgentDiscoveryModel discovery,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await _brandVoiceWorker.AnalyzeAsync(emailCorpus, driveIndex, discovery, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "[ACTV-030] brand-voice worker failed for accountId={AccountId}, agentId={AgentId} — continuing with remaining workers",
+                request.AccountId, request.AgentId);
+            return null;
         }
     }
 

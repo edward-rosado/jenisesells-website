@@ -13,6 +13,7 @@ public sealed class MarketingStyleWorker(
 {
     private const string Model = "claude-sonnet-4-6";
     private const int MaxTokens = 2048;
+    private const int MinSpanishItemsForExtraction = 3;
 
     private static readonly string[] RequiredSections =
         ["## Marketing Style", "### Campaign Types", "### Email Design Patterns", "### Marketing Voice"];
@@ -43,7 +44,7 @@ public sealed class MarketingStyleWorker(
         [Colors, fonts, taglines, visual elements used consistently in marketing]
         """;
 
-    public async Task<(string? StyleGuide, string? BrandSignals)> AnalyzeAsync(
+    public async Task<(string? StyleGuide, string? BrandSignals, Dictionary<string, string>? LocalizedSkills)> AnalyzeAsync(
         EmailCorpus emailCorpus,
         DriveIndex driveIndex,
         CancellationToken ct)
@@ -53,7 +54,7 @@ public sealed class MarketingStyleWorker(
         if (marketingEmails.Count == 0)
         {
             logger.LogInformation("[MKT-STYLE-001] No marketing emails detected — skipping");
-            return (null, null);
+            return (null, null, null);
         }
 
         var prompt = BuildPrompt(marketingEmails, driveIndex, sanitizer);
@@ -72,7 +73,49 @@ public sealed class MarketingStyleWorker(
         ValidateMarkdownOutput(response.Content);
 
         var brandSignals = ExtractBrandSignals(response.Content);
-        return (response.Content, brandSignals);
+
+        // Spanish marketing extraction
+        Dictionary<string, string>? localizedSkills = null;
+        var spanishMarketingEmails = marketingEmails.Where(e => e.DetectedLocale == "es").ToList();
+        var spanishMarketingDocs = driveIndex.Files
+            .Where(f => f.DetectedLocale == "es" &&
+                        (f.Category.Contains("marketing", StringComparison.OrdinalIgnoreCase) ||
+                         f.Name.ToLowerInvariant().Contains("flyer") ||
+                         f.Name.ToLowerInvariant().Contains("campaign")))
+            .ToList();
+        var spanishCount = spanishMarketingEmails.Count + spanishMarketingDocs.Count;
+
+        if (spanishCount >= MinSpanishItemsForExtraction)
+        {
+            logger.LogInformation(
+                "[LANG-003] Starting es marketing style extraction: {Count} Spanish marketing items",
+                spanishCount);
+
+            var spanishPrompt = BuildPrompt(spanishMarketingEmails, driveIndex, sanitizer);
+
+            var spanishSystemPrompt = SystemPrompt + "\n\n" +
+                "Analyze marketing patterns for Spanish campaigns specifically. Note: Spanish real estate marketing may use different channels, cultural references, community connections, and persuasion patterns than English marketing.";
+
+            var spanishResponse = await anthropicClient.SendAsync(
+                Model, spanishSystemPrompt, spanishPrompt, MaxTokens, "activation-marketing-style.es", ct);
+
+            logger.LogInformation(
+                "[MKT-STYLE-005] Received Spanish marketing style response ({Length} chars)",
+                spanishResponse.Content.Length);
+
+            localizedSkills = new Dictionary<string, string>
+            {
+                ["MarketingStyle.es"] = spanishResponse.Content
+            };
+        }
+        else if (spanishCount > 0)
+        {
+            logger.LogInformation(
+                "[LANG-010] Skipping es extraction for MarketingStyle: only {Count} Spanish items in corpus",
+                spanishCount);
+        }
+
+        return (response.Content, brandSignals, localizedSkills);
     }
 
     internal static List<EmailMessage> FilterMarketingEmails(IReadOnlyList<EmailMessage> sentEmails)
