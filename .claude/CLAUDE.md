@@ -255,6 +255,22 @@ When a seller lead is submitted, the CMA pipeline fetches comparable sales data 
 **PDF Download:** `DownloadCmaEndpoint` (GET `/accounts/{accountId}/agents/{agentId}/leads/{leadId}/cma/download`) streams the PDF from Azure Blob Storage. PDFs are stored automatically when the CMA pipeline completes.
 
 
+## Multi-Language Architecture
+
+Agent sites support English and Spanish. Language flows through two axes:
+
+**Agent capability** (activation): Phase 2 workers extract per-language skills from the agent's actual Spanish emails/docs. Stored as `Voice Skill.es.md`, `Personality Skill.es.md`, etc. alongside English versions.
+
+**Contact preference** (lead pipeline): `Lead.Locale` captured at form submission. Email drafter loads `AgentContext.GetSkill("VoiceSkill", locale)` for per-language voice. CMA PDFs and email templates render localized content.
+
+**Key conventions:**
+- Per-language skill files: `{Skill Name}.{locale}.md` (e.g., `Voice Skill.es.md`)
+- Locale codes: BCP 47 (`en`, `es`)
+- `AgentContext.GetSkill(skillName, locale)` — falls back to English if locale version doesn't exist
+- Language detection: `LanguageDetector.DetectLocale(text)` in `Domain/Shared/Services/`
+- Observability: `RealEstateStar.Language` ActivitySource + Meter
+- TCPA consent text stays English regardless of locale (legal requirement)
+
 ## Docker / Production Notes
 
 - **Agent config files** (`config/accounts/`) live at repo root, outside Docker build context (`apps/api/`). CI copies them into the build context before `docker build`.
