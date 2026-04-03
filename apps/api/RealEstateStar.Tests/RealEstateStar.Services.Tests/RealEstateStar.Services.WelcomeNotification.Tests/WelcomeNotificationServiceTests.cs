@@ -1,10 +1,12 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Domain.Activation.Models;
+using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.Shared.Models;
+using RealEstateStar.TestUtilities;
 
 namespace RealEstateStar.Services.WelcomeNotification.Tests;
 
@@ -27,6 +29,7 @@ public class WelcomeNotificationServiceTests
             _gmail.Object,
             _anthropic.Object,
             _storage.Object,
+            new NullIdempotencyStore(),
             NullLogger<WelcomeNotificationService>.Instance);
     }
 
@@ -296,5 +299,47 @@ public class WelcomeNotificationServiceTests
     public void WelcomeSentFile_IsCorrect()
     {
         Assert.Equal("Welcome Sent.md", WelcomeNotificationService.WelcomeSentFile);
+    }
+
+    // ── Idempotency store guard ───────────────────────────────────────────────
+
+    private WelcomeNotificationService CreateSutWithStore(InMemoryIdempotencyStore store) =>
+        new(_whatsApp.Object, _gmail.Object, _anthropic.Object, _storage.Object, store,
+            NullLogger<WelcomeNotificationService>.Instance);
+
+    [Fact]
+    public async Task SendAsync_WhenIdempotencyStoreAlreadyCompleted_SkipsAllWork()
+    {
+        var store = new InMemoryIdempotencyStore();
+        var sut = CreateSutWithStore(store);
+
+        var key = $"activation:{AgentId}:welcome-notification";
+        await store.MarkCompletedAsync(key, Ct);
+
+        await sut.SendAsync(AccountId, AgentId, Handle, MakeOutputs(), Ct);
+
+        // Storage, anthropic, and senders never called
+        _storage.VerifyNoOtherCalls();
+        _anthropic.VerifyNoOtherCalls();
+        _whatsApp.VerifyNoOtherCalls();
+        _gmail.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task SendAsync_WhenIdempotencyStoreNotCompleted_ProceedsToFileCheck()
+    {
+        var store = new InMemoryIdempotencyStore();
+        var sut = CreateSutWithStore(store);
+
+        // File check returns "already sent" — should still stop after file check
+        _storage.Setup(s => s.ReadDocumentAsync(
+            $"real-estate-star/{AgentId}", WelcomeNotificationService.WelcomeSentFile, Ct))
+            .ReturnsAsync("---\nsent: true\n---\nWelcome message.");
+
+        await sut.SendAsync(AccountId, AgentId, Handle, MakeOutputs(), Ct);
+
+        _anthropic.VerifyNoOtherCalls();
+        _whatsApp.VerifyNoOtherCalls();
+        _gmail.VerifyNoOtherCalls();
     }
 }

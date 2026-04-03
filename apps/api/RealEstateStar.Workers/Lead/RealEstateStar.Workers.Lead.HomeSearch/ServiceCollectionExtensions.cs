@@ -8,11 +8,13 @@ namespace RealEstateStar.Workers.Lead.HomeSearch;
 
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers home search pipeline compute services: <see cref="IHomeSearchProvider"/>.
+    /// The Channel-based <c>HomeSearchProcessingWorker</c> BackgroundService was removed in Phase 4;
+    /// Azure Durable Functions now orchestrate home search via <c>HomeSearchFunction</c>.
+    /// </summary>
     public static IServiceCollection AddHomeSearchPipeline(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSingleton<HomeSearchProcessingChannel>();
-        services.AddHostedService<HomeSearchProcessingWorker>();
-
         var sources = configuration.GetSection("Pipeline:HomeSearch:Sources")
             .Get<Dictionary<string, string>>() ?? new();
         services.AddSingleton<IHomeSearchProvider>(sp =>

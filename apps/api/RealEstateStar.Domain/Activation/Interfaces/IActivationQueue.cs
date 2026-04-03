@@ -7,6 +7,12 @@ namespace RealEstateStar.Domain.Activation.Interfaces;
 /// </summary>
 public interface IActivationQueue
 {
+    /// <summary>
+    /// Returns the approximate number of messages currently in the queue.
+    /// For Azure Queue Storage this is eventually consistent; for in-memory it is exact.
+    /// </summary>
+    int QueueDepth { get; }
+
     Task EnqueueAsync(ActivationRequest request, CancellationToken ct);
     Task<QueueMessage<ActivationRequest>?> DequeueAsync(TimeSpan visibilityTimeout, CancellationToken ct);
     Task CompleteAsync(string messageId, string popReceipt, CancellationToken ct);

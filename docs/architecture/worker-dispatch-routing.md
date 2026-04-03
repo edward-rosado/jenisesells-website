@@ -1,25 +1,27 @@
 # Worker Dispatch Routing
 
-The orchestrator dispatches CMA and HomeSearch workers based on lead type, collects results via TaskCompletionSource, then dispatches PDF generation if CMA succeeded.
+The orchestrator dispatches CMA and HomeSearch activities in parallel via `ctx.CallActivityAsync`, collects results with `Task.WhenAll`, then dispatches PDF generation if CMA succeeded.
 
 ```mermaid
 flowchart LR
-    Orch["LeadOrchestrator"] -->|"seller lead"| CmaChannel["CmaProcessingChannel"]
-    Orch -->|"buyer lead"| HsChannel["HomeSearchProcessingChannel"]
-    Orch -->|"both"| CmaChannel
-    Orch -->|"both"| HsChannel
+    Orch["LeadOrchestratorFunction"]
 
-    CmaChannel --> CmaWorker["CMA Worker<br/>pure compute"]
-    HsChannel --> HsWorker["HomeSearch Worker<br/>pure compute"]
+    Orch -->|"seller lead"| CmaAct["RunCmaActivity\npure compute"]
+    Orch -->|"buyer lead"| HsAct["RunHomeSearchActivity\npure compute"]
+    Orch -->|"both"| CmaAct
+    Orch -->|"both"| HsAct
 
-    CmaWorker -->|"TCS result"| Orch
-    HsWorker -->|"TCS result"| Orch
+    CmaAct -->|"ActivityResult"| WhenAll["Task.WhenAll\nindividual try/catch"]
+    HsAct -->|"ActivityResult"| WhenAll
 
-    Orch -->|"CMA succeeded"| PdfChannel["PdfProcessingChannel"]
-    PdfChannel --> PdfWorker["PDF Worker<br/>QuestPDF"]
-    PdfWorker -->|"writes PDF"| Storage["Document Storage"]
-    PdfWorker -->|"TCS result"| Orch
+    WhenAll -->|"CMA succeeded"| PdfAct["GeneratePdfActivity\nQuestPDF"]
+    WhenAll -->|"CMA failed"| Skip["Skip PDF\nproceed without"]
 
-    Orch --> Email["LeadEmailDrafter<br/>Claude-drafted"]
-    Orch --> Agent["AgentNotifier<br/>WhatsApp + email"]
+    PdfAct -->|"writes PDF"| Storage["Azure Blob Storage"]
+    PdfAct -->|"returns path"| Orch
+
+    Skip --> Orch
+
+    Orch --> Email["DraftEmailActivity\nClaude-drafted"]
+    Orch --> Agent["NotifyAgentActivity\nWhatsApp + email"]
 ```

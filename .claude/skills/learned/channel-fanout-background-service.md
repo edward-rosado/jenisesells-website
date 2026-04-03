@@ -1,11 +1,16 @@
 ---
 name: channel-fanout-background-service
-description: "Decompose monolithic BackgroundService workers into Channel<T> fan-out pipelines with independent workers"
+description: "SUPERSEDED by Azure Durable Functions (2026-04-02). Was: Channel<T> fan-out BackgroundService pattern."
 user-invocable: false
 origin: auto-extracted
+deprecated: true
 ---
 
-# Channel<T> Fan-Out BackgroundService Pattern
+> **SUPERSEDED (2026-04-02):** This pattern was replaced by Azure Durable Functions.
+> Orchestrators now use `ctx.CallActivityAsync` + `Task.WhenAll` for fan-out.
+> See: `docs/superpowers/specs/2026-03-31-azure-durable-functions-migration-plan.md`
+
+# Channel<T> Fan-Out BackgroundService Pattern (Historical)
 
 **Extracted:** 2026-03-20
 **Context:** When a BackgroundService worker grows to handle multiple independent pipelines inline (e.g., enrichment + CMA + home search), decompose into separate workers connected by bounded channels.

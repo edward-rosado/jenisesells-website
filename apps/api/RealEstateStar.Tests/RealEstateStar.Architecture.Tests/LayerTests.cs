@@ -26,11 +26,13 @@ public class LayerTests
     private static readonly System.Reflection.Assembly DataServicesAssembly =
         typeof(DataServices.Config.AccountConfigService).Assembly;
 
+    // Phase 4: CmaProcessingWorker and HomeSearchProcessingWorker (BackgroundServices) removed.
+    // Use remaining types in each assembly as anchors.
     private static readonly System.Reflection.Assembly CmaWorkerAssembly =
-        typeof(Workers.Lead.CMA.CmaProcessingWorker).Assembly;
+        typeof(Workers.Lead.CMA.RentCastCompSource).Assembly;
 
     private static readonly System.Reflection.Assembly HomeSearchWorkerAssembly =
-        typeof(Workers.Lead.HomeSearch.HomeSearchProcessingWorker).Assembly;
+        typeof(Workers.Lead.HomeSearch.ScraperHomeSearchProvider).Assembly;
 
     [Fact]
     public void Domain_types_should_not_depend_on_DataServices()

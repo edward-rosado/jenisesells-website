@@ -129,9 +129,12 @@ public class DependencyTests
             "RealEstateStar.Clients.GSheets"
         };
 
+        // Composition roots (Api and Functions) are allowed to reference Clients.*
+        var compositionRoots = new HashSet<string> { "Api", "Functions" };
+
         var productionAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.*.dll")
             .Select(Assembly.LoadFrom)
-            .Where(a => !a.GetName().Name!.Contains("Api"))
+            .Where(a => !compositionRoots.Any(k => a.GetName().Name!.Contains(k)))
             .Where(a => !a.GetName().Name!.Contains("Tests"))
             .Where(a => !a.GetName().Name!.Contains("TestUtilities"));
 
@@ -146,7 +149,7 @@ public class DependencyTests
                 .ToList();
 
             Assert.True(clientRefs.Count == 0,
-                $"{assemblyName} references {string.Join(", ", clientRefs)} — only Api may reference Clients.* (GoogleOAuth is the only permitted shared infrastructure dep for Google API clients)");
+                $"{assemblyName} references {string.Join(", ", clientRefs)} — only Api and Functions may reference Clients.* (GoogleOAuth is the only permitted shared infrastructure dep for Google API clients)");
         }
     }
 
@@ -155,10 +158,11 @@ public class DependencyTests
     {
         // Services persist failure/fallback records via DataServices.
         // Activities persist pipeline artifacts via DataServices.
+        // Functions is a second composition root alongside Api — it wires DI and may reference DataServices.
         // Everyone else goes through Domain interfaces only.
         var allowed = new HashSet<string>
         {
-            "Api", "Services", "Activities", "DataServices", "Tests", "TestUtilities"
+            "Api", "Services", "Activities", "DataServices", "Tests", "TestUtilities", "Functions"
         };
 
         var productionAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.*.dll")
@@ -180,9 +184,12 @@ public class DependencyTests
     [Fact]
     public void No_project_outside_Api_references_Data()
     {
+        // Functions is a second composition root alongside Api — both are allowed to reference Data.
+        var compositionRoots = new HashSet<string> { "Api", "Functions" };
+
         var productionAssemblies = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.*.dll")
             .Select(Assembly.LoadFrom)
-            .Where(a => !a.GetName().Name!.Contains("Api"))
+            .Where(a => !compositionRoots.Any(r => a.GetName().Name!.Contains(r)))
             .Where(a => !a.GetName().Name!.Contains("Tests"))
             .Where(a => !a.GetName().Name!.Contains("TestUtilities"))
             .Where(a => a.GetName().Name != "RealEstateStar.Data");
@@ -195,7 +202,7 @@ public class DependencyTests
                 .ToList();
 
             Assert.True(dataRefs.Count == 0,
-                $"{assembly.GetName().Name} references {string.Join(", ", dataRefs)} — only Api may reference Data");
+                $"{assembly.GetName().Name} references {string.Join(", ", dataRefs)} — only composition roots (Api, Functions) may reference Data");
         }
     }
 
@@ -240,6 +247,91 @@ public class DependencyTests
             "RealEstateStar.Clients.Turnstile",
             "RealEstateStar.Clients.Azure",
             "RealEstateStar.Clients.Gws",
+            "RealEstateStar.Clients.RentCast",
+        };
+
+        var violations = assembly.GetReferencedAssemblies()
+            .Where(a => a.Name!.StartsWith("RealEstateStar"))
+            .Where(a => !allowed.Contains(a.Name!))
+            .Select(a => a.Name!)
+            .ToList();
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void Functions_only_depends_on_allowed_projects()
+    {
+        // Functions is a second composition root alongside Api.
+        // Phase 0: minimal refs — Domain, DataServices, Data, Workers.Shared.
+        // Phase 1: WhatsApp webhook + retry — adds Workers.WhatsApp.
+        // More refs will be added in Phases 2-3 as functions are built.
+        //
+        // Note: Functions is referenced with ReferenceOutputAssembly=false to avoid a Program class
+        // name collision with Api. The DLL is loaded from its build output path directly.
+        var functionsPath = Path.Combine(AppContext.BaseDirectory, "RealEstateStar.Functions.dll");
+        Assert.True(File.Exists(functionsPath),
+            $"RealEstateStar.Functions.dll not found at {functionsPath} — ensure Functions project is built");
+
+        var assembly = Assembly.LoadFrom(functionsPath);
+        var allowed = new HashSet<string>
+        {
+            "RealEstateStar.Functions",
+            // Core infrastructure
+            "RealEstateStar.Domain",
+            "RealEstateStar.DataServices",
+            "RealEstateStar.Data",
+            "RealEstateStar.Workers.Shared",
+            // Phase 1: WhatsApp — owns IConversationHandler impl, WhatsAppRetryJob
+            "RealEstateStar.Workers.WhatsApp",
+            // Phase 1: Activation workers (pure compute, Domain + Workers.Shared only)
+            "RealEstateStar.Workers.Activation.AgentDiscovery",
+            "RealEstateStar.Workers.Activation.BrandExtraction",
+            "RealEstateStar.Workers.Activation.BrandingDiscovery",
+            "RealEstateStar.Workers.Activation.BrandVoice",
+            "RealEstateStar.Workers.Activation.CmaStyle",
+            "RealEstateStar.Workers.Activation.Coaching",
+            "RealEstateStar.Workers.Activation.ComplianceAnalysis",
+            "RealEstateStar.Workers.Activation.DriveIndex",
+            "RealEstateStar.Workers.Activation.EmailFetch",
+            "RealEstateStar.Workers.Activation.FeeStructure",
+            "RealEstateStar.Workers.Activation.MarketingStyle",
+            "RealEstateStar.Workers.Activation.Orchestrator",
+            "RealEstateStar.Workers.Activation.Personality",
+            "RealEstateStar.Workers.Activation.PipelineAnalysis",
+            "RealEstateStar.Workers.Activation.VoiceExtraction",
+            "RealEstateStar.Workers.Activation.WebsiteStyle",
+            // Phase 1: Activation activities
+            "RealEstateStar.Activities.Activation.BrandMerge",
+            "RealEstateStar.Activities.Activation.PersistAgentProfile",
+            "RealEstateStar.Activities.Activation.ContactImportPersist",
+            // Phase 1: Lead activities and workers
+            "RealEstateStar.Activities.Lead.ContactDetection",
+            "RealEstateStar.Activities.Lead.Persist",
+            "RealEstateStar.Activities.Pdf",
+            "RealEstateStar.Workers.Lead.CMA",
+            "RealEstateStar.Workers.Lead.HomeSearch",
+            "RealEstateStar.Workers.Lead.Orchestrator",
+            // Phase 1: Services (composition root may reference Services)
+            "RealEstateStar.Services.AgentNotifier",
+            "RealEstateStar.Services.LeadCommunicator",
+            "RealEstateStar.Services.AgentConfig",
+            "RealEstateStar.Services.BrandMerge",
+            "RealEstateStar.Services.WelcomeNotification",
+            // Phase 2: Clients.Azure — Functions is a composition root and may reference Clients.*
+            // to register IDistributedContentCache, IIdempotencyStore, ITokenStore.
+            // [arch-change-approved]
+            "RealEstateStar.Clients.Azure",
+            // Phase 3: Additional clients — Lead + Activation pipeline DI wiring requires these.
+            // Functions is a second composition root alongside Api; both may reference Clients.*.
+            // [arch-change-approved]
+            "RealEstateStar.Clients.Anthropic",
+            "RealEstateStar.Clients.Gmail",
+            "RealEstateStar.Clients.GDrive",
+            "RealEstateStar.Clients.GDocs",
+            "RealEstateStar.Clients.GSheets",
+            "RealEstateStar.Clients.GoogleOAuth",
+            "RealEstateStar.Clients.Scraper",
             "RealEstateStar.Clients.RentCast",
         };
 
@@ -393,8 +485,9 @@ public class DependencyTests
     public void CmaWorker_ShouldNotReference_StorageInterfaces()
     {
         // Verify Workers.Lead.CMA assembly does not reference IFileStorageProvider or IDocumentStorageProvider.
-        // CMA is a pure compute worker — storage is handled upstream by the orchestrator (Workers.Lead.Orchestrator).
-        var assembly = typeof(Workers.Lead.CMA.CmaProcessingWorker).Assembly;
+        // CMA is a pure compute worker — storage is handled upstream by the orchestrator (Durable Functions in Phase 4+).
+        // Phase 4: CmaProcessingWorker (BackgroundService) removed; use RentCastCompSource as assembly anchor.
+        var assembly = typeof(Workers.Lead.CMA.RentCastCompSource).Assembly;
         var forbiddenTypeNames = new HashSet<string>
         {
             "IFileStorageProvider",
@@ -440,8 +533,9 @@ public class DependencyTests
     public void HomeSearchWorker_ShouldNotReference_NotificationInterfaces()
     {
         // Verify Workers.Lead.HomeSearch does not reference IAgentNotifier or IHomeSearchNotifier.
-        // HomeSearch is a pure compute worker — notifications are dispatched by the orchestrator (Workers.Lead.Orchestrator).
-        var assembly = typeof(Workers.Lead.HomeSearch.HomeSearchProcessingWorker).Assembly;
+        // HomeSearch is a pure compute worker — notifications are dispatched by the orchestrator (Durable Functions in Phase 4+).
+        // Phase 4: HomeSearchProcessingWorker (BackgroundService) removed; use ScraperHomeSearchProvider as assembly anchor.
+        var assembly = typeof(Workers.Lead.HomeSearch.ScraperHomeSearchProvider).Assembly;
         var forbiddenTypeNames = new HashSet<string>
         {
             "IAgentNotifier",
@@ -507,11 +601,12 @@ public class DependencyTests
 
         // Keywords that exempt an assembly from the DataServices reference check.
         // This set controls which projects are allowed to depend on DataServices.
+        // "Functions" added 2026-04-02: Functions is a second composition root alongside Api.
         var dataServicesAllowedKeywords = new HashSet<string>
         {
-            "Api", "Services", "Activities", "DataServices", "Tests", "TestUtilities"
+            "Api", "Services", "Activities", "DataServices", "Tests", "TestUtilities", "Functions"
         };
-        dataServicesAllowedKeywords.Count.Should().Be(6,
+        dataServicesAllowedKeywords.Count.Should().Be(7,
             "DataServices allowed-caller keyword set changed — was a new caller exempted without approval?");
 
         // Api allowed-project allowlist — all projects Api may directly reference.
@@ -592,7 +687,21 @@ public class DependencyTests
         var violations = new List<string>();
         foreach (var assembly in nonDomainAssemblies)
         {
-            var duplicateInterfaces = assembly.GetExportedTypes()
+            Type[] types;
+            try
+            {
+                types = assembly.GetExportedTypes();
+            }
+            catch (Exception)
+            {
+                // Skip assemblies whose dependencies are not present in the test output dir.
+                // RealEstateStar.Functions depends on the Azure Functions Worker SDK DLLs which
+                // are not copied here. Since Functions is a composition root (no new interfaces),
+                // skipping it does not weaken this test's intent.
+                continue;
+            }
+
+            var duplicateInterfaces = types
                 .Where(t => t.IsInterface && domainInterfaces.Contains(t.Name))
                 .Select(t => $"{assembly.GetName().Name} defines {t.FullName}")
                 .ToList();

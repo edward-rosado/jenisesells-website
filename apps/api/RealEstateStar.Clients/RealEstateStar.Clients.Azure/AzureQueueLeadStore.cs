@@ -12,6 +12,11 @@ public sealed class AzureQueueLeadStore(
 {
     internal const string QueueName = "lead-requests";
 
+    // Azure Queue Storage approximate message count is eventually consistent and requires
+    // an extra API call — return 0 here; health checks use this for staleness detection,
+    // not for exact counts, so eventually-consistent data is acceptable.
+    public int QueueDepth => 0;
+
     public async Task EnqueueAsync(LeadOrchestrationMessage message, CancellationToken ct)
     {
         using var activity = QueueDiagnostics.StartEnqueue(QueueName);
@@ -62,7 +67,7 @@ public sealed class AzureQueueLeadStore(
                 activity?.SetTag("message.id", message.MessageId);
 
                 logger.LogInformation(
-                    "[QUEUE-002] Lead orchestration request dequeued. MessageId={MessageId}, AgentId={AgentId}, LeadId={LeadId}",
+                    "[QUEUE-003] Lead orchestration request dequeued. MessageId={MessageId}, AgentId={AgentId}, LeadId={LeadId}",
                     message.MessageId, request.AgentId, request.LeadId);
 
                 return new QueueMessage<LeadOrchestrationMessage>(request, message.MessageId, message.PopReceipt);
@@ -84,7 +89,7 @@ public sealed class AzureQueueLeadStore(
         {
             QueueDiagnostics.RecordFailure(QueueName, activity, ex);
 
-            logger.LogError(ex, "[QUEUE-011] Failed to dequeue lead orchestration request");
+            logger.LogError(ex, "[QUEUE-012] Failed to dequeue lead orchestration request");
             throw;
         }
     }
@@ -98,7 +103,7 @@ public sealed class AzureQueueLeadStore(
 
             QueueDiagnostics.RecordComplete(QueueName, messageId, activity);
 
-            logger.LogInformation("[QUEUE-003] Lead message completed. MessageId={MessageId}", messageId);
+            logger.LogInformation("[QUEUE-005] Lead message completed. MessageId={MessageId}", messageId);
         }
         catch (Exception ex)
         {

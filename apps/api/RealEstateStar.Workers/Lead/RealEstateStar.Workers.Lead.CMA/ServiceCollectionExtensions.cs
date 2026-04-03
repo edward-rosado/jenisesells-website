@@ -7,10 +7,14 @@ namespace RealEstateStar.Workers.Lead.CMA;
 
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers CMA pipeline compute services: <see cref="RentCastCompSource"/>, <see cref="ICompSource"/>,
+    /// <see cref="ICompAggregator"/>, and <see cref="ICmaAnalyzer"/>.
+    /// The Channel-based <c>CmaProcessingWorker</c> BackgroundService was removed in Phase 4;
+    /// Azure Durable Functions now orchestrate CMA processing via <c>CmaProcessingFunction</c>.
+    /// </summary>
     public static IServiceCollection AddCmaPipeline(this IServiceCollection services)
     {
-        services.AddSingleton<CmaProcessingChannel>();
-        services.AddHostedService<CmaProcessingWorker>();
         services.AddSingleton<RentCastCompSource>();
         services.AddSingleton<ICompSource>(sp => sp.GetRequiredService<RentCastCompSource>());
         services.AddSingleton<ICompAggregator>(sp =>
