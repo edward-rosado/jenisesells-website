@@ -6,7 +6,7 @@
 //
 // Prerequisites (must already exist):
 //   - Resource group: real-estate-star-rg
-//   - Storage account: realestarestarsa (same one Container App uses)
+//   - Storage account: realestatestarstore (same one Container App uses)
 //   - Application Insights: reused via appInsightsConnectionString param
 //
 // Deploy with:
@@ -66,7 +66,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
     functionAppConfig: {
       runtime: {
         name: 'dotnet-isolated'
-        version: '10'
+        version: '10.0'
       }
       scaleAndConcurrency: {
         // One always-ready instance for the lead orchestrator to avoid cold
@@ -100,10 +100,6 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   resource appSettings 'config' = {
     name: 'appsettings'
     properties: {
-      // --- Runtime ---
-      FUNCTIONS_EXTENSION_VERSION: '~4'
-      FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
-
       // --- Storage ---
       AzureWebJobsStorage: storageConnectionString
 
@@ -113,6 +109,10 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
       // --- .NET 10 isolated worker ---
       // Required for the out-of-process model on Flex Consumption.
       WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED: '1'
+
+      // NOTE: FUNCTIONS_WORKER_RUNTIME and FUNCTIONS_EXTENSION_VERSION are NOT
+      // allowed as app settings on Flex Consumption. They are configured via
+      // functionAppConfig.runtime above.
     }
   }
 }
@@ -122,7 +122,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
 // The storage account already exists; we just add the container.
 // ---------------------------------------------------------------------------
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
-  name: 'realestarestarsa'
+  name: 'realestatestarstore'
 }
 
 resource functionPackageContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
