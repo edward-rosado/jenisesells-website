@@ -12,7 +12,8 @@ public sealed record EmailMessage(
     string From,
     string[] To,
     DateTime Date,
-    string? SignatureBlock);
+    string? SignatureBlock,
+    string? DetectedLocale = null);
 
 public sealed record EmailSignature(
     string? Name,

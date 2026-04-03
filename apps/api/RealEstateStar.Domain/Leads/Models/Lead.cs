@@ -13,6 +13,7 @@ public class Lead
     public SellerDetails? SellerDetails { get; set; }
     public BuyerDetails? BuyerDetails { get; set; }
     public string? Notes { get; init; }
+    public string? Locale { get; init; }
     public DateTime ReceivedAt { get; init; }
     public LeadStatus Status { get; set; }
     public LeadScore? Score { get; set; }
