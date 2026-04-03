@@ -372,7 +372,6 @@ public class CmaPdfGenerator : ICmaPdfGenerator
             foreach (var (comp, index) in comps.Select((c, i) => (c, i)))
             {
                 var rowBg = index % 2 == 0 ? Colors.White : Colors.Grey.Lighten5;
-                var ageMonths = MonthsBetween(comp.SaleDate, today);
                 var ageSuffix = comp.IsRecent ? "" : " †";
 
                 void DataCell(string text, bool italic = false)
@@ -382,10 +381,16 @@ public class CmaPdfGenerator : ICmaPdfGenerator
                     if (italic) t.Italic();
                 }
 
+                // DateOnly.MinValue is the sentinel for "sale date unknown" (set by GeneratePdfFunction when CompSummary.SaleDate is null)
+                var saleDateText = comp.SaleDate == DateOnly.MinValue ? "N/A" : comp.SaleDate.ToString("MM/dd/yyyy");
+                var ageText = comp.SaleDate == DateOnly.MinValue
+                    ? "N/A"
+                    : $"{MonthsBetween(comp.SaleDate, today)}mo{ageSuffix}";
+
                 DataCell(comp.Address);
                 DataCell(FormatCurrency(comp.SalePrice));
-                DataCell($"{ageMonths}mo{ageSuffix}");
-                DataCell(comp.SaleDate.ToString("MM/dd/yyyy"));
+                DataCell(ageText);
+                DataCell(saleDateText);
                 DataCell(comp.Beds.ToString());
                 DataCell(comp.Baths.ToString());
                 DataCell(comp.Sqft.ToString("N0"));

@@ -7,14 +7,13 @@ namespace RealEstateStar.Workers.WhatsApp;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers the WhatsApp conversation pipeline services owned by this project:
-    /// intent classifier, response generator, and conversation handler stubs.
-    /// The conditional Azure queue/table services, IWhatsAppSender, IWhatsAppNotifier,
-    /// IEmailNotifier, IConversationLogger, and the "WhatsApp" HttpClient resilience
-    /// pipeline are registered by the Api composition root (Program.cs), as they
-    /// depend on projects outside the Workers.* → Domain + Workers.Shared constraint.
-    /// When WhatsApp is enabled (PhoneNumberId configured), the hosted services
-    /// WebhookProcessorWorker and WhatsAppRetryJob are also registered by the Api layer.
+    /// Registers WhatsApp conversation pipeline services: intent classifier, response generator,
+    /// conversation handler stubs, and <c>WhatsAppRetryJob</c>.
+    /// The conditional <c>WebhookProcessorWorker</c> and <c>WhatsAppRetryJob</c> hosted services
+    /// were removed in Phase 4; Azure Durable Functions queue/timer triggers now handle that role.
+    /// The Azure queue/table, IWhatsAppSender, IWhatsAppNotifier, IEmailNotifier, IConversationLogger,
+    /// and the "WhatsApp" HttpClient resilience pipeline are registered by the Api composition root
+    /// (Program.cs), as they depend on projects outside the Workers.* → Domain + Workers.Shared constraint.
     /// </summary>
     public static IServiceCollection AddWhatsAppWorkers(this IServiceCollection services, IConfiguration configuration)
     {
@@ -22,12 +21,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IResponseGenerator, NoopResponseGenerator>();
         services.AddSingleton<IConversationHandler, ConversationHandler>();
 
-        var phoneNumberId = configuration["WhatsApp:PhoneNumberId"];
-        if (!string.IsNullOrEmpty(phoneNumberId))
-        {
-            services.AddHostedService<WebhookProcessorWorker>();
-            services.AddHostedService<WhatsAppRetryJob>();
-        }
+        // Always register WhatsAppRetryJob so it can be resolved by WhatsAppRetryFunction
+        // (timer-triggered Azure Function).
+        services.AddSingleton<WhatsAppRetryJob>();
 
         return services;
     }

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.Activation.Models;
+using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
@@ -12,13 +13,14 @@ namespace RealEstateStar.Services.WelcomeNotification;
 /// falling back to email via IGmailSender.
 /// Content is drafted using Claude with Voice Skill + Personality + Brand Voice + Coaching.
 /// Under 150 words, opens with the agent's catchphrase, closes with their sign-off.
-/// Idempotent — tracks sent flag via IFileStorageProvider; does not re-send on re-activation.
+/// Idempotent — tracks sent flag via IFileStorageProvider and IIdempotencyStore; does not re-send on re-activation.
 /// </summary>
 public sealed class WelcomeNotificationService(
     IWhatsAppSender whatsAppSender,
     IGmailSender gmailSender,
     IAnthropicClient anthropic,
     IFileStorageProvider storage,
+    IIdempotencyStore idempotencyStore,
     ILogger<WelcomeNotificationService> logger) : IWelcomeNotificationService
 {
     internal const string FolderPrefix = "real-estate-star";
@@ -36,7 +38,16 @@ public sealed class WelcomeNotificationService(
     {
         var agentFolder = $"{FolderPrefix}/{agentId}";
 
-        // Idempotency check — skip if already sent
+        // Belt-and-suspenders idempotency guard (fast path — no storage read on replay)
+        var idempotencyKey = $"activation:{agentId}:welcome-notification";
+        if (await idempotencyStore.HasCompletedAsync(idempotencyKey, ct))
+        {
+            logger.LogInformation(
+                "[WELCOME-021] Welcome already sent for agentId={AgentId}, skipping (idempotency store)", agentId);
+            return;
+        }
+
+        // File-based idempotency check — authoritative record
         var existing = await storage.ReadDocumentAsync(agentFolder, WelcomeSentFile, ct);
         if (existing is not null)
         {
@@ -101,6 +112,7 @@ public sealed class WelcomeNotificationService(
         {
             var record = $"---\nsent: true\nsent_at: {DateTime.UtcNow:O}\n---\n\n{message}";
             await storage.WriteDocumentAsync(agentFolder, WelcomeSentFile, record, ct);
+            await idempotencyStore.MarkCompletedAsync(idempotencyKey, ct);
             logger.LogInformation("[WELCOME-090] Welcome sent flag recorded for agentId={AgentId}", agentId);
         }
     }

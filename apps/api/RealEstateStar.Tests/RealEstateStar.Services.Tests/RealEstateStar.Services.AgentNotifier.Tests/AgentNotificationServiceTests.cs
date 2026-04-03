@@ -3,8 +3,11 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared;
+using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
+using RealEstateStar.TestUtilities;
 
 namespace RealEstateStar.Services.AgentNotifier.Tests;
 
@@ -19,7 +22,11 @@ public class AgentNotifierServiceTests
 
     public AgentNotifierServiceTests()
     {
-        _notifier = new AgentNotifierService(_whatsAppSender.Object, _gmailSender.Object, _logger.Object);
+        _notifier = new AgentNotifierService(
+            _whatsAppSender.Object,
+            _gmailSender.Object,
+            new NullIdempotencyStore(),
+            _logger.Object);
     }
 
     private static AgentNotificationConfig MakeConfig(string? whatsAppPhoneNumberId = "123456789") =>
@@ -498,5 +505,97 @@ public class AgentNotifierServiceTests
         var html = AgentNotifierService.BuildAgentNotificationEmail(lead, score, null, null, config, agentContext);
 
         html.Should().NotContain("Voice-Personalized");
+    }
+
+    // ─── Idempotency guard ────────────────────────────────────────────────────
+
+    private AgentNotifierService CreateNotifierWithStore(IIdempotencyStore store) =>
+        new(_whatsAppSender.Object, _gmailSender.Object, store, _logger.Object);
+
+    [Fact]
+    public async Task NotifyAsync_WhenAlreadyCompleted_SkipsAllSends()
+    {
+        var store = new InMemoryIdempotencyStore();
+        var notifier = CreateNotifierWithStore(store);
+        var lead = MakeLead();
+        var score = MakeScore();
+        var config = MakeConfig();
+
+        // Pre-mark as completed
+        var key = $"lead:{config.AgentId}-{lead.Id}:agent-notify";
+        await store.MarkCompletedAsync(key, Ct);
+
+        await notifier.NotifyAsync(lead, score, null, null, config, Ct);
+
+        _whatsAppSender.VerifyNoOtherCalls();
+        _gmailSender.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task NotifyAsync_WhenNotCompleted_WhatsApp_ProceedsAndMarksCompleted()
+    {
+        var store = new InMemoryIdempotencyStore();
+        var notifier = CreateNotifierWithStore(store);
+        var lead = MakeLead();
+        var score = MakeScore();
+        var config = MakeConfig();
+
+        _whatsAppSender
+            .Setup(x => x.SendTemplateAsync(It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<List<(string, string)>>(), Ct))
+            .ReturnsAsync("msg-id");
+
+        await notifier.NotifyAsync(lead, score, null, null, config, Ct);
+
+        var key = $"lead:{config.AgentId}-{lead.Id}:agent-notify";
+        var completed = await store.HasCompletedAsync(key, Ct);
+        completed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task NotifyAsync_WhenNotCompleted_Email_ProceedsAndMarksCompleted()
+    {
+        var store = new InMemoryIdempotencyStore();
+        var notifier = CreateNotifierWithStore(store);
+        var lead = MakeLead();
+        var score = MakeScore();
+        var config = MakeConfig(whatsAppPhoneNumberId: null);
+
+        _gmailSender
+            .Setup(x => x.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await notifier.NotifyAsync(lead, score, null, null, config, Ct);
+
+        var key = $"lead:{config.AgentId}-{lead.Id}:agent-notify";
+        var completed = await store.HasCompletedAsync(key, Ct);
+        completed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task NotifyAsync_WhenBothChannelsFail_MarkCompletedIsNotCalled()
+    {
+        var store = new InMemoryIdempotencyStore();
+        var notifier = CreateNotifierWithStore(store);
+        var lead = MakeLead();
+        var score = MakeScore();
+        var config = MakeConfig();
+
+        _whatsAppSender
+            .Setup(x => x.SendTemplateAsync(It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<List<(string, string)>>(), Ct))
+            .ThrowsAsync(new WhatsAppApiException(500, "fail"));
+
+        _gmailSender
+            .Setup(x => x.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("SMTP fail"));
+
+        await notifier.NotifyAsync(lead, score, null, null, config, Ct);
+
+        var key = $"lead:{config.AgentId}-{lead.Id}:agent-notify";
+        var completed = await store.HasCompletedAsync(key, Ct);
+        completed.Should().BeFalse();
     }
 }

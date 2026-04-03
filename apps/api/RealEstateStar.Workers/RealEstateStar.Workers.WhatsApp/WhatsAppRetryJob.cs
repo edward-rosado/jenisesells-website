@@ -5,6 +5,16 @@ using RealEstateStar.Domain.Shared.Interfaces.Storage;
 
 namespace RealEstateStar.Workers.WhatsApp;
 
+/// <summary>
+/// BackgroundService that runs every 30 minutes to retry sending welcome messages
+/// to agents who opted in to WhatsApp but whose welcome message failed to deliver.
+///
+/// TODO [Phase 4]: Remove AddHostedService registration for this class once
+/// WhatsAppRetryFunction (Azure Functions timer-triggered) is proven stable.
+/// The class itself should remain as a singleton service (registered by AddWhatsAppWorkers)
+/// so WhatsAppRetryFunction can resolve and call ProcessRetriesAsync.
+/// Remove AddHostedService only — not the class or Singleton registration.
+/// </summary>
 public class WhatsAppRetryJob(
     IAccountConfigService accountConfigService,
     IWhatsAppSender whatsAppClient,
@@ -29,7 +39,7 @@ public class WhatsAppRetryJob(
         }
     }
 
-    internal async Task ProcessRetriesAsync(CancellationToken ct)
+    public async Task ProcessRetriesAsync(CancellationToken ct)
     {
         var accounts = await accountConfigService.ListAllAsync(ct);
 

@@ -5,6 +5,14 @@ using RealEstateStar.Domain.WhatsApp.Interfaces;
 
 namespace RealEstateStar.Workers.WhatsApp;
 
+/// <summary>
+/// BackgroundService that polls the Azure Storage Queue for inbound WhatsApp webhook messages.
+///
+/// TODO [Phase 4]: Remove this class entirely once ProcessWebhookFunction (Azure Functions
+/// queue-triggered) is proven stable. The feature flag Features:WhatsApp:UseBackgroundService
+/// controls whether this service is registered as a HostedService. Set it to false first,
+/// then remove this file after a safe observation period.
+/// </summary>
 public class WebhookProcessorWorker(
     IWebhookQueueService queue,
     IConversationHandler handler,

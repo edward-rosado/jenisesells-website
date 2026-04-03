@@ -45,6 +45,8 @@ using RealEstateStar.DataServices;
 using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Onboarding.Interfaces;
 using RealEstateStar.Domain.Onboarding.Services;
+using RealEstateStar.Domain.Shared;
+using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
@@ -336,6 +338,26 @@ if (!string.IsNullOrEmpty(storageConnStr))
     });
 }
 
+// IIdempotencyStore — Azure Table Storage when connection string is available, no-op fallback for dev.
+// Must stay in Program.cs (TableStorageIdempotencyStore is in Clients.Azure).
+if (!string.IsNullOrEmpty(storageConnStr))
+{
+    builder.Services.AddSingleton<IIdempotencyStore>(sp =>
+    {
+        var tableClient = new Azure.Data.Tables.TableClient(storageConnStr, "idempotency");
+        tableClient.CreateIfNotExists();
+        return new TableStorageIdempotencyStore(
+            tableClient,
+            sp.GetRequiredService<ILogger<TableStorageIdempotencyStore>>());
+    });
+    Log.Information("[STARTUP-087] IIdempotencyStore: TableStorageIdempotencyStore (table: idempotency)");
+}
+else
+{
+    builder.Services.AddSingleton<IIdempotencyStore, NullIdempotencyStore>();
+    Log.Warning("[STARTUP-088] AzureStorage:ConnectionString not configured — idempotency store is no-op (no replay protection)");
+}
+
 // Gmail API client — IGmailSender backed by GmailApiClient (needs IOAuthRefresher)
 builder.Services.AddHttpClient("GoogleOAuth", client =>
 {
@@ -499,7 +521,10 @@ builder.Services.AddProblemDetails();
 builder.Services.AddSignalR();
 
 // Health checks
-builder.Services.AddSingleton<BackgroundServiceHealthTracker>();
+builder.Services.AddHttpClient(DurableFunctionsHealthCheck.HttpClientName, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 builder.Services.AddHealthChecks()
     .AddCheck<OtlpExportHealthCheck>("otlp_export", tags: ["ready"])
     .AddCheck<ClaudeApiHealthCheck>("claude_api", tags: ["ready"])
@@ -507,7 +532,7 @@ builder.Services.AddHealthChecks()
     .AddCheck<ScraperApiHealthCheck>("scraper_api", tags: ["ready"])
     .AddCheck<RentCastHealthCheck>("rentcast_api", tags: ["ready"])
     .AddCheck<TurnstileHealthCheck>("turnstile", tags: ["ready"])
-    .AddCheck<BackgroundServiceHealthCheck>("background_workers", tags: ["ready", "workers"])
+    .AddCheck<DurableFunctionsHealthCheck>("durable_functions", tags: ["ready", "workers"])
     .AddCheck<AzureQueueHealthCheck>("azure_queues", tags: ["ready"]);
 
 // CORS

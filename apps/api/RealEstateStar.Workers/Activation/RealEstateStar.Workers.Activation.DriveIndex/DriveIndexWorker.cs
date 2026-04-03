@@ -39,7 +39,7 @@ public sealed class DriveIndexWorker(
     private const int PdfParallelism = 5;
     private const int ClaudeMaxTokens = 1024;
     private const string ClaudePipeline = "activation-driveindex";
-    private const string ClaudeModel = "claude-3-5-haiku-20241022";
+    private const string ClaudeModel = "claude-sonnet-4-6";
 
     internal const string DocumentExtractionSystemPrompt =
         """
@@ -226,14 +226,18 @@ public sealed class DriveIndexWorker(
         {
             var pdfBytes = await driveClient.DownloadBinaryAsync(accountId, agentId, file.Id, ct);
             if (pdfBytes is null || pdfBytes.Length == 0)
+            {
+                logger.LogWarning("[DRIVEINDEX-011] Empty PDF for file {FileId} ({FileName})", file.Id, file.Name);
                 return null;
+            }
 
-            var pageImages = PdfPageExtractor.ExtractPageImages(pdfBytes, MaxPdfPages);
-            if (pageImages.Count == 0)
-                return null;
+            // Send raw PDF bytes directly to Claude Vision — no local parsing needed.
+            // Claude renders PDFs server-side as static images (no JS engine, no form handler),
+            // so malicious PDF payloads (embedded JS, launch actions) cannot execute.
+            var pdfContent = new List<(byte[] Data, string MimeType)> { (pdfBytes, "application/pdf") };
 
             PdfsProcessedCounter.Add(1);
-            PdfPagesReadCounter.Add(pageImages.Count);
+            PdfPagesReadCounter.Add(1);
 
             var systemPrompt = DocumentExtractionSystemPrompt;
             var userMessage = string.Format(DocumentExtractionUserTemplate, $"File: {file.Name}");
@@ -242,7 +246,7 @@ public sealed class DriveIndexWorker(
                 ClaudeModel,
                 systemPrompt,
                 userMessage,
-                pageImages,
+                pdfContent,
                 ClaudeMaxTokens,
                 ClaudePipeline,
                 ct);

@@ -1,6 +1,6 @@
 # Azure Durable Functions Migration Plan
 
-**Status:** Draft — awaiting review
+**Status:** Implemented — 2026-04-02
 **Date:** 2026-03-31
 **Author:** Eddie + Claude
 
@@ -625,10 +625,10 @@ This preserves the exact same partial-completion semantics.
 
 This is actually **more observable** than the current approach — DF tracks per-instance status, not just last-activity timestamps.
 
-## Open Questions
+## Decisions Made (formerly Open Questions)
 
-1. **Shared DI:** Workers/Activities/Services need `IAnthropicClient`, `IGDriveClient`, etc. How to register DI in the Functions host while reusing existing service registrations from the API project?
-2. **Local development:** Azurite for local queue/table emulation? Or keep in-memory fallback?
-3. **Monitoring:** Keep existing OpenTelemetry setup or switch to Azure Monitor / Application Insights?
-4. **Deployment:** Separate GitHub Actions workflow for Functions, or combined with API?
-5. **Feature flags:** Roll out per-pipeline (WhatsApp first, then Activation, then Lead) or big bang?
+1. **Shared DI:** Functions `Program.cs` calls the same `Add*()` extension methods as Api `Program.cs`. BackgroundServices are registered but never started by the Functions host. All clients (Anthropic, Gmail, GDrive, etc.) are wired in both hosts.
+2. **Local development:** Azurite for queues/tables when `AzureStorage:ConnectionString` is set. In-memory fallback (`InMemoryActivationQueue`, `NullIdempotencyStore`, `NullDistributedContentCache`) for local dev without Azurite.
+3. **Monitoring:** Keep existing OpenTelemetry setup. Functions host has full OTel tracing + metrics exporting to the same Grafana Cloud endpoint as the API. All `ActivitySource`/`Meter` instances from pipeline diagnostics are registered.
+4. **Deployment:** Separate GitHub Actions workflow (`deploy-functions.yml`). Triggers on pushes to `apps/api/RealEstateStar.Functions/**` and all dependency project paths.
+5. **Feature flags:** Per-pipeline rollout via `Features:WhatsApp:UseBackgroundService`, `Features:Activation:UseBackgroundService`, `Features:Lead:UseBackgroundService`. Default `true` (BackgroundService active). Set to `false` to switch to Functions. Phase 4 removes the flags entirely.

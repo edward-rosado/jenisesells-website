@@ -16,7 +16,8 @@ Eddie Rosado, Senior Manager of Engineering at Mindbody/Playlist. Building Real 
 |-----------|---------|
 | **Hosting** | Cloudflare Pages + Workers (via OpenNext) — NOT Vercel |
 | **DNS** | Cloudflare, domain: real-estate-star.com (hyphenated) |
-| **API** | .NET 10, 21 isolated projects, hosted on Azure Container Apps, proxied through Cloudflare |
+| **API** | .NET 10, 22 isolated projects, hosted on Azure Container Apps, proxied through Cloudflare |
+| **Pipelines** | Azure Durable Functions (Flex Consumption) — Activation, Lead, WhatsApp orchestrators |
 | **Platform URL** | https://platform.real-estate-star.com |
 | **Agent Sites URL** | https://{handle}.real-estate-star.com |
 | **API URL** | https://api.real-estate-star.com |

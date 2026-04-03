@@ -1,0 +1,65 @@
+{
+  "handle": "safari-homes",
+  "accountId": "safari-homes",
+  "template": "emerald-classic",
+  "branding": {
+    "primary_color": "#8B4513",
+    "secondary_color": "#A0522D",
+    "accent_color": "#DAA520",
+    "font_family": "Segoe UI",
+    "logo_url": ""
+  },
+  "brokerage": {
+    "name": "Safari Homes Realty",
+    "license_number": "TEST-0000",
+    "office_phone": "(555) 555-0100",
+    "office_address": "123 Safari Way, Test City, NJ 08901"
+  },
+  "agent": {
+    "enabled": true,
+    "id": "edward-rosado",
+    "name": "Edward Rosado",
+    "title": "REALTOR",
+    "phone": "(555) 555-0101",
+    "email": "misteredr@gmail.com",
+    "headshot_url": "",
+    "license_number": "TEST-0001",
+    "languages": [
+      "English",
+      "Spanish"
+    ],
+    "tagline": "Your Home, Your Adventure"
+  },
+  "location": {
+    "state": "NJ",
+    "service_areas": [
+      "Middlesex County",
+      "Somerset County"
+    ]
+  },
+  "integrations": {
+    "email_provider": "gmail"
+  },
+  "compliance": {
+    "state_form": "NJ-REALTORS-118",
+    "licensing_body": "NJ Real Estate Commission",
+    "disclosure_requirements": [
+      "Lead-based paint disclosure (pre-1978)",
+      "Seller property condition disclosure"
+    ]
+  },
+  "contact_info": [
+    {
+      "type": "email",
+      "value": "misteredr@gmail.com",
+      "label": "Email",
+      "is_preferred": true
+    },
+    {
+      "type": "phone",
+      "value": "(555) 555-0101",
+      "label": "Cell Phone",
+      "is_preferred": true
+    }
+  ]
+}

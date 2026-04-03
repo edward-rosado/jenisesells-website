@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
 using RealEstateStar.Domain.Shared;
+using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 
 namespace RealEstateStar.Services.LeadCommunicator;
@@ -16,6 +17,7 @@ namespace RealEstateStar.Services.LeadCommunicator;
 public class LeadCommunicatorService(
     ILeadEmailDrafter drafter,
     IGmailSender gmailSender,
+    IIdempotencyStore idempotencyStore,
     ILogger<LeadCommunicatorService> logger) : ILeadCommunicatorService
 {
     /// <summary>
@@ -78,6 +80,15 @@ public class LeadCommunicatorService(
         span?.SetTag("agent.id", agentConfig.AgentId);
         span?.SetTag("correlation.id", ctx.CorrelationId);
 
+        var idempotencyKey = $"lead:{agentConfig.AgentId}-{lead.Id}:email-send";
+        if (await idempotencyStore.HasCompletedAsync(idempotencyKey, ct))
+        {
+            logger.LogWarning(
+                "[SEND-003] Skipping duplicate email send for lead {LeadId} agent {AgentId} (idempotency guard)",
+                lead.Id, agentConfig.AgentId);
+            return draft with { Sent = true };
+        }
+
         var emailHash = Convert.ToHexString(SHA256.HashData(
             Encoding.UTF8.GetBytes(lead.Email ?? "")))[..12];
         logger.LogInformation(
@@ -97,6 +108,8 @@ public class LeadCommunicatorService(
                 ct);
 
             draft = draft with { Sent = true, SentAt = DateTimeOffset.UtcNow };
+
+            await idempotencyStore.MarkCompletedAsync(idempotencyKey, ct);
 
             LeadCommunicatorDiagnostics.SendSuccess.Add(1);
 
