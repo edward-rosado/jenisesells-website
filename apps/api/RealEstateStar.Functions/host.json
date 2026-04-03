@@ -19,11 +19,6 @@
       "visibilityTimeout": "00:05:00",
       "newBatchThreshold": 8,
       "batchSize": 16
-      // newBatchThreshold: fetch next batch when fewer than 8 messages are in flight.
-      // batchSize: process up to 16 lead-request messages per Function App instance.
-      // Channel<T> backpressure is no longer needed — Azure Queue Storage handles
-      // backpressure automatically: as queue depth grows the runtime auto-scales
-      // by starting additional Function App instances.
     }
   }
 }
