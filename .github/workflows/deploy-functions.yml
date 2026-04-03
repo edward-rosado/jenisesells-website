@@ -295,14 +295,24 @@ jobs:
           echo "Generated $(ls "$OUTDIR" | wc -l) metadata files:"
           ls -la "$OUTDIR"
 
+      - name: Ensure .azurefunctions directory exists
+        run: |
+          # Flex Consumption requires .azurefunctions/ in the zip for deployment validation.
+          # The SDK source generator produces the actual function metadata at runtime via
+          # GeneratedFunctionMetadataProvider (worker-side indexing). The .azurefunctions
+          # directory just needs to exist with extensions.json for the deploy to succeed.
+          if [ ! -d "./publish/functions/.azurefunctions" ]; then
+            echo "Creating .azurefunctions directory (SDK didn't generate it)"
+            mkdir -p ./publish/functions/.azurefunctions
+            echo '{"extensions":[{"name":"Microsoft.Azure.Functions.Worker.Extensions.DurableTask","typeName":"Microsoft.Azure.Functions.Worker.Extensions.DurableTask.DurableTaskExtensionStartup, Microsoft.Azure.Functions.Worker.Extensions.DurableTask, Version=1.2.0.0, Culture=neutral, PublicKeyToken=551316b6919f366c"}]}' > ./publish/functions/.azurefunctions/extensions.json
+          fi
+          echo "=== .azurefunctions contents ==="
+          ls -la ./publish/functions/.azurefunctions/
+          echo "=== worker.config.json ==="
+          cat ./publish/functions/worker.config.json 2>/dev/null || echo "Not found"
+
       - name: Create deployment package
         run: |
-          # Remove .azurefunctions if it was manually generated — worker-side indexing
-          # (via GeneratedFunctionMetadataProvider source generator) takes precedence.
-          # Having BOTH causes the host to ignore .azurefunctions files entirely.
-          rm -rf ./publish/functions/.azurefunctions
-          # Verify worker.config.json exists (SDK-generated, enables worker indexing)
-          cat ./publish/functions/worker.config.json || echo "WARNING: worker.config.json missing"
           cd ./publish/functions
           zip -r ../../functions.zip . -x '*.pdb'
 
