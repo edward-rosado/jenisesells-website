@@ -1,42 +1,36 @@
 # Lead Processing Pipeline
 
-How leads flow from submission through enrichment to parallel CMA and Home Search pipelines.
-Uses a **checkpoint/resume** pattern — each step saves output before proceeding, retries skip completed steps.
+How leads flow from submission through enrichment to parallel CMA and Home Search activities.
+Uses Azure Durable Functions — orchestration state is persisted automatically in Azure Table Storage; retries and timeouts are managed by the DF runtime.
 
 ```mermaid
 flowchart TD
-    Submit["Agent Site<br/>LeadForm + Turnstile"]
-    Endpoint["SubmitLeadEndpoint<br/>validate + HMAC auth"]
-    Dedup{"Dedup<br/>GetByEmailAsync"}
+    Submit["Agent Site\nLeadForm + Turnstile"]
+    Endpoint["SubmitLeadEndpoint\nvalidate + HMAC auth"]
+    Dedup{"Dedup\nGetByEmailAsync"}
     NewLead["Create new Lead"]
-    UpdateLead["Merge existing Lead<br/>add seller/buyer details"]
-    Save["Save Lead Profile.md<br/>+ consent triple-write"]
-    LeadCh["LeadProcessingChannel"]
-    LeadWorker["LeadProcessingWorker<br/>checkpoint/resume"]
+    UpdateLead["Merge existing Lead\nadd seller/buyer details"]
+    Save["Save Lead Profile\n+ consent triple-write"]
+    Queue["Azure Queue\nlead-requests"]
+    Start["StartLeadProcessingFunction\n[QueueTrigger]"]
+    Orch["LeadOrchestratorFunction\n[Orchestrator]"]
 
-    CheckEnrich{"Research &<br/>Insights.md<br/>exists?"}
-    Enrich["Enrich Lead<br/>ScraperLeadEnricher + Claude"]
-    SkipEnrich["Skip enrichment<br/>use cached result"]
+    LoadConfig["LoadAgentConfigActivity"]
+    Score["ScoreLeadActivity"]
+    CheckCache["CheckCacheActivity\nenrichment exists?"]
+    Enrich["EnrichLeadActivity\nScraperAPI + Claude"]
 
-    CheckDraft{"Notification<br/>Draft.md<br/>exists?"}
-    Draft["Draft email<br/>save to disk"]
-    SkipDraft["Skip draft<br/>use cached"]
-
-    Notify["Send Notification<br/>retry 3x → dead letter"]
+    Draft["DraftEmailActivity\nClaude-drafted body"]
+    Notify["SendNotificationActivity\nGmail API, retry via DF policy"]
 
     Decision{"Lead Type?"}
 
-    CmaCh["CmaProcessingChannel"]
-    CmaWorker["CmaProcessingWorker"]
-    Comps["CompAggregator<br/>Zillow, Redfin, Realtor, Attom"]
-    Analysis["ClaudeCmaAnalyzer<br/>AI market analysis"]
-    Pdf["CmaPdfGenerator<br/>QuestPDF report"]
-    CmaNotify["CmaSellerNotifier<br/>Drive + Email"]
+    CmaAct["RunCmaActivity\nRentCast comps + Claude analysis"]
+    PdfAct["GeneratePdfActivity\nQuestPDF report"]
+    CmaNotify["NotifyCmaActivity\nAzure Blob + Email"]
 
-    HsCh["HomeSearchProcessingChannel"]
-    HsWorker["HomeSearchProcessingWorker"]
-    Search["ScraperHomeSearchProvider<br/>listing search"]
-    HsNotify["HomeSearchBuyerNotifier<br/>Drive + Email"]
+    HsAct["RunHomeSearchActivity\nlisting search"]
+    HsNotify["NotifyHomeSearchActivity\nAzure Blob + Email"]
 
     Submit --> Endpoint
     Endpoint --> Dedup
@@ -44,36 +38,29 @@ flowchart TD
     Dedup -->|"Exists"| UpdateLead
     NewLead --> Save
     UpdateLead --> Save
-    Save --> LeadCh
-    LeadCh --> LeadWorker
+    Save --> Queue
+    Queue --> Start
+    Start --> Orch
 
-    LeadWorker --> CheckEnrich
-    CheckEnrich -->|"No"| Enrich
-    CheckEnrich -->|"Yes"| SkipEnrich
-    Enrich --> CheckDraft
-    SkipEnrich --> CheckDraft
+    Orch --> LoadConfig
+    LoadConfig --> Score
+    Score --> CheckCache
+    CheckCache -->|"No cached result"| Enrich
+    CheckCache -->|"Cached"| Draft
+    Enrich --> Draft
 
-    CheckDraft -->|"No"| Draft
-    CheckDraft -->|"Yes"| SkipDraft
-    Draft --> Parallel
-    SkipDraft --> Parallel
-
-    Parallel["Parallel dispatch"]
+    Draft --> Parallel["ctx.CallActivityAsync fan-out\nTask.WhenAll"]
     Parallel --> Notify
     Parallel --> Decision
 
-    Decision -->|"Seller / Both"| CmaCh
-    Decision -->|"Buyer / Both"| HsCh
+    Decision -->|"Seller / Both"| CmaAct
+    Decision -->|"Buyer / Both"| HsAct
 
-    CmaCh --> CmaWorker
-    CmaWorker --> Comps
-    Comps --> Analysis
-    Analysis --> Pdf
-    Pdf --> CmaNotify
+    CmaAct -->|"success"| PdfAct
+    CmaAct -->|"failure"| CmaNotify
+    PdfAct --> CmaNotify
 
-    HsCh --> HsWorker
-    HsWorker --> Search
-    Search --> HsNotify
+    HsAct --> HsNotify
 
     style Submit fill:#4A90D9,color:#fff
     style Endpoint fill:#7B68EE,color:#fff
@@ -81,52 +68,44 @@ flowchart TD
     style NewLead fill:#7B68EE,color:#fff
     style UpdateLead fill:#C8A951,color:#fff
     style Save fill:#7B68EE,color:#fff
-    style LeadCh fill:#7B68EE,color:#fff
-    style LeadWorker fill:#7B68EE,color:#fff
-    style CheckEnrich fill:#C8A951,color:#fff
+    style Queue fill:#7B68EE,color:#fff
+    style Start fill:#7B68EE,color:#fff
+    style Orch fill:#7B68EE,color:#fff
+    style LoadConfig fill:#7B68EE,color:#fff
+    style Score fill:#7B68EE,color:#fff
+    style CheckCache fill:#C8A951,color:#fff
     style Enrich fill:#2E7D32,color:#fff
-    style SkipEnrich fill:#C8A951,color:#fff
-    style CheckDraft fill:#C8A951,color:#fff
     style Draft fill:#7B68EE,color:#fff
-    style SkipDraft fill:#C8A951,color:#fff
     style Parallel fill:#C8A951,color:#fff
     style Notify fill:#7B68EE,color:#fff
-    style CmaCh fill:#7B68EE,color:#fff
-    style CmaWorker fill:#7B68EE,color:#fff
-    style Comps fill:#2E7D32,color:#fff
-    style Analysis fill:#2E7D32,color:#fff
-    style Pdf fill:#7B68EE,color:#fff
+    style CmaAct fill:#7B68EE,color:#fff
+    style PdfAct fill:#7B68EE,color:#fff
     style CmaNotify fill:#7B68EE,color:#fff
-    style HsCh fill:#7B68EE,color:#fff
-    style HsWorker fill:#7B68EE,color:#fff
-    style Search fill:#2E7D32,color:#fff
+    style HsAct fill:#7B68EE,color:#fff
     style HsNotify fill:#7B68EE,color:#fff
 ```
 
 ## Status Progression
 
 ```
-Received → Enriched → EmailDrafted → Notified → Complete
+Received → Scored → Enriched → EmailDrafted → Notified → Complete
 ```
 
-## Checkpoint Files
+## Durable Functions Retry Policy
 
-| Step | Checkpoint File | If exists, skip |
-|------|----------------|-----------------|
-| Enrichment | `Research & Insights.md` | Claude API + ScraperAPI calls |
-| Email Draft | `Notification Draft.md` | Email body generation |
-| CMA | Lead status ≥ `CmaComplete` | CMA pipeline dispatch |
-| Home Search | Lead status ≥ `SearchComplete` | Home search dispatch |
+| Activity | Retry Policy | Max Attempts |
+|----------|-------------|--------------|
+| EnrichLeadActivity | Exponential backoff | 3 |
+| RunCmaActivity | Exponential backoff | 3 |
+| RunHomeSearchActivity | Exponential backoff | 3 |
+| SendNotificationActivity | Fixed 30s intervals | 3 |
+| GeneratePdfActivity | Exponential backoff | 2 |
+
+Orchestration state is persisted in Azure Table Storage after every activity completes. On restart, the DF runtime replays history and skips already-completed activities automatically — no manual checkpoint files required.
 
 ## Lead Dedup
 
 Same email re-submission updates the existing lead:
 - Merges `LeadType` (Buyer + Seller → Both)
 - Adds missing seller/buyer details
-- Re-enqueues for processing (worker skips completed steps)
-
-## Retry & Dead Letter
-
-- Notification: 3 retries (30s/60s/90s delays) → dead letter JSON file
-- Lead save: dead letter on failure, still returns 202
-- Consent: dead letter on failure, still enqueues for processing
+- Re-enqueues to Azure Queue (orchestrator skips activities whose output is already persisted in history)

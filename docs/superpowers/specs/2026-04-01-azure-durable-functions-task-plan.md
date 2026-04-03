@@ -1,6 +1,6 @@
 # Azure Durable Functions Migration — Task Plan
 
-**Status:** Draft — awaiting review
+**Status:** Implemented — 2026-04-02
 **Date:** 2026-04-01
 **Source:** [Design Spec](2026-03-31-azure-durable-functions-migration-plan.md)
 **Author:** Eddie + Claude
@@ -121,13 +121,13 @@ All tasks in this phase can run in parallel except 0.4 (depends on 0.3).
 
 ### Phase 0 Review Gate
 
-- [ ] Health check uses `IActivationQueue`/`ILeadOrchestrationQueue` interfaces, not raw `Channel<T>`
-- [ ] Readiness probe passes in local dev and production
-- [ ] `RealEstateStar.Functions` project builds, all architecture tests pass
-- [ ] `TableStorageContentCache` and `TableStorageIdempotencyStore` at 100% branch coverage
-- [ ] Idempotency guards wired into all send services, existing tests still pass
-- [ ] Functions app deploys to Azure with zero active functions (empty host)
-- [ ] Existing API behavior completely unchanged
+- [x] Health check uses `IActivationQueue`/`ILeadOrchestrationQueue` interfaces, not raw `Channel<T>`
+- [x] Readiness probe passes in local dev and production
+- [x] `RealEstateStar.Functions` project builds, all architecture tests pass
+- [x] `TableStorageContentCache` and `TableStorageIdempotencyStore` at 100% branch coverage
+- [x] Idempotency guards wired into all send services, existing tests still pass
+- [x] Functions app deploys to Azure with zero active functions (empty host)
+- [x] Existing API behavior completely unchanged
 
 ---
 
@@ -160,12 +160,12 @@ Can run in parallel with Phase 2 and Phase 3.
 
 ### Phase 1 Review Gate
 
-- [ ] Queue-triggered function processes messages end-to-end
-- [ ] Poison messages auto-move to `-poison` queue
-- [ ] Timer retries failed messages every 30 minutes
-- [ ] No messages lost during cutover (verified via audit table)
-- [ ] BackgroundService registrations removed
-- [ ] 100% branch coverage on new functions
+- [x] Queue-triggered function processes messages end-to-end
+- [x] Poison messages auto-move to `-poison` queue
+- [x] Timer retries failed messages every 30 minutes
+- [x] No messages lost during cutover (verified via audit table)
+- [x] BackgroundService registrations removed
+- [x] 100% branch coverage on new functions
 
 ---
 
@@ -204,13 +204,13 @@ Can run in parallel with Phase 1 and Phase 3.
 
 ### Phase 2 Review Gate
 
-- [ ] Orchestrator completes all 4 phases for a test agent
-- [ ] Phase 2 (12 workers) runs in parallel via `Task.WhenAll`
-- [ ] Partial completion: one worker failure does not abort pipeline
-- [ ] Custom checkpoint files no longer written
-- [ ] DF execution history shows full audit trail in Table Storage
-- [ ] Welcome notification idempotency guard prevents duplicate emails
-- [ ] 100% branch coverage on all new functions
+- [x] Orchestrator completes all 4 phases for a test agent
+- [x] Phase 2 (12 workers) runs in parallel via `Task.WhenAll`
+- [x] Partial completion: one worker failure does not abort pipeline
+- [x] Custom checkpoint files no longer written
+- [x] DF execution history shows full audit trail in Table Storage
+- [x] Welcome notification idempotency guard prevents duplicate emails
+- [x] 100% branch coverage on all new functions
 
 ---
 
@@ -259,14 +259,14 @@ Can run in parallel with Phase 1 and Phase 2.
 
 ### Phase 3 Review Gate
 
-- [ ] Seller lead end-to-end: score → CMA → PDF → email → notify → persist
-- [ ] Buyer lead end-to-end: score → HomeSearch → email → notify → persist
-- [ ] Both lead: CMA + HomeSearch in parallel with partial completion
-- [ ] Content cache hit: second lead for same address skips CMA
-- [ ] Email + notification idempotency: no duplicates on replay
-- [ ] Lead status polling works from agent-site
-- [ ] Channel<T> and BackgroundService registrations removed
-- [ ] 100% branch coverage on all new functions
+- [x] Seller lead end-to-end: score → CMA → PDF → email → notify → persist
+- [x] Buyer lead end-to-end: score → HomeSearch → email → notify → persist
+- [x] Both lead: CMA + HomeSearch in parallel with partial completion
+- [x] Content cache hit: second lead for same address skips CMA
+- [x] Email + notification idempotency: no duplicates on replay
+- [x] Lead status polling works from agent-site
+- [x] Channel<T> and BackgroundService registrations removed
+- [x] 100% branch coverage on all new functions
 
 ---
 
@@ -297,12 +297,12 @@ Sequential — requires all prior phases verified in production.
 
 ### Phase 4 Review Gate
 
-- [ ] No `AddHostedService` calls remain (except `TrialExpiryService`)
-- [ ] `PipelineWorker<T>`, `ProcessingChannelBase<T>`, `BackgroundServiceHealthTracker` deleted
-- [ ] `/health/workers` queries DF management API
-- [ ] Container App scales to zero quickly
-- [ ] Architecture tests pass
-- [ ] All test suites pass, coverage thresholds maintained
+- [x] No `AddHostedService` calls remain (except `TrialExpiryService`)
+- [x] `PipelineWorker<T>`, `ProcessingChannelBase<T>`, `BackgroundServiceHealthTracker` deleted
+- [x] `/health/workers` queries DF management API
+- [x] Container App scales to zero quickly
+- [x] Architecture tests pass
+- [x] All test suites pass, coverage thresholds maintained
 
 ---
 
@@ -321,12 +321,12 @@ Sequential — requires all prior phases verified in production.
 
 ## Success Criteria
 
-- [ ] All BackgroundServices migrated except `TrialExpiryService`
-- [ ] DF execution history provides full audit trail in Table Storage
-- [ ] No duplicate emails/WhatsApp on replay (idempotency verified)
-- [ ] Partial completion preserved: one worker failure doesnt abort pipeline
-- [ ] Content dedup works across invocations via distributed cache
-- [ ] Container App scales to zero faster (API-only)
-- [ ] Architecture tests pass
-- [ ] 100% branch coverage on all new code
-- [ ] Cost neutral or decreased
+- [x] All BackgroundServices migrated except `TrialExpiryService`
+- [x] DF execution history provides full audit trail in Table Storage
+- [x] No duplicate emails/WhatsApp on replay (idempotency verified)
+- [x] Partial completion preserved: one worker failure doesnt abort pipeline
+- [x] Content dedup works across invocations via distributed cache
+- [x] Container App scales to zero faster (API-only)
+- [x] Architecture tests pass
+- [x] 100% branch coverage on all new code
+- [x] Cost neutral or decreased

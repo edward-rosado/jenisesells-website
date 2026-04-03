@@ -12,6 +12,8 @@ public sealed class InMemoryActivationQueue : IActivationQueue
 {
     private readonly Channel<ActivationRequest> _channel = Channel.CreateUnbounded<ActivationRequest>();
 
+    public int QueueDepth => _channel.Reader.Count;
+
     public async Task EnqueueAsync(ActivationRequest request, CancellationToken ct)
     {
         await _channel.Writer.WriteAsync(request, ct);

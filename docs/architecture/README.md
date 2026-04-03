@@ -108,6 +108,14 @@ Design spec: `docs/superpowers/specs/2026-03-21-api-project-restructure-design.m
 |----------|------------|
 | [WhatsApp Message Flow](whatsapp-message-flow.md) | Inbound webhook verification, deduplication, durable processing, and conversation handling |
 
+## Durable Functions Migration (PR #127)
+
+| Document | Description |
+|----------|------------|
+| [Before vs After Architecture](pr127-before-after-architecture.md) | Migration from BackgroundServices to Azure Durable Functions |
+| [Lead Pipeline Durable Flow](pr127-lead-pipeline-durable-flow.md) | Lead processing via Durable orchestrator with parallel fan-out and idempotency |
+| [Idempotency and Replay Safety](pr127-idempotency-and-replay.md) | How duplicate sends are prevented during Durable Functions replay |
+
 ## How to Read
 
 All diagrams use [Mermaid](https://mermaid.js.org/) syntax. GitHub renders them natively in Markdown preview. For local viewing, use a Mermaid-compatible Markdown viewer or the [Mermaid Live Editor](https://mermaid.live/).

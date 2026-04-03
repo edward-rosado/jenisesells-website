@@ -3,6 +3,7 @@ using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
 
@@ -11,6 +12,7 @@ namespace RealEstateStar.Services.AgentNotifier;
 public class AgentNotifierService(
     IWhatsAppSender whatsAppSender,
     IGmailSender gmailSender,
+    IIdempotencyStore idempotencyStore,
     ILogger<AgentNotifierService> logger,
     IAgentContextLoader? agentContextLoader = null) : IAgentNotifier
 {
@@ -21,6 +23,15 @@ public class AgentNotifierService(
         using var span = AgentNotifierDiagnostics.ActivitySource.StartActivity("activity.send_agent_notification");
         span?.SetTag("lead.id", lead.Id.ToString());
         span?.SetTag("agent.id", agentConfig.AgentId);
+
+        var idempotencyKey = $"lead:{agentConfig.AgentId}-{lead.Id}:agent-notify";
+        if (await idempotencyStore.HasCompletedAsync(idempotencyKey, ct))
+        {
+            logger.LogWarning(
+                "[SEND-025] Skipping duplicate agent notification for lead {LeadId} agent {AgentId} (idempotency guard)",
+                lead.Id, agentConfig.AgentId);
+            return;
+        }
 
         // Load agent activation context for voice + brand voice application
         AgentContext? agentContext = null;
@@ -61,6 +72,7 @@ public class AgentNotifierService(
                     ct);
 
                 AgentNotifierDiagnostics.WhatsAppSuccess.Add(1);
+                await idempotencyStore.MarkCompletedAsync(idempotencyKey, ct);
                 logger.LogInformation(
                     "[SEND-020] Agent notified via WhatsApp for {AgentId}, lead {LeadId}",
                     agentConfig.AgentId, lead.Id);
@@ -86,6 +98,7 @@ public class AgentNotifierService(
                 "New Lead Notification",
                 html,
                 ct);
+            await idempotencyStore.MarkCompletedAsync(idempotencyKey, ct);
         }
         catch (Exception ex)
         {

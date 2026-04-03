@@ -47,6 +47,7 @@ Thumbs.db
 
 ## Secrets
 appsettings.*.local.json
+local.settings.json
 *.pfx
 *.p12
 apps/api/RealEstateStar.Api/data/

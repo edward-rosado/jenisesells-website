@@ -7,6 +7,12 @@ namespace RealEstateStar.Domain.Leads.Interfaces;
 /// </summary>
 public interface ILeadOrchestrationQueue
 {
+    /// <summary>
+    /// Returns the approximate number of messages currently in the queue.
+    /// For Azure Queue Storage this is eventually consistent; for in-memory it is exact.
+    /// </summary>
+    int QueueDepth { get; }
+
     Task EnqueueAsync(LeadOrchestrationMessage message, CancellationToken ct);
     Task<QueueMessage<LeadOrchestrationMessage>?> DequeueAsync(TimeSpan visibilityTimeout, CancellationToken ct);
     Task CompleteAsync(string messageId, string popReceipt, CancellationToken ct);

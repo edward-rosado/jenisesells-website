@@ -1,26 +1,33 @@
 # Lead Orchestrator Flow
 
-The LeadOrchestrator coordinates the full lead pipeline: scoring, worker dispatch, PDF generation, email drafting, and agent notification.
+The LeadOrchestratorFunction coordinates the full lead pipeline: scoring, activity dispatch, PDF generation, email drafting, and agent notification.
 
 ```mermaid
 flowchart TD
-    Submit["Lead Submitted<br/>via API endpoint"] --> Channel["LeadOrchestratorChannel<br/>capacity: 100"]
-    Channel --> Load["Load agent config<br/>single read"]
-    Load --> Score["Score lead<br/>via ILeadScorer"]
+    Submit["Lead Submitted\nvia API endpoint"] --> Queue["Azure Queue\nlead-requests"]
+    Queue --> Start["StartLeadProcessingFunction\n[QueueTrigger]"]
+    Start --> Orch["LeadOrchestratorFunction\n[DurableClient.StartNewAsync]"]
+
+    Orch --> LoadConfig["LoadAgentConfigActivity\nread tenant config"]
+    LoadConfig --> Score["ScoreLeadActivity\nvia ILeadScorer"]
     Score --> Status1["Status: Scored"]
-    Status1 --> Dispatch["Dispatch workers<br/>via channels + TCS"]
-    Dispatch --> Status2["Status: Analyzing"]
+    Status1 --> CheckCache["CheckCacheActivity\nexisting enrichment?"]
 
-    Status2 --> WhenAll["Task.WhenAll<br/>with configurable timeout"]
+    CheckCache --> Parallel["ctx.CallActivityAsync fan-out\nTask.WhenAll"]
 
-    WhenAll --> Collect{"Results<br/>collected?"}
-    Collect -->|"CMA success"| PDF["Dispatch PDF<br/>via PdfProcessingChannel"]
-    Collect -->|"Timeout/fail"| Skip["Proceed without<br/>missing results"]
-    PDF --> Draft["Draft email<br/>via Claude"]
-    Skip --> Draft
+    Parallel -->|"seller / both"| CMA["RunCmaActivity\nRentCast comps + Claude analysis"]
+    Parallel -->|"buyer / both"| HomeSearch["RunHomeSearchActivity\nscaper listing search"]
 
-    Draft --> Send["Send email<br/>via Gmail API"]
+    CMA -->|"success"| PDF["GeneratePdfActivity\nQuestPDF report"]
+    CMA -->|"failure"| Skip["Skip PDF\nproceed without"]
+    HomeSearch --> Collect["Collect results"]
+    PDF --> Collect
+    Skip --> Collect
+
+    Collect --> Draft["DraftEmailActivity\nClaude-drafted body"]
+    Draft --> Send["SendEmailActivity\nGmail API"]
     Send --> Status3["Status: Notified"]
-    Status3 --> Notify["Notify agent<br/>WhatsApp or email"]
-    Notify --> Status4["Status: Complete"]
+    Status3 --> Notify["NotifyAgentActivity\nWhatsApp or email"]
+    Notify --> Persist["PersistLeadActivity\nsave final status"]
+    Persist --> Status4["Status: Complete"]
 ```

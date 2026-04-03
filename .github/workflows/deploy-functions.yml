@@ -1,0 +1,86 @@
+name: Deploy Functions
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/RealEstateStar.Functions/**'
+      - 'apps/api/RealEstateStar.Domain/**'
+      - 'apps/api/RealEstateStar.DataServices/**'
+      - 'apps/api/RealEstateStar.Data/**'
+      - 'apps/api/RealEstateStar.Workers/**'
+      - 'apps/api/RealEstateStar.Services/**'
+      - 'apps/api/RealEstateStar.Activities/**'
+      - 'apps/api/RealEstateStar.Clients/**'
+      - '.github/workflows/deploy-functions.yml'
+
+env:
+  FUNCTION_APP_NAME: real-estate-star-functions
+  RESOURCE_GROUP: real-estate-star-rg
+
+jobs:
+  build-and-test:
+    name: "Functions — build and test"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Restore
+        run: dotnet restore apps/api/RealEstateStar.Functions/RealEstateStar.Functions.csproj
+
+      - name: Build
+        run: dotnet build apps/api/RealEstateStar.Functions/RealEstateStar.Functions.csproj --no-restore --configuration Release
+
+      - name: Publish
+        run: >
+          dotnet publish apps/api/RealEstateStar.Functions/RealEstateStar.Functions.csproj
+          --no-build
+          --configuration Release
+          --output ./publish/functions
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: functions-publish
+          path: ./publish/functions
+
+  deploy:
+    name: "Deploy to Azure Functions"
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: functions-publish
+          path: ./publish/functions
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Functions
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ env.FUNCTION_APP_NAME }}
+          package: ./publish/functions
+
+      - name: Verify deployment
+        run: |
+          echo "Checking function app status..."
+          az functionapp show \
+            --name ${{ env.FUNCTION_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "{state: state, defaultHostName: defaultHostName}" \
+            --output table

@@ -14,7 +14,8 @@ apps/
     RealEstateStar.Data/             # Physical file storage providers
     RealEstateStar.DataServices/     # Storage orchestration (routes GDrive vs local)
     RealEstateStar.Notifications/    # Delivery channels (email, WhatsApp)
-    RealEstateStar.Workers.Shared/   # Pipeline base classes (WorkerBase, steps, channels)
+    RealEstateStar.Functions/         # Azure Functions host (Durable orchestrators + activity wrappers)
+    RealEstateStar.Workers.Shared/   # Pipeline base classes (ActivityBase, retry options)
     RealEstateStar.Workers.Leads/    # Lead processing pipeline
     RealEstateStar.Workers.Cma/      # CMA pipeline — tiered comp selection (5-comp target, 6-month recency), subject enrichment, PDF generation
     RealEstateStar.Workers.HomeSearch/ # Home search pipeline
@@ -193,12 +194,12 @@ Commits that modify architecture test files MUST include `[arch-change-approved]
 - Activities can call Services internally — the orchestrator doesn't need to know the details
 - Example: instead of `DraftEmail → SendEmail → DraftNotification → SendNotification` as 4 separate orchestrator calls, group into `NotifyPartiesActivity` that handles all 4 internally
 
-**Call hierarchy:**
+**Call hierarchy (Durable Functions):**
 ```
-Orchestrator (top-level coordinator)
-  ├─ dispatches → Sub-Workers (pure compute, via channel)
-  ├─ calls → Activities (compute + persist via DataServices, can call Services)
-  └─ calls → Services (sync business logic, persist failure/fallback via DataServices)
+Orchestrator (Durable Function — checkpoint/replay)
+  ├─ dispatches → Sub-Workers (Activity Function — pure compute)
+  ├─ calls → Activities (Activity Function — compute + persist via DataServices)
+  └─ calls → Services (Activity Function — sync business logic)
 ```
 
 **Key constraints:**
@@ -221,7 +222,7 @@ All lead files are markdown with YAML frontmatter. Frontmatter keys are validate
 
 ## Lead Pipeline Architecture
 
-The lead processing pipeline uses a **checkpoint/resume** pattern. Each step saves its output before proceeding. On retry, the worker checks if the output file exists and skips completed steps. This saves Claude tokens and ScraperAPI credits.
+The lead processing pipeline uses **Azure Durable Functions** for automatic checkpoint/replay. The orchestrator dispatches activities sequentially, with CMA + HomeSearch in parallel. Idempotency guards on email/WhatsApp sends prevent duplicate delivery on replay.
 
 ```
 Form Submit → Turnstile → HMAC → API Endpoint
@@ -229,18 +230,26 @@ Form Submit → Turnstile → HMAC → API Endpoint
   ├─ Dedup: check GetByEmailAsync → update existing or create new
   ├─ Save Lead Profile.md
   ├─ Record consent (CSV + compliance triple-write)
-  └─ Enqueue → Background Worker
+  └─ Enqueue → Azure Queue "lead-requests"
                   │
-                  ├─ Step 1: Enrich (checkpoint: Research & Insights.md)
-                  │   └─ Skip if file exists (saves Claude + ScraperAPI)
-                  ├─ Step 2: Draft email (checkpoint: Notification Draft.md)
-                  │   └─ Skip if file exists
-                  ├─ Step 3: Send notification (retry 3x → dead letter)
-                  ├─ Step 4: Dispatch CMA (sellers)
-                  └─ Step 5: Dispatch Home Search (buyers)
+                  └─ StartLeadProcessingFunction [QueueTrigger]
+                       → LeadOrchestratorFunction (Durable)
+                            │
+                            ├─ LoadAgentConfig (activity)
+                            ├─ ScoreLead (activity)
+                            ├─ CheckContentCache (activity — skip CMA/HS on cache hit)
+                            ├─ CMA + HomeSearch (parallel activities, partial completion)
+                            ├─ GeneratePdf (activity, if CMA succeeded)
+                            ├─ DraftLeadEmail (activity)
+                            ├─ SendLeadEmail (activity, idempotency guarded)
+                            ├─ NotifyAgent (activity, idempotency guarded)
+                            ├─ PersistLeadResults (activity)
+                            └─ UpdateContentCache (activity)
 ```
 
 **Lead status progression:** `Received → Enriched → EmailDrafted → Notified → Complete`
+**Instance ID:** `lead-{agentId}-{leadId}` (deterministic, dedup on re-enqueue)
+**Retry:** DF RetryPolicy (maxAttempts: 4, 30s backoff, 2x coefficient)
 
 ## CMA Pipeline Architecture
 
@@ -267,6 +276,9 @@ When a seller lead is submitted, the CMA pipeline fetches comparable sales data 
 - Design: `docs/plans/2026-03-09-repo-restructure-design.md`
 - API Restructure Design: `docs/superpowers/specs/2026-03-21-api-project-restructure-design.md`
 - Lead Submission Design: `docs/superpowers/specs/2026-03-19-lead-submission-api-design.md`
+- Durable Functions Migration: `docs/superpowers/specs/2026-03-31-azure-durable-functions-migration-plan.md`
+- Durable Functions Task Plan: `docs/superpowers/specs/2026-04-01-azure-durable-functions-task-plan.md`
+- Durable Functions Operations: `docs/superpowers/plans/2026-04-02-durable-functions-operations-guide.md`
 - Architecture Diagrams: `docs/architecture/README.md`
 - Onboarding: `docs/onboarding.md`
 - PM Skills: `docs/pm-skills-setup.md`

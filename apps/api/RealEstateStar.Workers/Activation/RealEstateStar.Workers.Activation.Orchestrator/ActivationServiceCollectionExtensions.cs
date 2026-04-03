@@ -18,7 +18,9 @@ using RealEstateStar.Workers.Activation.WebsiteStyle;
 namespace RealEstateStar.Workers.Activation.Orchestrator;
 
 /// <summary>
-/// DI wiring for the activation pipeline — orchestrator + all 15 workers.
+/// DI wiring for the activation pipeline — all 15 workers (transient).
+/// The BackgroundService orchestrator has been removed in Phase 4; Azure Durable Functions
+/// now orchestrate these workers via <c>ActivationOrchestratorFunction</c>.
 /// Call from Api/Program.cs; the orchestrator project already references all workers.
 /// </summary>
 public static class ActivationServiceCollectionExtensions
@@ -43,9 +45,6 @@ public static class ActivationServiceCollectionExtensions
         services.AddTransient<BrandVoiceWorker>();
         services.AddTransient<ComplianceAnalysisWorker>();
         services.AddTransient<FeeStructureWorker>();
-
-        // Orchestrator (BackgroundService — reads Channel<ActivationRequest>, dispatches workers)
-        services.AddHostedService<ActivationOrchestrator>();
 
         return services;
     }

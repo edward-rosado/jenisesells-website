@@ -1,0 +1,92 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>RealEstateStar.Functions</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="RealEstateStar.Functions.Tests" />
+    <InternalsVisibleTo Include="RealEstateStar.Functions.Lead.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.0.*" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.*" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.*" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask" Version="1.2.*" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.*" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.*" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.*" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="8.*" />
+    <!-- OpenTelemetry — mirrors Api project for full pipeline observability -->
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
+  </ItemGroup>
+
+  <!-- Phase 0: minimal composition root references -->
+  <!-- Phase 1: WhatsApp webhook + retry functions added -->
+  <!-- Phase 1: Activation + Lead Durable Functions wired (project refs for pre-existing function files) -->
+  <ItemGroup>
+    <!-- Core infrastructure -->
+    <ProjectReference Include="..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />
+    <ProjectReference Include="..\RealEstateStar.DataServices\RealEstateStar.DataServices.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Data\RealEstateStar.Data.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.Shared\RealEstateStar.Workers.Shared.csproj" />
+    <!-- Phase 1: WhatsApp — Workers.WhatsApp owns IConversationHandler, WhatsAppRetryJob -->
+    <ProjectReference Include="..\RealEstateStar.Workers\RealEstateStar.Workers.WhatsApp\RealEstateStar.Workers.WhatsApp.csproj" />
+    <!-- Activation workers (pure compute, Domain + Workers.Shared only) -->
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.AgentDiscovery\RealEstateStar.Workers.Activation.AgentDiscovery.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.BrandExtraction\RealEstateStar.Workers.Activation.BrandExtraction.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.BrandingDiscovery\RealEstateStar.Workers.Activation.BrandingDiscovery.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.BrandVoice\RealEstateStar.Workers.Activation.BrandVoice.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.CmaStyle\RealEstateStar.Workers.Activation.CmaStyle.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.Coaching\RealEstateStar.Workers.Activation.Coaching.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.ComplianceAnalysis\RealEstateStar.Workers.Activation.ComplianceAnalysis.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.DriveIndex\RealEstateStar.Workers.Activation.DriveIndex.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.EmailFetch\RealEstateStar.Workers.Activation.EmailFetch.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.FeeStructure\RealEstateStar.Workers.Activation.FeeStructure.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.MarketingStyle\RealEstateStar.Workers.Activation.MarketingStyle.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.Orchestrator\RealEstateStar.Workers.Activation.Orchestrator.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.Personality\RealEstateStar.Workers.Activation.Personality.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.PipelineAnalysis\RealEstateStar.Workers.Activation.PipelineAnalysis.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.VoiceExtraction\RealEstateStar.Workers.Activation.VoiceExtraction.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.WebsiteStyle\RealEstateStar.Workers.Activation.WebsiteStyle.csproj" />
+    <!-- Activation activities -->
+    <ProjectReference Include="..\RealEstateStar.Activities\Activation\RealEstateStar.Activities.Activation.BrandMerge\RealEstateStar.Activities.Activation.BrandMerge.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Activities\Activation\RealEstateStar.Activities.Activation.PersistAgentProfile\RealEstateStar.Activities.Activation.PersistAgentProfile.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Activities\Activation\RealEstateStar.Activities.Activation.ContactImportPersist\RealEstateStar.Activities.Activation.ContactImportPersist.csproj" />
+    <!-- Lead activities -->
+    <ProjectReference Include="..\RealEstateStar.Activities\Lead\RealEstateStar.Activities.Lead.ContactDetection\RealEstateStar.Activities.Lead.ContactDetection.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Activities\Lead\RealEstateStar.Activities.Lead.Persist\RealEstateStar.Activities.Lead.Persist.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Activities\RealEstateStar.Activities.Pdf\RealEstateStar.Activities.Pdf.csproj" />
+    <!-- Lead + CMA + HomeSearch workers -->
+    <ProjectReference Include="..\RealEstateStar.Workers\Lead\RealEstateStar.Workers.Lead.CMA\RealEstateStar.Workers.Lead.CMA.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Lead\RealEstateStar.Workers.Lead.HomeSearch\RealEstateStar.Workers.Lead.HomeSearch.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Lead\RealEstateStar.Workers.Lead.Orchestrator\RealEstateStar.Workers.Lead.Orchestrator.csproj" />
+    <!-- Phase 2: Clients.Azure — IDistributedContentCache (TableStorageContentCache),
+         IIdempotencyStore (TableStorageIdempotencyStore), ITokenStore (AzureTableTokenStore).
+         Functions is a second composition root alongside Api and may reference Clients.*. -->
+    <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Azure\RealEstateStar.Clients.Azure.csproj" />
+    <!-- Client libraries needed by Lead + Activation pipeline services -->
+    <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Anthropic\RealEstateStar.Clients.Anthropic.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Gmail\RealEstateStar.Clients.Gmail.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.GDrive\RealEstateStar.Clients.GDrive.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.GDocs\RealEstateStar.Clients.GDocs.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.GSheets\RealEstateStar.Clients.GSheets.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.GoogleOAuth\RealEstateStar.Clients.GoogleOAuth.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Scraper\RealEstateStar.Clients.Scraper.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.RentCast\RealEstateStar.Clients.RentCast.csproj" />
+    <!-- Services -->
+    <ProjectReference Include="..\RealEstateStar.Services\RealEstateStar.Services.AgentNotifier\RealEstateStar.Services.AgentNotifier.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Services\RealEstateStar.Services.LeadCommunicator\RealEstateStar.Services.LeadCommunicator.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Services\Activation\RealEstateStar.Services.AgentConfig\RealEstateStar.Services.AgentConfig.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Services\Activation\RealEstateStar.Services.BrandMerge\RealEstateStar.Services.BrandMerge.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Services\Activation\RealEstateStar.Services.WelcomeNotification\RealEstateStar.Services.WelcomeNotification.csproj" />
+  </ItemGroup>
+</Project>
