@@ -37,8 +37,6 @@ namespace RealEstateStar.Functions.Lead;
 public sealed class LeadOrchestratorFunction
 {
     private static readonly TimeSpan DefaultWorkerTimeout = TimeSpan.FromMinutes(5);
-    internal static readonly TimeSpan CmaCacheTtl = TimeSpan.FromHours(24);
-    internal static readonly TimeSpan HomeSearchCacheTtl = TimeSpan.FromHours(1);
 
     [Function("LeadOrchestrator")]
     public static async Task RunOrchestrator(

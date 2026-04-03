@@ -74,9 +74,11 @@ public class ProcessWebhookFunction(
                 $"Exceeded max dequeue count ({dequeueCount})",
                 cancellationToken);
 
-            // Re-throw so the host can move the message to the -poison queue on next dequeue
-            // (host increments dequeueCount beyond maxDequeueCount before moving)
-            return;
+            // Re-throw so the host can move the message to the -poison queue.
+            // Returning here would tell the host the message was processed successfully (it deletes it).
+            // Throwing causes the host to leave it visible until maxDequeueCount is reached, then route to -poison.
+            throw new InvalidOperationException(
+                $"[WA-FN-003] Message {envelope.MessageId} exceeded poison threshold ({dequeueCount} dequeues), audited and re-thrown for -poison routing");
         }
 
         try

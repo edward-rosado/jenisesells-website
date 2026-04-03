@@ -185,8 +185,13 @@ public class ProcessWebhookFunctionTests
         var json = MakeJsonBody(envelope);
 
         var sut = CreateSut();
-        // dequeueCount >= PoisonThreshold (5) → audit poison + return (no re-throw)
-        await sut.RunAsync(json, dequeueCount: 5, id: "q1", CancellationToken.None);
+        // dequeueCount >= PoisonThreshold (5) → audit poison + re-throw so host routes to -poison queue
+        // (returning would tell the host the message was successfully processed and it would delete it)
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.RunAsync(json, dequeueCount: 5, id: "q1", CancellationToken.None));
+
+        Assert.Contains("wamid.30", ex.Message);
+        Assert.Contains("-poison routing", ex.Message);
 
         _audit.Verify(a => a.UpdatePoisonAsync(
             "wamid.30",

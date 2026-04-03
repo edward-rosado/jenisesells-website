@@ -49,7 +49,7 @@ public sealed class GeneratePdfFunction(
         {
             Address = c.Address,
             SalePrice = c.Price,
-            SaleDate = c.SaleDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
+            SaleDate = c.SaleDate ?? DateOnly.MinValue, // MinValue = unknown; PDF generator renders "N/A"
             Beds = c.Beds ?? 0,
             Baths = (int)Math.Round(c.Baths ?? 0m, MidpointRounding.AwayFromZero),
             Sqft = c.Sqft ?? 0,

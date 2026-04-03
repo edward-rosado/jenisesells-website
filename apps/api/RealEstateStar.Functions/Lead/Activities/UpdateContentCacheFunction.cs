@@ -19,7 +19,8 @@ public sealed class UpdateContentCacheFunction(
     /// <summary>Cache TTL for HomeSearch results (listing inventory changes hourly).</summary>
     private static readonly TimeSpan HomeSearchCacheTtl = TimeSpan.FromHours(1);
 
-    /// <summary>Exposed for unit tests only — verifies TTL constant value.</summary>
+    /// <summary>Exposed for unit tests only — verifies TTL constant values.</summary>
+    internal static TimeSpan CmaCacheTtlForTests => CmaCacheTtl;
     internal static TimeSpan HomeSearchCacheTtlForTests => HomeSearchCacheTtl;
 
     [Function("UpdateContentCache")]

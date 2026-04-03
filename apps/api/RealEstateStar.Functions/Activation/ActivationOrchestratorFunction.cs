@@ -88,8 +88,11 @@ public sealed class ActivationOrchestratorFunction
         var emailCorpus = emailTask.Result;
         var driveIndex = driveTask.Result;
 
-        // Discovery requires email corpus to use signature info
-        var agentName = request.Email.Split('@')[0];
+        // Discovery requires email corpus to use signature info.
+        // Validate email before splitting to avoid IndexOutOfRangeException on malformed input.
+        var agentName = !string.IsNullOrWhiteSpace(request.Email) && request.Email.Contains('@')
+            ? request.Email.Split('@')[0].Trim()
+            : request.AccountId; // fallback to account ID when email is absent or malformed
 
         var discovery = await ctx.CallActivityAsync<AgentDiscoveryOutput>(
             ActivityNames.AgentDiscovery,

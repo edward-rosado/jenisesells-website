@@ -1,14 +1,48 @@
 using Azure.Data.Tables;
+using Azure.Storage.Queues;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using RealEstateStar.Activities.Activation.BrandMerge;
+using RealEstateStar.Activities.Activation.ContactImportPersist;
+using RealEstateStar.Activities.Activation.PersistAgentProfile;
+using RealEstateStar.Activities.Lead.ContactDetection;
+using RealEstateStar.Activities.Pdf;
+using RealEstateStar.Clients.Anthropic;
 using RealEstateStar.Clients.Azure;
+using RealEstateStar.Clients.GDocs;
+using RealEstateStar.Clients.GDrive;
+using RealEstateStar.Clients.GSheets;
+using RealEstateStar.Clients.Gmail;
+using RealEstateStar.Clients.GoogleOAuth;
+using RealEstateStar.Clients.RentCast;
+using RealEstateStar.Clients.Scraper;
+using RealEstateStar.DataServices;
+using RealEstateStar.DataServices.Storage;
 using RealEstateStar.DataServices.WhatsApp;
+using RealEstateStar.Domain.Cma.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces;
+using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Domain.WhatsApp.Interfaces;
+using RealEstateStar.Services.AgentConfig;
+using RealEstateStar.Services.AgentNotifier;
+using RealEstateStar.Services.BrandMerge;
+using RealEstateStar.Services.LeadCommunicator;
+using RealEstateStar.Services.WelcomeNotification;
+using RealEstateStar.Workers.Activation.Orchestrator;
+using RealEstateStar.Workers.Lead.CMA;
+using RealEstateStar.Workers.Lead.HomeSearch;
+using RealEstateStar.Workers.Lead.Orchestrator;
+using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.WhatsApp;
+using RealEstateStar.Domain.Shared;
 using Serilog;
 
 var builder = FunctionsApplication.CreateBuilder(args);
@@ -16,6 +50,75 @@ var builder = FunctionsApplication.CreateBuilder(args);
 builder.ConfigureFunctionsWebApplication();
 
 builder.Services.AddSerilog();
+
+// ── Observability ─────────────────────────────────────────────────────────────
+var rawOtelEndpoint = builder.Configuration["Otel:Endpoint"] ?? "http://localhost:4317";
+var otlpHeaders = builder.Configuration["Otel:Headers"] ?? "";
+var useHttpProtobuf = !string.IsNullOrEmpty(otlpHeaders);
+var otlpBase = new Uri(rawOtelEndpoint.TrimEnd('/') + "/");
+var tracesEndpoint = useHttpProtobuf ? new Uri(otlpBase, "v1/traces") : otlpBase;
+var metricsEndpoint = useHttpProtobuf ? new Uri(otlpBase, "v1/metrics") : otlpBase;
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("real-estate-star-functions"))
+    .WithTracing(tracing => tracing
+        .AddSource(LeadDiagnostics.ServiceName)
+        .AddSource(CmaDiagnostics.ServiceName)
+        .AddSource(HomeSearchDiagnostics.ServiceName)
+        .AddSource(OrchestratorDiagnostics.ServiceName)
+        .AddSource(ScraperDiagnostics.ServiceName)
+        .AddSource(WhatsAppDiagnostics.ServiceName)
+        .AddSource(ClaudeDiagnostics.ServiceName)
+        .AddSource(GmailDiagnostics.ServiceName)
+        .AddSource(GDriveDiagnostics.ServiceName)
+        .AddSource(GDocsDiagnostics.ServiceName)
+        .AddSource(GSheetsDiagnostics.ServiceName)
+        .AddSource(TokenStoreDiagnostics.ServiceName)
+        .AddSource(QueueDiagnostics.ServiceName)
+        .AddSource(FanOutDiagnostics.ServiceName)
+        .AddSource(RentCastDiagnostics.ServiceName)
+        .AddSource("RealEstateStar.Pdf")
+        .AddSource("RealEstateStar.LeadCommunicator")
+        .AddSource("RealEstateStar.AgentNotifier")
+        .AddSource("RealEstateStar.Activation")
+        .AddSource("RealEstateStar.AgentContext")
+        .AddHttpClientInstrumentation()
+        .AddOtlpExporter(options =>
+        {
+            options.Endpoint = tracesEndpoint;
+            options.Protocol = useHttpProtobuf ? OtlpExportProtocol.HttpProtobuf : OtlpExportProtocol.Grpc;
+            if (!string.IsNullOrEmpty(otlpHeaders))
+                options.Headers = otlpHeaders;
+        }))
+    .WithMetrics(metrics => metrics
+        .AddMeter(LeadDiagnostics.ServiceName)
+        .AddMeter(CmaDiagnostics.ServiceName)
+        .AddMeter(HomeSearchDiagnostics.ServiceName)
+        .AddMeter(OrchestratorDiagnostics.ServiceName)
+        .AddMeter(ScraperDiagnostics.ServiceName)
+        .AddMeter(WhatsAppDiagnostics.ServiceName)
+        .AddMeter(ClaudeDiagnostics.ServiceName)
+        .AddMeter(GmailDiagnostics.ServiceName)
+        .AddMeter(GDriveDiagnostics.ServiceName)
+        .AddMeter(GDocsDiagnostics.ServiceName)
+        .AddMeter(GSheetsDiagnostics.ServiceName)
+        .AddMeter(TokenStoreDiagnostics.ServiceName)
+        .AddMeter(QueueDiagnostics.ServiceName)
+        .AddMeter(FanOutDiagnostics.ServiceName)
+        .AddMeter(RentCastDiagnostics.ServiceName)
+        .AddMeter("RealEstateStar.Pdf")
+        .AddMeter("RealEstateStar.LeadCommunicator")
+        .AddMeter("RealEstateStar.AgentNotifier")
+        .AddMeter("RealEstateStar.Activation")
+        .AddMeter("RealEstateStar.AgentContext")
+        .AddHttpClientInstrumentation()
+        .AddOtlpExporter(options =>
+        {
+            options.Endpoint = metricsEndpoint;
+            options.Protocol = useHttpProtobuf ? OtlpExportProtocol.HttpProtobuf : OtlpExportProtocol.Grpc;
+            if (!string.IsNullOrEmpty(otlpHeaders))
+                options.Headers = otlpHeaders;
+        }));
 
 // ── Phase 1: WhatsApp webhook + retry functions ──────────────────────────────
 // Register IConversationHandler, IIntentClassifier, IResponseGenerator, WhatsAppRetryJob.
@@ -25,15 +128,36 @@ builder.Configuration["Features:WhatsApp:UseBackgroundService"] = "false";
 builder.Services.AddWhatsAppWorkers(builder.Configuration);
 
 // IWhatsAppAuditService: disabled implementation — real Azure Table audit will be wired
-// in Phase 3 when Clients.Azure is added to the Functions composition root.
+// in Phase 3 when Clients.WhatsApp is added to the Functions composition root.
 builder.Services.AddSingleton<IWhatsAppAuditService, DisabledWhatsAppAuditService>();
 
 // IWebhookQueueService: disabled — queue messages arrive via QueueTrigger binding,
 // not through IWebhookQueueService.DequeueAsync. Registered for DI completeness.
 builder.Services.AddSingleton<IWebhookQueueService, DisabledWebhookQueueService>();
 
-// IDistributedContentCache — Azure Table Storage when connection string is available,
-// no-op (null object) fallback for local development.
+// IWhatsAppSender: disabled — real WhatsApp API sending will be wired in Phase 3
+// when Clients.WhatsApp is added to the Functions composition root.
+builder.Services.AddSingleton<IWhatsAppSender, DisabledFunctionsWhatsAppSender>();
+
+// ── Configuration key warnings ────────────────────────────────────────────────
+var anthropicKey = builder.Configuration["Anthropic:ApiKey"];
+if (string.IsNullOrWhiteSpace(anthropicKey))
+    Log.Warning("[STARTUP-WARN] Anthropic:ApiKey not configured — Claude API calls will fail");
+
+var googleClientId = builder.Configuration["Google:ClientId"];
+var googleClientSecret = builder.Configuration["Google:ClientSecret"];
+if (string.IsNullOrWhiteSpace(googleClientId) || string.IsNullOrWhiteSpace(googleClientSecret))
+    Log.Warning("[STARTUP-WARN] Google:ClientId or Google:ClientSecret not configured — Google API calls will fail");
+
+var scraperApiKey = builder.Configuration["ScraperApi:ApiKey"];
+if (string.IsNullOrEmpty(scraperApiKey))
+    Log.Warning("[STARTUP-WARN] ScraperApi:ApiKey not configured — profile scraping will use direct HTTP");
+
+var rentCastKey = builder.Configuration["RentCast:ApiKey"];
+if (string.IsNullOrWhiteSpace(rentCastKey))
+    Log.Warning("[STARTUP-WARN] RentCast:ApiKey not configured — CMA comp fetch will return empty results");
+
+// ── Storage: IDistributedContentCache ──────────────────────────────────────
 var storageConnStr = builder.Configuration["AzureStorage:ConnectionString"];
 if (!string.IsNullOrEmpty(storageConnStr))
 {
@@ -49,10 +173,168 @@ else
     builder.Services.AddSingleton<IDistributedContentCache, NullDistributedContentCache>();
 }
 
-// IWhatsAppSender: disabled — real WhatsApp API sending will be wired in Phase 3
-// when Clients.WhatsApp is added to the Functions composition root.
-// Note: Functions already references Clients.Azure (Phase 2). Clients.WhatsApp will be added in Phase 3.
-builder.Services.AddSingleton<IWhatsAppSender, DisabledFunctionsWhatsAppSender>();
+// ── Azure queues: IActivationQueue + ILeadOrchestrationQueue ─────────────────
+if (!string.IsNullOrEmpty(storageConnStr))
+{
+    var activationQueueClient = new QueueClient(
+        storageConnStr,
+        "activation-requests",
+        new QueueClientOptions { MessageEncoding = QueueMessageEncoding.Base64 });
+    activationQueueClient.CreateIfNotExists();
+    builder.Services.AddSingleton<RealEstateStar.Domain.Activation.Interfaces.IActivationQueue>(sp =>
+        new AzureQueueActivationStore(
+            activationQueueClient,
+            sp.GetRequiredService<ILogger<AzureQueueActivationStore>>()));
+
+    var leadQueueClient = new QueueClient(
+        storageConnStr,
+        "lead-requests",
+        new QueueClientOptions { MessageEncoding = QueueMessageEncoding.Base64 });
+    leadQueueClient.CreateIfNotExists();
+    builder.Services.AddSingleton<RealEstateStar.Domain.Leads.Interfaces.ILeadOrchestrationQueue>(sp =>
+        new AzureQueueLeadStore(
+            leadQueueClient,
+            sp.GetRequiredService<ILogger<AzureQueueLeadStore>>()));
+
+    Log.Information("[STARTUP-085] Durable queues: activation-requests, lead-requests (Azure Queue Storage)");
+}
+else
+{
+    builder.Services.AddSingleton<RealEstateStar.Domain.Activation.Interfaces.IActivationQueue, InMemoryActivationQueue>();
+    builder.Services.AddSingleton<RealEstateStar.Domain.Leads.Interfaces.ILeadOrchestrationQueue, InMemoryLeadOrchestrationQueue>();
+    Log.Warning("[STARTUP-086] AzureStorage:ConnectionString not configured — queues are in-memory (messages lost on restart)");
+}
+
+// ── IIdempotencyStore ─────────────────────────────────────────────────────────
+if (!string.IsNullOrEmpty(storageConnStr))
+{
+    builder.Services.AddSingleton<IIdempotencyStore>(sp =>
+    {
+        var tableClient = new TableClient(storageConnStr, "idempotency");
+        tableClient.CreateIfNotExists();
+        return new TableStorageIdempotencyStore(
+            tableClient,
+            sp.GetRequiredService<ILogger<TableStorageIdempotencyStore>>());
+    });
+    Log.Information("[STARTUP-087] IIdempotencyStore: TableStorageIdempotencyStore (table: idempotency)");
+}
+else
+{
+    builder.Services.AddSingleton<IIdempotencyStore, NullIdempotencyStore>();
+    Log.Warning("[STARTUP-088] AzureStorage:ConnectionString not configured — idempotency store is no-op");
+}
+
+// ── Platform-tier document storage (AzureBlobDocumentStore when available) ───
+// Must stay in Program.cs — AzureBlobDocumentStore lives in Clients.Azure which DataServices cannot reference.
+if (!string.IsNullOrEmpty(storageConnStr))
+{
+    builder.Services.AddKeyedSingleton<IDocumentStorageProvider>(
+        StorageServiceCollectionExtensions.PlatformDocumentStoreKey,
+        (sp, _) => new AzureBlobDocumentStore(
+            new Azure.Storage.Blobs.BlobContainerClient(storageConnStr, "lead-documents"),
+            sp.GetRequiredService<ILogger<AzureBlobDocumentStore>>()));
+    Log.Information("[STARTUP-080] Platform document store: AzureBlobDocumentStore (container: lead-documents)");
+}
+else
+{
+    Log.Warning("[STARTUP-081] AzureStorage:ConnectionString not configured — Platform tier using LocalStorageProvider");
+}
+
+builder.Services.AddStorageProviders(builder.Configuration, builder.Environment);
+
+// ── Agent config path ─────────────────────────────────────────────────────────
+var dockerConfigPath = Path.Combine(builder.Environment.ContentRootPath, "config", "accounts");
+var localConfigPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "accounts");
+var configPath = Directory.Exists(dockerConfigPath) ? dockerConfigPath : localConfigPath;
+if (!Directory.Exists(configPath))
+    Log.Warning("[STARTUP-WARN] Agent config directory not found: {ConfigPath}", configPath);
+
+// ── DataServices ──────────────────────────────────────────────────────────────
+// ITokenStore default (NullTokenStore) is registered here.
+// NOTE: Functions host does not run OAuth flows, so NullTokenStore is acceptable.
+// If the activation pipeline needs real token persistence, wire AzureTableTokenStore here.
+builder.Services.AddDataServices(builder.Configuration, builder.Environment, configPath);
+
+// ── Memory cache ───────────────────────────────────────────────────────────────
+builder.Services.AddMemoryCache();
+
+// ── Polly resilience logger ────────────────────────────────────────────────────
+var pollyLoggerFactory = LoggerFactory.Create(lb => lb.AddSerilog(Log.Logger));
+var pollyLogger = pollyLoggerFactory.CreateLogger("Polly");
+
+// ── IAnthropicClient ──────────────────────────────────────────────────────────
+// NOTE: AddClaudeApiResilience is in RealEstateStar.Api.Infrastructure and cannot be referenced here.
+// Using plain HttpClient — Durable Functions has its own retry semantics via orchestrator retries.
+builder.Services.AddHttpClient("Anthropic");
+builder.Services.AddSingleton<IAnthropicClient>(sp =>
+    new AnthropicClient(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        anthropicKey ?? string.Empty,
+        sp.GetRequiredService<ILogger<AnthropicClient>>()));
+
+// ── IOAuthRefresher + Google clients ──────────────────────────────────────────
+builder.Services.AddHttpClient("GoogleOAuth", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+builder.Services.AddSingleton<IOAuthRefresher>(sp =>
+{
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("GoogleOAuth");
+    return new GoogleOAuthRefresher(
+        sp.GetRequiredService<ITokenStore>(),
+        googleClientId ?? string.Empty,
+        googleClientSecret ?? string.Empty,
+        httpClient,
+        sp.GetRequiredService<ILogger<GoogleOAuthRefresher>>());
+});
+builder.Services.AddGmailSender(googleClientId ?? string.Empty, googleClientSecret ?? string.Empty);
+builder.Services.AddGmailReader(googleClientId ?? string.Empty, googleClientSecret ?? string.Empty);
+builder.Services.AddGDriveClient(googleClientId ?? string.Empty, googleClientSecret ?? string.Empty);
+builder.Services.AddGDocsClient(googleClientId ?? string.Empty, googleClientSecret ?? string.Empty);
+builder.Services.AddGSheetsClient(googleClientId ?? string.Empty, googleClientSecret ?? string.Empty);
+
+// ── Scraper client ─────────────────────────────────────────────────────────────
+builder.Services.AddScraperClient(builder.Configuration, pollyLogger);
+
+// ── RentCast client ────────────────────────────────────────────────────────────
+builder.Services.AddRentCastClient(builder.Configuration, pollyLogger);
+
+// ── Image resolver (used by CmaPdfGenerator) ──────────────────────────────────
+// LocalFirstImageResolver requires IWebHostEnvironment (ASP.NET Core specific — not available in Functions host).
+// Register a no-op resolver; PDF renders without agent images.
+// TODO(phase-5): Move LocalFirstImageResolver to Activities.Pdf or create a Functions-compatible variant.
+builder.Services.AddHttpClient("image-resolver", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("RealEstateStar-CmaPdfGenerator/1.0");
+});
+builder.Services.AddSingleton<IImageResolver, NullImageResolver>();
+
+// ── Lead pipeline services ────────────────────────────────────────────────────
+builder.Services.AddLeadOrchestrator();
+builder.Services.AddPdfService();
+builder.Services.AddAgentNotifier();
+builder.Services.AddLeadCommunicator();
+builder.Services.AddAgentConfigService();
+builder.Services.AddCmaPipeline();
+builder.Services.AddHomeSearchPipeline(builder.Configuration);
+
+// Named HttpClient for AgentDiscovery worker (used during activation)
+builder.Services.AddHttpClient("AgentDiscovery", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(
+        "Mozilla/5.0 (compatible; RealEstateStar-Activation/1.0; +https://real-estate-star.com)");
+});
+
+// ── Activation pipeline services ─────────────────────────────────────────────
+builder.Services.AddActivationPipeline();
+builder.Services.AddBrandMergeService();
+builder.Services.AddWelcomeNotificationService();
+builder.Services.AddPersistAgentProfileActivity();
+builder.Services.AddBrandMergeActivity();
+builder.Services.AddContactImportPersistActivity();
+builder.Services.AddTransient<ContactDetectionActivity>();
 
 builder.Build().Run();
 
@@ -87,4 +369,16 @@ file sealed class DisabledFunctionsWhatsAppSender : IWhatsAppSender
 
     public Task MarkReadAsync(string messageId, CancellationToken ct)
         => Task.CompletedTask;
+}
+
+/// <summary>
+/// No-op <see cref="IImageResolver"/> for the Functions host.
+/// LocalFirstImageResolver requires <c>IWebHostEnvironment</c> (ASP.NET Core) which is unavailable here.
+/// PDF generation proceeds without agent headshots/logos.
+/// TODO(phase-5): Replace with a Functions-compatible implementation.
+/// </summary>
+file sealed class NullImageResolver : IImageResolver
+{
+    public Task<byte[]?> ResolveAsync(string handle, string relativePath, CancellationToken ct)
+        => Task.FromResult((byte[]?)null);
 }

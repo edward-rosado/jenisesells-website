@@ -322,6 +322,17 @@ public class DependencyTests
             // to register IDistributedContentCache, IIdempotencyStore, ITokenStore.
             // [arch-change-approved]
             "RealEstateStar.Clients.Azure",
+            // Phase 3: Additional clients — Lead + Activation pipeline DI wiring requires these.
+            // Functions is a second composition root alongside Api; both may reference Clients.*.
+            // [arch-change-approved]
+            "RealEstateStar.Clients.Anthropic",
+            "RealEstateStar.Clients.Gmail",
+            "RealEstateStar.Clients.GDrive",
+            "RealEstateStar.Clients.GDocs",
+            "RealEstateStar.Clients.GSheets",
+            "RealEstateStar.Clients.GoogleOAuth",
+            "RealEstateStar.Clients.Scraper",
+            "RealEstateStar.Clients.RentCast",
         };
 
         var violations = assembly.GetReferencedAssemblies()

@@ -162,7 +162,8 @@ public class LeadOrchestratorFunctionTests
     [Fact]
     public void Cma_cache_ttl_is_24_hours()
     {
-        LeadOrchestratorFunction.CmaCacheTtl.Should().Be(TimeSpan.FromHours(24));
+        // Authoritative TTL definition lives in UpdateContentCacheFunction (not the orchestrator)
+        UpdateContentCacheFunction.CmaCacheTtlForTests.Should().Be(TimeSpan.FromHours(24));
     }
 
     [Fact]

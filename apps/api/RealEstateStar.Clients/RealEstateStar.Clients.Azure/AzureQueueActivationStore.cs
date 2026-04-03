@@ -67,7 +67,7 @@ public sealed class AzureQueueActivationStore(
                 activity?.SetTag("message.id", message.MessageId);
 
                 logger.LogInformation(
-                    "[QUEUE-002] Activation request dequeued. MessageId={MessageId}, AccountId={AccountId}, AgentId={AgentId}",
+                    "[QUEUE-003] Activation request dequeued. MessageId={MessageId}, AccountId={AccountId}, AgentId={AgentId}",
                     message.MessageId, request.AccountId, request.AgentId);
 
                 return new QueueMessage<ActivationRequest>(request, message.MessageId, message.PopReceipt);
@@ -77,7 +77,7 @@ public sealed class AzureQueueActivationStore(
                 QueueDiagnostics.RecordFailure(QueueName, activity, ex);
 
                 logger.LogError(ex,
-                    "[QUEUE-003] Failed to deserialize activation queue message. MessageId={MessageId}",
+                    "[QUEUE-004] Failed to deserialize activation queue message. MessageId={MessageId}",
                     message.MessageId);
 
                 // Delete the poison message so it doesn't block the queue
@@ -103,7 +103,7 @@ public sealed class AzureQueueActivationStore(
 
             QueueDiagnostics.RecordComplete(QueueName, messageId, activity);
 
-            logger.LogInformation("[QUEUE-003] Activation message completed. MessageId={MessageId}", messageId);
+            logger.LogInformation("[QUEUE-005] Activation message completed. MessageId={MessageId}", messageId);
         }
         catch (Exception ex)
         {
