@@ -29,7 +29,7 @@ public class LeadEmailDrafterTests
         Testimonials = ["Jenise sold our home in 5 days!", "Amazing experience!"]
     };
 
-    private static Lead MakeSellerLead(string? notes = null) => new()
+    private static Lead MakeSellerLead(string? notes = null, string? locale = null) => new()
     {
         Id = Guid.NewGuid(),
         AgentId = "jenise-buckalew",
@@ -41,6 +41,7 @@ public class LeadEmailDrafterTests
         Timeline = "1-3months",
         Status = LeadStatus.Received,
         ReceivedAt = DateTime.UtcNow,
+        Locale = locale,
         SellerDetails = new SellerDetails
         {
             Address = "123 Oak Ave",
@@ -681,6 +682,144 @@ public class LeadEmailDrafterTests
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    // -----------------------------------------------------------------------
+    // Locale — BuildSystemPrompt language instruction
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void BuildSystemPrompt_WithSpanishLocale_ContainsSpanishLanguageInstruction()
+    {
+        var prompt = LeadEmailDrafter.BuildSystemPrompt(DefaultAgent, locale: "es");
+
+        prompt.Should().Contain("Draft this email entirely in Spanish");
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_WithEnglishLocale_DoesNotContainLanguageInstruction()
+    {
+        var prompt = LeadEmailDrafter.BuildSystemPrompt(DefaultAgent, locale: "en");
+
+        prompt.Should().NotContain("Draft this email entirely in");
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_WithNullLocale_DoesNotContainLanguageInstruction()
+    {
+        var prompt = LeadEmailDrafter.BuildSystemPrompt(DefaultAgent, locale: null);
+
+        prompt.Should().NotContain("Draft this email entirely in");
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_WithSpanishLocaleAndLocalizedVoiceSkill_UsesSpanishVoiceSkill()
+    {
+        var agentContext = new AgentContext
+        {
+            VoiceSkill = "Always lead with empathy.",
+            LocalizedSkills = new Dictionary<string, string>
+            {
+                ["VoiceSkill.es"] = "Siempre lidera con empatía y conocimiento local."
+            },
+            IsActivated = true
+        };
+
+        var prompt = LeadEmailDrafter.BuildSystemPrompt(DefaultAgent, agentContext, locale: "es");
+
+        prompt.Should().Contain("Siempre lidera con empatía y conocimiento local.");
+        prompt.Should().NotContain("Always lead with empathy.");
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_WithSpanishLocaleButNoLocalizedSkill_FallsBackToEnglishVoiceSkill()
+    {
+        var agentContext = new AgentContext
+        {
+            VoiceSkill = "Always lead with empathy.",
+            LocalizedSkills = new Dictionary<string, string>(), // no es variant
+            IsActivated = true
+        };
+
+        var prompt = LeadEmailDrafter.BuildSystemPrompt(DefaultAgent, agentContext, locale: "es");
+
+        prompt.Should().Contain("Always lead with empathy.");
+    }
+
+    // -----------------------------------------------------------------------
+    // GetLanguageName — locale → language mapping
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void GetLanguageName_Spanish_ReturnsSpanish()
+    {
+        LeadEmailDrafter.GetLanguageName("es").Should().Be("Spanish");
+    }
+
+    [Fact]
+    public void GetLanguageName_English_ReturnsNull()
+    {
+        LeadEmailDrafter.GetLanguageName("en").Should().BeNull();
+    }
+
+    [Fact]
+    public void GetLanguageName_Null_ReturnsNull()
+    {
+        LeadEmailDrafter.GetLanguageName(null).Should().BeNull();
+    }
+
+    [Fact]
+    public void GetLanguageName_UnknownLocale_ReturnsNull()
+    {
+        LeadEmailDrafter.GetLanguageName("xx").Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("fr", "French")]
+    [InlineData("zh", "Chinese")]
+    [InlineData("ko", "Korean")]
+    [InlineData("vi", "Vietnamese")]
+    [InlineData("ht", "Haitian Creole")]
+    public void GetLanguageName_SupportedLocales_ReturnsExpectedName(string locale, string expected)
+    {
+        LeadEmailDrafter.GetLanguageName(locale).Should().Be(expected);
+    }
+
+    // -----------------------------------------------------------------------
+    // DraftAsync — locale passed through to template
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public async Task DraftAsync_WithSpanishLocaleLead_PassesLocaleToTemplate()
+    {
+        var (drafter, _) = CreateDrafter();
+        var lead = MakeSellerLead(locale: "es");
+
+        var result = await drafter.DraftAsync(lead, MakeScore(), null, null, DefaultAgent, CancellationToken.None);
+
+        result.HtmlBody.Should().Contain("lang=\"es\"");
+        result.HtmlBody.Should().Contain("Hola");
+    }
+
+    [Fact]
+    public async Task DraftAsync_WithSpanishLocale_SystemPromptContainsLanguageInstruction()
+    {
+        var (drafter, anthropicMock) = CreateDrafter();
+        var lead = MakeSellerLead(locale: "es");
+
+        await drafter.DraftAsync(lead, MakeScore(), null, null, DefaultAgent, CancellationToken.None);
+
+        anthropicMock.Verify(c => c.SendAsync(
+            It.IsAny<string>(),
+            It.Is<string>(s => s.Contains("Draft this email entirely in Spanish")),
+            It.IsAny<string>(),
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -----------------------------------------------------------------------
+    // Agent Context — null agent context fallback (existing)
+    // -----------------------------------------------------------------------
 
     [Fact]
     public async Task DraftAsync_WithNullAgentContext_UsesFallbackGenericPrompt()
