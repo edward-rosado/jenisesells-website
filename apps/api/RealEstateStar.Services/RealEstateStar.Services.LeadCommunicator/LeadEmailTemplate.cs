@@ -233,14 +233,6 @@ public static class LeadEmailTemplate
             ["privacyLink"] = "Política de Privacidad",
             ["unsubscribe"] = "Cancelar suscripción"
         },
-        "pt" => new Dictionary<string, string>
-        {
-            ["greeting"] = "Olá",
-            ["cta"] = "Adoraria me conectar com você",
-            ["ctaSuffix"] = "fique à vontade para responder a este e-mail ou me ligar no",
-            ["privacyLink"] = "Política de Privacidade",
-            ["unsubscribe"] = "Cancelar inscrição"
-        },
         _ => new Dictionary<string, string>
         {
             ["greeting"] = "Hi",

@@ -276,7 +276,6 @@ public class AgentNotifierService(
     internal static string GetLanguageDisplayName(string? locale) => locale?.ToLowerInvariant() switch
     {
         "es" => "Spanish",
-        "pt" => "Portuguese",
         "fr" => "French",
         "zh" => "Chinese",
         "ko" => "Korean",

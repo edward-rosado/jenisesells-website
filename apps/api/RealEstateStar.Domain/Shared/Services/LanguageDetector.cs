@@ -4,7 +4,7 @@ namespace RealEstateStar.Domain.Shared.Services;
 
 /// <summary>
 /// Pure static language detection using character-set heuristics.
-/// Classifies text as English ("en"), Spanish ("es"), or Portuguese ("pt").
+/// Classifies text as English ("en") or Spanish ("es").
 /// No external dependencies, no DI, no async — suitable for Domain layer.
 /// </summary>
 public static partial class LanguageDetector
@@ -16,16 +16,10 @@ public static partial class LanguageDetector
     private const int RunnerUpMultiplier = 2;
 
     private static readonly HashSet<char> SpanishIndicators = ['ñ', '¿', '¡', 'á', 'é', 'í', 'ó', 'ú'];
-    private static readonly HashSet<char> PortugueseIndicators = ['ã', 'õ', 'ç', 'ê', 'â'];
 
     private static readonly HashSet<string> SpanishStopWords = new(StringComparer.OrdinalIgnoreCase)
     {
         "el", "la", "los", "las", "de", "en", "que", "por", "con", "para", "es", "un", "una"
-    };
-
-    private static readonly HashSet<string> PortugueseStopWords = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "o", "a", "os", "as", "do", "da", "em", "que", "por", "com", "para", "um", "uma"
     };
 
     private static readonly HashSet<string> EnglishStopWords = new(StringComparer.OrdinalIgnoreCase)
@@ -35,7 +29,7 @@ public static partial class LanguageDetector
 
     /// <summary>
     /// Detects the locale of the given text using character-set and stop-word heuristics.
-    /// Returns "en", "es", or "pt".
+    /// Returns "en" or "es".
     /// </summary>
     public static string DetectLocale(string? text)
     {
@@ -49,15 +43,12 @@ public static partial class LanguageDetector
             return "en";
 
         var spanishCharCount = 0;
-        var portugueseCharCount = 0;
 
         foreach (var ch in cleaned)
         {
             var lower = char.ToLowerInvariant(ch);
             if (SpanishIndicators.Contains(lower))
                 spanishCharCount++;
-            if (PortugueseIndicators.Contains(lower))
-                portugueseCharCount++;
         }
 
         var tokens = TokenizeRegex().Split(cleaned)
@@ -65,18 +56,15 @@ public static partial class LanguageDetector
             .ToArray();
 
         var spanishStopCount = tokens.Count(t => SpanishStopWords.Contains(t));
-        var portugueseStopCount = tokens.Count(t => PortugueseStopWords.Contains(t));
         var englishStopCount = tokens.Count(t => EnglishStopWords.Contains(t));
 
         var spanishScore = (spanishCharCount * IndicatorWeight) + (spanishStopCount * StopWordWeight);
-        var portugueseScore = (portugueseCharCount * IndicatorWeight) + (portugueseStopCount * StopWordWeight);
         var englishScore = (englishStopCount * StopWordWeight);
 
         var scores = new (string Locale, int Score)[]
         {
             ("en", englishScore),
-            ("es", spanishScore),
-            ("pt", portugueseScore)
+            ("es", spanishScore)
         };
 
         var sorted = scores.OrderByDescending(s => s.Score).ToArray();
@@ -95,7 +83,6 @@ public static partial class LanguageDetector
     public static string GetLanguageName(string locale) => locale switch
     {
         "es" => "Spanish",
-        "pt" => "Portuguese",
         _ => "English"
     };
 

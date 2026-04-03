@@ -530,25 +530,6 @@ public class CmaPdfGenerator : ICmaPdfGenerator
             ["pricingStrategy"] = "Estrategia de Precios",
             ["sellerInsights"] = "Perspectivas del Vendedor"
         },
-        "pt" => new Dictionary<string, string>
-        {
-            ["reportTitle"] = "Análise Comparativa de Mercado",
-            ["propertyOverview"] = "Visão Geral do Imóvel",
-            ["address"] = "Endereço",
-            ["beds"] = "Quartos",
-            ["baths"] = "Banheiros",
-            ["sqFt"] = "Pés²",
-            ["estimatedValueRange"] = "Faixa de Valor Estimado",
-            ["low"] = "BAIXO",
-            ["midRecommended"] = "MÉDIO (RECOMENDADO)",
-            ["high"] = "ALTO",
-            ["marketTrend"] = "Tendência do Mercado",
-            ["medianDays"] = "Dias Medianos no Mercado",
-            ["recentComps"] = "Vendas Comparáveis Recentes",
-            ["marketAnalysis"] = "Análise de Mercado",
-            ["pricingStrategy"] = "Estratégia de Preços",
-            ["sellerInsights"] = "Perspectivas do Vendedor"
-        },
         _ => new Dictionary<string, string>
         {
             ["reportTitle"] = "Comparative Market Analysis",

@@ -289,7 +289,6 @@ public class LeadEmailDrafter(
     internal static string? GetLanguageName(string? locale) => locale?.ToLowerInvariant() switch
     {
         "es" => "Spanish",
-        "pt" => "Portuguese",
         "fr" => "French",
         "zh" => "Chinese",
         "ko" => "Korean",
