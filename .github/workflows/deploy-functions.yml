@@ -297,6 +297,12 @@ jobs:
 
       - name: Create deployment package
         run: |
+          # Remove .azurefunctions if it was manually generated — worker-side indexing
+          # (via GeneratedFunctionMetadataProvider source generator) takes precedence.
+          # Having BOTH causes the host to ignore .azurefunctions files entirely.
+          rm -rf ./publish/functions/.azurefunctions
+          # Verify worker.config.json exists (SDK-generated, enables worker indexing)
+          cat ./publish/functions/worker.config.json || echo "WARNING: worker.config.json missing"
           cd ./publish/functions
           zip -r ../../functions.zip . -x '*.pdb'
 
