@@ -338,7 +338,10 @@ builder.Services.AddBrandMergeActivity();
 builder.Services.AddContactImportPersistActivity();
 builder.Services.AddTransient<ContactDetectionActivity>();
 
-builder.Build().Run();
+var app = builder.Build();
+var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+startupLogger.LogInformation("[STARTUP] Functions app built successfully. Starting host...");
+app.Run();
 }
 catch (Exception ex)
 {

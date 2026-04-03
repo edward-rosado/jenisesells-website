@@ -6,8 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>RealEstateStar.Functions</RootNamespace>
-    <!-- Required for Flex Consumption: generates .azurefunctions/ directory with function metadata -->
-    <EnableSdkMetadataGeneration>true</EnableSdkMetadataGeneration>
+    <!-- FunctionsEnableWorkerIndexing: controls whether the SDK source generator produces
+         GeneratedFunctionMetadataProvider and whether workerIndexing=true is written to
+         worker.config.json. Defaults to true but spelled out here for clarity. -->
+    <FunctionsEnableWorkerIndexing>true</FunctionsEnableWorkerIndexing>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,7 +20,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.0.*" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.*" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.*" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.*" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask" Version="1.2.*" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.*" />
