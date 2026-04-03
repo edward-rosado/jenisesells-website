@@ -21,7 +21,7 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | [Notification Email Flow](notification-email-flow.md) | Pipeline → Notifier → Gmail API → Fan-Out storage (Mermaid) |
 | [Google Client Dependency Graph](google-client-dependency-graph.md) | Interface ownership + DI wiring (Mermaid) |
 | [Lead Orchestrator Flow](lead-orchestrator-flow.md) | Lead pipeline: scoring → dispatch → collect → email → notify |
-| [Worker Dispatch Routing](worker-dispatch-routing.md) | CMA/HomeSearch/PDF worker dispatch via channels + TCS |
+| [Worker Dispatch Routing](worker-dispatch-routing.md) | CMA/HomeSearch/PDF activity dispatch via Durable Functions fan-out (Task.WhenAll + CallActivityAsync) |
 | [Agent Notification Flow](agent-notification-flow.md) | WhatsApp-first agent notification with email fallback |
 | [Per-Lead Orchestrator Lifecycle](per-lead-orchestrator-lifecycle.md) | Per-lead instance: score → fan-out → PDF → email → notify → persist |
 | [Shared Project Dependencies](shared-project-dependencies.md) | Shared vs lead-specific worker project dependency graph |
@@ -93,7 +93,7 @@ Design spec: `docs/superpowers/specs/2026-03-21-api-project-restructure-design.m
 | Document | Description |
 |----------|------------|
 | [Lead Processing Pipeline](lead-processing-pipeline.md) | Lead submission through enrichment to parallel CMA and Home Search pipelines |
-| [Background Service Health](background-service-health.md) | Channel-aware health checks detecting stuck workers via queue depth + activity timestamps |
+| [Background Service Health](background-service-health.md) | Durable Functions health check via DF management API — reports running/failed orchestration instance counts |
 
 ## Agent Activation (OAuth + Profiling)
 

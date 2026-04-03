@@ -680,7 +680,8 @@ public sealed class LeadOrchestrator(
                 null,
                 null,
                 correlationId,
-                ct);
+                ct,
+                ctx.Lead.Locale);
 
             logger.LogInformation(
                 "[{Worker}-036] PDF generated for lead {LeadId}. Path: {Path}. CorrelationId: {CorrelationId}",
@@ -769,6 +770,7 @@ public sealed class LeadOrchestrator(
                 Subject = "New Lead Notification",
                 HtmlBody = string.Empty,
                 Channel = ctx.AgentConfig.WhatsAppPhoneNumberId != null ? "whatsapp" : "email",
+                Locale = ctx.Lead.Locale,
                 DraftedAt = DateTimeOffset.UtcNow,
                 SentAt = DateTimeOffset.UtcNow,
                 Sent = true,

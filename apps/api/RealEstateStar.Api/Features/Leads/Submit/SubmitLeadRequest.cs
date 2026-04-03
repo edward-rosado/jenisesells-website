@@ -14,6 +14,7 @@ public class SubmitLeadRequest
     public BuyerDetailsRequest? Buyer { get; init; }
     public SellerDetailsRequest? Seller { get; init; }
     [StringLength(2000)] public string? Notes { get; init; }
+    [MaxLength(10)] public string? Locale { get; init; }
     [Required] public required MarketingConsentRequest MarketingConsent { get; init; }
 }
 

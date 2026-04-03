@@ -87,6 +87,51 @@ public class WhatsAppMappersTests
         result[0].Should().Be(("text", "Jane Smith"));
     }
 
+    // ---------------------------------------------------------------------------
+    // ToFollowUpParams — locale parameter tests
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void ToFollowUpParams_WithoutLocale_ReturnsTwoParams()
+    {
+        var result = WhatsAppMappers.ToFollowUpParams("Juan", 3);
+
+        result.Should().HaveCount(2);
+        result[0].Should().Be(("text", "Juan"));
+        result[1].Should().Be(("text", "3"));
+    }
+
+    [Fact]
+    public void ToFollowUpParams_WithSpanishLocale_ReturnsThreeParams()
+    {
+        var result = WhatsAppMappers.ToFollowUpParams("Juan", 3, "es");
+
+        result.Should().HaveCount(3);
+        result[0].Should().Be(("text", "Juan"));
+        result[1].Should().Be(("text", "3"));
+        result[2].Should().Be(("text", "es"));
+    }
+
+    [Fact]
+    public void ToFollowUpParams_WithEnglishLocale_ReturnsTwoParams_DefaultNotAdded()
+    {
+        var result = WhatsAppMappers.ToFollowUpParams("Juan", 3, "en");
+
+        result.Should().HaveCount(2);
+        result[0].Should().Be(("text", "Juan"));
+        result[1].Should().Be(("text", "3"));
+    }
+
+    [Fact]
+    public void ToFollowUpParams_WithNullLocale_ReturnsTwoParams()
+    {
+        var result = WhatsAppMappers.ToFollowUpParams("Juan", 3, null);
+
+        result.Should().HaveCount(2);
+        result[0].Should().Be(("text", "Juan"));
+        result[1].Should().Be(("text", "3"));
+    }
+
     [Fact]
     public void AllMappers_StripTemplateBraces()
     {

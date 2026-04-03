@@ -12,7 +12,8 @@ public interface IBrandMergeService
         string agentId,
         string newBrandingKit,
         string newVoiceSkill,
-        CancellationToken ct);
+        CancellationToken ct,
+        string? locale = null);
 }
 
 public sealed record BrandMergeResult(

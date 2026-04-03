@@ -14,13 +14,14 @@ public class CmaStyleWorkerTests
         FolderId: "folder-1",
         Files: [],
         Contents: new Dictionary<string, string>(),
-        DiscoveredUrls: []);
+        DiscoveredUrls: [],
+        Extractions: []);
 
     private static DriveFile MakeCmaFile(string id = "file-1", string name = "CMA Report 2024.pdf") =>
         new(Id: id, Name: name, MimeType: "application/pdf", Category: "cma", ModifiedDate: DateTime.UtcNow);
 
     private static DriveIndex MakeDriveIndexWith(IReadOnlyList<DriveFile> files, IReadOnlyDictionary<string, string>? contents = null) =>
-        new("folder-1", files, contents ?? new Dictionary<string, string>(), []);
+        new("folder-1", files, contents ?? new Dictionary<string, string>(), [], []);
 
     private static AnthropicResponse MakeValidResponse() =>
         new(Content: """

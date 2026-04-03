@@ -28,14 +28,19 @@ public sealed class BrandMergeService(
         string agentId,
         string newBrandingKit,
         string newVoiceSkill,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? locale = null)
     {
         var storage = storageFactory.CreateForAgent(accountId, agentId);
         var accountFolder = $"{FolderPrefix}/{accountId}";
 
+        // For localized merges, use locale-suffixed file names
+        var profileFile = locale is not null ? $"Brand Profile.{locale}.md" : BrandProfileFile;
+        var voiceFile = locale is not null ? $"Brand Voice.{locale}.md" : BrandVoiceFile;
+
         // Load existing brand files (null = first agent)
-        var existingProfileTask = storage.ReadDocumentAsync(accountFolder, BrandProfileFile, ct);
-        var existingVoiceTask = storage.ReadDocumentAsync(accountFolder, BrandVoiceFile, ct);
+        var existingProfileTask = storage.ReadDocumentAsync(accountFolder, profileFile, ct);
+        var existingVoiceTask = storage.ReadDocumentAsync(accountFolder, voiceFile, ct);
         await Task.WhenAll(existingProfileTask, existingVoiceTask);
 
         var existingProfile = await existingProfileTask;
@@ -44,8 +49,8 @@ public sealed class BrandMergeService(
         var isFirstAgent = existingProfile is null && existingVoice is null;
 
         logger.LogInformation(
-            "[BRAND-010] Merging brand for accountId={AccountId}, agentId={AgentId}, isFirstAgent={IsFirstAgent}",
-            accountId, agentId, isFirstAgent);
+            "[BRAND-010] Merging brand for accountId={AccountId}, agentId={AgentId}, isFirstAgent={IsFirstAgent}, locale={Locale}",
+            accountId, agentId, isFirstAgent, locale ?? "en");
 
         string brandProfileMarkdown;
         string brandVoiceMarkdown;
@@ -53,16 +58,16 @@ public sealed class BrandMergeService(
         if (isFirstAgent)
         {
             (brandProfileMarkdown, brandVoiceMarkdown) = await CreateInitialBrandAsync(
-                accountId, agentId, newBrandingKit, newVoiceSkill, ct);
+                accountId, agentId, newBrandingKit, newVoiceSkill, ct, locale);
         }
         else
         {
             (brandProfileMarkdown, brandVoiceMarkdown) = await EnrichBrandAsync(
-                accountId, agentId, existingProfile!, existingVoice!, newBrandingKit, newVoiceSkill, ct);
+                accountId, agentId, existingProfile!, existingVoice!, newBrandingKit, newVoiceSkill, ct, locale);
         }
 
         logger.LogInformation(
-            "[BRAND-090] Brand merge complete for accountId={AccountId}", accountId);
+            "[BRAND-090] Brand merge complete for accountId={AccountId}, locale={Locale}", accountId, locale ?? "en");
 
         return new BrandMergeResult(brandProfileMarkdown, brandVoiceMarkdown);
     }
@@ -74,14 +79,20 @@ public sealed class BrandMergeService(
         string agentId,
         string brandingKit,
         string voiceSkill,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? locale = null)
     {
-        const string systemPrompt =
+        var localeInstruction = locale is not null
+            ? $" Write BOTH documents entirely in {GetLanguageDisplayName(locale)}."
+            : string.Empty;
+
+        var systemPrompt =
             "You are a brand strategist for real estate professionals. " +
             "Analyze the agent's branding and voice data to produce a professional brand profile " +
             "and brand voice document. Both must be in Markdown. " +
             "Brand Profile should cover: visual identity, positioning, market segment, differentiators. " +
-            "Brand Voice should cover: tone, communication style, key phrases, catchphrase, sign-off.";
+            "Brand Voice should cover: tone, communication style, key phrases, catchphrase, sign-off." +
+            localeInstruction;
 
         var userMessage =
             $"Create a Brand Profile and Brand Voice for this real estate agent.\n\n" +
@@ -105,14 +116,20 @@ public sealed class BrandMergeService(
         string existingVoice,
         string newBrandingKit,
         string newVoiceSkill,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? locale = null)
     {
-        const string systemPrompt =
+        var localeInstruction = locale is not null
+            ? $" Write BOTH documents entirely in {GetLanguageDisplayName(locale)}."
+            : string.Empty;
+
+        var systemPrompt =
             "You are a brand strategist for a real estate brokerage. " +
             "Enrich the existing Brand Profile and Brand Voice with new agent signals. " +
             "Synthesize recurring patterns, expand the voice range, update the visual palette if needed. " +
             "Both documents must remain in Markdown. " +
-            "Preserve existing patterns while integrating what is distinctive about the new agent.";
+            "Preserve existing patterns while integrating what is distinctive about the new agent." +
+            localeInstruction;
 
         var userMessage =
             $"Enrich the brokerage brand with a new agent's signals.\n\n" +
@@ -130,6 +147,16 @@ public sealed class BrandMergeService(
     }
 
     // ── Response parsing ──────────────────────────────────────────────────────
+
+    internal static string GetLanguageDisplayName(string locale) => locale.ToLowerInvariant() switch
+    {
+        "es" => "Spanish",
+        "fr" => "French",
+        "zh" => "Chinese",
+        "ko" => "Korean",
+        "vi" => "Vietnamese",
+        _ => locale
+    };
 
     internal static (string profile, string voice) ParseBrandResponse(string content, string agentId)
     {

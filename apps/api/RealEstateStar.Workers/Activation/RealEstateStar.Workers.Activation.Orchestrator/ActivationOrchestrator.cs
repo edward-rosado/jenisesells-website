@@ -4,7 +4,9 @@ using System.Text.Json;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Activities.Activation.BrandMerge;
+using RealEstateStar.Activities.Activation.ContactImportPersist;
 using RealEstateStar.Activities.Activation.PersistAgentProfile;
+using RealEstateStar.Activities.Lead.ContactDetection;
 using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
@@ -102,9 +104,13 @@ public class ActivationOrchestrator : BackgroundService
     private readonly ComplianceAnalysisWorker _complianceWorker;
     private readonly FeeStructureWorker _feeWorker;
 
+    // Phase 2.5: contact detection
+    private readonly ContactDetectionActivity _contactDetectionActivity;
+
     // Phase 3: activities
     private readonly AgentProfilePersistActivity _persistActivity;
     private readonly BrandMergeActivity _brandMergeActivity;
+    private readonly ContactImportPersistActivity _contactImportPersistActivity;
 
     // Phase 4: service
     private readonly IWelcomeNotificationService _welcomeService;
@@ -133,6 +139,8 @@ public class ActivationOrchestrator : BackgroundService
         FeeStructureWorker feeWorker,
         AgentProfilePersistActivity persistActivity,
         BrandMergeActivity brandMergeActivity,
+        ContactDetectionActivity contactDetectionActivity,
+        ContactImportPersistActivity contactImportPersistActivity,
         IWelcomeNotificationService welcomeService,
         IDocumentStorageProvider storage,
         IAgentContextLoader contextLoader,
@@ -156,6 +164,8 @@ public class ActivationOrchestrator : BackgroundService
         _feeWorker = feeWorker;
         _persistActivity = persistActivity;
         _brandMergeActivity = brandMergeActivity;
+        _contactDetectionActivity = contactDetectionActivity;
+        _contactImportPersistActivity = contactImportPersistActivity;
         _welcomeService = welcomeService;
         _storage = storage;
         _contextLoader = contextLoader;
@@ -250,9 +260,30 @@ public class ActivationOrchestrator : BackgroundService
             await SavePhase2CheckpointAsync(request, outputs, ct);
             phase2Span?.SetTag("outcome", "complete");
 
+            // Phase 2.5: Contact Detection
+            using var phase25Span = ActivitySource.StartActivity("activation.phase2_5.classify");
+            IReadOnlyList<ImportedContact> importedContacts;
+            try
+            {
+                importedContacts = await _contactDetectionActivity.ExecuteAsync(driveIndex.Extractions, emailCorpus, ct);
+                phase25Span?.SetTag("outcome", "complete");
+                phase25Span?.SetTag("contacts.count", importedContacts.Count);
+                _logger.LogInformation(
+                    "[ACTV-035] Phase 2.5: detected {Count} contacts for accountId={AccountId}, agentId={AgentId}",
+                    importedContacts.Count, request.AccountId, request.AgentId);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex,
+                    "[ACTV-036] Phase 2.5 contact detection failed for accountId={AccountId}, agentId={AgentId} — continuing without contacts",
+                    request.AccountId, request.AgentId);
+                importedContacts = Array.Empty<ImportedContact>();
+                phase25Span?.SetTag("outcome", "failed");
+            }
+
             // Phase 3: Persist + Merge
             using var phase3Span = ActivitySource.StartActivity("activation.phase3.persist");
-            await RunPhase3Async(request, outputs, discovery, ct);
+            await RunPhase3Async(request, outputs, discovery, importedContacts, ct);
             phase3Span?.SetTag("outcome", "complete");
 
             // Phase 4: Notify
@@ -285,6 +316,13 @@ public class ActivationOrchestrator : BackgroundService
 
     // ── Phase 0: skip check ───────────────────────────────────────────────────
 
+    // Per-language skill files required when Spanish is in the agent's languages
+    internal static readonly IReadOnlyList<string> RequiredSpanishAgentFiles =
+    [
+        "Voice Skill.es.md",
+        "Personality Skill.es.md",
+    ];
+
     internal async Task<bool> IsAlreadyCompleteAsync(ActivationRequest request, CancellationToken ct)
     {
         var agentFolder = $"real-estate-star/{request.AgentId}";
@@ -299,7 +337,58 @@ public class ActivationOrchestrator : BackgroundService
             checkTasks.Add(FileExistsAsync(accountFolder, file, ct));
 
         var results = await Task.WhenAll(checkTasks);
-        return results.All(exists => exists);
+        if (!results.All(exists => exists))
+            return false;
+
+        // Check per-language files if the agent supports Spanish
+        var hasSpanish = await AgentHasSpanishAsync(request, ct);
+        if (hasSpanish)
+        {
+            var langCheckTasks = new List<Task<(string file, bool exists)>>();
+            foreach (var file in RequiredSpanishAgentFiles)
+                langCheckTasks.Add(FileExistsWithNameAsync(agentFolder, file, ct));
+
+            var langResults = await Task.WhenAll(langCheckTasks);
+            var missing = langResults.Where(r => !r.exists).Select(r => r.file).ToList();
+
+            if (missing.Count > 0)
+            {
+                _logger.LogInformation(
+                    "[ACTV-004] Per-language files missing for agentId={AgentId}: {MissingFiles}",
+                    request.AgentId, string.Join(", ", missing));
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private async Task<(string file, bool exists)> FileExistsWithNameAsync(
+        string folder, string file, CancellationToken ct)
+    {
+        var content = await _storage.ReadDocumentAsync(folder, file, ct);
+        return (file, content is not null);
+    }
+
+    /// <summary>
+    /// Checks if the agent's activation outputs indicate Spanish language support.
+    /// Uses the context loader to check the agent's persisted languages list.
+    /// </summary>
+    private async Task<bool> AgentHasSpanishAsync(ActivationRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var context = await _contextLoader.LoadAsync(request.AccountId, request.AgentId, ct);
+            // If localized skills contain any ".es" key, the agent has Spanish
+            return context?.LocalizedSkills?.Keys.Any(k => k.EndsWith(".es", StringComparison.Ordinal)) == true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "[ACTV-005] Failed to check agent languages for agentId={AgentId}, assuming no Spanish",
+                request.AgentId);
+            return false;
+        }
     }
 
     private async Task<bool> FileExistsAsync(string folder, string file, CancellationToken ct)
@@ -386,13 +475,9 @@ public class ActivationOrchestrator : BackgroundService
             "[ACTV-028] coaching", request,
             () => _coachingWorker.AnalyzeAsync(agentName, emailCorpus, driveIndex, discovery, ct));
 
-        var brandExtractionTask = RunSafeAsync(
-            "[ACTV-029] brand-extraction", request,
-            () => _brandExtractionWorker.AnalyzeAsync(emailCorpus, driveIndex, discovery, ct));
+        var brandExtractionTask = RunSafeBrandExtractionAsync(request, emailCorpus, driveIndex, discovery, ct);
 
-        var brandVoiceTask = RunSafeAsync(
-            "[ACTV-030] brand-voice", request,
-            () => _brandVoiceWorker.AnalyzeAsync(emailCorpus, driveIndex, discovery, ct));
+        var brandVoiceTask = RunSafeBrandVoiceAsync(request, emailCorpus, driveIndex, discovery, ct);
 
         var complianceTask = RunSafeAsync(
             "[ACTV-031] compliance", request,
@@ -412,6 +497,16 @@ public class ActivationOrchestrator : BackgroundService
         var brandingResult = brandingTask.Result;
         var coachingResult = coachingTask.Result;
         var marketingResult = marketingTask.Result;
+        var brandExtractionResult = brandExtractionTask.Result;
+        var brandVoiceResult = brandVoiceTask.Result;
+
+        // Collect all localized skills from workers into a single dictionary
+        var localizedSkills = new Dictionary<string, string>();
+        MergeLocalizedSkills(localizedSkills, voiceResult?.LocalizedSkills);
+        MergeLocalizedSkills(localizedSkills, personalityResult?.LocalizedSkills);
+        MergeLocalizedSkills(localizedSkills, marketingResult.LocalizedSkills);
+        MergeLocalizedSkills(localizedSkills, brandExtractionResult?.LocalizedSkills);
+        MergeLocalizedSkills(localizedSkills, brandVoiceResult?.LocalizedSkills);
 
         // Derive identity from email corpus signature + discovery
         var emailSignature = emailCorpus.Signature;
@@ -431,8 +526,8 @@ public class ActivationOrchestrator : BackgroundService
             CoachingReport = coachingResult?.CoachingReportMarkdown,
             BrandingKitMarkdown = brandingResult?.BrandingKitMarkdown,
             BrandingKit = brandingResult?.Kit,
-            BrandExtractionSignals = brandExtractionTask.Result,
-            BrandVoiceSignals = brandVoiceTask.Result,
+            BrandExtractionSignals = brandExtractionResult?.Signals,
+            BrandVoiceSignals = brandVoiceResult?.Signals,
             ComplianceAnalysis = complianceTask.Result,
             FeeStructure = feeTask.Result,
             DriveIndex = BuildDriveIndexMarkdown(driveIndex),
@@ -447,7 +542,17 @@ public class ActivationOrchestrator : BackgroundService
             AgentTitle = emailSignature?.Title,
             AgentLicenseNumber = emailSignature?.LicenseNumber,
             ServiceAreas = serviceAreas,
+            LocalizedSkills = localizedSkills.Count > 0 ? localizedSkills : null,
         };
+    }
+
+    private static void MergeLocalizedSkills(
+        Dictionary<string, string> target,
+        Dictionary<string, string>? source)
+    {
+        if (source is null) return;
+        foreach (var kvp in source)
+            target[kvp.Key] = kvp.Value;
     }
 
     // ── Phase 3: Persist + Merge ──────────────────────────────────────────────
@@ -456,6 +561,7 @@ public class ActivationOrchestrator : BackgroundService
         ActivationRequest request,
         ActivationOutputs outputs,
         AgentDiscoveryModel discovery,
+        IReadOnlyList<ImportedContact> importedContacts,
         CancellationToken ct)
     {
         _logger.LogInformation(
@@ -481,7 +587,7 @@ public class ActivationOrchestrator : BackgroundService
             var voiceSkill = outputs.VoiceSkill ?? string.Empty;
 
             await _brandMergeActivity.ExecuteAsync(
-                request.AccountId, request.AgentId, brandingKit, voiceSkill, ct);
+                request.AccountId, request.AgentId, brandingKit, voiceSkill, ct, outputs);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -489,6 +595,21 @@ public class ActivationOrchestrator : BackgroundService
                 "[ACTV-042] Phase 3 brand merge failed for accountId={AccountId}, agentId={AgentId} — pipeline aborted",
                 request.AccountId, request.AgentId);
             throw;
+        }
+
+        if (importedContacts.Count > 0)
+        {
+            try
+            {
+                await _contactImportPersistActivity.ExecuteAsync(
+                    request.AccountId, request.AgentId, importedContacts, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex,
+                    "[ACTV-043] Phase 3 contact import persist failed for accountId={AccountId}, agentId={AgentId} — non-fatal, continuing",
+                    request.AccountId, request.AgentId);
+            }
         }
     }
 
@@ -554,6 +675,7 @@ public class ActivationOrchestrator : BackgroundService
             ["brand-voice"] = outputs.BrandVoiceSignals is not null ? "completed" : "skipped",
             ["compliance"] = outputs.ComplianceAnalysis is not null ? "completed" : "skipped",
             ["fee-structure"] = outputs.FeeStructure is not null ? "completed" : "skipped",
+            ["localized-skills"] = outputs.LocalizedSkills is not null ? $"completed ({outputs.LocalizedSkills.Count} skills)" : "skipped",
         };
 
         var checkpoint = new Phase2Checkpoint(workerStatus, SavedAt: DateTime.UtcNow);
@@ -585,7 +707,7 @@ public class ActivationOrchestrator : BackgroundService
 
     // ── Marketing-specific wrapper (value tuple return) ───────────────────────
 
-    private async Task<(string? StyleGuide, string? BrandSignals)> RunSafeMarketingAsync(
+    private async Task<(string? StyleGuide, string? BrandSignals, Dictionary<string, string>? LocalizedSkills)> RunSafeMarketingAsync(
         ActivationRequest request,
         EmailCorpus emailCorpus,
         DriveIndexModel driveIndex,
@@ -600,7 +722,47 @@ public class ActivationOrchestrator : BackgroundService
             _logger.LogWarning(ex,
                 "[ACTV-025] marketing worker failed for accountId={AccountId}, agentId={AgentId} — continuing with remaining workers",
                 request.AccountId, request.AgentId);
-            return (null, null);
+            return (null, null, null);
+        }
+    }
+
+    private async Task<(string? Signals, Dictionary<string, string>? LocalizedSkills)?> RunSafeBrandExtractionAsync(
+        ActivationRequest request,
+        EmailCorpus emailCorpus,
+        DriveIndexModel driveIndex,
+        AgentDiscoveryModel discovery,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await _brandExtractionWorker.AnalyzeAsync(emailCorpus, driveIndex, discovery, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "[ACTV-029] brand-extraction worker failed for accountId={AccountId}, agentId={AgentId} — continuing with remaining workers",
+                request.AccountId, request.AgentId);
+            return null;
+        }
+    }
+
+    private async Task<(string? Signals, Dictionary<string, string>? LocalizedSkills)?> RunSafeBrandVoiceAsync(
+        ActivationRequest request,
+        EmailCorpus emailCorpus,
+        DriveIndexModel driveIndex,
+        AgentDiscoveryModel discovery,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await _brandVoiceWorker.AnalyzeAsync(emailCorpus, driveIndex, discovery, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "[ACTV-030] brand-voice worker failed for accountId={AccountId}, agentId={AgentId} — continuing with remaining workers",
+                request.AccountId, request.AgentId);
+            return null;
         }
     }
 

@@ -198,6 +198,52 @@ public class GDriveApiClientTests
         list.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task DownloadBinaryAsync_ReturnsNull_WhenTokenMissing()
+    {
+        var (client, _, _) = BuildClient();
+
+        var result = await client.DownloadBinaryAsync(AccountId, AgentId, FileId, CancellationToken.None);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DownloadBinaryAsync_ReturnsNull_WhenRefreshFails()
+    {
+        var (client, store, oauthHandler) = BuildClient();
+        await store.SaveAsync(ExpiredCredential(), OAuthProviders.Google, CancellationToken.None);
+        oauthHandler.ResponseToReturn = UnauthorizedResponse();
+
+        var result = await client.DownloadBinaryAsync(AccountId, AgentId, FileId, CancellationToken.None);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CopyFileAsync_ReturnsEmpty_WhenTokenMissing()
+    {
+        var (client, _, _) = BuildClient();
+
+        var result = await client.CopyFileAsync(
+            AccountId, AgentId, FileId, FolderId, "copy.pdf", CancellationToken.None);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CopyFileAsync_ReturnsEmpty_WhenRefreshFails()
+    {
+        var (client, store, oauthHandler) = BuildClient();
+        await store.SaveAsync(ExpiredCredential(), OAuthProviders.Google, CancellationToken.None);
+        oauthHandler.ResponseToReturn = UnauthorizedResponse();
+
+        var result = await client.CopyFileAsync(
+            AccountId, AgentId, FileId, FolderId, null, CancellationToken.None);
+
+        result.Should().BeEmpty();
+    }
+
     // ──────────────────────────────────────────────────────────
     // EscapeQuery — internal static helper, unit-testable
     // ──────────────────────────────────────────────────────────

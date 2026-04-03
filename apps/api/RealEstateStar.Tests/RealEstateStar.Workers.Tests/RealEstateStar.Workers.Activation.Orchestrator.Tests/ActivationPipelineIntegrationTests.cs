@@ -3,9 +3,12 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RealEstateStar.Activities.Activation.BrandMerge;
+using RealEstateStar.Activities.Activation.ContactImportPersist;
 using RealEstateStar.Activities.Activation.PersistAgentProfile;
+using RealEstateStar.Activities.Lead.ContactDetection;
 using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.Activation.Models;
+using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Interfaces.Senders;
@@ -56,6 +59,7 @@ public class ActivationPipelineIntegrationTests
     private readonly Mock<IWelcomeNotificationService> _welcomeService = new();
     private readonly Mock<IAgentConfigService> _agentConfigService = new();
     private readonly Mock<IBrandMergeService> _brandMergeService = new();
+    private readonly Mock<ILeadStore> _leadStore = new();
 
     // ── In-memory storage (real implementation, not mock) ─────────────────────
 
@@ -92,6 +96,9 @@ public class ActivationPipelineIntegrationTests
         _driveClient.Setup(d => d.GetFileContentAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
+        _driveClient.Setup(d => d.DownloadBinaryAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
 
         _oauthRefresher.Setup(o => o.GetValidCredentialAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -132,7 +139,7 @@ public class ActivationPipelineIntegrationTests
         return new ActivationOrchestrator(
             new Mock<IActivationQueue>().Object,
             new AgentEmailFetchWorker(_gmailReader.Object, NullLogger<AgentEmailFetchWorker>.Instance),
-            new DriveIndexWorker(_driveClient.Object, NullLogger<DriveIndexWorker>.Instance),
+            new DriveIndexWorker(_driveClient.Object, _anthropic.Object, NullLogger<DriveIndexWorker>.Instance),
             new AgentDiscoveryWorker(_oauthRefresher.Object, _httpClientFactory.Object, _whatsAppSender.Object, NullLogger<AgentDiscoveryWorker>.Instance),
             new VoiceExtractionWorker(_anthropic.Object, _sanitizer.Object, NullLogger<VoiceExtractionWorker>.Instance),
             new PersonalityWorker(_anthropic.Object, _sanitizer.Object, NullLogger<PersonalityWorker>.Instance),
@@ -148,6 +155,8 @@ public class ActivationPipelineIntegrationTests
             new FeeStructureWorker(_anthropic.Object, _sanitizer.Object, NullLogger<FeeStructureWorker>.Instance),
             new AgentProfilePersistActivity(_fileStorageFactory.Object, _agentConfigService.Object, NullLogger<AgentProfilePersistActivity>.Instance),
             new BrandMergeActivity(_brandMergeService.Object, _fileStorage, NullLogger<BrandMergeActivity>.Instance),
+            new ContactDetectionActivity(_anthropic.Object, NullLoggerFactory.Instance),
+            new ContactImportPersistActivity(_fileStorage, _driveClient.Object, _leadStore.Object, NullLogger<ContactImportPersistActivity>.Instance),
             _welcomeService.Object,
             _fileStorage,
             _contextLoader.Object,

@@ -29,7 +29,7 @@ public class FeeStructureWorkerTests
 
     private static DriveIndex MakeEmptyDriveIndex() => new(
         FolderId: "f1", Files: [],
-        Contents: new Dictionary<string, string>(), DiscoveredUrls: []);
+        Contents: new Dictionary<string, string>(), DiscoveredUrls: [], Extractions: []);
 
     private static AnthropicResponse MakeValidResponse() =>
         new(Content: """
@@ -141,7 +141,7 @@ public class FeeStructureWorkerTests
             .ReturnsAsync(MakeValidResponse());
 
         var worker = new FeeStructureWorker(anthropic.Object, sanitizer.Object, logger.Object);
-        var driveIndex = new DriveIndex("f1", [MakeFeeDoc()], new Dictionary<string, string>(), []);
+        var driveIndex = new DriveIndex("f1", [MakeFeeDoc()], new Dictionary<string, string>(), [], []);
         var emptyCorpus = MakeCorpusWith();
 
         await worker.AnalyzeAsync(emptyCorpus, driveIndex, [], CancellationToken.None);

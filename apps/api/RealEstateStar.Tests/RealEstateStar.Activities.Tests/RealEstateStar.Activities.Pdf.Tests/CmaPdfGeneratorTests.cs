@@ -1018,6 +1018,115 @@ public class CmaPdfGeneratorTests
     // Footer — local timezone rendered for various states
     // ---------------------------------------------------------------------------
 
+    // ---------------------------------------------------------------------------
+    // GetLocalizedPdfStrings — locale dictionary tests
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void GetLocalizedPdfStrings_Es_ReturnsSpanishValues()
+    {
+        var result = CmaPdfGenerator.GetLocalizedPdfStrings("es");
+
+        result["reportTitle"].Should().Be("Análisis Comparativo de Mercado");
+        result["propertyOverview"].Should().Be("Resumen de la Propiedad");
+        result["address"].Should().Be("Dirección");
+        result["beds"].Should().Be("Hab.");
+        result["baths"].Should().Be("Baños");
+        result["sqFt"].Should().Be("Pies²");
+        result["estimatedValueRange"].Should().Be("Rango de Valor Estimado");
+        result["low"].Should().Be("BAJO");
+        result["midRecommended"].Should().Be("MEDIO (RECOMENDADO)");
+        result["high"].Should().Be("ALTO");
+        result["marketTrend"].Should().Be("Tendencia del Mercado");
+        result["medianDays"].Should().Be("Días Medios en el Mercado");
+        result["recentComps"].Should().Be("Ventas Comparables Recientes");
+        result["marketAnalysis"].Should().Be("Análisis de Mercado");
+        result["pricingStrategy"].Should().Be("Estrategia de Precios");
+        result["sellerInsights"].Should().Be("Perspectivas del Vendedor");
+    }
+
+    [Fact]
+    public void GetLocalizedPdfStrings_En_ReturnsEnglishValues()
+    {
+        var result = CmaPdfGenerator.GetLocalizedPdfStrings("en");
+
+        result["reportTitle"].Should().Be("Comparative Market Analysis");
+        result["propertyOverview"].Should().Be("Property Overview");
+        result["address"].Should().Be("Address");
+        result["beds"].Should().Be("Beds");
+        result["baths"].Should().Be("Baths");
+        result["sqFt"].Should().Be("Sq Ft");
+        result["estimatedValueRange"].Should().Be("Estimated Value Range");
+        result["low"].Should().Be("LOW");
+        result["midRecommended"].Should().Be("MID (RECOMMENDED)");
+        result["high"].Should().Be("HIGH");
+        result["marketTrend"].Should().Be("Market Trend");
+        result["medianDays"].Should().Be("Median Days on Market");
+        result["recentComps"].Should().Be("Recent Comparable Sales");
+        result["marketAnalysis"].Should().Be("Market Analysis");
+        result["pricingStrategy"].Should().Be("Pricing Strategy");
+        result["sellerInsights"].Should().Be("Seller Insights");
+    }
+
+    [Fact]
+    public void GetLocalizedPdfStrings_Null_ReturnsEnglishValues()
+    {
+        var result = CmaPdfGenerator.GetLocalizedPdfStrings(null);
+
+        result["reportTitle"].Should().Be("Comparative Market Analysis");
+        result["propertyOverview"].Should().Be("Property Overview");
+    }
+
+    // ---------------------------------------------------------------------------
+    // GenerateAsync — locale parameter tests
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GenerateAsync_WithSpanishLocale_CreatesPdfSuccessfully()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead();
+        var analysis = MakeAnalysis(pricingStrategy: "Listar a $510,000.");
+        var comps = MakeComps();
+        var agent = MakeAgentConfig();
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
+            logoBytes: null, headshotBytes: null, CancellationToken.None, locale: "es");
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+            new FileInfo(path).Length.Should().BeGreaterThan(0);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateAsync_WithNullLocale_CreatesPdfSuccessfully_BackwardCompat()
+    {
+        var generator = MakeGenerator(out _);
+        var lead = MakeLead();
+        var analysis = MakeAnalysis();
+        var comps = MakeComps();
+        var agent = MakeAgentConfig();
+
+        var path = await generator.GenerateAsync(lead, analysis, comps, agent, ReportType.Standard,
+            logoBytes: null, headshotBytes: null, CancellationToken.None, locale: null);
+
+        try
+        {
+            File.Exists(path).Should().BeTrue();
+            new FileInfo(path).Length.Should().BeGreaterThan(0);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     [Theory]
     [InlineData("NJ")]
     [InlineData("NY")]

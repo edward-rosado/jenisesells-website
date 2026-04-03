@@ -24,8 +24,10 @@
     <ProjectReference Include="../../RealEstateStar.DataServices/RealEstateStar.DataServices.csproj" />
     <ProjectReference Include="../../RealEstateStar.Workers/RealEstateStar.Workers.Shared/RealEstateStar.Workers.Shared.csproj" />
     <ProjectReference Include="../../RealEstateStar.Activities/RealEstateStar.Activities.Pdf/RealEstateStar.Activities.Pdf.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Activities/Lead/RealEstateStar.Activities.Lead.ContactDetection/RealEstateStar.Activities.Lead.ContactDetection.csproj" />
     <ProjectReference Include="../../RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.PersistAgentProfile/RealEstateStar.Activities.Activation.PersistAgentProfile.csproj" />
     <ProjectReference Include="../../RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.BrandMerge/RealEstateStar.Activities.Activation.BrandMerge.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Activities/Activation/RealEstateStar.Activities.Activation.ContactImportPersist/RealEstateStar.Activities.Activation.ContactImportPersist.csproj" />
     <ProjectReference Include="../../RealEstateStar.Services/RealEstateStar.Services.AgentNotifier/RealEstateStar.Services.AgentNotifier.csproj" />
     <ProjectReference Include="../../RealEstateStar.Services/RealEstateStar.Services.LeadCommunicator/RealEstateStar.Services.LeadCommunicator.csproj" />
     <ProjectReference Include="../../RealEstateStar.Services/Activation/RealEstateStar.Services.AgentConfig/RealEstateStar.Services.AgentConfig.csproj" />
