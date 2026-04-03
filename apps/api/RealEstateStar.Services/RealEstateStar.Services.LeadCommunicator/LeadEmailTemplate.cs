@@ -12,18 +12,21 @@ public static class LeadEmailTemplate
         AgentNotificationConfig agentConfig,
         string personalizedParagraph, string agentPitch,
         string? pdfDownloadUrl,
-        string privacySecret)
+        string privacySecret,
+        string? locale = null)
     {
         var isSeller = lead.SellerDetails is not null;
         var isBuyer = lead.BuyerDetails is not null;
         var primary = HtmlEncode(agentConfig.PrimaryColor);
         var accent = HtmlEncode(agentConfig.AccentColor);
+        var lang = locale ?? "en";
+        var strings = GetLocalizedStrings(lang);
 
         var privacyToken = BuildPrivacyToken(lead.Email, agentConfig.AgentId, privacySecret);
 
         return $"""
             <!DOCTYPE html>
-            <html lang="en">
+            <html lang="{HtmlEncode(lang)}">
             <head>
               <meta charset="UTF-8" />
               <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -48,7 +51,7 @@ public static class LeadEmailTemplate
                       <tr>
                         <td style="padding:32px 32px 0;">
                           <p style="margin:0 0 16px;font-size:16px;color:#333333;">
-                            Hi {HtmlEncode(lead.FirstName)},
+                            {strings["greeting"]} {HtmlEncode(lead.FirstName)},
                           </p>
                           {(!string.IsNullOrWhiteSpace(personalizedParagraph)
                               ? $"""<p style="margin:0 0 16px;font-size:15px;color:#444444;line-height:1.6;">{HtmlEncode(personalizedParagraph)}</p>"""
@@ -73,7 +76,7 @@ public static class LeadEmailTemplate
                       <!-- CTA -->
                       <tr>
                         <td style="padding:16px 32px 32px;">
-                          <p style="margin:0 0 16px;font-size:15px;color:#444444;">I'd love to connect — feel free to reply to this email or call me at {HtmlEncode(agentConfig.Phone)}.</p>
+                          <p style="margin:0 0 16px;font-size:15px;color:#444444;">{strings["cta"]} — {strings["ctaSuffix"]} {HtmlEncode(agentConfig.Phone)}.</p>
                           <p style="margin:0;font-size:15px;color:#333333;font-weight:bold;">{HtmlEncode(agentConfig.Name)}</p>
                           <p style="margin:0;font-size:13px;color:#888888;">{HtmlEncode(agentConfig.BrokerageName)} · License #{HtmlEncode(agentConfig.LicenseNumber)}</p>
                         </td>
@@ -94,9 +97,9 @@ public static class LeadEmailTemplate
                             License #{HtmlEncode(agentConfig.LicenseNumber)} · {HtmlEncode(agentConfig.State)}
                           </p>
                           <p style="margin:0;font-size:11px;color:#999999;line-height:1.8;">
-                            <a href="https://{HtmlEncode(agentConfig.Handle)}.real-estate-star.com/privacy?token={Uri.EscapeDataString(privacyToken)}" style="color:#999999;">Privacy Policy</a>
+                            <a href="https://{HtmlEncode(agentConfig.Handle)}.real-estate-star.com/privacy?token={Uri.EscapeDataString(privacyToken)}" style="color:#999999;">{strings["privacyLink"]}</a>
                             &nbsp;·&nbsp;
-                            <a href="https://{HtmlEncode(agentConfig.Handle)}.real-estate-star.com/opt-out?token={Uri.EscapeDataString(privacyToken)}" style="color:#999999;">Unsubscribe</a>
+                            <a href="https://{HtmlEncode(agentConfig.Handle)}.real-estate-star.com/opt-out?token={Uri.EscapeDataString(privacyToken)}" style="color:#999999;">{strings["unsubscribe"]}</a>
                             &nbsp;·&nbsp;
                             <a href="https://{HtmlEncode(agentConfig.Handle)}.real-estate-star.com/ccpa?token={Uri.EscapeDataString(privacyToken)}" style="color:#999999;">Do Not Sell My Information (CCPA)</a>
                           </p>
@@ -219,6 +222,34 @@ public static class LeadEmailTemplate
         var sig = Convert.ToHexString(HMACSHA256.HashData(keyBytes, Encoding.UTF8.GetBytes(payload))).ToLowerInvariant();
         return $"{emailHash}.{sig}";
     }
+
+    internal static Dictionary<string, string> GetLocalizedStrings(string locale) => locale switch
+    {
+        "es" => new Dictionary<string, string>
+        {
+            ["greeting"] = "Hola",
+            ["cta"] = "Me encantaría conectar contigo",
+            ["ctaSuffix"] = "no dudes en responder a este correo o llamarme al",
+            ["privacyLink"] = "Política de Privacidad",
+            ["unsubscribe"] = "Cancelar suscripción"
+        },
+        "pt" => new Dictionary<string, string>
+        {
+            ["greeting"] = "Olá",
+            ["cta"] = "Adoraria me conectar com você",
+            ["ctaSuffix"] = "fique à vontade para responder a este e-mail ou me ligar no",
+            ["privacyLink"] = "Política de Privacidade",
+            ["unsubscribe"] = "Cancelar inscrição"
+        },
+        _ => new Dictionary<string, string>
+        {
+            ["greeting"] = "Hi",
+            ["cta"] = "I'd love to connect",
+            ["ctaSuffix"] = "feel free to reply to this email or call me at",
+            ["privacyLink"] = "Privacy Policy",
+            ["unsubscribe"] = "Unsubscribe"
+        }
+    };
 
     internal static string HtmlEncode(string? value) =>
         string.IsNullOrEmpty(value) ? string.Empty : System.Net.WebUtility.HtmlEncode(value);

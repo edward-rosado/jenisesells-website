@@ -31,12 +31,25 @@ public class LeadEmailDrafter(
         string personalizedParagraph;
         string agentPitch;
 
+        var locale = lead.Locale;
+
         // Log agent context skill loading status
         if (agentContext is not null)
         {
-            logger.LogInformation(
-                "[VOICE-001] Voice skill available for lead {LeadId}: {Length} chars",
-                lead.Id, agentContext.VoiceSkill?.Length ?? 0);
+            // Use locale-specific voice skill when lead has a non-English locale
+            if (!string.IsNullOrWhiteSpace(locale) && locale != "en")
+            {
+                var localizedVoice = agentContext.GetSkill("VoiceSkill", locale);
+                logger.LogInformation(
+                    "[VOICE-002] Localized voice skill ({Locale}) for lead {LeadId}: {Length} chars",
+                    locale, lead.Id, localizedVoice?.Length ?? 0);
+            }
+            else
+            {
+                logger.LogInformation(
+                    "[VOICE-001] Voice skill available for lead {LeadId}: {Length} chars",
+                    lead.Id, agentContext.VoiceSkill?.Length ?? 0);
+            }
             logger.LogInformation(
                 "[PERS-001] Personality skill available for lead {LeadId}: {Length} chars",
                 lead.Id, agentContext.PersonalitySkill?.Length ?? 0);
@@ -53,7 +66,7 @@ public class LeadEmailDrafter(
 
         try
         {
-            var (personalized, pitch) = await CallClaudeAsync(lead, score, cmaResult, homeSearchResult, agentConfig, ct, agentContext);
+            var (personalized, pitch) = await CallClaudeAsync(lead, score, cmaResult, homeSearchResult, agentConfig, ct, agentContext, locale);
             personalizedParagraph = personalized;
             agentPitch = pitch;
         }
@@ -70,7 +83,8 @@ public class LeadEmailDrafter(
             lead, score, cmaResult, homeSearchResult, agentConfig,
             personalizedParagraph, agentPitch,
             pdfDownloadUrl: null,
-            privacySecret);
+            privacySecret,
+            locale);
 
         return new LeadEmail(subject, htmlBody, PdfAttachmentPath: null);
     }
@@ -90,13 +104,13 @@ public class LeadEmailDrafter(
         Lead lead, LeadScore score,
         CmaWorkerResult? cmaResult, HomeSearchWorkerResult? homeSearchResult,
         AgentNotificationConfig agentConfig, CancellationToken ct,
-        AgentContext? agentContext = null)
+        AgentContext? agentContext = null, string? locale = null)
     {
         using var span = LeadCommunicatorDiagnostics.ActivitySource.StartActivity("activity.draft_claude_call");
         span?.SetTag("lead.id", lead.Id.ToString());
         span?.SetTag("model", Model);
 
-        var systemPrompt = BuildSystemPrompt(agentConfig, agentContext);
+        var systemPrompt = BuildSystemPrompt(agentConfig, agentContext, locale);
         var userMessage = BuildUserMessage(lead, score, cmaResult, homeSearchResult, agentConfig);
 
         var response = await anthropicClient.SendAsync(
@@ -105,7 +119,7 @@ public class LeadEmailDrafter(
         return ParseClaudeResponse(response.Content, lead.Id, logger);
     }
 
-    internal static string BuildSystemPrompt(AgentNotificationConfig agentConfig, AgentContext? agentContext = null)
+    internal static string BuildSystemPrompt(AgentNotificationConfig agentConfig, AgentContext? agentContext = null, string? locale = null)
     {
         var specialties = agentConfig.Specialties.Count > 0
             ? string.Join(", ", agentConfig.Specialties)
@@ -128,11 +142,16 @@ public class LeadEmailDrafter(
         // Inject agent context skills when available
         if (agentContext is not null)
         {
-            if (!string.IsNullOrWhiteSpace(agentContext.VoiceSkill))
+            // Use locale-specific voice skill when lead has a non-English locale
+            var voiceSkill = !string.IsNullOrWhiteSpace(locale) && locale != "en"
+                ? agentContext.GetSkill("VoiceSkill", locale)
+                : agentContext.VoiceSkill;
+
+            if (!string.IsNullOrWhiteSpace(voiceSkill))
             {
                 sb.AppendLine();
                 sb.AppendLine("=== VOICE SKILL (WHAT to say) ===");
-                sb.AppendLine(agentContext.VoiceSkill);
+                sb.AppendLine(voiceSkill);
             }
 
             if (!string.IsNullOrWhiteSpace(agentContext.PersonalitySkill))
@@ -180,6 +199,15 @@ public class LeadEmailDrafter(
         sb.AppendLine("}");
         sb.AppendLine();
         sb.Append("Keep each paragraph to 2-3 sentences. Be warm and human, not salesy. Reference the lead's specific details.");
+
+        // Append language instruction for non-English locales
+        var languageName = GetLanguageName(locale);
+        if (languageName is not null)
+        {
+            sb.AppendLine();
+            sb.AppendLine();
+            sb.Append($"IMPORTANT: Draft this email entirely in {languageName}. Use the agent's {languageName} voice, catchphrases, and communication style provided above. Do NOT mix languages — the entire email must be in {languageName}.");
+        }
 
         return sb.ToString();
     }
@@ -253,6 +281,22 @@ public class LeadEmailDrafter(
             return (string.Empty, string.Empty);
         }
     }
+
+    /// <summary>
+    /// Maps a BCP 47 locale code to a human-readable language name.
+    /// Returns null for English or unrecognized locales (no language instruction needed).
+    /// </summary>
+    internal static string? GetLanguageName(string? locale) => locale?.ToLowerInvariant() switch
+    {
+        "es" => "Spanish",
+        "pt" => "Portuguese",
+        "fr" => "French",
+        "zh" => "Chinese",
+        "ko" => "Korean",
+        "vi" => "Vietnamese",
+        "ht" => "Haitian Creole",
+        _ => null // English or unrecognized — no language override
+    };
 
     /// <summary>
     /// Guards against prompt injection succeeding by stripping dangerous content from Claude's output.

@@ -16,6 +16,7 @@ public static class LeadMappers
         Phone = request.Phone,
         Timeline = request.Timeline,
         Notes = request.Notes,
+        Locale = request.Locale,
         ReceivedAt = DateTime.UtcNow,
         Status = LeadStatus.Received,
         SellerDetails = request.Seller is { } s ? MapSellerDetails(s) : null,

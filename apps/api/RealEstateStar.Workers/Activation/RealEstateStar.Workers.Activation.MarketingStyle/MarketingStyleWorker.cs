@@ -85,12 +85,20 @@ public sealed class MarketingStyleWorker(
         var subject = email.Subject.ToLowerInvariant();
         var body = email.Body.ToLowerInvariant();
 
+        // English marketing keywords
         return subject.Contains("just listed") || subject.Contains("open house") ||
                subject.Contains("market update") || subject.Contains("new listing") ||
                subject.Contains("price reduced") || subject.Contains("just sold") ||
                subject.Contains("buyer alert") || subject.Contains("newsletter") ||
                body.Contains("just listed") || body.Contains("open house") ||
-               body.Contains("market update") || body.Contains("view listing");
+               body.Contains("market update") || body.Contains("view listing") ||
+               // Spanish marketing keywords
+               subject.Contains("recién listado") || subject.Contains("casa abierta") ||
+               subject.Contains("actualización del mercado") || subject.Contains("nueva propiedad") ||
+               subject.Contains("precio reducido") || subject.Contains("recién vendido") ||
+               subject.Contains("alerta de comprador") || subject.Contains("boletín") ||
+               body.Contains("recién listado") || body.Contains("casa abierta") ||
+               body.Contains("actualización del mercado") || body.Contains("nueva propiedad");
     }
 
     internal static string BuildPrompt(

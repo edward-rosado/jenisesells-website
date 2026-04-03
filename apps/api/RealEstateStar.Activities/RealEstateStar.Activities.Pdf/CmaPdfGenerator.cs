@@ -34,19 +34,20 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         ReportType reportType,
         byte[]? logoBytes,
         byte[]? headshotBytes,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? locale = null)
     {
         var outputPath = Path.Combine(
             Path.GetTempPath(),
             $"cma-{lead.Id}-{DateTime.UtcNow:yyyyMMddHHmmss}.pdf");
 
         _logger.LogInformation(
-            "[CMA-PDF-001] Generating CMA PDF for lead {LeadId}, report type {ReportType}, output {Path}",
-            lead.Id, reportType, outputPath);
+            "[CMA-PDF-001] Generating CMA PDF for lead {LeadId}, report type {ReportType}, locale {Locale}, output {Path}",
+            lead.Id, reportType, locale ?? "en", outputPath);
 
         try
         {
-            await Task.Run(() => GenerateSync(lead, analysis, comps, config, reportType, logoBytes, headshotBytes, outputPath), ct);
+            await Task.Run(() => GenerateSync(lead, analysis, comps, config, reportType, logoBytes, headshotBytes, outputPath, locale), ct);
         }
         catch (Exception ex)
         {
@@ -71,10 +72,12 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         ReportType reportType,
         byte[]? logoBytes,
         byte[]? headshotBytes,
-        string outputPath)
+        string outputPath,
+        string? locale = null)
     {
         var fullAddress = BuildFullAddress(lead.SellerDetails);
         var primaryColor = HexOrDefault(config.Branding?.PrimaryColor, "#2E7D32");
+        var pdfStrings = GetLocalizedPdfStrings(locale);
 
         Document.Create(container =>
         {
@@ -87,26 +90,26 @@ public class CmaPdfGenerator : ICmaPdfGenerator
                 page.DefaultTextStyle(t => t.FontSize(9).FontColor(Colors.Black));
 
                 // Header band — compact, full width
-                page.Header().Element(c => AddHeaderBand(c, config, logoBytes, headshotBytes, primaryColor));
+                page.Header().Element(c => AddHeaderBand(c, config, logoBytes, headshotBytes, primaryColor, pdfStrings));
 
                 page.Content().PaddingHorizontal(30).Column(col =>
                 {
                     col.Item().PaddingTop(12);
 
                     // Section 2: Property Overview
-                    AddPropertyOverview(col, lead.SellerDetails, fullAddress, primaryColor);
+                    AddPropertyOverview(col, lead.SellerDetails, fullAddress, primaryColor, pdfStrings);
 
                     // Section 3: Value Estimate
-                    AddValueEstimate(col, analysis, primaryColor);
+                    AddValueEstimate(col, analysis, primaryColor, pdfStrings);
 
                     // Section 4: Comparable Sales Table
-                    AddCompTable(col, comps, primaryColor);
+                    AddCompTable(col, comps, primaryColor, pdfStrings);
 
                     // Section 5: Market Analysis
-                    AddMarketAnalysis(col, analysis, primaryColor);
+                    AddMarketAnalysis(col, analysis, primaryColor, pdfStrings);
 
                     // Section 6: Pricing Strategy + Lead Insights (always shown when data is present)
-                    AddPricingStrategy(col, analysis, primaryColor);
+                    AddPricingStrategy(col, analysis, primaryColor, pdfStrings);
                 });
 
                 // Section 7: Footer
@@ -124,7 +127,8 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         AccountConfig config,
         byte[]? logoBytes,
         byte[]? headshotBytes,
-        string primaryColor)
+        string primaryColor,
+        Dictionary<string, string> pdfStrings)
     {
         container
             .Background(primaryColor)
@@ -156,7 +160,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
                 // Center column (40%): report title, vertically centered
                 row.RelativeItem(4).AlignCenter().AlignMiddle().Column(c =>
                 {
-                    c.Item().Text("Comparative Market Analysis")
+                    c.Item().Text(pdfStrings["reportTitle"])
                         .FontSize(13).Italic().FontColor(Colors.White);
                 });
 
@@ -220,16 +224,17 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         ColumnDescriptor col,
         SellerDetails? sd,
         string fullAddress,
-        string primaryColor)
+        string primaryColor,
+        Dictionary<string, string> pdfStrings)
     {
-        col.Item().PaddingBottom(6).Text("Property Overview")
+        col.Item().PaddingBottom(6).Text(pdfStrings["propertyOverview"])
             .FontSize(11).Bold().FontColor(primaryColor);
 
         col.Item().PaddingBottom(10).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(12).Row(row =>
         {
             row.RelativeItem().Column(c =>
             {
-                c.Item().Text("Address").FontSize(8).FontColor(Colors.Grey.Medium).Bold();
+                c.Item().Text(pdfStrings["address"]).FontSize(8).FontColor(Colors.Grey.Medium).Bold();
                 c.Item().Text(fullAddress).FontSize(11);
             });
 
@@ -239,19 +244,19 @@ public class CmaPdfGenerator : ICmaPdfGenerator
 
             row.ConstantItem(60).Column(c =>
             {
-                c.Item().Text("Beds").FontSize(8).FontColor(Colors.Grey.Medium).Bold();
+                c.Item().Text(pdfStrings["beds"]).FontSize(8).FontColor(Colors.Grey.Medium).Bold();
                 c.Item().Text(sd?.Beds?.ToString() ?? "—").FontSize(11);
             });
 
             row.ConstantItem(60).Column(c =>
             {
-                c.Item().Text("Baths").FontSize(8).FontColor(Colors.Grey.Medium).Bold();
+                c.Item().Text(pdfStrings["baths"]).FontSize(8).FontColor(Colors.Grey.Medium).Bold();
                 c.Item().Text(sd?.Baths?.ToString() ?? "—").FontSize(11);
             });
 
             row.ConstantItem(80).Column(c =>
             {
-                c.Item().Text("Sq Ft").FontSize(8).FontColor(Colors.Grey.Medium).Bold();
+                c.Item().Text(pdfStrings["sqFt"]).FontSize(8).FontColor(Colors.Grey.Medium).Bold();
                 c.Item().Text(sd?.Sqft?.ToString("N0") ?? "—").FontSize(11);
             });
 
@@ -265,9 +270,10 @@ public class CmaPdfGenerator : ICmaPdfGenerator
     private static void AddValueEstimate(
         ColumnDescriptor col,
         CmaAnalysis analysis,
-        string primaryColor)
+        string primaryColor,
+        Dictionary<string, string> pdfStrings)
     {
-        col.Item().PaddingBottom(6).Text("Estimated Value Range")
+        col.Item().PaddingBottom(6).Text(pdfStrings["estimatedValueRange"])
             .FontSize(11).Bold().FontColor(primaryColor);
 
         col.Item().PaddingBottom(8).Row(row =>
@@ -275,7 +281,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
             // Low
             row.RelativeItem().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(12).Column(c =>
             {
-                c.Item().Text("LOW").FontSize(8).Bold().FontColor(Colors.Grey.Medium);
+                c.Item().Text(pdfStrings["low"]).FontSize(8).Bold().FontColor(Colors.Grey.Medium);
                 c.Item().PaddingTop(4).Text(FormatCurrency(analysis.ValueLow)).FontSize(16).Bold();
             });
 
@@ -284,7 +290,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
             // Mid — hero card
             row.RelativeItem().Background(primaryColor).Padding(12).Column(c =>
             {
-                c.Item().Text("MID (RECOMMENDED)").FontSize(8).Bold().FontColor(Colors.White);
+                c.Item().Text(pdfStrings["midRecommended"]).FontSize(8).Bold().FontColor(Colors.White);
                 c.Item().PaddingTop(4).Text(FormatCurrency(analysis.ValueMid)).FontSize(22).Bold().FontColor(Colors.White);
             });
 
@@ -293,7 +299,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
             // High
             row.RelativeItem().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(12).Column(c =>
             {
-                c.Item().Text("HIGH").FontSize(8).Bold().FontColor(Colors.Grey.Medium);
+                c.Item().Text(pdfStrings["high"]).FontSize(8).Bold().FontColor(Colors.Grey.Medium);
                 c.Item().PaddingTop(4).Text(FormatCurrency(analysis.ValueHigh)).FontSize(16).Bold();
             });
         });
@@ -303,14 +309,14 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         {
             row.AutoItem().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(6).Column(c =>
             {
-                c.Item().Text($"Market Trend: {analysis.MarketTrend}").FontSize(9).Bold();
+                c.Item().Text($"{pdfStrings["marketTrend"]}: {analysis.MarketTrend}").FontSize(9).Bold();
             });
 
             row.ConstantItem(12);
 
             row.AutoItem().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(6).Column(c =>
             {
-                c.Item().Text($"Median Days on Market: {analysis.MedianDaysOnMarket}").FontSize(9).Bold();
+                c.Item().Text($"{pdfStrings["medianDays"]}: {analysis.MedianDaysOnMarket}").FontSize(9).Bold();
             });
         });
     }
@@ -319,9 +325,9 @@ public class CmaPdfGenerator : ICmaPdfGenerator
     // Section 4: Comparable Sales Table
     // -------------------------------------------------------------------------
 
-    private static void AddCompTable(ColumnDescriptor col, List<Comp> comps, string primaryColor)
+    private static void AddCompTable(ColumnDescriptor col, List<Comp> comps, string primaryColor, Dictionary<string, string> pdfStrings)
     {
-        col.Item().PaddingBottom(6).Text("Recent Comparable Sales")
+        col.Item().PaddingBottom(6).Text(pdfStrings["recentComps"])
             .FontSize(11).Bold().FontColor(primaryColor);
 
         var hasOlderComps = comps.Any(c => !c.IsRecent);
@@ -403,9 +409,9 @@ public class CmaPdfGenerator : ICmaPdfGenerator
     // Section 5: Market Analysis
     // -------------------------------------------------------------------------
 
-    private static void AddMarketAnalysis(ColumnDescriptor col, CmaAnalysis analysis, string primaryColor)
+    private static void AddMarketAnalysis(ColumnDescriptor col, CmaAnalysis analysis, string primaryColor, Dictionary<string, string> pdfStrings)
     {
-        col.Item().PaddingBottom(6).Text("Market Analysis")
+        col.Item().PaddingBottom(6).Text(pdfStrings["marketAnalysis"])
             .FontSize(11).Bold().FontColor(primaryColor);
 
         col.Item().PaddingBottom(8).Text(analysis.MarketNarrative).FontSize(10);
@@ -415,7 +421,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
     // Section 6: Pricing Strategy
     // -------------------------------------------------------------------------
 
-    private static void AddPricingStrategy(ColumnDescriptor col, CmaAnalysis analysis, string primaryColor)
+    private static void AddPricingStrategy(ColumnDescriptor col, CmaAnalysis analysis, string primaryColor, Dictionary<string, string> pdfStrings)
     {
         if (analysis.PricingStrategy is null && analysis.LeadInsights is null)
             return;
@@ -425,7 +431,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         {
             col.Item().ShowEntire().Column(section =>
             {
-                section.Item().PaddingBottom(6).Text("Pricing Strategy")
+                section.Item().PaddingBottom(6).Text(pdfStrings["pricingStrategy"])
                     .FontSize(11).Bold().FontColor(primaryColor);
                 section.Item().PaddingBottom(12).Text(strategy).FontSize(10);
             });
@@ -435,7 +441,7 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         {
             col.Item().ShowEntire().Column(section =>
             {
-                section.Item().PaddingBottom(6).Text("Seller Insights")
+                section.Item().PaddingBottom(6).Text(pdfStrings["sellerInsights"])
                     .FontSize(11).Bold().FontColor(primaryColor);
                 section.Item().PaddingBottom(12).Text(insights).FontSize(10);
             });
@@ -497,6 +503,71 @@ public class CmaPdfGenerator : ICmaPdfGenerator
         "CA" => "PT",
         "PR" => "AST",
         _ => "UTC"
+    };
+
+    // -------------------------------------------------------------------------
+    // Localization
+    // -------------------------------------------------------------------------
+
+    internal static Dictionary<string, string> GetLocalizedPdfStrings(string? locale) => locale switch
+    {
+        "es" => new Dictionary<string, string>
+        {
+            ["reportTitle"] = "Análisis Comparativo de Mercado",
+            ["propertyOverview"] = "Resumen de la Propiedad",
+            ["address"] = "Dirección",
+            ["beds"] = "Hab.",
+            ["baths"] = "Baños",
+            ["sqFt"] = "Pies²",
+            ["estimatedValueRange"] = "Rango de Valor Estimado",
+            ["low"] = "BAJO",
+            ["midRecommended"] = "MEDIO (RECOMENDADO)",
+            ["high"] = "ALTO",
+            ["marketTrend"] = "Tendencia del Mercado",
+            ["medianDays"] = "Días Medios en el Mercado",
+            ["recentComps"] = "Ventas Comparables Recientes",
+            ["marketAnalysis"] = "Análisis de Mercado",
+            ["pricingStrategy"] = "Estrategia de Precios",
+            ["sellerInsights"] = "Perspectivas del Vendedor"
+        },
+        "pt" => new Dictionary<string, string>
+        {
+            ["reportTitle"] = "Análise Comparativa de Mercado",
+            ["propertyOverview"] = "Visão Geral do Imóvel",
+            ["address"] = "Endereço",
+            ["beds"] = "Quartos",
+            ["baths"] = "Banheiros",
+            ["sqFt"] = "Pés²",
+            ["estimatedValueRange"] = "Faixa de Valor Estimado",
+            ["low"] = "BAIXO",
+            ["midRecommended"] = "MÉDIO (RECOMENDADO)",
+            ["high"] = "ALTO",
+            ["marketTrend"] = "Tendência do Mercado",
+            ["medianDays"] = "Dias Medianos no Mercado",
+            ["recentComps"] = "Vendas Comparáveis Recentes",
+            ["marketAnalysis"] = "Análise de Mercado",
+            ["pricingStrategy"] = "Estratégia de Preços",
+            ["sellerInsights"] = "Perspectivas do Vendedor"
+        },
+        _ => new Dictionary<string, string>
+        {
+            ["reportTitle"] = "Comparative Market Analysis",
+            ["propertyOverview"] = "Property Overview",
+            ["address"] = "Address",
+            ["beds"] = "Beds",
+            ["baths"] = "Baths",
+            ["sqFt"] = "Sq Ft",
+            ["estimatedValueRange"] = "Estimated Value Range",
+            ["low"] = "LOW",
+            ["midRecommended"] = "MID (RECOMMENDED)",
+            ["high"] = "HIGH",
+            ["marketTrend"] = "Market Trend",
+            ["medianDays"] = "Median Days on Market",
+            ["recentComps"] = "Recent Comparable Sales",
+            ["marketAnalysis"] = "Market Analysis",
+            ["pricingStrategy"] = "Pricing Strategy",
+            ["sellerInsights"] = "Seller Insights"
+        }
     };
 
     // -------------------------------------------------------------------------
