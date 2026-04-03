@@ -187,7 +187,7 @@ public sealed class CoachingWorker(
             return $"(No {type} emails available)";
 
         var sb = new System.Text.StringBuilder();
-        foreach (var email in emails.Take(25))
+        foreach (var email in emails)
         {
             sb.AppendLine("---");
             sb.AppendLine($"Date: {email.Date:yyyy-MM-dd HH:mm}");
@@ -205,7 +205,7 @@ public sealed class CoachingWorker(
             return "(No Drive documents available)";
 
         var sb = new System.Text.StringBuilder();
-        foreach (var kvp in driveIndex.Contents.Take(5))
+        foreach (var kvp in driveIndex.Contents)
         {
             sb.AppendLine($"--- Document: {kvp.Key} ---");
             sb.AppendLine(kvp.Value);
@@ -217,7 +217,7 @@ public sealed class CoachingWorker(
     private static string BuildReviewContent(AgentDiscovery agentDiscovery)
     {
         var sb = new System.Text.StringBuilder();
-        var reviews = agentDiscovery.Profiles.SelectMany(p => p.Reviews).Take(10).ToList();
+        var reviews = agentDiscovery.Profiles.SelectMany(p => p.Reviews).ToList();
         if (reviews.Count == 0)
             return "(No reviews available)";
 

@@ -44,32 +44,54 @@ public sealed class VoiceExtractionWorker(
 
         var userMessage = BuildUserMessage(agentName, emailCorpus, driveIndex, agentDiscovery, isLowData);
 
-        var response = await anthropicClient.SendAsync(
+        // Prepare Spanish data before starting parallel calls
+        var spanishEmails = emailCorpus.SentEmails.Where(e => e.DetectedLocale == "es").ToList();
+        var spanishDocs = driveIndex.Files.Where(f => f.DetectedLocale == "es").ToList();
+        var spanishCount = spanishEmails.Count + spanishDocs.Count;
+        var hasSpanishData = spanishCount >= MinSpanishItemsForExtraction;
+
+        if (hasSpanishData)
+        {
+            logger.LogInformation(
+                "[LANG-003] Starting es voice extraction for {AgentName}: {Count} Spanish items",
+                agentName, spanishCount);
+        }
+        else if (spanishCount > 0)
+        {
+            logger.LogInformation(
+                "[LANG-010] Skipping es extraction for VoiceSkill: only {Count} Spanish items in corpus",
+                spanishCount);
+        }
+
+        // Start English extraction
+        var englishTask = anthropicClient.SendAsync(
             Model, SystemPrompt, userMessage, MaxTokens, Pipeline, ct);
+
+        // Start Spanish extraction in parallel (if sufficient data)
+        Task<Domain.Shared.Models.AnthropicResponse>? spanishTask = hasSpanishData
+            ? anthropicClient.SendAsync(
+                Model,
+                SystemPrompt + "\n\n" +
+                    "Extract voice patterns for Spanish communication specifically. Focus on Spanish-specific catchphrases, greetings, sign-offs, and idioms this agent actually uses in Spanish. Do NOT translate English phrases — extract authentic Spanish expressions.",
+                BuildSpanishUserMessage(agentName, spanishEmails, spanishDocs, driveIndex, isLowData),
+                MaxTokens, Pipeline + ".es", ct)
+            : null;
+
+        if (spanishTask is not null)
+            await Task.WhenAll(englishTask, spanishTask);
+        else
+            await englishTask;
+
+        var response = englishTask.Result;
 
         logger.LogDebug(
             "[ACTV-011] Voice extraction complete for {AgentName}: {InputTokens} in, {OutputTokens} out, {DurationMs}ms",
             agentName, response.InputTokens, response.OutputTokens, response.DurationMs);
 
-        // Spanish extraction — run only if sufficient Spanish data exists
         Dictionary<string, string>? localizedSkills = null;
-        var spanishEmails = emailCorpus.SentEmails.Where(e => e.DetectedLocale == "es").ToList();
-        var spanishDocs = driveIndex.Files.Where(f => f.DetectedLocale == "es").ToList();
-        var spanishCount = spanishEmails.Count + spanishDocs.Count;
-
-        if (spanishCount >= MinSpanishItemsForExtraction)
+        if (spanishTask is not null)
         {
-            logger.LogInformation(
-                "[LANG-003] Starting es voice extraction for {AgentName}: {Count} Spanish items",
-                agentName, spanishCount);
-
-            var spanishUserMessage = BuildSpanishUserMessage(agentName, spanishEmails, spanishDocs, driveIndex, isLowData);
-
-            var spanishSystemPrompt = SystemPrompt + "\n\n" +
-                "Extract voice patterns for Spanish communication specifically. Focus on Spanish-specific catchphrases, greetings, sign-offs, and idioms this agent actually uses in Spanish. Do NOT translate English phrases — extract authentic Spanish expressions.";
-
-            var spanishResponse = await anthropicClient.SendAsync(
-                Model, spanishSystemPrompt, spanishUserMessage, MaxTokens, Pipeline + ".es", ct);
+            var spanishResponse = spanishTask.Result;
 
             logger.LogDebug(
                 "[ACTV-012] Spanish voice extraction complete for {AgentName}: {InputTokens} in, {OutputTokens} out, {DurationMs}ms",
@@ -79,12 +101,6 @@ public sealed class VoiceExtractionWorker(
             {
                 ["VoiceSkill.es"] = spanishResponse.Content
             };
-        }
-        else if (spanishCount > 0)
-        {
-            logger.LogInformation(
-                "[LANG-010] Skipping es extraction for VoiceSkill: only {Count} Spanish items in corpus",
-                spanishCount);
         }
 
         return new VoiceExtractionResult(response.Content, isLowData, localizedSkills);
@@ -258,7 +274,7 @@ public sealed class VoiceExtractionWorker(
     private static string BuildSpanishDriveContent(List<DriveFile> spanishDocs, DriveIndex driveIndex)
     {
         var sb = new System.Text.StringBuilder();
-        foreach (var doc in spanishDocs.Take(10))
+        foreach (var doc in spanishDocs)
         {
             if (driveIndex.Contents.TryGetValue(doc.Id, out var content))
             {
@@ -276,7 +292,7 @@ public sealed class VoiceExtractionWorker(
             return "(No emails available)";
 
         var sb = new System.Text.StringBuilder();
-        foreach (var email in emails.Take(30))
+        foreach (var email in emails)
         {
             sb.AppendLine("---");
             sb.AppendLine($"Date: {email.Date:yyyy-MM-dd}");
@@ -294,7 +310,7 @@ public sealed class VoiceExtractionWorker(
             return "(No Drive documents available)";
 
         var sb = new System.Text.StringBuilder();
-        foreach (var kvp in driveIndex.Contents.Take(10))
+        foreach (var kvp in driveIndex.Contents)
         {
             sb.AppendLine($"--- Document: {kvp.Key} ---");
             sb.AppendLine(kvp.Value);
