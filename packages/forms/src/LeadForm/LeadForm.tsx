@@ -128,6 +128,8 @@ export interface LeadFormProps {
   captchaSlot?: React.ReactNode;
   /** Translated labels for form fields. TCPA consent stays in English (legally required). */
   labels?: Partial<LeadFormLabels>;
+  /** BCP 47 locale code (e.g., "en", "es") — forwarded to the API with the submission. */
+  locale?: string;
 }
 
 function parseOptionalNumber(value: string): number | undefined {
@@ -174,6 +176,7 @@ export function LeadForm({
   turnstileToken,
   captchaSlot,
   labels: labelsProp,
+  locale,
 }: LeadFormProps) {
   const L = { ...DEFAULT_LABELS, ...labelsProp };
   const [isBuying, setIsBuying] = useState(initialMode.includes("buying"));
@@ -339,6 +342,7 @@ export function LeadForm({
         consentText: TCPA_CONSENT_TEXT(agentFirstName ?? "the agent"),
         channels: ["email", "calls"],
       },
+      locale,
     };
 
     setSubmitting(true);

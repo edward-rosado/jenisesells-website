@@ -18,6 +18,10 @@ function GlobeIcon({ size = 16 }: { size?: number }) {
   );
 }
 
+function setLocaleCookie(locale: SupportedLocale) {
+  document.cookie = `locale=${locale};path=/;max-age=${365 * 24 * 60 * 60};samesite=lax`;
+}
+
 export function LanguageSwitcher({ locales, currentLocale }: LanguageSwitcherProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -48,7 +52,7 @@ export function LanguageSwitcher({ locales, currentLocale }: LanguageSwitcherPro
   if (hidden) return null;
 
   function handleSelect(locale: SupportedLocale) {
-    document.cookie = `locale=${locale};path=/;max-age=${365 * 24 * 60 * 60};samesite=lax`;
+    setLocaleCookie(locale);
     setOpen(false);
     // Reload the page so middleware re-resolves the locale from the cookie
     window.location.reload();

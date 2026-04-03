@@ -163,6 +163,7 @@ export function CmaSection({
             serviceAreas={serviceAreas}
             showCmaDisclaimer
             labels={ui as unknown as LeadFormLabels}
+            locale={locale}
             turnstileToken={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? turnstileToken : undefined}
             captchaSlot={
               process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
