@@ -76,10 +76,15 @@ RealEstateStar.Notifications/         ← How to tell people things happened
   WhatsApp/DisabledWhatsAppNotifier.cs ← null-object for unconfigured WhatsApp
 
 RealEstateStar.Workers.Shared/        ← Base classes for worker pipelines
-  IWorkerStep.cs, WorkerStepBase.cs   ← step interface + base class with OTel, logging
-  ProcessingChannelBase.cs            ← Channel<T> base with bounded capacity
-  BackgroundServiceHealthTracker.cs   ← tracks worker liveness for health checks
-  DependencyInjection/                ← AddWorkerPipeline<TChannel, TWorker>() auto-DI
+  ActivityBase.cs                     ← OTel span + timing base for activities
+  PipelineRetryOptions.cs             ← retry config (maps to DF RetryPolicy)
+  InMemoryActivationQueue.cs          ← dev fallback for activation queue
+  InMemoryLeadOrchestrationQueue.cs   ← dev fallback for lead queue
+
+RealEstateStar.Functions/             ← Azure Functions host (second composition root)
+  Activation/                         ← Durable orchestrator + 19 activity wrappers
+  Lead/                               ← Durable orchestrator + 11 activity wrappers
+  WhatsApp/                           ← Queue-triggered webhook + timer retry
 
 RealEstateStar.Workers.Leads/         ← Lead pipeline: enrich → notify → fan-out to CMA/HomeSearch
 RealEstateStar.Workers.Cma/           ← CMA pipeline: fetch comps → analyze → PDF → notify

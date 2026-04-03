@@ -487,7 +487,8 @@ The API is a multi-project solution with 21 production projects and 23 test proj
 | **Data** | `RealEstateStar.Data` | `IFileStorageProvider` implementations (GDrive, Local, Noop) |
 | **DataServices** | `RealEstateStar.DataServices` | Higher-level data operations (leads, config, privacy, WhatsApp conversations) |
 | **Notifications** | `RealEstateStar.Notifications` | Email and notification delivery |
-| **Workers** | `RealEstateStar.Workers.Shared` | Worker step pattern: `IWorkerStep<TReq, TRes>`, `WorkerStepBase`, `ProcessingChannelBase` |
+| **Functions** | `RealEstateStar.Functions` | Azure Functions host — Durable orchestrators + activity wrappers for Activation, Lead, WhatsApp |
+| **Workers** | `RealEstateStar.Workers.Shared` | Pipeline base classes: `ActivityBase`, `PipelineRetryOptions` |
 | | `RealEstateStar.Workers.Cma` | CMA pipeline worker |
 | | `RealEstateStar.Workers.Leads` | Lead processing worker |
 | | `RealEstateStar.Workers.HomeSearch` | Home search worker |
@@ -512,11 +513,12 @@ Domain (zero deps)
   +-- Data (storage implementations)
   +-- DataServices (higher-level data operations)
   +-- Clients.* (each fully isolated, own DTOs, zero cross-client deps)
-  +-- Workers.Shared (step pattern, channels)
+  +-- Workers.Shared (activity base, retry options)
   |     +-- Workers.Cma / Workers.Leads / Workers.HomeSearch / Workers.WhatsApp
   +-- Notifications (email delivery)
   |
-  Api (composition root — references everything, wires DI)
+  Api (composition root — HTTP endpoints, DI, middleware)
+  Functions (composition root — Durable orchestrators, activity wrappers)
 ```
 
 Architecture is enforced at compile time via csproj references and at CI time via ArchUnit tests in `Architecture.Tests`.
@@ -528,14 +530,15 @@ Each production project has a matching test project under `tests/`, plus two sha
 - `RealEstateStar.TestUtilities` -- shared test helpers, fixtures, and test data
 - `RealEstateStar.Architecture.Tests` -- ArchUnit tests enforcing dependency rules
 
-### Worker Step Pattern
+### Durable Functions Pattern
 
-Workers use a step-based pipeline pattern:
+Pipelines use Azure Durable Functions for orchestration:
 
-- `IWorkerStep<TRequest, TResponse>` -- interface for individual pipeline steps
-- `WorkerStepBase` -- base class with built-in diagnostics (spans, metrics)
-- `ProcessingChannelBase` -- `Channel<T>` fan-out BackgroundService for durable message processing
-- `AddWorkerPipeline<TChannel, TWorker>()` -- auto-registers channel + worker + health checks
+- **Orchestrators** (Durable) — replay-safe coordinators that dispatch activities via `ctx.CallActivityAsync`
+- **Activities** — thin wrappers (~10 lines) that resolve a service from DI and call it
+- **Queue starters** — `[QueueTrigger]` functions that deserialize queue messages and start orchestrations
+- Automatic checkpoint/replay, declarative retry policies, execution history in Table Storage
+- Idempotency guards on non-idempotent sends (email, WhatsApp) via `IIdempotencyStore`
 
 ### Key Directories
 

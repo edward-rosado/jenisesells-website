@@ -1,71 +1,49 @@
-# Background Service Health Checks
+# Durable Functions Health Checks
 
-How the health check system detects stuck background workers by comparing channel queue depth against worker activity timestamps.
+How the health check system monitors orchestration state by querying the Durable Functions management API for running and failed instance counts.
 
 ```mermaid
 flowchart LR
-    subgraph Workers ["Background Workers"]
-        LW["LeadProcessing<br/>Worker"]
-        CW["CmaProcessing<br/>Worker"]
-        HW["HomeSearch<br/>Worker"]
+    subgraph DFRuntime ["Durable Functions Runtime"]
+        Instances["Orchestration Instances\n(running / failed / pending)"]
     end
 
-    subgraph Channels ["Processing Channels"]
-        LC["LeadChannel<br/>.Count"]
-        CC["CmaChannel<br/>.Count"]
-        HC["HomeSearchChannel<br/>.Count"]
+    subgraph HealthCheck ["DurableFunctionsHealthCheck"]
+        Query["Query DF management API\nGetStatusAsync with filters"]
+        Count["Count running + failed\norchestrations"]
+        Decision{"Failed count\nabove threshold?"}
+        Healthy["Healthy\nall instances nominal"]
+        Degraded["Degraded\nfailed instances detected"]
     end
 
-    Tracker["HealthTracker<br/>last-activity timestamps"]
-
-    LW -->|"RecordActivity"| Tracker
-    CW -->|"RecordActivity"| Tracker
-    HW -->|"RecordActivity"| Tracker
-
-    subgraph HealthCheck ["BackgroundServiceHealthCheck"]
-        Read["Read queue depth<br/>+ last activity"]
-        Decision{"Items queued<br/>AND worker stale?"}
-        Healthy["Healthy<br/>idle or active"]
-        Unhealthy["Unhealthy<br/>stuck worker"]
-    end
-
-    LC --> Read
-    CC --> Read
-    HC --> Read
-    Tracker --> Read
-    Read --> Decision
+    Instances --> Query
+    Query --> Count
+    Count --> Decision
     Decision -->|"No"| Healthy
-    Decision -->|"Yes: idle > 5min<br/>or never active"| Unhealthy
+    Decision -->|"Yes"| Degraded
 
     subgraph Endpoints ["Health Endpoints"]
-        Ready["/health/ready"]
-        WorkersEP["/health/workers"]
+        Ready["/health/ready\ntag: workers"]
     end
 
     Healthy --> Ready
-    Unhealthy --> Ready
-    Healthy --> WorkersEP
-    Unhealthy --> WorkersEP
+    Degraded --> Ready
 
     subgraph StatusPage ["Platform Status Page"]
-        Core["Core Services<br/>colored dots"]
-        WorkerCards["Worker Cards<br/>queue + last activity"]
-        Uptime["UptimeTracker<br/>30-bar history"]
+        Core["Core Services\ncolored dots"]
+        WorkerCards["Worker Cards\nrunning + failed counts"]
+        Uptime["UptimeTracker\n30-bar history"]
     end
 
     Ready --> Core
     Ready --> WorkerCards
     Ready --> Uptime
 
-    style LW fill:#7B68EE,color:#fff
-    style CW fill:#7B68EE,color:#fff
-    style HW fill:#7B68EE,color:#fff
-    style LC fill:#7B68EE,color:#fff
-    style CC fill:#7B68EE,color:#fff
-    style HC fill:#7B68EE,color:#fff
-    style Tracker fill:#7B68EE,color:#fff
+    style Instances fill:#7B68EE,color:#fff
+    style Query fill:#7B68EE,color:#fff
+    style Count fill:#7B68EE,color:#fff
     style Healthy fill:#2E7D32,color:#fff
-    style Unhealthy fill:#D32F2F,color:#fff
+    style Degraded fill:#D32F2F,color:#fff
     style Core fill:#4A90D9,color:#fff
     style WorkerCards fill:#4A90D9,color:#fff
     style Uptime fill:#4A90D9,color:#fff
