@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>RealEstateStar.Functions</RootNamespace>
+    <!-- Required for Flex Consumption: generates .azurefunctions/ directory with function metadata -->
+    <EnableSdkMetadataGeneration>true</EnableSdkMetadataGeneration>
   </PropertyGroup>
 
   <ItemGroup>
