@@ -45,6 +45,8 @@ using RealEstateStar.Workers.WhatsApp;
 using RealEstateStar.Domain.Shared;
 using Serilog;
 
+try
+{
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
@@ -337,6 +339,29 @@ builder.Services.AddContactImportPersistActivity();
 builder.Services.AddTransient<ContactDetectionActivity>();
 
 builder.Build().Run();
+}
+catch (Exception ex)
+{
+    // Write startup error to Azure Table for debugging (Functions host silently swallows worker crashes)
+    try
+    {
+        var connStr = Environment.GetEnvironmentVariable("AzureStorage__ConnectionString")
+            ?? Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+        if (!string.IsNullOrEmpty(connStr))
+        {
+            var tableClient = new Azure.Data.Tables.TableClient(connStr, "functionsstartuperrors");
+            tableClient.CreateIfNotExists();
+            tableClient.UpsertEntity(new Azure.Data.Tables.TableEntity("startup", DateTime.UtcNow.ToString("o"))
+            {
+                ["Error"] = ex.ToString()[..Math.Min(ex.ToString().Length, 32000)],
+                ["Message"] = ex.Message,
+                ["Type"] = ex.GetType().FullName
+            });
+        }
+    }
+    catch { /* best effort */ }
+    throw;
+}
 
 /// <summary>
 /// No-op <see cref="IDistributedContentCache"/> used when AzureStorage:ConnectionString is not configured.
