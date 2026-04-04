@@ -96,23 +96,15 @@ jobs:
           cd ./publish/functions
           zip -r ../../functions.zip . -x '*.pdb'
           cd ../..
-          az functionapp deployment source config-zip \
+          # Use az functionapp deploy (OneDeploy) instead of config-zip
+          # OneDeploy extracts to wwwroot, making .azurefunctions visible to the host
+          az functionapp deploy \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --name ${{ env.FUNCTION_APP_NAME }} \
-            --src functions.zip \
-            --timeout 300
-
-          # Force restart to pick up new deployment
-          az functionapp restart \
-            --name ${{ env.FUNCTION_APP_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }}
-
-          # Wait for host to start
-          sleep 30
-
-          # List discovered functions
-          echo "Checking discovered functions..."
-          func azure functionapp list-functions ${{ env.FUNCTION_APP_NAME }} 2>/dev/null || echo "func list-functions not available"
+            --src-path functions.zip \
+            --type zip \
+            --clean true \
+            --restart true
 
       - name: Verify deployment
         run: |
