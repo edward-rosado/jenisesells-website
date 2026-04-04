@@ -2,14 +2,15 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
-// Feature folders: config, templates, sections, lead-capture, privacy, shared
+// Feature folders: config, templates, sections, lead-capture, privacy, shared, i18n
 //
 // Cross-feature import rules:
 //   shared/        → anyone may import (no restrictions)
 //   shared/        → config/ ALLOWED
-//   sections/      → config/ ALLOWED
+//   i18n/          → pure utility — config/ ALLOWED, nothing else
+//   sections/      → config/ ALLOWED, shared/ ALLOWED, i18n/ ALLOWED
 //   sections/      → shared/ ALLOWED
-//   templates/     → config/ ALLOWED
+//   templates/     → config/ ALLOWED, i18n/ ALLOWED
 //   templates/     → sections/{barrel} ALLOWED (subsection barrels only, NOT top-level index)
 //   lead-capture/  → config/ ALLOWED
 //   lead-capture/  → shared/ ALLOWED
@@ -29,6 +30,22 @@ const eslintConfig = defineConfig([
     // Generated coverage output:
     "coverage/**",
   ]),
+
+  // ── i18n/ ──────────────────────────────────────────────────────────────────
+  // i18n/ is a pure utility — it may import config/ only. No other features.
+  {
+    files: ["features/i18n/**"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        patterns: [
+          {
+            group: ["**/features/templates/**", "**/features/sections/**", "**/features/lead-capture/**", "**/features/privacy/**", "**/features/shared/**"],
+            message: "i18n/ is a pure utility — it must not import from other feature folders. Only config/ is allowed.",
+          },
+        ],
+      }],
+    },
+  },
 
   // ── config/ ────────────────────────────────────────────────────────────────
   // config is the base — it imports nothing from other features.
