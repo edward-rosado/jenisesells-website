@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Clients.GSheets</name>
+    </assembly>
+    <members>
+        <member name="M:RealEstateStar.Clients.GSheets.GSheetsClientExtensions.AddGSheetsClient(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.String,System.String)">
+            <summary>
+            Registers <see cref="T:RealEstateStar.Domain.Shared.Interfaces.External.IGSheetsClient"/> using the internal <see cref="T:RealEstateStar.Clients.GSheets.GSheetsApiClient"/> implementation.
+            Requires <see cref="T:RealEstateStar.Domain.Shared.Interfaces.External.IOAuthRefresher"/> to be registered first.
+            </summary>
+        </member>
+    </members>
+</doc>

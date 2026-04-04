@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Data</name>
+    </assembly>
+    <members>
+        <member name="T:RealEstateStar.Data.LocalFileStorageProvider">
+            <summary>
+            File-based implementation of IFileStorageProvider that writes to local disk.
+            Used for local development and as a fallback when Google Drive is unavailable.
+            Files are written to {basePath}/{folder}/{fileName}.
+            Spreadsheet operations use CSV files in {basePath}/sheets/{sheetName}.csv.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Data.LocalFileStorageProvider.#ctor(System.String,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Data.LocalFileStorageProvider})">
+            <summary>
+            File-based implementation of IFileStorageProvider that writes to local disk.
+            Used for local development and as a fallback when Google Drive is unavailable.
+            Files are written to {basePath}/{folder}/{fileName}.
+            Spreadsheet operations use CSV files in {basePath}/sheets/{sheetName}.csv.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Data.NoopFileStorageProvider">
+            <summary>
+            Noop implementation of IFileStorageProvider used until Google Drive integration
+            is wired up. Silently drops all read/write calls so the pipeline can run without Drive.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Data.NoopFileStorageProvider.#ctor(Microsoft.Extensions.Logging.ILogger{RealEstateStar.Data.NoopFileStorageProvider})">
+            <summary>
+            Noop implementation of IFileStorageProvider used until Google Drive integration
+            is wired up. Silently drops all read/write calls so the pipeline can run without Drive.
+            </summary>
+        </member>
+    </members>
+</doc>

@@ -1,0 +1,881 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Functions</name>
+    </assembly>
+    <members>
+        <member name="T:RealEstateStar.Functions.Activation.ActivationOrchestratorFunction">
+             <summary>
+             Durable Functions orchestrator for the activation pipeline.
+            
+             Maps directly from <c>ActivationOrchestrator.ProcessActivationAsync()</c> — same 4 phases.
+            
+             Replay-safety rules (enforced):
+             - No DateTime.UtcNow — use ctx.CurrentUtcDateTime
+             - No Guid.NewGuid() — not needed here
+             - No I/O calls — all I/O is in activity functions
+             - Logging is guarded by !ctx.IsReplaying
+             </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.ActivationOrchestratorFunction.InstanceId(System.String,System.String)">
+            <summary>
+            Deterministic instance ID for dedup: at most one activation per agent at a time.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.ActivationOrchestratorFunction.WrapAsync``1(Microsoft.DurableTask.TaskOrchestrationContext,System.String,RealEstateStar.Functions.Activation.Dtos.SynthesisInput,System.String,Microsoft.Extensions.Logging.ILogger)">
+            <summary>
+            Calls an activity and returns the typed result.
+            Returns null on failure so one worker failure does not abort the pipeline.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.AgentDiscoveryFunction">
+            <summary>
+            Phase 1 gather activity: discovers the agent's web presence, headshot, profiles, and WhatsApp.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.AgentDiscovery.AgentDiscoveryWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.AgentDiscoveryFunction.#ctor(RealEstateStar.Workers.Activation.AgentDiscovery.AgentDiscoveryWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.AgentDiscoveryFunction})">
+            <summary>
+            Phase 1 gather activity: discovers the agent's web presence, headshot, profiles, and WhatsApp.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.AgentDiscovery.AgentDiscoveryWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.BrandExtractionFunction">
+            <summary>
+            Phase 2 synthesis activity: extracts brokerage brand signals from websites, emails, and documents.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.BrandExtraction.BrandExtractionWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.BrandExtractionFunction.#ctor(RealEstateStar.Workers.Activation.BrandExtraction.BrandExtractionWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.BrandExtractionFunction})">
+            <summary>
+            Phase 2 synthesis activity: extracts brokerage brand signals from websites, emails, and documents.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.BrandExtraction.BrandExtractionWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.BrandingDiscoveryFunction">
+            <summary>
+            Phase 2 synthesis activity: discovers agent branding (colors, fonts, logos, template recommendation).
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.BrandingDiscovery.BrandingDiscoveryWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.BrandingDiscoveryFunction.#ctor(RealEstateStar.Workers.Activation.BrandingDiscovery.BrandingDiscoveryWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.BrandingDiscoveryFunction})">
+            <summary>
+            Phase 2 synthesis activity: discovers agent branding (colors, fonts, logos, template recommendation).
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.BrandingDiscovery.BrandingDiscoveryWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.BrandMergeFunction">
+            <summary>
+            Phase 3 activity: merges branding kit and voice skill into Brand Profile.md and Brand Voice.md.
+            Delegates to <see cref="T:RealEstateStar.Activities.Activation.BrandMerge.BrandMergeActivity"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.BrandMergeFunction.#ctor(RealEstateStar.Activities.Activation.BrandMerge.BrandMergeActivity,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.BrandMergeFunction})">
+            <summary>
+            Phase 3 activity: merges branding kit and voice skill into Brand Profile.md and Brand Voice.md.
+            Delegates to <see cref="T:RealEstateStar.Activities.Activation.BrandMerge.BrandMergeActivity"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.BrandVoiceFunction">
+            <summary>
+            Phase 2 synthesis activity: extracts brokerage brand voice signals.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.BrandVoice.BrandVoiceWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.BrandVoiceFunction.#ctor(RealEstateStar.Workers.Activation.BrandVoice.BrandVoiceWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.BrandVoiceFunction})">
+            <summary>
+            Phase 2 synthesis activity: extracts brokerage brand voice signals.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.BrandVoice.BrandVoiceWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.CheckActivationCompleteFunction">
+             <summary>
+             Phase 0 activity: checks whether the activation pipeline has already run
+             by verifying all required files exist in document storage.
+            
+             Mirrors the check in <c>ActivationOrchestrator.IsAlreadyCompleteAsync</c>.
+             Required files must all be present for the activation to be considered complete.
+             </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.CheckActivationCompleteFunction.#ctor(RealEstateStar.Domain.Shared.Interfaces.Storage.IDocumentStorageProvider,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.CheckActivationCompleteFunction})">
+             <summary>
+             Phase 0 activity: checks whether the activation pipeline has already run
+             by verifying all required files exist in document storage.
+            
+             Mirrors the check in <c>ActivationOrchestrator.IsAlreadyCompleteAsync</c>.
+             Required files must all be present for the activation to be considered complete.
+             </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.CmaStyleFunction">
+            <summary>
+            Phase 2 synthesis activity: analyzes CMA style from drive documents.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.CmaStyle.CmaStyleWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.CmaStyleFunction.#ctor(RealEstateStar.Workers.Activation.CmaStyle.CmaStyleWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.CmaStyleFunction})">
+            <summary>
+            Phase 2 synthesis activity: analyzes CMA style from drive documents.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.CmaStyle.CmaStyleWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.CoachingFunction">
+            <summary>
+            Phase 2 synthesis activity: produces a coaching report from agent communications.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.Coaching.CoachingWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.CoachingFunction.#ctor(RealEstateStar.Workers.Activation.Coaching.CoachingWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.CoachingFunction})">
+            <summary>
+            Phase 2 synthesis activity: produces a coaching report from agent communications.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.Coaching.CoachingWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.ComplianceAnalysisFunction">
+            <summary>
+            Phase 2 synthesis activity: analyzes compliance gaps in agent communications.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.ComplianceAnalysis.ComplianceAnalysisWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.ComplianceAnalysisFunction.#ctor(RealEstateStar.Workers.Activation.ComplianceAnalysis.ComplianceAnalysisWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.ComplianceAnalysisFunction})">
+            <summary>
+            Phase 2 synthesis activity: analyzes compliance gaps in agent communications.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.ComplianceAnalysis.ComplianceAnalysisWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.ContactDetectionFunction">
+            <summary>
+            Phase 2.5 activity: detects and classifies contacts from Drive extractions and email corpus.
+            Delegates to <see cref="T:RealEstateStar.Activities.Lead.ContactDetection.ContactDetectionActivity"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.ContactDetectionFunction.#ctor(RealEstateStar.Activities.Lead.ContactDetection.ContactDetectionActivity,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.ContactDetectionFunction})">
+            <summary>
+            Phase 2.5 activity: detects and classifies contacts from Drive extractions and email corpus.
+            Delegates to <see cref="T:RealEstateStar.Activities.Lead.ContactDetection.ContactDetectionActivity"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.ContactImportFunction">
+            <summary>
+            Phase 3 activity: persists imported contacts to Drive folders and ILeadStore.
+            Delegates to <see cref="T:RealEstateStar.Activities.Activation.ContactImportPersist.ContactImportPersistActivity"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.ContactImportFunction.#ctor(RealEstateStar.Activities.Activation.ContactImportPersist.ContactImportPersistActivity,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.ContactImportFunction})">
+            <summary>
+            Phase 3 activity: persists imported contacts to Drive folders and ILeadStore.
+            Delegates to <see cref="T:RealEstateStar.Activities.Activation.ContactImportPersist.ContactImportPersistActivity"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.DriveIndexFunction">
+            <summary>
+            Phase 1 gather activity: indexes the agent's Google Drive.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.DriveIndex.DriveIndexWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.DriveIndexFunction.#ctor(RealEstateStar.Workers.Activation.DriveIndex.DriveIndexWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.DriveIndexFunction})">
+            <summary>
+            Phase 1 gather activity: indexes the agent's Google Drive.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.DriveIndex.DriveIndexWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.EmailFetchFunction">
+            <summary>
+            Phase 1 gather activity: fetches agent email corpus from Gmail.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.EmailFetch.AgentEmailFetchWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.EmailFetchFunction.#ctor(RealEstateStar.Workers.Activation.EmailFetch.AgentEmailFetchWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.EmailFetchFunction})">
+            <summary>
+            Phase 1 gather activity: fetches agent email corpus from Gmail.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.EmailFetch.AgentEmailFetchWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.FeeStructureFunction">
+            <summary>
+            Phase 2 synthesis activity: extracts fee structure and commission information.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.FeeStructure.FeeStructureWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.FeeStructureFunction.#ctor(RealEstateStar.Workers.Activation.FeeStructure.FeeStructureWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.FeeStructureFunction})">
+            <summary>
+            Phase 2 synthesis activity: extracts fee structure and commission information.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.FeeStructure.FeeStructureWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.MarketingStyleFunction">
+            <summary>
+            Phase 2 synthesis activity: analyzes marketing style from email corpus and drive index.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.MarketingStyle.MarketingStyleWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.MarketingStyleFunction.#ctor(RealEstateStar.Workers.Activation.MarketingStyle.MarketingStyleWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.MarketingStyleFunction})">
+            <summary>
+            Phase 2 synthesis activity: analyzes marketing style from email corpus and drive index.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.MarketingStyle.MarketingStyleWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.PersistProfileFunction">
+            <summary>
+            Phase 3 activity: writes all per-agent activation outputs to storage and generates account.json / content.json.
+            Delegates to <see cref="T:RealEstateStar.Activities.Activation.PersistAgentProfile.AgentProfilePersistActivity"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.PersistProfileFunction.#ctor(RealEstateStar.Activities.Activation.PersistAgentProfile.AgentProfilePersistActivity,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.PersistProfileFunction})">
+            <summary>
+            Phase 3 activity: writes all per-agent activation outputs to storage and generates account.json / content.json.
+            Delegates to <see cref="T:RealEstateStar.Activities.Activation.PersistAgentProfile.AgentProfilePersistActivity"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.PersonalityFunction">
+            <summary>
+            Phase 2 synthesis activity: extracts agent personality skill.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.Personality.PersonalityWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.PersonalityFunction.#ctor(RealEstateStar.Workers.Activation.Personality.PersonalityWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.PersonalityFunction})">
+            <summary>
+            Phase 2 synthesis activity: extracts agent personality skill.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.Personality.PersonalityWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.PipelineAnalysisFunction">
+            <summary>
+            Phase 2 synthesis activity: analyzes agent sales pipeline from email and drive data.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.PipelineAnalysis.PipelineAnalysisWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.PipelineAnalysisFunction.#ctor(RealEstateStar.Workers.Activation.PipelineAnalysis.PipelineAnalysisWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.PipelineAnalysisFunction})">
+            <summary>
+            Phase 2 synthesis activity: analyzes agent sales pipeline from email and drive data.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.PipelineAnalysis.PipelineAnalysisWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.VoiceExtractionFunction">
+            <summary>
+            Phase 2 synthesis activity: extracts agent voice skill from email corpus and drive index.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.VoiceExtraction.VoiceExtractionWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.VoiceExtractionFunction.#ctor(RealEstateStar.Workers.Activation.VoiceExtraction.VoiceExtractionWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.VoiceExtractionFunction})">
+            <summary>
+            Phase 2 synthesis activity: extracts agent voice skill from email corpus and drive index.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.VoiceExtraction.VoiceExtractionWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.WebsiteStyleFunction">
+            <summary>
+            Phase 2 synthesis activity: analyzes website style from agent discovery data.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.WebsiteStyle.WebsiteStyleWorker"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.WebsiteStyleFunction.#ctor(RealEstateStar.Workers.Activation.WebsiteStyle.WebsiteStyleWorker,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.WebsiteStyleFunction})">
+            <summary>
+            Phase 2 synthesis activity: analyzes website style from agent discovery data.
+            Delegates to <see cref="T:RealEstateStar.Workers.Activation.WebsiteStyle.WebsiteStyleWorker"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Activities.WelcomeNotificationFunction">
+            <summary>
+            Phase 4 activity: sends a personalized welcome notification to the agent via WhatsApp or email fallback.
+            Delegates to <see cref="T:RealEstateStar.Domain.Activation.Interfaces.IWelcomeNotificationService"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Activities.WelcomeNotificationFunction.#ctor(RealEstateStar.Domain.Activation.Interfaces.IWelcomeNotificationService,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.Activities.WelcomeNotificationFunction})">
+            <summary>
+            Phase 4 activity: sends a personalized welcome notification to the agent via WhatsApp or email fallback.
+            Delegates to <see cref="T:RealEstateStar.Domain.Activation.Interfaces.IWelcomeNotificationService"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.ActivityNames">
+            <summary>
+            Canonical activity function names used by both the orchestrator and activity functions.
+            Keeping names in one place prevents typos between caller and callee.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.ActivationDtoMapper">
+            <summary>
+            Converts between domain models and Durable Function activity boundary DTOs.
+            All members are static — no state required.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.ActivationDtoMapper.BuildActivationOutputs(RealEstateStar.Functions.Activation.Dtos.PersistProfileInput)">
+            <summary>Assembles the full ActivationOutputs from all Phase 2 activity results for Phase 3.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.EmailFetchInput">
+            <summary>Input to the EmailFetch activity function.</summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.EmailFetchInput.#ctor(System.String,System.String)">
+            <summary>Input to the EmailFetch activity function.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.EmailFetchOutput">
+            <summary>Output from the EmailFetch activity function — the full email corpus.</summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.EmailFetchOutput.#ctor(System.Collections.Generic.IReadOnlyList{RealEstateStar.Functions.Activation.Dtos.EmailMessageDto},System.Collections.Generic.IReadOnlyList{RealEstateStar.Functions.Activation.Dtos.EmailMessageDto},RealEstateStar.Functions.Activation.Dtos.EmailSignatureDto)">
+            <summary>Output from the EmailFetch activity function — the full email corpus.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.DriveIndexInput">
+            <summary>Input to the DriveIndex activity function.</summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.DriveIndexInput.#ctor(System.String,System.String)">
+            <summary>Input to the DriveIndex activity function.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.DriveIndexOutput">
+            <summary>Output from the DriveIndex activity — the indexed drive contents.</summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.DriveIndexOutput.#ctor(System.String,System.Collections.Generic.IReadOnlyList{RealEstateStar.Functions.Activation.Dtos.DriveFileDto},System.Collections.Generic.IReadOnlyDictionary{System.String,System.String},System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{RealEstateStar.Functions.Activation.Dtos.DocumentExtractionDto})">
+            <summary>Output from the DriveIndex activity — the indexed drive contents.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.AgentDiscoveryInput">
+            <summary>Input to the AgentDiscovery activity function.</summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.AgentDiscoveryInput.#ctor(System.String,System.String,System.String,RealEstateStar.Functions.Activation.Dtos.EmailSignatureDto)">
+            <summary>Input to the AgentDiscovery activity function.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.AgentDiscoveryOutput">
+            <summary>Output from the AgentDiscovery activity.</summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.AgentDiscoveryOutput.#ctor(System.Byte[],System.Byte[],System.String,System.Collections.Generic.IReadOnlyList{RealEstateStar.Functions.Activation.Dtos.DiscoveredWebsiteDto},System.Collections.Generic.IReadOnlyList{RealEstateStar.Functions.Activation.Dtos.ReviewDto},System.Collections.Generic.IReadOnlyList{RealEstateStar.Functions.Activation.Dtos.ThirdPartyProfileDto},System.String,System.Boolean)">
+            <summary>Output from the AgentDiscovery activity.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.CheckActivationCompleteInput">
+            <summary>Input to the CheckActivationComplete activity function.</summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.CheckActivationCompleteInput.#ctor(System.String,System.String)">
+            <summary>Input to the CheckActivationComplete activity function.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.CheckActivationCompleteOutput">
+            <summary>Output from the CheckActivationComplete activity function.</summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.CheckActivationCompleteOutput.#ctor(System.Boolean)">
+            <summary>Output from the CheckActivationComplete activity function.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.SynthesisInput">
+            <summary>Shared corpus bundle passed to all Phase 2 synthesis workers.</summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.SynthesisInput.#ctor(System.String,System.String,System.String,RealEstateStar.Functions.Activation.Dtos.EmailFetchOutput,RealEstateStar.Functions.Activation.Dtos.DriveIndexOutput,RealEstateStar.Functions.Activation.Dtos.AgentDiscoveryOutput)">
+            <summary>Shared corpus bundle passed to all Phase 2 synthesis workers.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.VoiceExtractionOutput">
+            <summary>Output from VoiceExtraction activity.</summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.VoiceExtractionOutput.#ctor(System.String,System.Boolean)">
+            <summary>Output from VoiceExtraction activity.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.PersonalityOutput">
+            <summary>Output from Personality activity.</summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.PersonalityOutput.#ctor(System.String,System.Boolean)">
+            <summary>Output from Personality activity.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.BrandingDiscoveryOutput">
+            <summary>Output from BrandingDiscovery activity.</summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.BrandingDiscoveryOutput.#ctor(System.String,RealEstateStar.Functions.Activation.Dtos.BrandingKitDto)">
+            <summary>Output from BrandingDiscovery activity.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.CoachingOutput">
+            <summary>Output from CoachingAnalysis activity.</summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.CoachingOutput.#ctor(System.String,System.Boolean)">
+            <summary>Output from CoachingAnalysis activity.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.Dtos.MarketingStyleOutput">
+            <summary>Output from MarketingStyle activity (returns two strings).</summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.Dtos.MarketingStyleOutput.#ctor(System.String,System.String)">
+            <summary>Output from MarketingStyle activity (returns two strings).</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Activation.StartActivationFunction">
+             <summary>
+             Queue-triggered function that starts a new activation orchestration.
+            
+             When <c>Features:Activation:UseBackgroundService</c> is false, the API writes an
+             <see cref="T:RealEstateStar.Domain.Activation.Models.ActivationRequest"/> to the <c>activation-requests</c> queue and this
+             function picks it up, creating a Durable orchestration instance with a deterministic
+             instance ID that prevents duplicate runs for the same agent.
+            
+             The API side queues the message; this side starts the orchestration.
+             The feature flag is read by the API — this function always runs when a message arrives.
+             </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Activation.StartActivationFunction.#ctor(Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Activation.StartActivationFunction})">
+             <summary>
+             Queue-triggered function that starts a new activation orchestration.
+            
+             When <c>Features:Activation:UseBackgroundService</c> is false, the API writes an
+             <see cref="T:RealEstateStar.Domain.Activation.Models.ActivationRequest"/> to the <c>activation-requests</c> queue and this
+             function picks it up, creating a Durable orchestration instance with a deterministic
+             instance ID that prevents duplicate runs for the same agent.
+            
+             The API side queues the message; this side starts the orchestration.
+             The feature flag is read by the API — this function always runs when a message arrives.
+             </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Activities.CheckContentCacheFunction">
+            <summary>
+            Checks <see cref="T:RealEstateStar.Domain.Shared.Interfaces.IDistributedContentCache"/> for existing CMA and HomeSearch results.
+            Cross-lead dedup: if the same property address was analyzed for another lead recently,
+            the cached result is returned so the expensive CMA/HS workers can be skipped.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Lead.Activities.CheckContentCacheFunction.#ctor(RealEstateStar.Domain.Shared.Interfaces.IDistributedContentCache,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Lead.Activities.CheckContentCacheFunction})">
+            <summary>
+            Checks <see cref="T:RealEstateStar.Domain.Shared.Interfaces.IDistributedContentCache"/> for existing CMA and HomeSearch results.
+            Cross-lead dedup: if the same property address was analyzed for another lead recently,
+            the cached result is returned so the expensive CMA/HS workers can be skipped.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Activities.CmaProcessingFunction">
+            <summary>
+            Activity function that executes the CMA pipeline (fetch comps + analyze).
+            Replaces <c>CmaProcessingWorker</c> (Channel-based BackgroundService).
+            The Channel&lt;T&gt; backpressure is no longer needed — Azure Queue + Functions
+            runtime auto-scales by queue depth.
+            </summary>
+            <remarks>
+            TODO(phase-4): Mark <c>CmaProcessingWorker</c> for removal after this is live.
+            </remarks>
+        </member>
+        <member name="M:RealEstateStar.Functions.Lead.Activities.CmaProcessingFunction.#ctor(RealEstateStar.Domain.Leads.Interfaces.ILeadStore,RealEstateStar.Domain.Cma.Interfaces.ICompAggregator,RealEstateStar.Domain.Cma.Interfaces.ICmaAnalyzer,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Lead.Activities.CmaProcessingFunction})">
+            <summary>
+            Activity function that executes the CMA pipeline (fetch comps + analyze).
+            Replaces <c>CmaProcessingWorker</c> (Channel-based BackgroundService).
+            The Channel&lt;T&gt; backpressure is no longer needed — Azure Queue + Functions
+            runtime auto-scales by queue depth.
+            </summary>
+            <remarks>
+            TODO(phase-4): Mark <c>CmaProcessingWorker</c> for removal after this is live.
+            </remarks>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Activities.DraftLeadEmailFunction">
+            <summary>
+            Drafts the lead email via <see cref="T:RealEstateStar.Domain.Leads.Interfaces.ILeadEmailDrafter"/>.
+            Decoupled from sending so the pipeline can checkpoint between draft and send.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Lead.Activities.DraftLeadEmailFunction.#ctor(RealEstateStar.Domain.Leads.Interfaces.ILeadStore,RealEstateStar.Domain.Leads.Interfaces.ILeadEmailDrafter,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Lead.Activities.DraftLeadEmailFunction})">
+            <summary>
+            Drafts the lead email via <see cref="T:RealEstateStar.Domain.Leads.Interfaces.ILeadEmailDrafter"/>.
+            Decoupled from sending so the pipeline can checkpoint between draft and send.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Activities.GeneratePdfFunction">
+            <summary>
+            Generates a CMA PDF for the given lead and CMA result, then stores it via <see cref="T:RealEstateStar.Activities.Pdf.PdfActivity"/>.
+            Wraps the existing <see cref="T:RealEstateStar.Activities.Pdf.PdfActivity"/> — no PDF logic lives here.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Lead.Activities.GeneratePdfFunction.#ctor(RealEstateStar.Domain.Leads.Interfaces.ILeadStore,RealEstateStar.Domain.Shared.Interfaces.Storage.IAccountConfigService,RealEstateStar.Activities.Pdf.PdfActivity,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Lead.Activities.GeneratePdfFunction})">
+            <summary>
+            Generates a CMA PDF for the given lead and CMA result, then stores it via <see cref="T:RealEstateStar.Activities.Pdf.PdfActivity"/>.
+            Wraps the existing <see cref="T:RealEstateStar.Activities.Pdf.PdfActivity"/> — no PDF logic lives here.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Activities.HomeSearchFunction">
+            <summary>
+            Activity function that executes the HomeSearch pipeline (fetch listings).
+            Replaces <c>HomeSearchProcessingWorker</c> (Channel-based BackgroundService).
+            The Channel&lt;T&gt; backpressure is no longer needed — Azure Queue + Functions
+            runtime auto-scales by queue depth.
+            </summary>
+            <remarks>
+            TODO(phase-4): Mark <c>HomeSearchProcessingWorker</c> for removal after this is live.
+            </remarks>
+        </member>
+        <member name="M:RealEstateStar.Functions.Lead.Activities.HomeSearchFunction.#ctor(RealEstateStar.Domain.Leads.Interfaces.ILeadStore,RealEstateStar.Domain.HomeSearch.Interfaces.IHomeSearchProvider,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Lead.Activities.HomeSearchFunction})">
+            <summary>
+            Activity function that executes the HomeSearch pipeline (fetch listings).
+            Replaces <c>HomeSearchProcessingWorker</c> (Channel-based BackgroundService).
+            The Channel&lt;T&gt; backpressure is no longer needed — Azure Queue + Functions
+            runtime auto-scales by queue depth.
+            </summary>
+            <remarks>
+            TODO(phase-4): Mark <c>HomeSearchProcessingWorker</c> for removal after this is live.
+            </remarks>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Activities.LoadAgentConfigFunction">
+            <summary>
+            Loads agent account config and maps it to <see cref="T:RealEstateStar.Domain.Leads.Models.AgentNotificationConfig"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Lead.Activities.LoadAgentConfigFunction.#ctor(RealEstateStar.Domain.Shared.Interfaces.Storage.IAccountConfigService,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Lead.Activities.LoadAgentConfigFunction})">
+            <summary>
+            Loads agent account config and maps it to <see cref="T:RealEstateStar.Domain.Leads.Models.AgentNotificationConfig"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Activities.NotifyAgentFunction">
+            <summary>
+            Sends agent notification via <see cref="T:RealEstateStar.Domain.Leads.Interfaces.IAgentNotifier"/>.
+            Idempotency is already guarded inside the service (IIdempotencyStore with key
+            <c>lead:{agentId}-{leadId}:agent-notify</c>).
+            This activity is safe to retry — duplicate notifications are prevented at the service layer.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Lead.Activities.NotifyAgentFunction.#ctor(RealEstateStar.Domain.Leads.Interfaces.ILeadStore,RealEstateStar.Domain.Leads.Interfaces.IAgentNotifier,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Lead.Activities.NotifyAgentFunction})">
+            <summary>
+            Sends agent notification via <see cref="T:RealEstateStar.Domain.Leads.Interfaces.IAgentNotifier"/>.
+            Idempotency is already guarded inside the service (IIdempotencyStore with key
+            <c>lead:{agentId}-{leadId}:agent-notify</c>).
+            This activity is safe to retry — duplicate notifications are prevented at the service layer.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Activities.PersistLeadResultsFunction">
+            <summary>
+            Persists all pipeline artifacts for a lead via <see cref="T:RealEstateStar.Activities.Lead.Persist.PersistActivity"/>.
+            Sets final status to Complete. Safe to retry — PersistActivity uses content-hash dedup.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Lead.Activities.PersistLeadResultsFunction.#ctor(RealEstateStar.Domain.Leads.Interfaces.ILeadStore,RealEstateStar.Activities.Lead.Persist.PersistActivity,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Lead.Activities.PersistLeadResultsFunction})">
+            <summary>
+            Persists all pipeline artifacts for a lead via <see cref="T:RealEstateStar.Activities.Lead.Persist.PersistActivity"/>.
+            Sets final status to Complete. Safe to retry — PersistActivity uses content-hash dedup.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Activities.ScoreLeadFunction">
+            <summary>
+            Loads the lead and computes its lead score via <see cref="T:RealEstateStar.Domain.Leads.Interfaces.ILeadScorer"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Lead.Activities.ScoreLeadFunction.#ctor(RealEstateStar.Domain.Leads.Interfaces.ILeadStore,RealEstateStar.Domain.Leads.Interfaces.ILeadScorer,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Lead.Activities.ScoreLeadFunction})">
+            <summary>
+            Loads the lead and computes its lead score via <see cref="T:RealEstateStar.Domain.Leads.Interfaces.ILeadScorer"/>.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Activities.SendLeadEmailFunction">
+            <summary>
+            Sends the drafted lead email via <see cref="T:RealEstateStar.Domain.Leads.Interfaces.ILeadCommunicatorService"/>.
+            Idempotency is already guarded inside the service (IIdempotencyStore with key
+            <c>lead:{agentId}-{leadId}:email-send</c>).
+            This activity is safe to retry — duplicate sends are prevented at the service layer.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Lead.Activities.SendLeadEmailFunction.#ctor(RealEstateStar.Domain.Leads.Interfaces.ILeadStore,RealEstateStar.Domain.Leads.Interfaces.ILeadCommunicatorService,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Lead.Activities.SendLeadEmailFunction})">
+            <summary>
+            Sends the drafted lead email via <see cref="T:RealEstateStar.Domain.Leads.Interfaces.ILeadCommunicatorService"/>.
+            Idempotency is already guarded inside the service (IIdempotencyStore with key
+            <c>lead:{agentId}-{leadId}:email-send</c>).
+            This activity is safe to retry — duplicate sends are prevented at the service layer.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Activities.UpdateContentCacheFunction">
+            <summary>
+            Stores fresh CMA and HomeSearch results in <see cref="T:RealEstateStar.Domain.Shared.Interfaces.IDistributedContentCache"/>
+            so future leads for the same property/criteria can skip the expensive analysis.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.Lead.Activities.UpdateContentCacheFunction.#ctor(RealEstateStar.Domain.Shared.Interfaces.IDistributedContentCache,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Lead.Activities.UpdateContentCacheFunction})">
+            <summary>
+            Stores fresh CMA and HomeSearch results in <see cref="T:RealEstateStar.Domain.Shared.Interfaces.IDistributedContentCache"/>
+            so future leads for the same property/criteria can skip the expensive analysis.
+            </summary>
+        </member>
+        <member name="F:RealEstateStar.Functions.Lead.Activities.UpdateContentCacheFunction.CmaCacheTtl">
+            <summary>Cache TTL for CMA results (property analysis is stable for 24h).</summary>
+        </member>
+        <member name="F:RealEstateStar.Functions.Lead.Activities.UpdateContentCacheFunction.HomeSearchCacheTtl">
+            <summary>Cache TTL for HomeSearch results (listing inventory changes hourly).</summary>
+        </member>
+        <member name="P:RealEstateStar.Functions.Lead.Activities.UpdateContentCacheFunction.CmaCacheTtlForTests">
+            <summary>Exposed for unit tests only — verifies TTL constant values.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.LeadOrchestratorFunction">
+             <summary>
+             Durable Functions orchestrator for the lead processing pipeline.
+             Replaces <c>RealEstateStar.Workers.Lead.Orchestrator.LeadOrchestrator</c> (Phase 4 removes that BackgroundService).
+             </summary>
+             <remarks>
+             REPLAY SAFETY: This orchestrator is deterministic. It MUST NOT:
+             - Call DateTime.UtcNow  → use ctx.CurrentUtcDateTime
+             - Call Guid.NewGuid()   → use deterministic instance ID from input
+             - Perform any I/O       → delegate all I/O to activity functions
+             - Log outside !ctx.IsReplaying guards (use [!ctx.IsReplaying] guards for expensive logs)
+            
+             Instance ID scheme: lead-{agentId}-{leadId}
+             This makes the orchestration idempotent — re-queuing the same lead re-uses the same instance.
+            
+             Parallel execution: CMA and HomeSearch run in parallel via Task.WhenAll.
+             Partial completion: each parallel task is individually try/caught so a CMA failure
+             does not prevent HomeSearch results from being used (and vice versa).
+            
+             Timeout: replaced Channel{T}.WaitAsync to ctx.CreateTimer + Task.WhenAny (replay-safe).
+            
+             Backpressure: Channel{T} is no longer needed. Azure Queue Storage + Functions runtime
+             auto-scales by queue depth. Configure host.json newBatchThreshold and maxDequeueCount
+             to tune concurrency per Function App instance.
+            
+             SignalR replacement: CMA progress streaming is not implemented in this phase.
+             The API can proxy Durable Functions' built-in status endpoint (/runtime/webhooks/durabletask/instances/{id})
+             for HTTP polling.
+             TODO(phase-4): Implement HTTP polling status endpoint on the API side.
+             </remarks>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.LeadOrchestrationMessage">
+            <summary>
+            Queue message and orchestrator input for the lead pipeline.
+            Serialized as JSON via Azure Queue Storage → Durable Functions.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.LeadOrchestratorInput">
+            <summary>
+            Orchestrator input — extends <see cref="T:RealEstateStar.Functions.Lead.Models.LeadOrchestrationMessage"/> with lead routing flags
+            computed by <see cref="T:RealEstateStar.Functions.Lead.StartLeadProcessingFunction"/> after loading the lead.
+            </summary>
+        </member>
+        <member name="P:RealEstateStar.Functions.Lead.Models.LeadOrchestratorInput.ShouldRunCma">
+            <summary>True when this lead is a Seller or Both type with seller details present.</summary>
+        </member>
+        <member name="P:RealEstateStar.Functions.Lead.Models.LeadOrchestratorInput.ShouldRunHomeSearch">
+            <summary>True when this lead is a Buyer or Both type with buyer details present.</summary>
+        </member>
+        <member name="P:RealEstateStar.Functions.Lead.Models.LeadOrchestratorInput.CmaInputHash">
+            <summary>SHA-256 hash of the CMA input (seller address fields). Used for cross-lead dedup.</summary>
+        </member>
+        <member name="P:RealEstateStar.Functions.Lead.Models.LeadOrchestratorInput.HsInputHash">
+            <summary>SHA-256 hash of the HomeSearch input (buyer criteria fields). Used for cross-lead dedup.</summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.LoadAgentConfigInput">
+            <summary>
+            Input to the LoadAgentConfig activity function.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.LoadAgentConfigOutput">
+            <summary>
+            Output of the LoadAgentConfig activity function.
+            Null when the agent config is not found.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.ScoreLeadInput">
+            <summary>
+            Input to the ScoreLead activity function.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.ScoreLeadOutput">
+            <summary>
+            Output of the ScoreLead activity function.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.CheckContentCacheInput">
+            <summary>
+            Input to the CheckContentCache activity function.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.CheckContentCacheOutput">
+            <summary>
+            Output of the CheckContentCache activity function.
+            When a cache hit is found, the result is already computed and CMA/HS can be skipped.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.CmaFunctionInput">
+            <summary>
+            Input to the CmaProcessing activity function.
+            Carries seller address info needed to fetch comps.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.CmaFunctionOutput">
+            <summary>
+            Output of the CmaProcessing activity function.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.HomeSearchFunctionInput">
+            <summary>
+            Input to the HomeSearch activity function.
+            Carries buyer criteria needed to fetch listings.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.HomeSearchFunctionOutput">
+            <summary>
+            Output of the HomeSearch activity function.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.GeneratePdfInput">
+            <summary>
+            Input to the GeneratePdf activity function.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.GeneratePdfOutput">
+            <summary>
+            Output of the GeneratePdf activity function.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.DraftLeadEmailInput">
+            <summary>
+            Input to the DraftLeadEmail activity function.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.DraftLeadEmailOutput">
+            <summary>
+            Output of the DraftLeadEmail activity function.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.SendLeadEmailInput">
+            <summary>
+            Input to the SendLeadEmail activity function.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.NotifyAgentInput">
+            <summary>
+            Input to the NotifyAgent activity function.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.PersistLeadResultsInput">
+            <summary>
+            Input to the PersistLeadResults activity function.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.Models.UpdateContentCacheInput">
+            <summary>
+            Input to the UpdateContentCache activity function.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.Lead.StartLeadProcessingFunction">
+             <summary>
+             Queue-triggered function that starts the Durable Functions lead orchestration.
+             Reads <see cref="T:RealEstateStar.Functions.Lead.Models.LeadOrchestrationMessage"/> from the "lead-requests" queue,
+             loads the lead to compute routing flags and content hashes, then schedules
+             <see cref="T:RealEstateStar.Functions.Lead.LeadOrchestratorFunction"/>.
+             </summary>
+             <remarks>
+             Feature flag: <c>Features:Lead:UseBackgroundService</c>
+             When true → this function exits immediately (BackgroundService handles it instead).
+             When false (default for Functions host) → schedules the Durable orchestration.
+            
+             Instance ID: <c>lead-{agentId}-{leadId}</c>
+             Deterministic — re-queuing the same lead attaches to the existing orchestration
+             rather than starting a duplicate. Durable Functions de-duplicates at the
+             <see cref="M:Microsoft.DurableTask.Client.DurableTaskClient.ScheduleNewOrchestrationInstanceAsync(Microsoft.DurableTask.TaskName,System.Threading.CancellationToken)"/> call.
+            
+             Backpressure: Azure Queue Storage handles backpressure via queue depth and
+             <see cref="!:host.json"/> <c>newBatchThreshold</c> / <c>maxDequeueCount</c>.
+             Channel&lt;T&gt; fan-out is no longer needed — the Functions runtime auto-scales
+             by adding more instances as the queue grows.
+             </remarks>
+        </member>
+        <member name="M:RealEstateStar.Functions.Lead.StartLeadProcessingFunction.#ctor(RealEstateStar.Domain.Leads.Interfaces.ILeadStore,Microsoft.Extensions.Configuration.IConfiguration,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.Lead.StartLeadProcessingFunction})">
+             <summary>
+             Queue-triggered function that starts the Durable Functions lead orchestration.
+             Reads <see cref="T:RealEstateStar.Functions.Lead.Models.LeadOrchestrationMessage"/> from the "lead-requests" queue,
+             loads the lead to compute routing flags and content hashes, then schedules
+             <see cref="T:RealEstateStar.Functions.Lead.LeadOrchestratorFunction"/>.
+             </summary>
+             <remarks>
+             Feature flag: <c>Features:Lead:UseBackgroundService</c>
+             When true → this function exits immediately (BackgroundService handles it instead).
+             When false (default for Functions host) → schedules the Durable orchestration.
+            
+             Instance ID: <c>lead-{agentId}-{leadId}</c>
+             Deterministic — re-queuing the same lead attaches to the existing orchestration
+             rather than starting a duplicate. Durable Functions de-duplicates at the
+             <see cref="M:Microsoft.DurableTask.Client.DurableTaskClient.ScheduleNewOrchestrationInstanceAsync(Microsoft.DurableTask.TaskName,System.Threading.CancellationToken)"/> call.
+            
+             Backpressure: Azure Queue Storage handles backpressure via queue depth and
+             <see cref="!:host.json"/> <c>newBatchThreshold</c> / <c>maxDequeueCount</c>.
+             Channel&lt;T&gt; fan-out is no longer needed — the Functions runtime auto-scales
+             by adding more instances as the queue grows.
+             </remarks>
+        </member>
+        <member name="T:RealEstateStar.Functions.WhatsApp.ProcessWebhookFunction">
+             <summary>
+             Azure Functions queue-triggered replacement for WebhookProcessorWorker.
+             The Functions host handles:
+               - Dequeuing from "whatsapp-webhooks"
+               - Poison message routing to "whatsapp-webhooks-poison" after maxDequeueCount=5 (host.json)
+               - Message completion (deletion) on success
+               - Message visibility reset on unhandled exception (for retry)
+            
+             TODO [Phase 4]: Remove WebhookProcessorWorker (BackgroundService) from Workers.WhatsApp
+             once feature flag Features:WhatsApp:UseBackgroundService is fully disabled in all environments.
+             </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.WhatsApp.ProcessWebhookFunction.#ctor(RealEstateStar.Domain.WhatsApp.Interfaces.IConversationHandler,RealEstateStar.Domain.Shared.Interfaces.Senders.IWhatsAppSender,RealEstateStar.Domain.WhatsApp.Interfaces.IWhatsAppAuditService,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.WhatsApp.ProcessWebhookFunction})">
+             <summary>
+             Azure Functions queue-triggered replacement for WebhookProcessorWorker.
+             The Functions host handles:
+               - Dequeuing from "whatsapp-webhooks"
+               - Poison message routing to "whatsapp-webhooks-poison" after maxDequeueCount=5 (host.json)
+               - Message completion (deletion) on success
+               - Message visibility reset on unhandled exception (for retry)
+            
+             TODO [Phase 4]: Remove WebhookProcessorWorker (BackgroundService) from Workers.WhatsApp
+             once feature flag Features:WhatsApp:UseBackgroundService is fully disabled in all environments.
+             </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.WhatsApp.ProcessWebhookFunction.DeserializeEnvelope(System.String)">
+            <summary>
+            Deserializes the queue message body. The Azure Queue Storage SDK encodes messages
+            as Base64 by default (QueueMessageEncoding.Base64). The Functions worker SDK
+            auto-decodes Base64 before passing the string to the trigger binding.
+            If the body is still Base64 (legacy encoding), this method handles both cases.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.WhatsApp.WhatsAppRetryFunction">
+             <summary>
+             Azure Functions timer-triggered replacement for WhatsAppRetryJob (BackgroundService).
+             Runs every 30 minutes to retry sending welcome messages to agents who opted in
+             but did not receive their welcome message (e.g. due to a transient WhatsApp API error).
+            
+             TODO [Phase 4]: Remove WhatsAppRetryJob (BackgroundService) from Workers.WhatsApp
+             once feature flag Features:WhatsApp:UseBackgroundService is fully disabled in all environments.
+             </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.WhatsApp.WhatsAppRetryFunction.#ctor(RealEstateStar.Workers.WhatsApp.WhatsAppRetryJob,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Functions.WhatsApp.WhatsAppRetryFunction})">
+             <summary>
+             Azure Functions timer-triggered replacement for WhatsAppRetryJob (BackgroundService).
+             Runs every 30 minutes to retry sending welcome messages to agents who opted in
+             but did not receive their welcome message (e.g. due to a transient WhatsApp API error).
+            
+             TODO [Phase 4]: Remove WhatsAppRetryJob (BackgroundService) from Workers.WhatsApp
+             once feature flag Features:WhatsApp:UseBackgroundService is fully disabled in all environments.
+             </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.WorkerExtensionStartupCodeExecutor.Configure(Microsoft.Azure.Functions.Worker.IFunctionsWorkerApplicationBuilder)">
+            <summary>
+            Configures the worker to register extension startup services.
+            </summary>
+            <param name="applicationBuilder">The <see cref="T:Microsoft.Azure.Functions.Worker.IFunctionsWorkerApplicationBuilder"/> to configure.</param>
+        </member>
+        <member name="M:RealEstateStar.Functions.DirectFunctionExecutor.ExecuteAsync(Microsoft.Azure.Functions.Worker.FunctionContext)">
+            <inheritdoc/>
+        </member>
+        <member name="T:RealEstateStar.Functions.FunctionExecutorHostBuilderExtensions">
+            <summary>
+            Extension methods to enable registration of the custom <see cref="T:Microsoft.Azure.Functions.Worker.Invocation.IFunctionExecutor"/> implementation generated for the current worker.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.FunctionExecutorHostBuilderExtensions.ConfigureGeneratedFunctionExecutor(Microsoft.Extensions.Hosting.IHostBuilder)">
+            <summary>
+             Configures an optimized function executor to the invocation pipeline.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Functions.FunctionExecutorAutoStartup">
+            <summary>
+            Auto startup class to register the custom <see cref="T:Microsoft.Azure.Functions.Worker.Invocation.IFunctionExecutor"/> implementation generated for the current worker.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Functions.FunctionExecutorAutoStartup.Configure(Microsoft.Extensions.Hosting.IHostBuilder)">
+            <summary>
+            Configures the <see cref="T:Microsoft.Extensions.Hosting.IHostBuilder"/> to use the custom <see cref="T:Microsoft.Azure.Functions.Worker.Invocation.IFunctionExecutor"/> implementation generated for the current worker.
+            </summary>
+            <param name="hostBuilder">The <see cref="T:Microsoft.Extensions.Hosting.IHostBuilder"/> instance to use for service registration.</param>
+        </member>
+        <member name="T:NullDistributedContentCache">
+            <summary>
+            No-op <see cref="T:RealEstateStar.Domain.Shared.Interfaces.IDistributedContentCache"/> used when AzureStorage:ConnectionString is not configured.
+            Returns null for all Gets and discards all Sets — content cache misses are safe (pipeline still runs).
+            </summary>
+        </member>
+        <member name="T:DisabledFunctionsWhatsAppSender">
+            <summary>
+            Minimal no-op WhatsApp sender for use in the Functions host during Phase 1-2.
+            Phase 3 will replace this with the real WhatsApp API client.
+            </summary>
+        </member>
+        <member name="T:NullImageResolver">
+            <summary>
+            No-op <see cref="T:RealEstateStar.Domain.Cma.Interfaces.IImageResolver"/> for the Functions host.
+            LocalFirstImageResolver requires <c>IWebHostEnvironment</c> (ASP.NET Core) which is unavailable here.
+            PDF generation proceeds without agent headshots/logos.
+            TODO(phase-5): Replace with a Functions-compatible implementation.
+            </summary>
+        </member>
+    </members>
+</doc>

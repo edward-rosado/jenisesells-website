@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Workers.Lead.Orchestrator</name>
+    </assembly>
+    <members>
+        <member name="M:RealEstateStar.Workers.Lead.Orchestrator.ServiceCollectionExtensions.AddLeadOrchestrator(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            Registers per-lead orchestrator compute services: <see cref="T:RealEstateStar.Domain.Leads.Interfaces.ILeadScorer"/> and
+            <see cref="T:RealEstateStar.Activities.Lead.Persist.PersistActivity"/>.
+            The Channel-based <c>LeadOrchestrator</c> BackgroundService and <c>LeadOrchestratorChannel</c>
+            were removed in Phase 4; Azure Durable Functions now orchestrate lead processing via
+            <c>LeadOrchestratorFunction</c>.
+            </summary>
+        </member>
+    </members>
+</doc>

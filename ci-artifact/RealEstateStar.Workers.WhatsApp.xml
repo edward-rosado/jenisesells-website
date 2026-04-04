@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Workers.WhatsApp</name>
+    </assembly>
+    <members>
+        <member name="T:RealEstateStar.Workers.WhatsApp.ConversationHandler">
+            <summary>
+            Classifies inbound WhatsApp messages by intent (Stage 1, Haiku) then routes
+            to a static deflection or a response generator (Stage 2, Sonnet) based on
+            the classification result.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Workers.WhatsApp.ConversationHandler.#ctor(RealEstateStar.Domain.WhatsApp.Interfaces.IIntentClassifier,RealEstateStar.Domain.WhatsApp.Interfaces.IResponseGenerator,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Workers.WhatsApp.ConversationHandler},RealEstateStar.Domain.Activation.Interfaces.IAgentContextLoader)">
+            <summary>
+            Classifies inbound WhatsApp messages by intent (Stage 1, Haiku) then routes
+            to a static deflection or a response generator (Stage 2, Sonnet) based on
+            the classification result.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Workers.WhatsApp.NoopIntentClassifier">
+            <summary>
+            Noop implementation of IIntentClassifier used until the Claude Haiku classifier
+            is wired up. Classifies all messages as in-scope LeadQuestion so the handler
+            falls through to the response generator.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Workers.WhatsApp.NoopResponseGenerator">
+            <summary>
+            Noop implementation of IResponseGenerator used until the Claude Sonnet generator
+            is wired up. Returns a static placeholder so the pipeline can be exercised end-to-end.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Workers.WhatsApp.ServiceCollectionExtensions.AddWhatsAppWorkers(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+            Registers WhatsApp conversation pipeline services: intent classifier, response generator,
+            conversation handler stubs, and <c>WhatsAppRetryJob</c>.
+            The conditional <c>WebhookProcessorWorker</c> and <c>WhatsAppRetryJob</c> hosted services
+            were removed in Phase 4; Azure Durable Functions queue/timer triggers now handle that role.
+            The Azure queue/table, IWhatsAppSender, IWhatsAppNotifier, IEmailNotifier, IConversationLogger,
+            and the "WhatsApp" HttpClient resilience pipeline are registered by the Api composition root
+            (Program.cs), as they depend on projects outside the Workers.* → Domain + Workers.Shared constraint.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Workers.WhatsApp.WebhookProcessorWorker">
+             <summary>
+             BackgroundService that polls the Azure Storage Queue for inbound WhatsApp webhook messages.
+            
+             TODO [Phase 4]: Remove this class entirely once ProcessWebhookFunction (Azure Functions
+             queue-triggered) is proven stable. The feature flag Features:WhatsApp:UseBackgroundService
+             controls whether this service is registered as a HostedService. Set it to false first,
+             then remove this file after a safe observation period.
+             </summary>
+        </member>
+        <member name="M:RealEstateStar.Workers.WhatsApp.WebhookProcessorWorker.#ctor(RealEstateStar.Domain.WhatsApp.Interfaces.IWebhookQueueService,RealEstateStar.Domain.WhatsApp.Interfaces.IConversationHandler,RealEstateStar.Domain.Shared.Interfaces.Senders.IWhatsAppSender,RealEstateStar.Domain.WhatsApp.Interfaces.IWhatsAppAuditService,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Workers.WhatsApp.WebhookProcessorWorker})">
+             <summary>
+             BackgroundService that polls the Azure Storage Queue for inbound WhatsApp webhook messages.
+            
+             TODO [Phase 4]: Remove this class entirely once ProcessWebhookFunction (Azure Functions
+             queue-triggered) is proven stable. The feature flag Features:WhatsApp:UseBackgroundService
+             controls whether this service is registered as a HostedService. Set it to false first,
+             then remove this file after a safe observation period.
+             </summary>
+        </member>
+        <member name="M:RealEstateStar.Workers.WhatsApp.WebhookProcessorWorker.ProcessOnceAsync(System.Threading.CancellationToken)">
+            <summary>
+            Processes a single message from the queue. Returns true if a message was found.
+            Exposed as internal for testability.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Workers.WhatsApp.WhatsAppRetryJob">
+             <summary>
+             BackgroundService that runs every 30 minutes to retry sending welcome messages
+             to agents who opted in to WhatsApp but whose welcome message failed to deliver.
+            
+             TODO [Phase 4]: Remove AddHostedService registration for this class once
+             WhatsAppRetryFunction (Azure Functions timer-triggered) is proven stable.
+             The class itself should remain as a singleton service (registered by AddWhatsAppWorkers)
+             so WhatsAppRetryFunction can resolve and call ProcessRetriesAsync.
+             Remove AddHostedService only — not the class or Singleton registration.
+             </summary>
+        </member>
+        <member name="M:RealEstateStar.Workers.WhatsApp.WhatsAppRetryJob.#ctor(RealEstateStar.Domain.Shared.Interfaces.Storage.IAccountConfigService,RealEstateStar.Domain.Shared.Interfaces.Senders.IWhatsAppSender,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Workers.WhatsApp.WhatsAppRetryJob})">
+             <summary>
+             BackgroundService that runs every 30 minutes to retry sending welcome messages
+             to agents who opted in to WhatsApp but whose welcome message failed to deliver.
+            
+             TODO [Phase 4]: Remove AddHostedService registration for this class once
+             WhatsAppRetryFunction (Azure Functions timer-triggered) is proven stable.
+             The class itself should remain as a singleton service (registered by AddWhatsAppWorkers)
+             so WhatsAppRetryFunction can resolve and call ProcessRetriesAsync.
+             Remove AddHostedService only — not the class or Singleton registration.
+             </summary>
+        </member>
+    </members>
+</doc>

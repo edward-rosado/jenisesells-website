@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Services.BrandMerge</name>
+    </assembly>
+    <members>
+        <member name="T:RealEstateStar.Services.BrandMerge.BrandMergeService">
+            <summary>
+            Claude-powered merge of brand signals across agents in a brokerage.
+            For the first agent, creates a new brand profile from their signals.
+            For subsequent agents, enriches the existing profile with new patterns.
+            Per-account (brokerage) brand files live at real-estate-star/{accountId}/.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Services.BrandMerge.BrandMergeService.#ctor(RealEstateStar.Domain.Shared.Interfaces.External.IAnthropicClient,RealEstateStar.Domain.Shared.Interfaces.Storage.IFileStorageProviderFactory,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Services.BrandMerge.BrandMergeService})">
+            <summary>
+            Claude-powered merge of brand signals across agents in a brokerage.
+            For the first agent, creates a new brand profile from their signals.
+            For subsequent agents, enriches the existing profile with new patterns.
+            Per-account (brokerage) brand files live at real-estate-star/{accountId}/.
+            </summary>
+        </member>
+    </members>
+</doc>

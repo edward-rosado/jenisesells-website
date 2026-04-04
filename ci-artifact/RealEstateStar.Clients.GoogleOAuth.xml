@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Clients.GoogleOAuth</name>
+    </assembly>
+    <members>
+        <member name="T:RealEstateStar.Clients.GoogleOAuth.GoogleCredentialFactory">
+             <summary>
+             Shared factory for building a <see cref="T:Google.Apis.Services.BaseClientService.Initializer"/> from an
+             <see cref="T:RealEstateStar.Domain.Shared.Models.OAuthCredential"/>. Used by all Google API clients (Gmail, GDrive, GDocs, GSheets).
+            
+             GoogleOAuth is the shared Google-credential infrastructure layer — the same relationship that
+             Workers.Shared has to Workers.*. Each Google client depends on GoogleOAuth; no other cross-client
+             dependency is permitted.
+             </summary>
+        </member>
+        <member name="M:RealEstateStar.Clients.GoogleOAuth.GoogleCredentialFactory.BuildInitializer(RealEstateStar.Domain.Shared.Models.OAuthCredential,System.String,System.String)">
+             <summary>
+             Converts an <see cref="T:RealEstateStar.Domain.Shared.Models.OAuthCredential"/> into a <see cref="T:Google.Apis.Services.BaseClientService.Initializer"/>
+             that can be passed to any Google API service constructor.
+            
+             Builds a <see cref="T:Google.Apis.Auth.OAuth2.UserCredential"/> manually (skipping the interactive browser flow that
+             <c>GoogleWebAuthorizationBroker</c> requires). Token lifecycle is owned by
+             <see cref="T:RealEstateStar.Domain.Shared.Interfaces.Storage.ITokenStore"/>, so a no-op
+             <see cref="T:Google.Apis.Util.Store.IDataStore"/> is used.
+             </summary>
+             <param name="credential">The OAuth credential containing access/refresh tokens.</param>
+             <param name="clientId">The Google OAuth client ID. Required for token refresh by the Google SDK.</param>
+             <param name="clientSecret">The Google OAuth client secret. Required for token refresh by the Google SDK.</param>
+        </member>
+        <member name="T:RealEstateStar.Clients.GoogleOAuth.NullDataStore">
+            <summary>
+            No-op <see cref="T:Google.Apis.Util.Store.IDataStore"/> — token lifecycle is managed by
+            <see cref="T:RealEstateStar.Domain.Shared.Interfaces.Storage.ITokenStore"/>, not Google's built-in data store.
+            </summary>
+        </member>
+    </members>
+</doc>

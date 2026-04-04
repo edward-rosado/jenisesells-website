@@ -78,19 +78,33 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Flex Consumption requires .azurefunctions/ for deployment validation.
-          # Worker-side indexing (workerIndexing: true) handles function discovery at runtime.
-          # We provide ONLY extensions.json — no per-function metadata files.
+          # Generate .azurefunctions/ from functions.metadata (SDK-generated).
+          # The host reads per-function JSON files from .azurefunctions/ for discovery.
+          # functions.metadata is a JSON array — we split it into individual files.
           rm -rf ./publish/functions/.azurefunctions
           mkdir -p ./publish/functions/.azurefunctions
+
+          # Split functions.metadata into per-function files
+          python3 -c "
+          import json, os
+          with open('./publish/functions/functions.metadata') as f:
+              functions = json.load(f)
+          outdir = './publish/functions/.azurefunctions'
+          for func in functions:
+              path = os.path.join(outdir, func['name'] + '.json')
+              with open(path, 'w') as out:
+                  json.dump(func, out, indent=2)
+          print(f'Generated {len(functions)} function metadata files')
+          "
+
+          # Add extensions.json
           echo '{"extensions":[]}' > ./publish/functions/.azurefunctions/extensions.json
 
           echo "=== .azurefunctions ==="
-          ls -la ./publish/functions/.azurefunctions/
+          ls ./publish/functions/.azurefunctions/ | head -10
+          echo "... $(ls ./publish/functions/.azurefunctions/ | wc -l) total files"
           echo "=== worker.config.json ==="
           cat ./publish/functions/worker.config.json 2>/dev/null || echo "Not found"
-          echo "=== host.json ==="
-          cat ./publish/functions/host.json 2>/dev/null || echo "Not found"
 
       - name: Create deployment package
         run: |

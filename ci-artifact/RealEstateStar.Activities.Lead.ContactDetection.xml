@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Activities.Lead.ContactDetection</name>
+    </assembly>
+    <members>
+        <member name="T:RealEstateStar.Activities.Lead.ContactDetection.ContactClassifier">
+            <summary>
+            Deduplicates extracted clients by email (preferred) or normalized name,
+            and assigns PipelineStage based on highest-evidence document type found
+            in their associated documents.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Activities.Lead.ContactDetection.ContactClassifier.DetermineStage(System.Collections.Generic.IReadOnlyList{RealEstateStar.Domain.Activation.Models.DocumentType})">
+            <summary>
+            Determines the PipelineStage for a contact based on the highest-evidence document type.
+            Priority: ClosingStatement → Closed, PurchaseContract → UnderContract,
+            ListingAgreement/BuyerAgreement → ActiveClient, else → Lead.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Activities.Lead.ContactDetection.ContactClassifier.ClassifyAndDedup(System.Collections.Generic.IReadOnlyList{System.ValueTuple{RealEstateStar.Domain.Activation.Models.ExtractedClient,RealEstateStar.Domain.Activation.Models.DocumentReference}})">
+            <summary>
+            Deduplicates a flat list of (client, documentReference) pairs.
+            Dedup key: email (case-insensitive, preferred) or normalized name.
+            Returns classified ImportedContact records with merged documents and assigned stage.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Activities.Lead.ContactDetection.ContactDetectionActivity">
+            <summary>
+            Orchestrates contact detection from Drive document extractions and Gmail inbox emails.
+            Flattens Drive extraction clients, splits inbox by lead-generator vs general,
+            parses lead-gen emails via regex, sends general emails to Claude in batches,
+            then merges, deduplicates, and classifies all contacts.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Activities.Lead.ContactDetection.ContactDetectionActivity.ExecuteAsync(System.Collections.Generic.IReadOnlyList{RealEstateStar.Domain.Activation.Models.DocumentExtraction},RealEstateStar.Domain.Activation.Models.EmailCorpus,System.Threading.CancellationToken)">
+            <summary>
+            Detects and classifies contacts from Drive document extractions and inbox emails.
+            </summary>
+            <param name="driveExtractions">Document extractions from the agent's Google Drive.</param>
+            <param name="emailCorpus">The agent's Gmail corpus (inbox + sent emails + signature).</param>
+            <param name="ct">Cancellation token.</param>
+            <returns>Classified and deduplicated list of imported contacts.</returns>
+        </member>
+        <member name="F:RealEstateStar.Activities.Lead.ContactDetection.ContactDetectionDiagnostics.ContactsImported">
+            <summary>
+            Number of contacts imported, tagged by pipeline stage.
+            Tag key: "stage" with values "Lead", "ActiveClient", "UnderContract", "Closed".
+            </summary>
+        </member>
+        <member name="F:RealEstateStar.Activities.Lead.ContactDetection.ContactDetectionDiagnostics.DuplicatesMerged">
+            <summary>
+            Number of duplicate contacts merged during classification.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Activities.Lead.ContactDetection.EmailContactExtractor">
+            <summary>
+            Extracts contacts from general inbox emails by sending batches of 20 to Claude Sonnet.
+            Uses &lt;user-data&gt; tags to prevent prompt injection.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Activities.Lead.ContactDetection.EmailContactExtractor.#ctor(RealEstateStar.Domain.Shared.Interfaces.External.IAnthropicClient,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Activities.Lead.ContactDetection.EmailContactExtractor})">
+            <summary>
+            Extracts contacts from general inbox emails by sending batches of 20 to Claude Sonnet.
+            Uses &lt;user-data&gt; tags to prevent prompt injection.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Activities.Lead.ContactDetection.EmailContactExtractor.ExtractAsync(System.Collections.Generic.IReadOnlyList{RealEstateStar.Domain.Activation.Models.EmailMessage},System.Threading.CancellationToken)">
+            <summary>
+            Batches the provided emails in groups of 20 and sends each batch to Claude Sonnet
+            for contact extraction. Returns all extracted clients across all batches.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Activities.Lead.ContactDetection.LeadGeneratorPatterns">
+            <summary>
+            Regex-based detection and parsing for lead generator platform emails.
+            Covers 12 known platforms: TruLead, Zillow, Realtor.com, BoldLeads, CincPro,
+            kvCORE, Inside Real Estate, Ylopo, Real Geeks, BoomTown, Follow Up Boss, Sierra.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Activities.Lead.ContactDetection.LeadGeneratorPatterns.IsLeadGeneratorEmail(System.String)">
+            <summary>
+            Returns true if the from address matches a known lead generator platform domain.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Activities.Lead.ContactDetection.LeadGeneratorPatterns.GetPlatformName(System.String)">
+            <summary>
+            Returns the human-readable platform name for the given from address,
+            or null if the domain is not a known lead generator.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Activities.Lead.ContactDetection.LeadGeneratorPatterns.ParseLeadFromEmail(System.String,System.String,System.String)">
+            <summary>
+            Parses a lead contact from a lead generator email using regex extraction.
+            Extracts Name/Email/Phone from the body; falls back to subject line for name.
+            Returns null if no name can be extracted.
+            </summary>
+        </member>
+    </members>
+</doc>

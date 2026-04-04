@@ -1,0 +1,425 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Workers.Activation.BrandingDiscovery</name>
+    </assembly>
+    <members>
+        <member name="T:RealEstateStar.Workers.Activation.BrandingDiscovery.BrandingDiscoveryWorker">
+            <summary>
+            Pure-compute worker that extracts a BrandingKit from website HTML and email signatures.
+            Deterministic CSS/font parsing does NOT call Claude; Claude is used only for
+            template recommendation and brand conflict resolution.
+            NO storage, NO DataServices.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Workers.Activation.BrandingDiscovery.BrandingDiscoveryWorker.#ctor(RealEstateStar.Domain.Shared.Interfaces.External.IAnthropicClient,RealEstateStar.Domain.Shared.Interfaces.IContentSanitizer,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Workers.Activation.BrandingDiscovery.BrandingDiscoveryWorker})">
+            <summary>
+            Pure-compute worker that extracts a BrandingKit from website HTML and email signatures.
+            Deterministic CSS/font parsing does NOT call Claude; Claude is used only for
+            template recommendation and brand conflict resolution.
+            NO storage, NO DataServices.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Workers.Activation.BrandingDiscovery.BrandingDiscoveryWorker.ColorPropertyRegex">
+            <remarks>
+            Pattern:<br/>
+            <code>(?:color|background-color|background)\\s*:\\s*(#[0-9a-fA-F]{3,8}|rgb\\([^)]+\\))</code><br/>
+            Options:<br/>
+            <code>RegexOptions.IgnoreCase | RegexOptions.Compiled</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match with 2 alternative expressions.<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ Match a character in the set [Cc].<br/>
+                    ○ Match a character in the set [Oo].<br/>
+                    ○ Match a character in the set [Ll].<br/>
+                    ○ Match a character in the set [Oo].<br/>
+                    ○ Match a character in the set [Rr].<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ Match a character in the set [Bb].<br/>
+                    ○ Match a character in the set [Aa].<br/>
+                    ○ Match a character in the set [Cc].<br/>
+                    ○ Match a character in the set [Kk\u212A].<br/>
+                    ○ Match a character in the set [Gg].<br/>
+                    ○ Match a character in the set [Rr].<br/>
+                    ○ Match a character in the set [Oo].<br/>
+                    ○ Match a character in the set [Uu].<br/>
+                    ○ Match a character in the set [Nn].<br/>
+                    ○ Match with 2 alternative expressions.<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a character in the set [Dd].<br/>
+                            ○ Match '-'.<br/>
+                            ○ Match a character in the set [Cc].<br/>
+                            ○ Match a character in the set [Oo].<br/>
+                            ○ Match a character in the set [Ll].<br/>
+                            ○ Match a character in the set [Oo].<br/>
+                            ○ Match a character in the set [Rr].<br/>
+                        ○ Match a character in the set [Dd].<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ Match ':'.<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ 1st capture group.<br/>
+                ○ Match with 2 alternative expressions, atomically.<br/>
+                    ○ Match a sequence of expressions.<br/>
+                        ○ Match an empty string.<br/>
+                        ○ Match a character in the set [0-9A-Fa-f] atomically at least 3 and at most 8 times.<br/>
+                    ○ Match a sequence of expressions.<br/>
+                        ○ Match an empty string.<br/>
+                        ○ Match a character in the set [Gg].<br/>
+                        ○ Match a character in the set [Bb].<br/>
+                        ○ Match '('.<br/>
+                        ○ Match a character other than ')' atomically at least once.<br/>
+                        ○ Match ')'.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:RealEstateStar.Workers.Activation.BrandingDiscovery.BrandingDiscoveryWorker.FontFamilyRegex">
+            <remarks>
+            Pattern:<br/>
+            <code>font-family\\s*:\\s*([^;}{]+)</code><br/>
+            Options:<br/>
+            <code>RegexOptions.IgnoreCase | RegexOptions.Compiled</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match a character in the set [Ff].<br/>
+            ○ Match a character in the set [Oo].<br/>
+            ○ Match a character in the set [Nn].<br/>
+            ○ Match a character in the set [Tt].<br/>
+            ○ Match '-'.<br/>
+            ○ Match a character in the set [Ff].<br/>
+            ○ Match a character in the set [Aa].<br/>
+            ○ Match a character in the set [Mm].<br/>
+            ○ Match a character in the set [Ii].<br/>
+            ○ Match a character in the set [Ll].<br/>
+            ○ Match a character in the set [Yy].<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ Match ':'.<br/>
+            ○ Match a whitespace character greedily any number of times.<br/>
+            ○ 1st capture group.<br/>
+                ○ Match a character in the set [^;{}] atomically at least once.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:RealEstateStar.Workers.Activation.BrandingDiscovery.BrandingDiscoveryWorker.GoogleFontRegex">
+            <remarks>
+            Pattern:<br/>
+            <code>fonts\\.googleapis\\.com/css[^"']*family=([^"'&amp;;]+)</code><br/>
+            Options:<br/>
+            <code>RegexOptions.IgnoreCase | RegexOptions.Compiled</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match a character in the set [Ff].<br/>
+            ○ Match a character in the set [Oo].<br/>
+            ○ Match a character in the set [Nn].<br/>
+            ○ Match a character in the set [Tt].<br/>
+            ○ Match a character in the set [Ss].<br/>
+            ○ Match '.'.<br/>
+            ○ Match a character in the set [Gg].<br/>
+            ○ Match a character in the set [Oo] exactly 2 times.<br/>
+            ○ Match a character in the set [Gg].<br/>
+            ○ Match a character in the set [Ll].<br/>
+            ○ Match a character in the set [Ee].<br/>
+            ○ Match a character in the set [Aa].<br/>
+            ○ Match a character in the set [Pp].<br/>
+            ○ Match a character in the set [Ii].<br/>
+            ○ Match a character in the set [Ss].<br/>
+            ○ Match '.'.<br/>
+            ○ Match a character in the set [Cc].<br/>
+            ○ Match a character in the set [Oo].<br/>
+            ○ Match a character in the set [Mm].<br/>
+            ○ Match '/'.<br/>
+            ○ Match a character in the set [Cc].<br/>
+            ○ Match a character in the set [Ss] exactly 2 times.<br/>
+            ○ Match a character in the set [^"'] greedily any number of times.<br/>
+            ○ Match a character in the set [Ff].<br/>
+            ○ Match a character in the set [Aa].<br/>
+            ○ Match a character in the set [Mm].<br/>
+            ○ Match a character in the set [Ii].<br/>
+            ○ Match a character in the set [Ll].<br/>
+            ○ Match a character in the set [Yy].<br/>
+            ○ Match '='.<br/>
+            ○ 1st capture group.<br/>
+                ○ Match a character in the set [^"&amp;';] atomically at least once.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:RealEstateStar.Workers.Activation.BrandingDiscovery.BrandingDiscoveryWorker.FontFaceRegex">
+            <remarks>
+            Pattern:<br/>
+            <code>@font-face\\s*\\{[^}]*font-family\\s*:\\s*["']?([^"';]+)["']?</code><br/>
+            Options:<br/>
+            <code>RegexOptions.IgnoreCase | RegexOptions.Compiled</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match '@'.<br/>
+            ○ Match a character in the set [Ff].<br/>
+            ○ Match a character in the set [Oo].<br/>
+            ○ Match a character in the set [Nn].<br/>
+            ○ Match a character in the set [Tt].<br/>
+            ○ Match '-'.<br/>
+            ○ Match a character in the set [Ff].<br/>
+            ○ Match a character in the set [Aa].<br/>
+            ○ Match a character in the set [Cc].<br/>
+            ○ Match a character in the set [Ee].<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ Match '{'.<br/>
+            ○ Match a character other than '}' greedily any number of times.<br/>
+            ○ Match a character in the set [Ff].<br/>
+            ○ Match a character in the set [Oo].<br/>
+            ○ Match a character in the set [Nn].<br/>
+            ○ Match a character in the set [Tt].<br/>
+            ○ Match '-'.<br/>
+            ○ Match a character in the set [Ff].<br/>
+            ○ Match a character in the set [Aa].<br/>
+            ○ Match a character in the set [Mm].<br/>
+            ○ Match a character in the set [Ii].<br/>
+            ○ Match a character in the set [Ll].<br/>
+            ○ Match a character in the set [Yy].<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ Match ':'.<br/>
+            ○ Match a whitespace character greedily any number of times.<br/>
+            ○ Match a character in the set ["'] greedily, optionally.<br/>
+            ○ 1st capture group.<br/>
+                ○ Match a character in the set [^"';] greedily at least once.<br/>
+            ○ Match a character in the set ["'] atomically, optionally.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:RealEstateStar.Workers.Activation.BrandingDiscovery.BrandingDiscoveryWorker.ThemeColorMetaRegex">
+            <remarks>
+            Pattern:<br/>
+            <code>&lt;meta[^&gt;]+name\\s*=\\s*["']theme-color["'][^&gt;]*content\\s*=\\s*["']([^"']+)["']</code><br/>
+            Options:<br/>
+            <code>RegexOptions.IgnoreCase | RegexOptions.Compiled</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match '&lt;'.<br/>
+            ○ Match a character in the set [Mm].<br/>
+            ○ Match a character in the set [Ee].<br/>
+            ○ Match a character in the set [Tt].<br/>
+            ○ Match a character in the set [Aa].<br/>
+            ○ Match a character other than '&gt;' greedily at least once.<br/>
+            ○ Match a character in the set [Nn].<br/>
+            ○ Match a character in the set [Aa].<br/>
+            ○ Match a character in the set [Mm].<br/>
+            ○ Match a character in the set [Ee].<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ Match '='.<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ Match a character in the set ["'].<br/>
+            ○ Match a character in the set [Tt].<br/>
+            ○ Match a character in the set [Hh].<br/>
+            ○ Match a character in the set [Ee].<br/>
+            ○ Match a character in the set [Mm].<br/>
+            ○ Match a character in the set [Ee].<br/>
+            ○ Match '-'.<br/>
+            ○ Match a character in the set [Cc].<br/>
+            ○ Match a character in the set [Oo].<br/>
+            ○ Match a character in the set [Ll].<br/>
+            ○ Match a character in the set [Oo].<br/>
+            ○ Match a character in the set [Rr].<br/>
+            ○ Match a character in the set ["'].<br/>
+            ○ Match a character other than '&gt;' greedily any number of times.<br/>
+            ○ Match a character in the set [Cc].<br/>
+            ○ Match a character in the set [Oo].<br/>
+            ○ Match a character in the set [Nn].<br/>
+            ○ Match a character in the set [Tt].<br/>
+            ○ Match a character in the set [Ee].<br/>
+            ○ Match a character in the set [Nn].<br/>
+            ○ Match a character in the set [Tt].<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ Match '='.<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ Match a character in the set ["'].<br/>
+            ○ 1st capture group.<br/>
+                ○ Match a character in the set [^"'] atomically at least once.<br/>
+            ○ Match a character in the set ["'].<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.ColorPropertyRegex_0">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the ColorPropertyRegex method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.ColorPropertyRegex_0.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ColorPropertyRegex_0.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.ColorPropertyRegex_0.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ColorPropertyRegex_0.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.ColorPropertyRegex_0.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ColorPropertyRegex_0.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ColorPropertyRegex_0.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ColorPropertyRegex_0.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.FontFamilyRegex_1">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the FontFamilyRegex method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.FontFamilyRegex_1.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FontFamilyRegex_1.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.FontFamilyRegex_1.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FontFamilyRegex_1.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.FontFamilyRegex_1.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FontFamilyRegex_1.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FontFamilyRegex_1.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FontFamilyRegex_1.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.GoogleFontRegex_2">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the GoogleFontRegex method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.GoogleFontRegex_2.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.GoogleFontRegex_2.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.GoogleFontRegex_2.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.GoogleFontRegex_2.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.GoogleFontRegex_2.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.GoogleFontRegex_2.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.GoogleFontRegex_2.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.GoogleFontRegex_2.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.FontFaceRegex_3">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the FontFaceRegex method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.FontFaceRegex_3.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FontFaceRegex_3.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.FontFaceRegex_3.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FontFaceRegex_3.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.FontFaceRegex_3.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FontFaceRegex_3.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FontFaceRegex_3.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FontFaceRegex_3.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.ThemeColorMetaRegex_4">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the ThemeColorMetaRegex method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.ThemeColorMetaRegex_4.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ThemeColorMetaRegex_4.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.ThemeColorMetaRegex_4.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ThemeColorMetaRegex_4.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.ThemeColorMetaRegex_4.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ThemeColorMetaRegex_4.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ThemeColorMetaRegex_4.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ThemeColorMetaRegex_4.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.Utilities">
+            <summary>Helper methods used by generated <see cref="T:System.Text.RegularExpressions.Regex"/>-derived implementations.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_defaultTimeout">
+            <summary>Default timeout value set in <see cref="T:System.AppContext"/>, or <see cref="F:System.Text.RegularExpressions.Regex.InfiniteMatchTimeout"/> if none was set.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_hasTimeout">
+            <summary>Whether <see cref="F:System.Text.RegularExpressions.Generated.Utilities.s_defaultTimeout"/> is non-infinite.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_ascii_C40000080000000000000000">
+            <summary>Supports searching for characters in or not in "\"&amp;';".</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_indexOfAnyStrings_OrdinalIgnoreCase_25F104C6E0DFED7E3E32FBC7BBC404FFEE506D4D46EF85480FDC2F3EC16E7146">
+            <summary>Supports searching for the specified strings.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_indexOfString_346160D7AA4D3F9A170B29E926B359AAE65F2818E29AF45BC6C7F1D6C276C9EA">
+            <summary>Supports searching for the string "font-family".</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_indexOfString_6592EFB99B3BB9B0E497EDD3CBB4007545604A503E2B9552C7F93E9FAA00C0FA">
+            <summary>Supports searching for the string "fonts.googleapis.com/css".</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_indexOfString_F761835979D5688B1B2D7ABDAB6EA6F0EC9D0F28118DFE1ECD4D0B2AB6AECF5E">
+            <summary>Supports searching for the string "@font-face".</summary>
+        </member>
+    </members>
+</doc>

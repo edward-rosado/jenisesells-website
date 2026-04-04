@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Services.WelcomeNotification</name>
+    </assembly>
+    <members>
+        <member name="T:RealEstateStar.Services.WelcomeNotification.WelcomeNotificationService">
+            <summary>
+            Sends a personalized welcome message to the agent via WhatsApp first,
+            falling back to email via IGmailSender.
+            Content is drafted using Claude with Voice Skill + Personality + Brand Voice + Coaching.
+            Under 150 words, opens with the agent's catchphrase, closes with their sign-off.
+            Idempotent — tracks sent flag via IFileStorageProvider and IIdempotencyStore; does not re-send on re-activation.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Services.WelcomeNotification.WelcomeNotificationService.#ctor(RealEstateStar.Domain.Shared.Interfaces.Senders.IWhatsAppSender,RealEstateStar.Domain.Shared.Interfaces.External.IGmailSender,RealEstateStar.Domain.Shared.Interfaces.External.IAnthropicClient,RealEstateStar.Domain.Shared.Interfaces.Storage.IFileStorageProvider,RealEstateStar.Domain.Shared.Interfaces.IIdempotencyStore,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Services.WelcomeNotification.WelcomeNotificationService})">
+            <summary>
+            Sends a personalized welcome message to the agent via WhatsApp first,
+            falling back to email via IGmailSender.
+            Content is drafted using Claude with Voice Skill + Personality + Brand Voice + Coaching.
+            Under 150 words, opens with the agent's catchphrase, closes with their sign-off.
+            Idempotent — tracks sent flag via IFileStorageProvider and IIdempotencyStore; does not re-send on re-activation.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Services.WelcomeNotification.WelcomeNotificationService.StripFirstLineIfHeader(System.String)">
+            <summary>
+            Strips the first line if it looks like a greeting/header that Claude generated
+            (e.g., "Welcome to Real Estate Star, Thank you for choosing...").
+            Prevents duplicate headers in the email.
+            </summary>
+        </member>
+    </members>
+</doc>

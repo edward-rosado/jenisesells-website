@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Activities.Activation.ContactImportPersist</name>
+    </assembly>
+    <members>
+        <member name="T:RealEstateStar.Activities.Activation.ContactImportPersist.ContactImportPersistActivity">
+             <summary>
+             Persists imported contacts to the agent's Google Drive folder structure and ILeadStore.
+            
+             Responsibilities:
+             - Creates 5 top-level pipeline stage folders in the agent's Drive
+             - Creates per-contact folders with stage-specific sub-folders
+             - Copies documents to the correct sub-folders by document type
+             - Saves/deduplicates contacts to ILeadStore by email
+             - Writes a "Client Import Summary.md" markdown table at the top level
+             </summary>
+        </member>
+        <member name="M:RealEstateStar.Activities.Activation.ContactImportPersist.ContactImportPersistActivity.#ctor(RealEstateStar.Domain.Shared.Interfaces.Storage.IDocumentStorageProvider,RealEstateStar.Domain.Shared.Interfaces.External.IGDriveClient,RealEstateStar.Domain.Leads.Interfaces.ILeadStore,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Activities.Activation.ContactImportPersist.ContactImportPersistActivity})">
+             <summary>
+             Persists imported contacts to the agent's Google Drive folder structure and ILeadStore.
+            
+             Responsibilities:
+             - Creates 5 top-level pipeline stage folders in the agent's Drive
+             - Creates per-contact folders with stage-specific sub-folders
+             - Copies documents to the correct sub-folders by document type
+             - Saves/deduplicates contacts to ILeadStore by email
+             - Writes a "Client Import Summary.md" markdown table at the top level
+             </summary>
+        </member>
+    </members>
+</doc>

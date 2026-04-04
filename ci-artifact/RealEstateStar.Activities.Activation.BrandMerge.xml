@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Activities.Activation.BrandMerge</name>
+    </assembly>
+    <members>
+        <member name="T:RealEstateStar.Activities.Activation.BrandMerge.BrandMergeActivity">
+            <summary>
+            Single writer for brokerage brand files.
+            Calls IBrandMergeService to get the merged Brand Profile and Brand Voice,
+            then writes both to real-estate-star/{accountId}/.
+            This is the ONLY place that reads and writes brand files.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Activities.Activation.BrandMerge.BrandMergeActivity.#ctor(RealEstateStar.Domain.Activation.Interfaces.IBrandMergeService,RealEstateStar.Domain.Shared.Interfaces.Storage.IFileStorageProvider,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Activities.Activation.BrandMerge.BrandMergeActivity})">
+            <summary>
+            Single writer for brokerage brand files.
+            Calls IBrandMergeService to get the merged Brand Profile and Brand Voice,
+            then writes both to real-estate-star/{accountId}/.
+            This is the ONLY place that reads and writes brand files.
+            </summary>
+        </member>
+    </members>
+</doc>

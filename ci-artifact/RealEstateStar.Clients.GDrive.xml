@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Clients.GDrive</name>
+    </assembly>
+    <members>
+        <member name="M:RealEstateStar.Clients.GDrive.GDriveApiClient.WithRetryOnAuthErrorAsync``1(System.String,System.String,System.Func{Google.Apis.Drive.v3.DriveService,System.Threading.Tasks.Task{``0}},System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Wraps a Drive API operation with automatic retry on 401/403: refreshes the OAuth
+            token and rebuilds the DriveService, then retries the operation once.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Clients.GDrive.GDriveApiClient.ResolveFolderPathAsync(Google.Apis.Drive.v3.DriveService,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a slash-separated folder path (e.g. "real-estate-star/edward-rosado/leads")
+            to a Google Drive folder ID by walking each segment and finding or creating it.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Clients.GDrive.GDriveClientExtensions.AddGDriveClient(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.String,System.String)">
+            <summary>
+            Registers <see cref="T:RealEstateStar.Domain.Shared.Interfaces.External.IGDriveClient"/> using the internal <see cref="T:RealEstateStar.Clients.GDrive.GDriveApiClient"/> implementation.
+            Requires <see cref="T:RealEstateStar.Domain.Shared.Interfaces.External.IOAuthRefresher"/> to be registered first.
+            </summary>
+        </member>
+    </members>
+</doc>

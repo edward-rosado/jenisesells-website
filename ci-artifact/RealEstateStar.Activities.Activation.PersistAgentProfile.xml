@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Activities.Activation.PersistAgentProfile</name>
+    </assembly>
+    <members>
+        <member name="T:RealEstateStar.Activities.Activation.PersistAgentProfile.AgentProfilePersistActivity">
+             <summary>
+             Fan-out writes all per-agent activation outputs to real-estate-star/{agentId}/.
+             Also creates the leads/ and leads/consent/ subdirectories.
+             Then delegates to IAgentConfigService to generate account.json + content.json.
+            
+             Lead data isolation: lead files fan-out to Agent Drive + Platform Blob ONLY —
+             never to Account Drive (brokerage folder).
+             </summary>
+        </member>
+        <member name="M:RealEstateStar.Activities.Activation.PersistAgentProfile.AgentProfilePersistActivity.#ctor(RealEstateStar.Domain.Shared.Interfaces.Storage.IFileStorageProviderFactory,RealEstateStar.Domain.Activation.Interfaces.IAgentConfigService,Microsoft.Extensions.Logging.ILogger{RealEstateStar.Activities.Activation.PersistAgentProfile.AgentProfilePersistActivity})">
+             <summary>
+             Fan-out writes all per-agent activation outputs to real-estate-star/{agentId}/.
+             Also creates the leads/ and leads/consent/ subdirectories.
+             Then delegates to IAgentConfigService to generate account.json + content.json.
+            
+             Lead data isolation: lead files fan-out to Agent Drive + Platform Blob ONLY —
+             never to Account Drive (brokerage folder).
+             </summary>
+        </member>
+        <member name="M:RealEstateStar.Activities.Activation.PersistAgentProfile.AgentProfilePersistActivity.VerifyDriveSyncAsync(System.String,RealEstateStar.Domain.Activation.Models.ActivationOutputs,System.Threading.CancellationToken)">
+            <summary>
+            Spot-checks a representative file to confirm the Agent Drive tier received the write.
+            Logs an ERROR if the file is missing — indicates the Drive tier silently failed.
+            </summary>
+        </member>
+    </members>
+</doc>

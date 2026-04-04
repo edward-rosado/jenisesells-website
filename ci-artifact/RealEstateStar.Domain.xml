@@ -1,0 +1,364 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RealEstateStar.Domain</name>
+    </assembly>
+    <members>
+        <member name="T:RealEstateStar.Domain.Activation.Interfaces.IActivationQueue">
+            <summary>
+            Durable queue for activation requests. Messages survive container restarts.
+            </summary>
+        </member>
+        <member name="P:RealEstateStar.Domain.Activation.Interfaces.IActivationQueue.QueueDepth">
+            <summary>
+            Returns the approximate number of messages currently in the queue.
+            For Azure Queue Storage this is eventually consistent; for in-memory it is exact.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Activation.Interfaces.QueueMessage`1">
+            <summary>
+            Wraps a dequeued message with the metadata needed to complete/delete it.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Activation.Interfaces.QueueMessage`1.#ctor(`0,System.String,System.String)">
+            <summary>
+            Wraps a dequeued message with the metadata needed to complete/delete it.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Activation.Interfaces.IAgentConfigService.GenerateAsync(System.String,System.String,System.String,RealEstateStar.Domain.Activation.Models.ActivationOutputs,System.Threading.CancellationToken)">
+            <summary>
+            Generates account.json and content.json from gathered activation data.
+            Does NOT overwrite existing configs.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Activation.Interfaces.IBrandMergeService.MergeAsync(System.String,System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Merges new brand signals with existing Brand Profile and Brand Voice.
+            For the first agent in an account, creates a new profile (no merge needed).
+            Returns the merged Brand Profile markdown and Brand Voice markdown.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Activation.Interfaces.IWelcomeNotificationService.SendAsync(System.String,System.String,System.String,RealEstateStar.Domain.Activation.Models.ActivationOutputs,System.Threading.CancellationToken)">
+            <summary>
+            Sends a personalized welcome message to the agent via WhatsApp or email fallback.
+            Idempotent — does not re-send if already sent (tracked via WelcomeSent flag).
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Activation.Models.ActivationOutputs">
+            <summary>
+            All computed outputs from the activation pipeline, used to populate
+            agent config files and send the welcome notification.
+            </summary>
+        </member>
+        <member name="P:RealEstateStar.Domain.Activation.Models.ActivationOutputs.BrandExtractionSignals">
+            <summary>Raw brand extraction signals (intermediate output, not persisted as a skill file).</summary>
+        </member>
+        <member name="P:RealEstateStar.Domain.Activation.Models.ActivationOutputs.BrandVoiceSignals">
+            <summary>Raw brand voice signals (intermediate output, merged into Brand Voice.md by BrandMergeActivity).</summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Cma.Interfaces.ICmaNotifier.NotifySellerAsync(System.String,RealEstateStar.Domain.Leads.Models.Lead,System.String,RealEstateStar.Domain.Cma.Models.CmaAnalysis,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Sends the CMA report to the seller and stores the communication in Google Drive.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Cma.Interfaces.ICmaPdfGenerator.GenerateAsync(RealEstateStar.Domain.Leads.Models.Lead,RealEstateStar.Domain.Cma.Models.CmaAnalysis,System.Collections.Generic.List{RealEstateStar.Domain.Cma.Models.Comp},RealEstateStar.Domain.Shared.Models.AccountConfig,RealEstateStar.Domain.Cma.Models.ReportType,System.Byte[],System.Byte[],System.Threading.CancellationToken)">
+            <summary>
+            Generates a CMA PDF report and returns the path to the temp file.
+            </summary>
+            <param name="lead">The seller lead.</param>
+            <param name="analysis">Claude's CMA analysis output.</param>
+            <param name="comps">Comparable sales used in the analysis.</param>
+            <param name="config">Agent account config (branding, contact info, etc.).</param>
+            <param name="reportType">Lean / Standard.</param>
+            <param name="logoBytes">Brokerage logo image bytes, or null if unavailable.</param>
+            <param name="headshotBytes">Agent headshot image bytes, or null if unavailable.</param>
+            <param name="ct">Cancellation token.</param>
+            <returns>Path to the generated temp PDF file.</returns>
+        </member>
+        <member name="T:RealEstateStar.Domain.Cma.Models.CmaResult">
+            <summary>
+            Output of the CMA pipeline — everything needed to store and notify.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.HomeSearch.Interfaces.IHomeSearchNotifier.NotifyBuyerAsync(System.String,RealEstateStar.Domain.Leads.Models.Lead,System.Collections.Generic.List{RealEstateStar.Domain.Leads.Models.Listing},System.String,System.Threading.CancellationToken)">
+            <summary>
+            Sends curated listings to the buyer and stores the communication in Google Drive.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Leads.Interfaces.ILeadOrchestrationQueue">
+            <summary>
+            Durable queue for lead orchestration requests. Messages survive container restarts.
+            </summary>
+        </member>
+        <member name="P:RealEstateStar.Domain.Leads.Interfaces.ILeadOrchestrationQueue.QueueDepth">
+            <summary>
+            Returns the approximate number of messages currently in the queue.
+            For Azure Queue Storage this is eventually consistent; for in-memory it is exact.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Leads.Interfaces.LeadOrchestrationMessage">
+            <summary>
+            Serializable lead orchestration message for durable queue storage.
+            Contains the essential data needed to process a lead, not the full Lead object.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Leads.Interfaces.LeadOrchestrationMessage.#ctor(System.String,System.Guid,System.String)">
+            <summary>
+            Serializable lead orchestration message for durable queue storage.
+            Contains the essential data needed to process a lead, not the full Lead object.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Leads.Models.AgentNotificationConfig">
+            <summary>
+            Subset of agent account.json + content.json passed in dispatch payloads.
+            Sized to stay under 64KB for future Azure Queue compatibility.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Leads.Models.CommunicationRecord">
+            <summary>
+            Tracks a communication (email draft, WhatsApp message) through the pipeline.
+            Used for dedup: same ContentHash + Sent = skip on retry.
+            Persisted to the lead's storage folder by the PersistActivity.
+            </summary>
+        </member>
+        <member name="P:RealEstateStar.Domain.Leads.Models.CommunicationRecord.Channel">
+            <summary>"email", "whatsapp", "email-fallback"</summary>
+        </member>
+        <member name="P:RealEstateStar.Domain.Leads.Models.CommunicationRecord.ContentHash">
+            <summary>SHA256 of draft inputs — dedup key. Same hash = same content, skip re-draft.</summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Leads.Models.LeadPipelineContext">
+            <summary>
+            Mutable context passed through all pipeline activities for a single lead.
+            Each activity reads what it needs and writes its output back.
+            This is the single source of truth — no passing large objects between activities.
+            </summary>
+            <remarks>
+            NOT thread-safe. All writes must happen sequentially from the orchestrator
+            after parallel activities have completed (post-WhenAll).
+            </remarks>
+        </member>
+        <member name="P:RealEstateStar.Domain.Leads.Models.LeadPipelineContext.AgentContext">
+            <summary>
+            Agent activation context loaded at the start of the pipeline.
+            Null when the agent has not yet completed activation (backward compatible — falls back to generic behavior).
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Leads.Models.LeadPipelineContext.ToResult">
+            <summary>Build the final pipeline result from accumulated context.</summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Leads.Models.LeadPipelineResult">
+            <summary>Final result returned by the orchestrator.</summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Leads.Models.LeadPipelineResult.#ctor(System.String,System.Boolean,RealEstateStar.Domain.Leads.Models.LeadScore,RealEstateStar.Domain.Leads.Models.CmaWorkerResult,RealEstateStar.Domain.Leads.Models.HomeSearchWorkerResult,System.String,System.Boolean,System.Boolean)">
+            <summary>Final result returned by the orchestrator.</summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Leads.Models.LeadRetryState">
+            <summary>
+            Tracks completed pipeline steps with content-aware keys.
+            Used by the orchestrator to skip already-completed work on retry.
+            </summary>
+        </member>
+        <member name="P:RealEstateStar.Domain.Leads.Models.LeadRetryState.CompletedActivityKeys">
+            <summary>
+            Key: activity name ("cma", "homeSearch", "pdf", "draftLeadEmail", "draftAgentNotification")
+            Value: SHA256 hash of the input that produced the completed result
+            </summary>
+        </member>
+        <member name="P:RealEstateStar.Domain.Leads.Models.LeadRetryState.CompletedResultPaths">
+            <summary>
+            Key: activity name
+            Value: storage path or serialized result reference
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Onboarding.Interfaces.IDnsResolver">
+            <summary>
+            Abstracts DNS resolution to allow testing of DNS rebinding prevention.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Onboarding.Interfaces.SystemDnsResolver">
+            <summary>
+            Production DNS resolver using System.Net.Dns.
+            Excluded from coverage: thin wrapper with no branching logic.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Privacy.Interfaces.IComplianceFileStorageProvider">
+            <summary>Marker interface for service-account-backed file storage (agent cannot access).</summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Shared.ContentHash">
+            <summary>
+            Utility for computing content-addressed SHA256 hashes from activity input fields.
+            Used by the orchestrator to determine whether an activity's inputs have changed
+            since the last run, enabling safe skip-on-retry behavior.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Shared.ContentHash.Compute(System.String[])">
+            <summary>
+            Computes a deterministic SHA256 hash of the given fields joined with "|".
+            Null fields are treated as empty strings. Field order matters.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Shared.Diagnostics.IDiagnosticsProvider">
+            <summary>
+            Implemented by each worker project to expose its metrics for the /diagnostics endpoint.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Shared.Interfaces.External.IGDriveClient.ListAllFilesAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>List all files in the agent's Drive (across all folders).</summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Shared.Interfaces.External.IGDriveClient.GetFileContentAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>Download raw text content of a file by its Drive file ID.</summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Shared.Interfaces.External.IGDriveClient.GetOrCreateFolderAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>Find or create a top-level folder by name. Returns the folder ID.</summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Shared.Interfaces.External.IGDriveClient.DownloadBinaryAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>Download raw binary content of a file by its Drive file ID. Returns null if the token is missing or the download fails.</summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Shared.Interfaces.External.IGDriveClient.CopyFileAsync(System.String,System.String,System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>Copy a file to a destination folder and optionally rename it. Returns the new file ID.</summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Shared.Interfaces.External.DriveFileInfo">
+            <summary>Lightweight metadata returned from listing Drive files.</summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Shared.Interfaces.External.DriveFileInfo.#ctor(System.String,System.String,System.String,System.Nullable{System.DateTime})">
+            <summary>Lightweight metadata returned from listing Drive files.</summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Shared.Interfaces.IContentCache">
+            <summary>
+            Cross-lead content-addressed cache. Prevents re-running expensive activities
+            (CMA, HomeSearch) when 100 different leads submit for the same property.
+            Keys are SHA256 hashes of activity inputs computed by <see cref="T:RealEstateStar.Domain.Shared.ContentHash"/>.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Shared.Interfaces.IContentCache.GetAsync``1(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Returns the cached value for <paramref name="key"/>, or null on cache miss.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Shared.Interfaces.IContentCache.SetAsync``1(System.String,``0,System.TimeSpan,System.Threading.CancellationToken)">
+            <summary>
+            Stores <paramref name="value"/> under <paramref name="key"/> with the given TTL.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Shared.Interfaces.IDistributedContentCache">
+            <summary>
+            Distributed content cache backed by persistent storage (e.g., Azure Table Storage).
+            Cross-function dedup for CMA and HomeSearch results.
+            Same contract as <see cref="T:RealEstateStar.Domain.Shared.Interfaces.IContentCache"/> but survives across process restarts.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Shared.Interfaces.IIdempotencyStore">
+            <summary>
+            Guards non-idempotent side effects (email sends, WhatsApp messages) against
+            duplicate execution during Durable Functions replay or Container App restarts.
+            Keys follow the pattern: {pipeline}:{instanceId}:{step}
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Shared.Interfaces.IIdempotencyStore.HasCompletedAsync(System.String,System.Threading.CancellationToken)">
+            <summary>Returns true if the step has already completed successfully.</summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.Shared.Interfaces.IIdempotencyStore.MarkCompletedAsync(System.String,System.Threading.CancellationToken)">
+            <summary>Marks the step as completed. Idempotent — safe to call multiple times.</summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Shared.Interfaces.Storage.IFileStorageProvider">
+            <summary>
+            Combined storage interface extending both document and sheet capabilities.
+            New code should depend on IDocumentStorageProvider or ISheetStorageProvider
+            depending on which capability is needed. IFileStorageProvider remains for
+            backward compatibility with existing implementations.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Shared.Interfaces.Storage.IFileStorageProviderFactory">
+            <summary>
+            Creates per-agent IFileStorageProvider instances with the correct accountId/agentId
+            context for Drive writes. Used by activation persist activities that need to write
+            to the agent's Google Drive, not the platform-level singleton.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Shared.Models.AccountConfig">
+            <summary>
+            Maps to config/accounts/{handle}/account.json
+            </summary>
+        </member>
+        <member name="P:RealEstateStar.Domain.Shared.Models.OAuthCredential.AccountId">
+            <summary>Account partition ID. Null during in-session onboarding; populated when stored durably.</summary>
+        </member>
+        <member name="P:RealEstateStar.Domain.Shared.Models.OAuthCredential.AgentId">
+            <summary>Agent identifier. Null during in-session onboarding; populated when stored durably.</summary>
+        </member>
+        <member name="P:RealEstateStar.Domain.Shared.Models.OAuthCredential.ETag">
+            <summary>Azure Table ETag for optimistic concurrency. Populated by ITokenStore on read.</summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Shared.NullIdempotencyStore">
+            <summary>
+            No-op idempotency store — never reports a step as completed.
+            Used in development and testing where replay protection is not needed.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.Shared.SupportedMarkets">
+            <summary>
+            Go-to-market states where Real Estate Star is licensed to operate.
+            Used for: timezone resolution, compliance forms, state-specific contracts,
+            and validation of new agent onboarding.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.WhatsApp.Interfaces.IConversationHandler">
+            <summary>
+            Classifies intent and generates responses for inbound WhatsApp messages.
+            Implementation in Phase 3 (Task 11).
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.WhatsApp.Interfaces.IConversationLogger.LogMessagesAsync(System.String,System.String,System.Collections.Generic.List{System.ValueTuple{System.DateTime,System.String,System.String,System.String}},System.Threading.CancellationToken)">
+            <summary>
+            Appends a batch of WhatsApp messages as markdown to the appropriate Drive folder.
+            If leadName is provided, messages are written to the per-lead folder;
+            otherwise they go to the general WhatsApp conversation log.
+            Drive write failures are logged as [WA-011] warnings and do NOT propagate.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.WhatsApp.Interfaces.IIntentClassifier">
+            <summary>
+            Classifies the intent and scope of an inbound WhatsApp message.
+            Production implementation calls Claude Haiku (fast, cheap).
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.WhatsApp.Interfaces.IntentClassification">
+            <summary>
+            Result of a two-stage intent classification: intent type, whether the message is
+            in-scope for the assistant, and (if out-of-scope) which deflection category applies.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.WhatsApp.Interfaces.IntentClassification.#ctor(RealEstateStar.Domain.WhatsApp.Models.IntentType,System.Boolean,RealEstateStar.Domain.WhatsApp.Models.OutOfScopeCategory)">
+            <summary>
+            Result of a two-stage intent classification: intent type, whether the message is
+            in-scope for the assistant, and (if out-of-scope) which deflection category applies.
+            </summary>
+        </member>
+        <member name="T:RealEstateStar.Domain.WhatsApp.Interfaces.IResponseGenerator">
+            <summary>
+            Generates a contextual response for in-scope lead questions and action requests.
+            Production implementation calls Claude Sonnet (quality responses).
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.WhatsApp.Interfaces.IWhatsAppNotifier.NotifyAsync(System.String,RealEstateStar.Domain.WhatsApp.Models.NotificationType,System.String,System.Collections.Generic.Dictionary{System.String,System.String},System.Threading.CancellationToken)">
+            <summary>
+            Sends an outbound notification to the agent's WhatsApp number.
+            Checks opt-in status and notification preferences before sending.
+            DataDeletion bypasses preferences and is always sent.
+            Logs [WA-014] on WhatsAppNotRegisteredException and [WA-015] on other errors — never throws.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.WhatsApp.Interfaces.IWhatsAppNotifier.RecordAgentMessage(System.String)">
+            <summary>
+            Marks the 24-hour conversation window as open for the given agent phone number.
+            Called by WebhookProcessorWorker whenever the agent sends a message.
+            </summary>
+        </member>
+        <member name="M:RealEstateStar.Domain.WhatsApp.Interfaces.IWhatsAppNotifier.IsWindowOpen(System.String)">
+            <summary>
+            Returns true if the 24-hour conversation window is currently open for the given phone.
+            </summary>
+        </member>
+    </members>
+</doc>
