@@ -333,6 +333,7 @@ public class DependencyTests
             "RealEstateStar.Clients.GoogleOAuth",
             "RealEstateStar.Clients.Scraper",
             "RealEstateStar.Clients.RentCast",
+            "RealEstateStar.Clients.Gws",
         };
 
         var violations = assembly.GetReferencedAssemblies()
