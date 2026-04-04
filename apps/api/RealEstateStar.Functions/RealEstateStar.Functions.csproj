@@ -27,6 +27,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.*" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="9.*" />
     <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.*" />
+    <PackageReference Include="Azure.Identity" Version="1.*" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="8.*" />
     <!-- OpenTelemetry — mirrors Api project for full pipeline observability -->
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
