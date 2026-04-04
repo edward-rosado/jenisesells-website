@@ -62,7 +62,8 @@
   <!-- Copy RealEstateStar.Functions.dll to the test output dir so architecture tests can load it.
        ReferenceOutputAssembly=false prevents the Program class name collision with Api, but also
        prevents the normal DLL copy — this target restores the copy step. -->
-  <Target Name="CopyFunctionsDllToTestOutput" AfterTargets="Build">
+  <Target Name="CopyFunctionsDllToTestOutput" AfterTargets="Build"
+          Condition="Exists('$(MSBuildThisFileDirectory)../../RealEstateStar.Functions/bin/$(Configuration)/net10.0/RealEstateStar.Functions.dll')">
     <PropertyGroup>
       <FunctionsDll>$(MSBuildThisFileDirectory)../../RealEstateStar.Functions/bin/$(Configuration)/net10.0/RealEstateStar.Functions.dll</FunctionsDll>
     </PropertyGroup>
