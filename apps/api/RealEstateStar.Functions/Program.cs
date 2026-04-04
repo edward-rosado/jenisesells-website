@@ -260,10 +260,22 @@ var dpBuilder = builder.Services.AddDataProtection()
     .SetApplicationName("RealEstateStar");
 
 var dpBlobUri = builder.Configuration["DataProtection:BlobUri"];
-if (!string.IsNullOrEmpty(dpBlobUri))
+if (!string.IsNullOrEmpty(dpBlobUri) && !string.IsNullOrEmpty(storageConnStr))
 {
+    // Use connection-string auth (no Managed Identity needed on Consumption plan)
+    var blobUri = new Uri(dpBlobUri);
+    var containerName = blobUri.Segments.Length > 1 ? blobUri.Segments[1].TrimEnd('/') : "dataprotection";
+    var blobName = blobUri.Segments.Length > 2 ? string.Join("", blobUri.Segments[2..]) : "keys.xml";
+    var blobClient = new Azure.Storage.Blobs.BlobContainerClient(storageConnStr, containerName)
+        .GetBlobClient(blobName);
+    dpBuilder.PersistKeysToAzureBlobStorage(blobClient);
+    Log.Information("[STARTUP-082] DataProtection keys: shared blob at {BlobUri} (connection string auth)", dpBlobUri);
+}
+else if (!string.IsNullOrEmpty(dpBlobUri))
+{
+    // Fallback: Managed Identity / DefaultAzureCredential
     dpBuilder.PersistKeysToAzureBlobStorage(new Uri(dpBlobUri), new Azure.Identity.DefaultAzureCredential());
-    Log.Information("[STARTUP-082] DataProtection keys: shared blob at {BlobUri}", dpBlobUri);
+    Log.Information("[STARTUP-082] DataProtection keys: shared blob at {BlobUri} (DefaultAzureCredential)", dpBlobUri);
 }
 else
 {
