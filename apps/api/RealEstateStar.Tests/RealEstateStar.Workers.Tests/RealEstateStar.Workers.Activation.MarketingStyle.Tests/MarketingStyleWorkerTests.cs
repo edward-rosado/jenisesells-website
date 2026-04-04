@@ -59,7 +59,7 @@ public class MarketingStyleWorkerTests
         var worker = new MarketingStyleWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWith(MakeRegularEmail());
 
-        var (style, signals) = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
+        var (style, signals, _) = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
 
         style.Should().BeNull();
         signals.Should().BeNull();
@@ -108,7 +108,7 @@ public class MarketingStyleWorkerTests
         var worker = new MarketingStyleWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWith(MakeMarketingEmail());
 
-        var (style, signals) = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
+        var (style, signals, _) = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
 
         style.Should().NotBeNull();
         style.Should().Contain("## Marketing Style");
