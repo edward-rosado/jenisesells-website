@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
+using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
@@ -71,7 +72,8 @@ public class LeadCommunicatorServiceTests
             .Setup(d => d.DraftAsync(
                 It.IsAny<Lead>(), It.IsAny<LeadScore>(),
                 It.IsAny<CmaWorkerResult?>(), It.IsAny<HomeSearchWorkerResult?>(),
-                It.IsAny<AgentNotificationConfig>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AgentNotificationConfig>(), It.IsAny<CancellationToken>(),
+                It.IsAny<AgentContext?>()))
             .ReturnsAsync(email);
 
         var gmailMock = new Mock<IGmailSender>();
@@ -106,7 +108,8 @@ public class LeadCommunicatorServiceTests
         drafterMock.Verify(d => d.DraftAsync(
             ctx.Lead, ctx.Score!,
             It.IsAny<CmaWorkerResult?>(), It.IsAny<HomeSearchWorkerResult?>(),
-            ctx.AgentConfig, It.IsAny<CancellationToken>()), Times.Once);
+            ctx.AgentConfig, It.IsAny<CancellationToken>(),
+            It.IsAny<AgentContext?>()), Times.Once);
     }
 
     [Fact]
@@ -187,7 +190,8 @@ public class LeadCommunicatorServiceTests
         drafterMock.Verify(d => d.DraftAsync(
             It.IsAny<Lead>(), It.Is<LeadScore>(s => s.OverallScore == 0),
             It.IsAny<CmaWorkerResult?>(), It.IsAny<HomeSearchWorkerResult?>(),
-            It.IsAny<AgentNotificationConfig>(), It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<AgentNotificationConfig>(), It.IsAny<CancellationToken>(),
+            It.IsAny<AgentContext?>()), Times.Once);
     }
 
     // -----------------------------------------------------------------------

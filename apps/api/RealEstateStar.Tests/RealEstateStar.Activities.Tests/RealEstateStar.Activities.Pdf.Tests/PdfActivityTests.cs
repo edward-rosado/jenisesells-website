@@ -187,7 +187,8 @@ public sealed class PdfActivityTests
                 lead, analysis, comps, config,
                 ReportType.Standard,
                 null, null,
-                CancellationToken.None), Times.Once);
+                CancellationToken.None,
+                It.IsAny<string?>()), Times.Once);
 
             _pdfDataServiceMock.Verify(s => s.StorePdfAsync(
                 lead.FullName,
