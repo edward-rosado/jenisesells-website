@@ -96,15 +96,24 @@ jobs:
           cd ./publish/functions
           zip -r ../../functions.zip . -x '*.pdb'
           cd ../..
-          # Use az functionapp deploy (OneDeploy) instead of config-zip
-          # OneDeploy extracts to wwwroot, making .azurefunctions visible to the host
-          az functionapp deploy \
+          # Stop app, deploy, start — ensures host reads fresh content
+          az functionapp stop --name ${{ env.FUNCTION_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}
+          sleep 5
+
+          az functionapp deployment source config-zip \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --name ${{ env.FUNCTION_APP_NAME }} \
-            --src-path functions.zip \
-            --type zip \
-            --clean true \
-            --restart true
+            --src functions.zip \
+            --timeout 300
+
+          az functionapp start --name ${{ env.FUNCTION_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}
+          sleep 30
+
+          # Check function discovery
+          echo "Listing functions..."
+          az rest --method get \
+            --url "https://management.azure.com/subscriptions/ca48f899-f7bf-4856-bf2a-3618deeaf010/resourceGroups/${{ env.RESOURCE_GROUP }}/providers/Microsoft.Web/sites/${{ env.FUNCTION_APP_NAME }}/functions?api-version=2023-12-01" \
+            --query "value[].{name: properties.name}" --output table || echo "Could not list functions"
 
       - name: Verify deployment
         run: |
