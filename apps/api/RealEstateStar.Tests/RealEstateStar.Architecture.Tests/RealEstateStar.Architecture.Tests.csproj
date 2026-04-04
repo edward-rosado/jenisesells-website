@@ -64,11 +64,10 @@
        prevents the normal DLL copy — this target restores the copy step. -->
   <Target Name="CopyFunctionsDllToTestOutput" AfterTargets="Build">
     <PropertyGroup>
-      <FunctionsDll>$(MSBuildThisFileDirectory)..\..\RealEstateStar.Functions\bin\$(Configuration)\net10.0\RealEstateStar.Functions.dll</FunctionsDll>
+      <FunctionsDll>$(MSBuildThisFileDirectory)../../RealEstateStar.Functions/bin/$(Configuration)/net10.0/RealEstateStar.Functions.dll</FunctionsDll>
     </PropertyGroup>
     <Copy SourceFiles="$(FunctionsDll)"
           DestinationFolder="$(OutputPath)"
-          SkipUnchangedFiles="true"
-          Condition="Exists('$(FunctionsDll)')" />
+          SkipUnchangedFiles="true" />
   </Target>
 </Project>

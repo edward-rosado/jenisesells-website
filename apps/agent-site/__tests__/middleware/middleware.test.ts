@@ -14,12 +14,14 @@ const mockClone = vi.fn();
 
 function createMockResponse() {
   const headers = new Map<string, string>();
+  const cookiesMock = { set: vi.fn() };
   return {
     status: 200,
     headers: {
       set: (key: string, value: string) => headers.set(key, value),
       get: (key: string) => headers.get(key),
     },
+    cookies: cookiesMock,
     _headers: headers,
   };
 }
@@ -48,6 +50,14 @@ vi.mock("@/features/config/routing", () => ({
   getAgentIds: vi.fn(),
 }));
 
+// accountLanguages controls which locales each agent supports
+vi.mock("@/features/config/config-registry", () => ({
+  accountLanguages: {
+    "jenise-buckalew": ["en"],
+    "test-agent": ["en", "es"],
+  },
+}));
+
 import { extractAgentId, resolveAgentFromCustomDomain, isWwwCustomDomain, getAgentIds } from "@/features/config/routing";
 
 const mockExtractAgentId = vi.mocked(extractAgentId);
@@ -57,7 +67,14 @@ const mockGetAgentIds = vi.mocked(getAgentIds);
 
 let middleware: typeof import("@/middleware").middleware;
 
-function makeRequest(host: string, pathname = "/", query: Record<string, string> = {}) {
+interface RequestOptions {
+  query?: Record<string, string>;
+  cookieLocale?: string;
+  acceptLanguage?: string;
+}
+
+function makeRequest(host: string, pathname = "/", options: RequestOptions = {}) {
+  const { query = {}, cookieLocale, acceptLanguage } = options;
   const qs = new URLSearchParams(query).toString();
   const fullPath = qs ? `${pathname}?${qs}` : pathname;
   const clonedUrl = new URL(`http://${host}${fullPath}`);
@@ -69,7 +86,14 @@ function makeRequest(host: string, pathname = "/", query: Record<string, string>
   const requestUrl = new URL(`http://${host}${fullPath}`);
   return {
     headers: {
-      get: (name: string) => (name === "host" ? host : null),
+      get: (name: string) => {
+        if (name === "host") return host;
+        if (name === "accept-language") return acceptLanguage ?? null;
+        return null;
+      },
+    },
+    cookies: {
+      get: (name: string) => (name === "locale" && cookieLocale ? { value: cookieLocale } : undefined),
     },
     nextUrl: {
       clone: mockClone,
@@ -235,6 +259,7 @@ describe("middleware", () => {
     mockGetAgentIds.mockReturnValue(new Set(["jenise-buckalew"]));
     const req = {
       headers: { get: () => null },
+      cookies: { get: () => undefined },
       nextUrl: { clone: vi.fn().mockReturnValue(new URL("http://localhost:3000/")), pathname: "/" },
     };
     const response = middleware(req as never);
@@ -291,7 +316,7 @@ describe("middleware", () => {
   it("rewrites workers.dev host with ?accountId to the specified agent", () => {
     mockExtractAgentId.mockReturnValue(null);
     mockResolveCustomDomain.mockReturnValue(null);
-    const req = makeRequest("real-estate-star-agents-pr-18.workers.dev", "/", { accountId: "test-agent" });
+    const req = makeRequest("real-estate-star-agents-pr-18.workers.dev", "/", { query: { accountId: "test-agent" } });
     middleware(req as never);
     expect(mockRewrite).toHaveBeenCalled();
     const clonedUrl = mockClone.mock.results[0].value;
@@ -312,10 +337,65 @@ describe("middleware", () => {
     mockExtractAgentId.mockReturnValue(null);
     mockResolveCustomDomain.mockReturnValue(null);
     mockGetAgentIds.mockReturnValue(new Set([]));
-    const req = makeRequest("real-estate-star-agents-pr-18.workers.dev", "/", { accountId: "unknown" });
+    const req = makeRequest("real-estate-star-agents-pr-18.workers.dev", "/", { query: { accountId: "unknown" } });
     const response = middleware(req as never);
     expect(mockRewrite).not.toHaveBeenCalled();
     expect(response.status).toBe(404);
+  });
+
+  // --- locale ---
+  it("sets x-locale header on subdomain rewrite", () => {
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
+    const response = middleware(req as never);
+    expect(response.headers.get("x-locale")).toBe("en");
+  });
+
+  it("sets locale cookie when Accept-Language resolves to non-English for a multilingual agent", () => {
+    // test-agent supports ["en", "es"] per the config-registry mock
+    mockExtractAgentId.mockReturnValue("test-agent");
+    const req = makeRequest("test-agent.real-estate-star.com", "/", { acceptLanguage: "es" });
+    const response = middleware(req as never);
+    expect(response.headers.get("x-locale")).toBe("es");
+    expect(response.cookies.set).toHaveBeenCalledWith("locale", "es", expect.objectContaining({ path: "/" }));
+  });
+
+  it("does not set locale cookie when locale resolves to English", () => {
+    mockExtractAgentId.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenise-buckalew.real-estate-star.com");
+    const response = middleware(req as never);
+    expect(response.cookies.set).not.toHaveBeenCalled();
+  });
+
+  it("uses cookie locale when present and agent supports it", () => {
+    mockExtractAgentId.mockReturnValue("test-agent");
+    const req = makeRequest("test-agent.real-estate-star.com", "/", { cookieLocale: "es" });
+    const response = middleware(req as never);
+    expect(response.headers.get("x-locale")).toBe("es");
+  });
+
+  it("sets x-locale for custom domain match", () => {
+    mockResolveCustomDomain.mockReturnValue("jenise-buckalew");
+    const req = makeRequest("jenisesellsnj.com");
+    const response = middleware(req as never);
+    expect(response.headers.get("x-locale")).toBe("en");
+  });
+
+  it("sets x-locale for workers.dev fallback", () => {
+    mockExtractAgentId.mockReturnValue(null);
+    mockResolveCustomDomain.mockReturnValue(null);
+    const req = makeRequest("real-estate-star-agents-pr-18.workers.dev");
+    const response = middleware(req as never);
+    expect(response.headers.get("x-locale")).toBe("en");
+  });
+
+  it("falls back to English when agent has no configured languages", () => {
+    // "unknown-in-registry" is not in accountLanguages mock, so agentLangs is undefined → locales = ["en"]
+    mockExtractAgentId.mockReturnValue("no-langs-agent");
+    mockGetAgentIds.mockReturnValue(new Set(["no-langs-agent"]));
+    const req = makeRequest("no-langs-agent.real-estate-star.com");
+    const response = middleware(req as never);
+    expect(response.headers.get("x-locale")).toBe("en");
   });
 });
 
