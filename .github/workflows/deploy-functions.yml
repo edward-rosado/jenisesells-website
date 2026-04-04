@@ -44,20 +44,20 @@ jobs:
           --configuration Release
           --output ./publish/functions
 
-      - name: Generate .azurefunctions from functions.metadata
+      - name: Copy WorkerExtensions to publish output
         run: |
-          cd ./publish/functions
-          mkdir -p .azurefunctions
-          python3 -c "
-          import json, os
-          with open('functions.metadata') as f:
-              funcs = json.load(f)
-          for fn in funcs:
-              with open(f'.azurefunctions/{fn[\"name\"]}.json', 'w') as out:
-                  json.dump(fn, out, indent=2)
-          print(f'Generated {len(funcs)} function metadata files in .azurefunctions/')
-          "
-          echo '{"extensions":[]}' > .azurefunctions/extensions.json
+          # The Functions SDK builds host-side extensions (DurableTask, Queues, etc.) during
+          # dotnet build into obj/*/WorkerExtensions/bin/. Azure Functions host requires these
+          # DLLs in .azurefunctions/ to discover functions and start the worker process.
+          #
+          # GitHub Actions artifact upload/download drops dot-prefixed directories, so we save
+          # extensions to _azurefunctions/ (underscore) and rename to .azurefunctions/ in deploy.
+          EXTENSIONS_DIR=$(find apps/api/RealEstateStar.Functions/obj -path "*/WorkerExtensions/bin/Release/net8.0" -type d | head -1)
+          echo "WorkerExtensions found at: $EXTENSIONS_DIR"
+          mkdir -p ./publish/functions/_azurefunctions
+          cp -r "$EXTENSIONS_DIR/." ./publish/functions/_azurefunctions/
+          echo "Copied $(ls ./publish/functions/_azurefunctions/*.dll 2>/dev/null | wc -l) extension DLLs"
+          ls ./publish/functions/_azurefunctions/ | head -10
 
       - uses: actions/upload-artifact@v4
         with:
@@ -75,9 +75,6 @@ jobs:
       id-token: write
 
     steps:
-      - name: Install Azure Functions Core Tools
-        run: npm install -g azure-functions-core-tools@4 --unsafe-perm true
-
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -88,25 +85,19 @@ jobs:
           name: functions-publish
           path: ./publish/functions
 
-      - name: Restore .azurefunctions from functions.metadata
+      - name: Reconstruct .azurefunctions from _azurefunctions backup
         run: |
-          # GitHub Actions artifact upload/download drops dot-prefixed directories.
-          # Regenerate .azurefunctions from the SDK-generated functions.metadata.
           cd ./publish/functions
-          mkdir -p .azurefunctions
-          python3 -c "
-          import json, os
-          with open('functions.metadata') as f:
-              funcs = json.load(f)
-          for fn in funcs:
-              with open(f'.azurefunctions/{fn[\"name\"]}.json', 'w') as out:
-                  json.dump(fn, out, indent=2)
-          print(f'Restored {len(funcs)} function metadata files in .azurefunctions/')
-          "
-          echo '{"extensions":[]}' > .azurefunctions/extensions.json
-          echo "=== .azurefunctions ==="
-          ls .azurefunctions/ | wc -l
-          echo "files"
+          # Rename _azurefunctions → .azurefunctions (GitHub Actions drops dot-prefixed dirs)
+          if [ -d "_azurefunctions" ]; then
+            mv _azurefunctions .azurefunctions
+            echo "Restored .azurefunctions from _azurefunctions backup"
+          else
+            echo "ERROR: _azurefunctions not found in artifact!"
+            exit 1
+          fi
+          echo "=== .azurefunctions ($(ls .azurefunctions/ | wc -l) files) ==="
+          ls .azurefunctions/ | head -10
           echo "=== worker.config.json ==="
           cat worker.config.json
           echo "=== host.json ==="
@@ -118,7 +109,10 @@ jobs:
           # Create zip with ALL files including .azurefunctions
           zip -r ../../deploy.zip . -x '*.pdb'
           # Verify .azurefunctions is in the zip
-          unzip -l ../../deploy.zip | grep azurefunctions | head -5
+          echo "=== .azurefunctions in zip ==="
+          unzip -l ../../deploy.zip | grep "\.azurefunctions/" | head -5
+          echo "Total DLLs in .azurefunctions:"
+          unzip -l ../../deploy.zip | grep "\.azurefunctions/.*\.dll" | wc -l
           # Deploy
           az functionapp deployment source config-zip \
             --resource-group ${{ env.RESOURCE_GROUP }} \
