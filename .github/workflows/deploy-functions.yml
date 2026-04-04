@@ -45,7 +45,6 @@ jobs:
           dotnet publish apps/api/RealEstateStar.Functions/RealEstateStar.Functions.csproj
           --no-build
           --configuration Release
-          --framework net9.0
           --output ./publish/functions
 
       - uses: actions/upload-artifact@v4
@@ -64,16 +63,6 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup .NET 9 + 10
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            9.0.x
-            10.0.x
-          dotnet-quality: 'preview'
-
       - name: Install Azure Functions Core Tools
         run: npm install -g azure-functions-core-tools@4 --unsafe-perm true
 
@@ -82,13 +71,14 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: functions-publish
+          path: ./publish/functions
+
       - name: Deploy via func CLI
-        working-directory: apps/api/RealEstateStar.Functions
         run: |
-          # Publish net9.0 without --output flag (avoids multi-TFM race on shared output dir)
-          dotnet publish --configuration Release --framework net9.0
-          # func publishes from the default output location
-          cd bin/Release/net9.0/publish
+          cd ./publish/functions
           func azure functionapp publish ${{ env.FUNCTION_APP_NAME }} --no-build --dotnet-isolated
 
       - name: Verify deployment
