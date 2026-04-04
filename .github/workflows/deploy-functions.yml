@@ -91,15 +91,29 @@ jobs:
           name: functions-publish
           path: ./publish/functions
 
-      - name: Verify artifact contents
+      - name: Restore .azurefunctions from functions.metadata
         run: |
+          # GitHub Actions artifact upload/download drops dot-prefixed directories.
+          # Regenerate .azurefunctions from the SDK-generated functions.metadata.
+          cd ./publish/functions
+          mkdir -p .azurefunctions
+          python3 -c "
+          import json, os
+          with open('functions.metadata') as f:
+              funcs = json.load(f)
+          for fn in funcs:
+              with open(f'.azurefunctions/{fn[\"name\"]}.json', 'w') as out:
+                  json.dump(fn, out, indent=2)
+          print(f'Restored {len(funcs)} function metadata files in .azurefunctions/')
+          "
+          echo '{"extensions":[]}' > .azurefunctions/extensions.json
           echo "=== .azurefunctions ==="
-          ls ./publish/functions/.azurefunctions/ | wc -l
+          ls .azurefunctions/ | wc -l
           echo "files"
           echo "=== worker.config.json ==="
-          cat ./publish/functions/worker.config.json
+          cat worker.config.json
           echo "=== host.json ==="
-          cat ./publish/functions/host.json
+          cat host.json
 
       - name: Deploy via func CLI
         run: |
