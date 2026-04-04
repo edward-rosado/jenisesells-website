@@ -84,6 +84,7 @@
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.GDocs\RealEstateStar.Clients.GDocs.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.GSheets\RealEstateStar.Clients.GSheets.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.GoogleOAuth\RealEstateStar.Clients.GoogleOAuth.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Gws\RealEstateStar.Clients.Gws.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Scraper\RealEstateStar.Clients.Scraper.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.RentCast\RealEstateStar.Clients.RentCast.csproj" />
     <!-- Services -->

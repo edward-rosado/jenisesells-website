@@ -21,6 +21,7 @@ using RealEstateStar.Clients.GSheets;
 using RealEstateStar.Clients.Gmail;
 using RealEstateStar.Clients.GoogleOAuth;
 using RealEstateStar.Clients.RentCast;
+using RealEstateStar.Clients.Gws;
 using RealEstateStar.Clients.Scraper;
 using RealEstateStar.DataServices;
 using RealEstateStar.DataServices.Storage;
@@ -294,6 +295,9 @@ builder.Services.AddGmailReader(googleClientId ?? string.Empty, googleClientSecr
 builder.Services.AddGDriveClient(googleClientId ?? string.Empty, googleClientSecret ?? string.Empty);
 builder.Services.AddGDocsClient(googleClientId ?? string.Empty, googleClientSecret ?? string.Empty);
 builder.Services.AddGSheetsClient(googleClientId ?? string.Empty, googleClientSecret ?? string.Empty);
+
+// ── Google Workspace service (Drive, Docs, Sheets, Gmail) ─────────────────────
+builder.Services.AddSingleton<IGwsService, GwsCliRunner>();
 
 // ── Scraper client ─────────────────────────────────────────────────────────────
 builder.Services.AddScraperClient(builder.Configuration, pollyLogger);
