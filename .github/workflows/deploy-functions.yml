@@ -64,28 +64,55 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup .NET 9 + 10
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            9.0.x
-            10.0.x
-          dotnet-quality: 'preview'
-
-      - name: Install Azure Functions Core Tools
-        run: npm install -g azure-functions-core-tools@4 --unsafe-perm true
-
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy via func CLI
-        working-directory: apps/api/RealEstateStar.Functions
+      - uses: actions/download-artifact@v4
+        with:
+          name: functions-publish
+          path: ./publish/functions
+
+      - name: Prepare and deploy
         run: |
-          echo "1" | func azure functionapp publish ${{ env.FUNCTION_APP_NAME }} --dotnet-isolated
+          set -euo pipefail
+
+          # Generate .azurefunctions from SDK-generated functions.metadata
+          mkdir -p ./publish/functions/.azurefunctions
+          python3 -c "
+          import json, os
+          with open('./publish/functions/functions.metadata') as f:
+              functions = json.load(f)
+          outdir = './publish/functions/.azurefunctions'
+          for func in functions:
+              with open(os.path.join(outdir, func['name'] + '.json'), 'w') as out:
+                  json.dump(func, out, indent=2)
+          print(f'Generated {len(functions)} function metadata files')
+          "
+          echo '{"extensions":[]}' > ./publish/functions/.azurefunctions/extensions.json
+
+          # Zip and deploy
+          cd ./publish/functions
+          zip -r ../../functions.zip . -x '*.pdb'
+          cd ../..
+          az functionapp deployment source config-zip \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.FUNCTION_APP_NAME }} \
+            --src functions.zip \
+            --timeout 300
+
+          # Force restart to pick up new deployment
+          az functionapp restart \
+            --name ${{ env.FUNCTION_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }}
+
+          # Wait for host to start
+          sleep 30
+
+          # List discovered functions
+          echo "Checking discovered functions..."
+          func azure functionapp list-functions ${{ env.FUNCTION_APP_NAME }} 2>/dev/null || echo "func list-functions not available"
 
       - name: Verify deployment
         run: |
