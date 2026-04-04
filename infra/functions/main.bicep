@@ -51,7 +51,7 @@ resource flexPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
 }
 
 // ---------------------------------------------------------------------------
-// Function App — .NET 10 isolated worker, Linux, Flex Consumption
+// Function App — .NET 9 isolated worker, Linux, Flex Consumption
 // ---------------------------------------------------------------------------
 resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   name: functionAppName
@@ -59,18 +59,13 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   kind: 'functionapp,linux'
   properties: {
     serverFarmId: flexPlan.id
-    siteConfig: {
-      // Flex Consumption uses a different config surface; runtime settings go
-      // under functionAppConfig below, NOT under siteConfig.linuxFxVersion.
-    }
+    siteConfig: {}
     functionAppConfig: {
       runtime: {
         name: 'dotnet-isolated'
         version: '9.0'
       }
       scaleAndConcurrency: {
-        // One always-ready instance for the lead orchestrator to avoid cold
-        // starts on first lead submission of the day. Cost: ~$0.06/day.
         alwaysReady: [
           {
             name: 'http'
@@ -81,7 +76,6 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         instanceMemoryMB: 2048
       }
       deployment: {
-        // Storage used for internal Flex Consumption package deployment.
         storage: {
           type: 'blobContainer'
           value: '${storageAccount.properties.primaryEndpoints.blob}function-packages'
@@ -95,32 +89,16 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
     httpsOnly: true
   }
 
-  // App settings — mix of runtime requirements and secrets.
-  // Secrets are passed as secure parameters; never hardcoded.
   resource appSettings 'config' = {
     name: 'appsettings'
     properties: {
-      // --- Storage ---
       AzureWebJobsStorage: storageConnectionString
-
-      // --- Observability ---
       APPLICATIONINSIGHTS_CONNECTION_STRING: appInsightsConnectionString
-
-      // --- .NET 10 isolated worker ---
-      // Required for the out-of-process model on Flex Consumption.
       WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED: '1'
-
-      // NOTE: FUNCTIONS_WORKER_RUNTIME and FUNCTIONS_EXTENSION_VERSION are NOT
-      // allowed as app settings on Flex Consumption. They are configured via
-      // functionAppConfig.runtime above.
     }
   }
 }
 
-// ---------------------------------------------------------------------------
-// Blob container for Flex Consumption package deployment
-// The storage account already exists; we just add the container.
-// ---------------------------------------------------------------------------
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
   name: 'realestatestarstore'
 }

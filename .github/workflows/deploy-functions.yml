@@ -38,13 +38,14 @@ jobs:
         run: dotnet restore apps/api/RealEstateStar.Functions/RealEstateStar.Functions.csproj
 
       - name: Build
-        run: dotnet build apps/api/RealEstateStar.Functions/RealEstateStar.Functions.csproj --no-restore --configuration Release
+        run: dotnet build apps/api/RealEstateStar.Functions/RealEstateStar.Functions.csproj --no-restore --configuration Release --framework net9.0
 
       - name: Publish
         run: >
           dotnet publish apps/api/RealEstateStar.Functions/RealEstateStar.Functions.csproj
           --no-build
           --configuration Release
+          --framework net9.0
           --output ./publish/functions
 
       - uses: actions/upload-artifact@v4
