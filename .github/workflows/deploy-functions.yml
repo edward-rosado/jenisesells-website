@@ -139,8 +139,8 @@ jobs:
           unzip -l ../../deploy.zip | grep "\.azurefunctions/" | wc -l
           echo "Zip contents (metadata):"
           unzip -l ../../deploy.zip | grep -E "(functions\.metadata|worker\.config|host\.json)"
-          # zipdeploy via SCM/Kudu — unpacks files to wwwroot (not run-from-package)
-          az webapp deployment source config-zip \
+          # Deploy via functionapp config-zip (not run-from-package since we removed the setting)
+          az functionapp deployment source config-zip \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --name ${{ env.FUNCTION_APP_NAME }} \
             --src ../../deploy.zip \
