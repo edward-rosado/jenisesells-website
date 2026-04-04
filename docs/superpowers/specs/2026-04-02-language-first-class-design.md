@@ -68,39 +68,58 @@ flowchart TD
 
 This heuristic is used during activation (Phase 1) to tag emails and documents by language before partitioning for Phase 2 extraction.
 
-## Per-Language Skill Extraction
+## Per-Language Skill Extraction (Durable Functions)
+
+Language extraction is fully integrated with the Azure Durable Functions activation orchestrator. `LocalizedSkills` (a `Dictionary<string, string>` mapping `"{SkillName}.{locale}.md"` to markdown content) flows through DF serialization DTOs in `ActivationDtos.cs`.
 
 ```mermaid
 flowchart TD
-    subgraph Phase1["Phase 1: Gather + Tag"]
+    subgraph Phase1["Phase 1: Gather + Tag (DF Activities)"]
         direction TB
-        Emails["EmailFetch<br/>100 sent + 100 inbox"] --> Tag1["LanguageDetector.DetectLocale()<br/>per email"]
-        Docs["DriveIndex<br/>PDF + document extraction"] --> Tag2["LanguageDetector.DetectLocale()<br/>per document"]
+        Emails["EmailFetchFunction<br/>Activity → 100 sent + 100 inbox"] --> Tag1["LanguageDetector.DetectLocale()<br/>per email"]
+        Docs["DriveIndexFunction<br/>Activity → PDF + doc extraction"] --> Tag2["LanguageDetector.DetectLocale()<br/>per document"]
         Tag1 --> Tagged["Tagged corpus<br/>each item has .DetectedLocale"]
         Tag2 --> Tagged
     end
 
-    subgraph Phase2["Phase 2: Partition + Extract"]
+    subgraph Phase2["Phase 2: Partition + Extract (DF Activities)"]
         direction TB
         Tagged --> Partition["Partition by locale<br/>en corpus, es corpus"]
-        Partition --> EnWorkers["English workers (12)<br/>VoiceExtraction, Personality, etc."]
-        Partition --> EsWorkers["Spanish workers (12)<br/>same workers, es corpus<br/>only if es corpus >= 10 items"]
-        EnWorkers --> EnSkills["Voice Skill.md<br/>Personality Skill.md<br/>etc."]
-        EsWorkers --> EsSkills["Voice Skill.es.md<br/>Personality Skill.es.md<br/>etc."]
+        Partition --> EnWorkers["English DF activities (12)<br/>VoiceExtractionFunction, PersonalityFunction, etc."]
+        Partition --> EsWorkers["Spanish DF activities (12)<br/>same functions, es corpus<br/>only if es corpus >= 10 items"]
+        EnWorkers --> EnSkills["VoiceExtractionOutput.VoiceSkillMarkdown<br/>PersonalityOutput.PersonalitySkillMarkdown<br/>etc."]
+        EsWorkers --> EsSkills["VoiceExtractionOutput.LocalizedSkills['es']<br/>PersonalityOutput.LocalizedSkills['es']<br/>etc."]
     end
 
-    subgraph Phase3["Phase 3: Persist"]
+    subgraph Phase3["Phase 3: Persist (DF Activity)"]
         direction TB
-        EnSkills --> Persist["PersistProfile activity<br/>fan-out write"]
+        EnSkills --> Persist["PersistProfileFunction<br/>PersistProfileInput.LocalizedSkills<br/>fan-out write"]
         EsSkills --> Persist
         Persist --> Drive["Google Drive<br/>real-estate-star/{agentId}/"]
         Persist --> Blob["Azure Blob Storage"]
     end
 
+    subgraph Phase0["Phase 0: Completion Check"]
+        direction TB
+        Check["CheckActivationCompleteFunction<br/>Languages=['es'] → also checks<br/>Voice Skill.es.md, Personality Skill.es.md"]
+    end
+
     style Phase1 fill:#e3f2fd
     style Phase2 fill:#f3e5f5
     style Phase3 fill:#e8f5e9
+    style Phase0 fill:#fff3e0
 ```
+
+### DF Serialization
+
+Each Phase 2 worker output DTO includes an optional `LocalizedSkills` dictionary:
+- `VoiceExtractionOutput.LocalizedSkills` — `{"Voice Skill.es.md": "..."}`
+- `PersonalityOutput.LocalizedSkills` — `{"Personality Skill.es.md": "..."}`
+- `MarketingStyleOutput.LocalizedSkills` — `{"Marketing Style.es.md": "..."}`
+- `BrandExtractionOutput.LocalizedSkills` — `{"Brand Extraction.es.md": "..."}`
+- `BrandVoiceOutput.LocalizedSkills` — `{"Brand Voice.es.md": "..."}`
+
+These are aggregated into `PersistProfileInput.LocalizedSkills` and written alongside English files. The DF JSON serializer handles the `IReadOnlyDictionary<string, string>` round-trip automatically.
 
 ### Minimum Corpus Threshold
 
@@ -117,16 +136,21 @@ Spanish skill extraction only runs if the tagged Spanish corpus contains at leas
 
 Convention: `{Skill Name}.{locale}.md` where locale is omitted for English (the default).
 
-## Locale Flow in Lead Pipeline
+## Locale Flow in Lead Pipeline (Durable Functions)
 
-When a lead submits through the agent site:
+When a lead submits through the agent site, `Lead.Locale` flows through the DF orchestrator chain via serialized DTOs:
 
 1. **Form submission:** The `LeadForm` component includes a hidden `locale` field set to the page's resolved locale.
 2. **API endpoint:** `Lead.Locale` is persisted in the lead's YAML frontmatter (`locale: es`).
-3. **Email drafter:** Loads `AgentContext.GetSkill("VoiceSkill", lead.Locale)`. If the locale-specific skill exists (`Voice Skill.es.md`), it uses the agent's authentic Spanish voice. If not, falls back to the English skill with a system prompt instructing Claude to draft in Spanish.
-4. **CMA PDF:** `CmaPdfGenerator` renders localized section headers, labels, and disclaimer text based on `lead.Locale`.
-5. **Agent notification:** The notification to the agent (email/WhatsApp) is always in English — the agent manages their pipeline in English regardless of the contact's language.
-6. **TCPA consent:** Consent text stays in English regardless of locale (legal requirement — TCPA consent must be in the language the regulation was written in).
+3. **Queue trigger:** `StartLeadProcessingFunction` reads `Lead.Locale` and maps it into `LeadOrchestratorInput.Locale`.
+4. **DF orchestrator:** `LeadOrchestratorFunction` propagates `Locale` into downstream activity DTOs:
+   - `DraftLeadEmailInput.Locale` — email drafter loads `AgentContext.GetSkill("VoiceSkill", locale)`
+   - `GeneratePdfInput.Locale` — CMA PDF renders localized headers, labels, disclaimer text
+   - `NotifyAgentInput.Locale` — agent notification includes lead's language preference
+   - `PersistLeadResultsInput.Locale` — final results record the locale used
+5. **Email drafter activity:** If the locale-specific skill exists (`Voice Skill.es.md`), it uses the agent's authentic Spanish voice. If not, falls back to the English skill with a system prompt instructing Claude to draft in Spanish.
+6. **Agent notification:** The notification to the agent (email/WhatsApp) is always in English — the agent manages their pipeline in English regardless of the contact's language.
+7. **TCPA consent:** Consent text stays in English regardless of locale (legal requirement — TCPA consent must be in the language the regulation was written in).
 
 ## Observability
 

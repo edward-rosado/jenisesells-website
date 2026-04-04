@@ -1,6 +1,6 @@
 # Language Locale Flow
 
-End-to-end flow of locale resolution from browser to email delivery.
+End-to-end flow of locale resolution from browser through the Durable Functions lead pipeline to email delivery. `Lead.Locale` flows through `LeadOrchestratorInput.Locale` into all downstream DF activity DTOs.
 
 ```mermaid
 flowchart TD
@@ -24,8 +24,12 @@ flowchart TD
     API --> ValidateLocale["Validate locale against<br/>agent config languages"]
     ValidateLocale --> Persist["Lead.Locale persisted<br/>in YAML frontmatter"]
 
-    Persist --> Drafter["Email Drafter Activity"]
-    Drafter --> LoadSkill["AgentContext.GetSkill<br/>('VoiceSkill', lead.Locale)"]
+    Persist --> Queue["Azure Queue 'lead-requests'"]
+    Queue --> Trigger["StartLeadProcessingFunction<br/>[QueueTrigger]<br/>Maps Lead.Locale →<br/>LeadOrchestratorInput.Locale"]
+    Trigger --> Orch["LeadOrchestratorFunction<br/>(Durable Orchestrator)<br/>Propagates Locale to activities"]
+
+    Orch --> Drafter["DraftLeadEmailFunction<br/>[ActivityTrigger]<br/>DraftLeadEmailInput.Locale"]
+    Drafter --> LoadSkill["AgentContext.GetSkill<br/>('VoiceSkill', locale)"]
     LoadSkill --> SkillCheck{"Voice Skill.es.md<br/>exists?"}
     SkillCheck -->|yes| UseLocaleSkill["Load per-language skill"]
     SkillCheck -->|no| FallbackSkill["Load Voice Skill.md (en)<br/>+ Spanish system prompt"]
@@ -36,14 +40,19 @@ flowchart TD
     Draft --> Template["Email template<br/>localized subject + body"]
     Template --> Gmail["Gmail send<br/>to contact"]
 
-    Persist --> CMA["CMA Pipeline"]
-    CMA --> CmaPdf["CmaPdfGenerator<br/>locale-aware headers + labels"]
+    Orch --> CMA["CmaProcessingFunction<br/>[ActivityTrigger]"]
+    CMA --> PDF["GeneratePdfFunction<br/>GeneratePdfInput.Locale"]
+    PDF --> CmaPdf["CmaPdfGenerator<br/>locale-aware headers + labels"]
     CmaPdf --> Blob["Azure Blob Storage"]
+
+    Orch --> Notify["NotifyAgentFunction<br/>NotifyAgentInput.Locale"]
+    Orch --> PersistResults["PersistLeadResultsFunction<br/>PersistLeadResultsInput.Locale"]
 
     style MW fill:#e3f2fd
     style Persist fill:#e8f5e9
+    style Orch fill:#fff3e0
     style Drafter fill:#f3e5f5
-    style CMA fill:#fff3e0
+    style CMA fill:#f3e5f5
 ```
 
 ## Key Decisions

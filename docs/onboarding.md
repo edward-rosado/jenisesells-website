@@ -105,13 +105,22 @@ For full details on each step, see the rules in `.claude/rules/`.
 
 ## How Languages & Localization Work
 
-Real Estate Star supports two locales: **English** (`en`) and **Spanish** (`es`).
+Real Estate Star supports two locales: **English** (`en`) and **Spanish** (`es`). Language is fully integrated with the Azure Durable Functions orchestrators for both the activation and lead pipelines.
 
 ### Where Locale Is Resolved
 
 - **Agent-site middleware** (`middleware.ts`): Reads `Accept-Language` header, checks for a `locale` cookie (set by language picker), and validates against the agent's `identity.languages` config array. Defaults to `en` if no match.
 - **LeadForm**: Includes a hidden `locale` field set to the page's resolved locale.
 - **API endpoint**: Validates the locale against the agent's supported languages and persists it as `Lead.Locale` in YAML frontmatter.
+- **Lead DF pipeline**: `StartLeadProcessingFunction` maps `Lead.Locale` into `LeadOrchestratorInput.Locale`, which propagates through all downstream activity DTOs (`DraftLeadEmailInput.Locale`, `GeneratePdfInput.Locale`, `NotifyAgentInput.Locale`, `PersistLeadResultsInput.Locale`).
+
+### How Per-Language Skills Are Extracted (Activation DF Pipeline)
+
+During activation, the Durable Functions orchestrator extracts per-language skills:
+1. Phase 1 activities (`EmailFetchFunction`, `DriveIndexFunction`) tag corpus items by locale using `LanguageDetector.DetectLocale()`
+2. Phase 2 activities run for each language — worker output DTOs (`VoiceExtractionOutput`, `PersonalityOutput`, etc.) include a `LocalizedSkills` dictionary mapping `"{SkillName}.{locale}.md"` to markdown content
+3. Phase 3 `PersistProfileFunction` writes both English and localized skill files from `PersistProfileInput.LocalizedSkills`
+4. Phase 0 `CheckActivationCompleteFunction` verifies per-language completeness — when `CheckActivationCompleteInput.Languages` contains `"es"`, it also checks that `Voice Skill.es.md` and `Personality Skill.es.md` exist
 
 ### Testing Bilingual Agents
 
@@ -121,7 +130,8 @@ To test Spanish lead flow end-to-end:
 1. Set browser language to Spanish (or manually set the `locale` cookie to `es`)
 2. Submit a lead through the agent site
 3. Verify `Lead.Locale` is `es` in the saved lead file
-4. Verify the drafted email uses Spanish voice/template
+4. Verify `LeadOrchestratorInput.Locale` is `"es"` in DF orchestrator logs
+5. Verify the drafted email uses Spanish voice/template
 
 ### Where Per-Language Skills Are Stored
 
@@ -138,6 +148,8 @@ Spanish skills are only extracted during activation if the agent's tagged Spanis
 3. Add the locale code to `LanguageDetector` in `Domain/Shared/Services/` (stop-word list + character-set rules)
 4. Add localized strings to the email template and CMA PDF generator
 5. Update the `LeadForm` locale validation to accept the new code
+6. Add locale-specific required files to `CheckActivationCompleteFunction.SpanishAgentFiles` (or equivalent for the new locale)
+7. Ensure DF activity output DTOs populate `LocalizedSkills` for the new locale
 
 ## Using the Typed API Client
 
