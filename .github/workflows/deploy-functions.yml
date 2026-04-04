@@ -80,10 +80,15 @@ jobs:
               echo "WARNING: runtimes/ not found in WorkerExtensions"
             fi
             # function.deps.json tells the host how to load extensions
-            if [ -f "./publish/functions/_azurefunctions/function.deps.json" ]; then
-              echo "function.deps.json: present"
+            # func start puts it at .azurefunctions/function.deps.json (root)
+            # but dotnet build puts it at WorkerExtensions/bin/Release/net8.0/bin/
+            DEPS_FILE=$(find ./publish/functions/_azurefunctions -name "function.deps.json" | head -1)
+            if [ -n "$DEPS_FILE" ]; then
+              cp "$DEPS_FILE" ./publish/functions/_azurefunctions/function.deps.json 2>/dev/null || true
+              echo "function.deps.json: present (copied from $DEPS_FILE)"
             else
-              echo "WARNING: function.deps.json not found in WorkerExtensions"
+              echo "ERROR: function.deps.json not found anywhere in WorkerExtensions!"
+              exit 1
             fi
           else
             echo "ERROR: WorkerExtensions not found!"
