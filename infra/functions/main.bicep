@@ -66,7 +66,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
     functionAppConfig: {
       runtime: {
         name: 'dotnet-isolated'
-        version: '10.0'
+        version: '9.0'
       }
       scaleAndConcurrency: {
         // One always-ready instance for the lead orchestrator to avoid cold
