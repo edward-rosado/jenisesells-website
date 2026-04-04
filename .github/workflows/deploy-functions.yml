@@ -103,22 +103,17 @@ jobs:
           echo "=== host.json ==="
           cat host.json
 
-      - name: Deploy via config-zip
+      - name: Install Azure Functions Core Tools
+        run: npm install -g azure-functions-core-tools@4 --unsafe-perm true
+
+      - name: Deploy via func CLI
         run: |
           cd ./publish/functions
-          # Create zip with ALL files including .azurefunctions
-          zip -r ../../deploy.zip . -x '*.pdb'
-          # Verify .azurefunctions is in the zip
-          echo "=== .azurefunctions in zip ==="
-          unzip -l ../../deploy.zip | grep "\.azurefunctions/" | head -5
-          echo "Total DLLs in .azurefunctions:"
-          unzip -l ../../deploy.zip | grep "\.azurefunctions/.*\.dll" | wc -l
-          # Deploy
-          az functionapp deployment source config-zip \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --name ${{ env.FUNCTION_APP_NAME }} \
-            --src ../../deploy.zip \
-            --timeout 300
+          # Create minimal local.settings.json required by func CLI
+          echo '{"IsEncrypted":false,"Values":{"FUNCTIONS_WORKER_RUNTIME":"dotnet-isolated"}}' > local.settings.json
+          echo "=== .azurefunctions ($(ls .azurefunctions/*.dll 2>/dev/null | wc -l) DLLs) ==="
+          # func azure functionapp publish handles trigger sync + proper deployment
+          func azure functionapp publish ${{ env.FUNCTION_APP_NAME }} --no-build --dotnet-isolated
 
       - name: Verify deployment
         run: |
