@@ -21,9 +21,14 @@ env:
   FUNCTIONS_PROJECT: apps/api/RealEstateStar.Functions
 
 jobs:
-  build-and-test:
-    name: "Functions — build and test"
+  build-and-deploy:
+    name: "Functions — build and deploy"
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - uses: actions/checkout@v4
 
@@ -35,121 +40,66 @@ jobs:
       - name: Install Azure Functions Core Tools
         run: npm install -g azure-functions-core-tools@4 --unsafe-perm true
 
-      - name: Build via func (produces correct output structure)
-        run: |
-          cd ${{ env.FUNCTIONS_PROJECT }}
-          # func start --build-only isn't available, so use dotnet build which func uses internally
-          dotnet build --configuration Release --framework net9.0
-          # func start builds to bin/output/ with correct metadata + .azurefunctions/ structure
-          # Replicate by using func's internal build target
-          dotnet publish --configuration Release --framework net9.0 --output ./bin/publish
-          # Copy SDK-generated metadata that dotnet publish doesn't include
-          OBJ_DIR=obj/Release/net9.0
-          cp "$OBJ_DIR/functions.metadata" ./bin/publish/
-          cp "$OBJ_DIR/worker.config.json" ./bin/publish/
-          # Copy WorkerExtensions (.azurefunctions/) — GitHub Actions drops dot-prefixed dirs
-          EXTENSIONS_DIR=$(find obj -path "*/WorkerExtensions/bin/Release/net8.0" -type d | head -1)
-          mkdir -p ./bin/publish/_azurefunctions
-          cp -r "$EXTENSIONS_DIR/." ./bin/publish/_azurefunctions/
-          # function.deps.json may be nested in bin/ subdirectory
-          DEPS_FILE=$(find ./bin/publish/_azurefunctions -name "function.deps.json" | head -1)
-          [ -n "$DEPS_FILE" ] && cp "$DEPS_FILE" ./bin/publish/_azurefunctions/function.deps.json 2>/dev/null || true
-          echo "=== Build output ==="
-          echo "functions.metadata: $(wc -l < ./bin/publish/functions.metadata) lines"
-          echo "WorkerExtensions: $(ls ./bin/publish/_azurefunctions/*.dll 2>/dev/null | wc -l) DLLs"
-          echo "runtimes: $(find ./bin/publish/_azurefunctions/runtimes -type f 2>/dev/null | wc -l) files"
-          # Verify critical files
-          for f in functions.metadata worker.config.json host.json RealEstateStar.Functions.dll; do
-            [ -f "./bin/publish/$f" ] && echo "OK: $f" || (echo "MISSING: $f" && exit 1)
-          done
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: functions-publish
-          path: ${{ env.FUNCTIONS_PROJECT }}/bin/publish
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: functions-publish
-          path: ./publish/functions
-
-  deploy:
-    name: "Deploy to Azure Functions"
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: functions-publish
-          path: ./publish/functions
-
-      - name: Reconstruct .azurefunctions from _azurefunctions backup
+      - name: Build and deploy
         run: |
-          cd ./publish/functions
-          # Rename _azurefunctions → .azurefunctions (GitHub Actions drops dot-prefixed dirs)
-          if [ -d "_azurefunctions" ]; then
-            mv _azurefunctions .azurefunctions
-            echo "Restored .azurefunctions/ ($(ls .azurefunctions/*.dll 2>/dev/null | wc -l) DLLs)"
-          else
-            echo "ERROR: _azurefunctions not found in artifact!"
-            exit 1
-          fi
-          # Verify all critical files are present
-          for f in functions.metadata worker.config.json host.json RealEstateStar.Functions.dll; do
-            if [ -f "$f" ]; then
-              echo "OK: $f"
-            else
-              echo "MISSING: $f" && exit 1
-            fi
+          cd ${{ env.FUNCTIONS_PROJECT }}
+
+          # Build — this generates WorkerExtensions, functions.metadata, worker.config.json
+          dotnet build --configuration Release --framework net9.0
+
+          # func start builds to bin/output/ with the exact structure Azure needs.
+          # We can't run func start in CI, but we can replicate what it does:
+          # 1. dotnet publish to bin/output
+          # 2. Copy SDK metadata files from obj/
+          # 3. Copy WorkerExtensions to .azurefunctions/
+
+          # Step 1: Publish to bin/output (same path func start uses)
+          dotnet publish --configuration Release --framework net9.0 --no-build --output ./bin/output
+
+          # Step 2: Copy SDK-generated metadata
+          OBJ_DIR=obj/Release/net9.0
+          cp "$OBJ_DIR/functions.metadata" ./bin/output/
+          cp "$OBJ_DIR/worker.config.json" ./bin/output/
+          echo "functions.metadata: $(wc -l < ./bin/output/functions.metadata) lines"
+          cat ./bin/output/worker.config.json
+
+          # Step 3: Copy WorkerExtensions to .azurefunctions/
+          EXTENSIONS_DIR=$(find obj -path "*/WorkerExtensions/bin/Release/net8.0" -type d | head -1)
+          echo "Extensions source: $EXTENSIONS_DIR"
+          cp -r "$EXTENSIONS_DIR/." ./bin/output/.azurefunctions/
+          # Flatten function.deps.json from bin/ subdirectory to root
+          DEPS_FILE=$(find ./bin/output/.azurefunctions -name "function.deps.json" | head -1)
+          [ -n "$DEPS_FILE" ] && cp "$DEPS_FILE" ./bin/output/.azurefunctions/function.deps.json 2>/dev/null || true
+
+          # Verify
+          echo "=== bin/output structure ==="
+          echo "DLLs: $(ls ./bin/output/*.dll | wc -l)"
+          echo ".azurefunctions DLLs: $(ls ./bin/output/.azurefunctions/*.dll 2>/dev/null | wc -l)"
+          echo "runtimes: $(find ./bin/output/.azurefunctions/runtimes -type f 2>/dev/null | wc -l)"
+          for f in functions.metadata worker.config.json host.json RealEstateStar.Functions.dll .azurefunctions/function.deps.json; do
+            [ -f "./bin/output/$f" ] && echo "OK: $f" || echo "MISSING: $f"
           done
 
-      - name: Ensure no WEBSITE_RUN_FROM_PACKAGE
-        run: |
-          az functionapp config appsettings delete \
-            --name ${{ env.FUNCTION_APP_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --setting-names WEBSITE_RUN_FROM_PACKAGE 2>/dev/null || true
+          # Create local.settings.json for func CLI
+          echo '{"IsEncrypted":false,"Values":{"FUNCTIONS_WORKER_RUNTIME":"dotnet-isolated"}}' > ./bin/output/local.settings.json
 
-      - name: Deploy via OneDeploy (zip to wwwroot)
-        run: |
-          cd ./publish/functions
-          zip -r ../../deploy.zip . -x '*.pdb'
-          echo "Zip size: $(du -h ../../deploy.zip | cut -f1)"
-          echo "Files in .azurefunctions: $(unzip -l ../../deploy.zip | grep '\.azurefunctions/' | wc -l)"
-          # OneDeploy API — deploys to wwwroot, does NOT set WEBSITE_RUN_FROM_PACKAGE
-          az functionapp deploy \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --name ${{ env.FUNCTION_APP_NAME }} \
-            --src-path ../../deploy.zip \
-            --type zip \
-            --async false
-          echo "Deploy complete"
-          # Sync triggers so the host re-reads function metadata
-          az rest --method post \
-            --url "https://management.azure.com/subscriptions/ca48f899-f7bf-4856-bf2a-3618deeaf010/resourceGroups/${{ env.RESOURCE_GROUP }}/providers/Microsoft.Web/sites/${{ env.FUNCTION_APP_NAME }}/syncfunctiontriggers?api-version=2023-12-01" || true
-          echo "Trigger sync requested"
+          # Deploy from bin/output — same dir structure func start uses
+          cd bin/output
+          func azure functionapp publish ${{ env.FUNCTION_APP_NAME }} --no-build --dotnet-isolated
 
       - name: Verify deployment
         run: |
-          sleep 30
+          sleep 45
           echo "Checking function discovery..."
           FUNCS=$(az rest --method get \
             --url "https://management.azure.com/subscriptions/ca48f899-f7bf-4856-bf2a-3618deeaf010/resourceGroups/${{ env.RESOURCE_GROUP }}/providers/Microsoft.Web/sites/${{ env.FUNCTION_APP_NAME }}/functions?api-version=2023-12-01" \
             --query "value | length(@)" --output tsv 2>/dev/null || echo "0")
           echo "Functions discovered: $FUNCS"
-          # Health check
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.FUNCTION_APP_NAME }}.azurewebsites.net/api/health" || echo "000")
           echo "Health endpoint: HTTP $HTTP_CODE"
           if [ "$HTTP_CODE" = "200" ]; then
