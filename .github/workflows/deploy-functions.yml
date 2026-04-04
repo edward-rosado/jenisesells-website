@@ -26,13 +26,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET 9 + 10
+      - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            9.0.x
-            10.0.x
-          dotnet-quality: 'preview'
+          dotnet-version: '9.0.x'
 
       - name: Restore
         run: dotnet restore apps/api/RealEstateStar.Functions/RealEstateStar.Functions.csproj

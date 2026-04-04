@@ -25,9 +25,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask" Version="1.2.*" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.*" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.*" />
-    <!-- Allow 10.x Microsoft.Extensions packages from transitive deps — they run fine on .NET 9
-         because they target netstandard2.0/net8.0+. The runtime loads the compatible version. -->
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.*" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.*" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="8.*" />
     <!-- OpenTelemetry — mirrors Api project for full pipeline observability -->
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
