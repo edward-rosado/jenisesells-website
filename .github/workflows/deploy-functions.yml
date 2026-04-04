@@ -73,6 +73,18 @@ jobs:
             mkdir -p ./publish/functions/_azurefunctions
             cp -r "$EXTENSIONS_DIR/." ./publish/functions/_azurefunctions/
             echo "WorkerExtensions: $(ls ./publish/functions/_azurefunctions/*.dll 2>/dev/null | wc -l) DLLs"
+            # runtimes/ contains native gRPC binaries needed by the host
+            if [ -d "./publish/functions/_azurefunctions/runtimes" ]; then
+              echo "runtimes/ present: $(find ./publish/functions/_azurefunctions/runtimes -type f | wc -l) files"
+            else
+              echo "WARNING: runtimes/ not found in WorkerExtensions"
+            fi
+            # function.deps.json tells the host how to load extensions
+            if [ -f "./publish/functions/_azurefunctions/function.deps.json" ]; then
+              echo "function.deps.json: present"
+            else
+              echo "WARNING: function.deps.json not found in WorkerExtensions"
+            fi
           else
             echo "ERROR: WorkerExtensions not found!"
             exit 1
