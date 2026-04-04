@@ -16,7 +16,7 @@ on:
       - '.github/workflows/deploy-functions.yml'
 
 env:
-  FUNCTION_APP_NAME: real-estate-star-functions
+  FUNCTION_APP_NAME: real-estate-star-functions-v2
   RESOURCE_GROUP: real-estate-star-rg
 
 jobs:
