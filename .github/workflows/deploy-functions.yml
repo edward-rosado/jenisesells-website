@@ -76,6 +76,12 @@ jobs:
           DEPS_FILE=$(find ./bin/output/.azurefunctions -name "function.deps.json" | head -1)
           [ -n "$DEPS_FILE" ] && cp "$DEPS_FILE" ./bin/output/.azurefunctions/function.deps.json 2>/dev/null || true
 
+          # Step 4: Copy agent config files (repo root, outside Docker build context)
+          # Program.cs checks ContentRootPath/config/accounts/ first (Docker), falls back to ../../..
+          # On Azure Functions, ContentRootPath IS the deployment dir, so config must be inside it.
+          cp -r ../../../config ./bin/output/config
+          echo "Agent configs: $(ls ./bin/output/config/accounts/ 2>/dev/null | wc -l) accounts"
+
           # Verify
           echo "=== bin/output structure ==="
           echo "DLLs: $(ls ./bin/output/*.dll | wc -l)"
