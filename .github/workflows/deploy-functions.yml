@@ -76,6 +76,23 @@ jobs:
           name: functions-publish
           path: ./publish/functions
 
+      - name: Generate .azurefunctions metadata
+        run: |
+          cd ./publish/functions
+          mkdir -p .azurefunctions
+          python3 -c "
+          import json, os
+          with open('functions.metadata') as f:
+              funcs = json.load(f)
+          for fn in funcs:
+              with open(f'.azurefunctions/{fn[\"name\"]}.json', 'w') as out:
+                  json.dump(fn, out, indent=2)
+          print(f'Generated {len(funcs)} metadata files')
+          "
+          echo '{"extensions":[]}' > .azurefunctions/extensions.json
+          ls .azurefunctions/ | wc -l
+          echo "files in .azurefunctions"
+
       - name: Deploy via func CLI
         run: |
           cd ./publish/functions
