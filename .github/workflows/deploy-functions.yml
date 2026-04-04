@@ -124,31 +124,27 @@ jobs:
             fi
           done
 
-      - name: Remove stale WEBSITE_RUN_FROM_PACKAGE
+      - name: Install Azure Functions Core Tools
+        run: npm install -g azure-functions-core-tools@4 --unsafe-perm true
+
+      - name: Deploy via func CLI
         run: |
+          cd ./publish/functions
+          # Create local.settings.json required by func CLI
+          echo '{"IsEncrypted":false,"Values":{"FUNCTIONS_WORKER_RUNTIME":"dotnet-isolated"}}' > local.settings.json
+          # Deploy — func publish uses SCM zipdeploy + trigger sync
+          func azure functionapp publish ${{ env.FUNCTION_APP_NAME }} --no-build --dotnet-isolated
+          # Remove WEBSITE_RUN_FROM_PACKAGE so the host reads files from wwwroot directly
           az functionapp config appsettings delete \
             --name ${{ env.FUNCTION_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --setting-names WEBSITE_RUN_FROM_PACKAGE 2>/dev/null || true
-
-      - name: Deploy via zipdeploy (unpacks to wwwroot)
-        run: |
-          cd ./publish/functions
-          zip -r ../../deploy.zip . -x '*.pdb'
-          echo "Zip contents (.azurefunctions):"
-          unzip -l ../../deploy.zip | grep "\.azurefunctions/" | wc -l
-          echo "Zip contents (metadata):"
-          unzip -l ../../deploy.zip | grep -E "(functions\.metadata|worker\.config|host\.json)"
-          # Deploy via functionapp config-zip (not run-from-package since we removed the setting)
-          az functionapp deployment source config-zip \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
+          echo "Removed WEBSITE_RUN_FROM_PACKAGE — host will read from wwwroot"
+          # Force restart to pick up the change
+          az functionapp restart \
             --name ${{ env.FUNCTION_APP_NAME }} \
-            --src ../../deploy.zip \
-            --timeout 300
-          # Sync triggers so the host re-reads function metadata
-          az rest --method post \
-            --url "https://management.azure.com/subscriptions/ca48f899-f7bf-4856-bf2a-3618deeaf010/resourceGroups/${{ env.RESOURCE_GROUP }}/providers/Microsoft.Web/sites/${{ env.FUNCTION_APP_NAME }}/syncfunctiontriggers?api-version=2023-12-01"
-          echo "Trigger sync requested"
+            --resource-group ${{ env.RESOURCE_GROUP }}
+          echo "App restarted"
 
       - name: Verify deployment
         run: |
