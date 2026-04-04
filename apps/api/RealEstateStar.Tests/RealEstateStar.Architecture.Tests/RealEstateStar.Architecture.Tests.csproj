@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.5" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="FluentAssertions" Version="8.8.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
@@ -62,13 +62,13 @@
   <!-- Copy RealEstateStar.Functions.dll to the test output dir so architecture tests can load it.
        ReferenceOutputAssembly=false prevents the Program class name collision with Api, but also
        prevents the normal DLL copy — this target restores the copy step. -->
-  <Target Name="CopyFunctionsDllToTestOutput" AfterTargets="Build"
-          Condition="Exists('$(MSBuildThisFileDirectory)../../RealEstateStar.Functions/bin/$(Configuration)/net10.0/RealEstateStar.Functions.dll')">
+  <Target Name="CopyFunctionsDllToTestOutput" AfterTargets="Build">
     <PropertyGroup>
-      <FunctionsDll>$(MSBuildThisFileDirectory)../../RealEstateStar.Functions/bin/$(Configuration)/net10.0/RealEstateStar.Functions.dll</FunctionsDll>
+      <FunctionsDll>$(MSBuildThisFileDirectory)..\..\RealEstateStar.Functions\bin\$(Configuration)\net10.0\RealEstateStar.Functions.dll</FunctionsDll>
     </PropertyGroup>
     <Copy SourceFiles="$(FunctionsDll)"
           DestinationFolder="$(OutputPath)"
-          SkipUnchangedFiles="true" />
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(FunctionsDll)')" />
   </Target>
 </Project>

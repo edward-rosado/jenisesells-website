@@ -1,5 +1,5 @@
 # Build stage
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS builder
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS builder
 
 WORKDIR /src
 
@@ -71,7 +71,7 @@ RUN dotnet publish "RealEstateStar.Api/RealEstateStar.Api.csproj" \
     --no-restore
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
 
 WORKDIR /app
 

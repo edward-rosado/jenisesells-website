@@ -21,6 +21,7 @@ using RealEstateStar.Clients.GSheets;
 using RealEstateStar.Clients.Gmail;
 using RealEstateStar.Clients.GoogleOAuth;
 using RealEstateStar.Clients.RentCast;
+using RealEstateStar.Clients.Gws;
 using RealEstateStar.Clients.Scraper;
 using RealEstateStar.DataServices;
 using RealEstateStar.DataServices.Storage;
@@ -45,9 +46,13 @@ using RealEstateStar.Workers.WhatsApp;
 using RealEstateStar.Domain.Shared;
 using Serilog;
 
+try
+{
 var builder = FunctionsApplication.CreateBuilder(args);
 
-builder.ConfigureFunctionsWebApplication();
+// NOTE: ConfigureFunctionsWebApplication() removed — ASP.NET Core HTTP proxying
+// middleware may not work on Azure Linux Consumption plan. Using the simpler
+// HttpRequestData/HttpResponseData model instead (no IActionResult, no HttpRequest).
 
 builder.Services.AddSerilog();
 
@@ -293,6 +298,9 @@ builder.Services.AddGDriveClient(googleClientId ?? string.Empty, googleClientSec
 builder.Services.AddGDocsClient(googleClientId ?? string.Empty, googleClientSecret ?? string.Empty);
 builder.Services.AddGSheetsClient(googleClientId ?? string.Empty, googleClientSecret ?? string.Empty);
 
+// ── Google Workspace service (Drive, Docs, Sheets, Gmail) ─────────────────────
+builder.Services.AddSingleton<IGwsService, GwsCliRunner>();
+
 // ── Scraper client ─────────────────────────────────────────────────────────────
 builder.Services.AddScraperClient(builder.Configuration, pollyLogger);
 
@@ -336,7 +344,33 @@ builder.Services.AddBrandMergeActivity();
 builder.Services.AddContactImportPersistActivity();
 builder.Services.AddTransient<ContactDetectionActivity>();
 
-builder.Build().Run();
+var app = builder.Build();
+var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+startupLogger.LogInformation("[STARTUP] Functions app built successfully. Starting host...");
+app.Run();
+}
+catch (Exception ex)
+{
+    // Write startup error to Azure Table for debugging (Functions host silently swallows worker crashes)
+    try
+    {
+        var connStr = Environment.GetEnvironmentVariable("AzureStorage__ConnectionString")
+            ?? Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+        if (!string.IsNullOrEmpty(connStr))
+        {
+            var tableClient = new Azure.Data.Tables.TableClient(connStr, "functionsstartuperrors");
+            tableClient.CreateIfNotExists();
+            tableClient.UpsertEntity(new Azure.Data.Tables.TableEntity("startup", DateTime.UtcNow.ToString("o"))
+            {
+                ["Error"] = ex.ToString()[..Math.Min(ex.ToString().Length, 32000)],
+                ["Message"] = ex.Message,
+                ["Type"] = ex.GetType().FullName
+            });
+        }
+    }
+    catch { /* best effort */ }
+    throw;
+}
 
 /// <summary>
 /// No-op <see cref="IDistributedContentCache"/> used when AzureStorage:ConnectionString is not configured.

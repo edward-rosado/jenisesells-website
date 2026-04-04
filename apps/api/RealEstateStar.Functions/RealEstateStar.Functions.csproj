@@ -1,13 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>RealEstateStar.Functions</RootNamespace>
-    <!-- Required for Flex Consumption: generates .azurefunctions/ directory with function metadata -->
-    <EnableSdkMetadataGeneration>true</EnableSdkMetadataGeneration>
+    <!-- Worker-side indexing: GeneratedFunctionMetadataProvider is emitted by the SDK
+         source generator when this is true. The worker registers functions with the host
+         at startup via this generated class. -->
+    <FunctionsEnableWorkerIndexing>true</FunctionsEnableWorkerIndexing>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,14 +18,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.0.*" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.*" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.*" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.*" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.2.*" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask" Version="1.2.*" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.*" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.*" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.*" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.*" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="8.*" />
     <!-- OpenTelemetry — mirrors Api project for full pipeline observability -->
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
@@ -82,6 +83,7 @@
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.GDocs\RealEstateStar.Clients.GDocs.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.GSheets\RealEstateStar.Clients.GSheets.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.GoogleOAuth\RealEstateStar.Clients.GoogleOAuth.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Gws\RealEstateStar.Clients.Gws.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Scraper\RealEstateStar.Clients.Scraper.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.RentCast\RealEstateStar.Clients.RentCast.csproj" />
     <!-- Services -->
