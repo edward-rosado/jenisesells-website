@@ -162,6 +162,7 @@ When working on a skill, load the agent profile first:
 - **Contracts**: State-specific templates live in `skills/contracts/templates/{STATE}/`
 - **No hardcoding**: Agent identity, branding, and compliance data always come from config
 - **API calls**: Platform uses shared `api` instance from `@/lib/api`. Agent-site passes HMAC headers per-request via `createApiClient()`. SSE streaming stays raw `fetch`. Correlation IDs are auto-injected.
+- **Pitch decks**: `docs/pitch-decks/` contains both `.html` (presentation) and `.md` (source) for each deck. **Always update both files together** — they must stay in sync. The `.md` is the readable reference; the `.html` is the presentable version.
 
 ## Architecture Test Protection
 
