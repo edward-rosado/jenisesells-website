@@ -363,6 +363,46 @@ public class DependencyTests
         }
     }
 
+    /// <summary>
+    /// Azure Linux Consumption plan does NOT include Microsoft.AspNetCore.App shared framework.
+    /// If the Functions project references it, the worker process crashes on every invocation
+    /// with a silent 500 (empty body, no error in App Insights). This guard prevents regression.
+    /// </summary>
+    [Fact]
+    public void Functions_must_not_reference_AspNetCore()
+    {
+        // Check the Functions assembly for ASP.NET Core references
+        var functionsAssembly = Directory.GetFiles(AppContext.BaseDirectory, "RealEstateStar.Functions.dll")
+            .Select(Assembly.LoadFrom)
+            .FirstOrDefault();
+
+        // Functions assembly may not be in test output — check csproj instead
+        if (functionsAssembly != null)
+        {
+            var aspNetRefs = functionsAssembly.GetReferencedAssemblies()
+                .Where(a => a.Name!.StartsWith("Microsoft.AspNetCore"))
+                .Select(a => a.Name!)
+                .ToList();
+
+            Assert.True(aspNetRefs.Count == 0,
+                $"RealEstateStar.Functions references {string.Join(", ", aspNetRefs)} — " +
+                "Azure Linux Consumption plan does NOT include Microsoft.AspNetCore.App. " +
+                "Use HttpRequestData/HttpResponseData instead of HttpRequest/IActionResult.");
+        }
+
+        // Also check the csproj for FrameworkReference (belt + suspenders)
+        var csprojPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+            "RealEstateStar.Functions", "RealEstateStar.Functions.csproj");
+        if (File.Exists(csprojPath))
+        {
+            var csprojContent = File.ReadAllText(csprojPath);
+            Assert.DoesNotContain("Microsoft.AspNetCore.App", csprojContent,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Extensions.Http.AspNetCore", csprojContent,
+                StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
     [Fact]
     public void No_circular_dependencies_between_projects()
     {
