@@ -50,7 +50,9 @@ try
 {
 var builder = FunctionsApplication.CreateBuilder(args);
 
-builder.ConfigureFunctionsWebApplication();
+// NOTE: ConfigureFunctionsWebApplication() removed — ASP.NET Core HTTP proxying
+// middleware may not work on Azure Linux Consumption plan. Using the simpler
+// HttpRequestData/HttpResponseData model instead (no IActionResult, no HttpRequest).
 
 builder.Services.AddSerilog();
 
