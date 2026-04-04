@@ -44,6 +44,7 @@ using RealEstateStar.Workers.Lead.Orchestrator;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.WhatsApp;
 using RealEstateStar.Domain.Shared;
+using Microsoft.AspNetCore.DataProtection;
 using Serilog;
 
 try
@@ -254,11 +255,37 @@ var configPath = Directory.Exists(dockerConfigPath) ? dockerConfigPath : localCo
 if (!Directory.Exists(configPath))
     Log.Warning("[STARTUP-WARN] Agent config directory not found: {ConfigPath}", configPath);
 
+// ── Data Protection — must match Api's key ring to decrypt OAuth tokens ──────
+var dpBuilder = builder.Services.AddDataProtection()
+    .SetApplicationName("RealEstateStar");
+
+var dpBlobUri = builder.Configuration["DataProtection:BlobUri"];
+if (!string.IsNullOrEmpty(dpBlobUri))
+{
+    dpBuilder.PersistKeysToAzureBlobStorage(new Uri(dpBlobUri), new Azure.Identity.DefaultAzureCredential());
+    Log.Information("[STARTUP-082] DataProtection keys: shared blob at {BlobUri}", dpBlobUri);
+}
+else
+{
+    Log.Warning("[STARTUP-083] No DataProtection:BlobUri — token decryption will fail for encrypted tokens");
+}
+
 // ── DataServices ──────────────────────────────────────────────────────────────
-// ITokenStore default (NullTokenStore) is registered here.
-// NOTE: Functions host does not run OAuth flows, so NullTokenStore is acceptable.
-// If the activation pipeline needs real token persistence, wire AzureTableTokenStore here.
 builder.Services.AddDataServices(builder.Configuration, builder.Environment, configPath);
+
+// ── ITokenStore — AzureTableTokenStore to read/refresh encrypted OAuth tokens ─
+if (!string.IsNullOrEmpty(storageConnStr))
+{
+    builder.Services.AddSingleton<ITokenStore>(sp =>
+    {
+        var tableClient = new TableClient(storageConnStr, "oauthtokens");
+        return new AzureTableTokenStore(
+            tableClient,
+            sp.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>(),
+            sp.GetRequiredService<ILogger<AzureTableTokenStore>>());
+    });
+    Log.Information("[STARTUP-084] ITokenStore: AzureTableTokenStore (table: oauthtokens)");
+}
 
 // ── Memory cache ───────────────────────────────────────────────────────────────
 builder.Services.AddMemoryCache();
