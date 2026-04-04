@@ -85,9 +85,10 @@ jobs:
       - name: Deploy via func CLI
         working-directory: apps/api/RealEstateStar.Functions
         run: |
-          # Build single-threaded to avoid multi-target race condition
-          dotnet publish --configuration Release --framework net9.0 --output ./publish -m:1
-          cd ./publish
+          # Publish net9.0 without --output flag (avoids multi-TFM race on shared output dir)
+          dotnet publish --configuration Release --framework net9.0
+          # func publishes from the default output location
+          cd bin/Release/net9.0/publish
           func azure functionapp publish ${{ env.FUNCTION_APP_NAME }} --no-build --dotnet-isolated
 
       - name: Verify deployment
