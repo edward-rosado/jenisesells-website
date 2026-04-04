@@ -16,7 +16,7 @@ on:
       - '.github/workflows/deploy-functions.yml'
 
 env:
-  FUNCTION_APP_NAME: real-estate-star-functions-v2
+  FUNCTION_APP_NAME: real-estate-star-functions-v3
   RESOURCE_GROUP: real-estate-star-rg
 
 jobs:
@@ -64,60 +64,40 @@ jobs:
       id-token: write
 
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 9 + 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            9.0.x
+            10.0.x
+          dotnet-quality: 'preview'
+
+      - name: Install Azure Functions Core Tools
+        run: npm install -g azure-functions-core-tools@4 --unsafe-perm true
+
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: functions-publish
-          path: ./publish/functions
-
-      - name: Prepare and deploy
+      - name: Deploy via func CLI
+        working-directory: apps/api/RealEstateStar.Functions
         run: |
-          set -euo pipefail
-
-          # Generate .azurefunctions from SDK-generated functions.metadata
-          mkdir -p ./publish/functions/.azurefunctions
-          python3 -c "
-          import json, os
-          with open('./publish/functions/functions.metadata') as f:
-              functions = json.load(f)
-          outdir = './publish/functions/.azurefunctions'
-          for func in functions:
-              with open(os.path.join(outdir, func['name'] + '.json'), 'w') as out:
-                  json.dump(func, out, indent=2)
-          print(f'Generated {len(functions)} function metadata files')
-          "
-          echo '{"extensions":[]}' > ./publish/functions/.azurefunctions/extensions.json
-
-          # Zip and deploy
-          cd ./publish/functions
-          zip -r ../../functions.zip . -x '*.pdb'
-          cd ../..
-          # Stop app, deploy, start — ensures host reads fresh content
-          az functionapp stop --name ${{ env.FUNCTION_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}
-          sleep 5
-
-          az functionapp deployment source config-zip \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --name ${{ env.FUNCTION_APP_NAME }} \
-            --src functions.zip \
-            --timeout 300
-
-          az functionapp start --name ${{ env.FUNCTION_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}
-          sleep 30
-
-          # Check function discovery
-          echo "Listing functions..."
-          az rest --method get \
-            --url "https://management.azure.com/subscriptions/ca48f899-f7bf-4856-bf2a-3618deeaf010/resourceGroups/${{ env.RESOURCE_GROUP }}/providers/Microsoft.Web/sites/${{ env.FUNCTION_APP_NAME }}/functions?api-version=2023-12-01" \
-            --query "value[].{name: properties.name}" --output table || echo "Could not list functions"
+          # Build single-threaded to avoid multi-target race condition
+          dotnet publish --configuration Release --framework net9.0 --output ./publish -m:1
+          cd ./publish
+          func azure functionapp publish ${{ env.FUNCTION_APP_NAME }} --no-build --dotnet-isolated
 
       - name: Verify deployment
         run: |
-          echo "Checking function app status..."
+          sleep 30
+          echo "Checking function discovery..."
+          az rest --method get \
+            --url "https://management.azure.com/subscriptions/ca48f899-f7bf-4856-bf2a-3618deeaf010/resourceGroups/${{ env.RESOURCE_GROUP }}/providers/Microsoft.Web/sites/${{ env.FUNCTION_APP_NAME }}/functions?api-version=2023-12-01" \
+            --query "value[].{name: properties.name}" --output table || echo "Could not list functions yet (may take a minute)"
+          echo "---"
           az resource show \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --name ${{ env.FUNCTION_APP_NAME }} \
