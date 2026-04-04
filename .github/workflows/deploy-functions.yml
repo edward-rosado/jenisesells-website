@@ -69,6 +69,9 @@ jobs:
           name: functions-publish
           path: ./publish/functions
 
+      - name: Install Azure Functions Core Tools
+        run: npm install -g azure-functions-core-tools@4 --unsafe-perm true
+
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -106,18 +109,10 @@ jobs:
           echo "=== worker.config.json ==="
           cat ./publish/functions/worker.config.json 2>/dev/null || echo "Not found"
 
-      - name: Create deployment package
+      - name: Deploy via func CLI
         run: |
           cd ./publish/functions
-          zip -r ../../functions.zip . -x '*.pdb'
-
-      - name: Deploy to Azure Functions (Flex Consumption)
-        run: |
-          az functionapp deployment source config-zip \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --name ${{ env.FUNCTION_APP_NAME }} \
-            --src functions.zip \
-            --timeout 300
+          func azure functionapp publish ${{ env.FUNCTION_APP_NAME }} --no-build --dotnet-isolated
 
       - name: Verify deployment
         run: |
