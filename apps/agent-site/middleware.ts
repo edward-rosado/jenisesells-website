@@ -37,8 +37,11 @@ function resolveLocaleForAccount(request: NextRequest, accountId: string): Suppo
   return resolveLocaleFromHeaders(acceptLanguage, cookieLocale, locales);
 }
 
-function applyLocale(response: NextResponse, url: URL, locale: SupportedLocale): void {
+function applyLocaleToUrl(url: URL, locale: SupportedLocale): void {
   url.searchParams.set("locale", locale);
+}
+
+function applyLocaleToResponse(response: NextResponse, locale: SupportedLocale): void {
   response.headers.set("x-locale", locale);
   if (locale !== "en") {
     response.cookies.set("locale", locale, { path: "/", maxAge: 365 * 24 * 60 * 60, sameSite: "lax" });
@@ -67,8 +70,9 @@ export function middleware(request: NextRequest) {
     const locale = resolveLocaleForAccount(request, agentId);
     const url = request.nextUrl.clone();
     url.searchParams.set("accountId", agentId);
+    applyLocaleToUrl(url, locale);
     const response = NextResponse.rewrite(url);
-    applyLocale(response, url, locale);
+    applyLocaleToResponse(response, locale);
     response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
     response.headers.set("x-nonce", nonce);
     applySecurityHeaders(response);
@@ -81,8 +85,9 @@ export function middleware(request: NextRequest) {
     const locale = resolveLocaleForAccount(request, customAgentId);
     const url = request.nextUrl.clone();
     url.searchParams.set("accountId", customAgentId);
+    applyLocaleToUrl(url, locale);
     const response = NextResponse.rewrite(url);
-    applyLocale(response, url, locale);
+    applyLocaleToResponse(response, locale);
     response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
     response.headers.set("x-nonce", nonce);
     applySecurityHeaders(response);
@@ -104,8 +109,9 @@ export function middleware(request: NextRequest) {
       const locale = resolveLocaleForAccount(request, resolvedId);
       const url = request.nextUrl.clone();
       url.searchParams.set("accountId", resolvedId);
+      applyLocaleToUrl(url, locale);
       const response = NextResponse.rewrite(url);
-      applyLocale(response, url, locale);
+      applyLocaleToResponse(response, locale);
       response.headers.set("Content-Security-Policy", buildCspHeader(nonce));
       response.headers.set("x-nonce", nonce);
       applySecurityHeaders(response);
