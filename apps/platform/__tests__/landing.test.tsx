@@ -62,10 +62,10 @@ describe("Landing Page", () => {
     expect(screen.getByText("14 Days Free")).toBeInTheDocument();
   });
 
-  it("renders all 8 feature cards", () => {
+  it("renders all 13 feature cards", () => {
     const { container } = render(<LandingPage />);
     const cards = container.querySelectorAll("[data-testid='feature-card']");
-    expect(cards).toHaveLength(8);
+    expect(cards).toHaveLength(13);
   });
 
   it("renders the FinalCta section", () => {

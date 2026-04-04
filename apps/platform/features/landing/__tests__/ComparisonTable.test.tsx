@@ -29,7 +29,7 @@ describe("ComparisonTable", () => {
     const colHeaders = container.querySelectorAll("th[scope='col']");
     expect(colHeaders.length).toBe(4);
     const rowHeaders = container.querySelectorAll("th[scope='row']");
-    expect(rowHeaders.length).toBe(6);
+    expect(rowHeaders.length).toBe(10);
   });
 
   it("renders the pricing rows", () => {
@@ -41,10 +41,26 @@ describe("ComparisonTable", () => {
 
   it("renders feature comparison rows", () => {
     render(<ComparisonTable />);
-    const rows = ["Website", "CMA Tool", "Lead Capture", "Setup Time"];
+    const rows = [
+      "Website",
+      "CMA Tool",
+      "Lead Capture",
+      "Multi-Language",
+      "Legal Compliance",
+      "SEO & AEO",
+      "WhatsApp Alerts",
+      "Setup Time",
+    ];
     for (const row of rows) {
       expect(screen.getByText(row)).toBeInTheDocument();
     }
+  });
+
+  it("renders new competitive advantages", () => {
+    render(<ComparisonTable />);
+    expect(screen.getByText("12 templates")).toBeInTheDocument();
+    expect(screen.getByText("English + Spanish")).toBeInTheDocument();
+    expect(screen.getByText("Built-in")).toBeInTheDocument();
   });
 
   it("renders a table element", () => {

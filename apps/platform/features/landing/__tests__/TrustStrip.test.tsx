@@ -7,7 +7,8 @@ describe("TrustStrip", () => {
     render(<TrustStrip />);
     expect(screen.getByText(/14 Days Free/i)).toBeInTheDocument();
     expect(screen.getByText(/\$14\.99\/mo After/i)).toBeInTheDocument();
-    expect(screen.getByText(/Live in Minutes/i)).toBeInTheDocument();
+    expect(screen.getByText(/Live in 10 Minutes/i)).toBeInTheDocument();
+    expect(screen.getByText(/English \+ Spanish/i)).toBeInTheDocument();
   });
 
   it("renders a section element", () => {
@@ -15,9 +16,9 @@ describe("TrustStrip", () => {
     expect(container.querySelector("section")).toBeInTheDocument();
   });
 
-  it("renders 3 trust items", () => {
+  it("renders 4 trust items", () => {
     const { container } = render(<TrustStrip />);
     const items = container.querySelectorAll("[data-testid='trust-item']");
-    expect(items).toHaveLength(3);
+    expect(items).toHaveLength(4);
   });
 });
