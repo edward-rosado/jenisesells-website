@@ -44,7 +44,7 @@ public sealed record DriveIndexInput(
 public sealed record DriveIndexOutput(
     [property: JsonPropertyName("folderId")] string FolderId,
     [property: JsonPropertyName("files")] IReadOnlyList<DriveFileDto> Files,
-    [property: JsonPropertyName("contents")] IReadOnlyDictionary<string, string> Contents,
+    [property: JsonPropertyName("contents")] Dictionary<string, string> Contents,
     [property: JsonPropertyName("discoveredUrls")] IReadOnlyList<string> DiscoveredUrls,
     [property: JsonPropertyName("extractions")] IReadOnlyList<DocumentExtractionDto> Extractions);
 

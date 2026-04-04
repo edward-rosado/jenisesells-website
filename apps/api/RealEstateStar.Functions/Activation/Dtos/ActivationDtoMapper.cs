@@ -27,7 +27,7 @@ internal static class ActivationDtoMapper
         new(
             FolderId: idx.FolderId,
             Files: idx.Files.Select(ToDto).ToList(),
-            Contents: idx.Contents,
+            Contents: new Dictionary<string, string>(idx.Contents),
             DiscoveredUrls: idx.DiscoveredUrls,
             Extractions: idx.Extractions.Select(ToDto).ToList());
 
