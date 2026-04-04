@@ -71,3 +71,5 @@ apps/api/RealEstateStar.Api/data/
 # Archives
 *.tar
 *.pdf
+ci-artifact/
+functions-manual.zip
