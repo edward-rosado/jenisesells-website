@@ -26,6 +26,6 @@ public sealed class MarketingStyleFunction(
             driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
             ct: ct);
 
-        return new MarketingStyleOutput(styleGuide, brandSignals);
+        return new MarketingStyleOutput { StyleGuide = styleGuide, BrandSignals = brandSignals };
     }
 }

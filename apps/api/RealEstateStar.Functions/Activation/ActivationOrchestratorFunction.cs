@@ -45,7 +45,7 @@ public sealed class ActivationOrchestratorFunction
 
         var completeCheck = await ctx.CallActivityAsync<CheckActivationCompleteOutput>(
             ActivityNames.CheckActivationComplete,
-            new CheckActivationCompleteInput(request.AccountId, request.AgentId));
+            new CheckActivationCompleteInput { AccountId = request.AccountId, AgentId = request.AgentId });
 
         if (completeCheck.IsComplete)
         {
@@ -58,13 +58,12 @@ public sealed class ActivationOrchestratorFunction
 
             await ctx.CallActivityAsync(
                 ActivityNames.WelcomeNotification,
-                new WelcomeNotificationInput(
-                    AccountId: request.AccountId,
-                    AgentId: request.AgentId,
-                    Handle: request.AgentId,
-                    AgentName: null,
-                    AgentPhone: null,
-                    WhatsAppEnabled: false));
+                new WelcomeNotificationInput
+                {
+                    AccountId = request.AccountId,
+                    AgentId = request.AgentId,
+                    Handle = request.AgentId,
+                });
 
             return;
         }
@@ -77,11 +76,11 @@ public sealed class ActivationOrchestratorFunction
         // Email and Drive run in parallel
         var emailTask = ctx.CallActivityAsync<EmailFetchOutput>(
             ActivityNames.EmailFetch,
-            new EmailFetchInput(request.AccountId, request.AgentId));
+            new EmailFetchInput { AccountId = request.AccountId, AgentId = request.AgentId });
 
         var driveTask = ctx.CallActivityAsync<DriveIndexOutput>(
             ActivityNames.DriveIndex,
-            new DriveIndexInput(request.AccountId, request.AgentId));
+            new DriveIndexInput { AccountId = request.AccountId, AgentId = request.AgentId });
 
         await Task.WhenAll(emailTask, driveTask);
 
@@ -96,24 +95,28 @@ public sealed class ActivationOrchestratorFunction
 
         var discovery = await ctx.CallActivityAsync<AgentDiscoveryOutput>(
             ActivityNames.AgentDiscovery,
-            new AgentDiscoveryInput(
-                AccountId: request.AccountId,
-                AgentId: request.AgentId,
-                AgentName: agentName,
-                EmailSignature: emailCorpus.Signature));
+            new AgentDiscoveryInput
+            {
+                AccountId = request.AccountId,
+                AgentId = request.AgentId,
+                AgentName = agentName,
+                EmailSignature = emailCorpus.Signature,
+            });
 
         // ── Phase 2: Synthesize (12 workers in parallel) ──────────────────────
 
         if (!ctx.IsReplaying)
             logger.LogInformation("[ACTV-FN-020] Phase 2: synthesize for agentId={AgentId}", request.AgentId);
 
-        var synthesisInput = new SynthesisInput(
-            AccountId: request.AccountId,
-            AgentId: request.AgentId,
-            AgentName: agentName,
-            EmailCorpus: emailCorpus,
-            DriveIndex: driveIndex,
-            Discovery: discovery);
+        var synthesisInput = new SynthesisInput
+        {
+            AccountId = request.AccountId,
+            AgentId = request.AgentId,
+            AgentName = agentName,
+            EmailCorpus = emailCorpus,
+            DriveIndex = driveIndex,
+            Discovery = discovery,
+        };
 
         // Each worker wrapped in try/catch to preserve RunSafeAsync semantics:
         // one worker failure does NOT abort the pipeline — it contributes null output.
@@ -171,11 +174,13 @@ public sealed class ActivationOrchestratorFunction
         {
             contactDetectionResult = await ctx.CallActivityAsync<ContactDetectionOutput>(
                 ActivityNames.ContactDetection,
-                new ContactDetectionInput(
-                    AccountId: request.AccountId,
-                    AgentId: request.AgentId,
-                    DriveExtractions: driveIndex.Extractions,
-                    EmailCorpus: emailCorpus));
+                new ContactDetectionInput
+                {
+                    AccountId = request.AccountId,
+                    AgentId = request.AgentId,
+                    DriveExtractions = driveIndex.Extractions,
+                    EmailCorpus = emailCorpus,
+                });
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -185,7 +190,7 @@ public sealed class ActivationOrchestratorFunction
                     "[ACTV-FN-036] Phase 2.5 contact detection failed for agentId={AgentId} — continuing without contacts",
                     request.AgentId);
             }
-            contactDetectionResult = new ContactDetectionOutput(Array.Empty<ImportedContactDto>());
+            contactDetectionResult = new ContactDetectionOutput();
         }
 
         // ── Phase 3: Persist + Merge ──────────────────────────────────────────
@@ -202,34 +207,36 @@ public sealed class ActivationOrchestratorFunction
             .Distinct()
             .ToList();
 
-        var persistInput = new PersistProfileInput(
-            AccountId: request.AccountId,
-            AgentId: request.AgentId,
-            Handle: request.AgentId,
-            Voice: voice,
-            Personality: personality,
-            CmaStyle: cmaStyle,
-            Marketing: marketing,
-            WebsiteStyle: websiteStyle,
-            SalesPipeline: salesPipeline,
-            Coaching: coaching,
-            Branding: branding,
-            BrandExtraction: brandExtraction,
-            BrandVoice: brandVoice,
-            Compliance: compliance,
-            FeeStructure: feeStructure,
-            DriveIndexMarkdown: driveIndexMarkdown,
-            DiscoveryMarkdown: discoveryMarkdown,
-            EmailSignatureMarkdown: emailSigMarkdown,
-            HeadshotBytes: discovery.HeadshotBytes,
-            BrokerageLogoBytes: discovery.LogoBytes,
-            AgentName: emailCorpus.Signature?.Name,
-            AgentEmail: request.Email,
-            AgentPhone: emailCorpus.Signature?.Phone ?? discovery.Phone,
-            AgentTitle: emailCorpus.Signature?.Title,
-            AgentLicenseNumber: emailCorpus.Signature?.LicenseNumber,
-            ServiceAreas: serviceAreas,
-            Discovery: discovery);
+        var persistInput = new PersistProfileInput
+        {
+            AccountId = request.AccountId,
+            AgentId = request.AgentId,
+            Handle = request.AgentId,
+            Voice = voice,
+            Personality = personality,
+            CmaStyle = cmaStyle,
+            Marketing = marketing,
+            WebsiteStyle = websiteStyle,
+            SalesPipeline = salesPipeline,
+            Coaching = coaching,
+            Branding = branding,
+            BrandExtraction = brandExtraction,
+            BrandVoice = brandVoice,
+            Compliance = compliance,
+            FeeStructure = feeStructure,
+            DriveIndexMarkdown = driveIndexMarkdown,
+            DiscoveryMarkdown = discoveryMarkdown,
+            EmailSignatureMarkdown = emailSigMarkdown,
+            HeadshotBytes = discovery.HeadshotBytes,
+            BrokerageLogoBytes = discovery.LogoBytes,
+            AgentName = emailCorpus.Signature?.Name,
+            AgentEmail = request.Email,
+            AgentPhone = emailCorpus.Signature?.Phone ?? discovery.Phone,
+            AgentTitle = emailCorpus.Signature?.Title,
+            AgentLicenseNumber = emailCorpus.Signature?.LicenseNumber,
+            ServiceAreas = serviceAreas,
+            Discovery = discovery,
+        };
 
         // PersistProfile is fatal if it fails — let it propagate
         await ctx.CallActivityAsync(ActivityNames.PersistProfile, persistInput);
@@ -237,11 +244,13 @@ public sealed class ActivationOrchestratorFunction
         // BrandMerge is fatal
         await ctx.CallActivityAsync(
             ActivityNames.BrandMerge,
-            new BrandMergeInput(
-                AccountId: request.AccountId,
-                AgentId: request.AgentId,
-                BrandingKit: branding?.BrandingKitMarkdown ?? string.Empty,
-                VoiceSkill: voice?.VoiceSkillMarkdown ?? string.Empty));
+            new BrandMergeInput
+            {
+                AccountId = request.AccountId,
+                AgentId = request.AgentId,
+                BrandingKit = branding?.BrandingKitMarkdown ?? string.Empty,
+                VoiceSkill = voice?.VoiceSkillMarkdown ?? string.Empty,
+            });
 
         // ContactImport is non-fatal (warning on failure, pipeline continues)
         if (contactDetectionResult.Contacts.Count > 0)
@@ -250,10 +259,12 @@ public sealed class ActivationOrchestratorFunction
             {
                 await ctx.CallActivityAsync(
                     ActivityNames.ContactImport,
-                    new ContactImportInput(
-                        AccountId: request.AccountId,
-                        AgentId: request.AgentId,
-                        Contacts: contactDetectionResult.Contacts));
+                    new ContactImportInput
+                    {
+                        AccountId = request.AccountId,
+                        AgentId = request.AgentId,
+                        Contacts = contactDetectionResult.Contacts,
+                    });
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -273,13 +284,15 @@ public sealed class ActivationOrchestratorFunction
 
         await ctx.CallActivityAsync(
             ActivityNames.WelcomeNotification,
-            new WelcomeNotificationInput(
-                AccountId: request.AccountId,
-                AgentId: request.AgentId,
-                Handle: request.AgentId,
-                AgentName: emailCorpus.Signature?.Name,
-                AgentPhone: emailCorpus.Signature?.Phone ?? discovery.Phone,
-                WhatsAppEnabled: discovery.WhatsAppEnabled));
+            new WelcomeNotificationInput
+            {
+                AccountId = request.AccountId,
+                AgentId = request.AgentId,
+                Handle = request.AgentId,
+                AgentName = emailCorpus.Signature?.Name,
+                AgentPhone = emailCorpus.Signature?.Phone ?? discovery.Phone,
+                WhatsAppEnabled = discovery.WhatsAppEnabled,
+            });
 
         if (!ctx.IsReplaying)
         {

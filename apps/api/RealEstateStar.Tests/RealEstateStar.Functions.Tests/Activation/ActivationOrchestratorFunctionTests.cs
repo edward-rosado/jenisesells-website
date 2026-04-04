@@ -68,22 +68,22 @@ public sealed class ActivationOrchestratorFunctionTests
 
         // Phase 0: not complete
         SetupActivity(ctx, ActivityNames.CheckActivationComplete,
-            new CheckActivationCompleteOutput(IsComplete: false), callOrder);
+            new CheckActivationCompleteOutput(), callOrder);
 
         // Phase 1
         SetupActivity(ctx, ActivityNames.EmailFetch,
-            new EmailFetchOutput([], [], null), callOrder);
+            new EmailFetchOutput(), callOrder);
         SetupActivity(ctx, ActivityNames.DriveIndex,
-            new DriveIndexOutput("folder1", [], new Dictionary<string, string>(), [], []), callOrder);
+            new DriveIndexOutput { FolderId = "folder1" }, callOrder);
         SetupActivity(ctx, ActivityNames.AgentDiscovery,
-            new AgentDiscoveryOutput(null, null, null, [], [], [], null, false), callOrder);
+            new AgentDiscoveryOutput(), callOrder);
 
         // Phase 2: all 12 synthesis workers (each with correct return type)
         SetupAllPhase2Activities(ctx, callOrder);
 
         // Phase 2.5: contact detection
         SetupActivity(ctx, ActivityNames.ContactDetection,
-            new ContactDetectionOutput([]), callOrder);
+            new ContactDetectionOutput(), callOrder);
 
         // Phase 3
         SetupVoidActivity(ctx, ActivityNames.PersistProfile, callOrder);
@@ -157,7 +157,7 @@ public sealed class ActivationOrchestratorFunctionTests
 
         // Phase 0: already complete
         SetupActivity(ctx, ActivityNames.CheckActivationComplete,
-            new CheckActivationCompleteOutput(IsComplete: true), new List<string>());
+            new CheckActivationCompleteOutput { IsComplete = true }, new List<string>());
 
         SetupVoidActivity(ctx, ActivityNames.WelcomeNotification, new List<string>());
 
@@ -347,21 +347,21 @@ public sealed class ActivationOrchestratorFunctionTests
             .Returns(NullLogger<ActivationOrchestratorFunction>.Instance);
 
         SetupActivity(ctx, ActivityNames.CheckActivationComplete,
-            new CheckActivationCompleteOutput(IsComplete: isComplete), callOrder);
+            new CheckActivationCompleteOutput { IsComplete = isComplete }, callOrder);
 
         if (!isComplete)
         {
             SetupActivity(ctx, ActivityNames.EmailFetch,
-                new EmailFetchOutput([], [], null), callOrder);
+                new EmailFetchOutput(), callOrder);
             SetupActivity(ctx, ActivityNames.DriveIndex,
-                new DriveIndexOutput("folder1", [], new Dictionary<string, string>(), [], []), callOrder);
+                new DriveIndexOutput { FolderId = "folder1" }, callOrder);
             SetupActivity(ctx, ActivityNames.AgentDiscovery,
-                new AgentDiscoveryOutput(null, null, null, [], [], [], null, false), callOrder);
+                new AgentDiscoveryOutput(), callOrder);
 
             SetupAllPhase2Activities(ctx, callOrder);
 
             SetupActivity(ctx, ActivityNames.ContactDetection,
-                new ContactDetectionOutput([]), callOrder);
+                new ContactDetectionOutput(), callOrder);
 
             SetupVoidActivity(ctx, ActivityNames.PersistProfile, callOrder);
             SetupVoidActivity(ctx, ActivityNames.BrandMerge, callOrder);
@@ -381,11 +381,16 @@ public sealed class ActivationOrchestratorFunctionTests
         var ctx = BuildMockOrchestratorContext(isComplete);
 
         // Override ContactDetection to return one contact (triggers ContactImport call)
-        var contact = new ImportedContactDto(
-            "Alice", "alice@x.com", null, "Buyer", "Lead", null, []);
+        var contact = new ImportedContactDto
+        {
+            Name = "Alice",
+            Email = "alice@x.com",
+            Role = "Buyer",
+            Stage = "Lead",
+        };
         ctx.Setup(c => c.CallActivityAsync<ContactDetectionOutput>(
                 ActivityNames.ContactDetection, It.IsAny<ContactDetectionInput>()))
-            .ReturnsAsync(new ContactDetectionOutput([contact]));
+            .ReturnsAsync(new ContactDetectionOutput { Contacts = [contact] });
 
         // ContactImport void activity
         ctx.Setup(c => c.CallActivityAsync(

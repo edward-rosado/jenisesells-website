@@ -27,6 +27,6 @@ public sealed class BrandExtractionFunction(
             discovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 
-        return new StringOutput(result);
+        return new StringOutput { Value = result };
     }
 }

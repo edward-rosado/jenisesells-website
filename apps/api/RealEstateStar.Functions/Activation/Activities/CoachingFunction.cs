@@ -28,6 +28,6 @@ public sealed class CoachingFunction(
             agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 
-        return new CoachingOutput(result.CoachingReportMarkdown, result.IsInsufficient);
+        return new CoachingOutput { CoachingReportMarkdown = result.CoachingReportMarkdown, IsInsufficient = result.IsInsufficient };
     }
 }

@@ -64,7 +64,7 @@ public sealed class CheckActivationCompleteFunction(
             "[ACTV-FN-011] Activation complete check: {IsComplete} for agentId={AgentId}",
             isComplete, input.AgentId);
 
-        return new CheckActivationCompleteOutput(isComplete);
+        return new CheckActivationCompleteOutput { IsComplete = isComplete };
     }
 
     private async Task<bool> FileExistsAsync(string folder, string file, CancellationToken ct)

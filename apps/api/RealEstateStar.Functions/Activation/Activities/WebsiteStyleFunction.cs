@@ -25,6 +25,6 @@ public sealed class WebsiteStyleFunction(
             discovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 
-        return new StringOutput(result);
+        return new StringOutput { Value = result };
     }
 }

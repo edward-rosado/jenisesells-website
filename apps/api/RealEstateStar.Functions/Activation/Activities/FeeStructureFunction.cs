@@ -29,6 +29,6 @@ public sealed class FeeStructureFunction(
             websites: discovery.Websites,
             ct: ct);
 
-        return new StringOutput(result);
+        return new StringOutput { Value = result };
     }
 }

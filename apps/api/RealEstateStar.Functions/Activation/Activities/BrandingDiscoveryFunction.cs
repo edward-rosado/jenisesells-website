@@ -28,13 +28,15 @@ public sealed class BrandingDiscoveryFunction(
             driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
             ct: ct);
 
-        var kitDto = result.Kit is null ? null : new BrandingKitDto(
-            Colors: result.Kit.Colors.Select(c => new ColorEntryDto(c.Role, c.Hex, c.Source, c.Usage)).ToList(),
-            Fonts: result.Kit.Fonts.Select(f => new FontEntryDto(f.Role, f.Family, f.Weight, f.Source)).ToList(),
-            Logos: result.Kit.Logos.Select(l => new LogoVariantDto(l.Variant, l.FileName, l.Bytes, l.Source)).ToList(),
-            RecommendedTemplate: result.Kit.RecommendedTemplate,
-            TemplateReason: result.Kit.TemplateReason);
+        var kitDto = result.Kit is null ? null : new BrandingKitDto
+        {
+            Colors = result.Kit.Colors.Select(c => new ColorEntryDto { Role = c.Role, Hex = c.Hex, Source = c.Source, Usage = c.Usage }).ToList(),
+            Fonts = result.Kit.Fonts.Select(f => new FontEntryDto { Role = f.Role, Family = f.Family, Weight = f.Weight, Source = f.Source }).ToList(),
+            Logos = result.Kit.Logos.Select(l => new LogoVariantDto { Variant = l.Variant, FileName = l.FileName, Bytes = l.Bytes, Source = l.Source }).ToList(),
+            RecommendedTemplate = result.Kit.RecommendedTemplate,
+            TemplateReason = result.Kit.TemplateReason,
+        };
 
-        return new BrandingDiscoveryOutput(result.BrandingKitMarkdown, kitDto);
+        return new BrandingDiscoveryOutput { BrandingKitMarkdown = result.BrandingKitMarkdown, Kit = kitDto };
     }
 }

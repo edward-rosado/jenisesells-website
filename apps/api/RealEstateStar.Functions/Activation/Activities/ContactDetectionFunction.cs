@@ -29,7 +29,9 @@ public sealed class ContactDetectionFunction(
 
         var contacts = await activity.ExecuteAsync(driveExtractions, emailCorpus, ct);
 
-        return new ContactDetectionOutput(
-            Contacts: contacts.Select(ActivationDtoMapper.ToDto).ToList());
+        return new ContactDetectionOutput
+        {
+            Contacts = contacts.Select(ActivationDtoMapper.ToDto).ToList(),
+        };
     }
 }

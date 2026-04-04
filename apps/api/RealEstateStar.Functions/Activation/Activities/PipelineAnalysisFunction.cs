@@ -26,6 +26,6 @@ public sealed class PipelineAnalysisFunction(
             driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
             ct: ct);
 
-        return new StringOutput(result);
+        return new StringOutput { Value = result };
     }
 }
