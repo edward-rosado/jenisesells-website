@@ -10,6 +10,7 @@
   },
   "extensions": {
     "durableTask": {
+      "hubName": "realestatestarfunctionsv3",
       "storageProvider": {
         "type": "AzureStorage"
       }
