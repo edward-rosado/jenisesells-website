@@ -1,10 +1,12 @@
 import type { AccountConfig, AgentConfig } from "@/features/config/types";
 import { EqualHousingNotice } from "@real-estate-star/legal";
 import { safeTelHref, safeMailtoHref } from "@/features/shared/safe-contact";
+import { getUiStrings } from "@/features/i18n";
 
 interface FooterProps {
   agent: AccountConfig | AgentConfig;
   accountId?: string;
+  locale?: string;
 }
 
 function formatServiceAreas(areas: string[], state: string): string {
@@ -16,7 +18,8 @@ function formatServiceAreas(areas: string[], state: string): string {
   return `Serving ${names.join(", ")} & ${last} Counties, ${state}`;
 }
 
-export function Footer({ agent, accountId }: FooterProps) {
+export function Footer({ agent, accountId, locale }: FooterProps) {
+  const ui = getUiStrings(locale);
   const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
 
   let name: string;
@@ -94,7 +97,7 @@ export function Footer({ agent, accountId }: FooterProps) {
           marginBottom: "15px",
         }}
       >
-        {title || "Licensed Real Estate Salesperson"}{licenseNumber && ` | License #${licenseNumber}`}
+        {title || ui.licensedSalesperson}{licenseNumber && ` | License #${licenseNumber}`}
       </p>
       {phone && (
         <p style={{ fontSize: "14px", color: "white", marginBottom: "3px" }}>
@@ -103,7 +106,7 @@ export function Footer({ agent, accountId }: FooterProps) {
             aria-label={`Call ${name}`}
             style={{ color: "white", textDecoration: "none" }}
           >
-            Cell: {phone}
+            {ui.cellLabel + " "}{phone}
           </a>
           {officePhone && (
             <>
@@ -150,7 +153,7 @@ export function Footer({ agent, accountId }: FooterProps) {
           marginRight: "auto",
         }}
       >
-        The information on this website is for general informational purposes only. {name}, {title || "Licensed Real Estate Salesperson"}{licenseNumber && ` (License #${licenseNumber})`}{brokerageName && `, is affiliated with ${brokerageName}`}{officeAddress && `, ${officeAddress}`}.{officePhone && ` ${officePhone}.`} All information deemed reliable but not guaranteed.
+        {ui.disclaimerTemplate} {name}, {title || ui.licensedSalesperson}{licenseNumber && ` (License #${licenseNumber})`}{brokerageName && `, is affiliated with ${brokerageName}`}{officeAddress && `, ${officeAddress}`}.{officePhone && ` ${officePhone}.`} All information deemed reliable but not guaranteed.
       </p>
       <nav
         aria-label="Legal links"
@@ -163,9 +166,9 @@ export function Footer({ agent, accountId }: FooterProps) {
           color: "rgba(255,255,255,0.85)",
         }}
       >
-        <a href={`/privacy${qs}`} style={{ color: "rgba(255,255,255,0.85)", textDecoration: "underline" }}>Privacy Policy</a>
-        <a href={`/terms${qs}`} style={{ color: "rgba(255,255,255,0.85)", textDecoration: "underline" }}>Terms of Use</a>
-        <a href={`/accessibility${qs}`} style={{ color: "rgba(255,255,255,0.85)", textDecoration: "underline" }}>Accessibility</a>
+        <a href={`/privacy${qs}`} style={{ color: "rgba(255,255,255,0.85)", textDecoration: "underline" }}>{ui.privacyPolicy}</a>
+        <a href={`/terms${qs}`} style={{ color: "rgba(255,255,255,0.85)", textDecoration: "underline" }}>{ui.termsOfUse}</a>
+        <a href={`/accessibility${qs}`} style={{ color: "rgba(255,255,255,0.85)", textDecoration: "underline" }}>{ui.accessibility}</a>
       </nav>
       <p
         style={{
@@ -174,7 +177,7 @@ export function Footer({ agent, accountId }: FooterProps) {
           color: "rgba(255,255,255,0.85)",
         }}
       >
-        &copy; {new Date().getFullYear()} {name}. All rights reserved.
+        &copy; {new Date().getFullYear()} {name}. {ui.allRightsReserved}
       </p>
     </footer>
   );

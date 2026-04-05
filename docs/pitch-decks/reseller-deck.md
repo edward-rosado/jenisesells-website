@@ -166,7 +166,27 @@ The AI does the setup.
 
 ---
 
-## Slide 10: What Agents Get
+## Slide 10: Multi-Language — Your Pitch Differentiator
+
+### Bilingual agents are an untapped market.
+
+- **46 million Spanish speakers** in the US — and growing
+- Most real estate platforms are **English-only**
+- Real Estate Star supports **English + Spanish** out of the box
+- Agent websites **auto-detect visitor language** and switch content
+- Lead emails, CMA reports, and notifications sent in the lead's language
+- AI extracts the agent's **real Spanish voice** — not machine translation
+
+**Walk into any brokerage in a bilingual market and ask: does your tech speak Spanish?**
+The answer is almost always no. Until now.
+
+This is your **pitch differentiator** for bilingual brokerages. No competitor offers this.
+
+> **Speaker notes:** This is your door-opener for Florida, Texas, California, New Jersey, and any market with a significant Hispanic population. Bilingual brokerages will immediately see the value — their agents can serve Spanish-speaking clients with a professional, localized experience. No other platform at any price point offers this.
+
+---
+
+## Slide 11: What Agents Get
 
 ### Feature breakdown — what they'd pay separately elsewhere
 
@@ -185,7 +205,7 @@ The AI does the setup.
 
 ---
 
-## Slide 11: Brokerage Deals
+## Slide 12: Brokerage Deals
 
 ### Volume pricing for brokerages — your biggest earning opportunity.
 
@@ -202,7 +222,7 @@ The AI does the setup.
 
 ---
 
-## Slide 12: Support & Your Commitment
+## Slide 13: Support & Your Commitment
 
 ### What we provide to resellers:
 

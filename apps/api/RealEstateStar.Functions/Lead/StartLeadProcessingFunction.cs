@@ -75,7 +75,8 @@ public sealed class StartLeadProcessingFunction(
             ShouldRunCma = lead.LeadType is DomainLeadType.Seller or DomainLeadType.Both && lead.SellerDetails is not null,
             ShouldRunHomeSearch = lead.LeadType is DomainLeadType.Buyer or DomainLeadType.Both && lead.BuyerDetails is not null,
             CmaInputHash = cmaInputHash,
-            HsInputHash = hsInputHash
+            HsInputHash = hsInputHash,
+            Locale = lead.Locale
         };
 
         // Deterministic instance ID prevents duplicate orchestrations for the same lead

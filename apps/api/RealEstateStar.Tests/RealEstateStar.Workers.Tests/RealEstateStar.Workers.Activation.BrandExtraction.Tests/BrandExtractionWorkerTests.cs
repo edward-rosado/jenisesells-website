@@ -94,9 +94,9 @@ public class BrandExtractionWorkerTests
 
         var result = await worker.AnalyzeAsync(MakeEmptyCorpus(), MakeEmptyDriveIndex(), MakeDiscoveryWithBrokerageWebsite(), CancellationToken.None);
 
-        result.Should().NotBeNull();
-        result.Should().Contain("brokerage_name");
-        result.Should().Contain("Keller Williams");
+        result.Signals.Should().NotBeNull();
+        result.Signals.Should().Contain("brokerage_name");
+        result.Signals.Should().Contain("Keller Williams");
     }
 
     // ---------------------------------------------------------------------------

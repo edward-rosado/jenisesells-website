@@ -59,6 +59,7 @@ public class LeadCommunicatorService(
             Subject = email.Subject,
             HtmlBody = email.HtmlBody,
             Channel = "email",
+            Locale = lead.Locale,
             DraftedAt = DateTimeOffset.UtcNow,
             ContentHash = contentHash
         };

@@ -177,8 +177,10 @@ public sealed class ActivationOrchestratorFunction
         var websiteStyle = websiteTask.Result?.Value;
         var salesPipeline = pipelineTask.Result?.Value;
         var coaching = coachingTask.Result;
-        var brandExtraction = brandExtractionTask.Result?.Value;
-        var brandVoice = brandVoiceTask.Result?.Value;
+        var brandExtractionResult = brandExtractionTask.Result;
+        var brandExtraction = brandExtractionResult?.Signals;
+        var brandVoiceResult = brandVoiceTask.Result;
+        var brandVoice = brandVoiceResult?.Signals;
         var compliance = complianceTask.Result?.Value;
         var feeStructure = feeTask.Result?.Value;
 
@@ -368,6 +370,26 @@ public sealed class ActivationOrchestratorFunction
             }
             return null;
         }
+    }
+
+    // ── Deterministic merge of localized skills from all Phase 2 outputs ──────
+
+    /// <summary>
+    /// Merges LocalizedSkills dictionaries from all Phase 2 outputs into a single dictionary.
+    /// Later entries overwrite earlier ones if keys conflict (last-writer-wins).
+    /// Returns null if no localized skills were produced.
+    /// </summary>
+    private static IReadOnlyDictionary<string, string>? MergeLocalizedSkills(
+        params IReadOnlyDictionary<string, string>?[] sources)
+    {
+        var merged = new Dictionary<string, string>();
+        foreach (var source in sources)
+        {
+            if (source is null) continue;
+            foreach (var kvp in source)
+                merged[kvp.Key] = kvp.Value;
+        }
+        return merged.Count > 0 ? merged : null;
     }
 
     // ── Deterministic markdown builders (no I/O, replay-safe) ────────────────

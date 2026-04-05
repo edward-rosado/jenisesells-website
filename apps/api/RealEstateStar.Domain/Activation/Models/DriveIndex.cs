@@ -12,4 +12,5 @@ public sealed record DriveFile(
     string Name,
     string MimeType,
     string Category,
-    DateTime ModifiedDate);
+    DateTime ModifiedDate,
+    string? DetectedLocale = null);

@@ -31,7 +31,8 @@
         "languages": {
           "type": "array",
           "items": { "type": "string" },
-          "default": ["English"]
+          "default": ["English"],
+          "description": "Array of language names the agent supports. Currently supported: English, Spanish. Maps to BCP 47 codes (English->en, Spanish->es). Drives per-language skill extraction during activation and locale-aware lead communications."
         },
         "tagline": { "type": "string" }
       }

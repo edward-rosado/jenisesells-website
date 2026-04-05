@@ -27,13 +27,18 @@ public static class WhatsAppMappers
     }
 
     public static List<(string type, string value)> ToFollowUpParams(
-        string leadName, int daysSinceSubmission)
+        string leadName, int daysSinceSubmission, string? locale = null)
     {
-        return
-        [
+        var parameters = new List<(string type, string value)>
+        {
             ("text", Sanitize(leadName)),
             ("text", daysSinceSubmission.ToString())
-        ];
+        };
+
+        if (!string.IsNullOrWhiteSpace(locale) && locale != "en")
+            parameters.Add(("text", Sanitize(locale)));
+
+        return parameters;
     }
 
     public static List<(string type, string value)> ToDataDeletionParams(

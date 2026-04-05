@@ -99,9 +99,9 @@ public class BrandVoiceWorkerTests
 
         var result = await worker.AnalyzeAsync(MakeEmptyCorpus(), MakeEmptyDriveIndex(), MakeDiscoveryWithBrokerageWebsite(), CancellationToken.None);
 
-        result.Should().NotBeNull();
-        result.Should().Contain("official_tone");
-        result.Should().Contain("standard_greeting");
+        result.Signals.Should().NotBeNull();
+        result.Signals.Should().Contain("official_tone");
+        result.Signals.Should().Contain("standard_greeting");
     }
 
     // ---------------------------------------------------------------------------

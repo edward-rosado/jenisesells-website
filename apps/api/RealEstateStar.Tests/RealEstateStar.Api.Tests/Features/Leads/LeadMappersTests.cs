@@ -9,7 +9,8 @@ public class LeadMappersTests
         string? desiredArea = "Kill Devil Hills, NC",
         bool withBuyer = true,
         bool withSeller = true,
-        string? notes = "Test notes") => new()
+        string? notes = "Test notes",
+        string? locale = null) => new()
         {
             LeadType = LeadType.Both,
             FirstName = "Jane",
@@ -18,6 +19,7 @@ public class LeadMappersTests
             Phone = "555-867-5309",
             Timeline = "3-6 months",
             Notes = notes,
+            Locale = locale,
             MarketingConsent = new MarketingConsentRequest
             {
                 OptedIn = true,
@@ -177,5 +179,50 @@ public class LeadMappersTests
     {
         var lead = MakeRequest(notes: "Call after 5pm").ToLead("agent-1");
         Assert.Equal("Call after 5pm", lead.Notes);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Locale mapping tests
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void ToLead_MapsLocale_WhenSpanish()
+    {
+        var request = MakeRequest(locale: "es");
+        var lead = request.ToLead("agent-1");
+
+        Assert.Equal("es", lead.Locale);
+    }
+
+    [Fact]
+    public void ToLead_MapsLocale_WhenNull()
+    {
+        var request = MakeRequest(locale: null);
+        var lead = request.ToLead("agent-1");
+
+        Assert.Null(lead.Locale);
+    }
+
+    [Fact]
+    public void SubmitLeadRequest_Locale_IsSettable()
+    {
+        var request = new SubmitLeadRequest
+        {
+            LeadType = LeadType.Buyer,
+            FirstName = "Juan",
+            LastName = "Garcia",
+            Email = "juan@example.com",
+            Phone = "555-123-4567",
+            Timeline = "ASAP",
+            Locale = "es",
+            MarketingConsent = new MarketingConsentRequest
+            {
+                OptedIn = true,
+                ConsentText = "I agree.",
+                Channels = ["email"]
+            }
+        };
+
+        Assert.Equal("es", request.Locale);
     }
 }

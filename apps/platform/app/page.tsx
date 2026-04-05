@@ -34,7 +34,7 @@ export default function LandingPage() {
             14 days free. $14.99/mo after.
           </p>
           <p className="text-lg text-gray-400 mb-12">
-            Everything you need to run your real estate business. All included.
+            Website. CMA reports. Lead capture. Multi-language. Compliance. All for $14.99/mo.
           </p>
           <form onSubmit={handleSubmit} className="space-y-4" aria-label="Get started">
             <label htmlFor="hero-profile-url" className="sr-only">

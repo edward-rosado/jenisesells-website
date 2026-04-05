@@ -26,8 +26,8 @@ public sealed class NotifyAgentFunction(
             ?? throw new InvalidOperationException(
                 $"[NAF-001] Lead {input.LeadId} not found. CorrelationId={input.CorrelationId}");
 
-        logger.LogInformation("[NAF-010] Notifying agent for lead {LeadId}. CorrelationId={CorrelationId}",
-            input.LeadId, input.CorrelationId);
+        logger.LogInformation("[NAF-010] Notifying agent for lead {LeadId}. Locale={Locale}. CorrelationId={CorrelationId}",
+            input.LeadId, input.Locale ?? "en", input.CorrelationId);
 
         await agentNotifier.NotifyAsync(
             lead,

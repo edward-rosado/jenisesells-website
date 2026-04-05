@@ -124,6 +124,9 @@ public class AgentNotifierService(
             ("text", score.Bucket)
         };
 
+        if (lead.Locale is not null && lead.Locale != "en")
+            parameters.Add(("text", $"Language: {GetLanguageDisplayName(lead.Locale)}"));
+
         if (lead.SellerDetails is { } seller)
         {
             var address = $"{seller.Address}, {seller.City}, {seller.State} {seller.Zip}";
@@ -210,6 +213,9 @@ public class AgentNotifierService(
                $"<div class=\"field\"><strong>Timeline:</strong> {H(lead.Timeline)}</div>" +
                $"<div class=\"field\"><strong>Score:</strong> <span class=\"score-badge\">{score.OverallScore} \u00b7 {H(score.Bucket)}</span></div>" +
                $"<div class=\"field\"><strong>Notes:</strong> {(lead.Notes is not null ? H(lead.Notes) : "\u2014")}</div>" +
+               (lead.Locale is not null && lead.Locale != "en"
+                   ? $"<div class=\"field\"><strong>Language Preference:</strong> {H(GetLanguageDisplayName(lead.Locale))}</div>"
+                   : string.Empty) +
                "</div>" +
                sellerSection +
                buyerSection +
@@ -279,6 +285,17 @@ public class AgentNotifierService(
                $"<div class=\"field\"><strong>Area Summary:</strong> {areaSummary}</div>" +
                "</div>";
     }
+
+    internal static string GetLanguageDisplayName(string? locale) => locale?.ToLowerInvariant() switch
+    {
+        "es" => "Spanish",
+        "fr" => "French",
+        "zh" => "Chinese",
+        "ko" => "Korean",
+        "vi" => "Vietnamese",
+        "ht" => "Haitian Creole",
+        _ => locale ?? "English"
+    };
 
     private static string H(string? s) => System.Net.WebUtility.HtmlEncode(s ?? string.Empty);
 

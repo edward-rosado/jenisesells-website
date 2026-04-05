@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Services;
 using DriveIndexModel = RealEstateStar.Domain.Activation.Models.DriveIndex;
 using DriveFileModel = RealEstateStar.Domain.Activation.Models.DriveFile;
 
@@ -184,13 +185,31 @@ public sealed class DriveIndexWorker(
             "[DRIVEINDEX-005] Extracted {ExtractionCount} document contacts for account {AccountId}, agent {AgentId}.",
             extractions.Count, accountId, agentId);
 
-        // Map to domain DriveFile records
-        var driveFiles = realEstateFiles.Select(f => new DriveFileModel(
-            f.Id,
-            f.Name,
-            f.MimeType,
-            CategorizeFile(f.Name),
-            f.ModifiedTime ?? DateTime.MinValue)).ToList();
+        // Map to domain DriveFile records with language detection
+        var driveFiles = realEstateFiles.Select(f =>
+        {
+            var detectedLocale = contents.TryGetValue(f.Id, out var content)
+                ? LanguageDetector.DetectLocale(content)
+                : null;
+
+            return new DriveFileModel(
+                f.Id,
+                f.Name,
+                f.MimeType,
+                CategorizeFile(f.Name),
+                f.ModifiedTime ?? DateTime.MinValue,
+                detectedLocale);
+        }).ToList();
+
+        var langDistribution = driveFiles
+            .Where(f => f.DetectedLocale is not null)
+            .GroupBy(f => f.DetectedLocale!)
+            .OrderByDescending(g => g.Count())
+            .Select(g => $"{g.Key}={g.Count()}");
+
+        logger.LogInformation(
+            "[DIDX-010] Document language distribution for {AgentId}: {Distribution}",
+            agentId, string.Join(", ", langDistribution));
 
         return new DriveIndexModel(folderId, driveFiles, contents, discoveredUrls.ToList(), extractions);
     }

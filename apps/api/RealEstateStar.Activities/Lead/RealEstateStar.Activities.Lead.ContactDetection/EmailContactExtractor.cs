@@ -7,7 +7,7 @@ using RealEstateStar.Domain.Shared.Interfaces.External;
 namespace RealEstateStar.Activities.Lead.ContactDetection;
 
 /// <summary>
-/// Extracts contacts from general inbox emails by sending batches of 20 to Claude Sonnet.
+/// Extracts contacts from general inbox emails by sending batches of 20 to Claude Haiku.
 /// Uses &lt;user-data&gt; tags to prevent prompt injection.
 /// </summary>
 internal sealed class EmailContactExtractor(
@@ -15,7 +15,7 @@ internal sealed class EmailContactExtractor(
     ILogger<EmailContactExtractor> logger)
 {
     internal const int BatchSize = 20;
-    internal const string Model = "claude-sonnet-4-5";
+    internal const string Model = "claude-haiku-4-5-20251001";
     internal const int MaxTokens = 4096;
     internal const string Pipeline = "contact-detection";
 
@@ -38,8 +38,8 @@ internal sealed class EmailContactExtractor(
         """;
 
     /// <summary>
-    /// Batches the provided emails in groups of 20 and sends each batch to Claude Sonnet
-    /// for contact extraction. Returns all extracted clients across all batches.
+    /// Batches the provided emails in groups of 20 and sends each batch to Claude Haiku
+    /// for contact extraction in parallel. Returns all extracted clients across all batches.
     /// </summary>
     internal async Task<IReadOnlyList<ExtractedClient>> ExtractAsync(
         IReadOnlyList<EmailMessage> emails,
@@ -47,7 +47,6 @@ internal sealed class EmailContactExtractor(
     {
         if (emails.Count == 0) return [];
 
-        var results = new List<ExtractedClient>();
         var batches = emails
             .Select((email, index) => (email, index))
             .GroupBy(x => x.index / BatchSize)
@@ -55,15 +54,12 @@ internal sealed class EmailContactExtractor(
             .ToList();
 
         logger.LogInformation(
-            "[CONTACT-EXTRACT-010] Processing {EmailCount} emails in {BatchCount} batches",
+            "[CONTACT-EXTRACT-010] Processing {EmailCount} emails in {BatchCount} batches (parallel)",
             emails.Count, batches.Count);
 
-        foreach (var batch in batches)
-        {
-            ct.ThrowIfCancellationRequested();
-            var extracted = await ExtractBatchAsync(batch, ct);
-            results.AddRange(extracted);
-        }
+        var batchTasks = batches.Select(batch => ExtractBatchAsync(batch, ct));
+        var batchResults = await Task.WhenAll(batchTasks);
+        var results = batchResults.SelectMany(r => r).ToList();
 
         logger.LogInformation(
             "[CONTACT-EXTRACT-090] Extracted {ContactCount} contacts from {EmailCount} emails",

@@ -31,7 +31,8 @@ public class PdfActivity(
         byte[]? logoBytes,
         byte[]? headshotBytes,
         string correlationId,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? locale = null)
     {
         using var span = PdfDiagnostics.ActivitySource.StartActivity("activity.pdf");
         span?.SetTag("lead.id", lead.Id.ToString());
@@ -49,7 +50,7 @@ public class PdfActivity(
         {
             var genStarted = Stopwatch.GetTimestamp();
             tempPath = await generator.GenerateAsync(lead, analysis, comps, config, reportType,
-                logoBytes, headshotBytes, ct);
+                logoBytes, headshotBytes, ct, locale);
             PdfDiagnostics.GenerationDurationMs.Record(
                 Stopwatch.GetElapsedTime(genStarted).TotalMilliseconds);
         }

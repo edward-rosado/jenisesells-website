@@ -162,6 +162,7 @@ When working on a skill, load the agent profile first:
 - **Contracts**: State-specific templates live in `skills/contracts/templates/{STATE}/`
 - **No hardcoding**: Agent identity, branding, and compliance data always come from config
 - **API calls**: Platform uses shared `api` instance from `@/lib/api`. Agent-site passes HMAC headers per-request via `createApiClient()`. SSE streaming stays raw `fetch`. Correlation IDs are auto-injected.
+- **Pitch decks**: `docs/pitch-decks/` contains both `.html` (presentation) and `.md` (source) for each deck. **Always update both files together** — they must stay in sync. The `.md` is the readable reference; the `.html` is the presentable version.
 
 ## Architecture Test Protection
 
@@ -264,6 +265,23 @@ When a seller lead is submitted, the CMA pipeline fetches comparable sales data 
 **PDF Download:** `DownloadCmaEndpoint` (GET `/accounts/{accountId}/agents/{agentId}/leads/{leadId}/cma/download`) streams the PDF from Azure Blob Storage. PDFs are stored automatically when the CMA pipeline completes.
 
 
+## Multi-Language Architecture
+
+Agent sites support English and Spanish. Language flows through two axes:
+
+**Agent capability** (activation): Phase 2 DF activity functions extract per-language skills from the agent's actual Spanish emails/docs. `LocalizedSkills` dictionary flows through DF serialization DTOs (`VoiceExtractionOutput`, `PersonalityOutput`, `MarketingStyleOutput`, `BrandExtractionOutput`, `BrandVoiceOutput` in `ActivationDtos.cs`) and is persisted via `PersistProfileInput.LocalizedSkills`. `CheckActivationCompleteFunction` performs per-language completion checks — when `Languages` contains `"es"`, it also verifies `Voice Skill.es.md` and `Personality Skill.es.md` exist.
+
+**Contact preference** (lead pipeline): `Lead.Locale` captured at form submission and flows through `LeadOrchestratorInput.Locale` into downstream DF activity DTOs (`DraftLeadEmailInput.Locale`, `GeneratePdfInput.Locale`, `NotifyAgentInput.Locale`, `PersistLeadResultsInput.Locale`). Email drafter loads `AgentContext.GetSkill("VoiceSkill", locale)` for per-language voice. CMA PDFs and email templates render localized content.
+
+**Key conventions:**
+- Per-language skill files: `{Skill Name}.{locale}.md` (e.g., `Voice Skill.es.md`)
+- Locale codes: BCP 47 (`en`, `es`)
+- `AgentContext.GetSkill(skillName, locale)` — falls back to English if locale version doesn't exist
+- Language detection: `LanguageDetector.DetectLocale(text)` in `Domain/Shared/Services/`
+- Observability: `RealEstateStar.Language` ActivitySource + Meter
+- TCPA consent text stays English regardless of locale (legal requirement)
+- Language features are fully integrated with DF orchestrators — no BackgroundService involvement
+
 ## Docker / Production Notes
 
 - **Agent config files** (`config/accounts/`) live at repo root, outside Docker build context (`apps/api/`). CI copies them into the build context before `docker build`.
@@ -279,6 +297,8 @@ When a seller lead is submitted, the CMA pipeline fetches comparable sales data 
 - Durable Functions Migration: `docs/superpowers/specs/2026-03-31-azure-durable-functions-migration-plan.md`
 - Durable Functions Task Plan: `docs/superpowers/specs/2026-04-01-azure-durable-functions-task-plan.md`
 - Durable Functions Operations: `docs/superpowers/plans/2026-04-02-durable-functions-operations-guide.md`
+- Language First-Class Design: `docs/superpowers/specs/2026-04-02-language-first-class-design.md`
+- Language Observability Dashboard: `docs/superpowers/specs/2026-04-03-language-observability-dashboard.md`
 - Architecture Diagrams: `docs/architecture/README.md`
 - Onboarding: `docs/onboarding.md`
 - PM Skills: `docs/pm-skills-setup.md`

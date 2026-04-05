@@ -1,9 +1,21 @@
 import "./globals.css";
 import { WebVitalsReporter } from "./WebVitalsReporter";
+import { getUiStrings } from "@/features/i18n";
 
-export default function RootLayout({
+interface RootLayoutProps {
+  children: React.ReactNode;
+  params?: Promise<Record<string, string>>;
+  searchParams?: Promise<{ locale?: string }>;
+}
+
+export default async function RootLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+  searchParams,
+}: Readonly<RootLayoutProps>) {
+  const sp = await searchParams;
+  const locale = sp?.locale ?? "en";
+  const ui = getUiStrings(locale);
+
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "RealEstateAgent",
@@ -11,7 +23,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en">
+    <html lang={locale}>
       <head>
         <script
           type="application/ld+json"
@@ -21,7 +33,7 @@ export default function RootLayout({
       <body>
         <WebVitalsReporter />
         <a href="#main-content" className="skip-nav">
-          Skip to main content
+          {ui.skipToContent}
         </a>
         <main>
           {children}

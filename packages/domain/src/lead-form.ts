@@ -46,4 +46,5 @@ export interface LeadFormData {
   timeline: Timeline;
   notes?: string;
   marketingConsent?: MarketingConsentData;
+  locale?: string;
 }

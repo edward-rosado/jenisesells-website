@@ -130,7 +130,7 @@ file sealed class NoOpCmaAnalyzer : ICmaAnalyzer
 
 file sealed class NoOpCmaPdfGenerator : ICmaPdfGenerator
 {
-    public Task<string> GenerateAsync(Lead lead, CmaAnalysis analysis, List<Comp> comps, AccountConfig agent, ReportType reportType, byte[]? logoBytes, byte[]? headshotBytes, CancellationToken ct) =>
+    public Task<string> GenerateAsync(Lead lead, CmaAnalysis analysis, List<Comp> comps, AccountConfig agent, ReportType reportType, byte[]? logoBytes, byte[]? headshotBytes, CancellationToken ct, string? locale = null) =>
         Task.FromResult("/tmp/no-op.pdf");
 }
 
