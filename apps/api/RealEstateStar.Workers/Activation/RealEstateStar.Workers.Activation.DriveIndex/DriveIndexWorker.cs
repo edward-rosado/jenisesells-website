@@ -131,13 +131,30 @@ public sealed class DriveIndexWorker(
         var extractions = new List<DocumentExtraction>();
         var stagedCount = 0;
 
-        foreach (var file in realEstateFiles)
+        // Limit files processed to prevent OOM on accounts with many documents.
+        // The Consumption plan has 1.5GB RAM — each file content + blob staging uses ~2x file size.
+        const int maxFiles = 50;
+        var filesToProcess = realEstateFiles.Take(maxFiles).ToList();
+        if (realEstateFiles.Count > maxFiles)
+            logger.LogWarning("[DRIVEINDEX-006] Limiting to {Max} of {Total} real estate files to prevent OOM",
+                maxFiles, realEstateFiles.Count);
+
+        foreach (var file in filesToProcess)
         {
             ct.ThrowIfCancellationRequested();
 
             try
             {
                 var content = await driveClient.GetFileContentAsync(accountId, agentId, file.Id, ct);
+
+                // Skip very large files to prevent OOM — individual files over 512KB are too large
+                // for in-memory processing on Consumption plan
+                if (content is not null && content.Length > 512 * 1024)
+                {
+                    logger.LogWarning("[DRIVEINDEX-012] Skipping oversized file {FileId} ({FileName}) — {Size}KB",
+                        file.Id, file.Name, content.Length / 1024);
+                    continue;
+                }
                 if (!string.IsNullOrWhiteSpace(content))
                 {
                     if (stagedContent is not null)
