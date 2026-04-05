@@ -37,6 +37,8 @@ public sealed class DriveIndexWorker(
 
     private const int MaxPdfPages = 10;
     private const int PdfParallelism = 5;
+    private const int MaxStagedFiles = 100;
+    private const int MaxPdfExtractions = 10;
     private const int ClaudeMaxTokens = 1024;
     private const string ClaudePipeline = "activation-driveindex";
     private const string ClaudeModel = "claude-sonnet-4-6";
@@ -131,12 +133,17 @@ public sealed class DriveIndexWorker(
         var extractions = new List<DocumentExtraction>();
         var stagedCount = 0;
 
-        // Process ALL real estate files — no artificial limits.
-        // OOM prevention is handled at two levels:
-        // 1. GDriveApiClient.GetFileContentAsync skips files >2MB (returns null)
-        // 2. Stream-and-stage: content is staged to blob then discarded (never accumulated)
+        // When staging, cap at MaxStagedFiles most-recently-modified files.
+        // Synthesizers only use the top 5-20 — staging hundreds wastes time and risks timeout.
+        // Sort by modified date descending so the most relevant/recent files are staged first.
+        var filesToProcess = stagedContent is not null
+            ? realEstateFiles
+                .OrderByDescending(f => f.ModifiedTime ?? DateTime.MinValue)
+                .Take(MaxStagedFiles)
+                .ToList()
+            : realEstateFiles;
 
-        foreach (var file in realEstateFiles)
+        foreach (var file in filesToProcess)
         {
             ct.ThrowIfCancellationRequested();
 
@@ -151,17 +158,10 @@ public sealed class DriveIndexWorker(
                         await stagedContent.StageContentAsync(accountId, agentId, file.Id, content, ct);
                         stagedCount++;
 
-                        // Extract URLs inline
+                        // Extract URLs inline (cheap string scan, no API call)
                         foreach (var url in ExtractUrls(content))
                             discoveredUrls.Add(url);
 
-                        // Text-doc extraction inline (non-PDF only) — then discard content
-                        if (!file.MimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
-                        {
-                            var extraction = await ExtractFromTextAsync(file, content, ct);
-                            if (extraction is not null)
-                                extractions.Add(extraction);
-                        }
                         // content string is now eligible for GC — NOT stored in dictionary
                     }
                     else
@@ -191,8 +191,9 @@ public sealed class DriveIndexWorker(
 
         // ── PDF extraction (parallel, max 5 in-flight) ────────────────────────
 
-        var pdfFiles = realEstateFiles
+        var pdfFiles = filesToProcess
             .Where(f => f.MimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+            .Take(MaxPdfExtractions)
             .ToList();
 
         var semaphore = new SemaphoreSlim(PdfParallelism);
@@ -222,7 +223,7 @@ public sealed class DriveIndexWorker(
             {
                 ct.ThrowIfCancellationRequested();
 
-                var file = realEstateFiles.FirstOrDefault(f => f.Id == fileId);
+                var file = filesToProcess.FirstOrDefault(f => f.Id == fileId);
                 if (file is not null && !file.MimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
                 {
                     var extraction = await ExtractFromTextAsync(file, content, ct);
