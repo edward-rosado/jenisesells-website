@@ -27,8 +27,9 @@ public sealed class VoiceExtractionFunction(
         logger.LogInformation(
             "[ACTV-FN-100] VoiceExtraction for agentId={AgentId}", input.AgentId);
 
-        // Load Drive file contents from blob staging (workers are pure compute, don't touch storage)
-        var stagedContents = await stagedContent.GetAllContentsAsync(input.AccountId, input.AgentId, ct);
+        // Load only first 10 Drive file contents — VoiceExtractionWorker uses .Take(10).
+        // Loading ALL staged content at once causes OOM on accounts with many large documents.
+        var stagedContents = await stagedContent.GetTopContentsAsync(input.AccountId, input.AgentId, 10, ct);
 
         var result = await worker.ExtractAsync(
             agentName: input.AgentName,

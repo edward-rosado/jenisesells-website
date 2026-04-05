@@ -28,7 +28,7 @@ public sealed class CoachingFunction(
             "[ACTV-FN-170] Coaching for agentId={AgentId}", input.AgentId);
 
         // Load Drive file contents from blob staging (workers are pure compute, don't touch storage)
-        var stagedContents = await stagedContent.GetAllContentsAsync(input.AccountId, input.AgentId, ct);
+        var stagedContents = await stagedContent.GetTopContentsAsync(input.AccountId, input.AgentId, 5, ct);
 
         var result = await worker.AnalyzeAsync(
             agentName: input.AgentName,

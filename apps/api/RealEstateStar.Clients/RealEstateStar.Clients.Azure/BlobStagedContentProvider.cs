@@ -66,6 +66,26 @@ public sealed class BlobStagedContentProvider : IStagedContentProvider
         return result;
     }
 
+    public async Task<IReadOnlyDictionary<string, string>> GetTopContentsAsync(
+        string accountId, string agentId, int maxFiles, CancellationToken ct)
+    {
+        await EnsureContainerAsync(ct);
+        var prefix = StagingPrefix(accountId, agentId);
+        var result = new Dictionary<string, string>();
+
+        await foreach (var item in _container.GetBlobsAsync(prefix: prefix, cancellationToken: ct))
+        {
+            if (result.Count >= maxFiles) break;
+            var fileName = item.Name[(prefix.Length)..];
+            var driveFileId = Path.GetFileNameWithoutExtension(fileName);
+            var blob = _container.GetBlobClient(item.Name);
+            var response = await blob.DownloadContentAsync(ct);
+            result[driveFileId] = response.Value.Content.ToString();
+        }
+
+        return result;
+    }
+
     public async Task<int> GetCountAsync(string accountId, string agentId, CancellationToken ct)
     {
         await EnsureContainerAsync(ct);
