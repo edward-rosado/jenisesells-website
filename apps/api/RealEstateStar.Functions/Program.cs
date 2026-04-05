@@ -246,6 +246,16 @@ else
     Log.Warning("[STARTUP-081] AzureStorage:ConnectionString not configured — Platform tier using LocalStorageProvider");
 }
 
+// ── Staged content provider (ephemeral blob staging for activation Drive contents) ──
+if (!string.IsNullOrEmpty(storageConnStr))
+{
+    builder.Services.AddSingleton<RealEstateStar.Domain.Activation.Interfaces.IStagedContentProvider>(sp =>
+        new BlobStagedContentProvider(
+            new Azure.Storage.Blobs.BlobContainerClient(storageConnStr, "lead-documents"),
+            sp.GetRequiredService<ILogger<BlobStagedContentProvider>>()));
+    Log.Information("[STARTUP-089] IStagedContentProvider: BlobStagedContentProvider (container: lead-documents)");
+}
+
 builder.Services.AddStorageProviders(builder.Configuration, builder.Environment);
 
 // ── Agent config path ─────────────────────────────────────────────────────────

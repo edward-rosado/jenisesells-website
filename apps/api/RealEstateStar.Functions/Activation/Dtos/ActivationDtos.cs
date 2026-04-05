@@ -364,4 +364,11 @@ public sealed record WelcomeNotificationInput
     [JsonPropertyName("agentName")] public string? AgentName { get; init; }
     [JsonPropertyName("agentPhone")] public string? AgentPhone { get; init; }
     [JsonPropertyName("whatsAppEnabled")] public bool WhatsAppEnabled { get; init; }
+    [JsonPropertyName("agentEmail")] public string? AgentEmail { get; init; }
+}
+
+public sealed record CleanupStagedContentInput
+{
+    [JsonPropertyName("accountId")] public string AccountId { get; init; } = default!;
+    [JsonPropertyName("agentId")] public string AgentId { get; init; } = default!;
 }

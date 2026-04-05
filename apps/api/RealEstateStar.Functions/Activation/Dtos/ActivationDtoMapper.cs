@@ -49,11 +49,7 @@ internal static class ActivationDtoMapper
         {
             FolderId = idx.FolderId,
             Files = idx.Files.Select(ToDto).ToList(),
-            // Cap each document to 8KB to prevent OOM on Azure Consumption plan.
-            // Full contents are available to workers via GDriveClient if needed.
-            Contents = idx.Contents.ToDictionary(
-                kvp => kvp.Key,
-                kvp => kvp.Value.Length > 8192 ? kvp.Value[..8192] : kvp.Value),
+            Contents = new Dictionary<string, string>(idx.Contents),
             DiscoveredUrls = idx.DiscoveredUrls.ToList(),
             Extractions = idx.Extractions.Select(ToDto).ToList()
         };
@@ -208,6 +204,19 @@ internal static class ActivationDtoMapper
             FolderId: dto.FolderId,
             Files: dto.Files.Select(ToDomain).ToList(),
             Contents: dto.Contents,
+            DiscoveredUrls: dto.DiscoveredUrls,
+            Extractions: dto.Extractions.Select(ToDomain).ToList());
+
+    /// <summary>
+    /// Converts DriveIndex DTO to domain model with externally-loaded contents.
+    /// Used by Phase 2 activities that load Drive file contents from blob staging
+    /// instead of receiving them through the orchestrator (prevents OOM).
+    /// </summary>
+    public static DriveIndex ToDomainWithContents(DriveIndexOutput dto, IReadOnlyDictionary<string, string> stagedContents) =>
+        new(
+            FolderId: dto.FolderId,
+            Files: dto.Files.Select(ToDomain).ToList(),
+            Contents: stagedContents,
             DiscoveredUrls: dto.DiscoveredUrls,
             Extractions: dto.Extractions.Select(ToDomain).ToList());
 

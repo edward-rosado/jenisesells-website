@@ -286,6 +286,23 @@ public sealed class ActivationOrchestratorFunction
             }
         }
 
+        // Cleanup staged Drive content blobs (non-fatal — best effort)
+        try
+        {
+            await ctx.CallActivityAsync(
+                ActivityNames.CleanupStagedContent,
+                new CleanupStagedContentInput
+                {
+                    AccountId = request.AccountId,
+                    AgentId = request.AgentId,
+                });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            if (!ctx.IsReplaying)
+                logger.LogWarning(ex, "[ACTV-FN-046] Staged content cleanup failed — non-fatal");
+        }
+
         // ── Phase 4: Notify ───────────────────────────────────────────────────
 
         if (!ctx.IsReplaying)
@@ -301,6 +318,7 @@ public sealed class ActivationOrchestratorFunction
                 AgentName = emailCorpus.Signature?.Name,
                 AgentPhone = emailCorpus.Signature?.Phone ?? discovery.Phone,
                 WhatsAppEnabled = discovery.WhatsAppEnabled,
+                AgentEmail = request.Email,
             });
 
         if (!ctx.IsReplaying)

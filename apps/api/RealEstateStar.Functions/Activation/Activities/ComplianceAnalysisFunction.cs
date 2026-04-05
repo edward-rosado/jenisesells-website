@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Functions.Activation.Dtos;
 using RealEstateStar.Workers.Activation.ComplianceAnalysis;
 
@@ -15,6 +16,7 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// </summary>
 public sealed class ComplianceAnalysisFunction(
     ComplianceAnalysisWorker worker,
+    IStagedContentProvider stagedContent,
     ILogger<ComplianceAnalysisFunction> logger)
 {
     [Function(ActivityNames.ComplianceAnalysis)]
@@ -25,9 +27,12 @@ public sealed class ComplianceAnalysisFunction(
         logger.LogInformation(
             "[ACTV-FN-200] ComplianceAnalysis for agentId={AgentId}", input.AgentId);
 
+        // Load Drive file contents from blob staging (workers are pure compute, don't touch storage)
+        var stagedContents = await stagedContent.GetAllContentsAsync(input.AccountId, input.AgentId, ct);
+
         var result = await worker.AnalyzeAsync(
             emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
-            driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
+            driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
             discovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 

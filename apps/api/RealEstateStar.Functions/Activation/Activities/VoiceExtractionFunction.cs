@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Functions.Activation.Dtos;
 using RealEstateStar.Workers.Activation.VoiceExtraction;
 
@@ -15,6 +16,7 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// </summary>
 public sealed class VoiceExtractionFunction(
     VoiceExtractionWorker worker,
+    IStagedContentProvider stagedContent,
     ILogger<VoiceExtractionFunction> logger)
 {
     [Function(ActivityNames.VoiceExtraction)]
@@ -25,10 +27,13 @@ public sealed class VoiceExtractionFunction(
         logger.LogInformation(
             "[ACTV-FN-100] VoiceExtraction for agentId={AgentId}", input.AgentId);
 
+        // Load Drive file contents from blob staging (workers are pure compute, don't touch storage)
+        var stagedContents = await stagedContent.GetAllContentsAsync(input.AccountId, input.AgentId, ct);
+
         var result = await worker.ExtractAsync(
             agentName: input.AgentName,
             emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
-            driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
+            driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
             agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 

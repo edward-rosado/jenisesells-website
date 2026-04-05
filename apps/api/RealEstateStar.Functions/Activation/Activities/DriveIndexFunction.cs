@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Functions.Activation.Dtos;
 using RealEstateStar.Workers.Activation.DriveIndex;
 
@@ -15,6 +16,7 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// </summary>
 public sealed class DriveIndexFunction(
     DriveIndexWorker worker,
+    IStagedContentProvider stagedContent,
     ILogger<DriveIndexFunction> logger)
 {
     [Function(ActivityNames.DriveIndex)]
@@ -29,7 +31,18 @@ public sealed class DriveIndexFunction(
         try
         {
             var driveIndex = await worker.RunAsync(input.AccountId, input.AgentId, ct);
-            return JsonSerializer.Serialize(ActivationDtoMapper.ToDto(driveIndex));
+
+            // Stage drive file contents to blob storage for Phase 2 workers
+            foreach (var (fileId, content) in driveIndex.Contents)
+            {
+                await stagedContent.StageContentAsync(input.AccountId, input.AgentId, fileId, content, ct);
+            }
+            logger.LogInformation("[ACTV-FN-032] Staged {Count} drive file contents to blob", driveIndex.Contents.Count);
+
+            var dto = ActivationDtoMapper.ToDto(driveIndex);
+            // Clear Contents from DTO — content is now in blob storage, not serialized through orchestrator
+            var dtoWithoutContents = dto with { Contents = [] };
+            return JsonSerializer.Serialize(dtoWithoutContents);
         }
         catch (Exception ex)
         {

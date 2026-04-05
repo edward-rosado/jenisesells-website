@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Functions.Activation.Dtos;
 using RealEstateStar.Workers.Activation.FeeStructure;
 
@@ -15,6 +16,7 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// </summary>
 public sealed class FeeStructureFunction(
     FeeStructureWorker worker,
+    IStagedContentProvider stagedContent,
     ILogger<FeeStructureFunction> logger)
 {
     [Function(ActivityNames.FeeStructure)]
@@ -25,14 +27,26 @@ public sealed class FeeStructureFunction(
         logger.LogInformation(
             "[ACTV-FN-210] FeeStructure for agentId={AgentId}", input.AgentId);
 
-        var discovery = ActivationDtoMapper.ToDomain(input.Discovery);
+        // Load Drive file contents from blob staging (workers are pure compute, don't touch storage)
+        var stagedContents = await stagedContent.GetAllContentsAsync(input.AccountId, input.AgentId, ct);
 
-        var result = await worker.AnalyzeAsync(
-            emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
-            driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
-            websites: discovery.Websites,
-            ct: ct);
+        try
+        {
+            var discovery = ActivationDtoMapper.ToDomain(input.Discovery);
 
-        return JsonSerializer.Serialize(new StringOutput { Value = result });
+            var result = await worker.AnalyzeAsync(
+                emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
+                driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
+                websites: discovery.Websites,
+                ct: ct);
+
+            return JsonSerializer.Serialize(new StringOutput { Value = result });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ACTV-FN-034] FeeStructure FAILED for accountId={AccountId}, agentId={AgentId}: {Message}",
+                input.AccountId, input.AgentId, ex.Message);
+            throw;
+        }
     }
 }
