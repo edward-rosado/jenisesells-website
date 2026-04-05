@@ -26,8 +26,16 @@ public sealed class DriveIndexFunction(
             "[ACTV-FN-030] DriveIndex for accountId={AccountId}, agentId={AgentId}",
             input.AccountId, input.AgentId);
 
-        var driveIndex = await worker.RunAsync(input.AccountId, input.AgentId, ct);
-
-        return JsonSerializer.Serialize(ActivationDtoMapper.ToDto(driveIndex));
+        try
+        {
+            var driveIndex = await worker.RunAsync(input.AccountId, input.AgentId, ct);
+            return JsonSerializer.Serialize(ActivationDtoMapper.ToDto(driveIndex));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ACTV-FN-031] DriveIndex FAILED for accountId={AccountId}, agentId={AgentId}: {Message}",
+                input.AccountId, input.AgentId, ex.Message);
+            throw; // re-throw so the Durable Task framework captures it with the message
+        }
     }
 }

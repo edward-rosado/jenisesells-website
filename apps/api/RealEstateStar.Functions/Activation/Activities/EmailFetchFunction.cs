@@ -26,8 +26,16 @@ public sealed class EmailFetchFunction(
             "[ACTV-FN-020] EmailFetch for accountId={AccountId}, agentId={AgentId}",
             input.AccountId, input.AgentId);
 
-        var corpus = await worker.RunAsync(input.AccountId, input.AgentId, ct);
-
-        return JsonSerializer.Serialize(ActivationDtoMapper.ToDto(corpus));
+        try
+        {
+            var corpus = await worker.RunAsync(input.AccountId, input.AgentId, ct);
+            return JsonSerializer.Serialize(ActivationDtoMapper.ToDto(corpus));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ACTV-FN-021] EmailFetch FAILED for accountId={AccountId}, agentId={AgentId}: {Message}",
+                input.AccountId, input.AgentId, ex.Message);
+            throw;
+        }
     }
 }
