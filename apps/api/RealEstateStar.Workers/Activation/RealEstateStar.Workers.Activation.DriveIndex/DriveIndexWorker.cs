@@ -122,11 +122,13 @@ public sealed class DriveIndexWorker(
             realEstateFiles.Count, accountId, agentId);
 
         // Read content of each real-estate doc.
-        // When stagedContent is provided: stage each file to blob immediately after reading,
-        // keeping only URLs and extraction-needed content in memory (stream-and-stage).
+        // When stagedContent is provided: stream-and-stage — read each file from Drive, stage
+        // to blob, extract URLs + contacts inline, then discard the content string.
+        // Content is NEVER accumulated in memory when staging is used.
         // When stagedContent is null (tests/local): accumulate in-memory as before.
         var contents = new Dictionary<string, string>();
         var discoveredUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var extractions = new List<DocumentExtraction>();
         var stagedCount = 0;
 
         foreach (var file in realEstateFiles)
@@ -138,17 +140,24 @@ public sealed class DriveIndexWorker(
                 var content = await driveClient.GetFileContentAsync(accountId, agentId, file.Id, ct);
                 if (!string.IsNullOrWhiteSpace(content))
                 {
-                    // Stage to blob immediately — don't hold full content in memory
                     if (stagedContent is not null)
                     {
+                        // Stage to blob — content is NOT kept in memory
                         await stagedContent.StageContentAsync(accountId, agentId, file.Id, content, ct);
                         stagedCount++;
-                        // Keep content reference only for text extraction (below) — will be read
-                        // from blob by Phase 2 workers. Store a short snippet for URL extraction.
+
+                        // Extract URLs inline
                         foreach (var url in ExtractUrls(content))
                             discoveredUrls.Add(url);
-                        // Keep content temporarily for text-doc extraction pass below
-                        contents[file.Id] = content;
+
+                        // Text-doc extraction inline (non-PDF only) — then discard content
+                        if (!file.MimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var extraction = await ExtractFromTextAsync(file, content, ct);
+                            if (extraction is not null)
+                                extractions.Add(extraction);
+                        }
+                        // content string is now eligible for GC — NOT stored in dictionary
                     }
                     else
                     {
@@ -181,8 +190,6 @@ public sealed class DriveIndexWorker(
             .Where(f => f.MimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        var extractions = new List<DocumentExtraction>();
-
         var semaphore = new SemaphoreSlim(PdfParallelism);
         var extractionTasks = pdfFiles.Select(async file =>
         {
@@ -201,17 +208,22 @@ public sealed class DriveIndexWorker(
         extractions.AddRange(pdfResults.Where(e => e is not null)!);
 
         // ── Text-doc extraction (non-PDF) ─────────────────────────────────────
+        // When staging is used, text-doc extraction was done inline above (stream-and-stage).
+        // Only run this pass for the non-staging (in-memory) path.
 
-        foreach (var (fileId, content) in contents)
+        if (stagedContent is null)
         {
-            ct.ThrowIfCancellationRequested();
-
-            var file = realEstateFiles.FirstOrDefault(f => f.Id == fileId);
-            if (file is not null && !file.MimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+            foreach (var (fileId, content) in contents)
             {
-                var extraction = await ExtractFromTextAsync(file, content, ct);
-                if (extraction is not null)
-                    extractions.Add(extraction);
+                ct.ThrowIfCancellationRequested();
+
+                var file = realEstateFiles.FirstOrDefault(f => f.Id == fileId);
+                if (file is not null && !file.MimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+                {
+                    var extraction = await ExtractFromTextAsync(file, content, ct);
+                    if (extraction is not null)
+                        extractions.Add(extraction);
+                }
             }
         }
 
