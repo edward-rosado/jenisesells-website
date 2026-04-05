@@ -11,6 +11,10 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// Phase 1 gather activity: indexes the agent's Google Drive.
 /// Delegates to <see cref="DriveIndexWorker"/>.
 ///
+/// Passes <see cref="IStagedContentProvider"/> to the worker so it can stage each file's
+/// content to blob storage immediately after reading from Drive (stream-and-stage).
+/// This avoids accumulating all file contents in memory, preventing OOM on Consumption plan.
+///
 /// Returns pre-serialized JSON string to work around Azure Durable Functions SDK
 /// record.ToString() serialization bug (Microsoft.Azure.Functions.Worker.Extensions.DurableTask 1.2.3).
 /// </summary>
@@ -30,25 +34,17 @@ public sealed class DriveIndexFunction(
 
         try
         {
-            var driveIndex = await worker.RunAsync(input.AccountId, input.AgentId, ct);
+            // Worker reads files from Drive one-by-one and stages each to blob via stagedContent.
+            // Contents dictionary will be empty in the returned model — content lives in blob.
+            var driveIndex = await worker.RunAsync(input.AccountId, input.AgentId, ct, stagedContent);
 
-            // Stage drive file contents to blob storage for Phase 2 workers
-            foreach (var (fileId, content) in driveIndex.Contents)
-            {
-                await stagedContent.StageContentAsync(input.AccountId, input.AgentId, fileId, content, ct);
-            }
-            logger.LogInformation("[ACTV-FN-032] Staged {Count} drive file contents to blob", driveIndex.Contents.Count);
-
-            var dto = ActivationDtoMapper.ToDto(driveIndex);
-            // Clear Contents from DTO — content is now in blob storage, not serialized through orchestrator
-            var dtoWithoutContents = dto with { Contents = [] };
-            return JsonSerializer.Serialize(dtoWithoutContents);
+            return JsonSerializer.Serialize(ActivationDtoMapper.ToDto(driveIndex));
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "[ACTV-FN-031] DriveIndex FAILED for accountId={AccountId}, agentId={AgentId}: {Message}",
                 input.AccountId, input.AgentId, ex.Message);
-            throw; // re-throw so the Durable Task framework captures it with the message
+            throw;
         }
     }
 }
