@@ -131,30 +131,18 @@ public sealed class DriveIndexWorker(
         var extractions = new List<DocumentExtraction>();
         var stagedCount = 0;
 
-        // Limit files processed to prevent OOM on accounts with many documents.
-        // The Consumption plan has 1.5GB RAM — each file content + blob staging uses ~2x file size.
-        const int maxFiles = 50;
-        var filesToProcess = realEstateFiles.Take(maxFiles).ToList();
-        if (realEstateFiles.Count > maxFiles)
-            logger.LogWarning("[DRIVEINDEX-006] Limiting to {Max} of {Total} real estate files to prevent OOM",
-                maxFiles, realEstateFiles.Count);
+        // Process ALL real estate files — no artificial limits.
+        // OOM prevention is handled at two levels:
+        // 1. GDriveApiClient.GetFileContentAsync skips files >2MB (returns null)
+        // 2. Stream-and-stage: content is staged to blob then discarded (never accumulated)
 
-        foreach (var file in filesToProcess)
+        foreach (var file in realEstateFiles)
         {
             ct.ThrowIfCancellationRequested();
 
             try
             {
                 var content = await driveClient.GetFileContentAsync(accountId, agentId, file.Id, ct);
-
-                // Skip very large files to prevent OOM — individual files over 512KB are too large
-                // for in-memory processing on Consumption plan
-                if (content is not null && content.Length > 512 * 1024)
-                {
-                    logger.LogWarning("[DRIVEINDEX-012] Skipping oversized file {FileId} ({FileName}) — {Size}KB",
-                        file.Id, file.Name, content.Length / 1024);
-                    continue;
-                }
                 if (!string.IsNullOrWhiteSpace(content))
                 {
                     if (stagedContent is not null)
