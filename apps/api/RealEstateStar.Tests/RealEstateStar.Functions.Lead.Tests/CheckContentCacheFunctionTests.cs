@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using RealEstateStar.Functions.Lead.Activities;
@@ -11,6 +12,8 @@ namespace RealEstateStar.Functions.Lead.Tests;
 
 /// <summary>
 /// Tests for <see cref="CheckContentCacheFunction"/>.
+/// Activities return pre-serialized JSON strings (DF SDK workaround),
+/// so tests deserialize before asserting.
 /// </summary>
 public class CheckContentCacheFunctionTests
 {
@@ -28,10 +31,13 @@ public class CheckContentCacheFunctionTests
             CorrelationId = "corr-test"
         };
 
+    private static CheckContentCacheOutput Deserialize(string json) =>
+        JsonSerializer.Deserialize<CheckContentCacheOutput>(json)!;
+
     [Fact]
     public async Task Returns_no_cache_hits_when_cache_is_empty()
     {
-        var result = await Build().RunAsync(BuildInput(), _ct);
+        var result = Deserialize(await Build().RunAsync(BuildInput(), _ct));
 
         result.CmaCacheHit.Should().BeFalse();
         result.HsCacheHit.Should().BeFalse();
@@ -45,7 +51,7 @@ public class CheckContentCacheFunctionTests
         var cmaResult = new CmaWorkerResult("l1", true, null, 500000m, 480000m, 520000m, [], "Great market");
         await _cache.SetAsync("cma_hash", cmaResult, TimeSpan.FromHours(1), _ct);
 
-        var result = await Build().RunAsync(BuildInput(), _ct);
+        var result = Deserialize(await Build().RunAsync(BuildInput(), _ct));
 
         result.CmaCacheHit.Should().BeTrue();
         result.CachedCmaResult.Should().NotBeNull();
@@ -60,7 +66,7 @@ public class CheckContentCacheFunctionTests
             [new ListingSummary("100 Oak Ave", 380000m, 3, 2m, 1600, "Active", null)], null);
         await _cache.SetAsync("hs_hash", hsResult, TimeSpan.FromHours(1), _ct);
 
-        var result = await Build().RunAsync(BuildInput(), _ct);
+        var result = Deserialize(await Build().RunAsync(BuildInput(), _ct));
 
         result.HsCacheHit.Should().BeTrue();
         result.CachedHsResult.Should().NotBeNull();
@@ -77,7 +83,7 @@ public class CheckContentCacheFunctionTests
         await _cache.SetAsync("cma_hash", cmaResult, TimeSpan.FromHours(1), _ct);
         await _cache.SetAsync("hs_hash", hsResult, TimeSpan.FromHours(1), _ct);
 
-        var result = await Build().RunAsync(BuildInput(), _ct);
+        var result = Deserialize(await Build().RunAsync(BuildInput(), _ct));
 
         result.CmaCacheHit.Should().BeTrue();
         result.HsCacheHit.Should().BeTrue();
@@ -89,7 +95,7 @@ public class CheckContentCacheFunctionTests
         var cmaResult = new CmaWorkerResult("l1", true, null, 500000m, null, null, [], null);
         await _cache.SetAsync("different_hash", cmaResult, TimeSpan.FromHours(1), _ct);
 
-        var result = await Build().RunAsync(BuildInput("cma_hash_1", "hs_hash_1"), _ct);
+        var result = Deserialize(await Build().RunAsync(BuildInput("cma_hash_1", "hs_hash_1"), _ct));
 
         result.CmaCacheHit.Should().BeFalse();
         result.HsCacheHit.Should().BeFalse();

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,11 @@ namespace RealEstateStar.Functions.Activation;
 /// - No Guid.NewGuid() — not needed here
 /// - No I/O calls — all I/O is in activity functions
 /// - Logging is guarded by !ctx.IsReplaying
+///
+/// WORKAROUND: Activities return pre-serialized JSON strings instead of typed DTOs because
+/// the Durable Functions SDK (Microsoft.Azure.Functions.Worker.Extensions.DurableTask 1.2.3)
+/// stores record.ToString() output instead of JSON in the task history, breaking replay deserialization.
+/// The orchestrator deserializes the JSON strings back into typed DTOs.
 /// </summary>
 public sealed class ActivationOrchestratorFunction
 {
@@ -43,9 +49,10 @@ public sealed class ActivationOrchestratorFunction
 
         // ── Phase 0: skip-if-complete ────────────────────────────────────────
 
-        var completeCheck = await ctx.CallActivityAsync<CheckActivationCompleteOutput>(
+        var completeCheckJson = await ctx.CallActivityAsync<string>(
             ActivityNames.CheckActivationComplete,
             new CheckActivationCompleteInput { AccountId = request.AccountId, AgentId = request.AgentId });
+        var completeCheck = JsonSerializer.Deserialize<CheckActivationCompleteOutput>(completeCheckJson)!;
 
         if (completeCheck.IsComplete)
         {
@@ -74,18 +81,18 @@ public sealed class ActivationOrchestratorFunction
             logger.LogInformation("[ACTV-FN-010] Phase 1: gather for accountId={AccountId}", request.AccountId);
 
         // Email and Drive run in parallel
-        var emailTask = ctx.CallActivityAsync<EmailFetchOutput>(
+        var emailTask = ctx.CallActivityAsync<string>(
             ActivityNames.EmailFetch,
             new EmailFetchInput { AccountId = request.AccountId, AgentId = request.AgentId });
 
-        var driveTask = ctx.CallActivityAsync<DriveIndexOutput>(
+        var driveTask = ctx.CallActivityAsync<string>(
             ActivityNames.DriveIndex,
             new DriveIndexInput { AccountId = request.AccountId, AgentId = request.AgentId });
 
         await Task.WhenAll(emailTask, driveTask);
 
-        var emailCorpus = emailTask.Result;
-        var driveIndex = driveTask.Result;
+        var emailCorpus = JsonSerializer.Deserialize<EmailFetchOutput>(emailTask.Result)!;
+        var driveIndex = JsonSerializer.Deserialize<DriveIndexOutput>(driveTask.Result)!;
 
         // Discovery requires email corpus to use signature info.
         // Validate email before splitting to avoid IndexOutOfRangeException on malformed input.
@@ -93,7 +100,7 @@ public sealed class ActivationOrchestratorFunction
             ? request.Email.Split('@')[0].Trim()
             : request.AccountId; // fallback to account ID when email is absent or malformed
 
-        var discovery = await ctx.CallActivityAsync<AgentDiscoveryOutput>(
+        var discoveryJson = await ctx.CallActivityAsync<string>(
             ActivityNames.AgentDiscovery,
             new AgentDiscoveryInput
             {
@@ -102,6 +109,7 @@ public sealed class ActivationOrchestratorFunction
                 AgentName = agentName,
                 EmailSignature = emailCorpus.Signature,
             });
+        var discovery = JsonSerializer.Deserialize<AgentDiscoveryOutput>(discoveryJson)!;
 
         // ── Phase 2: Synthesize (12 workers in parallel) ──────────────────────
 
@@ -172,7 +180,7 @@ public sealed class ActivationOrchestratorFunction
         ContactDetectionOutput contactDetectionResult;
         try
         {
-            contactDetectionResult = await ctx.CallActivityAsync<ContactDetectionOutput>(
+            var contactJson = await ctx.CallActivityAsync<string>(
                 ActivityNames.ContactDetection,
                 new ContactDetectionInput
                 {
@@ -181,6 +189,7 @@ public sealed class ActivationOrchestratorFunction
                     DriveExtractions = driveIndex.Extractions,
                     EmailCorpus = emailCorpus,
                 });
+            contactDetectionResult = JsonSerializer.Deserialize<ContactDetectionOutput>(contactJson)!;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -305,7 +314,8 @@ public sealed class ActivationOrchestratorFunction
     // ── Safe wrapper for Phase 2 parallel workers ─────────────────────────────
 
     /// <summary>
-    /// Calls an activity and returns the typed result.
+    /// Calls an activity (which returns pre-serialized JSON string), deserializes
+    /// the result to the typed DTO, and returns it.
     /// Returns null on failure so one worker failure does not abort the pipeline.
     /// </summary>
     private static async Task<T?> WrapAsync<T>(
@@ -317,7 +327,8 @@ public sealed class ActivationOrchestratorFunction
     {
         try
         {
-            return await ctx.CallActivityAsync<T>(activityName, input);
+            var json = await ctx.CallActivityAsync<string>(activityName, input);
+            return json is null ? null : JsonSerializer.Deserialize<T>(json);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

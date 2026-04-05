@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Functions.Activation.Dtos;
@@ -8,13 +9,16 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// <summary>
 /// Phase 2 synthesis activity: extracts agent personality skill.
 /// Delegates to <see cref="PersonalityWorker"/>.
+///
+/// Returns pre-serialized JSON string to work around Azure Durable Functions SDK
+/// record.ToString() serialization bug (Microsoft.Azure.Functions.Worker.Extensions.DurableTask 1.2.3).
 /// </summary>
 public sealed class PersonalityFunction(
     PersonalityWorker worker,
     ILogger<PersonalityFunction> logger)
 {
     [Function(ActivityNames.Personality)]
-    public async Task<PersonalityOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] SynthesisInput input,
         CancellationToken ct)
     {
@@ -28,6 +32,6 @@ public sealed class PersonalityFunction(
             agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 
-        return new PersonalityOutput { PersonalitySkillMarkdown = result.PersonalitySkillMarkdown, IsLowConfidence = result.IsLowConfidence };
+        return JsonSerializer.Serialize(new PersonalityOutput { PersonalitySkillMarkdown = result.PersonalitySkillMarkdown, IsLowConfidence = result.IsLowConfidence });
     }
 }

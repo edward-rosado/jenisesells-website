@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Shared.Interfaces.Storage;
@@ -38,7 +39,7 @@ public sealed class CheckActivationCompleteFunction(
     ];
 
     [Function(ActivityNames.CheckActivationComplete)]
-    public async Task<CheckActivationCompleteOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] CheckActivationCompleteInput input,
         CancellationToken ct)
     {
@@ -64,7 +65,7 @@ public sealed class CheckActivationCompleteFunction(
             "[ACTV-FN-011] Activation complete check: {IsComplete} for agentId={AgentId}",
             isComplete, input.AgentId);
 
-        return new CheckActivationCompleteOutput { IsComplete = isComplete };
+        return JsonSerializer.Serialize(new CheckActivationCompleteOutput { IsComplete = isComplete });
     }
 
     private async Task<bool> FileExistsAsync(string folder, string file, CancellationToken ct)

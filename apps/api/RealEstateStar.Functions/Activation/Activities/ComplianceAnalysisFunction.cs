@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Functions.Activation.Dtos;
@@ -8,13 +9,16 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// <summary>
 /// Phase 2 synthesis activity: analyzes compliance gaps in agent communications.
 /// Delegates to <see cref="ComplianceAnalysisWorker"/>.
+///
+/// Returns pre-serialized JSON string to work around Azure Durable Functions SDK
+/// record.ToString() serialization bug (Microsoft.Azure.Functions.Worker.Extensions.DurableTask 1.2.3).
 /// </summary>
 public sealed class ComplianceAnalysisFunction(
     ComplianceAnalysisWorker worker,
     ILogger<ComplianceAnalysisFunction> logger)
 {
     [Function(ActivityNames.ComplianceAnalysis)]
-    public async Task<StringOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] SynthesisInput input,
         CancellationToken ct)
     {
@@ -27,6 +31,6 @@ public sealed class ComplianceAnalysisFunction(
             discovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 
-        return new StringOutput { Value = result };
+        return JsonSerializer.Serialize(new StringOutput { Value = result });
     }
 }

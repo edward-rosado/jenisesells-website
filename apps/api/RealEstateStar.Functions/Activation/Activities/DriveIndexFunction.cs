@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Functions.Activation.Dtos;
@@ -8,13 +9,16 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// <summary>
 /// Phase 1 gather activity: indexes the agent's Google Drive.
 /// Delegates to <see cref="DriveIndexWorker"/>.
+///
+/// Returns pre-serialized JSON string to work around Azure Durable Functions SDK
+/// record.ToString() serialization bug (Microsoft.Azure.Functions.Worker.Extensions.DurableTask 1.2.3).
 /// </summary>
 public sealed class DriveIndexFunction(
     DriveIndexWorker worker,
     ILogger<DriveIndexFunction> logger)
 {
     [Function(ActivityNames.DriveIndex)]
-    public async Task<DriveIndexOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] DriveIndexInput input,
         CancellationToken ct)
     {
@@ -24,6 +28,6 @@ public sealed class DriveIndexFunction(
 
         var driveIndex = await worker.RunAsync(input.AccountId, input.AgentId, ct);
 
-        return ActivationDtoMapper.ToDto(driveIndex);
+        return JsonSerializer.Serialize(ActivationDtoMapper.ToDto(driveIndex));
     }
 }

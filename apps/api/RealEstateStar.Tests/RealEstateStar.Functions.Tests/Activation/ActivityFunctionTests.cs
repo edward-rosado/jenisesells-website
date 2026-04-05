@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -212,8 +213,9 @@ public sealed class ActivityFunctionTests
         var fn = new CheckActivationCompleteFunction(
             storage.Object, NullLogger<CheckActivationCompleteFunction>.Instance);
 
-        var result = await fn.RunAsync(
+        var json = await fn.RunAsync(
             new CheckActivationCompleteInput { AccountId = "acc1", AgentId = "agent1" }, Ct);
+        var result = JsonSerializer.Deserialize<CheckActivationCompleteOutput>(json)!;
 
         result.IsComplete.Should().BeTrue();
     }
@@ -236,8 +238,9 @@ public sealed class ActivityFunctionTests
         var fn = new CheckActivationCompleteFunction(
             storage.Object, NullLogger<CheckActivationCompleteFunction>.Instance);
 
-        var result = await fn.RunAsync(
+        var json = await fn.RunAsync(
             new CheckActivationCompleteInput { AccountId = "acc1", AgentId = "agent1" }, Ct);
+        var result = JsonSerializer.Deserialize<CheckActivationCompleteOutput>(json)!;
 
         result.IsComplete.Should().BeFalse();
     }
@@ -254,8 +257,9 @@ public sealed class ActivityFunctionTests
         var fn = new CheckActivationCompleteFunction(
             storage.Object, NullLogger<CheckActivationCompleteFunction>.Instance);
 
-        var result = await fn.RunAsync(
+        var json = await fn.RunAsync(
             new CheckActivationCompleteInput { AccountId = "acc1", AgentId = "agent1" }, Ct);
+        var result = JsonSerializer.Deserialize<CheckActivationCompleteOutput>(json)!;
 
         result.IsComplete.Should().BeFalse();
     }

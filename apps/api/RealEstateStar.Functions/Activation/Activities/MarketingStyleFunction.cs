@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Functions.Activation.Dtos;
@@ -8,13 +9,16 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// <summary>
 /// Phase 2 synthesis activity: analyzes marketing style from email corpus and drive index.
 /// Delegates to <see cref="MarketingStyleWorker"/>.
+///
+/// Returns pre-serialized JSON string to work around Azure Durable Functions SDK
+/// record.ToString() serialization bug (Microsoft.Azure.Functions.Worker.Extensions.DurableTask 1.2.3).
 /// </summary>
 public sealed class MarketingStyleFunction(
     MarketingStyleWorker worker,
     ILogger<MarketingStyleFunction> logger)
 {
     [Function(ActivityNames.MarketingStyle)]
-    public async Task<MarketingStyleOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] SynthesisInput input,
         CancellationToken ct)
     {
@@ -26,6 +30,6 @@ public sealed class MarketingStyleFunction(
             driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
             ct: ct);
 
-        return new MarketingStyleOutput { StyleGuide = styleGuide, BrandSignals = brandSignals };
+        return JsonSerializer.Serialize(new MarketingStyleOutput { StyleGuide = styleGuide, BrandSignals = brandSignals });
     }
 }

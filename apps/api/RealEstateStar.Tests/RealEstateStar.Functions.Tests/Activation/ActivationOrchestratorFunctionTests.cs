@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -16,10 +17,13 @@ namespace RealEstateStar.Functions.Tests.Activation;
 /// - Phase 3 contact import failure is non-fatal
 /// - Phase 0 skip-if-complete path skips to welcome notification
 /// - Deterministic instance ID generation
+///
+/// Activities return pre-serialized JSON strings (workaround for DF SDK record.ToString() bug).
+/// Mock setups use <c>CallActivityAsync&lt;string&gt;</c> with JSON-serialized DTOs.
 /// </summary>
 public sealed class ActivationOrchestratorFunctionTests
 {
-    // ── Instance ID ───────────────────────────────────────────────────────────
+    // ── Instance ID ─────────────���─────────────────────────────────────────────
 
     [Fact]
     public void InstanceId_Format_IsAccountAgentBased()
@@ -52,7 +56,7 @@ public sealed class ActivationOrchestratorFunctionTests
         id1.Should().Be(id2);
     }
 
-    // ── Orchestrator: happy path ───────────────────────────────────────────────
+    // ── Orchestrator: happy path ──────────────────��────────────────────────────
 
     [Fact]
     public async Task Orchestrator_HappyPath_CallsAllPhasesInOrder()
@@ -67,22 +71,22 @@ public sealed class ActivationOrchestratorFunctionTests
             .Returns(NullLogger<ActivationOrchestratorFunction>.Instance);
 
         // Phase 0: not complete
-        SetupActivity(ctx, ActivityNames.CheckActivationComplete,
+        SetupJsonActivity(ctx, ActivityNames.CheckActivationComplete,
             new CheckActivationCompleteOutput(), callOrder);
 
         // Phase 1
-        SetupActivity(ctx, ActivityNames.EmailFetch,
+        SetupJsonActivity(ctx, ActivityNames.EmailFetch,
             new EmailFetchOutput(), callOrder);
-        SetupActivity(ctx, ActivityNames.DriveIndex,
+        SetupJsonActivity(ctx, ActivityNames.DriveIndex,
             new DriveIndexOutput { FolderId = "folder1" }, callOrder);
-        SetupActivity(ctx, ActivityNames.AgentDiscovery,
+        SetupJsonActivity(ctx, ActivityNames.AgentDiscovery,
             new AgentDiscoveryOutput(), callOrder);
 
         // Phase 2: all 12 synthesis workers (each with correct return type)
         SetupAllPhase2Activities(ctx, callOrder);
 
         // Phase 2.5: contact detection
-        SetupActivity(ctx, ActivityNames.ContactDetection,
+        SetupJsonActivity(ctx, ActivityNames.ContactDetection,
             new ContactDetectionOutput(), callOrder);
 
         // Phase 3
@@ -114,35 +118,35 @@ public sealed class ActivationOrchestratorFunctionTests
 
         await ActivationOrchestratorFunction.RunAsync(ctx.Object);
 
-        // Verify each of the 12 Phase 2 workers was called exactly once,
-        // using the correct generic return type that matches the production code.
-        ctx.Verify(c => c.CallActivityAsync<VoiceExtractionOutput>(
-            ActivityNames.VoiceExtraction, It.IsAny<SynthesisInput>()), Times.Once);
-        ctx.Verify(c => c.CallActivityAsync<PersonalityOutput>(
-            ActivityNames.Personality, It.IsAny<SynthesisInput>()), Times.Once);
-        ctx.Verify(c => c.CallActivityAsync<BrandingDiscoveryOutput>(
-            ActivityNames.BrandingDiscovery, It.IsAny<SynthesisInput>()), Times.Once);
-        ctx.Verify(c => c.CallActivityAsync<StringOutput>(
-            ActivityNames.CmaStyle, It.IsAny<SynthesisInput>()), Times.Once);
-        ctx.Verify(c => c.CallActivityAsync<MarketingStyleOutput>(
-            ActivityNames.MarketingStyle, It.IsAny<SynthesisInput>()), Times.Once);
-        ctx.Verify(c => c.CallActivityAsync<StringOutput>(
-            ActivityNames.WebsiteStyle, It.IsAny<SynthesisInput>()), Times.Once);
-        ctx.Verify(c => c.CallActivityAsync<StringOutput>(
-            ActivityNames.PipelineAnalysis, It.IsAny<SynthesisInput>()), Times.Once);
-        ctx.Verify(c => c.CallActivityAsync<CoachingOutput>(
-            ActivityNames.Coaching, It.IsAny<SynthesisInput>()), Times.Once);
-        ctx.Verify(c => c.CallActivityAsync<StringOutput>(
-            ActivityNames.BrandExtraction, It.IsAny<SynthesisInput>()), Times.Once);
-        ctx.Verify(c => c.CallActivityAsync<StringOutput>(
-            ActivityNames.BrandVoice, It.IsAny<SynthesisInput>()), Times.Once);
-        ctx.Verify(c => c.CallActivityAsync<StringOutput>(
-            ActivityNames.ComplianceAnalysis, It.IsAny<SynthesisInput>()), Times.Once);
-        ctx.Verify(c => c.CallActivityAsync<StringOutput>(
-            ActivityNames.FeeStructure, It.IsAny<SynthesisInput>()), Times.Once);
+        // Verify each of the 12 Phase 2 workers was called exactly once.
+        // All activities now return string (JSON workaround).
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.VoiceExtraction, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.Personality, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.BrandingDiscovery, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.CmaStyle, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.MarketingStyle, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.WebsiteStyle, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.PipelineAnalysis, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.Coaching, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.BrandExtraction, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.BrandVoice, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.ComplianceAnalysis, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.FeeStructure, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
     }
 
-    // ── Phase 0: skip-if-complete ─────────────────────────────────────────────
+    // ── Phase 0: skip-if-complete ───��─────────────────────────────────────────
 
     [Fact]
     public async Task Orchestrator_AlreadyComplete_SkipsToWelcomeOnly()
@@ -156,7 +160,7 @@ public sealed class ActivationOrchestratorFunctionTests
             .Returns(NullLogger<ActivationOrchestratorFunction>.Instance);
 
         // Phase 0: already complete
-        SetupActivity(ctx, ActivityNames.CheckActivationComplete,
+        SetupJsonActivity(ctx, ActivityNames.CheckActivationComplete,
             new CheckActivationCompleteOutput { IsComplete = true }, new List<string>());
 
         SetupVoidActivity(ctx, ActivityNames.WelcomeNotification, new List<string>());
@@ -164,17 +168,17 @@ public sealed class ActivationOrchestratorFunctionTests
         await ActivationOrchestratorFunction.RunAsync(ctx.Object);
 
         // Phase 1, 2, 3 should NOT be called
-        ctx.Verify(c => c.CallActivityAsync<EmailFetchOutput>(
-            ActivityNames.EmailFetch, It.IsAny<object>()),
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.EmailFetch, It.IsAny<object>(), It.IsAny<TaskOptions>()),
             Times.Never);
 
         ctx.Verify(c => c.CallActivityAsync(
-            ActivityNames.PersistProfile, It.IsAny<object>()),
+            ActivityNames.PersistProfile, It.IsAny<object>(), It.IsAny<TaskOptions>()),
             Times.Never);
 
         // WelcomeNotification should be called once (for idempotent re-send)
         ctx.Verify(c => c.CallActivityAsync(
-            ActivityNames.WelcomeNotification, It.IsAny<WelcomeNotificationInput>()),
+            ActivityNames.WelcomeNotification, It.IsAny<WelcomeNotificationInput>(), It.IsAny<TaskOptions>()),
             Times.Once);
     }
 
@@ -186,8 +190,8 @@ public sealed class ActivationOrchestratorFunctionTests
         var ctx = BuildMockOrchestratorContext(isComplete: false);
 
         // Override contact detection to throw
-        ctx.Setup(c => c.CallActivityAsync<ContactDetectionOutput>(
-                ActivityNames.ContactDetection, It.IsAny<ContactDetectionInput>()))
+        ctx.Setup(c => c.CallActivityAsync<string>(
+                ActivityNames.ContactDetection, It.IsAny<ContactDetectionInput>(), It.IsAny<TaskOptions>()))
             .ThrowsAsync(new InvalidOperationException("Contact detection failed"));
 
         // Act — should not throw
@@ -195,11 +199,11 @@ public sealed class ActivationOrchestratorFunctionTests
 
         // Phase 3 and 4 should still be called
         ctx.Verify(c => c.CallActivityAsync(
-            ActivityNames.PersistProfile, It.IsAny<PersistProfileInput>()),
+            ActivityNames.PersistProfile, It.IsAny<PersistProfileInput>(), It.IsAny<TaskOptions>()),
             Times.Once);
 
         ctx.Verify(c => c.CallActivityAsync(
-            ActivityNames.WelcomeNotification, It.IsAny<WelcomeNotificationInput>()),
+            ActivityNames.WelcomeNotification, It.IsAny<WelcomeNotificationInput>(), It.IsAny<TaskOptions>()),
             Times.Once);
     }
 
@@ -212,7 +216,7 @@ public sealed class ActivationOrchestratorFunctionTests
 
         // Override contact import to throw
         ctx.Setup(c => c.CallActivityAsync(
-                ActivityNames.ContactImport, It.IsAny<ContactImportInput>()))
+                ActivityNames.ContactImport, It.IsAny<ContactImportInput>(), It.IsAny<TaskOptions>()))
             .ThrowsAsync(new InvalidOperationException("Contact import failed"));
 
         // Act — should not throw
@@ -220,11 +224,11 @@ public sealed class ActivationOrchestratorFunctionTests
 
         // Phase 4 should still be called
         ctx.Verify(c => c.CallActivityAsync(
-            ActivityNames.WelcomeNotification, It.IsAny<WelcomeNotificationInput>()),
+            ActivityNames.WelcomeNotification, It.IsAny<WelcomeNotificationInput>(), It.IsAny<TaskOptions>()),
             Times.Once);
     }
 
-    // ── Phase 2: individual worker failure is non-fatal ───────────────────────
+    // ── Phase 2: individual worker failure is non-fatal ───────────────────��───
 
     [Fact]
     public async Task Orchestrator_OnePhase2WorkerFails_OthersContinue()
@@ -232,8 +236,8 @@ public sealed class ActivationOrchestratorFunctionTests
         var ctx = BuildMockOrchestratorContext(isComplete: false);
 
         // Make VoiceExtraction throw while all others succeed
-        ctx.Setup(c => c.CallActivityAsync<VoiceExtractionOutput>(
-                ActivityNames.VoiceExtraction, It.IsAny<SynthesisInput>()))
+        ctx.Setup(c => c.CallActivityAsync<string>(
+                ActivityNames.VoiceExtraction, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()))
             .ThrowsAsync(new InvalidOperationException("Claude timeout"));
 
         // Act — should not throw
@@ -241,95 +245,68 @@ public sealed class ActivationOrchestratorFunctionTests
 
         // PersistProfile still called (with null voice)
         ctx.Verify(c => c.CallActivityAsync(
-            ActivityNames.PersistProfile, It.IsAny<PersistProfileInput>()),
+            ActivityNames.PersistProfile, It.IsAny<PersistProfileInput>(), It.IsAny<TaskOptions>()),
             Times.Once);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private static void SetupActivity<T>(
+    /// <summary>
+    /// Sets up a mock activity that returns a JSON-serialized DTO string,
+    /// matching the DF SDK workaround where activities return <c>Task&lt;string&gt;</c>.
+    /// All three parameters must be specified explicitly to avoid Moq CS0854 errors
+    /// with optional parameters in expression trees.
+    /// </summary>
+    private static void SetupJsonActivity<T>(
         Mock<TaskOrchestrationContext> ctx, string name, T result, List<string> callOrder)
     {
-        ctx.Setup(c => c.CallActivityAsync<T>(name, It.IsAny<object>()))
+        var json = JsonSerializer.Serialize(result);
+        ctx.Setup(c => c.CallActivityAsync<string>(name, It.IsAny<object>(), It.IsAny<TaskOptions>()))
             .Callback(() => callOrder.Add(name))
-            .ReturnsAsync(result);
+            .ReturnsAsync(json);
     }
 
     private static void SetupVoidActivity(
         Mock<TaskOrchestrationContext> ctx, string name, List<string> callOrder)
     {
-        ctx.Setup(c => c.CallActivityAsync(name, It.IsAny<object>()))
+        ctx.Setup(c => c.CallActivityAsync(name, It.IsAny<object>(), It.IsAny<TaskOptions>()))
             .Callback(() => callOrder.Add(name))
             .Returns(Task.CompletedTask);
     }
 
     /// <summary>
     /// Sets up all 12 Phase 2 workers on the mock context.
-    /// Each worker must be set up with its exact generic return type to match the
-    /// production code's CallActivityAsync&lt;T&gt; calls.
+    /// Each worker returns a JSON-serialized string (matching the DF SDK workaround).
+    /// Null outputs are serialized as "null" JSON strings.
     /// </summary>
     private static void SetupAllPhase2Activities(
         Mock<TaskOrchestrationContext> ctx, List<string> callOrder)
     {
-        ctx.Setup(c => c.CallActivityAsync<VoiceExtractionOutput>(
-                ActivityNames.VoiceExtraction, It.IsAny<SynthesisInput>()))
-            .Callback(() => callOrder.Add(ActivityNames.VoiceExtraction))
-            .ReturnsAsync((VoiceExtractionOutput?)null);
+        SetupPhase2Activity<VoiceExtractionOutput>(ctx, ActivityNames.VoiceExtraction, callOrder);
+        SetupPhase2Activity<PersonalityOutput>(ctx, ActivityNames.Personality, callOrder);
+        SetupPhase2Activity<BrandingDiscoveryOutput>(ctx, ActivityNames.BrandingDiscovery, callOrder);
+        SetupPhase2Activity<StringOutput>(ctx, ActivityNames.CmaStyle, callOrder);
+        SetupPhase2Activity<MarketingStyleOutput>(ctx, ActivityNames.MarketingStyle, callOrder);
+        SetupPhase2Activity<StringOutput>(ctx, ActivityNames.WebsiteStyle, callOrder);
+        SetupPhase2Activity<StringOutput>(ctx, ActivityNames.PipelineAnalysis, callOrder);
+        SetupPhase2Activity<CoachingOutput>(ctx, ActivityNames.Coaching, callOrder);
+        SetupPhase2Activity<StringOutput>(ctx, ActivityNames.BrandExtraction, callOrder);
+        SetupPhase2Activity<StringOutput>(ctx, ActivityNames.BrandVoice, callOrder);
+        SetupPhase2Activity<StringOutput>(ctx, ActivityNames.ComplianceAnalysis, callOrder);
+        SetupPhase2Activity<StringOutput>(ctx, ActivityNames.FeeStructure, callOrder);
+    }
 
-        ctx.Setup(c => c.CallActivityAsync<PersonalityOutput>(
-                ActivityNames.Personality, It.IsAny<SynthesisInput>()))
-            .Callback(() => callOrder.Add(ActivityNames.Personality))
-            .ReturnsAsync((PersonalityOutput?)null);
-
-        ctx.Setup(c => c.CallActivityAsync<BrandingDiscoveryOutput>(
-                ActivityNames.BrandingDiscovery, It.IsAny<SynthesisInput>()))
-            .Callback(() => callOrder.Add(ActivityNames.BrandingDiscovery))
-            .ReturnsAsync((BrandingDiscoveryOutput?)null);
-
-        ctx.Setup(c => c.CallActivityAsync<StringOutput>(
-                ActivityNames.CmaStyle, It.IsAny<SynthesisInput>()))
-            .Callback(() => callOrder.Add(ActivityNames.CmaStyle))
-            .ReturnsAsync((StringOutput?)null);
-
-        ctx.Setup(c => c.CallActivityAsync<MarketingStyleOutput>(
-                ActivityNames.MarketingStyle, It.IsAny<SynthesisInput>()))
-            .Callback(() => callOrder.Add(ActivityNames.MarketingStyle))
-            .ReturnsAsync((MarketingStyleOutput?)null);
-
-        ctx.Setup(c => c.CallActivityAsync<StringOutput>(
-                ActivityNames.WebsiteStyle, It.IsAny<SynthesisInput>()))
-            .Callback(() => callOrder.Add(ActivityNames.WebsiteStyle))
-            .ReturnsAsync((StringOutput?)null);
-
-        ctx.Setup(c => c.CallActivityAsync<StringOutput>(
-                ActivityNames.PipelineAnalysis, It.IsAny<SynthesisInput>()))
-            .Callback(() => callOrder.Add(ActivityNames.PipelineAnalysis))
-            .ReturnsAsync((StringOutput?)null);
-
-        ctx.Setup(c => c.CallActivityAsync<CoachingOutput>(
-                ActivityNames.Coaching, It.IsAny<SynthesisInput>()))
-            .Callback(() => callOrder.Add(ActivityNames.Coaching))
-            .ReturnsAsync((CoachingOutput?)null);
-
-        ctx.Setup(c => c.CallActivityAsync<StringOutput>(
-                ActivityNames.BrandExtraction, It.IsAny<SynthesisInput>()))
-            .Callback(() => callOrder.Add(ActivityNames.BrandExtraction))
-            .ReturnsAsync((StringOutput?)null);
-
-        ctx.Setup(c => c.CallActivityAsync<StringOutput>(
-                ActivityNames.BrandVoice, It.IsAny<SynthesisInput>()))
-            .Callback(() => callOrder.Add(ActivityNames.BrandVoice))
-            .ReturnsAsync((StringOutput?)null);
-
-        ctx.Setup(c => c.CallActivityAsync<StringOutput>(
-                ActivityNames.ComplianceAnalysis, It.IsAny<SynthesisInput>()))
-            .Callback(() => callOrder.Add(ActivityNames.ComplianceAnalysis))
-            .ReturnsAsync((StringOutput?)null);
-
-        ctx.Setup(c => c.CallActivityAsync<StringOutput>(
-                ActivityNames.FeeStructure, It.IsAny<SynthesisInput>()))
-            .Callback(() => callOrder.Add(ActivityNames.FeeStructure))
-            .ReturnsAsync((StringOutput?)null);
+    /// <summary>
+    /// Helper for Phase 2: sets up a string-returning activity that returns "null" JSON.
+    /// The orchestrator's WrapAsync deserializes this to null for the typed DTO.
+    /// </summary>
+    private static void SetupPhase2Activity<T>(
+        Mock<TaskOrchestrationContext> ctx, string activityName, List<string> callOrder)
+    {
+        ctx.Setup(c => c.CallActivityAsync<string>(
+                activityName, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()))
+            .Callback(() => callOrder.Add(activityName))
+            .ReturnsAsync("null");
     }
 
     /// <summary>
@@ -346,21 +323,21 @@ public sealed class ActivationOrchestratorFunctionTests
         ctx.Setup(c => c.CreateReplaySafeLogger<ActivationOrchestratorFunction>())
             .Returns(NullLogger<ActivationOrchestratorFunction>.Instance);
 
-        SetupActivity(ctx, ActivityNames.CheckActivationComplete,
+        SetupJsonActivity(ctx, ActivityNames.CheckActivationComplete,
             new CheckActivationCompleteOutput { IsComplete = isComplete }, callOrder);
 
         if (!isComplete)
         {
-            SetupActivity(ctx, ActivityNames.EmailFetch,
+            SetupJsonActivity(ctx, ActivityNames.EmailFetch,
                 new EmailFetchOutput(), callOrder);
-            SetupActivity(ctx, ActivityNames.DriveIndex,
+            SetupJsonActivity(ctx, ActivityNames.DriveIndex,
                 new DriveIndexOutput { FolderId = "folder1" }, callOrder);
-            SetupActivity(ctx, ActivityNames.AgentDiscovery,
+            SetupJsonActivity(ctx, ActivityNames.AgentDiscovery,
                 new AgentDiscoveryOutput(), callOrder);
 
             SetupAllPhase2Activities(ctx, callOrder);
 
-            SetupActivity(ctx, ActivityNames.ContactDetection,
+            SetupJsonActivity(ctx, ActivityNames.ContactDetection,
                 new ContactDetectionOutput(), callOrder);
 
             SetupVoidActivity(ctx, ActivityNames.PersistProfile, callOrder);
@@ -388,13 +365,14 @@ public sealed class ActivationOrchestratorFunctionTests
             Role = "Buyer",
             Stage = "Lead",
         };
-        ctx.Setup(c => c.CallActivityAsync<ContactDetectionOutput>(
-                ActivityNames.ContactDetection, It.IsAny<ContactDetectionInput>()))
-            .ReturnsAsync(new ContactDetectionOutput { Contacts = [contact] });
+        var contactOutput = new ContactDetectionOutput { Contacts = [contact] };
+        ctx.Setup(c => c.CallActivityAsync<string>(
+                ActivityNames.ContactDetection, It.IsAny<ContactDetectionInput>(), It.IsAny<TaskOptions>()))
+            .ReturnsAsync(JsonSerializer.Serialize(contactOutput));
 
         // ContactImport void activity
         ctx.Setup(c => c.CallActivityAsync(
-                ActivityNames.ContactImport, It.IsAny<ContactImportInput>()))
+                ActivityNames.ContactImport, It.IsAny<ContactImportInput>(), It.IsAny<TaskOptions>()))
             .Returns(Task.CompletedTask);
 
         return ctx;

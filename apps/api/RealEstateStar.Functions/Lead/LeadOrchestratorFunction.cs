@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
@@ -11,9 +12,9 @@ namespace RealEstateStar.Functions.Lead;
 /// </summary>
 /// <remarks>
 /// REPLAY SAFETY: This orchestrator is deterministic. It MUST NOT:
-/// - Call DateTime.UtcNow  → use ctx.CurrentUtcDateTime
-/// - Call Guid.NewGuid()   → use deterministic instance ID from input
-/// - Perform any I/O       → delegate all I/O to activity functions
+/// - Call DateTime.UtcNow  -> use ctx.CurrentUtcDateTime
+/// - Call Guid.NewGuid()   -> use deterministic instance ID from input
+/// - Perform any I/O       -> delegate all I/O to activity functions
 /// - Log outside !ctx.IsReplaying guards (use [!ctx.IsReplaying] guards for expensive logs)
 ///
 /// Instance ID scheme: lead-{agentId}-{leadId}
@@ -25,14 +26,10 @@ namespace RealEstateStar.Functions.Lead;
 ///
 /// Timeout: replaced Channel{T}.WaitAsync to ctx.CreateTimer + Task.WhenAny (replay-safe).
 ///
-/// Backpressure: Channel{T} is no longer needed. Azure Queue Storage + Functions runtime
-/// auto-scales by queue depth. Configure host.json newBatchThreshold and maxDequeueCount
-/// to tune concurrency per Function App instance.
-///
-/// SignalR replacement: CMA progress streaming is not implemented in this phase.
-/// The API can proxy Durable Functions' built-in status endpoint (/runtime/webhooks/durabletask/instances/{id})
-/// for HTTP polling.
-/// TODO(phase-4): Implement HTTP polling status endpoint on the API side.
+/// WORKAROUND: Activities return pre-serialized JSON strings instead of typed DTOs because
+/// the Durable Functions SDK (Microsoft.Azure.Functions.Worker.Extensions.DurableTask 1.2.3)
+/// stores record.ToString() output instead of JSON in the task history, breaking replay deserialization.
+/// The orchestrator deserializes the JSON strings back into typed DTOs.
 /// </remarks>
 public sealed class LeadOrchestratorFunction
 {
@@ -52,13 +49,14 @@ public sealed class LeadOrchestratorFunction
                 input.LeadId, input.AgentId, input.CorrelationId);
 
         // Step 1: Load agent config
-        var configOutput = await ctx.CallActivityAsync<LoadAgentConfigOutput>(
+        var configJson = await ctx.CallActivityAsync<string>(
             "LoadAgentConfig",
             new LoadAgentConfigInput
             {
                 AgentId = input.AgentId,
                 CorrelationId = input.CorrelationId
             });
+        var configOutput = JsonSerializer.Deserialize<LoadAgentConfigOutput>(configJson)!;
 
         if (!configOutput.Found || configOutput.AgentNotificationConfig is null)
         {
@@ -71,7 +69,7 @@ public sealed class LeadOrchestratorFunction
         var agentConfig = configOutput.AgentNotificationConfig;
 
         // Step 2: Score the lead
-        var scoreOutput = await ctx.CallActivityAsync<ScoreLeadOutput>(
+        var scoreJson = await ctx.CallActivityAsync<string>(
             "ScoreLead",
             new ScoreLeadInput
             {
@@ -79,6 +77,7 @@ public sealed class LeadOrchestratorFunction
                 LeadId = input.LeadId,
                 CorrelationId = input.CorrelationId
             });
+        var scoreOutput = JsonSerializer.Deserialize<ScoreLeadOutput>(scoreJson)!;
 
         var score = scoreOutput.Score;
 
@@ -87,10 +86,6 @@ public sealed class LeadOrchestratorFunction
                 input.LeadId, score.OverallScore, input.CorrelationId);
 
         // Step 3: Check content cache (cross-lead dedup — uses IDistributedContentCache)
-        // CMA and HomeSearch input hashes are computed deterministically from lead address/criteria.
-        // The hashes are passed in the orchestrator input so the activity can look them up.
-        // Note: We re-compute hashes in activities that need them; the orchestrator only stores
-        // the outputs and makes routing decisions.
         var cacheCheckInput = new CheckContentCacheInput
         {
             CmaInputHash = input.CmaInputHash,
@@ -98,8 +93,9 @@ public sealed class LeadOrchestratorFunction
             CorrelationId = input.CorrelationId
         };
 
-        var cacheOutput = await ctx.CallActivityAsync<CheckContentCacheOutput>(
+        var cacheJson = await ctx.CallActivityAsync<string>(
             "CheckContentCache", cacheCheckInput);
+        var cacheOutput = JsonSerializer.Deserialize<CheckContentCacheOutput>(cacheJson)!;
 
         // Step 4: Dispatch CMA + HomeSearch in parallel based on lead type + cache state
         CmaFunctionOutput? cmaOutput = null;
@@ -134,7 +130,7 @@ public sealed class LeadOrchestratorFunction
             {
                 try
                 {
-                    cmaOutput = await ctx.CallActivityAsync<CmaFunctionOutput>(
+                    var cmaJson = await ctx.CallActivityAsync<string>(
                         "CmaProcessing",
                         new CmaFunctionInput
                         {
@@ -143,6 +139,7 @@ public sealed class LeadOrchestratorFunction
                             CorrelationId = input.CorrelationId,
                             AgentNotificationConfig = agentConfig
                         });
+                    cmaOutput = JsonSerializer.Deserialize<CmaFunctionOutput>(cmaJson)!;
                 }
                 catch (Exception ex)
                 {
@@ -160,7 +157,7 @@ public sealed class LeadOrchestratorFunction
             {
                 try
                 {
-                    hsOutput = await ctx.CallActivityAsync<HomeSearchFunctionOutput>(
+                    var hsJson = await ctx.CallActivityAsync<string>(
                         "HomeSearch",
                         new HomeSearchFunctionInput
                         {
@@ -169,6 +166,7 @@ public sealed class LeadOrchestratorFunction
                             CorrelationId = input.CorrelationId,
                             AgentNotificationConfig = agentConfig
                         });
+                    hsOutput = JsonSerializer.Deserialize<HomeSearchFunctionOutput>(hsJson)!;
                 }
                 catch (Exception ex)
                 {
@@ -206,7 +204,7 @@ public sealed class LeadOrchestratorFunction
         {
             try
             {
-                pdfOutput = await ctx.CallActivityAsync<GeneratePdfOutput>(
+                var pdfJson = await ctx.CallActivityAsync<string>(
                     "GeneratePdf",
                     new GeneratePdfInput
                     {
@@ -215,6 +213,7 @@ public sealed class LeadOrchestratorFunction
                         CorrelationId = input.CorrelationId,
                         CmaResult = cmaOutput.Result
                     });
+                pdfOutput = JsonSerializer.Deserialize<GeneratePdfOutput>(pdfJson)!;
             }
             catch (Exception ex)
             {
@@ -229,7 +228,7 @@ public sealed class LeadOrchestratorFunction
         DraftLeadEmailOutput? emailDraft = null;
         try
         {
-            emailDraft = await ctx.CallActivityAsync<DraftLeadEmailOutput>(
+            var draftJson = await ctx.CallActivityAsync<string>(
                 "DraftLeadEmail",
                 new DraftLeadEmailInput
                 {
@@ -241,6 +240,7 @@ public sealed class LeadOrchestratorFunction
                     CmaResult = cmaOutput?.Result,
                     HsResult = hsOutput?.Result
                 });
+            emailDraft = JsonSerializer.Deserialize<DraftLeadEmailOutput>(draftJson)!;
         }
         catch (Exception ex)
         {
@@ -359,4 +359,3 @@ public sealed class LeadOrchestratorFunction
                 input.LeadId, input.CorrelationId);
     }
 }
-

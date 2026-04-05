@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Functions.Activation.Dtos;
@@ -8,13 +9,16 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// <summary>
 /// Phase 2 synthesis activity: produces a coaching report from agent communications.
 /// Delegates to <see cref="CoachingWorker"/>.
+///
+/// Returns pre-serialized JSON string to work around Azure Durable Functions SDK
+/// record.ToString() serialization bug (Microsoft.Azure.Functions.Worker.Extensions.DurableTask 1.2.3).
 /// </summary>
 public sealed class CoachingFunction(
     CoachingWorker worker,
     ILogger<CoachingFunction> logger)
 {
     [Function(ActivityNames.Coaching)]
-    public async Task<CoachingOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] SynthesisInput input,
         CancellationToken ct)
     {
@@ -28,6 +32,6 @@ public sealed class CoachingFunction(
             agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 
-        return new CoachingOutput { CoachingReportMarkdown = result.CoachingReportMarkdown, IsInsufficient = result.IsInsufficient };
+        return JsonSerializer.Serialize(new CoachingOutput { CoachingReportMarkdown = result.CoachingReportMarkdown, IsInsufficient = result.IsInsufficient });
     }
 }

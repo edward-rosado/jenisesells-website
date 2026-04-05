@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Functions.Activation.Dtos;
@@ -8,13 +9,16 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// <summary>
 /// Phase 2 synthesis activity: discovers agent branding (colors, fonts, logos, template recommendation).
 /// Delegates to <see cref="BrandingDiscoveryWorker"/>.
+///
+/// Returns pre-serialized JSON string to work around Azure Durable Functions SDK
+/// record.ToString() serialization bug (Microsoft.Azure.Functions.Worker.Extensions.DurableTask 1.2.3).
 /// </summary>
 public sealed class BrandingDiscoveryFunction(
     BrandingDiscoveryWorker worker,
     ILogger<BrandingDiscoveryFunction> logger)
 {
     [Function(ActivityNames.BrandingDiscovery)]
-    public async Task<BrandingDiscoveryOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] SynthesisInput input,
         CancellationToken ct)
     {
@@ -37,6 +41,6 @@ public sealed class BrandingDiscoveryFunction(
             TemplateReason = result.Kit.TemplateReason,
         };
 
-        return new BrandingDiscoveryOutput { BrandingKitMarkdown = result.BrandingKitMarkdown, Kit = kitDto };
+        return JsonSerializer.Serialize(new BrandingDiscoveryOutput { BrandingKitMarkdown = result.BrandingKitMarkdown, Kit = kitDto });
     }
 }

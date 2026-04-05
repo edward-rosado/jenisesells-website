@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Leads.Interfaces;
@@ -15,7 +16,7 @@ public sealed class DraftLeadEmailFunction(
     ILogger<DraftLeadEmailFunction> logger)
 {
     [Function("DraftLeadEmail")]
-    public async Task<DraftLeadEmailOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] DraftLeadEmailInput input,
         CancellationToken ct)
     {
@@ -38,11 +39,11 @@ public sealed class DraftLeadEmailFunction(
         logger.LogInformation("[DLE-020] Email drafted for lead {LeadId}. Subject={Subject}. CorrelationId={CorrelationId}",
             input.LeadId, email.Subject, input.CorrelationId);
 
-        return new DraftLeadEmailOutput
+        return JsonSerializer.Serialize(new DraftLeadEmailOutput
         {
             Subject = email.Subject,
             HtmlBody = email.HtmlBody,
             PdfAttachmentPath = email.PdfAttachmentPath
-        };
+        });
     }
 }

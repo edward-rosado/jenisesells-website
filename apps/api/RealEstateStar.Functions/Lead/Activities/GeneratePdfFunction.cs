@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Activities.Pdf;
@@ -19,7 +20,7 @@ public sealed class GeneratePdfFunction(
     ILogger<GeneratePdfFunction> logger)
 {
     [Function("GeneratePdf")]
-    public async Task<GeneratePdfOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] GeneratePdfInput input,
         CancellationToken ct)
     {
@@ -71,6 +72,6 @@ public sealed class GeneratePdfFunction(
         logger.LogInformation("[PDF-F-020] PDF stored at {Path}. LeadId={LeadId}. CorrelationId={CorrelationId}",
             storagePath, input.LeadId, input.CorrelationId);
 
-        return new GeneratePdfOutput { PdfStoragePath = storagePath };
+        return JsonSerializer.Serialize(new GeneratePdfOutput { PdfStoragePath = storagePath });
     }
 }

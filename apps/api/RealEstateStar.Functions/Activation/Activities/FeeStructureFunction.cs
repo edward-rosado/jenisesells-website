@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Functions.Activation.Dtos;
@@ -8,13 +9,16 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// <summary>
 /// Phase 2 synthesis activity: extracts fee structure and commission information.
 /// Delegates to <see cref="FeeStructureWorker"/>.
+///
+/// Returns pre-serialized JSON string to work around Azure Durable Functions SDK
+/// record.ToString() serialization bug (Microsoft.Azure.Functions.Worker.Extensions.DurableTask 1.2.3).
 /// </summary>
 public sealed class FeeStructureFunction(
     FeeStructureWorker worker,
     ILogger<FeeStructureFunction> logger)
 {
     [Function(ActivityNames.FeeStructure)]
-    public async Task<StringOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] SynthesisInput input,
         CancellationToken ct)
     {
@@ -29,6 +33,6 @@ public sealed class FeeStructureFunction(
             websites: discovery.Websites,
             ct: ct);
 
-        return new StringOutput { Value = result };
+        return JsonSerializer.Serialize(new StringOutput { Value = result });
     }
 }

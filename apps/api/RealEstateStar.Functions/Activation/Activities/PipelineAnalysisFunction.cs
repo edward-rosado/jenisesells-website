@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Functions.Activation.Dtos;
@@ -8,13 +9,16 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// <summary>
 /// Phase 2 synthesis activity: analyzes agent sales pipeline from email and drive data.
 /// Delegates to <see cref="PipelineAnalysisWorker"/>.
+///
+/// Returns pre-serialized JSON string to work around Azure Durable Functions SDK
+/// record.ToString() serialization bug (Microsoft.Azure.Functions.Worker.Extensions.DurableTask 1.2.3).
 /// </summary>
 public sealed class PipelineAnalysisFunction(
     PipelineAnalysisWorker worker,
     ILogger<PipelineAnalysisFunction> logger)
 {
     [Function(ActivityNames.PipelineAnalysis)]
-    public async Task<StringOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] SynthesisInput input,
         CancellationToken ct)
     {
@@ -26,6 +30,6 @@ public sealed class PipelineAnalysisFunction(
             driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
             ct: ct);
 
-        return new StringOutput { Value = result };
+        return JsonSerializer.Serialize(new StringOutput { Value = result });
     }
 }

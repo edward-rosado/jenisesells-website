@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.HomeSearch.Interfaces;
@@ -22,7 +23,7 @@ public sealed class HomeSearchFunction(
     ILogger<HomeSearchFunction> logger)
 {
     [Function("HomeSearch")]
-    public async Task<HomeSearchFunctionOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] HomeSearchFunctionInput input,
         CancellationToken ct)
     {
@@ -55,20 +56,20 @@ public sealed class HomeSearchFunction(
         {
             logger.LogError(ex, "[HS-F-010] HomeSearch failed for lead {LeadId}. CorrelationId={CorrelationId}",
                 input.LeadId, input.CorrelationId);
-            return new HomeSearchFunctionOutput
+            return JsonSerializer.Serialize(new HomeSearchFunctionOutput
             {
                 Result = new HomeSearchWorkerResult(input.LeadId, false, ex.Message, null, null)
-            };
+            });
         }
 
         if (listings.Count == 0)
         {
             logger.LogWarning("[HS-F-011] No listings found for lead {LeadId}. CorrelationId={CorrelationId}",
                 input.LeadId, input.CorrelationId);
-            return new HomeSearchFunctionOutput
+            return JsonSerializer.Serialize(new HomeSearchFunctionOutput
             {
                 Result = new HomeSearchWorkerResult(input.LeadId, true, null, [], null)
-            };
+            });
         }
 
         var summaries = listings.Select(l => new ListingSummary(
@@ -83,9 +84,9 @@ public sealed class HomeSearchFunction(
         logger.LogInformation("[HS-F-020] HomeSearch completed for lead {LeadId}. Listings={Count}. CorrelationId={CorrelationId}",
             input.LeadId, listings.Count, input.CorrelationId);
 
-        return new HomeSearchFunctionOutput
+        return JsonSerializer.Serialize(new HomeSearchFunctionOutput
         {
             Result = new HomeSearchWorkerResult(input.LeadId, true, null, summaries, null)
-        };
+        });
     }
 }
