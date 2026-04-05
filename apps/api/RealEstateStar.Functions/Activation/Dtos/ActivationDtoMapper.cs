@@ -49,7 +49,11 @@ internal static class ActivationDtoMapper
         {
             FolderId = idx.FolderId,
             Files = idx.Files.Select(ToDto).ToList(),
-            Contents = new Dictionary<string, string>(idx.Contents),
+            // Cap each document to 8KB to prevent OOM on Azure Consumption plan.
+            // Full contents are available to workers via GDriveClient if needed.
+            Contents = idx.Contents.ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value.Length > 8192 ? kvp.Value[..8192] : kvp.Value),
             DiscoveredUrls = idx.DiscoveredUrls.ToList(),
             Extractions = idx.Extractions.Select(ToDto).ToList()
         };
