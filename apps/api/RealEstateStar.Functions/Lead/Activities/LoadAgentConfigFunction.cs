@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Leads.Models;
@@ -14,7 +15,7 @@ public sealed class LoadAgentConfigFunction(
     ILogger<LoadAgentConfigFunction> logger)
 {
     [Function("LoadAgentConfig")]
-    public async Task<LoadAgentConfigOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] LoadAgentConfigInput input,
         CancellationToken ct)
     {
@@ -23,7 +24,7 @@ public sealed class LoadAgentConfigFunction(
         {
             logger.LogWarning("[LAC-001] Agent config not found for {AgentId}. CorrelationId={CorrelationId}",
                 input.AgentId, input.CorrelationId);
-            return new LoadAgentConfigOutput { Found = false };
+            return JsonSerializer.Serialize(new LoadAgentConfigOutput { Found = false });
         }
 
         var agentConfig = new AgentNotificationConfig
@@ -46,10 +47,10 @@ public sealed class LoadAgentConfigFunction(
         logger.LogInformation("[LAC-010] Agent config loaded for {AgentId}. CorrelationId={CorrelationId}",
             input.AgentId, input.CorrelationId);
 
-        return new LoadAgentConfigOutput
+        return JsonSerializer.Serialize(new LoadAgentConfigOutput
         {
             Found = true,
             AgentNotificationConfig = agentConfig
-        };
+        });
     }
 }

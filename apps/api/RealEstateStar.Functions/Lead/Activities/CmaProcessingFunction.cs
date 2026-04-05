@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Cma.Interfaces;
@@ -24,7 +25,7 @@ public sealed class CmaProcessingFunction(
     ILogger<CmaProcessingFunction> logger)
 {
     [Function("CmaProcessing")]
-    public async Task<CmaFunctionOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] CmaFunctionInput input,
         CancellationToken ct)
     {
@@ -58,20 +59,20 @@ public sealed class CmaProcessingFunction(
         {
             logger.LogError(ex, "[CMA-F-010] FetchComps failed for lead {LeadId}. CorrelationId={CorrelationId}",
                 input.LeadId, input.CorrelationId);
-            return new CmaFunctionOutput
+            return JsonSerializer.Serialize(new CmaFunctionOutput
             {
                 Result = new CmaWorkerResult(input.LeadId, false, ex.Message, null, null, null, null, null)
-            };
+            });
         }
 
         if (comps.Count == 0)
         {
             logger.LogWarning("[CMA-F-011] No comps found for lead {LeadId}. CorrelationId={CorrelationId}",
                 input.LeadId, input.CorrelationId);
-            return new CmaFunctionOutput
+            return JsonSerializer.Serialize(new CmaFunctionOutput
             {
                 Result = new CmaWorkerResult(input.LeadId, false, "No comparable sales found", null, null, null, null, null)
-            };
+            });
         }
 
         CmaAnalysis analysis;
@@ -83,10 +84,10 @@ public sealed class CmaProcessingFunction(
         {
             logger.LogError(ex, "[CMA-F-012] CMA analysis failed for lead {LeadId}. CorrelationId={CorrelationId}",
                 input.LeadId, input.CorrelationId);
-            return new CmaFunctionOutput
+            return JsonSerializer.Serialize(new CmaFunctionOutput
             {
                 Result = new CmaWorkerResult(input.LeadId, false, ex.Message, null, null, null, null, null)
-            };
+            });
         }
 
         var compSummaries = comps.Select(c => new CompSummary(
@@ -95,12 +96,12 @@ public sealed class CmaProcessingFunction(
         logger.LogInformation("[CMA-F-020] CMA completed for lead {LeadId}. Value={Value}, Comps={Count}. CorrelationId={CorrelationId}",
             input.LeadId, analysis.ValueMid, comps.Count, input.CorrelationId);
 
-        return new CmaFunctionOutput
+        return JsonSerializer.Serialize(new CmaFunctionOutput
         {
             Result = new CmaWorkerResult(
                 input.LeadId, true, null,
                 analysis.ValueMid, analysis.ValueLow, analysis.ValueHigh,
                 compSummaries, analysis.MarketNarrative, analysis.PricingStrategy)
-        };
+        });
     }
 }

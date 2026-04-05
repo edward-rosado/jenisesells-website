@@ -1,0 +1,18 @@
+{
+  "handle": "glr",
+  "accountId": "glr",
+  "template": "luxury",
+  "branding": {
+    "primary_color": "#1E3A5F",
+    "secondary_color": null,
+    "accent_color": null,
+    "font_family": "Open Sans"
+  },
+  "brokerage": {
+    "name": ""
+  },
+  "location": {
+    "state": "",
+    "service_areas": []
+  }
+}

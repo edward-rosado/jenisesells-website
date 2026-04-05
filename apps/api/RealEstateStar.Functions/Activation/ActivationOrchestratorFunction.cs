@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,11 @@ namespace RealEstateStar.Functions.Activation;
 /// - No Guid.NewGuid() — not needed here
 /// - No I/O calls — all I/O is in activity functions
 /// - Logging is guarded by !ctx.IsReplaying
+///
+/// WORKAROUND: Activities return pre-serialized JSON strings instead of typed DTOs because
+/// the Durable Functions SDK (Microsoft.Azure.Functions.Worker.Extensions.DurableTask 1.2.3)
+/// stores record.ToString() output instead of JSON in the task history, breaking replay deserialization.
+/// The orchestrator deserializes the JSON strings back into typed DTOs.
 /// </summary>
 public sealed class ActivationOrchestratorFunction
 {
@@ -43,9 +49,10 @@ public sealed class ActivationOrchestratorFunction
 
         // ── Phase 0: skip-if-complete ────────────────────────────────────────
 
-        var completeCheck = await ctx.CallActivityAsync<CheckActivationCompleteOutput>(
+        var completeCheckJson = await ctx.CallActivityAsync<string>(
             ActivityNames.CheckActivationComplete,
-            new CheckActivationCompleteInput(request.AccountId, request.AgentId));
+            new CheckActivationCompleteInput { AccountId = request.AccountId, AgentId = request.AgentId });
+        var completeCheck = JsonSerializer.Deserialize<CheckActivationCompleteOutput>(completeCheckJson)!;
 
         if (completeCheck.IsComplete)
         {
@@ -58,13 +65,12 @@ public sealed class ActivationOrchestratorFunction
 
             await ctx.CallActivityAsync(
                 ActivityNames.WelcomeNotification,
-                new WelcomeNotificationInput(
-                    AccountId: request.AccountId,
-                    AgentId: request.AgentId,
-                    Handle: request.AgentId,
-                    AgentName: null,
-                    AgentPhone: null,
-                    WhatsAppEnabled: false));
+                new WelcomeNotificationInput
+                {
+                    AccountId = request.AccountId,
+                    AgentId = request.AgentId,
+                    Handle = request.AgentId,
+                });
 
             return;
         }
@@ -75,18 +81,18 @@ public sealed class ActivationOrchestratorFunction
             logger.LogInformation("[ACTV-FN-010] Phase 1: gather for accountId={AccountId}", request.AccountId);
 
         // Email and Drive run in parallel
-        var emailTask = ctx.CallActivityAsync<EmailFetchOutput>(
+        var emailTask = ctx.CallActivityAsync<string>(
             ActivityNames.EmailFetch,
-            new EmailFetchInput(request.AccountId, request.AgentId));
+            new EmailFetchInput { AccountId = request.AccountId, AgentId = request.AgentId });
 
-        var driveTask = ctx.CallActivityAsync<DriveIndexOutput>(
+        var driveTask = ctx.CallActivityAsync<string>(
             ActivityNames.DriveIndex,
-            new DriveIndexInput(request.AccountId, request.AgentId));
+            new DriveIndexInput { AccountId = request.AccountId, AgentId = request.AgentId });
 
         await Task.WhenAll(emailTask, driveTask);
 
-        var emailCorpus = emailTask.Result;
-        var driveIndex = driveTask.Result;
+        var emailCorpus = JsonSerializer.Deserialize<EmailFetchOutput>(emailTask.Result)!;
+        var driveIndex = JsonSerializer.Deserialize<DriveIndexOutput>(driveTask.Result)!;
 
         // Discovery requires email corpus to use signature info.
         // Validate email before splitting to avoid IndexOutOfRangeException on malformed input.
@@ -94,59 +100,74 @@ public sealed class ActivationOrchestratorFunction
             ? request.Email.Split('@')[0].Trim()
             : request.AccountId; // fallback to account ID when email is absent or malformed
 
-        var discovery = await ctx.CallActivityAsync<AgentDiscoveryOutput>(
+        var discoveryJson = await ctx.CallActivityAsync<string>(
             ActivityNames.AgentDiscovery,
-            new AgentDiscoveryInput(
-                AccountId: request.AccountId,
-                AgentId: request.AgentId,
-                AgentName: agentName,
-                EmailSignature: emailCorpus.Signature));
+            new AgentDiscoveryInput
+            {
+                AccountId = request.AccountId,
+                AgentId = request.AgentId,
+                AgentName = agentName,
+                EmailSignature = emailCorpus.Signature,
+            });
+        var discovery = JsonSerializer.Deserialize<AgentDiscoveryOutput>(discoveryJson)!;
 
         // ── Phase 2: Synthesize (12 workers in parallel) ──────────────────────
 
         if (!ctx.IsReplaying)
             logger.LogInformation("[ACTV-FN-020] Phase 2: synthesize for agentId={AgentId}", request.AgentId);
 
-        var synthesisInput = new SynthesisInput(
-            AccountId: request.AccountId,
-            AgentId: request.AgentId,
-            AgentName: agentName,
-            EmailCorpus: emailCorpus,
-            DriveIndex: driveIndex,
-            Discovery: discovery);
+        var synthesisInput = new SynthesisInput
+        {
+            AccountId = request.AccountId,
+            AgentId = request.AgentId,
+            AgentName = agentName,
+            EmailCorpus = emailCorpus,
+            DriveIndex = driveIndex,
+            Discovery = discovery,
+        };
 
         // Each worker wrapped in try/catch to preserve RunSafeAsync semantics:
         // one worker failure does NOT abort the pipeline — it contributes null output.
+        //
+        // Batched in groups of 4 to avoid Anthropic API rate limits (12 parallel calls → 429s).
+        // Durable Functions dispatches activities on CallActivityAsync, so we await each batch
+        // before starting the next to stagger Claude API load.
 
+        // ── Batch 1: core identity synthesis ────────────────────────────────
         var voiceTask = WrapAsync<VoiceExtractionOutput>(
             ctx, ActivityNames.VoiceExtraction, synthesisInput, "[ACTV-FN-021] voice", logger);
         var personalityTask = WrapAsync<PersonalityOutput>(
             ctx, ActivityNames.Personality, synthesisInput, "[ACTV-FN-022] personality", logger);
         var brandingTask = WrapAsync<BrandingDiscoveryOutput>(
             ctx, ActivityNames.BrandingDiscovery, synthesisInput, "[ACTV-FN-023] branding", logger);
+        var brandExtractionTask = WrapAsync<StringOutput>(
+            ctx, ActivityNames.BrandExtraction, synthesisInput, "[ACTV-FN-029] brand-extraction", logger);
+
+        await Task.WhenAll(voiceTask, personalityTask, brandingTask, brandExtractionTask);
+
+        // ── Batch 2: style + marketing synthesis ────────────────────────────
         var cmaTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.CmaStyle, synthesisInput, "[ACTV-FN-024] cma-style", logger);
         var marketingTask = WrapAsync<MarketingStyleOutput>(
             ctx, ActivityNames.MarketingStyle, synthesisInput, "[ACTV-FN-025] marketing", logger);
         var websiteTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.WebsiteStyle, synthesisInput, "[ACTV-FN-026] website-style", logger);
+        var brandVoiceTask = WrapAsync<StringOutput>(
+            ctx, ActivityNames.BrandVoice, synthesisInput, "[ACTV-FN-030] brand-voice", logger);
+
+        await Task.WhenAll(cmaTask, marketingTask, websiteTask, brandVoiceTask);
+
+        // ── Batch 3: analysis + compliance synthesis ────────────────────────
         var pipelineTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.PipelineAnalysis, synthesisInput, "[ACTV-FN-027] pipeline", logger);
         var coachingTask = WrapAsync<CoachingOutput>(
             ctx, ActivityNames.Coaching, synthesisInput, "[ACTV-FN-028] coaching", logger);
-        var brandExtractionTask = WrapAsync<BrandExtractionOutput>(
-            ctx, ActivityNames.BrandExtraction, synthesisInput, "[ACTV-FN-029] brand-extraction", logger);
-        var brandVoiceTask = WrapAsync<BrandVoiceOutput>(
-            ctx, ActivityNames.BrandVoice, synthesisInput, "[ACTV-FN-030] brand-voice", logger);
         var complianceTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.ComplianceAnalysis, synthesisInput, "[ACTV-FN-031] compliance", logger);
         var feeTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.FeeStructure, synthesisInput, "[ACTV-FN-032] fee-structure", logger);
 
-        await Task.WhenAll(
-            voiceTask, personalityTask, brandingTask, cmaTask, marketingTask,
-            websiteTask, pipelineTask, coachingTask, brandExtractionTask,
-            brandVoiceTask, complianceTask, feeTask);
+        await Task.WhenAll(pipelineTask, coachingTask, complianceTask, feeTask);
 
         var voice = voiceTask.Result;
         var personality = personalityTask.Result;
@@ -171,13 +192,16 @@ public sealed class ActivationOrchestratorFunction
         ContactDetectionOutput contactDetectionResult;
         try
         {
-            contactDetectionResult = await ctx.CallActivityAsync<ContactDetectionOutput>(
+            var contactJson = await ctx.CallActivityAsync<string>(
                 ActivityNames.ContactDetection,
-                new ContactDetectionInput(
-                    AccountId: request.AccountId,
-                    AgentId: request.AgentId,
-                    DriveExtractions: driveIndex.Extractions,
-                    EmailCorpus: emailCorpus));
+                new ContactDetectionInput
+                {
+                    AccountId = request.AccountId,
+                    AgentId = request.AgentId,
+                    DriveExtractions = driveIndex.Extractions,
+                    EmailCorpus = emailCorpus,
+                });
+            contactDetectionResult = JsonSerializer.Deserialize<ContactDetectionOutput>(contactJson)!;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -187,7 +211,7 @@ public sealed class ActivationOrchestratorFunction
                     "[ACTV-FN-036] Phase 2.5 contact detection failed for agentId={AgentId} — continuing without contacts",
                     request.AgentId);
             }
-            contactDetectionResult = new ContactDetectionOutput(Array.Empty<ImportedContactDto>());
+            contactDetectionResult = new ContactDetectionOutput();
         }
 
         // ── Phase 3: Persist + Merge ──────────────────────────────────────────
@@ -204,43 +228,36 @@ public sealed class ActivationOrchestratorFunction
             .Distinct()
             .ToList();
 
-        // Merge all LocalizedSkills from Phase 2 outputs
-        var mergedLocalizedSkills = MergeLocalizedSkills(
-            voice?.LocalizedSkills,
-            personality?.LocalizedSkills,
-            marketing?.LocalizedSkills,
-            brandExtractionResult?.LocalizedSkills,
-            brandVoiceResult?.LocalizedSkills);
-
-        var persistInput = new PersistProfileInput(
-            AccountId: request.AccountId,
-            AgentId: request.AgentId,
-            Handle: request.AgentId,
-            Voice: voice,
-            Personality: personality,
-            CmaStyle: cmaStyle,
-            Marketing: marketing,
-            WebsiteStyle: websiteStyle,
-            SalesPipeline: salesPipeline,
-            Coaching: coaching,
-            Branding: branding,
-            BrandExtraction: brandExtraction,
-            BrandVoice: brandVoice,
-            Compliance: compliance,
-            FeeStructure: feeStructure,
-            DriveIndexMarkdown: driveIndexMarkdown,
-            DiscoveryMarkdown: discoveryMarkdown,
-            EmailSignatureMarkdown: emailSigMarkdown,
-            HeadshotBytes: discovery.HeadshotBytes,
-            BrokerageLogoBytes: discovery.LogoBytes,
-            AgentName: emailCorpus.Signature?.Name,
-            AgentEmail: request.Email,
-            AgentPhone: emailCorpus.Signature?.Phone ?? discovery.Phone,
-            AgentTitle: emailCorpus.Signature?.Title,
-            AgentLicenseNumber: emailCorpus.Signature?.LicenseNumber,
-            ServiceAreas: serviceAreas,
-            Discovery: discovery,
-            LocalizedSkills: mergedLocalizedSkills);
+        var persistInput = new PersistProfileInput
+        {
+            AccountId = request.AccountId,
+            AgentId = request.AgentId,
+            Handle = request.AgentId,
+            Voice = voice,
+            Personality = personality,
+            CmaStyle = cmaStyle,
+            Marketing = marketing,
+            WebsiteStyle = websiteStyle,
+            SalesPipeline = salesPipeline,
+            Coaching = coaching,
+            Branding = branding,
+            BrandExtraction = brandExtraction,
+            BrandVoice = brandVoice,
+            Compliance = compliance,
+            FeeStructure = feeStructure,
+            DriveIndexMarkdown = driveIndexMarkdown,
+            DiscoveryMarkdown = discoveryMarkdown,
+            EmailSignatureMarkdown = emailSigMarkdown,
+            HeadshotBytes = discovery.HeadshotBytes,
+            BrokerageLogoBytes = discovery.LogoBytes,
+            AgentName = emailCorpus.Signature?.Name,
+            AgentEmail = request.Email,
+            AgentPhone = emailCorpus.Signature?.Phone ?? discovery.Phone,
+            AgentTitle = emailCorpus.Signature?.Title,
+            AgentLicenseNumber = emailCorpus.Signature?.LicenseNumber,
+            ServiceAreas = serviceAreas,
+            Discovery = discovery,
+        };
 
         // PersistProfile is fatal if it fails — let it propagate
         await ctx.CallActivityAsync(ActivityNames.PersistProfile, persistInput);
@@ -248,11 +265,13 @@ public sealed class ActivationOrchestratorFunction
         // BrandMerge is fatal
         await ctx.CallActivityAsync(
             ActivityNames.BrandMerge,
-            new BrandMergeInput(
-                AccountId: request.AccountId,
-                AgentId: request.AgentId,
-                BrandingKit: branding?.BrandingKitMarkdown ?? string.Empty,
-                VoiceSkill: voice?.VoiceSkillMarkdown ?? string.Empty));
+            new BrandMergeInput
+            {
+                AccountId = request.AccountId,
+                AgentId = request.AgentId,
+                BrandingKit = branding?.BrandingKitMarkdown ?? string.Empty,
+                VoiceSkill = voice?.VoiceSkillMarkdown ?? string.Empty,
+            });
 
         // ContactImport is non-fatal (warning on failure, pipeline continues)
         if (contactDetectionResult.Contacts.Count > 0)
@@ -261,10 +280,12 @@ public sealed class ActivationOrchestratorFunction
             {
                 await ctx.CallActivityAsync(
                     ActivityNames.ContactImport,
-                    new ContactImportInput(
-                        AccountId: request.AccountId,
-                        AgentId: request.AgentId,
-                        Contacts: contactDetectionResult.Contacts));
+                    new ContactImportInput
+                    {
+                        AccountId = request.AccountId,
+                        AgentId = request.AgentId,
+                        Contacts = contactDetectionResult.Contacts,
+                    });
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -277,6 +298,23 @@ public sealed class ActivationOrchestratorFunction
             }
         }
 
+        // Cleanup staged Drive content blobs (non-fatal — best effort)
+        try
+        {
+            await ctx.CallActivityAsync(
+                ActivityNames.CleanupStagedContent,
+                new CleanupStagedContentInput
+                {
+                    AccountId = request.AccountId,
+                    AgentId = request.AgentId,
+                });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            if (!ctx.IsReplaying)
+                logger.LogWarning(ex, "[ACTV-FN-046] Staged content cleanup failed — non-fatal");
+        }
+
         // ── Phase 4: Notify ───────────────────────────────────────────────────
 
         if (!ctx.IsReplaying)
@@ -284,14 +322,16 @@ public sealed class ActivationOrchestratorFunction
 
         await ctx.CallActivityAsync(
             ActivityNames.WelcomeNotification,
-            new WelcomeNotificationInput(
-                AccountId: request.AccountId,
-                AgentId: request.AgentId,
-                Handle: request.AgentId,
-                AgentName: emailCorpus.Signature?.Name,
-                AgentPhone: emailCorpus.Signature?.Phone ?? discovery.Phone,
-                WhatsAppEnabled: discovery.WhatsAppEnabled,
-                LocalizedSkills: mergedLocalizedSkills));
+            new WelcomeNotificationInput
+            {
+                AccountId = request.AccountId,
+                AgentId = request.AgentId,
+                Handle = request.AgentId,
+                AgentName = emailCorpus.Signature?.Name,
+                AgentPhone = emailCorpus.Signature?.Phone ?? discovery.Phone,
+                WhatsAppEnabled = discovery.WhatsAppEnabled,
+                AgentEmail = request.Email,
+            });
 
         if (!ctx.IsReplaying)
         {
@@ -304,7 +344,8 @@ public sealed class ActivationOrchestratorFunction
     // ── Safe wrapper for Phase 2 parallel workers ─────────────────────────────
 
     /// <summary>
-    /// Calls an activity and returns the typed result.
+    /// Calls an activity (which returns pre-serialized JSON string), deserializes
+    /// the result to the typed DTO, and returns it.
     /// Returns null on failure so one worker failure does not abort the pipeline.
     /// </summary>
     private static async Task<T?> WrapAsync<T>(
@@ -316,7 +357,8 @@ public sealed class ActivationOrchestratorFunction
     {
         try
         {
-            return await ctx.CallActivityAsync<T>(activityName, input);
+            var json = await ctx.CallActivityAsync<string>(activityName, input);
+            return json is null ? null : JsonSerializer.Deserialize<T>(json);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

@@ -250,12 +250,14 @@ public sealed class ActivationDtoMapperTests
     [Fact]
     public void BrandingKitDto_ToDomain_PreservesAllFields()
     {
-        var dto = new BrandingKitDto(
-            Colors: [new ColorEntryDto("primary", "#FF0000", "website", "buttons")],
-            Fonts: [new FontEntryDto("heading", "Roboto", "700", "google")],
-            Logos: [new LogoVariantDto("light", "logo-light.png", [9, 8, 7], "website")],
-            RecommendedTemplate: "modern",
-            TemplateReason: "Matches branding");
+        var dto = new BrandingKitDto
+        {
+            Colors = [new ColorEntryDto { Role = "primary", Hex = "#FF0000", Source = "website", Usage = "buttons" }],
+            Fonts = [new FontEntryDto { Role = "heading", Family = "Roboto", Weight = "700", Source = "google" }],
+            Logos = [new LogoVariantDto { Variant = "light", FileName = "logo-light.png", Bytes = [9, 8, 7], Source = "website" }],
+            RecommendedTemplate = "modern",
+            TemplateReason = "Matches branding",
+        };
 
         var domain = ActivationDtoMapper.ToDomain(dto);
 
@@ -283,44 +285,43 @@ public sealed class ActivationDtoMapperTests
     [Fact]
     public void BuildActivationOutputs_MapsAllFields()
     {
-        var discoveryOutput = new AgentDiscoveryOutput(
-            HeadshotBytes: [1, 2],
-            LogoBytes: [3, 4],
-            Phone: "555-0001",
-            Websites: [],
-            Reviews: [],
-            Profiles: [],
-            Ga4MeasurementId: null,
-            WhatsAppEnabled: false);
+        var discoveryOutput = new AgentDiscoveryOutput
+        {
+            HeadshotBytes = [1, 2],
+            LogoBytes = [3, 4],
+            Phone = "555-0001",
+        };
 
-        var input = new PersistProfileInput(
-            AccountId: "acc1",
-            AgentId: "agent1",
-            Handle: "agent1",
-            Voice: new VoiceExtractionOutput("Voice content", false),
-            Personality: new PersonalityOutput("Personality content", false),
-            CmaStyle: "CMA style",
-            Marketing: new MarketingStyleOutput("Marketing guide", "Brand signals"),
-            WebsiteStyle: "Website style",
-            SalesPipeline: "Pipeline",
-            Coaching: new CoachingOutput("Coaching report", false),
-            Branding: new BrandingDiscoveryOutput("Branding kit", null),
-            BrandExtraction: "Brand signals",
-            BrandVoice: "Voice signals",
-            Compliance: "Compliance report",
-            FeeStructure: "Fee structure",
-            DriveIndexMarkdown: "# Drive Index",
-            DiscoveryMarkdown: "# Discovery",
-            EmailSignatureMarkdown: "# Signature",
-            HeadshotBytes: [1, 2],
-            BrokerageLogoBytes: [3, 4],
-            AgentName: "Jane Smith",
-            AgentEmail: "jane@example.com",
-            AgentPhone: "555-1234",
-            AgentTitle: "REALTOR",
-            AgentLicenseNumber: "NJ-123",
-            ServiceAreas: ["Montclair"],
-            Discovery: discoveryOutput);
+        var input = new PersistProfileInput
+        {
+            AccountId = "acc1",
+            AgentId = "agent1",
+            Handle = "agent1",
+            Voice = new VoiceExtractionOutput { VoiceSkillMarkdown = "Voice content" },
+            Personality = new PersonalityOutput { PersonalitySkillMarkdown = "Personality content" },
+            CmaStyle = "CMA style",
+            Marketing = new MarketingStyleOutput { StyleGuide = "Marketing guide", BrandSignals = "Brand signals" },
+            WebsiteStyle = "Website style",
+            SalesPipeline = "Pipeline",
+            Coaching = new CoachingOutput { CoachingReportMarkdown = "Coaching report" },
+            Branding = new BrandingDiscoveryOutput { BrandingKitMarkdown = "Branding kit" },
+            BrandExtraction = "Brand signals",
+            BrandVoice = "Voice signals",
+            Compliance = "Compliance report",
+            FeeStructure = "Fee structure",
+            DriveIndexMarkdown = "# Drive Index",
+            DiscoveryMarkdown = "# Discovery",
+            EmailSignatureMarkdown = "# Signature",
+            HeadshotBytes = [1, 2],
+            BrokerageLogoBytes = [3, 4],
+            AgentName = "Jane Smith",
+            AgentEmail = "jane@example.com",
+            AgentPhone = "555-1234",
+            AgentTitle = "REALTOR",
+            AgentLicenseNumber = "NJ-123",
+            ServiceAreas = ["Montclair"],
+            Discovery = discoveryOutput,
+        };
 
         var outputs = ActivationDtoMapper.BuildActivationOutputs(input);
 
@@ -354,44 +355,18 @@ public sealed class ActivationDtoMapperTests
     [Fact]
     public void BuildActivationOutputs_NullWorkerOutputs_MapsToNulls()
     {
-        var discoveryOutput = new AgentDiscoveryOutput(
-            HeadshotBytes: null,
-            LogoBytes: null,
-            Phone: null,
-            Websites: [],
-            Reviews: [],
-            Profiles: [],
-            Ga4MeasurementId: null,
-            WhatsAppEnabled: false);
+        var discoveryOutput = new AgentDiscoveryOutput();
 
-        var input = new PersistProfileInput(
-            AccountId: "acc1",
-            AgentId: "agent1",
-            Handle: "agent1",
-            Voice: null,
-            Personality: null,
-            CmaStyle: null,
-            Marketing: null,
-            WebsiteStyle: null,
-            SalesPipeline: null,
-            Coaching: null,
-            Branding: null,
-            BrandExtraction: null,
-            BrandVoice: null,
-            Compliance: null,
-            FeeStructure: null,
-            DriveIndexMarkdown: "# Drive Index",
-            DiscoveryMarkdown: "# Discovery",
-            EmailSignatureMarkdown: null,
-            HeadshotBytes: null,
-            BrokerageLogoBytes: null,
-            AgentName: null,
-            AgentEmail: "jane@example.com",
-            AgentPhone: null,
-            AgentTitle: null,
-            AgentLicenseNumber: null,
-            ServiceAreas: [],
-            Discovery: discoveryOutput);
+        var input = new PersistProfileInput
+        {
+            AccountId = "acc1",
+            AgentId = "agent1",
+            Handle = "agent1",
+            DriveIndexMarkdown = "# Drive Index",
+            DiscoveryMarkdown = "# Discovery",
+            AgentEmail = "jane@example.com",
+            Discovery = discoveryOutput,
+        };
 
         var outputs = ActivationDtoMapper.BuildActivationOutputs(input);
 

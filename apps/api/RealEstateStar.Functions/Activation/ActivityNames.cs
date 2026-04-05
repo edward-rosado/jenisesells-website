@@ -36,6 +36,9 @@ internal static class ActivityNames
     public const string BrandMerge = "ActivationBrandMerge";
     public const string ContactImport = "ActivationContactImport";
 
+    // Phase 3.5: Cleanup
+    public const string CleanupStagedContent = "ActivationCleanupStagedContent";
+
     // Phase 4: Notify
     public const string WelcomeNotification = "ActivationWelcomeNotification";
 }

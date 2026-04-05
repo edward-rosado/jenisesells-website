@@ -11,93 +11,178 @@ internal static class ActivationDtoMapper
     // ── Domain → DTO ──────────────────────────────────────────────────────────
 
     public static EmailFetchOutput ToDto(EmailCorpus corpus) =>
-        new(
-            SentEmails: corpus.SentEmails.Select(ToDto).ToList(),
-            InboxEmails: corpus.InboxEmails.Select(ToDto).ToList(),
-            Signature: corpus.Signature is null ? null : ToDto(corpus.Signature));
+        new()
+        {
+            SentEmails = corpus.SentEmails.Select(ToDto).ToList(),
+            InboxEmails = corpus.InboxEmails.Select(ToDto).ToList(),
+            Signature = corpus.Signature is null ? null : ToDto(corpus.Signature)
+        };
 
     public static EmailMessageDto ToDto(EmailMessage m) =>
-        new(m.Id, m.Subject, m.Body, m.From, m.To, m.Date, m.SignatureBlock);
+        new()
+        {
+            Id = m.Id,
+            Subject = m.Subject,
+            Body = m.Body,
+            From = m.From,
+            To = m.To,
+            Date = m.Date,
+            SignatureBlock = m.SignatureBlock
+        };
 
     public static EmailSignatureDto ToDto(EmailSignature s) =>
-        new(s.Name, s.Title, s.Phone, s.LicenseNumber, s.BrokerageName,
-            s.SocialLinks, s.HeadshotUrl, s.WebsiteUrl, s.LogoUrl);
+        new()
+        {
+            Name = s.Name,
+            Title = s.Title,
+            Phone = s.Phone,
+            LicenseNumber = s.LicenseNumber,
+            BrokerageName = s.BrokerageName,
+            SocialLinks = s.SocialLinks.ToList(),
+            HeadshotUrl = s.HeadshotUrl,
+            WebsiteUrl = s.WebsiteUrl,
+            LogoUrl = s.LogoUrl
+        };
 
     public static DriveIndexOutput ToDto(DriveIndex idx) =>
-        new(
-            FolderId: idx.FolderId,
-            Files: idx.Files.Select(ToDto).ToList(),
-            Contents: idx.Contents,
-            DiscoveredUrls: idx.DiscoveredUrls,
-            Extractions: idx.Extractions.Select(ToDto).ToList());
+        new()
+        {
+            FolderId = idx.FolderId,
+            Files = idx.Files.Select(ToDto).ToList(),
+            Contents = new Dictionary<string, string>(idx.Contents),
+            DiscoveredUrls = idx.DiscoveredUrls.ToList(),
+            Extractions = idx.Extractions.Select(ToDto).ToList()
+        };
 
     public static DriveFileDto ToDto(DriveFile f) =>
-        new(f.Id, f.Name, f.MimeType, f.Category, f.ModifiedDate);
+        new()
+        {
+            Id = f.Id,
+            Name = f.Name,
+            MimeType = f.MimeType,
+            Category = f.Category,
+            ModifiedDate = f.ModifiedDate
+        };
 
     public static DocumentExtractionDto ToDto(DocumentExtraction d) =>
-        new(
-            DriveFileId: d.DriveFileId,
-            FileName: d.FileName,
-            Type: d.Type.ToString(),
-            Clients: d.Clients.Select(ToDto).ToList(),
-            Property: d.Property is null ? null : ToDto(d.Property),
-            Date: d.Date,
-            KeyTerms: d.KeyTerms is null ? null : ToDto(d.KeyTerms));
+        new()
+        {
+            DriveFileId = d.DriveFileId,
+            FileName = d.FileName,
+            Type = d.Type.ToString(),
+            Clients = d.Clients.Select(ToDto).ToList(),
+            Property = d.Property is null ? null : ToDto(d.Property),
+            Date = d.Date,
+            KeyTerms = d.KeyTerms is null ? null : ToDto(d.KeyTerms)
+        };
 
     public static ExtractedClientDto ToDto(ExtractedClient c) =>
-        new(c.Name, c.Role.ToString(), c.Email, c.Phone);
+        new()
+        {
+            Name = c.Name,
+            Role = c.Role.ToString(),
+            Email = c.Email,
+            Phone = c.Phone
+        };
 
     public static ExtractedPropertyDto ToDto(ExtractedProperty p) =>
-        new(p.Address, p.City, p.State, p.Zip);
+        new()
+        {
+            Address = p.Address,
+            City = p.City,
+            State = p.State,
+            Zip = p.Zip
+        };
 
     public static ExtractedKeyTermsDto ToDto(ExtractedKeyTerms k) =>
-        new(k.Price, k.Commission, k.Contingencies);
+        new()
+        {
+            Price = k.Price,
+            Commission = k.Commission,
+            Contingencies = k.Contingencies.ToList()
+        };
 
     public static AgentDiscoveryOutput ToDto(AgentDiscovery d) =>
-        new(
-            HeadshotBytes: d.HeadshotBytes,
-            LogoBytes: d.LogoBytes,
-            Phone: d.Phone,
-            Websites: d.Websites.Select(ToDto).ToList(),
-            Reviews: d.Reviews.Select(ToDto).ToList(),
-            Profiles: d.Profiles.Select(ToDto).ToList(),
-            Ga4MeasurementId: d.Ga4MeasurementId,
-            WhatsAppEnabled: d.WhatsAppEnabled);
+        new()
+        {
+            HeadshotBytes = d.HeadshotBytes,
+            LogoBytes = d.LogoBytes,
+            Phone = d.Phone,
+            Websites = d.Websites.Select(ToDto).ToList(),
+            Reviews = d.Reviews.Select(ToDto).ToList(),
+            Profiles = d.Profiles.Select(ToDto).ToList(),
+            Ga4MeasurementId = d.Ga4MeasurementId,
+            WhatsAppEnabled = d.WhatsAppEnabled
+        };
 
     public static DiscoveredWebsiteDto ToDto(DiscoveredWebsite w) =>
-        new(w.Url, w.Source, w.Html);
+        new()
+        {
+            Url = w.Url,
+            Source = w.Source,
+            Html = w.Html
+        };
 
     public static ReviewDto ToDto(Review r) =>
-        new(r.Text, r.Rating, r.Reviewer, r.Source, r.Date);
+        new()
+        {
+            Text = r.Text,
+            Rating = r.Rating,
+            Reviewer = r.Reviewer,
+            Source = r.Source,
+            Date = r.Date
+        };
 
     public static ThirdPartyProfileDto ToDto(ThirdPartyProfile p) =>
-        new(
-            Platform: p.Platform,
-            Bio: p.Bio,
-            Reviews: p.Reviews.Select(ToDto).ToList(),
-            SalesCount: p.SalesCount,
-            ActiveListingCount: p.ActiveListingCount,
-            YearsExperience: p.YearsExperience,
-            Specialties: p.Specialties,
-            ServiceAreas: p.ServiceAreas,
-            RecentSales: p.RecentSales.Select(ToDto).ToList(),
-            ActiveListings: p.ActiveListings.Select(ToDto).ToList());
+        new()
+        {
+            Platform = p.Platform,
+            Bio = p.Bio,
+            Reviews = p.Reviews.Select(ToDto).ToList(),
+            SalesCount = p.SalesCount,
+            ActiveListingCount = p.ActiveListingCount,
+            YearsExperience = p.YearsExperience,
+            Specialties = p.Specialties.ToList(),
+            ServiceAreas = p.ServiceAreas.ToList(),
+            RecentSales = p.RecentSales.Select(ToDto).ToList(),
+            ActiveListings = p.ActiveListings.Select(ToDto).ToList()
+        };
 
     public static ListingInfoDto ToDto(ListingInfo l) =>
-        new(l.Address, l.City, l.State, l.Price, l.Status, l.Beds, l.Baths, l.Sqft, l.ImageUrl, l.Date);
+        new()
+        {
+            Address = l.Address,
+            City = l.City,
+            State = l.State,
+            Price = l.Price,
+            Status = l.Status,
+            Beds = l.Beds,
+            Baths = l.Baths,
+            Sqft = l.Sqft,
+            ImageUrl = l.ImageUrl,
+            Date = l.Date
+        };
 
     public static ImportedContactDto ToDto(ImportedContact c) =>
-        new(
-            Name: c.Name,
-            Email: c.Email,
-            Phone: c.Phone,
-            Role: c.Role.ToString(),
-            Stage: c.Stage.ToString(),
-            PropertyAddress: c.PropertyAddress,
-            Documents: c.Documents.Select(ToDto).ToList());
+        new()
+        {
+            Name = c.Name,
+            Email = c.Email,
+            Phone = c.Phone,
+            Role = c.Role.ToString(),
+            Stage = c.Stage.ToString(),
+            PropertyAddress = c.PropertyAddress,
+            Documents = c.Documents.Select(ToDto).ToList()
+        };
 
     public static DocumentReferenceDto ToDto(DocumentReference r) =>
-        new(r.DriveFileId, r.FileName, r.Type.ToString(), r.Date);
+        new()
+        {
+            DriveFileId = r.DriveFileId,
+            FileName = r.FileName,
+            Type = r.Type.ToString(),
+            Date = r.Date
+        };
 
     // ── DTO → Domain ──────────────────────────────────────────────────────────
 
@@ -119,6 +204,19 @@ internal static class ActivationDtoMapper
             FolderId: dto.FolderId,
             Files: dto.Files.Select(ToDomain).ToList(),
             Contents: dto.Contents,
+            DiscoveredUrls: dto.DiscoveredUrls,
+            Extractions: dto.Extractions.Select(ToDomain).ToList());
+
+    /// <summary>
+    /// Converts DriveIndex DTO to domain model with externally-loaded contents.
+    /// Used by Phase 2 activities that load Drive file contents from blob staging
+    /// instead of receiving them through the orchestrator (prevents OOM).
+    /// </summary>
+    public static DriveIndex ToDomainWithContents(DriveIndexOutput dto, IReadOnlyDictionary<string, string> stagedContents) =>
+        new(
+            FolderId: dto.FolderId,
+            Files: dto.Files.Select(ToDomain).ToList(),
+            Contents: stagedContents,
             DiscoveredUrls: dto.DiscoveredUrls,
             Extractions: dto.Extractions.Select(ToDomain).ToList());
 

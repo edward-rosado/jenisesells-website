@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Functions.Activation.Dtos;
@@ -8,13 +9,16 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// <summary>
 /// Phase 1 gather activity: discovers the agent's web presence, headshot, profiles, and WhatsApp.
 /// Delegates to <see cref="AgentDiscoveryWorker"/>.
+///
+/// Returns pre-serialized JSON string to work around Azure Durable Functions SDK
+/// record.ToString() serialization bug (Microsoft.Azure.Functions.Worker.Extensions.DurableTask 1.2.3).
 /// </summary>
 public sealed class AgentDiscoveryFunction(
     AgentDiscoveryWorker worker,
     ILogger<AgentDiscoveryFunction> logger)
 {
     [Function(ActivityNames.AgentDiscovery)]
-    public async Task<AgentDiscoveryOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] AgentDiscoveryInput input,
         CancellationToken ct)
     {
@@ -35,6 +39,6 @@ public sealed class AgentDiscoveryFunction(
             emailSignature: emailSignature,
             ct: ct);
 
-        return ActivationDtoMapper.ToDto(discovery);
+        return JsonSerializer.Serialize(ActivationDtoMapper.ToDto(discovery));
     }
 }

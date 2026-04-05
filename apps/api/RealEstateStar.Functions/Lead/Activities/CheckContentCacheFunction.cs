@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Leads.Models;
@@ -16,7 +17,7 @@ public sealed class CheckContentCacheFunction(
     ILogger<CheckContentCacheFunction> logger)
 {
     [Function("CheckContentCache")]
-    public async Task<CheckContentCacheOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] CheckContentCacheInput input,
         CancellationToken ct)
     {
@@ -36,12 +37,12 @@ public sealed class CheckContentCacheFunction(
             logger.LogInformation("[CCC-011] HomeSearch cache hit. Hash={Hash}, CorrelationId={CorrelationId}",
                 input.HsInputHash, input.CorrelationId);
 
-        return new CheckContentCacheOutput
+        return JsonSerializer.Serialize(new CheckContentCacheOutput
         {
             CmaCacheHit = cachedCma is not null,
             HsCacheHit = cachedHs is not null,
             CachedCmaResult = cachedCma,
             CachedHsResult = cachedHs
-        };
+        });
     }
 }

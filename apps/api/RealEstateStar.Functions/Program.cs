@@ -44,6 +44,7 @@ using RealEstateStar.Workers.Lead.Orchestrator;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.WhatsApp;
 using RealEstateStar.Domain.Shared;
+using Microsoft.AspNetCore.DataProtection;
 using Serilog;
 
 try
@@ -245,6 +246,16 @@ else
     Log.Warning("[STARTUP-081] AzureStorage:ConnectionString not configured — Platform tier using LocalStorageProvider");
 }
 
+// ── Staged content provider (ephemeral blob staging for activation Drive contents) ──
+if (!string.IsNullOrEmpty(storageConnStr))
+{
+    builder.Services.AddSingleton<RealEstateStar.Domain.Activation.Interfaces.IStagedContentProvider>(sp =>
+        new BlobStagedContentProvider(
+            new Azure.Storage.Blobs.BlobContainerClient(storageConnStr, "lead-documents"),
+            sp.GetRequiredService<ILogger<BlobStagedContentProvider>>()));
+    Log.Information("[STARTUP-089] IStagedContentProvider: BlobStagedContentProvider (container: lead-documents)");
+}
+
 builder.Services.AddStorageProviders(builder.Configuration, builder.Environment);
 
 // ── Agent config path ─────────────────────────────────────────────────────────
@@ -254,11 +265,49 @@ var configPath = Directory.Exists(dockerConfigPath) ? dockerConfigPath : localCo
 if (!Directory.Exists(configPath))
     Log.Warning("[STARTUP-WARN] Agent config directory not found: {ConfigPath}", configPath);
 
+// ── Data Protection — must match Api's key ring to decrypt OAuth tokens ──────
+var dpBuilder = builder.Services.AddDataProtection()
+    .SetApplicationName("RealEstateStar");
+
+var dpBlobUri = builder.Configuration["DataProtection:BlobUri"];
+if (!string.IsNullOrEmpty(dpBlobUri) && !string.IsNullOrEmpty(storageConnStr))
+{
+    // Use connection-string auth (no Managed Identity needed on Consumption plan)
+    var blobUri = new Uri(dpBlobUri);
+    var containerName = blobUri.Segments.Length > 1 ? blobUri.Segments[1].TrimEnd('/') : "dataprotection";
+    var blobName = blobUri.Segments.Length > 2 ? string.Join("", blobUri.Segments[2..]) : "keys.xml";
+    var blobClient = new Azure.Storage.Blobs.BlobContainerClient(storageConnStr, containerName)
+        .GetBlobClient(blobName);
+    dpBuilder.PersistKeysToAzureBlobStorage(blobClient);
+    Log.Information("[STARTUP-082] DataProtection keys: shared blob at {BlobUri} (connection string auth)", dpBlobUri);
+}
+else if (!string.IsNullOrEmpty(dpBlobUri))
+{
+    // Fallback: Managed Identity / DefaultAzureCredential
+    dpBuilder.PersistKeysToAzureBlobStorage(new Uri(dpBlobUri), new Azure.Identity.DefaultAzureCredential());
+    Log.Information("[STARTUP-082] DataProtection keys: shared blob at {BlobUri} (DefaultAzureCredential)", dpBlobUri);
+}
+else
+{
+    Log.Warning("[STARTUP-083] No DataProtection:BlobUri — token decryption will fail for encrypted tokens");
+}
+
 // ── DataServices ──────────────────────────────────────────────────────────────
-// ITokenStore default (NullTokenStore) is registered here.
-// NOTE: Functions host does not run OAuth flows, so NullTokenStore is acceptable.
-// If the activation pipeline needs real token persistence, wire AzureTableTokenStore here.
 builder.Services.AddDataServices(builder.Configuration, builder.Environment, configPath);
+
+// ── ITokenStore — AzureTableTokenStore to read/refresh encrypted OAuth tokens ─
+if (!string.IsNullOrEmpty(storageConnStr))
+{
+    builder.Services.AddSingleton<ITokenStore>(sp =>
+    {
+        var tableClient = new TableClient(storageConnStr, "oauthtokens");
+        return new AzureTableTokenStore(
+            tableClient,
+            sp.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>(),
+            sp.GetRequiredService<ILogger<AzureTableTokenStore>>());
+    });
+    Log.Information("[STARTUP-084] ITokenStore: AzureTableTokenStore (table: oauthtokens)");
+}
 
 // ── Memory cache ───────────────────────────────────────────────────────────────
 builder.Services.AddMemoryCache();

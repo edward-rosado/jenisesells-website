@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Leads.Interfaces;
@@ -14,7 +15,7 @@ public sealed class ScoreLeadFunction(
     ILogger<ScoreLeadFunction> logger)
 {
     [Function("ScoreLead")]
-    public async Task<ScoreLeadOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] ScoreLeadInput input,
         CancellationToken ct)
     {
@@ -32,6 +33,6 @@ public sealed class ScoreLeadFunction(
         logger.LogInformation("[SLF-010] Lead {LeadId} scored: {Score}/100 ({Bucket}). CorrelationId={CorrelationId}",
             input.LeadId, score.OverallScore, score.Bucket, input.CorrelationId);
 
-        return new ScoreLeadOutput { Score = score };
+        return JsonSerializer.Serialize(new ScoreLeadOutput { Score = score });
     }
 }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Functions.Activation.Dtos;
@@ -8,13 +9,16 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// <summary>
 /// Phase 2 synthesis activity: analyzes website style from agent discovery data.
 /// Delegates to <see cref="WebsiteStyleWorker"/>.
+///
+/// Returns pre-serialized JSON string to work around Azure Durable Functions SDK
+/// record.ToString() serialization bug (Microsoft.Azure.Functions.Worker.Extensions.DurableTask 1.2.3).
 /// </summary>
 public sealed class WebsiteStyleFunction(
     WebsiteStyleWorker worker,
     ILogger<WebsiteStyleFunction> logger)
 {
     [Function(ActivityNames.WebsiteStyle)]
-    public async Task<StringOutput> RunAsync(
+    public async Task<string> RunAsync(
         [ActivityTrigger] SynthesisInput input,
         CancellationToken ct)
     {
@@ -25,6 +29,6 @@ public sealed class WebsiteStyleFunction(
             discovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 
-        return new StringOutput(result);
+        return JsonSerializer.Serialize(new StringOutput { Value = result });
     }
 }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -47,14 +48,17 @@ public sealed class ActivityFunctionTests
             agentConfigService.Object,
             NullLogger<RealEstateStar.Activities.Activation.PersistAgentProfile.AgentProfilePersistActivity>.Instance);
 
-        var discoveryOutput = new AgentDiscoveryOutput(null, null, null, [], [], [], null, false);
-        var input = new PersistProfileInput(
-            "acc1", "agent1", "agent1",
-            null, null, null, null, null, null, null, null,
-            null, null, null, null,
-            "# Drive Index", "# Discovery", null,
-            null, null, null, "jane@x.com", null, null, null,
-            [], discoveryOutput);
+        var discoveryOutput = new AgentDiscoveryOutput();
+        var input = new PersistProfileInput
+        {
+            AccountId = "acc1",
+            AgentId = "agent1",
+            Handle = "agent1",
+            DriveIndexMarkdown = "# Drive Index",
+            DiscoveryMarkdown = "# Discovery",
+            AgentEmail = "jane@x.com",
+            Discovery = discoveryOutput,
+        };
 
         var fn = new PersistProfileFunction(realActivity, NullLogger<PersistProfileFunction>.Instance);
 
@@ -94,33 +98,21 @@ public sealed class ActivityFunctionTests
             agentConfigService.Object,
             NullLogger<RealEstateStar.Activities.Activation.PersistAgentProfile.AgentProfilePersistActivity>.Instance);
 
-        var discoveryOutput = new AgentDiscoveryOutput(null, null, null, [], [], [], null, false);
-        var input = new PersistProfileInput(
-            "acc1", "agent1", "agent1",
-            Voice: new VoiceExtractionOutput("# Voice content", false),
-            Personality: new PersonalityOutput("# Personality content", false),
-            CmaStyle: "CMA guide",
-            Marketing: null,
-            WebsiteStyle: null,
-            SalesPipeline: null,
-            Coaching: null,
-            Branding: null,
-            BrandExtraction: null,
-            BrandVoice: null,
-            Compliance: null,
-            FeeStructure: null,
-            DriveIndexMarkdown: "# Drive",
-            DiscoveryMarkdown: "# Discovery",
-            EmailSignatureMarkdown: null,
-            HeadshotBytes: null,
-            BrokerageLogoBytes: null,
-            AgentName: "Jane Smith",
-            AgentEmail: "jane@x.com",
-            AgentPhone: null,
-            AgentTitle: null,
-            AgentLicenseNumber: null,
-            ServiceAreas: [],
-            Discovery: discoveryOutput);
+        var discoveryOutput = new AgentDiscoveryOutput();
+        var input = new PersistProfileInput
+        {
+            AccountId = "acc1",
+            AgentId = "agent1",
+            Handle = "agent1",
+            Voice = new VoiceExtractionOutput { VoiceSkillMarkdown = "# Voice content" },
+            Personality = new PersonalityOutput { PersonalitySkillMarkdown = "# Personality content" },
+            CmaStyle = "CMA guide",
+            DriveIndexMarkdown = "# Drive",
+            DiscoveryMarkdown = "# Discovery",
+            AgentName = "Jane Smith",
+            AgentEmail = "jane@x.com",
+            Discovery = discoveryOutput,
+        };
 
         var fn = new PersistProfileFunction(realActivity, NullLogger<PersistProfileFunction>.Instance);
 
@@ -162,7 +154,7 @@ public sealed class ActivityFunctionTests
 
         // Act
         await fn.RunAsync(
-            new BrandMergeInput("acc1", "agent1", "branding kit content", "voice skill content"), Ct);
+            new BrandMergeInput { AccountId = "acc1", AgentId = "agent1", BrandingKit = "branding kit content", VoiceSkill = "voice skill content" }, Ct);
 
         // Assert — IBrandMergeService was called with the exact arguments
         brandMergeService.VerifyAll();
@@ -183,7 +175,7 @@ public sealed class ActivityFunctionTests
 
         var fn = new WelcomeNotificationFunction(service.Object, NullLogger<WelcomeNotificationFunction>.Instance);
         await fn.RunAsync(
-            new WelcomeNotificationInput("acc1", "agent1", "agent1", "Jane Smith", "555-1234", true), Ct);
+            new WelcomeNotificationInput { AccountId = "acc1", AgentId = "agent1", Handle = "agent1", AgentName = "Jane Smith", AgentPhone = "555-1234", WhatsAppEnabled = true }, Ct);
 
         service.VerifyAll();
     }
@@ -201,7 +193,7 @@ public sealed class ActivityFunctionTests
 
         var fn = new WelcomeNotificationFunction(service.Object, NullLogger<WelcomeNotificationFunction>.Instance);
         await fn.RunAsync(
-            new WelcomeNotificationInput("acc1", "agent1", "agent1", null, null, false), Ct);
+            new WelcomeNotificationInput { AccountId = "acc1", AgentId = "agent1", Handle = "agent1" }, Ct);
 
         service.VerifyAll();
     }
@@ -221,8 +213,9 @@ public sealed class ActivityFunctionTests
         var fn = new CheckActivationCompleteFunction(
             storage.Object, NullLogger<CheckActivationCompleteFunction>.Instance);
 
-        var result = await fn.RunAsync(
-            new CheckActivationCompleteInput("acc1", "agent1"), Ct);
+        var json = await fn.RunAsync(
+            new CheckActivationCompleteInput { AccountId = "acc1", AgentId = "agent1" }, Ct);
+        var result = JsonSerializer.Deserialize<CheckActivationCompleteOutput>(json)!;
 
         result.IsComplete.Should().BeTrue();
     }
@@ -245,8 +238,9 @@ public sealed class ActivityFunctionTests
         var fn = new CheckActivationCompleteFunction(
             storage.Object, NullLogger<CheckActivationCompleteFunction>.Instance);
 
-        var result = await fn.RunAsync(
-            new CheckActivationCompleteInput("acc1", "agent1"), Ct);
+        var json = await fn.RunAsync(
+            new CheckActivationCompleteInput { AccountId = "acc1", AgentId = "agent1" }, Ct);
+        var result = JsonSerializer.Deserialize<CheckActivationCompleteOutput>(json)!;
 
         result.IsComplete.Should().BeFalse();
     }
@@ -263,8 +257,9 @@ public sealed class ActivityFunctionTests
         var fn = new CheckActivationCompleteFunction(
             storage.Object, NullLogger<CheckActivationCompleteFunction>.Instance);
 
-        var result = await fn.RunAsync(
-            new CheckActivationCompleteInput("acc1", "agent1"), Ct);
+        var json = await fn.RunAsync(
+            new CheckActivationCompleteInput { AccountId = "acc1", AgentId = "agent1" }, Ct);
+        var result = JsonSerializer.Deserialize<CheckActivationCompleteOutput>(json)!;
 
         result.IsComplete.Should().BeFalse();
     }

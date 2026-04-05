@@ -29,7 +29,7 @@ public sealed class WelcomeNotificationFunction(
         {
             AgentName = input.AgentName,
             AgentPhone = input.AgentPhone,
-            LocalizedSkills = input.LocalizedSkills,
+            AgentEmail = input.AgentEmail,
         };
 
         await service.SendAsync(
