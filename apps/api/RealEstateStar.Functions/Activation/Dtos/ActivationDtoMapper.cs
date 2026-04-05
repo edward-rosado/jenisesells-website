@@ -38,7 +38,7 @@ internal static class ActivationDtoMapper
             Phone = s.Phone,
             LicenseNumber = s.LicenseNumber,
             BrokerageName = s.BrokerageName,
-            SocialLinks = s.SocialLinks,
+            SocialLinks = s.SocialLinks.ToList(),
             HeadshotUrl = s.HeadshotUrl,
             WebsiteUrl = s.WebsiteUrl,
             LogoUrl = s.LogoUrl
@@ -50,7 +50,7 @@ internal static class ActivationDtoMapper
             FolderId = idx.FolderId,
             Files = idx.Files.Select(ToDto).ToList(),
             Contents = new Dictionary<string, string>(idx.Contents),
-            DiscoveredUrls = idx.DiscoveredUrls,
+            DiscoveredUrls = idx.DiscoveredUrls.ToList(),
             Extractions = idx.Extractions.Select(ToDto).ToList()
         };
 
@@ -99,7 +99,7 @@ internal static class ActivationDtoMapper
         {
             Price = k.Price,
             Commission = k.Commission,
-            Contingencies = k.Contingencies
+            Contingencies = k.Contingencies.ToList()
         };
 
     public static AgentDiscoveryOutput ToDto(AgentDiscovery d) =>
@@ -142,8 +142,8 @@ internal static class ActivationDtoMapper
             SalesCount = p.SalesCount,
             ActiveListingCount = p.ActiveListingCount,
             YearsExperience = p.YearsExperience,
-            Specialties = p.Specialties,
-            ServiceAreas = p.ServiceAreas,
+            Specialties = p.Specialties.ToList(),
+            ServiceAreas = p.ServiceAreas.ToList(),
             RecentSales = p.RecentSales.Select(ToDto).ToList(),
             ActiveListings = p.ActiveListings.Select(ToDto).ToList()
         };

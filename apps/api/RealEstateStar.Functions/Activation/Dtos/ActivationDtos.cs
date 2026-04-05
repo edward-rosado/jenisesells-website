@@ -14,8 +14,8 @@ public sealed record EmailFetchInput
 /// <summary>Output from the EmailFetch activity function — the full email corpus.</summary>
 public sealed record EmailFetchOutput
 {
-    [JsonPropertyName("sentEmails")] public IReadOnlyList<EmailMessageDto> SentEmails { get; init; } = [];
-    [JsonPropertyName("inboxEmails")] public IReadOnlyList<EmailMessageDto> InboxEmails { get; init; } = [];
+    [JsonPropertyName("sentEmails")] public List<EmailMessageDto> SentEmails { get; init; } = [];
+    [JsonPropertyName("inboxEmails")] public List<EmailMessageDto> InboxEmails { get; init; } = [];
     [JsonPropertyName("signature")] public EmailSignatureDto? Signature { get; init; }
 }
 
@@ -37,7 +37,7 @@ public sealed record EmailSignatureDto
     [JsonPropertyName("phone")] public string? Phone { get; init; }
     [JsonPropertyName("licenseNumber")] public string? LicenseNumber { get; init; }
     [JsonPropertyName("brokerageName")] public string? BrokerageName { get; init; }
-    [JsonPropertyName("socialLinks")] public IReadOnlyList<string> SocialLinks { get; init; } = [];
+    [JsonPropertyName("socialLinks")] public List<string> SocialLinks { get; init; } = [];
     [JsonPropertyName("headshotUrl")] public string? HeadshotUrl { get; init; }
     [JsonPropertyName("websiteUrl")] public string? WebsiteUrl { get; init; }
     [JsonPropertyName("logoUrl")] public string? LogoUrl { get; init; }
@@ -54,10 +54,10 @@ public sealed record DriveIndexInput
 public sealed record DriveIndexOutput
 {
     [JsonPropertyName("folderId")] public string FolderId { get; init; } = default!;
-    [JsonPropertyName("files")] public IReadOnlyList<DriveFileDto> Files { get; init; } = [];
+    [JsonPropertyName("files")] public List<DriveFileDto> Files { get; init; } = [];
     [JsonPropertyName("contents")] public Dictionary<string, string> Contents { get; init; } = [];
-    [JsonPropertyName("discoveredUrls")] public IReadOnlyList<string> DiscoveredUrls { get; init; } = [];
-    [JsonPropertyName("extractions")] public IReadOnlyList<DocumentExtractionDto> Extractions { get; init; } = [];
+    [JsonPropertyName("discoveredUrls")] public List<string> DiscoveredUrls { get; init; } = [];
+    [JsonPropertyName("extractions")] public List<DocumentExtractionDto> Extractions { get; init; } = [];
 }
 
 public sealed record DriveFileDto
@@ -74,7 +74,7 @@ public sealed record DocumentExtractionDto
     [JsonPropertyName("driveFileId")] public string DriveFileId { get; init; } = default!;
     [JsonPropertyName("fileName")] public string FileName { get; init; } = default!;
     [JsonPropertyName("type")] public string Type { get; init; } = default!;
-    [JsonPropertyName("clients")] public IReadOnlyList<ExtractedClientDto> Clients { get; init; } = [];
+    [JsonPropertyName("clients")] public List<ExtractedClientDto> Clients { get; init; } = [];
     [JsonPropertyName("property")] public ExtractedPropertyDto? Property { get; init; }
     [JsonPropertyName("date")] public DateTime? Date { get; init; }
     [JsonPropertyName("keyTerms")] public ExtractedKeyTermsDto? KeyTerms { get; init; }
@@ -100,7 +100,7 @@ public sealed record ExtractedKeyTermsDto
 {
     [JsonPropertyName("price")] public string? Price { get; init; }
     [JsonPropertyName("commission")] public string? Commission { get; init; }
-    [JsonPropertyName("contingencies")] public IReadOnlyList<string> Contingencies { get; init; } = [];
+    [JsonPropertyName("contingencies")] public List<string> Contingencies { get; init; } = [];
 }
 
 /// <summary>Input to the AgentDiscovery activity function.</summary>
@@ -118,9 +118,9 @@ public sealed record AgentDiscoveryOutput
     [JsonPropertyName("headshotBytes")] public byte[]? HeadshotBytes { get; init; }
     [JsonPropertyName("logoBytes")] public byte[]? LogoBytes { get; init; }
     [JsonPropertyName("phone")] public string? Phone { get; init; }
-    [JsonPropertyName("websites")] public IReadOnlyList<DiscoveredWebsiteDto> Websites { get; init; } = [];
-    [JsonPropertyName("reviews")] public IReadOnlyList<ReviewDto> Reviews { get; init; } = [];
-    [JsonPropertyName("profiles")] public IReadOnlyList<ThirdPartyProfileDto> Profiles { get; init; } = [];
+    [JsonPropertyName("websites")] public List<DiscoveredWebsiteDto> Websites { get; init; } = [];
+    [JsonPropertyName("reviews")] public List<ReviewDto> Reviews { get; init; } = [];
+    [JsonPropertyName("profiles")] public List<ThirdPartyProfileDto> Profiles { get; init; } = [];
     [JsonPropertyName("ga4MeasurementId")] public string? Ga4MeasurementId { get; init; }
     [JsonPropertyName("whatsAppEnabled")] public bool WhatsAppEnabled { get; init; }
 }
@@ -145,14 +145,14 @@ public sealed record ThirdPartyProfileDto
 {
     [JsonPropertyName("platform")] public string Platform { get; init; } = default!;
     [JsonPropertyName("bio")] public string? Bio { get; init; }
-    [JsonPropertyName("reviews")] public IReadOnlyList<ReviewDto> Reviews { get; init; } = [];
+    [JsonPropertyName("reviews")] public List<ReviewDto> Reviews { get; init; } = [];
     [JsonPropertyName("salesCount")] public int? SalesCount { get; init; }
     [JsonPropertyName("activeListingCount")] public int? ActiveListingCount { get; init; }
     [JsonPropertyName("yearsExperience")] public int? YearsExperience { get; init; }
-    [JsonPropertyName("specialties")] public IReadOnlyList<string> Specialties { get; init; } = [];
-    [JsonPropertyName("serviceAreas")] public IReadOnlyList<string> ServiceAreas { get; init; } = [];
-    [JsonPropertyName("recentSales")] public IReadOnlyList<ListingInfoDto> RecentSales { get; init; } = [];
-    [JsonPropertyName("activeListings")] public IReadOnlyList<ListingInfoDto> ActiveListings { get; init; } = [];
+    [JsonPropertyName("specialties")] public List<string> Specialties { get; init; } = [];
+    [JsonPropertyName("serviceAreas")] public List<string> ServiceAreas { get; init; } = [];
+    [JsonPropertyName("recentSales")] public List<ListingInfoDto> RecentSales { get; init; } = [];
+    [JsonPropertyName("activeListings")] public List<ListingInfoDto> ActiveListings { get; init; } = [];
 }
 
 public sealed record ListingInfoDto
@@ -227,9 +227,9 @@ public sealed record BrandingDiscoveryOutput
 
 public sealed record BrandingKitDto
 {
-    [JsonPropertyName("colors")] public IReadOnlyList<ColorEntryDto> Colors { get; init; } = [];
-    [JsonPropertyName("fonts")] public IReadOnlyList<FontEntryDto> Fonts { get; init; } = [];
-    [JsonPropertyName("logos")] public IReadOnlyList<LogoVariantDto> Logos { get; init; } = [];
+    [JsonPropertyName("colors")] public List<ColorEntryDto> Colors { get; init; } = [];
+    [JsonPropertyName("fonts")] public List<FontEntryDto> Fonts { get; init; } = [];
+    [JsonPropertyName("logos")] public List<LogoVariantDto> Logos { get; init; } = [];
     [JsonPropertyName("recommendedTemplate")] public string? RecommendedTemplate { get; init; }
     [JsonPropertyName("templateReason")] public string? TemplateReason { get; init; }
 }
@@ -278,13 +278,13 @@ public sealed record ContactDetectionInput
 {
     [JsonPropertyName("accountId")] public string AccountId { get; init; } = default!;
     [JsonPropertyName("agentId")] public string AgentId { get; init; } = default!;
-    [JsonPropertyName("driveExtractions")] public IReadOnlyList<DocumentExtractionDto> DriveExtractions { get; init; } = [];
+    [JsonPropertyName("driveExtractions")] public List<DocumentExtractionDto> DriveExtractions { get; init; } = [];
     [JsonPropertyName("emailCorpus")] public EmailFetchOutput EmailCorpus { get; init; } = default!;
 }
 
 public sealed record ContactDetectionOutput
 {
-    [JsonPropertyName("contacts")] public IReadOnlyList<ImportedContactDto> Contacts { get; init; } = [];
+    [JsonPropertyName("contacts")] public List<ImportedContactDto> Contacts { get; init; } = [];
 }
 
 public sealed record ImportedContactDto
@@ -295,7 +295,7 @@ public sealed record ImportedContactDto
     [JsonPropertyName("role")] public string Role { get; init; } = default!;
     [JsonPropertyName("stage")] public string Stage { get; init; } = default!;
     [JsonPropertyName("propertyAddress")] public string? PropertyAddress { get; init; }
-    [JsonPropertyName("documents")] public IReadOnlyList<DocumentReferenceDto> Documents { get; init; } = [];
+    [JsonPropertyName("documents")] public List<DocumentReferenceDto> Documents { get; init; } = [];
 }
 
 public sealed record DocumentReferenceDto
@@ -335,7 +335,7 @@ public sealed record PersistProfileInput
     [JsonPropertyName("agentPhone")] public string? AgentPhone { get; init; }
     [JsonPropertyName("agentTitle")] public string? AgentTitle { get; init; }
     [JsonPropertyName("agentLicenseNumber")] public string? AgentLicenseNumber { get; init; }
-    [JsonPropertyName("serviceAreas")] public IReadOnlyList<string> ServiceAreas { get; init; } = [];
+    [JsonPropertyName("serviceAreas")] public List<string> ServiceAreas { get; init; } = [];
     [JsonPropertyName("discovery")] public AgentDiscoveryOutput Discovery { get; init; } = default!;
 }
 
@@ -351,7 +351,7 @@ public sealed record ContactImportInput
 {
     [JsonPropertyName("accountId")] public string AccountId { get; init; } = default!;
     [JsonPropertyName("agentId")] public string AgentId { get; init; } = default!;
-    [JsonPropertyName("contacts")] public IReadOnlyList<ImportedContactDto> Contacts { get; init; } = [];
+    [JsonPropertyName("contacts")] public List<ImportedContactDto> Contacts { get; init; } = [];
 }
 
 // ── Phase 4 Notify ────────────────────────────────────────────────────────────
