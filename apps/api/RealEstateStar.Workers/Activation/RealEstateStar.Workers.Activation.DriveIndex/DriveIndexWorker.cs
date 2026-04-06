@@ -138,12 +138,13 @@ public sealed class DriveIndexWorker(
         var extractions = new List<DocumentExtraction>();
         var stagedCount = 0;
 
-        // When staging, cap at MaxStagedFiles most-recently-modified files.
+        // When staging, cap at MaxStagedFiles most topical files.
+        // Email attachments are prioritized (recent agent activity), then by modified date.
         // Synthesizers only use the top 5-20 — staging hundreds wastes time and risks timeout.
-        // Sort by modified date descending so the most relevant/recent files are staged first.
         var filesToProcess = stagedContent is not null
             ? realEstateFiles
-                .OrderByDescending(f => f.ModifiedTime ?? DateTime.MinValue)
+                .OrderByDescending(f => emailAttachmentFileIds?.Contains(f.Id) == true ? 1 : 0)
+                .ThenByDescending(f => f.ModifiedTime ?? DateTime.MinValue)
                 .Take(MaxStagedFiles)
                 .ToList()
             : realEstateFiles;

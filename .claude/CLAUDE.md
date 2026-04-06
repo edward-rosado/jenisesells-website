@@ -297,8 +297,7 @@ Agent sites support English and Spanish. Language flows through two axes:
 - Durable Functions Migration: `docs/superpowers/specs/2026-03-31-azure-durable-functions-migration-plan.md`
 - Durable Functions Task Plan: `docs/superpowers/specs/2026-04-01-azure-durable-functions-task-plan.md`
 - Durable Functions Operations: `docs/superpowers/plans/2026-04-02-durable-functions-operations-guide.md`
-- Language First-Class Design: `docs/superpowers/specs/2026-04-02-language-first-class-design.md`
-- Language Observability Dashboard: `docs/superpowers/specs/2026-04-03-language-observability-dashboard.md`
+- Activation MVP Redesign: `docs/superpowers/specs/2026-04-05-activation-mvp-redesign.md`
 - Architecture Diagrams: `docs/architecture/README.md`
 - Onboarding: `docs/onboarding.md`
 - PM Skills: `docs/pm-skills-setup.md`
