@@ -380,8 +380,12 @@ public class DependencyTests
         // Functions assembly may not be in test output — check csproj instead
         if (functionsAssembly != null)
         {
+            // DataProtection is a standalone NuGet package that bundles its own DLLs —
+            // it does NOT require the Microsoft.AspNetCore.App shared framework.
+            // Functions needs it to decrypt OAuth tokens via AzureTableTokenStore.
             var aspNetRefs = functionsAssembly.GetReferencedAssemblies()
                 .Where(a => a.Name!.StartsWith("Microsoft.AspNetCore"))
+                .Where(a => !a.Name!.Contains("DataProtection"))
                 .Select(a => a.Name!)
                 .ToList();
 
