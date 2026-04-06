@@ -100,7 +100,8 @@ Design spec: `docs/superpowers/specs/2026-03-21-api-project-restructure-design.m
 | Document | Description |
 |----------|------------|
 | [OAuth Authorization Flow](oauth-authorization-flow.md) | HMAC-signed link → Google OAuth → token storage → activation enqueue |
-| [Agent Activation Pipeline](agent-activation-pipeline.md) | 5-phase pipeline: Gather → Synthesize (12 workers) → Persist → Notify |
+| [Agent Activation Pipeline](agent-activation-pipeline.md) | 5-phase pipeline: Gather → Synthesize → Persist → Notify |
+| [Activation MVP Redesign](activation-mvp-redesign.md) | MVP tier: 8 workers, pipeline.json, C# optimizations, tier dispatch |
 
 ## WhatsApp Integration
 

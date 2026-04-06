@@ -279,6 +279,7 @@ When a seller lead is submitted, the CMA pipeline fetches comparable sales data 
 - Durable Functions Migration: `docs/superpowers/specs/2026-03-31-azure-durable-functions-migration-plan.md`
 - Durable Functions Task Plan: `docs/superpowers/specs/2026-04-01-azure-durable-functions-task-plan.md`
 - Durable Functions Operations: `docs/superpowers/plans/2026-04-02-durable-functions-operations-guide.md`
+- Activation MVP Redesign: `docs/superpowers/specs/2026-04-05-activation-mvp-redesign.md`
 - Architecture Diagrams: `docs/architecture/README.md`
 - Onboarding: `docs/onboarding.md`
 - PM Skills: `docs/pm-skills-setup.md`
