@@ -9,7 +9,7 @@
       {
         "label": "Recent Sales",
         "href": "#gallery",
-        "enabled": true
+        "enabled": false
       },
       {
         "label": "Testimonials",
