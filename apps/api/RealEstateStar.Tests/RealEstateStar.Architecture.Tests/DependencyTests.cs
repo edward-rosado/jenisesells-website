@@ -333,6 +333,9 @@ public class DependencyTests
             "RealEstateStar.Clients.GoogleOAuth",
             "RealEstateStar.Clients.Scraper",
             "RealEstateStar.Clients.RentCast",
+            // Clients.Gws — GWS CLI wrapper used by activation pipeline
+            // [arch-change-approved]
+            "RealEstateStar.Clients.Gws",
         };
 
         var violations = assembly.GetReferencedAssemblies()
@@ -379,8 +382,18 @@ public class DependencyTests
         // Functions assembly may not be in test output — check csproj instead
         if (functionsAssembly != null)
         {
+            // DataProtection is required for DPAPI token encryption (IDataProtectionProvider).
+            // It's a standalone NuGet package, not part of the ASP.NET Core shared framework,
+            // so it's safe to deploy on Azure Linux Consumption plan.
+            var dataProtectionExcluded = new HashSet<string>
+            {
+                "Microsoft.AspNetCore.DataProtection",
+                "Microsoft.AspNetCore.DataProtection.Abstractions",
+            };
+
             var aspNetRefs = functionsAssembly.GetReferencedAssemblies()
                 .Where(a => a.Name!.StartsWith("Microsoft.AspNetCore"))
+                .Where(a => !dataProtectionExcluded.Contains(a.Name!))
                 .Select(a => a.Name!)
                 .ToList();
 
