@@ -29,11 +29,11 @@ flowchart TD
         EsCorpus --> Threshold{"es items >= 10?"}
         Threshold -->|no| SkipEs["Skip Spanish extraction<br/>fallback to translation prompt"]
 
-        EnCorpus --> EnActivities["12 English DF activities<br/>(VoiceExtractionFunction,<br/>PersonalityFunction, etc.)"]
-        Threshold -->|yes| EsActivities["12 Spanish DF activities<br/>(same functions, es corpus)<br/>Output: LocalizedSkills dict"]
+        EnCorpus --> EnActivities["Phase 2 DF activities<br/>(8 MVP + 4 Future tier)<br/>VoiceExtraction, Personality,<br/>BrandExtraction, BrandVoice, etc."]
+        Threshold -->|yes| EsActivities["Future-tier Spanish activities<br/>(BrandExtraction, BrandVoice,<br/>MarketingStyle)<br/>Output: LocalizedSkills dict"]
 
         EnActivities --> EnOutputs["VoiceExtractionOutput.VoiceSkillMarkdown<br/>PersonalityOutput.PersonalitySkillMarkdown<br/>..."]
-        EsActivities --> EsOutputs["VoiceExtractionOutput.LocalizedSkills<br/>PersonalityOutput.LocalizedSkills<br/>MarketingStyleOutput.LocalizedSkills<br/>..."]
+        EsActivities --> EsOutputs["BrandExtractionOutput.LocalizedSkills<br/>BrandVoiceOutput.LocalizedSkills<br/>MarketingStyleOutput.LocalizedSkills"]
     end
 
     subgraph Phase3["Phase 3: Persist (DF Activity)"]
@@ -64,13 +64,13 @@ English is the default and omits the locale suffix. All other locales use BCP 47
 
 | DTO | `LocalizedSkills` Field | Description |
 |-----|------------------------|-------------|
-| `VoiceExtractionOutput` | `IReadOnlyDictionary<string, string>?` | `{"Voice Skill.es.md": "..."}` |
-| `PersonalityOutput` | `IReadOnlyDictionary<string, string>?` | `{"Personality Skill.es.md": "..."}` |
-| `MarketingStyleOutput` | `IReadOnlyDictionary<string, string>?` | `{"Marketing Style.es.md": "..."}` |
-| `BrandExtractionOutput` | `IReadOnlyDictionary<string, string>?` | `{"Brand Extraction.es.md": "..."}` |
-| `BrandVoiceOutput` | `IReadOnlyDictionary<string, string>?` | `{"Brand Voice.es.md": "..."}` |
-| `PersistProfileInput` | `IReadOnlyDictionary<string, string>?` | Aggregated from all above |
-| `WelcomeNotificationInput` | `IReadOnlyDictionary<string, string>?` | For localized welcome messages |
+| `MarketingStyleOutput` | `Dictionary<string, string>?` | `{"MarketingStyle.es": "..."}` |
+| `BrandExtractionOutput` | `Dictionary<string, string>?` | `{"BrandExtraction.es": "..."}` |
+| `BrandVoiceOutput` | `Dictionary<string, string>?` | `{"BrandVoice.es": "..."}` |
+| `PersistProfileInput` | `Dictionary<string, string>?` | Aggregated from the 3 above |
+| `WelcomeNotificationInput` | `Dictionary<string, string>?` | For localized welcome messages |
+
+> **Note:** VoiceExtraction and Personality are MVP-tier workers. They do NOT produce `LocalizedSkills`. Only Future-tier workers (BrandExtraction, BrandVoice, MarketingStyle) generate per-language variants.
 
 ## Language Detection
 

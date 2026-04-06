@@ -26,21 +26,26 @@ public sealed record AgentContext
     /// </summary>
     public string? GetSkill(string skillName, string? locale)
     {
-        if (string.IsNullOrWhiteSpace(locale) || locale == "en")
-            return skillName switch
-            {
-                "VoiceSkill" => VoiceSkill,
-                "PersonalitySkill" => PersonalitySkill,
-                "MarketingStyle" => MarketingStyle,
-                "BrandVoice" => BrandVoice,
-                _ => null
-            };
+        // For non-English locales, check LocalizedSkills first, then fall back to English
+        if (!string.IsNullOrWhiteSpace(locale) && locale != "en")
+        {
+            var key = $"{skillName}.{locale}";
+            if (LocalizedSkills is not null && LocalizedSkills.TryGetValue(key, out var localized))
+                return localized;
+        }
 
-        var key = $"{skillName}.{locale}";
-        if (LocalizedSkills is not null && LocalizedSkills.TryGetValue(key, out var localized))
-            return localized;
+        // English (or fallback): check top-level properties, then LocalizedSkills
+        var english = skillName switch
+        {
+            "VoiceSkill" => VoiceSkill,
+            "PersonalitySkill" => PersonalitySkill,
+            _ => null
+        };
 
-        // Fallback to English
-        return GetSkill(skillName, "en");
+        // Future-tier skills (MarketingStyle, BrandVoice, etc.) live only in LocalizedSkills
+        if (english is null && LocalizedSkills is not null)
+            LocalizedSkills.TryGetValue(skillName, out english);
+
+        return english;
     }
 }
