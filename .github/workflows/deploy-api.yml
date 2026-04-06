@@ -126,7 +126,8 @@ jobs:
           RENTCAST_KEY: ${{ secrets.RENTCAST_API_KEY }}
           TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
         run: |
-          EXTRA_ENV_VARS=""
+          # Always set Functions health URL so it stays in sync with deploy-functions.yml
+          EXTRA_ENV_VARS="AzureFunctions__HealthUrl=https://real-estate-star-functions-v3.azurewebsites.net/api/health"
           if [ -n "$OTEL_ENDPOINT" ]; then
             EXTRA_ENV_VARS="$EXTRA_ENV_VARS Otel__Endpoint=$OTEL_ENDPOINT"
           fi
