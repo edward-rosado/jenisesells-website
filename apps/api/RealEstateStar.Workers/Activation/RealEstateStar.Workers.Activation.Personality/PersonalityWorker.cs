@@ -186,8 +186,17 @@ public sealed class PersonalityWorker(
             - **Sign-off style**: [how they typically end conversations — warm, professional, casual]
             - **Unique expressions**: [any distinctive phrases or sayings this agent repeats]
 
-            ## Cultural & Contextual Awareness
-            [Any observed cultural sensitivity, regional awareness, or demographic adaptation in their communication]
+            ## Cultural Heritage & Connection Points
+            - **National/ethnic background**: [any indicators of heritage — Dominican, Mexican, Puerto Rican, Cuban, Jamaican, Italian, etc. Look for: last name origin, language patterns, cultural references, food/holiday mentions, neighborhood ties]
+            - **Family roots**: [where their family is from, if mentioned in bios or emails — "my family came from..." "I grew up in a ___ household"]
+            - **Community ties**: [churches, cultural organizations, neighborhood associations, immigrant community involvement]
+            - **Code-switching patterns**: [does the agent switch between English and Spanish mid-conversation? Use Spanglish? This reveals bicultural identity]
+            - **Connection-building hooks**: [what cultural touchpoints could build instant rapport with leads who share this background?]
+
+            NOTE: Only extract what is EVIDENCED in the data. If no cultural background is detectable, write "Not enough data to determine cultural heritage." Never fabricate or assume heritage from a name alone.
+
+            ## Contextual Awareness
+            [Any observed regional awareness or demographic adaptation in their communication style]
             """);
 
         return sb.ToString();
@@ -248,6 +257,14 @@ public sealed class PersonalityWorker(
             - **Greeting style**: [how they open Spanish conversations — formal "Buenos días" vs informal "¡Hola!"]
             - **Sign-off style**: [how they close Spanish conversations]
             - **Unique expressions**: [any distinctive Spanish phrases, dichos, or sayings this agent repeats]
+
+            ## Cultural Heritage & Connection Points (Spanish)
+            - **Regional dialect indicators**: [Caribbean Spanish, Mexican, Central American, South American — any vocab, slang, or grammar that reveals regional origin]
+            - **Family/community references**: [mentions of family values, quinceañeras, holidays (Día de los Reyes, Día de los Muertos), food, church]
+            - **Bicultural identity signals**: [Spanglish usage, American cultural references mixed with Latin ones, generational immigrant patterns]
+            - **Connection-building hooks**: [cultural touchpoints for rapport with Spanish-speaking leads — shared heritage, neighborhood, traditions]
+
+            NOTE: Only extract what is EVIDENCED in the Spanish communications. Never assume heritage from a name.
 
             ## Relationship Style (Spanish)
             - **Focus**: [relationship-first vs transaction-first in Spanish interactions]
