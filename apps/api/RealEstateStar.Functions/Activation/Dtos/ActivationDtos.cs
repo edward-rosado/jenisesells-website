@@ -217,6 +217,7 @@ public sealed record VoiceExtractionOutput
 {
     [JsonPropertyName("voiceSkillMarkdown")] public string? VoiceSkillMarkdown { get; init; }
     [JsonPropertyName("isLowConfidence")] public bool IsLowConfidence { get; init; }
+    [JsonPropertyName("localizedSkills")] public Dictionary<string, string>? LocalizedSkills { get; init; }
 }
 
 /// <summary>Output from Personality activity.</summary>
@@ -224,6 +225,7 @@ public sealed record PersonalityOutput
 {
     [JsonPropertyName("personalitySkillMarkdown")] public string? PersonalitySkillMarkdown { get; init; }
     [JsonPropertyName("isLowConfidence")] public bool IsLowConfidence { get; init; }
+    [JsonPropertyName("localizedSkills")] public Dictionary<string, string>? LocalizedSkills { get; init; }
 }
 
 /// <summary>Output from BrandingDiscovery activity.</summary>

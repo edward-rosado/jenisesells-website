@@ -215,6 +215,8 @@ public sealed class ActivationOrchestratorFunction
         var brandVoiceResult = brandVoiceTask.Result;
         var brandVoice = brandVoiceResult?.Signals;
         var localizedSkills = MergeLocalizedSkills(
+            voice?.LocalizedSkills,
+            personality?.LocalizedSkills,
             brandExtractionResult?.LocalizedSkills,
             brandVoiceResult?.LocalizedSkills,
             marketingTask.Result?.LocalizedSkills);
