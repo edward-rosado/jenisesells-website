@@ -1,33 +1,20 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
 using RealEstateStar.Domain.Activation.Models;
-using RealEstateStar.Domain.Shared.Interfaces;
-using RealEstateStar.Domain.Shared.Interfaces.External;
-using RealEstateStar.Domain.Shared.Models;
 
 namespace RealEstateStar.Workers.Activation.BrandingDiscovery.Tests;
 
 public class BrandingDiscoveryWorkerTests
 {
-    private readonly Mock<IAnthropicClient> _anthropic = new(MockBehavior.Strict);
-    private readonly Mock<IContentSanitizer> _sanitizer = new(MockBehavior.Strict);
     private readonly BrandingDiscoveryWorker _sut;
 
     public BrandingDiscoveryWorkerTests()
     {
-        _sanitizer.Setup(s => s.Sanitize(It.IsAny<string>()))
-            .Returns<string>(s => s);
         _sut = new BrandingDiscoveryWorker(
-            _anthropic.Object,
-            _sanitizer.Object,
             NullLogger<BrandingDiscoveryWorker>.Instance);
     }
 
     // ── Test data ─────────────────────────────────────────────────────────────
-
-    private static AnthropicResponse MakeTemplateResponse(string template = "warm", string reason = "Approachable") =>
-        new($"Template: {template}\nReason: {reason}", 50, 30, 400.0);
 
     private static AgentDiscovery EmptyDiscovery() =>
         new(null, null, null, [], [], [], null, false);
@@ -194,33 +181,170 @@ public class BrandingDiscoveryWorkerTests
         logos.Should().BeEmpty();
     }
 
-    // ── Template parsing ──────────────────────────────────────────────────────
+    // ── ScoreTemplate ────────────────────────────────────────────────────────
 
-    [Theory]
-    [InlineData("Template: luxury\nReason: High-end market", "luxury", "High-end market")]
-    [InlineData("Template: modern\nReason: Clean minimal design", "modern", "Clean minimal design")]
-    [InlineData("Template: warm\nReason: Community focused", "warm", "Community focused")]
-    [InlineData("Template: professional\nReason: Traditional approach", "professional", "Traditional approach")]
-    public void ParseTemplateResponse_ValidTemplate_ParsesCorrectly(
-        string response, string expectedTemplate, string expectedReason)
+    [Fact]
+    public void ScoreTemplate_DarkColors_RecommmendsLuxury()
     {
-        var (template, reason) = BrandingDiscoveryWorker.ParseTemplateResponse(response);
-        template.Should().Be(expectedTemplate);
-        reason.Should().Be(expectedReason);
+        var colors = new List<ColorEntry> { new("Brand", "#1A1A2E", "own-site", "css") };
+        var fonts = new List<FontEntry>();
+        var profiles = new List<ThirdPartyProfile>();
+
+        var (template, _) = BrandingDiscoveryWorker.ScoreTemplate(colors, fonts, profiles, null);
+
+        template.Should().Be("luxury");
     }
 
     [Fact]
-    public void ParseTemplateResponse_InvalidTemplate_DefaultsToModern()
+    public void ScoreTemplate_LuxurySpecialty_RecommendsLuxury()
     {
-        var (template, _) = BrandingDiscoveryWorker.ParseTemplateResponse("Template: unknown\nReason: test");
+        var colors = new List<ColorEntry>();
+        var fonts = new List<FontEntry>();
+        var profiles = new List<ThirdPartyProfile>();
+
+        var (template, _) = BrandingDiscoveryWorker.ScoreTemplate(colors, fonts, profiles, "luxury homes, estate properties");
+
+        template.Should().Be("luxury");
+    }
+
+    [Fact]
+    public void ScoreTemplate_WarmTones_RecommendsWarm()
+    {
+        // High red, medium green, low blue → warm
+        var colors = new List<ColorEntry> { new("Brand", "#C8843A", "own-site", "css") };
+        var fonts = new List<FontEntry>();
+        var profiles = new List<ThirdPartyProfile>();
+
+        var (template, _) = BrandingDiscoveryWorker.ScoreTemplate(colors, fonts, profiles, "family, community");
+
+        template.Should().Be("warm");
+    }
+
+    [Fact]
+    public void ScoreTemplate_NeutralColors_RecommendsProfessional()
+    {
+        // Muted/neutral colors where r ≈ g ≈ b, not too dark, not too bright
+        var colors = new List<ColorEntry>
+        {
+            new("Brand", "#808080", "own-site", "css"),
+            new("Brand", "#909090", "own-site", "css"),
+            new("Brand", "#A0A0A0", "own-site", "css")
+        };
+        var fonts = new List<FontEntry>();
+        var profiles = new List<ThirdPartyProfile>();
+
+        var (template, _) = BrandingDiscoveryWorker.ScoreTemplate(colors, fonts, profiles, "commercial, corporate");
+
+        template.Should().Be("professional");
+    }
+
+    [Fact]
+    public void ScoreTemplate_ModernFonts_RecommendsModern()
+    {
+        var colors = new List<ColorEntry>();
+        var fonts = new List<FontEntry>
+        {
+            new("Body", "Inter", "400", "google-fonts"),
+            new("Body", "Roboto", "400", "google-fonts")
+        };
+        var profiles = new List<ThirdPartyProfile>();
+
+        var (template, _) = BrandingDiscoveryWorker.ScoreTemplate(colors, fonts, profiles, "new construction, development");
+
         template.Should().Be("modern");
     }
 
     [Fact]
-    public void ParseTemplateResponse_EmptyResponse_DefaultsToModern()
+    public void ScoreTemplate_SerifDisplayFont_BoostsLuxury()
     {
-        var (template, _) = BrandingDiscoveryWorker.ParseTemplateResponse(string.Empty);
+        var colors = new List<ColorEntry>();
+        var fonts = new List<FontEntry>
+        {
+            new("Display", "Playfair Display", "400", "google-fonts")
+        };
+        var profiles = new List<ThirdPartyProfile>();
+
+        var (template, _) = BrandingDiscoveryWorker.ScoreTemplate(colors, fonts, profiles, "luxury");
+
+        template.Should().Be("luxury");
+    }
+
+    [Fact]
+    public void ScoreTemplate_ProfileWithLuxuryBio_BoostsLuxury()
+    {
+        var colors = new List<ColorEntry>();
+        var fonts = new List<FontEntry>();
+        var profiles = new List<ThirdPartyProfile>
+        {
+            new("zillow", "Specializing in luxury million-dollar homes", [], null, null, null, [], [], [], [])
+        };
+
+        var (template, _) = BrandingDiscoveryWorker.ScoreTemplate(colors, fonts, profiles, null);
+
+        template.Should().Be("luxury");
+    }
+
+    [Fact]
+    public void ScoreTemplate_ProfileWithCommunityBio_BoostsWarm()
+    {
+        var colors = new List<ColorEntry>();
+        var fonts = new List<FontEntry>();
+        var profiles = new List<ThirdPartyProfile>
+        {
+            new("realtor", "Helping families find their dream neighborhood in the community", [], null, null, null, [], [], [], [])
+        };
+
+        var (template, _) = BrandingDiscoveryWorker.ScoreTemplate(colors, fonts, profiles, null);
+
+        template.Should().Be("warm");
+    }
+
+    [Fact]
+    public void ScoreTemplate_NoSignals_DefaultsToModern()
+    {
+        var (template, reason) = BrandingDiscoveryWorker.ScoreTemplate([], [], [], null);
+
         template.Should().Be("modern");
+        reason.Should().Contain("insufficient brand signals");
+    }
+
+    [Fact]
+    public void ScoreTemplate_GoldColor_BoostsLuxury()
+    {
+        // Gold: r > 180, g > 150, b < 80
+        var colors = new List<ColorEntry> { new("Brand", "#D4A843", "own-site", "css") };
+        var fonts = new List<FontEntry>();
+        var profiles = new List<ThirdPartyProfile>();
+
+        var (template, _) = BrandingDiscoveryWorker.ScoreTemplate(colors, fonts, profiles, null);
+
+        template.Should().Be("luxury");
+    }
+
+    [Fact]
+    public void ScoreTemplate_NavyColor_BoostsLuxury()
+    {
+        // Navy: r < 50, g < 50, b > 100
+        var colors = new List<ColorEntry> { new("Brand", "#1A1A8B", "own-site", "css") };
+        var fonts = new List<FontEntry>();
+        var profiles = new List<ThirdPartyProfile>();
+
+        var (template, _) = BrandingDiscoveryWorker.ScoreTemplate(colors, fonts, profiles, null);
+
+        template.Should().Be("luxury");
+    }
+
+    [Fact]
+    public void ScoreTemplate_ShortHex_SkipsColor()
+    {
+        // Short hex (3 chars) should be skipped
+        var colors = new List<ColorEntry> { new("Brand", "#FFF", "own-site", "css") };
+        var fonts = new List<FontEntry>();
+        var profiles = new List<ThirdPartyProfile>();
+
+        var (template, _) = BrandingDiscoveryWorker.ScoreTemplate(colors, fonts, profiles, null);
+
+        template.Should().Be("modern"); // default — no signal from short hex
     }
 
     // ── Full DiscoverAsync ────────────────────────────────────────────────────
@@ -233,43 +357,19 @@ public class BrandingDiscoveryWorkerTests
         var websites = new List<DiscoveredWebsite> { new("https://example.com", "own-site", html) };
         var discovery = new AgentDiscovery(null, null, null, websites, [], [], null, false);
 
-        _anthropic.Setup(a => a.SendAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MakeTemplateResponse("modern", "Clean design"));
-
         var result = await _sut.DiscoverAsync("Jenise", discovery, EmptyCorpus(), new DriveIndex("fid", [], new Dictionary<string, string>(), [], []), default);
 
         result.Kit.Should().NotBeNull();
         result.BrandingKitMarkdown.Should().Contain("# Branding Kit: Jenise");
-        result.BrandingKitMarkdown.Should().Contain("modern");
     }
 
     [Fact]
-    public async Task DiscoverAsync_ClaudeFailure_FallsBackToModernTemplate()
+    public async Task DiscoverAsync_EmptyDiscovery_DefaultsToModernTemplate()
     {
         var discovery = EmptyDiscovery();
-        _anthropic.Setup(a => a.SendAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("Claude unavailable"));
 
         var result = await _sut.DiscoverAsync("Jenise", discovery, EmptyCorpus(), new DriveIndex("fid", [], new Dictionary<string, string>(), [], []), default);
 
         result.Kit.RecommendedTemplate.Should().Be("modern");
-    }
-
-    [Fact]
-    public async Task DiscoverAsync_SanitizesProfileSummaryBeforeClaude()
-    {
-        var discovery = EmptyDiscovery();
-        _anthropic.Setup(a => a.SendAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MakeTemplateResponse());
-
-        await _sut.DiscoverAsync("Jenise", discovery, EmptyCorpus(), new DriveIndex("fid", [], new Dictionary<string, string>(), [], []), default);
-
-        _sanitizer.Verify(s => s.Sanitize(It.IsAny<string>()), Times.AtLeastOnce);
     }
 }

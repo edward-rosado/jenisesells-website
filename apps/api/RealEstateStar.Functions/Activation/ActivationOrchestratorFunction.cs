@@ -131,48 +131,74 @@ public sealed class ActivationOrchestratorFunction
         //
         // Batched in pairs of 2 to avoid Anthropic API rate limits.
         // Even 4 at a time triggers rate_limit_error responses.
+        //
+        // MVP tier dispatches 8 workers in 4 batches.
+        // Future tier dispatches all 12 workers in 6 batches.
 
-        // ── Batch 1 ─────────────────────────────────────────────────────────
+        // ── Batch 1 (MVP + Future) ──────────────────────────────────────────
         var voiceTask = WrapAsync<VoiceExtractionOutput>(
             ctx, ActivityNames.VoiceExtraction, synthesisInput, "[ACTV-FN-021] voice", logger);
         var personalityTask = WrapAsync<PersonalityOutput>(
             ctx, ActivityNames.Personality, synthesisInput, "[ACTV-FN-022] personality", logger);
         await Task.WhenAll(voiceTask, personalityTask);
 
-        // ── Batch 2 ─────────────────────────────────────────────────────────
+        // ── Batch 2 (MVP + Future) ──────────────────────────────────────────
         var brandingTask = WrapAsync<BrandingDiscoveryOutput>(
             ctx, ActivityNames.BrandingDiscovery, synthesisInput, "[ACTV-FN-023] branding", logger);
-        var brandExtractionTask = WrapAsync<StringOutput>(
-            ctx, ActivityNames.BrandExtraction, synthesisInput, "[ACTV-FN-029] brand-extraction", logger);
-        await Task.WhenAll(brandingTask, brandExtractionTask);
-
-        // ── Batch 3 ─────────────────────────────────────────────────────────
-        var cmaTask = WrapAsync<StringOutput>(
-            ctx, ActivityNames.CmaStyle, synthesisInput, "[ACTV-FN-024] cma-style", logger);
-        var marketingTask = WrapAsync<MarketingStyleOutput>(
-            ctx, ActivityNames.MarketingStyle, synthesisInput, "[ACTV-FN-025] marketing", logger);
-        await Task.WhenAll(cmaTask, marketingTask);
-
-        // ── Batch 4 ─────────────────────────────────────────────────────────
         var websiteTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.WebsiteStyle, synthesisInput, "[ACTV-FN-026] website-style", logger);
-        var brandVoiceTask = WrapAsync<StringOutput>(
-            ctx, ActivityNames.BrandVoice, synthesisInput, "[ACTV-FN-030] brand-voice", logger);
-        await Task.WhenAll(websiteTask, brandVoiceTask);
+        await Task.WhenAll(brandingTask, websiteTask);
 
-        // ── Batch 5 ─────────────────────────────────────────────────────────
-        var pipelineTask = WrapAsync<StringOutput>(
+        // ── Batch 3 (MVP + Future) ──────────────────────────────────────────
+        var cmaTask = WrapAsync<StringOutput>(
+            ctx, ActivityNames.CmaStyle, synthesisInput, "[ACTV-FN-024] cma-style", logger);
+        var pipelineTask = WrapAsync<PipelineAnalysisOutput>(
             ctx, ActivityNames.PipelineAnalysis, synthesisInput, "[ACTV-FN-027] pipeline", logger);
+        await Task.WhenAll(cmaTask, pipelineTask);
+
+        // ── Batch 4 (MVP + Future) ──────────────────────────────────────────
         var coachingTask = WrapAsync<CoachingOutput>(
             ctx, ActivityNames.Coaching, synthesisInput, "[ACTV-FN-028] coaching", logger);
-        await Task.WhenAll(pipelineTask, coachingTask);
-
-        // ── Batch 6 ─────────────────────────────────────────────────────────
         var complianceTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.ComplianceAnalysis, synthesisInput, "[ACTV-FN-031] compliance", logger);
-        var feeTask = WrapAsync<StringOutput>(
-            ctx, ActivityNames.FeeStructure, synthesisInput, "[ACTV-FN-032] fee-structure", logger);
-        await Task.WhenAll(complianceTask, feeTask);
+        await Task.WhenAll(coachingTask, complianceTask);
+
+        // ── FUTURE-tier workers (skip for MVP) ──────────────────────────────
+        Task<StringOutput?> brandExtractionTask;
+        Task<StringOutput?> brandVoiceTask;
+        Task<MarketingStyleOutput?> marketingTask;
+        Task<StringOutput?> feeTask;
+
+        if (request.Tier == ActivationTier.Future)
+        {
+            // ── Batch 5 (Future only) ───────────────────────────────────────
+            brandExtractionTask = WrapAsync<StringOutput>(
+                ctx, ActivityNames.BrandExtraction, synthesisInput, "[ACTV-FN-029] brand-extraction", logger);
+            brandVoiceTask = WrapAsync<StringOutput>(
+                ctx, ActivityNames.BrandVoice, synthesisInput, "[ACTV-FN-030] brand-voice", logger);
+            await Task.WhenAll(brandExtractionTask, brandVoiceTask);
+
+            // ── Batch 6 (Future only) ───────────────────────────────────────
+            marketingTask = WrapAsync<MarketingStyleOutput>(
+                ctx, ActivityNames.MarketingStyle, synthesisInput, "[ACTV-FN-025] marketing", logger);
+            feeTask = WrapAsync<StringOutput>(
+                ctx, ActivityNames.FeeStructure, synthesisInput, "[ACTV-FN-032] fee-structure", logger);
+            await Task.WhenAll(marketingTask, feeTask);
+        }
+        else
+        {
+            if (!ctx.IsReplaying)
+            {
+                logger.LogInformation(
+                    "[ACTV-FN-033] Skipping FUTURE-tier workers for MVP activation agentId={AgentId}",
+                    request.AgentId);
+            }
+
+            brandExtractionTask = Task.FromResult<StringOutput?>(null);
+            brandVoiceTask = Task.FromResult<StringOutput?>(null);
+            marketingTask = Task.FromResult<MarketingStyleOutput?>(null);
+            feeTask = Task.FromResult<StringOutput?>(null);
+        }
 
         var voice = voiceTask.Result;
         var personality = personalityTask.Result;
@@ -180,7 +206,9 @@ public sealed class ActivationOrchestratorFunction
         var cmaStyle = cmaTask.Result?.Value;
         var marketing = marketingTask.Result;
         var websiteStyle = websiteTask.Result?.Value;
-        var salesPipeline = pipelineTask.Result?.Value;
+        var pipelineResult = pipelineTask.Result;
+        var salesPipeline = pipelineResult?.Markdown;
+        var pipelineJson = pipelineResult?.PipelineJson;
         var coaching = coachingTask.Result;
         var brandExtraction = brandExtractionTask.Result?.Value;
         var brandVoice = brandVoiceTask.Result?.Value;
@@ -239,15 +267,12 @@ public sealed class ActivationOrchestratorFunction
             Voice = voice,
             Personality = personality,
             CmaStyle = cmaStyle,
-            Marketing = marketing,
             WebsiteStyle = websiteStyle,
             SalesPipeline = salesPipeline,
             Coaching = coaching,
             Branding = branding,
-            BrandExtraction = brandExtraction,
-            BrandVoice = brandVoice,
             Compliance = compliance,
-            FeeStructure = feeStructure,
+            PipelineJson = pipelineJson,
             DriveIndexMarkdown = driveIndexMarkdown,
             DiscoveryMarkdown = discoveryMarkdown,
             EmailSignatureMarkdown = emailSigMarkdown,
@@ -265,16 +290,23 @@ public sealed class ActivationOrchestratorFunction
         // PersistProfile is fatal if it fails — let it propagate
         await ctx.CallActivityAsync(ActivityNames.PersistProfile, persistInput);
 
-        // BrandMerge is fatal
-        await ctx.CallActivityAsync(
-            ActivityNames.BrandMerge,
-            new BrandMergeInput
-            {
-                AccountId = request.AccountId,
-                AgentId = request.AgentId,
-                BrandingKit = branding?.BrandingKitMarkdown ?? string.Empty,
-                VoiceSkill = voice?.VoiceSkillMarkdown ?? string.Empty,
-            });
+        // BrandMerge only for multi-agent accounts (brokerage)
+        if (request.AccountId != request.AgentId)
+        {
+            await ctx.CallActivityAsync(
+                ActivityNames.BrandMerge,
+                new BrandMergeInput
+                {
+                    AccountId = request.AccountId,
+                    AgentId = request.AgentId,
+                    BrandingKit = branding?.BrandingKitMarkdown ?? string.Empty,
+                    VoiceSkill = voice?.VoiceSkillMarkdown ?? string.Empty,
+                });
+        }
+        else if (!ctx.IsReplaying)
+        {
+            logger.LogInformation("[ACTV-FN-042] Skipping BrandMerge for single-agent account {AccountId}", request.AccountId);
+        }
 
         // ContactImport is non-fatal (warning on failure, pipeline continues)
         if (contactDetectionResult.Contacts.Count > 0)
@@ -334,6 +366,12 @@ public sealed class ActivationOrchestratorFunction
                 AgentPhone = emailCorpus.Signature?.Phone ?? discovery.Phone,
                 WhatsAppEnabled = discovery.WhatsAppEnabled,
                 AgentEmail = request.Email,
+                // Synthesis data for personalized welcome email
+                VoiceSkill = voice?.VoiceSkillMarkdown,
+                PersonalitySkill = personality?.PersonalitySkillMarkdown,
+                CoachingReport = coaching?.CoachingReportMarkdown,
+                PipelineJson = pipelineJson,
+                ContactCount = contactDetectionResult.Contacts.Count,
             });
 
         if (!ctx.IsReplaying)

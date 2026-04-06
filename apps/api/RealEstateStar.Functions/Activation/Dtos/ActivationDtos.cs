@@ -204,6 +204,13 @@ public sealed record StringOutput
     [JsonPropertyName("value")] public string? Value { get; init; }
 }
 
+/// <summary>Output from PipelineAnalysis activity — structured JSON + markdown summary.</summary>
+public sealed record PipelineAnalysisOutput
+{
+    [JsonPropertyName("pipelineJson")] public string? PipelineJson { get; init; }
+    [JsonPropertyName("markdown")] public string? Markdown { get; init; }
+}
+
 /// <summary>Output from VoiceExtraction activity.</summary>
 public sealed record VoiceExtractionOutput
 {
@@ -316,15 +323,12 @@ public sealed record PersistProfileInput
     [JsonPropertyName("voice")] public VoiceExtractionOutput? Voice { get; init; }
     [JsonPropertyName("personality")] public PersonalityOutput? Personality { get; init; }
     [JsonPropertyName("cmaStyle")] public string? CmaStyle { get; init; }
-    [JsonPropertyName("marketingStyle")] public MarketingStyleOutput? Marketing { get; init; }
     [JsonPropertyName("websiteStyle")] public string? WebsiteStyle { get; init; }
     [JsonPropertyName("salesPipeline")] public string? SalesPipeline { get; init; }
     [JsonPropertyName("coaching")] public CoachingOutput? Coaching { get; init; }
     [JsonPropertyName("branding")] public BrandingDiscoveryOutput? Branding { get; init; }
-    [JsonPropertyName("brandExtraction")] public string? BrandExtraction { get; init; }
-    [JsonPropertyName("brandVoice")] public string? BrandVoice { get; init; }
     [JsonPropertyName("compliance")] public string? Compliance { get; init; }
-    [JsonPropertyName("feeStructure")] public string? FeeStructure { get; init; }
+    [JsonPropertyName("pipelineJson")] public string? PipelineJson { get; init; }
     [JsonPropertyName("driveIndexMarkdown")] public string DriveIndexMarkdown { get; init; } = default!;
     [JsonPropertyName("discoveryMarkdown")] public string DiscoveryMarkdown { get; init; } = default!;
     [JsonPropertyName("emailSignatureMarkdown")] public string? EmailSignatureMarkdown { get; init; }
@@ -365,6 +369,12 @@ public sealed record WelcomeNotificationInput
     [JsonPropertyName("agentPhone")] public string? AgentPhone { get; init; }
     [JsonPropertyName("whatsAppEnabled")] public bool WhatsAppEnabled { get; init; }
     [JsonPropertyName("agentEmail")] public string? AgentEmail { get; init; }
+    // Synthesis data for personalized welcome email
+    [JsonPropertyName("voiceSkill")] public string? VoiceSkill { get; init; }
+    [JsonPropertyName("personalitySkill")] public string? PersonalitySkill { get; init; }
+    [JsonPropertyName("coachingReport")] public string? CoachingReport { get; init; }
+    [JsonPropertyName("pipelineJson")] public string? PipelineJson { get; init; }
+    [JsonPropertyName("contactCount")] public int ContactCount { get; init; }
 }
 
 public sealed record CleanupStagedContentInput

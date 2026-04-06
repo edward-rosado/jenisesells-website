@@ -37,7 +37,7 @@ public sealed class DriveIndexWorker(
 
     private const int MaxPdfPages = 10;
     private const int PdfParallelism = 5;
-    private const int MaxStagedFiles = 100;
+    private const int MaxStagedFiles = 40;
     private const int MaxPdfExtractions = 10;
     private const int ClaudeMaxTokens = 1024;
     private const string ClaudePipeline = "activation-driveindex";
@@ -89,11 +89,15 @@ public sealed class DriveIndexWorker(
     /// storage immediately after reading (stream-and-stage), avoiding accumulating all content in memory.
     /// The returned <c>DriveIndex.Contents</c> will be empty when staging is used.
     /// </summary>
+    /// <param name="knownEmailNames">Names from email corpus for cross-referencing contacts in documents.</param>
+    /// <param name="emailAttachmentFileIds">Drive file IDs that were email attachments — prioritized for PDF extraction.</param>
     public async Task<DriveIndexModel> RunAsync(
         string accountId,
         string agentId,
         CancellationToken ct,
-        IStagedContentProvider? stagedContent = null)
+        IStagedContentProvider? stagedContent = null,
+        IReadOnlySet<string>? knownEmailNames = null,
+        IReadOnlySet<string>? emailAttachmentFileIds = null)
     {
         logger.LogInformation(
             "[DRIVEINDEX-001] Starting Drive index for account {AccountId}, agent {AgentId}.",
@@ -193,6 +197,8 @@ public sealed class DriveIndexWorker(
 
         var pdfFiles = filesToProcess
             .Where(f => f.MimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(f => emailAttachmentFileIds?.Contains(f.Id) == true ? 1 : 0)
+            .ThenByDescending(f => f.ModifiedTime ?? DateTime.MinValue)
             .Take(MaxPdfExtractions)
             .ToList();
 
@@ -214,6 +220,7 @@ public sealed class DriveIndexWorker(
         extractions.AddRange(pdfResults.Where(e => e is not null)!);
 
         // ── Text-doc extraction (non-PDF) ─────────────────────────────────────
+        // Uses regex extraction instead of Claude API calls — cheaper and faster for text docs.
         // When staging is used, text-doc extraction was done inline above (stream-and-stage).
         // Only run this pass for the non-staging (in-memory) path.
 
@@ -226,7 +233,7 @@ public sealed class DriveIndexWorker(
                 var file = filesToProcess.FirstOrDefault(f => f.Id == fileId);
                 if (file is not null && !file.MimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
                 {
-                    var extraction = await ExtractFromTextAsync(file, content, ct);
+                    var extraction = ExtractWithRegex(fileId, file.Name, content);
                     if (extraction is not null)
                         extractions.Add(extraction);
                 }
@@ -434,6 +441,120 @@ public sealed class DriveIndexWorker(
             "Both" => ContactRole.Both,
             _ => ContactRole.Unknown
         };
+
+    // ── Regex-based extraction ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Extracts structured contact/property data from text documents using regex patterns.
+    /// Replaces Claude API calls for non-PDF text documents — cheaper and faster.
+    /// </summary>
+    internal static DocumentExtraction? ExtractWithRegex(string fileId, string fileName, string content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return null;
+
+        // Extract emails
+        var emailRegex = new Regex(@"[\w.-]+@[\w.-]+\.\w{2,}", RegexOptions.Compiled);
+        var phoneRegex = new Regex(@"\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}", RegexOptions.Compiled);
+        var addressRegex = new Regex(
+            @"\d+\s+[\w\s]+(?:St|Street|Ave|Avenue|Rd|Road|Dr|Drive|Ln|Lane|Ct|Court|Blvd|Boulevard|Way|Pl|Place|Ter|Terrace)\b[,.\s]+[\w\s]+,?\s*[A-Z]{2}\s*\d{5}",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        var priceRegex = new Regex(@"\$[\d,]+(?:\.\d{2})?", RegexOptions.Compiled);
+
+        var emails = emailRegex.Matches(content).Select(m => m.Value).Distinct().ToList();
+        var phones = phoneRegex.Matches(content).Select(m => m.Value).Distinct().ToList();
+        var addresses = addressRegex.Matches(content).Select(m => m.Value.Trim()).Distinct().ToList();
+        var prices = priceRegex.Matches(content).Select(m => m.Value).ToList();
+
+        // If we found nothing useful, skip
+        if (emails.Count == 0 && phones.Count == 0 && addresses.Count == 0)
+            return null;
+
+        // Build clients from email/phone pairs found near each other
+        var clients = new List<ExtractedClient>();
+        foreach (var email in emails.Take(5))
+        {
+            var namePart = email.Split('@')[0].Replace(".", " ").Replace("_", " ");
+            clients.Add(new ExtractedClient(
+                Name: namePart,
+                Role: ContactRole.Unknown,
+                Email: email,
+                Phone: phones.FirstOrDefault()));
+        }
+
+        // Build property from first address found
+        ExtractedProperty? property = null;
+        if (addresses.Count > 0)
+        {
+            var addr = addresses[0];
+            property = new ExtractedProperty(Address: addr, City: null, State: null, Zip: null);
+        }
+
+        // Classify document type by filename/content keywords
+        var docType = ClassifyDocumentType(fileName, content);
+
+        // Parse first price as key term
+        var keyTerms = prices.Count > 0
+            ? new ExtractedKeyTerms(Price: prices[0], Commission: null, Contingencies: [])
+            : null;
+
+        return new DocumentExtraction(
+            DriveFileId: fileId,
+            FileName: fileName,
+            Type: docType,
+            Clients: clients,
+            Property: property,
+            Date: null, // Could try DateTime.TryParse on date patterns
+            KeyTerms: keyTerms);
+    }
+
+    /// <summary>
+    /// Classifies document type based on filename and content keywords.
+    /// </summary>
+    internal static DocumentType ClassifyDocumentType(string fileName, string content)
+    {
+        var lower = (fileName + " " + content[..Math.Min(500, content.Length)]).ToLowerInvariant();
+
+        if (lower.Contains("listing agreement") || lower.Contains("listing contract"))
+            return DocumentType.ListingAgreement;
+        if (lower.Contains("buyer") && (lower.Contains("agreement") || lower.Contains("agency")))
+            return DocumentType.BuyerAgreement;
+        if (lower.Contains("purchase") && (lower.Contains("contract") || lower.Contains("agreement")))
+            return DocumentType.PurchaseContract;
+        if (lower.Contains("disclosure") || lower.Contains("lead paint") || lower.Contains("seller disclosure"))
+            return DocumentType.Disclosure;
+        if (lower.Contains("closing") || lower.Contains("settlement") || lower.Contains("hud"))
+            return DocumentType.ClosingStatement;
+        if (lower.Contains("cma") || lower.Contains("comparative market") || lower.Contains("market analysis"))
+            return DocumentType.Cma;
+        if (lower.Contains("inspection"))
+            return DocumentType.Inspection;
+        if (lower.Contains("appraisal"))
+            return DocumentType.Appraisal;
+        return DocumentType.Other;
+    }
+
+    // ── Contact detection ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Detects potential leads/customers in document content by cross-referencing
+    /// with names seen in the email corpus. Same name in both email and document = high confidence lead.
+    /// </summary>
+    internal static List<string> DetectKnownContacts(string content, IReadOnlySet<string> knownEmailNames)
+    {
+        if (knownEmailNames.Count == 0) return [];
+
+        var found = new List<string>();
+        var contentLower = content.ToLowerInvariant();
+
+        foreach (var name in knownEmailNames)
+        {
+            if (name.Length < 3) continue; // skip very short names
+            if (contentLower.Contains(name.ToLowerInvariant()))
+                found.Add(name);
+        }
+
+        return found;
+    }
 
     // ── Static helpers ────────────────────────────────────────────────────────
 

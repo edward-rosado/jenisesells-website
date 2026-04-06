@@ -24,30 +24,46 @@ public class PipelineAnalysisWorkerTests
         FolderId: "folder-1", Files: [],
         Contents: new Dictionary<string, string>(), DiscoveredUrls: [], Extractions: []);
 
-    private static AnthropicResponse MakeValidResponse() =>
-        new(Content: """
-            ## Sales Pipeline
-            ### Active Deals
-            Approximately 3 active deals detected.
-            ### Deal Velocity
-            Average 45 days from first contact.
-            ### Client Communication Cadence
-            Follows up every 2-3 days during active transactions.
-            ### Common Bottlenecks
-            Inspection scheduling delays.
-            ### Transaction Patterns
-            Primarily first-time buyers.
-            ### Key Relationships
-            Preferred lender mentioned frequently.
-            """,
-            InputTokens: 100, OutputTokens: 200, DurationMs: 1500);
+    private const string ValidPipelineJson = """
+        {
+          "leads": [
+            {
+              "id": "L-001",
+              "name": "Client A",
+              "stage": "showing",
+              "type": "buyer",
+              "property": "123 Main St, Newark, NJ",
+              "source": "referral",
+              "firstSeen": "2026-03-15",
+              "lastActivity": "2026-04-01",
+              "next": "schedule second showing",
+              "notes": "interested in 3BR homes"
+            },
+            {
+              "id": "L-002",
+              "name": "Client B",
+              "stage": "under-contract",
+              "type": "seller",
+              "property": "456 Oak Ave, Jersey City, NJ",
+              "source": "direct",
+              "firstSeen": "2026-02-10",
+              "lastActivity": "2026-04-02",
+              "next": "awaiting inspection results",
+              "notes": "downsizing from 4BR"
+            }
+          ]
+        }
+        """;
+
+    private static AnthropicResponse MakeValidJsonResponse() =>
+        new(Content: ValidPipelineJson, InputTokens: 100, OutputTokens: 200, DurationMs: 1500);
 
     // ---------------------------------------------------------------------------
     // AnalyzeAsync — low data path (< 5 inbox emails)
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task AnalyzeAsync_InsufficientInboxEmails_ReturnsLowDataMessage()
+    public async Task AnalyzeAsync_InsufficientInboxEmails_ReturnsNull()
     {
         var anthropic = new Mock<IAnthropicClient>();
         var sanitizer = new Mock<IContentSanitizer>();
@@ -58,7 +74,7 @@ public class PipelineAnalysisWorkerTests
 
         var result = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
 
-        result.Should().Be("Insufficient email history to map pipeline");
+        result.Should().BeNull();
         anthropic.Verify(a => a.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -100,7 +116,7 @@ public class PipelineAnalysisWorkerTests
         anthropic.Setup(a => a.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Callback<string, string, string, int, string, CancellationToken>((_, _, _, _, _, _) => callOrder.Add("claude"))
-            .ReturnsAsync(MakeValidResponse());
+            .ReturnsAsync(MakeValidJsonResponse());
 
         var worker = new PipelineAnalysisWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWithInboxEmails(inboxCount: 10);
@@ -117,7 +133,7 @@ public class PipelineAnalysisWorkerTests
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task AnalyzeAsync_SufficientEmails_ReturnsMarkdown()
+    public async Task AnalyzeAsync_SufficientEmails_ReturnsPipelineJsonAndMarkdown()
     {
         var anthropic = new Mock<IAnthropicClient>();
         var sanitizer = new Mock<IContentSanitizer>();
@@ -126,24 +142,26 @@ public class PipelineAnalysisWorkerTests
         sanitizer.Setup(s => s.Sanitize(It.IsAny<string>())).Returns<string>(s => s);
         anthropic.Setup(a => a.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MakeValidResponse());
+            .ReturnsAsync(MakeValidJsonResponse());
 
         var worker = new PipelineAnalysisWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWithInboxEmails(inboxCount: 10);
 
         var result = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
 
-        result.Should().Contain("## Sales Pipeline");
-        result.Should().Contain("### Active Deals");
-        result.Should().Contain("### Key Relationships");
+        result.Should().NotBeNull();
+        result!.PipelineJson.Should().Contain("\"leads\"");
+        result.PipelineJson.Should().Contain("L-001");
+        result.Markdown.Should().Contain("## Sales Pipeline");
+        result.Markdown.Should().Contain("Client A");
     }
 
     // ---------------------------------------------------------------------------
-    // AnalyzeAsync — malformed response
+    // AnalyzeAsync — invalid JSON response returns null
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task AnalyzeAsync_MalformedResponse_ThrowsInvalidOperationException()
+    public async Task AnalyzeAsync_InvalidJsonResponse_ReturnsNull()
     {
         var anthropic = new Mock<IAnthropicClient>();
         var sanitizer = new Mock<IContentSanitizer>();
@@ -152,15 +170,14 @@ public class PipelineAnalysisWorkerTests
         sanitizer.Setup(s => s.Sanitize(It.IsAny<string>())).Returns<string>(s => s);
         anthropic.Setup(a => a.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AnthropicResponse("Incomplete response.", 50, 20, 500));
+            .ReturnsAsync(new AnthropicResponse("This is not JSON at all.", 50, 20, 500));
 
         var worker = new PipelineAnalysisWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWithInboxEmails(inboxCount: 10);
 
-        var act = () => worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
+        var result = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*missing required section*");
+        result.Should().BeNull();
     }
 
     // ---------------------------------------------------------------------------
@@ -207,16 +224,151 @@ public class PipelineAnalysisWorkerTests
     }
 
     // ---------------------------------------------------------------------------
-    // ValidateMarkdownOutput
+    // ValidatePipelineJson
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public void ValidateMarkdownOutput_MissingDealVelocity_Throws()
+    public void ValidatePipelineJson_ValidJson_ReturnsJson()
     {
-        var content = "## Sales Pipeline\n### Active Deals\ntext\n### Key Relationships\ntext";
+        var result = PipelineAnalysisWorker.ValidatePipelineJson(ValidPipelineJson);
 
-        var act = () => PipelineAnalysisWorker.ValidateMarkdownOutput(content);
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Deal Velocity*");
+        result.Should().NotBeNull();
+        result.Should().Contain("\"leads\"");
+    }
+
+    [Fact]
+    public void ValidatePipelineJson_NullInput_ReturnsNull()
+    {
+        PipelineAnalysisWorker.ValidatePipelineJson(null).Should().BeNull();
+    }
+
+    [Fact]
+    public void ValidatePipelineJson_EmptyString_ReturnsNull()
+    {
+        PipelineAnalysisWorker.ValidatePipelineJson("").Should().BeNull();
+    }
+
+    [Fact]
+    public void ValidatePipelineJson_WhitespaceOnly_ReturnsNull()
+    {
+        PipelineAnalysisWorker.ValidatePipelineJson("   ").Should().BeNull();
+    }
+
+    [Fact]
+    public void ValidatePipelineJson_InvalidJson_ReturnsNull()
+    {
+        PipelineAnalysisWorker.ValidatePipelineJson("not json at all").Should().BeNull();
+    }
+
+    [Fact]
+    public void ValidatePipelineJson_MissingLeadsProperty_ReturnsNull()
+    {
+        PipelineAnalysisWorker.ValidatePipelineJson("""{"deals": []}""").Should().BeNull();
+    }
+
+    [Fact]
+    public void ValidatePipelineJson_LeadsNotArray_ReturnsNull()
+    {
+        PipelineAnalysisWorker.ValidatePipelineJson("""{"leads": "not an array"}""").Should().BeNull();
+    }
+
+    [Fact]
+    public void ValidatePipelineJson_EmptyLeadsArray_ReturnsValidJson()
+    {
+        var result = PipelineAnalysisWorker.ValidatePipelineJson("""{"leads": []}""");
+        result.Should().NotBeNull();
+        result.Should().Contain("\"leads\"");
+    }
+
+    [Fact]
+    public void ValidatePipelineJson_WrappedInCodeFences_StripsAndReturnsJson()
+    {
+        var wrapped = """
+            ```json
+            {"leads": [{"id": "L-001", "name": "Client A", "stage": "new", "type": "buyer"}]}
+            ```
+            """;
+
+        var result = PipelineAnalysisWorker.ValidatePipelineJson(wrapped);
+
+        result.Should().NotBeNull();
+        result.Should().Contain("\"leads\"");
+        result.Should().NotContain("```");
+    }
+
+    // ---------------------------------------------------------------------------
+    // GenerateMarkdownSummary
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void GenerateMarkdownSummary_ValidJson_ContainsPipelineHeader()
+    {
+        var markdown = PipelineAnalysisWorker.GenerateMarkdownSummary(ValidPipelineJson);
+
+        markdown.Should().Contain("## Sales Pipeline");
+    }
+
+    [Fact]
+    public void GenerateMarkdownSummary_ValidJson_ContainsTotalLeadCount()
+    {
+        var markdown = PipelineAnalysisWorker.GenerateMarkdownSummary(ValidPipelineJson);
+
+        markdown.Should().Contain("**Total Leads:** 2");
+    }
+
+    [Fact]
+    public void GenerateMarkdownSummary_ValidJson_ContainsStageTable()
+    {
+        var markdown = PipelineAnalysisWorker.GenerateMarkdownSummary(ValidPipelineJson);
+
+        markdown.Should().Contain("### Pipeline by Stage");
+        markdown.Should().Contain("| showing | 1 |");
+        markdown.Should().Contain("| under-contract | 1 |");
+    }
+
+    [Fact]
+    public void GenerateMarkdownSummary_ValidJson_ContainsLeadDetailsTable()
+    {
+        var markdown = PipelineAnalysisWorker.GenerateMarkdownSummary(ValidPipelineJson);
+
+        markdown.Should().Contain("### Lead Details");
+        markdown.Should().Contain("| L-001 | Client A | showing | buyer | 123 Main St, Newark, NJ | schedule second showing |");
+        markdown.Should().Contain("| L-002 | Client B | under-contract | seller | 456 Oak Ave, Jersey City, NJ | awaiting inspection results |");
+    }
+
+    [Fact]
+    public void GenerateMarkdownSummary_EmptyLeads_ShowsZeroTotal()
+    {
+        var markdown = PipelineAnalysisWorker.GenerateMarkdownSummary("""{"leads": []}""");
+
+        markdown.Should().Contain("**Total Leads:** 0");
+    }
+
+    [Fact]
+    public void GenerateMarkdownSummary_NullFields_ShowsDashes()
+    {
+        var json = """{"leads": [{"id": "L-001", "name": "Client A", "stage": "new", "type": "buyer", "property": null, "next": null}]}""";
+
+        var markdown = PipelineAnalysisWorker.GenerateMarkdownSummary(json);
+
+        markdown.Should().Contain("| L-001 | Client A | new | buyer | - | - |");
+    }
+
+    // ---------------------------------------------------------------------------
+    // ValidStages and ValidTypes constants
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void ValidStages_ContainsExpectedValues()
+    {
+        PipelineAnalysisWorker.ValidStages.Should().BeEquivalentTo(
+            ["new", "contacted", "showing", "applied", "under-contract", "closing", "closed", "lost"]);
+    }
+
+    [Fact]
+    public void ValidTypes_ContainsExpectedValues()
+    {
+        PipelineAnalysisWorker.ValidTypes.Should().BeEquivalentTo(
+            ["sale", "rental", "buyer", "seller"]);
     }
 }

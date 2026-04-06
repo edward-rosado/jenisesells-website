@@ -23,48 +23,32 @@ public class AgentContextLoaderTests
             $"real-estate-star/{AgentId}", fileName, Ct))
             .ReturnsAsync(content);
 
-    private void SetupAccountFile(string fileName, string? content) =>
-        _storage.Setup(s => s.ReadDocumentAsync(
-            $"real-estate-star/{AccountId}", fileName, Ct))
-            .ReturnsAsync(content);
-
     private void SetupAllAgentFiles(
         string? voice = "Voice content",
         string? personality = "Personality content",
         string? cma = "CMA content",
-        string? marketing = "Marketing content",
         string? website = "Website content",
         string? pipeline = "Pipeline content",
         string? coaching = "Coaching content",
         string? branding = "Branding content",
         string? compliance = "Compliance content",
-        string? fee = "Fee content")
+        string? pipelineJson = null)
     {
         SetupAgentFile(AgentContextLoader.VoiceSkillFile, voice);
         SetupAgentFile(AgentContextLoader.PersonalitySkillFile, personality);
         SetupAgentFile(AgentContextLoader.CmaStyleGuideFile, cma);
-        SetupAgentFile(AgentContextLoader.MarketingStyleFile, marketing);
         SetupAgentFile(AgentContextLoader.WebsiteStyleGuideFile, website);
         SetupAgentFile(AgentContextLoader.SalesPipelineFile, pipeline);
         SetupAgentFile(AgentContextLoader.CoachingReportFile, coaching);
         SetupAgentFile(AgentContextLoader.BrandingKitFile, branding);
         SetupAgentFile(AgentContextLoader.ComplianceAnalysisFile, compliance);
-        SetupAgentFile(AgentContextLoader.FeeStructureFile, fee);
-    }
-
-    private void SetupAllAccountFiles(
-        string? brandProfile = "Brand Profile content",
-        string? brandVoice = "Brand Voice content")
-    {
-        SetupAccountFile(AgentContextLoader.BrandProfileFile, brandProfile);
-        SetupAccountFile(AgentContextLoader.BrandVoiceFile, brandVoice);
+        SetupAgentFile(AgentContextLoader.PipelineJsonFile, pipelineJson);
     }
 
     [Fact]
     public async Task LoadAsync_AllFilesPresent_ReturnsFullyPopulatedContext_WithIsActivatedTrue()
     {
         SetupAllAgentFiles();
-        SetupAllAccountFiles();
 
         var result = await _sut.LoadAsync(AccountId, AgentId, Ct);
 
@@ -74,22 +58,17 @@ public class AgentContextLoaderTests
         Assert.Equal("Voice content", result.VoiceSkill);
         Assert.Equal("Personality content", result.PersonalitySkill);
         Assert.Equal("CMA content", result.CmaStyleGuide);
-        Assert.Equal("Marketing content", result.MarketingStyle);
         Assert.Equal("Website content", result.WebsiteStyleGuide);
         Assert.Equal("Pipeline content", result.SalesPipeline);
         Assert.Equal("Coaching content", result.CoachingReport);
         Assert.Equal("Branding content", result.BrandingKit);
         Assert.Equal("Compliance content", result.ComplianceAnalysis);
-        Assert.Equal("Fee content", result.FeeStructure);
-        Assert.Equal("Brand Profile content", result.BrandProfile);
-        Assert.Equal("Brand Voice content", result.BrandVoice);
     }
 
     [Fact]
     public async Task LoadAsync_NoFilesExist_ReturnsNull()
     {
-        SetupAllAgentFiles(null, null, null, null, null, null, null, null, null, null);
-        SetupAllAccountFiles(null, null);
+        SetupAllAgentFiles(null, null, null, null, null, null, null, null);
 
         var result = await _sut.LoadAsync(AccountId, AgentId, Ct);
 
@@ -99,19 +78,16 @@ public class AgentContextLoaderTests
     [Fact]
     public async Task LoadAsync_PartialFiles_ReturnsContextWithNullsForMissing_IsActivatedFalse()
     {
-        // Only voice and personality present — missing cma, marketing, pipeline, coaching
+        // Only voice and personality present — missing cma, pipeline, coaching
         SetupAllAgentFiles(
             voice: "Voice content",
             personality: "Personality content",
             cma: null,
-            marketing: null,
             website: null,
             pipeline: null,
             coaching: null,
             branding: null,
-            compliance: null,
-            fee: null);
-        SetupAllAccountFiles(null, null);
+            compliance: null);
 
         var result = await _sut.LoadAsync(AccountId, AgentId, Ct);
 
@@ -120,11 +96,8 @@ public class AgentContextLoaderTests
         Assert.Equal("Voice content", result.VoiceSkill);
         Assert.Equal("Personality content", result.PersonalitySkill);
         Assert.Null(result.CmaStyleGuide);
-        Assert.Null(result.MarketingStyle);
         Assert.Null(result.SalesPipeline);
         Assert.Null(result.CoachingReport);
-        Assert.Null(result.BrandProfile);
-        Assert.Null(result.BrandVoice);
     }
 
     [Fact]
@@ -132,7 +105,6 @@ public class AgentContextLoaderTests
     {
         SetupAllAgentFiles(
             voice: "This is a Low confidence analysis due to insufficient data.");
-        SetupAllAccountFiles();
 
         var result = await _sut.LoadAsync(AccountId, AgentId, Ct);
 
@@ -141,31 +113,14 @@ public class AgentContextLoaderTests
     }
 
     [Fact]
-    public async Task LoadAsync_LowConfidenceInBrandProfile_SetsIsLowConfidenceTrue()
+    public async Task LoadAsync_PerAgentFolderUsesAgentId()
     {
         SetupAllAgentFiles();
-        SetupAllAccountFiles(
-            brandProfile: "Brand profile — Low confidence: limited signals available.");
-
-        var result = await _sut.LoadAsync(AccountId, AgentId, Ct);
-
-        Assert.NotNull(result);
-        Assert.True(result.IsLowConfidence);
-    }
-
-    [Fact]
-    public async Task LoadAsync_PerAgentAndPerAccountFoldersAreDistinct()
-    {
-        // Verify agent files use agentId folder, brand files use accountId folder
-        SetupAllAgentFiles();
-        SetupAllAccountFiles();
 
         await _sut.LoadAsync(AccountId, AgentId, Ct);
 
         _storage.Verify(s => s.ReadDocumentAsync(
             $"real-estate-star/{AgentId}", AgentContextLoader.VoiceSkillFile, Ct), Times.Once);
-        _storage.Verify(s => s.ReadDocumentAsync(
-            $"real-estate-star/{AccountId}", AgentContextLoader.BrandProfileFile, Ct), Times.Once);
     }
 
     [Fact]

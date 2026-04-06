@@ -142,13 +142,6 @@ public class LeadEmailDrafter(
                 sb.AppendLine(agentContext.PersonalitySkill);
             }
 
-            if (!string.IsNullOrWhiteSpace(agentContext.BrandVoice))
-            {
-                sb.AppendLine();
-                sb.AppendLine("=== BRAND VOICE (brokerage communication standards — MANDATORY) ===");
-                sb.AppendLine(agentContext.BrandVoice);
-            }
-
             if (!string.IsNullOrWhiteSpace(agentContext.BrandingKit))
             {
                 sb.AppendLine();
