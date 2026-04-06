@@ -129,45 +129,50 @@ public sealed class ActivationOrchestratorFunction
         // Each worker wrapped in try/catch to preserve RunSafeAsync semantics:
         // one worker failure does NOT abort the pipeline — it contributes null output.
         //
-        // Batched in groups of 4 to avoid Anthropic API rate limits (12 parallel calls → 429s).
-        // Durable Functions dispatches activities on CallActivityAsync, so we await each batch
-        // before starting the next to stagger Claude API load.
+        // Batched in pairs of 2 to avoid Anthropic API rate limits.
+        // Even 4 at a time triggers rate_limit_error responses.
 
-        // ── Batch 1: core identity synthesis ────────────────────────────────
+        // ── Batch 1 ─────────────────────────────────────────────────────────
         var voiceTask = WrapAsync<VoiceExtractionOutput>(
             ctx, ActivityNames.VoiceExtraction, synthesisInput, "[ACTV-FN-021] voice", logger);
         var personalityTask = WrapAsync<PersonalityOutput>(
             ctx, ActivityNames.Personality, synthesisInput, "[ACTV-FN-022] personality", logger);
+        await Task.WhenAll(voiceTask, personalityTask);
+
+        // ── Batch 2 ─────────────────────────────────────────────────────────
         var brandingTask = WrapAsync<BrandingDiscoveryOutput>(
             ctx, ActivityNames.BrandingDiscovery, synthesisInput, "[ACTV-FN-023] branding", logger);
         var brandExtractionTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.BrandExtraction, synthesisInput, "[ACTV-FN-029] brand-extraction", logger);
+        await Task.WhenAll(brandingTask, brandExtractionTask);
 
-        await Task.WhenAll(voiceTask, personalityTask, brandingTask, brandExtractionTask);
-
-        // ── Batch 2: style + marketing synthesis ────────────────────────────
+        // ── Batch 3 ─────────────────────────────────────────────────────────
         var cmaTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.CmaStyle, synthesisInput, "[ACTV-FN-024] cma-style", logger);
         var marketingTask = WrapAsync<MarketingStyleOutput>(
             ctx, ActivityNames.MarketingStyle, synthesisInput, "[ACTV-FN-025] marketing", logger);
+        await Task.WhenAll(cmaTask, marketingTask);
+
+        // ── Batch 4 ─────────────────────────────────────────────────────────
         var websiteTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.WebsiteStyle, synthesisInput, "[ACTV-FN-026] website-style", logger);
         var brandVoiceTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.BrandVoice, synthesisInput, "[ACTV-FN-030] brand-voice", logger);
+        await Task.WhenAll(websiteTask, brandVoiceTask);
 
-        await Task.WhenAll(cmaTask, marketingTask, websiteTask, brandVoiceTask);
-
-        // ── Batch 3: analysis + compliance synthesis ────────────────────────
+        // ── Batch 5 ─────────────────────────────────────────────────────────
         var pipelineTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.PipelineAnalysis, synthesisInput, "[ACTV-FN-027] pipeline", logger);
         var coachingTask = WrapAsync<CoachingOutput>(
             ctx, ActivityNames.Coaching, synthesisInput, "[ACTV-FN-028] coaching", logger);
+        await Task.WhenAll(pipelineTask, coachingTask);
+
+        // ── Batch 6 ─────────────────────────────────────────────────────────
         var complianceTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.ComplianceAnalysis, synthesisInput, "[ACTV-FN-031] compliance", logger);
         var feeTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.FeeStructure, synthesisInput, "[ACTV-FN-032] fee-structure", logger);
-
-        await Task.WhenAll(pipelineTask, coachingTask, complianceTask, feeTask);
+        await Task.WhenAll(complianceTask, feeTask);
 
         var voice = voiceTask.Result;
         var personality = personalityTask.Result;

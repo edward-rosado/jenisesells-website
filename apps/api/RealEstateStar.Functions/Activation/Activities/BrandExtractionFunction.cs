@@ -28,7 +28,7 @@ public sealed class BrandExtractionFunction(
             "[ACTV-FN-180] BrandExtraction for agentId={AgentId}", input.AgentId);
 
         // Load Drive file contents from blob staging (workers are pure compute, don't touch storage)
-        var stagedContents = await stagedContent.GetAllContentsAsync(input.AccountId, input.AgentId, ct);
+        var stagedContents = await stagedContent.GetTopContentsAsync(input.AccountId, input.AgentId, 20, ct);
 
         try
         {

@@ -18,6 +18,9 @@ public interface IStagedContentProvider
     /// <summary>Returns all staged file IDs and their content. Use sparingly — prefer GetContentAsync for targeted lookups.</summary>
     Task<IReadOnlyDictionary<string, string>> GetAllContentsAsync(string accountId, string agentId, CancellationToken ct);
 
+    /// <summary>Returns up to <paramref name="maxFiles"/> staged file contents. Use for workers that iterate all content (e.g., VoiceExtraction uses .Take(10)).</summary>
+    Task<IReadOnlyDictionary<string, string>> GetTopContentsAsync(string accountId, string agentId, int maxFiles, CancellationToken ct);
+
     /// <summary>Returns the count of staged files without loading content.</summary>
     Task<int> GetCountAsync(string accountId, string agentId, CancellationToken ct);
 

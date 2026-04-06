@@ -27,16 +27,26 @@ public sealed class VoiceExtractionFunction(
         logger.LogInformation(
             "[ACTV-FN-100] VoiceExtraction for agentId={AgentId}", input.AgentId);
 
-        // Load Drive file contents from blob staging (workers are pure compute, don't touch storage)
-        var stagedContents = await stagedContent.GetAllContentsAsync(input.AccountId, input.AgentId, ct);
+        try
+        {
+            // Load first 5 Drive file contents ��� enough for voice extraction, prevents timeout.
+            // VoiceExtraction uses Opus model which is slower; fewer files keeps within function timeout.
+            var stagedContents = await stagedContent.GetTopContentsAsync(input.AccountId, input.AgentId, 5, ct);
 
-        var result = await worker.ExtractAsync(
-            agentName: input.AgentName,
-            emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
-            driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
-            agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
-            ct: ct);
+            var result = await worker.ExtractAsync(
+                agentName: input.AgentName,
+                emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
+                driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
+                agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
+                ct: ct);
 
-        return JsonSerializer.Serialize(new VoiceExtractionOutput { VoiceSkillMarkdown = result.VoiceSkillMarkdown, IsLowConfidence = result.IsLowConfidence });
+            return JsonSerializer.Serialize(new VoiceExtractionOutput { VoiceSkillMarkdown = result.VoiceSkillMarkdown, IsLowConfidence = result.IsLowConfidence });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ACTV-FN-101] VoiceExtraction FAILED for agentId={AgentId}: {Message}",
+                input.AgentId, ex.Message);
+            throw;
+        }
     }
 }

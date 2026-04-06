@@ -2,6 +2,7 @@ using System.Diagnostics.Metrics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Services;
@@ -37,6 +38,8 @@ public sealed class DriveIndexWorker(
 
     private const int MaxPdfPages = 10;
     private const int PdfParallelism = 5;
+    private const int MaxStagedFiles = 100;
+    private const int MaxPdfExtractions = 10;
     private const int ClaudeMaxTokens = 1024;
     private const string ClaudePipeline = "activation-driveindex";
     private const string ClaudeModel = "claude-sonnet-4-6";
@@ -81,7 +84,17 @@ public sealed class DriveIndexWorker(
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ];
 
-    public async Task<DriveIndexModel> RunAsync(string accountId, string agentId, CancellationToken ct)
+    /// <summary>
+    /// Indexes the agent's Google Drive — discovers files, reads content, extracts contacts.
+    /// When <paramref name="stagedContent"/> is provided, each file's content is staged to blob
+    /// storage immediately after reading (stream-and-stage), avoiding accumulating all content in memory.
+    /// The returned <c>DriveIndex.Contents</c> will be empty when staging is used.
+    /// </summary>
+    public async Task<DriveIndexModel> RunAsync(
+        string accountId,
+        string agentId,
+        CancellationToken ct,
+        IStagedContentProvider? stagedContent = null)
     {
         logger.LogInformation(
             "[DRIVEINDEX-001] Starting Drive index for account {AccountId}, agent {AgentId}.",
@@ -111,11 +124,27 @@ public sealed class DriveIndexWorker(
             "[DRIVEINDEX-003] Identified {Count} real estate documents for account {AccountId}, agent {AgentId}.",
             realEstateFiles.Count, accountId, agentId);
 
-        // Read content of each real-estate doc
+        // Read content of each real-estate doc.
+        // When stagedContent is provided: stream-and-stage — read each file from Drive, stage
+        // to blob, extract URLs + contacts inline, then discard the content string.
+        // Content is NEVER accumulated in memory when staging is used.
+        // When stagedContent is null (tests/local): accumulate in-memory as before.
         var contents = new Dictionary<string, string>();
         var discoveredUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var extractions = new List<DocumentExtraction>();
+        var stagedCount = 0;
 
-        foreach (var file in realEstateFiles)
+        // When staging, cap at MaxStagedFiles most-recently-modified files.
+        // Synthesizers only use the top 5-20 — staging hundreds wastes time and risks timeout.
+        // Sort by modified date descending so the most relevant/recent files are staged first.
+        var filesToProcess = stagedContent is not null
+            ? realEstateFiles
+                .OrderByDescending(f => f.ModifiedTime ?? DateTime.MinValue)
+                .Take(MaxStagedFiles)
+                .ToList()
+            : realEstateFiles;
+
+        foreach (var file in filesToProcess)
         {
             ct.ThrowIfCancellationRequested();
 
@@ -124,9 +153,24 @@ public sealed class DriveIndexWorker(
                 var content = await driveClient.GetFileContentAsync(accountId, agentId, file.Id, ct);
                 if (!string.IsNullOrWhiteSpace(content))
                 {
-                    contents[file.Id] = content;
-                    foreach (var url in ExtractUrls(content))
-                        discoveredUrls.Add(url);
+                    if (stagedContent is not null)
+                    {
+                        // Stage to blob — content is NOT kept in memory
+                        await stagedContent.StageContentAsync(accountId, agentId, file.Id, content, ct);
+                        stagedCount++;
+
+                        // Extract URLs inline (cheap string scan, no API call)
+                        foreach (var url in ExtractUrls(content))
+                            discoveredUrls.Add(url);
+
+                        // content string is now eligible for GC — NOT stored in dictionary
+                    }
+                    else
+                    {
+                        contents[file.Id] = content;
+                        foreach (var url in ExtractUrls(content))
+                            discoveredUrls.Add(url);
+                    }
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -137,17 +181,21 @@ public sealed class DriveIndexWorker(
             }
         }
 
-        logger.LogInformation(
-            "[DRIVEINDEX-004] Read {ContentCount} documents, discovered {UrlCount} URLs for account {AccountId}, agent {AgentId}.",
-            contents.Count, discoveredUrls.Count, accountId, agentId);
+        if (stagedContent is not null)
+            logger.LogInformation(
+                "[DRIVEINDEX-004] Staged {StagedCount} documents to blob, discovered {UrlCount} URLs for account {AccountId}, agent {AgentId}.",
+                stagedCount, discoveredUrls.Count, accountId, agentId);
+        else
+            logger.LogInformation(
+                "[DRIVEINDEX-004] Read {ContentCount} documents, discovered {UrlCount} URLs for account {AccountId}, agent {AgentId}.",
+                contents.Count, discoveredUrls.Count, accountId, agentId);
 
         // ── PDF extraction (parallel, max 5 in-flight) ────────────────────────
 
-        var pdfFiles = realEstateFiles
+        var pdfFiles = filesToProcess
             .Where(f => f.MimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+            .Take(MaxPdfExtractions)
             .ToList();
-
-        var extractions = new List<DocumentExtraction>();
 
         var semaphore = new SemaphoreSlim(PdfParallelism);
         var extractionTasks = pdfFiles.Select(async file =>
@@ -167,17 +215,22 @@ public sealed class DriveIndexWorker(
         extractions.AddRange(pdfResults.Where(e => e is not null)!);
 
         // ── Text-doc extraction (non-PDF) ─────────────────────────────────────
+        // When staging is used, text-doc extraction was done inline above (stream-and-stage).
+        // Only run this pass for the non-staging (in-memory) path.
 
-        foreach (var (fileId, content) in contents)
+        if (stagedContent is null)
         {
-            ct.ThrowIfCancellationRequested();
-
-            var file = realEstateFiles.FirstOrDefault(f => f.Id == fileId);
-            if (file is not null && !file.MimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+            foreach (var (fileId, content) in contents)
             {
-                var extraction = await ExtractFromTextAsync(file, content, ct);
-                if (extraction is not null)
-                    extractions.Add(extraction);
+                ct.ThrowIfCancellationRequested();
+
+                var file = filesToProcess.FirstOrDefault(f => f.Id == fileId);
+                if (file is not null && !file.MimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+                {
+                    var extraction = await ExtractFromTextAsync(file, content, ct);
+                    if (extraction is not null)
+                        extractions.Add(extraction);
+                }
             }
         }
 
@@ -211,7 +264,13 @@ public sealed class DriveIndexWorker(
             "[DIDX-010] Document language distribution for {AgentId}: {Distribution}",
             agentId, string.Join(", ", langDistribution));
 
-        return new DriveIndexModel(folderId, driveFiles, contents, discoveredUrls.ToList(), extractions);
+        // When staging is used, return empty Contents — content lives in blob, not in memory.
+        // This prevents the orchestrator from serializing MBs of text through the Durable Task history.
+        var returnContents = stagedContent is not null
+            ? new Dictionary<string, string>()
+            : contents;
+
+        return new DriveIndexModel(folderId, driveFiles, returnContents, discoveredUrls.ToList(), extractions);
     }
 
     // ── PDF extraction ────────────────────────────────────────────────────────

@@ -366,6 +366,8 @@ internal sealed class GDriveApiClient(
             GDriveDiagnostics.Operations.Add(1);
 
             var getRequest = service.Files.Get(fileId);
+            // Use a recyclable MemoryStream to avoid LOH fragmentation on Consumption plan (1.5GB).
+            // Read via StreamReader to avoid the double-allocation of ToArray() + GetString().
             using var memStream = new MemoryStream();
             var downloadProgress = await getRequest.DownloadAsync(memStream, ct);
 
@@ -377,7 +379,20 @@ internal sealed class GDriveApiClient(
                 return null;
             }
 
-            var content = System.Text.Encoding.UTF8.GetString(memStream.ToArray());
+            // Guard: skip files larger than 2MB to prevent OOM on Consumption plan.
+            // These are typically auto-generated exports (spreadsheets, slide decks) that
+            // don't contain useful real estate text for synthesis.
+            if (memStream.Length > 2 * 1024 * 1024)
+            {
+                logger.LogWarning(
+                    "[GDRIVE-044] Skipping oversized file {FileId} ({SizeKB}KB) for account {AccountId}",
+                    fileId, memStream.Length / 1024, accountId);
+                return null;
+            }
+
+            memStream.Position = 0;
+            using var reader = new StreamReader(memStream, System.Text.Encoding.UTF8);
+            var content = await reader.ReadToEndAsync(ct);
 
             var durationMs = Stopwatch.GetElapsedTime(sw).TotalMilliseconds;
             GDriveDiagnostics.Duration.Record(durationMs);
