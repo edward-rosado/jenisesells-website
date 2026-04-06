@@ -6,5 +6,6 @@ public interface IAgentNotifier
 {
     Task NotifyAsync(Lead lead, LeadScore score,
         CmaWorkerResult? cmaResult, HomeSearchWorkerResult? homeSearchResult,
-        AgentNotificationConfig agentConfig, CancellationToken ct);
+        AgentNotificationConfig agentConfig, CancellationToken ct,
+        string? locale = null);
 }

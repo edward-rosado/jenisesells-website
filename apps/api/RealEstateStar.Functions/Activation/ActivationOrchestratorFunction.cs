@@ -47,11 +47,47 @@ public sealed class ActivationOrchestratorFunction
                 request.AccountId, request.AgentId);
         }
 
+        // ── Phase 1: Gather ──────────────────────────────────────────────────
+        // Runs before the skip-if-complete check so detected languages are available.
+
+        if (!ctx.IsReplaying)
+            logger.LogInformation("[ACTV-FN-010] Phase 1: gather for accountId={AccountId}", request.AccountId);
+
+        // Email and Drive run in parallel
+        var emailTask = ctx.CallActivityAsync<string>(
+            ActivityNames.EmailFetch,
+            new EmailFetchInput { AccountId = request.AccountId, AgentId = request.AgentId });
+
+        var driveTask = ctx.CallActivityAsync<string>(
+            ActivityNames.DriveIndex,
+            new DriveIndexInput { AccountId = request.AccountId, AgentId = request.AgentId });
+
+        await Task.WhenAll(emailTask, driveTask);
+
+        var emailCorpus = JsonSerializer.Deserialize<EmailFetchOutput>(emailTask.Result)!;
+        var driveIndex = JsonSerializer.Deserialize<DriveIndexOutput>(driveTask.Result)!;
+
+        // Derive distinct detected locales from Phase 1 outputs for language-aware completion check.
+        var detectedLanguages = emailCorpus.SentEmails
+            .Concat(emailCorpus.InboxEmails)
+            .Select(e => e.DetectedLocale)
+            .Concat(driveIndex.Files.Select(f => f.DetectedLocale))
+            .Where(l => l is not null && l != "en")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(l => l!)
+            .ToList();
+
         // ── Phase 0: skip-if-complete ────────────────────────────────────────
+        // Runs after Phase 1 so language-aware file checks (e.g., Voice Skill.es.md) are included.
 
         var completeCheckJson = await ctx.CallActivityAsync<string>(
             ActivityNames.CheckActivationComplete,
-            new CheckActivationCompleteInput { AccountId = request.AccountId, AgentId = request.AgentId });
+            new CheckActivationCompleteInput
+            {
+                AccountId = request.AccountId,
+                AgentId = request.AgentId,
+                Languages = detectedLanguages.Count > 0 ? detectedLanguages : null,
+            });
         var completeCheck = JsonSerializer.Deserialize<CheckActivationCompleteOutput>(completeCheckJson)!;
 
         if (completeCheck.IsComplete)
@@ -74,25 +110,6 @@ public sealed class ActivationOrchestratorFunction
 
             return;
         }
-
-        // ── Phase 1: Gather ──────────────────────────────────────────────────
-
-        if (!ctx.IsReplaying)
-            logger.LogInformation("[ACTV-FN-010] Phase 1: gather for accountId={AccountId}", request.AccountId);
-
-        // Email and Drive run in parallel
-        var emailTask = ctx.CallActivityAsync<string>(
-            ActivityNames.EmailFetch,
-            new EmailFetchInput { AccountId = request.AccountId, AgentId = request.AgentId });
-
-        var driveTask = ctx.CallActivityAsync<string>(
-            ActivityNames.DriveIndex,
-            new DriveIndexInput { AccountId = request.AccountId, AgentId = request.AgentId });
-
-        await Task.WhenAll(emailTask, driveTask);
-
-        var emailCorpus = JsonSerializer.Deserialize<EmailFetchOutput>(emailTask.Result)!;
-        var driveIndex = JsonSerializer.Deserialize<DriveIndexOutput>(driveTask.Result)!;
 
         // Discovery requires email corpus to use signature info.
         // Validate email before splitting to avoid IndexOutOfRangeException on malformed input.
@@ -381,6 +398,7 @@ public sealed class ActivationOrchestratorFunction
                 CoachingReport = coaching?.CoachingReportMarkdown,
                 PipelineJson = pipelineJson,
                 ContactCount = contactDetectionResult.Contacts.Count,
+                LocalizedSkills = localizedSkills?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
             });
 
         if (!ctx.IsReplaying)

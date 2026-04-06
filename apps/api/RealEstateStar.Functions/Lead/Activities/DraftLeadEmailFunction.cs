@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using RealEstateStar.Domain.Activation.Interfaces;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Functions.Lead.Models;
 
@@ -13,7 +14,8 @@ namespace RealEstateStar.Functions.Lead.Activities;
 public sealed class DraftLeadEmailFunction(
     ILeadStore leadStore,
     ILeadEmailDrafter emailDrafter,
-    ILogger<DraftLeadEmailFunction> logger)
+    ILogger<DraftLeadEmailFunction> logger,
+    IAgentContextLoader? agentContextLoader = null)
 {
     [Function("DraftLeadEmail")]
     public async Task<string> RunAsync(
@@ -28,13 +30,30 @@ public sealed class DraftLeadEmailFunction(
         logger.LogInformation("[DLE-010] Drafting email for lead {LeadId}. Locale={Locale}. CorrelationId={CorrelationId}",
             input.LeadId, input.Locale ?? "en", input.CorrelationId);
 
+        // Load agent context so locale-specific voice/personality skills are applied when drafting.
+        Domain.Activation.Models.AgentContext? agentContext = null;
+        if (agentContextLoader is not null)
+        {
+            try
+            {
+                agentContext = await agentContextLoader.LoadAsync(input.AgentId, input.AgentId, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "[DLE-011] Agent context load failed for {AgentId}; drafting without context. CorrelationId={CorrelationId}",
+                    input.AgentId, input.CorrelationId);
+            }
+        }
+
         var email = await emailDrafter.DraftAsync(
             lead,
             input.Score,
             input.CmaResult,
             input.HsResult,
             input.AgentNotificationConfig,
-            ct);
+            ct,
+            agentContext);
 
         logger.LogInformation("[DLE-020] Email drafted for lead {LeadId}. Subject={Subject}. CorrelationId={CorrelationId}",
             input.LeadId, email.Subject, input.CorrelationId);

@@ -72,7 +72,7 @@ public sealed class PersonalityWorker(
             ? anthropicClient.SendAsync(
                 Model,
                 SystemPrompt + "\n\n" +
-                    "Extract personality expression patterns in Spanish. Note culturally-specific communication norms — formality levels, warmth expressions, humor style, and relationship-building patterns specific to Spanish-speaking client interactions.",
+                    "Extract personality expression patterns in Spanish. Capture EXACT Spanish phrases and catchphrases the agent actually uses — congratulations, reassurances, greetings, sign-offs, dichos. Note formality levels (usted vs tú), warmth expressions, humor style, and relationship-building patterns specific to Spanish-speaking client interactions. Do NOT translate English phrases — extract authentic Spanish expressions.",
                 BuildSpanishUserMessage(agentName, spanishEmails, spanishDocs, driveIndex, isLowData),
                 MaxTokens, Pipeline + ".es", ct)
             : null;
@@ -179,6 +179,13 @@ public sealed class PersonalityWorker(
             - **Decision-making**: [decisive / collaborative / deliberate]
             - **Follow-through signals**: [any patterns showing reliability]
 
+            ## Signature Expressions
+            - **Congratulations phrase**: [exact phrase they use when celebrating a closing or win]
+            - **Reassurance phrase**: [exact phrase they use to calm worried clients]
+            - **Motivational phrase**: [recurring motivational expression, if any]
+            - **Sign-off style**: [how they typically end conversations — warm, professional, casual]
+            - **Unique expressions**: [any distinctive phrases or sayings this agent repeats]
+
             ## Cultural & Contextual Awareness
             [Any observed cultural sensitivity, regional awareness, or demographic adaptation in their communication]
             """);
@@ -233,6 +240,14 @@ public sealed class PersonalityWorker(
             ## Communication Energy (Spanish)
             - **Enthusiasm level**: [1-10 scale with evidence from Spanish text]
             - **Confidence level**: [1-10 scale with evidence]
+
+            ## Signature Expressions (Spanish)
+            - **Congratulations phrase**: [exact Spanish phrase for celebrations — e.g., "¡Se vendió!", "¡Felicidades!"]
+            - **Reassurance phrase**: [exact Spanish phrase for calming clients — e.g., "Tranquilo, yo me encargo"]
+            - **Motivational phrase**: [recurring Spanish motivational expression]
+            - **Greeting style**: [how they open Spanish conversations — formal "Buenos días" vs informal "¡Hola!"]
+            - **Sign-off style**: [how they close Spanish conversations]
+            - **Unique expressions**: [any distinctive Spanish phrases, dichos, or sayings this agent repeats]
 
             ## Relationship Style (Spanish)
             - **Focus**: [relationship-first vs transaction-first in Spanish interactions]

@@ -18,7 +18,8 @@ public class AgentNotifierService(
 {
     public async Task NotifyAsync(Lead lead, LeadScore score,
         CmaWorkerResult? cmaResult, HomeSearchWorkerResult? homeSearchResult,
-        AgentNotificationConfig agentConfig, CancellationToken ct)
+        AgentNotificationConfig agentConfig, CancellationToken ct,
+        string? locale = null)
     {
         using var span = AgentNotifierDiagnostics.ActivitySource.StartActivity("activity.send_agent_notification");
         span?.SetTag("lead.id", lead.Id.ToString());

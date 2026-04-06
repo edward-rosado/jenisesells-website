@@ -35,7 +35,8 @@ public sealed class NotifyAgentFunction(
             input.CmaResult,
             input.HsResult,
             input.AgentNotificationConfig,
-            ct);
+            ct,
+            input.Locale);
 
         logger.LogInformation("[NAF-020] Agent notified for lead {LeadId}. CorrelationId={CorrelationId}",
             input.LeadId, input.CorrelationId);

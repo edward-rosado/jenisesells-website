@@ -28,6 +28,7 @@ public sealed record EmailMessageDto
     [JsonPropertyName("to")] public string[] To { get; init; } = default!;
     [JsonPropertyName("date")] public DateTime Date { get; init; }
     [JsonPropertyName("signatureBlock")] public string? SignatureBlock { get; init; }
+    [JsonPropertyName("detectedLocale")] public string? DetectedLocale { get; init; }
 }
 
 public sealed record EmailSignatureDto
@@ -67,6 +68,7 @@ public sealed record DriveFileDto
     [JsonPropertyName("mimeType")] public string MimeType { get; init; } = default!;
     [JsonPropertyName("category")] public string Category { get; init; } = default!;
     [JsonPropertyName("modifiedDate")] public DateTime ModifiedDate { get; init; }
+    [JsonPropertyName("detectedLocale")] public string? DetectedLocale { get; init; }
 }
 
 public sealed record DocumentExtractionDto
@@ -394,6 +396,7 @@ public sealed record WelcomeNotificationInput
     [JsonPropertyName("coachingReport")] public string? CoachingReport { get; init; }
     [JsonPropertyName("pipelineJson")] public string? PipelineJson { get; init; }
     [JsonPropertyName("contactCount")] public int ContactCount { get; init; }
+    [JsonPropertyName("localizedSkills")] public Dictionary<string, string>? LocalizedSkills { get; init; }
 }
 
 public sealed record CleanupStagedContentInput
