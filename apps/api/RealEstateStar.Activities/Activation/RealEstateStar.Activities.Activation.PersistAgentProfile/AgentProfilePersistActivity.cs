@@ -105,13 +105,11 @@ public sealed class AgentProfilePersistActivity(
             (VoiceSkillFile, outputs.VoiceSkill),
             (PersonalitySkillFile, outputs.PersonalitySkill),
             (CmaStyleGuideFile, outputs.CmaStyleGuide),
-            (MarketingStyleFile, outputs.MarketingStyle),
             (WebsiteStyleGuideFile, outputs.WebsiteStyleGuide),
             (SalesPipelineFile, outputs.SalesPipeline),
             (CoachingReportFile, outputs.CoachingReport),
             (BrandingKitFile, outputs.BrandingKitMarkdown),
             (ComplianceAnalysisFile, outputs.ComplianceAnalysis),
-            (FeeStructureFile, outputs.FeeStructure),
             (DriveIndexFile, outputs.DriveIndex),
             (AgentDiscoveryFile, outputs.AgentDiscoveryMarkdown),
             (EmailSignatureFile, outputs.EmailSignature),
@@ -123,6 +121,12 @@ public sealed class AgentProfilePersistActivity(
         {
             if (content is null) continue;
             tasks.Add(WriteOrUpdateAsync(agentFolder, fileName, content, ct));
+        }
+
+        // Write pipeline.json (structured JSON, not markdown)
+        if (outputs.PipelineJson is not null)
+        {
+            tasks.Add(WriteOrUpdateAsync(agentFolder, "pipeline.json", outputs.PipelineJson, ct));
         }
 
         return tasks;

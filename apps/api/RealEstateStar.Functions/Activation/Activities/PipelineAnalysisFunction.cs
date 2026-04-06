@@ -30,6 +30,10 @@ public sealed class PipelineAnalysisFunction(
             driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
             ct: ct);
 
-        return JsonSerializer.Serialize(new StringOutput { Value = result });
+        return JsonSerializer.Serialize(new PipelineAnalysisOutput
+        {
+            PipelineJson = result?.PipelineJson,
+            Markdown = result?.Markdown
+        });
     }
 }

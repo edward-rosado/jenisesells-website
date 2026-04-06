@@ -30,6 +30,29 @@ public sealed class AgentDiscoveryWorker(
         "zillow.com", "realtor.com", "homes.com", "trulia.com", "redfin.com"
     ];
 
+    /// <summary>
+    /// Known third-party platform domains — NOT the agent's own website.
+    /// Third-party platforms have standardized templates; the agent's own site has their real brand.
+    /// </summary>
+    private static readonly string[] AllThirdPartyDomains =
+    [
+        "zillow.com", "realtor.com", "redfin.com", "trulia.com", "homes.com",
+        "facebook.com", "instagram.com", "linkedin.com", "twitter.com", "x.com",
+        "youtube.com", "tiktok.com", "google.com", "yelp.com",
+        "coldwellbanker.com", "century21.com", "remax.com", "kw.com",
+        "compass.com", "sothebysrealty.com"
+    ];
+
+    /// <summary>
+    /// Determines if a URL is the agent's own website (not a third-party platform).
+    /// Third-party platforms have standardized templates — the agent's own site has their real brand.
+    /// </summary>
+    internal static bool IsAgentOwnWebsite(string url)
+    {
+        var lower = url.ToLowerInvariant();
+        return !AllThirdPartyDomains.Any(d => lower.Contains(d));
+    }
+
     public async Task<AgentDiscoveryModel> RunAsync(
         string accountId,
         string agentId,
@@ -49,6 +72,19 @@ public sealed class AgentDiscoveryWorker(
 
         // Discover websites via Google People API + email sig + search
         var websiteUrls = BuildWebsiteSearchUrls(agentName, brokerageName, emailSignature);
+
+        // Log whether we found an agent-owned website for branding extraction
+        var ownWebsite = websiteUrls.FirstOrDefault(u => u.Source == "OwnWebsite");
+        if (ownWebsite != default)
+        {
+            logger.LogInformation(
+                "[DISCOVERY-050] Found agent's own website: {Url}", ownWebsite.Url);
+        }
+        else
+        {
+            logger.LogInformation(
+                "[DISCOVERY-051] No agent website found, falling back to third-party profiles");
+        }
 
         // Fetch all discovered websites
         var websiteTask = FetchWebsitesAsync(websiteUrls, ct);
@@ -227,24 +263,35 @@ public sealed class AgentDiscoveryWorker(
     }
 
     /// <summary>
-    /// Builds search URLs: agent site from email sig, plus Google search for Zillow/Realtor.com profiles.
+    /// Builds search URLs: agent's own website first (for real branding), then third-party profiles
+    /// (for reviews/stats). The agent's own site has their real brand colors, fonts, and messaging.
+    /// Zillow/Realtor.com give you the platform's template with the agent's name — not real branding.
     /// </summary>
     internal static IReadOnlyList<(string Url, string Source)> BuildWebsiteSearchUrls(
         string agentName,
         string brokerageName,
         EmailSignature? signature)
     {
-        var urls = new List<(string, string)>();
+        var ownWebsiteUrls = new List<(string, string)>();
+        var thirdPartyUrls = new List<(string, string)>();
 
-        // Agent's own website from signature
+        // Check email signature URL — if it's the agent's own website, prioritize it
         if (!string.IsNullOrWhiteSpace(signature?.WebsiteUrl))
-            urls.Add((signature.WebsiteUrl, "EmailSignature"));
+        {
+            if (IsAgentOwnWebsite(signature.WebsiteUrl))
+                ownWebsiteUrls.Add((signature.WebsiteUrl, "OwnWebsite"));
+            else
+                thirdPartyUrls.Add((signature.WebsiteUrl, "EmailSignature"));
+        }
 
-        // Known third-party profile search URLs
-        var encoded = Uri.EscapeDataString($"{agentName} {brokerageName} real estate");
-        urls.Add(($"https://www.zillow.com/profile/{Uri.EscapeDataString(agentName)}/", "Zillow"));
-        urls.Add(($"https://www.realtor.com/realestateagents/{Uri.EscapeDataString(agentName)}/", "RealtorCom"));
+        // Always include third-party profiles for reviews/stats
+        thirdPartyUrls.Add(($"https://www.zillow.com/profile/{Uri.EscapeDataString(agentName)}/", "Zillow"));
+        thirdPartyUrls.Add(($"https://www.realtor.com/realestateagents/{Uri.EscapeDataString(agentName)}/", "RealtorCom"));
 
+        // Own website first, then third-party profiles
+        var urls = new List<(string, string)>(ownWebsiteUrls.Count + thirdPartyUrls.Count);
+        urls.AddRange(ownWebsiteUrls);
+        urls.AddRange(thirdPartyUrls);
         return urls;
     }
 

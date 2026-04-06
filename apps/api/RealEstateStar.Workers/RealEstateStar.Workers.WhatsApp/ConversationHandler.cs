@@ -55,11 +55,10 @@ public class ConversationHandler(
                 {
                     logger?.LogInformation(
                         "[CTX-030] Agent context loaded for WhatsApp conversation. AgentId: {AgentId}, " +
-                        "HasVoice={HasVoice}, HasPersonality={HasPersonality}, HasBrandVoice={HasBrandVoice}",
+                        "HasVoice={HasVoice}, HasPersonality={HasPersonality}",
                         agentId,
                         !string.IsNullOrEmpty(agentContext.VoiceSkill),
-                        !string.IsNullOrEmpty(agentContext.PersonalitySkill),
-                        !string.IsNullOrEmpty(agentContext.BrandVoice));
+                        !string.IsNullOrEmpty(agentContext.PersonalitySkill));
                 }
                 else
                 {

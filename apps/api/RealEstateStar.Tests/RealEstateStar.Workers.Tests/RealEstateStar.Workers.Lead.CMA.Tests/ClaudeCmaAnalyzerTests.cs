@@ -673,21 +673,6 @@ public class ClaudeCmaAnalyzerTests
     }
 
     [Fact]
-    public void BuildPrompt_WithBrandVoice_InjectsBrandVoiceSection()
-    {
-        var agentContext = new AgentContext
-        {
-            BrandVoice = "Professional, data-driven, always cite sources.",
-            IsActivated = true
-        };
-
-        var prompt = ClaudeCmaAnalyzer.BuildPrompt(MakeLead(), [], agentContext);
-
-        prompt.Should().Contain("## Brand Voice (write marketNarrative and pricingStrategy in this voice)");
-        prompt.Should().Contain("Professional, data-driven, always cite sources.");
-    }
-
-    [Fact]
     public void BuildPrompt_WithVoiceSkill_InjectsVoiceSkillSection()
     {
         var agentContext = new AgentContext
@@ -721,7 +706,6 @@ public class ClaudeCmaAnalyzerTests
         var agentContext = new AgentContext
         {
             CmaStyleGuide = "Focus on price per sqft.",
-            BrandVoice = null,
             VoiceSkill = null
         };
 

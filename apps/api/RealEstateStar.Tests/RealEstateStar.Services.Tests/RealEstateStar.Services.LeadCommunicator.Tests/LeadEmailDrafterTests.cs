@@ -596,21 +596,6 @@ public class LeadEmailDrafterTests
     }
 
     [Fact]
-    public void BuildSystemPrompt_WithAgentContext_InjectsBrandVoiceSection()
-    {
-        var agentContext = new AgentContext
-        {
-            BrandVoice = "Professional, community-focused, always include Equal Housing disclaimer.",
-            IsActivated = true
-        };
-
-        var prompt = LeadEmailDrafter.BuildSystemPrompt(DefaultAgent, agentContext);
-
-        prompt.Should().Contain("=== BRAND VOICE (brokerage communication standards — MANDATORY) ===");
-        prompt.Should().Contain("Professional, community-focused");
-    }
-
-    [Fact]
     public void BuildSystemPrompt_WithAgentContext_InjectsCoachingReportSection()
     {
         var agentContext = new AgentContext
@@ -648,7 +633,6 @@ public class LeadEmailDrafterTests
         {
             VoiceSkill = "Warm and professional.",
             // PersonalitySkill is null
-            BrandVoice = null,
             IsActivated = false
         };
 
