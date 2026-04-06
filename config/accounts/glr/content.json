@@ -2,6 +2,11 @@
   "navigation": {
     "items": [
       {
+        "label": "Why Choose Me",
+        "href": "#features",
+        "enabled": false
+      },
+      {
         "label": "How It Works",
         "href": "#steps",
         "enabled": true
@@ -14,7 +19,7 @@
       {
         "label": "Testimonials",
         "href": "#testimonials",
-        "enabled": true
+        "enabled": false
       },
       {
         "label": "Ready to Move?",
