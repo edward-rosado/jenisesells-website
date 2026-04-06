@@ -57,28 +57,34 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 // Serilog with OTLP log export — mirrors Api's AddStructuredLogging().
 // Without this, logs only go to console (lost on Consumption plan).
-Log.Logger = new LoggerConfiguration()
+var serilogConfig = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .Enrich.WithProperty("Application", "RealEstateStar.Functions")
     .WriteTo.Console(outputTemplate:
-        "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-    .WriteTo.Conditional(
-        _ => !string.IsNullOrEmpty(builder.Configuration["Otel:Endpoint"]),
-        wt => wt.OpenTelemetry(opts =>
+        "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+
+var otlpLogEndpoint = builder.Configuration["Otel:Endpoint"];
+var otlpLogHeaders = builder.Configuration["Otel:Headers"];
+if (!string.IsNullOrEmpty(otlpLogEndpoint))
+{
+    serilogConfig.WriteTo.OpenTelemetry(opts =>
+    {
+        opts.Endpoint = otlpLogEndpoint;
+        opts.Protocol = Serilog.Sinks.OpenTelemetry.OtlpProtocol.HttpProtobuf;
+        if (!string.IsNullOrEmpty(otlpLogHeaders))
         {
-            opts.Endpoint = builder.Configuration["Otel:Endpoint"] ?? "";
-            var headers = builder.Configuration["Otel:Headers"];
-            if (!string.IsNullOrEmpty(headers))
-                opts.Headers = new Dictionary<string, string>
-                {
-                    [headers.Split('=', 2)[0]] = headers.Split('=', 2).ElementAtOrDefault(1) ?? ""
-                };
-            opts.ResourceAttributes = new Dictionary<string, object>
-            {
-                ["service.name"] = "real-estate-star-functions"
-            };
-        }))
-    .CreateLogger();
+            var parts = otlpLogHeaders.Split('=', 2);
+            if (parts.Length == 2)
+                opts.Headers = new Dictionary<string, string> { [parts[0]] = parts[1] };
+        }
+        opts.ResourceAttributes = new Dictionary<string, object>
+        {
+            ["service.name"] = "real-estate-star-functions"
+        };
+    });
+}
+
+Log.Logger = serilogConfig.CreateLogger();
 builder.Services.AddSerilog();
 
 // ── Observability ─────────────────────────────────────────────────────────────

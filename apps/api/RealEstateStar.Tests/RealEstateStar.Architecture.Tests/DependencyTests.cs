@@ -790,7 +790,7 @@ public class DependencyTests
                 $"{project}.csproj must reference Serilog.Sinks.OpenTelemetry for log export");
         }
 
-        // Verify the source file configures the OTLP sink
+        // Verify the source file configures the OTLP sink with auth headers
         var sourcePath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
             project, sourceFile);
         if (File.Exists(sourcePath))
@@ -800,6 +800,20 @@ public class DependencyTests
                 source.Contains("OpenTelemetry") && source.Contains("Otel:Endpoint"),
                 $"{project}/{sourceFile} must configure Serilog OTLP sink with Otel:Endpoint — " +
                 "without log export, Azure Consumption plan logs are lost");
+
+            // Auth headers are REQUIRED — Grafana Cloud rejects unauthenticated OTLP pushes.
+            // Without this, logs silently disappear (endpoint gets 401, Serilog swallows it).
+            Assert.True(
+                source.Contains("Otel:Headers") && source.Contains("opts.Headers"),
+                $"{project}/{sourceFile} must pass Otel:Headers to the Serilog OTLP sink — " +
+                "Grafana Cloud requires Authorization header for log ingestion");
+
+            // HttpProtobuf is REQUIRED — Grafana Cloud OTLP gateway only accepts HTTP/protobuf.
+            // The Serilog sink defaults to gRPC which silently fails against the OTLP gateway.
+            Assert.True(
+                source.Contains("HttpProtobuf"),
+                $"{project}/{sourceFile} must set OtlpProtocol.HttpProtobuf — " +
+                "Grafana Cloud OTLP gateway does not support gRPC");
         }
     }
 }
