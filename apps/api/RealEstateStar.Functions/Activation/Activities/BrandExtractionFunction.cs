@@ -32,13 +32,13 @@ public sealed class BrandExtractionFunction(
 
         try
         {
-            var result = await worker.AnalyzeAsync(
+            var (signals, localizedSkills) = await worker.AnalyzeAsync(
                 emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
                 driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
                 discovery: ActivationDtoMapper.ToDomain(input.Discovery),
                 ct: ct);
 
-            return JsonSerializer.Serialize(new StringOutput { Value = result });
+            return JsonSerializer.Serialize(new BrandExtractionOutput { Signals = signals, LocalizedSkills = localizedSkills });
         }
         catch (Exception ex)
         {

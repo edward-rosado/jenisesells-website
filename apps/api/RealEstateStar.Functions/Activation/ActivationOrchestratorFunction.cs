@@ -142,7 +142,7 @@ public sealed class ActivationOrchestratorFunction
         // ── Batch 2 ─────────────────────────────────────────────────────────
         var brandingTask = WrapAsync<BrandingDiscoveryOutput>(
             ctx, ActivityNames.BrandingDiscovery, synthesisInput, "[ACTV-FN-023] branding", logger);
-        var brandExtractionTask = WrapAsync<StringOutput>(
+        var brandExtractionTask = WrapAsync<BrandExtractionOutput>(
             ctx, ActivityNames.BrandExtraction, synthesisInput, "[ACTV-FN-029] brand-extraction", logger);
         await Task.WhenAll(brandingTask, brandExtractionTask);
 
@@ -156,7 +156,7 @@ public sealed class ActivationOrchestratorFunction
         // ── Batch 4 ─────────────────────────────────────────────────────────
         var websiteTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.WebsiteStyle, synthesisInput, "[ACTV-FN-026] website-style", logger);
-        var brandVoiceTask = WrapAsync<StringOutput>(
+        var brandVoiceTask = WrapAsync<BrandVoiceOutput>(
             ctx, ActivityNames.BrandVoice, synthesisInput, "[ACTV-FN-030] brand-voice", logger);
         await Task.WhenAll(websiteTask, brandVoiceTask);
 
@@ -186,6 +186,10 @@ public sealed class ActivationOrchestratorFunction
         var brandExtraction = brandExtractionResult?.Signals;
         var brandVoiceResult = brandVoiceTask.Result;
         var brandVoice = brandVoiceResult?.Signals;
+        var localizedSkills = MergeLocalizedSkills(
+            brandExtractionResult?.LocalizedSkills,
+            brandVoiceResult?.LocalizedSkills,
+            marketingTask.Result?.LocalizedSkills);
         var compliance = complianceTask.Result?.Value;
         var feeStructure = feeTask.Result?.Value;
 
@@ -262,6 +266,7 @@ public sealed class ActivationOrchestratorFunction
             AgentLicenseNumber = emailCorpus.Signature?.LicenseNumber,
             ServiceAreas = serviceAreas,
             Discovery = discovery,
+            LocalizedSkills = localizedSkills?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
         };
 
         // PersistProfile is fatal if it fails — let it propagate

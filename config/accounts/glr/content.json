@@ -2,11 +2,6 @@
   "navigation": {
     "items": [
       {
-        "label": "Why Choose Me",
-        "href": "#features",
-        "enabled": true
-      },
-      {
         "label": "How It Works",
         "href": "#steps",
         "enabled": true
