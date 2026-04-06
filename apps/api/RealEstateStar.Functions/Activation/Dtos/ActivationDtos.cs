@@ -281,6 +281,13 @@ public sealed record MarketingStyleOutput
     [JsonPropertyName("localizedSkills")] public Dictionary<string, string>? LocalizedSkills { get; init; }
 }
 
+/// <summary>Output from MarketingStyle activity.</summary>
+public sealed record MarketingStyleOutput
+{
+    [JsonPropertyName("value")] public string? Value { get; init; }
+    [JsonPropertyName("localizedSkills")] public Dictionary<string, string>? LocalizedSkills { get; init; }
+}
+
 /// <summary>Output from BrandExtraction activity.</summary>
 public sealed record BrandExtractionOutput
 {

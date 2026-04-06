@@ -8,16 +8,12 @@ public class AgentContextGetSkillTests
     private static AgentContext CreateContext(
         string? voiceSkill = "default-voice",
         string? personalitySkill = "default-personality",
-        string? marketingStyle = "default-marketing",
-        string? brandVoice = "default-brand-voice",
         IReadOnlyDictionary<string, string>? localizedSkills = null)
     {
         return new AgentContext
         {
             VoiceSkill = voiceSkill,
             PersonalitySkill = personalitySkill,
-            MarketingStyle = marketingStyle,
-            BrandVoice = brandVoice,
             LocalizedSkills = localizedSkills
         };
     }
@@ -44,16 +40,18 @@ public class AgentContextGetSkillTests
     }
 
     [Fact]
-    public void GetSkill_MarketingStyle_with_en_locale_returns_property()
+    public void GetSkill_MarketingStyle_with_en_locale_returns_value_from_LocalizedSkills()
     {
-        var ctx = CreateContext(marketingStyle: "my-marketing");
+        var localized = new Dictionary<string, string> { ["MarketingStyle"] = "my-marketing" };
+        var ctx = CreateContext(localizedSkills: localized);
         ctx.GetSkill("MarketingStyle", "en").Should().Be("my-marketing");
     }
 
     [Fact]
-    public void GetSkill_BrandVoice_with_en_locale_returns_property()
+    public void GetSkill_BrandVoice_with_en_locale_returns_value_from_LocalizedSkills()
     {
-        var ctx = CreateContext(brandVoice: "my-brand");
+        var localized = new Dictionary<string, string> { ["BrandVoice"] = "my-brand" };
+        var ctx = CreateContext(localizedSkills: localized);
         ctx.GetSkill("BrandVoice", "en").Should().Be("my-brand");
     }
 
@@ -108,5 +106,27 @@ public class AgentContextGetSkillTests
     {
         var ctx = CreateContext(voiceSkill: "english-voice");
         ctx.GetSkill("VoiceSkill", "").Should().Be("english-voice");
+    }
+
+    [Fact]
+    public void GetSkill_FutureTier_with_es_locale_returns_localized_from_dict()
+    {
+        var localized = new Dictionary<string, string>
+        {
+            ["MarketingStyle"] = "english-marketing",
+            ["MarketingStyle.es"] = "marketing-español"
+        };
+        var ctx = CreateContext(localizedSkills: localized);
+
+        ctx.GetSkill("MarketingStyle", "es").Should().Be("marketing-español");
+    }
+
+    [Fact]
+    public void GetSkill_FutureTier_with_es_locale_falls_back_to_english_key_in_dict()
+    {
+        var localized = new Dictionary<string, string> { ["BrandVoice"] = "english-brand" };
+        var ctx = CreateContext(localizedSkills: localized);
+
+        ctx.GetSkill("BrandVoice", "es").Should().Be("english-brand");
     }
 }

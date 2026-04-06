@@ -164,17 +164,17 @@ public sealed class ActivationOrchestratorFunction
         await Task.WhenAll(coachingTask, complianceTask);
 
         // ── FUTURE-tier workers (skip for MVP) ──────────────────────────────
-        Task<StringOutput?> brandExtractionTask;
-        Task<StringOutput?> brandVoiceTask;
+        Task<BrandExtractionOutput?> brandExtractionTask;
+        Task<BrandVoiceOutput?> brandVoiceTask;
         Task<MarketingStyleOutput?> marketingTask;
         Task<StringOutput?> feeTask;
 
         if (request.Tier == ActivationTier.Future)
         {
             // ── Batch 5 (Future only) ───────────────────────────────────────
-            brandExtractionTask = WrapAsync<StringOutput>(
+            brandExtractionTask = WrapAsync<BrandExtractionOutput>(
                 ctx, ActivityNames.BrandExtraction, synthesisInput, "[ACTV-FN-029] brand-extraction", logger);
-            brandVoiceTask = WrapAsync<StringOutput>(
+            brandVoiceTask = WrapAsync<BrandVoiceOutput>(
                 ctx, ActivityNames.BrandVoice, synthesisInput, "[ACTV-FN-030] brand-voice", logger);
             await Task.WhenAll(brandExtractionTask, brandVoiceTask);
 
@@ -194,8 +194,8 @@ public sealed class ActivationOrchestratorFunction
                     request.AgentId);
             }
 
-            brandExtractionTask = Task.FromResult<StringOutput?>(null);
-            brandVoiceTask = Task.FromResult<StringOutput?>(null);
+            brandExtractionTask = Task.FromResult<BrandExtractionOutput?>(null);
+            brandVoiceTask = Task.FromResult<BrandVoiceOutput?>(null);
             marketingTask = Task.FromResult<MarketingStyleOutput?>(null);
             feeTask = Task.FromResult<StringOutput?>(null);
         }
