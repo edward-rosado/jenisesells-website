@@ -21,6 +21,7 @@ public static class LoggingExtensions
                 config.WriteTo.OpenTelemetry(opts =>
                 {
                     opts.Endpoint = otlpEndpoint;
+                    opts.Protocol = Serilog.Sinks.OpenTelemetry.OtlpProtocol.HttpProtobuf;
                     if (!string.IsNullOrEmpty(otlpHeaders))
                     {
                         var parts = otlpHeaders.Split('=', 2);
