@@ -80,19 +80,17 @@ public sealed class ActivationOrchestratorFunction
         if (!ctx.IsReplaying)
             logger.LogInformation("[ACTV-FN-010] Phase 1: gather for accountId={AccountId}", request.AccountId);
 
-        // Email and Drive run in parallel
-        var emailTask = ctx.CallActivityAsync<string>(
+        // Email then Drive — sequential to stay under Consumption plan 1.5 GB memory limit.
+        // Running both in parallel doubles peak memory (both hold Google API responses).
+        var emailJson = await ctx.CallActivityAsync<string>(
             ActivityNames.EmailFetch,
             new EmailFetchInput { AccountId = request.AccountId, AgentId = request.AgentId });
+        var emailCorpus = JsonSerializer.Deserialize<EmailFetchOutput>(emailJson)!;
 
-        var driveTask = ctx.CallActivityAsync<string>(
+        var driveJson = await ctx.CallActivityAsync<string>(
             ActivityNames.DriveIndex,
             new DriveIndexInput { AccountId = request.AccountId, AgentId = request.AgentId });
-
-        await Task.WhenAll(emailTask, driveTask);
-
-        var emailCorpus = JsonSerializer.Deserialize<EmailFetchOutput>(emailTask.Result)!;
-        var driveIndex = JsonSerializer.Deserialize<DriveIndexOutput>(driveTask.Result)!;
+        var driveIndex = JsonSerializer.Deserialize<DriveIndexOutput>(driveJson)!;
 
         // Discovery requires email corpus to use signature info.
         // Validate email before splitting to avoid IndexOutOfRangeException on malformed input.

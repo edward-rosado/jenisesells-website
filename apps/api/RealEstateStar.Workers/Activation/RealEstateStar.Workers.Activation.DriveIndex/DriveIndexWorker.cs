@@ -36,9 +36,10 @@ public sealed class DriveIndexWorker(
     // ── Constants ─────────────────────────────────────────────────────────────
 
     private const int MaxPdfPages = 10;
-    private const int PdfParallelism = 5;
-    private const int MaxStagedFiles = 40;
-    private const int MaxPdfExtractions = 10;
+    private const int PdfParallelism = 2;
+    private const int MaxStagedFiles = 20;
+    private const int MaxPdfExtractions = 5;
+    private const int MaxFileContentBytes = 1_048_576; // 1 MB — skip larger files to stay under Consumption plan memory
     private const int ClaudeMaxTokens = 1024;
     private const string ClaudePipeline = "activation-driveindex";
     private const string ClaudeModel = "claude-sonnet-4-6";
@@ -157,6 +158,15 @@ public sealed class DriveIndexWorker(
                 var content = await driveClient.GetFileContentAsync(accountId, agentId, file.Id, ct);
                 if (!string.IsNullOrWhiteSpace(content))
                 {
+                    // Skip oversized files to stay under Consumption plan 1.5 GB memory limit
+                    if (content.Length * 2 > MaxFileContentBytes) // *2 for UTF-16 in-memory size
+                    {
+                        logger.LogInformation(
+                            "[DRIVEINDEX-012] Skipping oversized file {FileId} ({FileName}, {Size} chars) for account {AccountId}",
+                            file.Id, file.Name, content.Length, accountId);
+                        continue;
+                    }
+
                     if (stagedContent is not null)
                     {
                         // Stage to blob — content is NOT kept in memory
@@ -203,22 +213,16 @@ public sealed class DriveIndexWorker(
             .Take(MaxPdfExtractions)
             .ToList();
 
-        var semaphore = new SemaphoreSlim(PdfParallelism);
-        var extractionTasks = pdfFiles.Select(async file =>
+        // Process PDFs in small batches to cap peak memory.
+        // Each PDF download holds binary bytes in memory until Claude responds.
+        for (var i = 0; i < pdfFiles.Count; i += PdfParallelism)
         {
-            await semaphore.WaitAsync(ct);
-            try
-            {
-                return await ExtractFromPdfAsync(accountId, agentId, file, ct);
-            }
-            finally
-            {
-                semaphore.Release();
-            }
-        }).ToList();
-
-        var pdfResults = await Task.WhenAll(extractionTasks);
-        extractions.AddRange(pdfResults.Where(e => e is not null)!);
+            ct.ThrowIfCancellationRequested();
+            var batch = pdfFiles.Skip(i).Take(PdfParallelism);
+            var batchResults = await Task.WhenAll(
+                batch.Select(file => ExtractFromPdfAsync(accountId, agentId, file, ct)));
+            extractions.AddRange(batchResults.Where(e => e is not null)!);
+        }
 
         // ── Text-doc extraction (non-PDF) ─────────────────────────────────────
         // Uses regex extraction instead of Claude API calls — cheaper and faster for text docs.
