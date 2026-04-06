@@ -226,7 +226,7 @@ public class AgentDiscoveryWorkerTests
 
         var urls = AgentDiscoveryWorker.BuildWebsiteSearchUrls(AgentName, BrokerageName, sig);
 
-        urls.Should().Contain(u => u.Url == "https://www.janedoe.com" && u.Source == "EmailSignature");
+        urls.Should().Contain(u => u.Url == "https://www.janedoe.com" && u.Source == "OwnWebsite");
     }
 
     [Fact]
