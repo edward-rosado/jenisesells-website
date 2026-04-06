@@ -112,14 +112,49 @@ public sealed class ActivationOrchestratorFunctionTests
     }
 
     [Fact]
-    public async Task Orchestrator_Phase2_AllTwelveWorkersAreCalled()
+    public async Task Orchestrator_Phase2_MvpTier_OnlyEightWorkersAreCalled()
     {
         var ctx = BuildMockOrchestratorContext(isComplete: false);
 
         await ActivationOrchestratorFunction.RunAsync(ctx.Object);
 
-        // Verify each of the 12 Phase 2 workers was called exactly once.
-        // All activities now return string (JSON workaround).
+        // MVP tier: 8 core workers called
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.VoiceExtraction, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.Personality, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.BrandingDiscovery, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.CmaStyle, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.WebsiteStyle, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.PipelineAnalysis, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.Coaching, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.ComplianceAnalysis, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
+
+        // FUTURE-tier workers NOT called for MVP
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.MarketingStyle, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Never);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.BrandExtraction, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Never);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.BrandVoice, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Never);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.FeeStructure, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Orchestrator_Phase2_FutureTier_AllTwelveWorkersAreCalled()
+    {
+        var ctx = BuildMockOrchestratorContext(isComplete: false, tier: ActivationTier.Future);
+
+        await ActivationOrchestratorFunction.RunAsync(ctx.Object);
+
+        // Future tier: all 12 workers called
         ctx.Verify(c => c.CallActivityAsync<string>(
             ActivityNames.VoiceExtraction, It.IsAny<SynthesisInput>(), It.IsAny<TaskOptions>()), Times.Once);
         ctx.Verify(c => c.CallActivityAsync<string>(
@@ -288,7 +323,7 @@ public sealed class ActivationOrchestratorFunctionTests
         SetupPhase2Activity<StringOutput>(ctx, ActivityNames.CmaStyle, callOrder);
         SetupPhase2Activity<MarketingStyleOutput>(ctx, ActivityNames.MarketingStyle, callOrder);
         SetupPhase2Activity<StringOutput>(ctx, ActivityNames.WebsiteStyle, callOrder);
-        SetupPhase2Activity<StringOutput>(ctx, ActivityNames.PipelineAnalysis, callOrder);
+        SetupPhase2Activity<PipelineAnalysisOutput>(ctx, ActivityNames.PipelineAnalysis, callOrder);
         SetupPhase2Activity<CoachingOutput>(ctx, ActivityNames.Coaching, callOrder);
         SetupPhase2Activity<StringOutput>(ctx, ActivityNames.BrandExtraction, callOrder);
         SetupPhase2Activity<StringOutput>(ctx, ActivityNames.BrandVoice, callOrder);
@@ -312,10 +347,11 @@ public sealed class ActivationOrchestratorFunctionTests
     /// <summary>
     /// Builds a fully-mocked orchestration context with all activities returning empty results.
     /// </summary>
-    private static Mock<TaskOrchestrationContext> BuildMockOrchestratorContext(bool isComplete)
+    private static Mock<TaskOrchestrationContext> BuildMockOrchestratorContext(
+        bool isComplete, ActivationTier tier = ActivationTier.Mvp)
     {
         var ctx = new Mock<TaskOrchestrationContext>(MockBehavior.Loose);
-        var request = new ActivationRequest("acc1", "agent1", "jane@example.com", DateTime.UtcNow);
+        var request = new ActivationRequest("acc1", "agent1", "jane@example.com", DateTime.UtcNow, tier);
         var callOrder = new List<string>();
 
         ctx.Setup(c => c.GetInput<ActivationRequest>()).Returns(request);
