@@ -163,6 +163,23 @@ When working on a skill, load the agent profile first:
 - **No hardcoding**: Agent identity, branding, and compliance data always come from config
 - **API calls**: Platform uses shared `api` instance from `@/lib/api`. Agent-site passes HMAC headers per-request via `createApiClient()`. SSE streaming stays raw `fetch`. Correlation IDs are auto-injected.
 - **Pitch decks**: `docs/pitch-decks/` contains both `.html` (presentation) and `.md` (source) for each deck. **Always update both files together** — they must stay in sync. The `.md` is the readable reference; the `.html` is the presentable version.
+- **Locale is a first-class dimension**: Every feature that touches user-facing content MUST carry locale through the entire pipeline. This is a design principle, not an afterthought. See rules below.
+
+### Locale-First Design Principle
+
+Locale is a **first-class dimension** of every design — like `agentId` or `correlationId`, it must flow through every layer that produces, transforms, or delivers content to a human.
+
+**Rules for new features:**
+1. Every DTO that carries content to users MUST have a `Locale` property
+2. Every DTO that carries synthesis results MUST have a `LocalizedSkills` property if the worker extracts per-language content
+3. Every service method that drafts user-facing text (emails, PDFs, notifications) MUST accept a locale or AgentContext parameter
+4. Every worker that analyzes agent communications MUST detect language and produce per-language output when sufficient data exists
+5. Agent personality and voice profiles MUST capture per-language catchphrases, signature expressions, and cultural heritage
+6. Welcome messages and lead emails MUST use the agent's authentic expressions in the contact's language — not generic translations
+
+**Enforced by:** `LocaleTests.cs` in Architecture.Tests — reflection-based tests verify locale fields exist on all content-carrying DTOs. CI rejects PRs that drop locale fields.
+
+**Why this matters:** Our agents serve bilingual communities. A Dominican agent's "¡Pa'lante!" is not interchangeable with a generic "¡Adelante!". The system must preserve and use each agent's authentic voice in every language they speak.
 
 ## Architecture Test Protection
 
