@@ -765,4 +765,41 @@ public class DependencyTests
         Assert.True(violations.Count == 0,
             $"Interfaces duplicated outside Domain:\n{string.Join("\n", violations)}");
     }
+
+    // ── Observability guards ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Both composition roots (Api and Functions) must export logs to OTLP via Serilog.
+    /// Without this, logs on Azure Consumption plan are lost (console only).
+    /// This test scans source files for the Serilog OTLP sink configuration.
+    /// </summary>
+    [Theory]
+    [InlineData("RealEstateStar.Api", "Logging/LoggingExtensions.cs")]
+    [InlineData("RealEstateStar.Functions", "Program.cs")]
+    public void CompositionRoot_exports_logs_to_OTLP(string project, string sourceFile)
+    {
+        var csprojPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+            project, $"{project}.csproj");
+
+        // Verify the Serilog OTLP sink package is referenced
+        if (File.Exists(csprojPath))
+        {
+            var csproj = File.ReadAllText(csprojPath);
+            Assert.True(
+                csproj.Contains("Serilog.Sinks.OpenTelemetry"),
+                $"{project}.csproj must reference Serilog.Sinks.OpenTelemetry for log export");
+        }
+
+        // Verify the source file configures the OTLP sink
+        var sourcePath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+            project, sourceFile);
+        if (File.Exists(sourcePath))
+        {
+            var source = File.ReadAllText(sourcePath);
+            Assert.True(
+                source.Contains("OpenTelemetry") && source.Contains("Otel:Endpoint"),
+                $"{project}/{sourceFile} must configure Serilog OTLP sink with Otel:Endpoint — " +
+                "without log export, Azure Consumption plan logs are lost");
+        }
+    }
 }
