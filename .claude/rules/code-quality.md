@@ -9,6 +9,27 @@ Run these checks after writing code, before committing:
 - [ ] Every duplicate function name in the codebase has identical implementation — flag divergent copies
 - [ ] Every string used as an enum value has a constant or actual enum backing it
 
+## Memory & OOM Prevention (Azure Consumption Plan = 1.5 GB)
+For any worker, activity, or service that processes external data:
+
+- [ ] No two memory-heavy activities dispatched in parallel from an orchestrator
+- [ ] File/document processing has a max count cap (e.g. MaxStagedFiles)
+- [ ] File/document processing has a max size cap — skip files over threshold
+- [ ] Binary downloads (PDFs, images) batched in pairs, not all-at-once via Task.WhenAll
+- [ ] Content strings released after staging/processing — never accumulated in a growing collection
+- [ ] No `List<byte[]>` or `Dictionary<string, string>` holding unbounded external data
+- [ ] PDF parallelism ≤ 2 (each PDF can be multi-MB in memory)
+- [ ] Regex/string operations on large content use spans or bounded slices where possible
+
+## Orchestrator Replay Safety (Durable Functions)
+For any change to orchestrator code:
+
+- [ ] Activity dispatch order matches existing in-flight instance history (or instances are purged)
+- [ ] Parallel → sequential (or vice versa) is a BREAKING change — requires instance purge
+- [ ] Adding/removing/reordering `CallActivityAsync` calls breaks replay — always purge first
+- [ ] New activities added at the END of the orchestrator, not inserted between existing calls
+- [ ] Test with both fresh instances AND replayed instances when possible
+
 ## Frontend Observability
 For any frontend feature or user-facing action:
 
