@@ -398,7 +398,7 @@ export interface paths {
                     accountId: string;
                     agentId: string;
                     email: string;
-                    exp: number | string;
+                    exp: number;
                     sig: string;
                 };
                 header?: never;
@@ -442,8 +442,22 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "multipart/form-data": components["schemas"]["ConnectRequest"];
-                    "application/x-www-form-urlencoded": components["schemas"]["ConnectRequest"];
+                    "multipart/form-data": {
+                        accountId: string;
+                        agentId: string;
+                        email: string;
+                        /** Format: int64 */
+                        exp: number;
+                        sig: string;
+                    };
+                    "application/x-www-form-urlencoded": {
+                        accountId: string;
+                        agentId: string;
+                        email: string;
+                        /** Format: int64 */
+                        exp: number;
+                        sig: string;
+                    };
                 };
             };
             responses: {
@@ -787,36 +801,26 @@ export interface components {
         BuyerDetailsRequest: {
             desiredArea: string;
             /** Format: double */
-            minPrice?: null | number | string;
+            minPrice?: number | null;
             /** Format: double */
-            maxPrice?: null | number | string;
+            maxPrice?: number | null;
             /** Format: int32 */
-            minBeds?: null | number | string;
+            minBeds?: number | null;
             /** Format: int32 */
-            minBaths?: null | number | string;
-            preApproved?: null | string;
+            minBaths?: number | null;
+            preApproved?: string | null;
             /** Format: double */
-            preApprovalAmount?: null | number | string;
-            notes?: null | string;
-        };
-        ConnectRequest: {
-            accountId: string;
-            agentId: string;
-            email: string;
-            /** Format: int64 */
-            exp: number | string;
-            sig: string;
-        };
+            preApprovalAmount?: number | null;
+            notes?: string | null;
+        } | null;
         CreateSessionRequest: {
-            profileUrl?: null | string;
+            profileUrl?: string | null;
         };
         DeleteLeadDataRequest: {
             email: string;
             token: string;
             reason: string;
         };
-        /** @enum {unknown} */
-        FormEvent: "Viewed" | "Started" | "Submitted" | "Succeeded" | "Failed" | null;
         GenerateAuthLinkRequest: {
             accountId: string;
             agentId: string;
@@ -829,6 +833,8 @@ export interface components {
             consentText: string;
             channels: string[];
         };
+        /** @enum {unknown|null} */
+        NullableOfFormEvent: "Viewed" | "Started" | "Submitted" | "Succeeded" | "Failed" | null;
         OptOutRequest: {
             email: string;
             token: string;
@@ -837,9 +843,9 @@ export interface components {
             message: string;
         };
         RecordTelemetryRequest: {
-            event: null | components["schemas"]["FormEvent"];
-            agentId: null | string;
-            errorType?: null | string;
+            event: components["schemas"]["NullableOfFormEvent"];
+            agentId: string | null;
+            errorType?: string | null;
         };
         RequestDeletionRequest: {
             email: string;
@@ -850,13 +856,13 @@ export interface components {
             state: string;
             zip: string;
             /** Format: int32 */
-            beds?: null | number | string;
+            beds?: number | null;
             /** Format: int32 */
-            baths?: null | number | string;
+            baths?: number | null;
             /** Format: int32 */
-            sqft?: null | number | string;
-            notes?: null | string;
-        };
+            sqft?: number | null;
+            notes?: string | null;
+        } | null;
         SubmitLeadRequest: {
             leadType: components["schemas"]["LeadType"];
             firstName: string;
@@ -864,9 +870,9 @@ export interface components {
             email: string;
             phone: string;
             timeline: string;
-            buyer?: null | components["schemas"]["BuyerDetailsRequest"];
-            seller?: null | components["schemas"]["SellerDetailsRequest"];
-            notes?: null | string;
+            buyer?: components["schemas"]["BuyerDetailsRequest"];
+            seller?: components["schemas"]["SellerDetailsRequest"];
+            notes?: string | null;
             marketingConsent: components["schemas"]["MarketingConsentRequest"];
         };
         SubscribeRequest: {
