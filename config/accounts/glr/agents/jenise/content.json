@@ -4,7 +4,7 @@
       {
         "label": "Why Choose Me",
         "href": "#features",
-        "enabled": true
+        "enabled": false
       },
       {
         "label": "How It Works",
@@ -14,12 +14,12 @@
       {
         "label": "Recent Sales",
         "href": "#gallery",
-        "enabled": true
+        "enabled": false
       },
       {
         "label": "Testimonials",
         "href": "#testimonials",
-        "enabled": true
+        "enabled": false
       },
       {
         "label": "Ready to Move?",

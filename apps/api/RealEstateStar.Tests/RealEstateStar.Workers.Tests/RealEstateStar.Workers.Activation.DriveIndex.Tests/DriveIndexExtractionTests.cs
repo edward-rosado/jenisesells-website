@@ -225,18 +225,8 @@ public class DriveIndexExtractionTests
     // ── RunAsync with Claude producing extractions ────────────────────────────
 
     [Fact]
-    public async Task RunAsync_WithTextDocAndClaudeResponse_ReturnsExtraction()
+    public async Task RunAsync_WithTextDoc_ReturnsRegexExtraction()
     {
-        const string extractionJson = """
-            {
-                "type": "ListingAgreement",
-                "date": null,
-                "clients": [{ "name": "Alice Buyer", "role": "Buyer", "email": null, "phone": null }],
-                "property": { "address": "42 Oak Ave", "city": null, "state": null, "zip": null },
-                "keyTerms": { "price": null, "commission": null, "contingencies": [] }
-            }
-            """;
-
         var files = new List<DriveFileInfo>
         {
             new("doc-1", "Listing Agreement.docx",
@@ -250,15 +240,11 @@ public class DriveIndexExtractionTests
         driveClient.Setup(c => c.ListAllFilesAsync(AccountId, AgentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(files);
         driveClient.Setup(c => c.GetFileContentAsync(AccountId, AgentId, "doc-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Listing agreement content for Alice Buyer at 42 Oak Ave.");
+            .ReturnsAsync("Listing agreement for alice.buyer@example.com at 42 Oak Ave, Springfield, NJ 07081. Price: $425,000.");
         driveClient.Setup(c => c.DownloadBinaryAsync(AccountId, AgentId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[]?)null);
 
         var anthropic = new Mock<IAnthropicClient>();
-        anthropic.Setup(a => a.SendAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AnthropicResponse(extractionJson, 50, 100, 200));
 
         var worker = new DriveIndexWorker(driveClient.Object, anthropic.Object, NullLogger<DriveIndexWorker>.Instance);
 
@@ -267,7 +253,11 @@ public class DriveIndexExtractionTests
         result.Extractions.Should().HaveCount(1);
         result.Extractions[0].Type.Should().Be(DocumentType.ListingAgreement);
         result.Extractions[0].Clients.Should().HaveCount(1);
-        result.Extractions[0].Clients[0].Name.Should().Be("Alice Buyer");
+        result.Extractions[0].Clients[0].Email.Should().Be("alice.buyer@example.com");
+        // Text docs use regex — Claude should NOT be called
+        anthropic.Verify(a => a.SendAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

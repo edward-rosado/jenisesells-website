@@ -25,9 +25,9 @@ public sealed class WelcomeNotificationService(
 {
     internal const string FolderPrefix = "real-estate-star";
     internal const string WelcomeSentFile = "Welcome Sent.md";
-    internal const string Model = "claude-opus-4-6";
+    internal const string Model = "claude-sonnet-4-6";
     internal const string Pipeline = "welcome-notification";
-    internal const int MaxTokens = 600;
+    internal const int MaxTokens = 1200;
 
     public async Task SendAsync(
         string accountId,
@@ -131,64 +131,78 @@ public sealed class WelcomeNotificationService(
             ? $"https://{handle}.real-estate-star.com"
             : $"https://{accountId}.real-estate-star.com/agents/{agentId}";
 
-        // Determine if we should draft in Spanish
-        var useSpanish = outputs.Languages?.Contains("Spanish", StringComparer.OrdinalIgnoreCase) == true
-            && outputs.LocalizedSkills is not null
-            && outputs.LocalizedSkills.ContainsKey("VoiceSkill.es");
-
-        var spanishInstruction = useSpanish
-            ? "\n- Draft this welcome message in Spanish. Use the agent's Spanish catchphrase and sign-off style. Keep the warm, professional tone."
-            : string.Empty;
+        var personalityContext = outputs.PersonalitySkill;
+        var voiceContext = outputs.VoiceSkill;
+        var pipelineContext = BuildPipelineContext(outputs.PipelineJson);
+        var coachingContext = outputs.CoachingReport;
+        var agentName = outputs.AgentName ?? agentId;
 
         var systemPrompt =
             "You are writing a personalized welcome email from Real Estate Star to a real estate " +
-            "agent who just connected their Google account and activated the platform for the first time.\n\n" +
+            "agent who just activated the platform.\n\n" +
             "CONTEXT: Real Estate Star is an AI-powered platform that automates real estate agent " +
-            "workflows — from instant lead response and CMA generation to personalized agent websites " +
-            "and smart follow-up. The agent's site is already live and ready to capture leads.\n\n" +
+            "workflows — instant lead response, CMA generation, personalized websites, smart follow-up.\n\n" +
+            (personalityContext != null
+                ? $"AGENT PERSONALITY:\n{personalityContext}\n" +
+                  "INSTRUCTION: Match this agent's personality traits in your writing. " +
+                  "If their warmth is high, be genuinely warm. If confidence is high, be assertive. " +
+                  "If humor usage is none, do not use humor.\n\n"
+                : "") +
+            (voiceContext != null
+                ? $"AGENT VOICE & CORE DIRECTIVE:\n{voiceContext}\n" +
+                  "INSTRUCTION: Use their catchphrase or sign-off naturally if one exists. " +
+                  "Reference their core directive traits (e.g., 'client-first', 'deal-making').\n\n"
+                : "") +
             "CRITICAL RULES:\n" +
-            "- ONLY mention Real Estate Star by name. Do NOT reference any other company, " +
-            "bank, brand, or organization found in the agent's data — those are from their " +
-            "personal email and must NEVER appear in this welcome message.\n" +
-            "- Under 200 words total\n" +
-            "- MUST include a catchphrase or signature phrase from the Voice Skill data. " +
-            "If the Voice Skill contains a catchphrase, tagline, or sign-off, weave it naturally " +
-            "into the message. This makes the email feel personal and shows we understand the agent.\n" +
-            "- Open with a warm welcome using the agent's first name\n" +
-            "- Convey excitement — their automation is live, their site is ready\n" +
-            "- Briefly highlight what's now working for them (auto lead response, CMA generation, " +
-            "personalized website) — make them feel the value immediately\n" +
-            "- Include one actionable coaching tip relevant to their pipeline\n" +
-            "- Include their agent site URL with (beta) appended to the end\n" +
-            "- Close with an encouraging, forward-looking sign-off from Real Estate Star\n" +
-            "- TONE: Confident, professional, and polished. Real Estate Star is the best partner " +
-            "an agent can have to expand their business. Convey that this platform is built to " +
-            "help them win more clients, close more deals, and grow. Not salesy — authoritative.\n" +
-            "- Plain text only, no markdown, no HTML" +
-            spanishInstruction;
-
-        // Use Spanish voice skill if available, fallback to English
-        var voiceContext = useSpanish
-            ? outputs.LocalizedSkills!["VoiceSkill.es"]
-            : outputs.VoiceSkill ?? "professional and approachable tone";
-        var personalityContext = outputs.PersonalitySkill ?? "dedicated REALTOR";
-        var pipelineContext = outputs.SalesPipeline ?? "strong pipeline management";
-        var coachingContext = outputs.CoachingReport ?? "focus on follow-up";
-        var agentName = outputs.AgentName ?? agentId;
+            "- ONLY mention Real Estate Star by name\n" +
+            "- DO NOT reference any other company or brand from the agent's data\n" +
+            "- Include ALL 4 sections below\n" +
+            "- Under 300 words total\n" +
+            "- Plain text only, no markdown, no HTML\n\n" +
+            "SECTIONS (include all 4):\n" +
+            "1. Personalized greeting using agent's name and reflecting their personality\n" +
+            "2. 'We found your leads' — reference specific lead(s) by name and property from pipeline data\n" +
+            "3. One concrete coaching insight with real numbers and an industry benchmark\n" +
+            "4. What Real Estate Star will do for them specifically, include their site URL";
 
         var userMessage =
-            $"Write a welcome message for {agentName}.\n\n" +
-            $"Voice Skill:\n{voiceContext}\n\n" +
-            $"Personality:\n{personalityContext}\n\n" +
-            $"Sales Pipeline insight:\n{pipelineContext}\n\n" +
-            $"Coaching tip:\n{coachingContext}\n\n" +
+            $"Write a welcome email for {agentName}.\n\n" +
             $"Agent site URL: {agentSiteUrl}\n\n" +
-            "Write the welcome message now. Plain text, under 150 words.";
+            (pipelineContext != null ? $"Pipeline Data (their current leads):\n{pipelineContext}\n\n" : "") +
+            (coachingContext != null ? $"Coaching Analysis:\n{coachingContext}\n\n" : "") +
+            "Write the welcome email now. Plain text, under 300 words, all 4 sections.";
 
         var response = await anthropic.SendAsync(
             Model, systemPrompt, userMessage, MaxTokens, Pipeline, ct);
 
         return response.Content.Trim();
+    }
+
+    // ── Pipeline context builder ─────────────────────────────────────────────
+
+    internal static string? BuildPipelineContext(string? pipelineJson)
+    {
+        if (string.IsNullOrWhiteSpace(pipelineJson)) return null;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(pipelineJson);
+            if (!doc.RootElement.TryGetProperty("leads", out var leads)) return null;
+
+            var sb = new System.Text.StringBuilder();
+            var count = 0;
+            foreach (var lead in leads.EnumerateArray())
+            {
+                if (count >= 3) break;
+                var name = lead.TryGetProperty("name", out var n) ? n.GetString() : null;
+                var stage = lead.TryGetProperty("stage", out var s) ? s.GetString() : null;
+                var property = lead.TryGetProperty("property", out var p) ? p.GetString() : null;
+                var type = lead.TryGetProperty("type", out var t) ? t.GetString() : null;
+                sb.AppendLine($"- {name ?? "Unknown"}: {type ?? "lead"} at {property ?? "unknown"} — stage: {stage ?? "unknown"}");
+                count++;
+            }
+            return count > 0 ? sb.ToString() : null;
+        }
+        catch { return null; }
     }
 
     // ── HTML wrapper for email ────────────────────────────────────────────────

@@ -300,15 +300,12 @@ public sealed class ActivationDtoMapperTests
             Voice = new VoiceExtractionOutput { VoiceSkillMarkdown = "Voice content" },
             Personality = new PersonalityOutput { PersonalitySkillMarkdown = "Personality content" },
             CmaStyle = "CMA style",
-            Marketing = new MarketingStyleOutput { StyleGuide = "Marketing guide", BrandSignals = "Brand signals" },
             WebsiteStyle = "Website style",
             SalesPipeline = "Pipeline",
             Coaching = new CoachingOutput { CoachingReportMarkdown = "Coaching report" },
             Branding = new BrandingDiscoveryOutput { BrandingKitMarkdown = "Branding kit" },
-            BrandExtraction = "Brand signals",
-            BrandVoice = "Voice signals",
             Compliance = "Compliance report",
-            FeeStructure = "Fee structure",
+            PipelineJson = "{\"stages\":[]}",
             DriveIndexMarkdown = "# Drive Index",
             DiscoveryMarkdown = "# Discovery",
             EmailSignatureMarkdown = "# Signature",
@@ -328,15 +325,12 @@ public sealed class ActivationDtoMapperTests
         outputs.VoiceSkill.Should().Be("Voice content");
         outputs.PersonalitySkill.Should().Be("Personality content");
         outputs.CmaStyleGuide.Should().Be("CMA style");
-        outputs.MarketingStyle.Should().Be("Marketing guide");
         outputs.WebsiteStyleGuide.Should().Be("Website style");
         outputs.SalesPipeline.Should().Be("Pipeline");
         outputs.CoachingReport.Should().Be("Coaching report");
         outputs.BrandingKitMarkdown.Should().Be("Branding kit");
-        outputs.BrandExtractionSignals.Should().Be("Brand signals");
-        outputs.BrandVoiceSignals.Should().Be("Voice signals");
         outputs.ComplianceAnalysis.Should().Be("Compliance report");
-        outputs.FeeStructure.Should().Be("Fee structure");
+        outputs.PipelineJson.Should().Be("{\"stages\":[]}");
         outputs.DriveIndex.Should().Be("# Drive Index");
         outputs.AgentDiscoveryMarkdown.Should().Be("# Discovery");
         outputs.EmailSignature.Should().Be("# Signature");
@@ -373,7 +367,7 @@ public sealed class ActivationDtoMapperTests
         outputs.VoiceSkill.Should().BeNull();
         outputs.PersonalitySkill.Should().BeNull();
         outputs.CmaStyleGuide.Should().BeNull();
-        outputs.MarketingStyle.Should().BeNull();
+        outputs.PipelineJson.Should().BeNull();
         outputs.CoachingReport.Should().BeNull();
         outputs.BrandingKitMarkdown.Should().BeNull();
         outputs.BrandingKit.Should().BeNull();

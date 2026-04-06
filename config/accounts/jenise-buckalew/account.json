@@ -1,6 +1,9 @@
 {
   "handle": "jenise-buckalew",
   "accountId": "jenise-buckalew",
+  "activation": {
+    "tier": "mvp"
+  },
   "template": "emerald-classic",
   "branding": {
     "primary_color": "#1B5E20",

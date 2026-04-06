@@ -188,13 +188,6 @@ public class ClaudeCmaAnalyzer(
                 sb.AppendLine(agentContext.CmaStyleGuide);
             }
 
-            if (!string.IsNullOrWhiteSpace(agentContext.BrandVoice))
-            {
-                sb.AppendLine();
-                sb.AppendLine("## Brand Voice (write marketNarrative and pricingStrategy in this voice)");
-                sb.AppendLine(agentContext.BrandVoice);
-            }
-
             if (!string.IsNullOrWhiteSpace(agentContext.VoiceSkill))
             {
                 sb.AppendLine();

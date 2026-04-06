@@ -4,4 +4,5 @@ public sealed record ActivationRequest(
     string AccountId,
     string AgentId,
     string Email,
-    DateTime Timestamp);
+    DateTime Timestamp,
+    ActivationTier Tier = ActivationTier.Mvp);

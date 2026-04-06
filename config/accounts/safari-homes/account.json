@@ -1,6 +1,9 @@
 {
   "handle": "safari-homes",
   "accountId": "safari-homes",
+  "activation": {
+    "tier": "mvp"
+  },
   "template": "emerald-classic",
   "branding": {
     "primary_color": "#8B4513",

@@ -10,17 +10,13 @@ public sealed record ActivationOutputs
     public string? VoiceSkill { get; init; }
     public string? PersonalitySkill { get; init; }
     public string? CmaStyleGuide { get; init; }
-    public string? MarketingStyle { get; init; }
     public string? WebsiteStyleGuide { get; init; }
     public string? SalesPipeline { get; init; }
     public string? CoachingReport { get; init; }
     public string? BrandingKitMarkdown { get; init; }
-    /// <summary>Raw brand extraction signals (intermediate output, not persisted as a skill file).</summary>
-    public string? BrandExtractionSignals { get; init; }
-    /// <summary>Raw brand voice signals (intermediate output, merged into Brand Voice.md by BrandMergeActivity).</summary>
-    public string? BrandVoiceSignals { get; init; }
     public string? ComplianceAnalysis { get; init; }
-    public string? FeeStructure { get; init; }
+    /// <summary>Structured pipeline.json content — agent's lead pipeline as queryable JSON.</summary>
+    public string? PipelineJson { get; init; }
     public string? DriveIndex { get; init; }
     public string? AgentDiscoveryMarkdown { get; init; }
     public string? EmailSignature { get; init; }

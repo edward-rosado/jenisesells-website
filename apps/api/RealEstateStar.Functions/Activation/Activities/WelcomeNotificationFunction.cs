@@ -23,13 +23,27 @@ public sealed class WelcomeNotificationFunction(
             "[ACTV-FN-400] WelcomeNotification for accountId={AccountId}, agentId={AgentId}",
             input.AccountId, input.AgentId);
 
-        // Build a minimal ActivationOutputs with the fields the welcome service needs.
-        // Binary assets are not needed for notification; they are already persisted by PersistProfile.
+        // Build ActivationOutputs with synthesis data for the personalized welcome email.
+        // Binary assets are not needed — they are already persisted by PersistProfile.
+        // WhatsAppEnabled lives on the input DTO (flat bool), so we bridge it via a minimal AgentDiscovery.
         var outputs = new ActivationOutputs
         {
             AgentName = input.AgentName,
             AgentPhone = input.AgentPhone,
             AgentEmail = input.AgentEmail,
+            VoiceSkill = input.VoiceSkill,
+            PersonalitySkill = input.PersonalitySkill,
+            CoachingReport = input.CoachingReport,
+            PipelineJson = input.PipelineJson,
+            Discovery = new AgentDiscovery(
+                HeadshotBytes: null,
+                LogoBytes: null,
+                Phone: input.AgentPhone,
+                Websites: [],
+                Reviews: [],
+                Profiles: [],
+                Ga4MeasurementId: null,
+                WhatsAppEnabled: input.WhatsAppEnabled),
         };
 
         await service.SendAsync(
