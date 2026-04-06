@@ -4,7 +4,6 @@ using Moq;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Leads.Interfaces;
 using RealEstateStar.Domain.Leads.Models;
-using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared;
 using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
