@@ -55,6 +55,30 @@ var builder = FunctionsApplication.CreateBuilder(args);
 // middleware may not work on Azure Linux Consumption plan. Using the simpler
 // HttpRequestData/HttpResponseData model instead (no IActionResult, no HttpRequest).
 
+// Serilog with OTLP log export — mirrors Api's AddStructuredLogging().
+// Without this, logs only go to console (lost on Consumption plan).
+Log.Logger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("Application", "RealEstateStar.Functions")
+    .WriteTo.Console(outputTemplate:
+        "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+    .WriteTo.Conditional(
+        _ => !string.IsNullOrEmpty(builder.Configuration["Otel:Endpoint"]),
+        wt => wt.OpenTelemetry(opts =>
+        {
+            opts.Endpoint = builder.Configuration["Otel:Endpoint"] ?? "";
+            var headers = builder.Configuration["Otel:Headers"];
+            if (!string.IsNullOrEmpty(headers))
+                opts.Headers = new Dictionary<string, string>
+                {
+                    [headers.Split('=', 2)[0]] = headers.Split('=', 2).ElementAtOrDefault(1) ?? ""
+                };
+            opts.ResourceAttributes = new Dictionary<string, object>
+            {
+                ["service.name"] = "real-estate-star-functions"
+            };
+        }))
+    .CreateLogger();
 builder.Services.AddSerilog();
 
 // ── Observability ─────────────────────────────────────────────────────────────

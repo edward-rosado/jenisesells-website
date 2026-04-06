@@ -227,6 +227,18 @@ Orchestrator (Durable Function — checkpoint/replay)
 - DataServices: storage routing (WHERE to store) — called by Activities and Services
 - Data: raw I/O providers (HOW to store) — CAN call Clients (e.g., GDrive, Azure Blob) — called by DataServices only
 
+**Orchestrator replay safety:**
+- Changing activity dispatch order (e.g. parallel → sequential) breaks in-flight instances
+- Always purge running/failed instances before deploying orchestrator code changes
+- Never assume an orchestrator will only run against fresh history
+
+**Memory budget (Azure Consumption plan = 1.5 GB):**
+- NEVER run two memory-heavy activities in parallel (e.g. EmailFetch + DriveIndex)
+- Workers that process external data (Drive, Gmail) must cap: max files, max file size, batch parallelism
+- Download → process → release, never accumulate — page through data, don't load it all
+- PDF/binary downloads: max 2 concurrent, release bytes immediately after Claude responds
+- If a worker needs more data than fits in memory, split into multiple activity calls
+
 ## File Storage Abstraction
 
 The `IFileStorageProvider` interface (defined in `RealEstateStar.Domain`) abstracts lead storage across Google Drive and local file system. Implementations live in `RealEstateStar.Data`:
