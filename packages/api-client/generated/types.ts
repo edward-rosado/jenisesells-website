@@ -873,6 +873,7 @@ export interface components {
             buyer?: components["schemas"]["BuyerDetailsRequest"];
             seller?: components["schemas"]["SellerDetailsRequest"];
             notes?: string | null;
+            locale?: string | null;
             marketingConsent: components["schemas"]["MarketingConsentRequest"];
         };
         SubscribeRequest: {
