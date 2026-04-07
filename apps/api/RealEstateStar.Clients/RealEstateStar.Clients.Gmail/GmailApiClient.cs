@@ -26,7 +26,8 @@ internal sealed class GmailApiClient(
         if (credential is null)
             return;
 
-        var message = BuildMimeMessage(credential.Email, to, subject, htmlBody);
+        var from = ResolveFromAddress(credential.Email, to);
+        var message = BuildMimeMessage(from, to, subject, htmlBody);
         await SendMessageAsync(credential, message, accountId, agentId, ct);
     }
 
@@ -44,7 +45,8 @@ internal sealed class GmailApiClient(
         if (credential is null)
             return;
 
-        var message = BuildMimeMessage(credential.Email, to, subject, htmlBody, attachmentBytes, fileName);
+        var from = ResolveFromAddress(credential.Email, to);
+        var message = BuildMimeMessage(from, to, subject, htmlBody, attachmentBytes, fileName);
         await SendMessageAsync(credential, message, accountId, agentId, ct);
     }
 
@@ -136,6 +138,15 @@ internal sealed class GmailApiClient(
         }
 
         return credential;
+    }
+
+    private string ResolveFromAddress(string? credentialEmail, string to)
+    {
+        if (!string.IsNullOrEmpty(credentialEmail))
+            return credentialEmail;
+
+        logger.LogWarning("[GMAIL-011] credential.Email is empty, using 'to' address as fallback from");
+        return to;
     }
 
     private GmailService BuildGmailService(Domain.Shared.Models.OAuthCredential credential) =>

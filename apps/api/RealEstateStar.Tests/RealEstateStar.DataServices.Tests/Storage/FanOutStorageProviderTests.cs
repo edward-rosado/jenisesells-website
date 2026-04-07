@@ -487,6 +487,37 @@ public class FanOutStorageProviderTests
         _platformStore.Verify(p => p.UpdateDocumentAsync(folder, fileName, content, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    // ── Log-once dedup for tier failures ────────────────────────────────────────
+
+    [Fact]
+    public async Task WriteDocumentAsync_LogsOnce_WhenSameTierFailsRepeatedly()
+    {
+        const string folder = "1 - Leads/Jane Doe";
+        const string content = "# Lead Profile";
+
+        _driveClient.Setup(d => d.UploadFileAsync(AccountId, AgentId, folder, It.IsAny<string>(), content, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Agent Drive unavailable"));
+        _driveClient.Setup(d => d.UploadFileAsync(AccountId, AccountTierAgentId, folder, It.IsAny<string>(), content, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("file-account-id");
+        _platformStore.Setup(p => p.WriteDocumentAsync(folder, It.IsAny<string>(), content, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // First call — Agent tier fails, should log
+        await _sut.WriteDocumentAsync(folder, "File1.md", content, CancellationToken.None);
+        // Second call — Agent tier fails again, should NOT log again
+        await _sut.WriteDocumentAsync(folder, "File2.md", content, CancellationToken.None);
+
+        // LogWarning should only be called once for the "Agent" tier
+        _logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("[FANOUT-010]") && v.ToString()!.Contains("Agent")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
     // ── Single-agent dedup (accountId == agentId) ─────────────────────────────
 
     [Fact]

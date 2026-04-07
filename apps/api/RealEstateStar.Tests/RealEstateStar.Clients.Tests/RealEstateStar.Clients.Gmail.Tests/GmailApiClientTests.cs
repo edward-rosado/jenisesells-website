@@ -195,6 +195,18 @@ public class GmailApiClientTests
     }
 
     [Fact]
+    public void BuildMimeMessage_WorksWithSameFromAndTo_ForSelfSendFallback()
+    {
+        // When credential.Email is null/empty, the caller passes 'to' as fallback 'from'.
+        // BuildMimeMessage should work correctly when from == to (agent sending to self).
+        var message = GmailApiClient.BuildMimeMessage(
+            "buyer@example.com", "buyer@example.com", "Welcome", "<p>Hello!</p>");
+
+        message.From.Mailboxes.First().Address.Should().Be("buyer@example.com");
+        message.To.Mailboxes.First().Address.Should().Be("buyer@example.com");
+    }
+
+    [Fact]
     public void EncodeMessage_IsDecodable_ToValidMimeMessage()
     {
         var originalMessage = GmailApiClient.BuildMimeMessage(
