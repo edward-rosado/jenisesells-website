@@ -84,6 +84,9 @@ if (!string.IsNullOrEmpty(otlpLogEndpoint))
     });
 }
 
+serilogConfig
+    .MinimumLevel.Override("System.Net.Http.HttpClient", Serilog.Events.LogEventLevel.Warning);
+
 Log.Logger = serilogConfig.CreateLogger();
 builder.Services.AddSerilog();
 

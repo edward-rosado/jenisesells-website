@@ -28,6 +28,9 @@ public sealed class DriveIndexFunction(
         [ActivityTrigger] DriveIndexInput input,
         CancellationToken ct)
     {
+        var memBefore = GC.GetTotalMemory(false) / 1024 / 1024;
+        logger.LogInformation("[ACTV-MEM-001] DriveIndex starting. Memory: {MemoryMB}MB", memBefore);
+
         logger.LogInformation(
             "[ACTV-FN-030] DriveIndex for accountId={AccountId}, agentId={AgentId}",
             input.AccountId, input.AgentId);
@@ -38,7 +41,12 @@ public sealed class DriveIndexFunction(
             // Contents dictionary will be empty in the returned model — content lives in blob.
             var driveIndex = await worker.RunAsync(input.AccountId, input.AgentId, ct, stagedContent);
 
-            return JsonSerializer.Serialize(ActivationDtoMapper.ToDto(driveIndex));
+            var result = JsonSerializer.Serialize(ActivationDtoMapper.ToDto(driveIndex));
+
+            var memAfter = GC.GetTotalMemory(false) / 1024 / 1024;
+            logger.LogInformation("[ACTV-MEM-002] DriveIndex finished. Memory: {MemoryMB}MB (delta: {DeltaMB}MB)", memAfter, memAfter - memBefore);
+
+            return result;
         }
         catch (Exception ex)
         {

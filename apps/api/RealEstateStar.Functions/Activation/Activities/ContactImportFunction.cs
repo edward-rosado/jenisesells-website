@@ -18,6 +18,9 @@ public sealed class ContactImportFunction(
         [ActivityTrigger] ContactImportInput input,
         CancellationToken ct)
     {
+        var memBefore = GC.GetTotalMemory(false) / 1024 / 1024;
+        logger.LogInformation("[ACTV-MEM-005] ContactImport starting. Memory: {MemoryMB}MB", memBefore);
+
         logger.LogInformation(
             "[ACTV-FN-320] ContactImport for accountId={AccountId}, agentId={AgentId}, count={Count}",
             input.AccountId, input.AgentId, input.Contacts.Count);
@@ -31,5 +34,8 @@ public sealed class ContactImportFunction(
             agentId: input.AgentId,
             contacts: contacts,
             ct: ct);
+
+        var memAfter = GC.GetTotalMemory(false) / 1024 / 1024;
+        logger.LogInformation("[ACTV-MEM-006] ContactImport finished. Memory: {MemoryMB}MB (delta: {DeltaMB}MB)", memAfter, memAfter - memBefore);
     }
 }

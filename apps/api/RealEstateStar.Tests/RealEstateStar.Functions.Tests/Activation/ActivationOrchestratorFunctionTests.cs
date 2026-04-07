@@ -67,6 +67,7 @@ public sealed class ActivationOrchestratorFunctionTests
 
         ctx.Setup(c => c.GetInput<ActivationRequest>()).Returns(request);
         ctx.Setup(c => c.IsReplaying).Returns(false);
+        ctx.Setup(c => c.CurrentUtcDateTime).Returns(DateTime.UtcNow);
         ctx.Setup(c => c.CreateReplaySafeLogger<ActivationOrchestratorFunction>())
             .Returns(NullLogger<ActivationOrchestratorFunction>.Instance);
 
@@ -92,6 +93,9 @@ public sealed class ActivationOrchestratorFunctionTests
         // Phase 3
         SetupVoidActivity(ctx, ActivityNames.PersistProfile, callOrder);
         SetupVoidActivity(ctx, ActivityNames.BrandMerge, callOrder);
+
+        // Staged content cleanup
+        SetupVoidActivity(ctx, ActivityNames.CleanupStagedContent, callOrder);
 
         // Phase 4
         SetupVoidActivity(ctx, ActivityNames.WelcomeNotification, callOrder);
