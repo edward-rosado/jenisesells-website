@@ -137,6 +137,16 @@ public sealed class WelcomeNotificationService(
         var coachingContext = outputs.CoachingReport;
         var agentName = outputs.AgentName ?? agentId;
 
+        // Pull localized personality + voice for bilingual agents
+        var localizedSkills = outputs.LocalizedSkills;
+        string? spanishPersonality = null;
+        string? spanishVoice = null;
+        if (localizedSkills is not null)
+        {
+            localizedSkills.TryGetValue("PersonalitySkill.es", out spanishPersonality);
+            localizedSkills.TryGetValue("VoiceSkill.es", out spanishVoice);
+        }
+
         var systemPrompt =
             "You are writing a personalized welcome email from Real Estate Star to a real estate " +
             "agent who just activated the platform.\n\n" +
@@ -153,6 +163,21 @@ public sealed class WelcomeNotificationService(
                   "INSTRUCTION: Use their catchphrase or sign-off naturally if one exists. " +
                   "Reference their core directive traits (e.g., 'client-first', 'deal-making').\n\n"
                 : "") +
+            (spanishPersonality != null || spanishVoice != null
+                ? "BILINGUAL AGENT CONTEXT:\n" +
+                  "This agent serves clients in both English and Spanish. " +
+                  "They have a distinct identity in each language.\n" +
+                  (spanishPersonality != null
+                      ? $"SPANISH PERSONALITY (cultural heritage, signature expressions, connection style):\n{spanishPersonality}\n"
+                      : "") +
+                  (spanishVoice != null
+                      ? $"SPANISH VOICE (catchphrases, greetings, sign-offs in Spanish):\n{spanishVoice}\n"
+                      : "") +
+                  "INSTRUCTION: Weave in ONE cultural reference or Spanish phrase that shows " +
+                  "you understand who they are — their heritage, their community, their bilingual " +
+                  "superpower. This should feel personal, not generic. Example: if they're Dominican, " +
+                  "a quick '¡Pa'lante!' hits differently than a generic '¡Bienvenido!'.\n\n"
+                : "") +
             "CRITICAL RULES:\n" +
             "- ONLY mention Real Estate Star by name\n" +
             "- DO NOT reference any other company or brand from the agent's data\n" +
@@ -160,10 +185,13 @@ public sealed class WelcomeNotificationService(
             "- Under 300 words total\n" +
             "- Plain text only, no markdown, no HTML\n\n" +
             "SECTIONS (include all 4):\n" +
-            "1. Personalized greeting using agent's name and reflecting their personality\n" +
+            "1. Personalized greeting using agent's name, reflecting their personality and cultural identity\n" +
             "2. 'We found your leads' — reference specific lead(s) by name and property from pipeline data\n" +
             "3. One concrete coaching insight with real numbers and an industry benchmark\n" +
-            "4. What Real Estate Star will do for them specifically, include their site URL";
+            "4. What Real Estate Star will do for them specifically, include their site URL" +
+            (spanishPersonality != null || spanishVoice != null
+                ? "\n5. If bilingual: mention that their site and lead emails will speak their clients' language too"
+                : "");
 
         var userMessage =
             $"Write a welcome email for {agentName}.\n\n" +

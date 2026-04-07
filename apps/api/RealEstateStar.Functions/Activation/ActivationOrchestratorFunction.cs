@@ -3,6 +3,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Activation.Models;
+using RealEstateStar.Domain.Shared.Diagnostics;
 using RealEstateStar.Functions.Activation.Dtos;
 
 namespace RealEstateStar.Functions.Activation;
@@ -47,35 +48,8 @@ public sealed class ActivationOrchestratorFunction
                 request.AccountId, request.AgentId);
         }
 
-        // ── Phase 0: skip-if-complete ────────────────────────────────────────
-
-        var completeCheckJson = await ctx.CallActivityAsync<string>(
-            ActivityNames.CheckActivationComplete,
-            new CheckActivationCompleteInput { AccountId = request.AccountId, AgentId = request.AgentId });
-        var completeCheck = JsonSerializer.Deserialize<CheckActivationCompleteOutput>(completeCheckJson)!;
-
-        if (completeCheck.IsComplete)
-        {
-            if (!ctx.IsReplaying)
-            {
-                logger.LogInformation(
-                    "[ACTV-FN-003] Activation already complete for accountId={AccountId}, agentId={AgentId} — sending welcome (idempotent)",
-                    request.AccountId, request.AgentId);
-            }
-
-            await ctx.CallActivityAsync(
-                ActivityNames.WelcomeNotification,
-                new WelcomeNotificationInput
-                {
-                    AccountId = request.AccountId,
-                    AgentId = request.AgentId,
-                    Handle = request.AgentId,
-                });
-
-            return;
-        }
-
         // ── Phase 1: Gather ──────────────────────────────────────────────────
+        // Runs before the skip-if-complete check so detected languages are available.
 
         var phase1Start = ctx.CurrentUtcDateTime;
         if (!ctx.IsReplaying)
@@ -103,6 +77,63 @@ public sealed class ActivationOrchestratorFunction
         {
             var driveDuration = (ctx.CurrentUtcDateTime - driveStart).TotalMilliseconds;
             logger.LogInformation("[ACTV-FN-012] DriveIndex completed in {Duration}ms", driveDuration);
+        }
+
+        // Derive distinct detected locales from Phase 1 outputs for language-aware completion check.
+        var detectedLanguages = emailCorpus.SentEmails
+            .Concat(emailCorpus.InboxEmails)
+            .Select(e => e.DetectedLocale)
+            .Concat(driveIndex.Files.Select(f => f.DetectedLocale))
+            .Where(l => l is not null && l != "en")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(l => l!)
+            .ToList();
+
+        if (!ctx.IsReplaying && detectedLanguages.Count > 0)
+        {
+            logger.LogInformation(
+                "[ACTV-FN-015] Detected non-English languages for agentId={AgentId}: [{Languages}]. " +
+                "Bilingual extraction will run for {Count} additional language(s).",
+                request.AgentId, string.Join(", ", detectedLanguages), detectedLanguages.Count);
+            LanguageDiagnostics.BilingualActivations.Add(1,
+                new KeyValuePair<string, object?>("agentId", request.AgentId),
+                new KeyValuePair<string, object?>("languages", string.Join(",", detectedLanguages)));
+        }
+
+        // ── Phase 0: skip-if-complete ────────────────────────────────────────
+        // Runs after Phase 1 so language-aware file checks (e.g., Voice Skill.es.md) are included.
+
+        var completeCheckJson = await ctx.CallActivityAsync<string>(
+            ActivityNames.CheckActivationComplete,
+            new CheckActivationCompleteInput
+            {
+                AccountId = request.AccountId,
+                AgentId = request.AgentId,
+                Languages = detectedLanguages.Count > 0 ? detectedLanguages : null,
+            });
+        var completeCheck = JsonSerializer.Deserialize<CheckActivationCompleteOutput>(completeCheckJson)!;
+
+        if (completeCheck.IsComplete)
+        {
+            if (!ctx.IsReplaying)
+            {
+                logger.LogInformation(
+                    "[ACTV-FN-003] SKIP: Activation already complete for accountId={AccountId}, agentId={AgentId}. " +
+                    "Reason: all required files exist (including language-specific files for [{Languages}]). Sending welcome (idempotent).",
+                    request.AccountId, request.AgentId,
+                    detectedLanguages.Count > 0 ? string.Join(",", detectedLanguages) : "en-only");
+            }
+
+            await ctx.CallActivityAsync(
+                ActivityNames.WelcomeNotification,
+                new WelcomeNotificationInput
+                {
+                    AccountId = request.AccountId,
+                    AgentId = request.AgentId,
+                    Handle = request.AgentId,
+                });
+
+            return;
         }
 
         // Discovery requires email corpus to use signature info.
@@ -200,8 +231,8 @@ public sealed class ActivationOrchestratorFunction
                 (ctx.CurrentUtcDateTime - batch4Start).TotalMilliseconds);
 
         // ── FUTURE-tier workers (skip for MVP) ──────────────────────────────
-        Task<StringOutput?> brandExtractionTask;
-        Task<StringOutput?> brandVoiceTask;
+        Task<BrandExtractionOutput?> brandExtractionTask;
+        Task<BrandVoiceOutput?> brandVoiceTask;
         Task<MarketingStyleOutput?> marketingTask;
         Task<StringOutput?> feeTask;
 
@@ -209,9 +240,9 @@ public sealed class ActivationOrchestratorFunction
         {
             // ── Batch 5 (Future only) ───────────────────────────────────────
             var batch5Start = ctx.CurrentUtcDateTime;
-            brandExtractionTask = WrapAsync<StringOutput>(
+            brandExtractionTask = WrapAsync<BrandExtractionOutput>(
                 ctx, ActivityNames.BrandExtraction, synthesisInput, "[ACTV-FN-029] brand-extraction", logger);
-            brandVoiceTask = WrapAsync<StringOutput>(
+            brandVoiceTask = WrapAsync<BrandVoiceOutput>(
                 ctx, ActivityNames.BrandVoice, synthesisInput, "[ACTV-FN-030] brand-voice", logger);
             await Task.WhenAll(brandExtractionTask, brandVoiceTask);
             if (!ctx.IsReplaying)
@@ -234,12 +265,14 @@ public sealed class ActivationOrchestratorFunction
             if (!ctx.IsReplaying)
             {
                 logger.LogInformation(
-                    "[ACTV-FN-033] Skipping FUTURE-tier workers for MVP activation agentId={AgentId}",
-                    request.AgentId);
+                    "[ACTV-FN-033] SKIP: Future-tier workers (BrandExtraction, BrandVoice, MarketingStyle, FeeStructure) " +
+                    "for agentId={AgentId}. Reason: Tier={Tier}. These workers run only on Future-tier activations. " +
+                    "Bilingual extraction for these skills is deferred until tier upgrade.",
+                    request.AgentId, request.Tier);
             }
 
-            brandExtractionTask = Task.FromResult<StringOutput?>(null);
-            brandVoiceTask = Task.FromResult<StringOutput?>(null);
+            brandExtractionTask = Task.FromResult<BrandExtractionOutput?>(null);
+            brandVoiceTask = Task.FromResult<BrandVoiceOutput?>(null);
             marketingTask = Task.FromResult<MarketingStyleOutput?>(null);
             feeTask = Task.FromResult<StringOutput?>(null);
         }
@@ -254,8 +287,16 @@ public sealed class ActivationOrchestratorFunction
         var salesPipeline = pipelineResult?.Markdown;
         var pipelineJson = pipelineResult?.PipelineJson;
         var coaching = coachingTask.Result;
-        var brandExtraction = brandExtractionTask.Result?.Value;
-        var brandVoice = brandVoiceTask.Result?.Value;
+        var brandExtractionResult = brandExtractionTask.Result;
+        var brandExtraction = brandExtractionResult?.Signals;
+        var brandVoiceResult = brandVoiceTask.Result;
+        var brandVoice = brandVoiceResult?.Signals;
+        var localizedSkills = MergeLocalizedSkills(
+            voice?.LocalizedSkills,
+            personality?.LocalizedSkills,
+            brandExtractionResult?.LocalizedSkills,
+            brandVoiceResult?.LocalizedSkills,
+            marketingTask.Result?.LocalizedSkills);
         var compliance = complianceTask.Result?.Value;
         var feeStructure = feeTask.Result?.Value;
 
@@ -349,6 +390,7 @@ public sealed class ActivationOrchestratorFunction
             AgentLicenseNumber = emailCorpus.Signature?.LicenseNumber,
             ServiceAreas = serviceAreas,
             Discovery = discovery,
+            LocalizedSkills = localizedSkills?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
         };
 
         // PersistProfile is fatal if it fails — let it propagate
@@ -369,7 +411,10 @@ public sealed class ActivationOrchestratorFunction
         }
         else if (!ctx.IsReplaying)
         {
-            logger.LogInformation("[ACTV-FN-042] Skipping BrandMerge for single-agent account {AccountId}", request.AccountId);
+            logger.LogInformation(
+                "[ACTV-FN-042] SKIP: BrandMerge for accountId={AccountId}. " +
+                "Reason: single-agent account (accountId == agentId). Brand merge only applies to multi-agent brokerages.",
+                request.AccountId);
         }
 
         // ContactImport is non-fatal (warning on failure, pipeline continues)
@@ -443,6 +488,7 @@ public sealed class ActivationOrchestratorFunction
                 CoachingReport = coaching?.CoachingReportMarkdown,
                 PipelineJson = pipelineJson,
                 ContactCount = contactDetectionResult.Contacts.Count,
+                LocalizedSkills = localizedSkills?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
             });
 
         if (!ctx.IsReplaying)
@@ -451,10 +497,20 @@ public sealed class ActivationOrchestratorFunction
             logger.LogInformation("[ACTV-FN-059] Phase 4 completed in {Duration}ms", phase4Duration);
 
             var totalDuration = (ctx.CurrentUtcDateTime - request.Timestamp).TotalMilliseconds;
+            var localizedSkillCount = localizedSkills?.Count ?? 0;
             logger.LogInformation(
                 "[ACTV-FN-099] Activation orchestration complete for accountId={AccountId}, agentId={AgentId}, " +
-                "Tier={Tier}, TotalDuration={TotalDuration}ms, Succeeded={Succeeded}, Failed={Failed}",
-                request.AccountId, request.AgentId, request.Tier, totalDuration, succeededCount, failedCount);
+                "Tier={Tier}, TotalDuration={TotalDuration}ms, Succeeded={Succeeded}, Failed={Failed}, " +
+                "DetectedLanguages=[{Languages}], LocalizedSkills={LocalizedSkillCount}",
+                request.AccountId, request.AgentId, request.Tier, totalDuration, succeededCount, failedCount,
+                detectedLanguages.Count > 0 ? string.Join(",", detectedLanguages) : "en-only",
+                localizedSkillCount);
+
+            if (localizedSkillCount > 0)
+            {
+                LanguageDiagnostics.SkillsExtracted.Add(localizedSkillCount,
+                    new KeyValuePair<string, object?>("agentId", request.AgentId));
+            }
         }
     }
 
@@ -487,6 +543,26 @@ public sealed class ActivationOrchestratorFunction
             }
             return null;
         }
+    }
+
+    // ── Deterministic merge of localized skills from all Phase 2 outputs ──────
+
+    /// <summary>
+    /// Merges LocalizedSkills dictionaries from all Phase 2 outputs into a single dictionary.
+    /// Later entries overwrite earlier ones if keys conflict (last-writer-wins).
+    /// Returns null if no localized skills were produced.
+    /// </summary>
+    private static IReadOnlyDictionary<string, string>? MergeLocalizedSkills(
+        params IReadOnlyDictionary<string, string>?[] sources)
+    {
+        var merged = new Dictionary<string, string>();
+        foreach (var source in sources)
+        {
+            if (source is null) continue;
+            foreach (var kvp in source)
+                merged[kvp.Key] = kvp.Value;
+        }
+        return merged.Count > 0 ? merged : null;
     }
 
     // ── Deterministic markdown builders (no I/O, replay-safe) ────────────────

@@ -41,8 +41,8 @@ internal sealed class EmailContactExtractor(
         """;
 
     /// <summary>
-    /// Batches the provided emails in groups of 20 and sends each batch to Claude Sonnet
-    /// for contact extraction. Returns all extracted clients across all batches.
+    /// Batches the provided emails in groups of 20 and sends each batch to Claude Haiku
+    /// for contact extraction in parallel. Returns all extracted clients across all batches.
     /// </summary>
     internal async Task<IReadOnlyList<ExtractedClient>> ExtractAsync(
         IReadOnlyList<EmailMessage> emails,
@@ -50,7 +50,6 @@ internal sealed class EmailContactExtractor(
     {
         if (emails.Count == 0) return [];
 
-        var results = new List<ExtractedClient>();
         var batches = emails
             .Select((email, index) => (email, index))
             .GroupBy(x => x.index / BatchSize)
@@ -58,15 +57,12 @@ internal sealed class EmailContactExtractor(
             .ToList();
 
         logger.LogInformation(
-            "[CONTACT-EXTRACT-010] Processing {EmailCount} emails in {BatchCount} batches",
+            "[CONTACT-EXTRACT-010] Processing {EmailCount} emails in {BatchCount} batches (parallel)",
             emails.Count, batches.Count);
 
-        foreach (var batch in batches)
-        {
-            ct.ThrowIfCancellationRequested();
-            var extracted = await ExtractBatchAsync(batch, ct);
-            results.AddRange(extracted);
-        }
+        var batchTasks = batches.Select(batch => ExtractBatchAsync(batch, ct));
+        var batchResults = await Task.WhenAll(batchTasks);
+        var results = batchResults.SelectMany(r => r).ToList();
 
         logger.LogInformation(
             "[CONTACT-EXTRACT-090] Extracted {ContactCount} contacts from {EmailCount} emails",

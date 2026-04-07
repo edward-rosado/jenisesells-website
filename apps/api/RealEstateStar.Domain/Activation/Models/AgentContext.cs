@@ -16,4 +16,36 @@ public sealed record AgentContext
 
     public bool IsActivated { get; init; }
     public bool IsLowConfidence { get; init; }
+
+    // Localized skill variants — keyed by "{skillName}.{locale}" (e.g., "VoiceSkill.es")
+    public IReadOnlyDictionary<string, string>? LocalizedSkills { get; init; }
+
+    /// <summary>
+    /// Returns the skill content for the given skill name, preferring the specified locale.
+    /// Falls back to English if no localized variant exists.
+    /// </summary>
+    public string? GetSkill(string skillName, string? locale)
+    {
+        // For non-English locales, check LocalizedSkills first, then fall back to English
+        if (!string.IsNullOrWhiteSpace(locale) && locale != "en")
+        {
+            var key = $"{skillName}.{locale}";
+            if (LocalizedSkills is not null && LocalizedSkills.TryGetValue(key, out var localized))
+                return localized;
+        }
+
+        // English (or fallback): check top-level properties, then LocalizedSkills
+        var english = skillName switch
+        {
+            "VoiceSkill" => VoiceSkill,
+            "PersonalitySkill" => PersonalitySkill,
+            _ => null
+        };
+
+        // Future-tier skills (MarketingStyle, BrandVoice, etc.) live only in LocalizedSkills
+        if (english is null && LocalizedSkills is not null)
+            LocalizedSkills.TryGetValue(skillName, out english);
+
+        return english;
+    }
 }

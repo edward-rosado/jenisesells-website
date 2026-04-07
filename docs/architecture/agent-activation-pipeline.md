@@ -1,7 +1,7 @@
 # Agent Activation Pipeline
 
 Triggered when an agent completes Google OAuth via the OAuth Authorization Link flow.
-The pipeline runs as a `BackgroundService` (`ActivationOrchestrator`) fed by a durable Azure Queue (`activation-requests`).
+The pipeline runs as a Durable Function orchestration (`ActivationOrchestrator`) started by a Queue-triggered Azure Function (`StartActivationFunction`) bound to the `activation-requests` queue.
 
 ---
 
@@ -10,7 +10,8 @@ The pipeline runs as a `BackgroundService` (`ActivationOrchestrator`) fed by a d
 ```mermaid
 flowchart TD
     A["OAuth Callback<br/>(AuthorizeLinkCallbackEndpoint)"] --> B["Azure Queue Storage<br/>activation-requests"]
-    B --> C["ActivationOrchestrator<br/>(BackgroundService — polls queue)"]
+    B --> S["StartActivationFunction<br/>[QueueTrigger]<br/>starts Durable Orchestration"]
+    S --> C["ActivationOrchestrator<br/>(Durable Function Orchestrator)"]
 
     C --> P0["Phase 0: Skip-if-Complete<br/>All required files exist? → skip + resend welcome"]
 
@@ -18,13 +19,13 @@ flowchart TD
 
     subgraph P1["Phase 1: Gather"]
         direction TB
-        E1["AgentEmailFetchWorker<br/>100 sent + 100 inbox emails"]
-        E2["DriveIndexWorker<br/>List files, identify RE docs,<br/>download PDFs, Claude Vision extraction"]
-        E3["AgentDiscoveryWorker<br/>Web profiles, headshot, languages"]
-        E1 & E2 -->|parallel| E3_note["Email + Drive run in parallel<br/>Discovery runs after (needs signature)"]
+        E1["Activity: EmailFetch<br/>100 sent + 100 inbox emails"]
+        E2["Activity: DriveIndex<br/>List files, identify RE docs,<br/>download PDFs, Claude Vision extraction"]
+        E3["Activity: AgentDiscovery<br/>Web profiles, headshot, languages"]
+        E1 & E2 -->|parallel via Task.WhenAll| E3_note["Email + Drive in parallel<br/>Discovery runs after (needs signature)"]
     end
 
-    subgraph P2["Phase 2: Synthesize (12 workers in parallel)"]
+    subgraph P2["Phase 2: Synthesize (12 activities in parallel, per language)"]
         direction TB
         W1["VoiceExtraction (Opus 4.6)"]
         W2["Personality (Sonnet 4.6)"]
@@ -38,25 +39,26 @@ flowchart TD
         W10["BrandVoice (Sonnet 4.6)"]
         W11["ComplianceAnalysis (Sonnet 4.6)"]
         W12["FeeStructure (Sonnet 4.6)"]
+        LANG["NOTE: For bilingual agents,<br/>Phase 1 tags items by detected locale.<br/>Phase 2 partitions corpus by language<br/>and runs workers per locale (en + es).<br/>Spanish workers only run if es corpus >= 10 items."]
     end
 
-    subgraph P25["Phase 2.5: Contact Detection (NEW — reusable Activity)"]
+    subgraph P25["Phase 2.5: Contact Detection (reusable Activity)"]
         CC["ContactDetectionActivity<br/>PDF extraction + lead generator parsing<br/>+ email scanning + dedup + classification"]
         CC2["Also callable by future<br/>Gmail Inbox Check-in Job"]
     end
 
     subgraph P3["Phase 3: Persist + Brand Merge"]
-        PA["AgentProfilePersistActivity<br/>Fan-out writes: Drive + Blob + Config"]
-        CI["ContactImportPersistActivity (NEW)<br/>Folder structure + file copy + LeadStore"]
-        BM["BrandMergeActivity<br/>Brand Profile.md + Brand Voice.md"]
+        PA["Activity: PersistProfile<br/>Fan-out writes: Drive + Blob + Config<br/>Includes per-language files:<br/>Voice Skill.es.md, Personality Skill.es.md, etc."]
+        CI["Activity: ContactImport<br/>Folder structure + file copy + LeadStore"]
+        BM["Activity: BrandMerge<br/>Brand Profile.md + Brand Voice.md"]
     end
 
     subgraph P4["Phase 4: Welcome Notification"]
-        WN["WelcomeNotificationService<br/>Claude Opus 4.6 draft → Gmail send<br/>WhatsApp fallback"]
+        WN["Activity: WelcomeNotification<br/>Claude Opus 4.6 draft → Gmail send<br/>WhatsApp fallback"]
     end
 
     P1 --> P2 --> P25 --> P3 --> P4
-    P4 --> DONE["[ACTV-003] Pipeline Complete<br/>Queue message deleted"]
+    P4 --> DONE["[ACTV-003] Orchestration Complete"]
 
     style P1 fill:#e3f2fd
     style P2 fill:#f3e5f5
@@ -67,7 +69,7 @@ flowchart TD
 
 ---
 
-## Durable Queue Architecture
+## Queue Trigger Architecture
 
 ```mermaid
 flowchart LR
@@ -76,27 +78,29 @@ flowchart LR
     end
 
     subgraph Queue["Azure Queue Storage"]
-        Q[activation-requests<br/>JSON messages<br/>5 min visibility timeout]
+        Q[activation-requests<br/>JSON messages]
     end
 
-    subgraph Consumer
-        O[ActivationOrchestrator<br/>BackgroundService<br/>Polls every 3s]
+    subgraph Functions["Azure Functions"]
+        S["StartActivationFunction<br/>[QueueTrigger binding]<br/>auto-dequeues + starts orchestration"]
+        O["ActivationOrchestrator<br/>(Durable Orchestrator)"]
     end
 
     A -->|EnqueueAsync| Q
-    Q -->|DequeueAsync| O
-    O -->|success| D[CompleteAsync<br/>delete message]
-    O -->|failure| R[Message becomes visible<br/>after timeout → auto-retry]
+    Q -->|trigger binding| S
+    S -->|StartNewAsync| O
+    O -->|success| D["Orchestration Complete<br/>(DF framework cleans up)"]
+    O -->|failure| R["DF RetryPolicy<br/>maxAttempts: 4, 30s backoff, 2x"]
 
     style Q fill:#fff9c4
 ```
 
 **Resilience:**
-- Messages survive container restarts (durable storage, not in-memory)
-- Failed activations auto-retry after visibility timeout (5 min)
-- Poison messages move to `activation-requests-poison` after 5 failures
-- Queue health check on `/health/ready`
-- Full observability: `[QUEUE-001]` enqueue, `[QUEUE-002]` dequeue, `[QUEUE-003]` complete
+- No polling loop — Azure Functions queue trigger binding handles dequeue automatically
+- Checkpoint/resume handled by Durable Functions execution history (stored in Azure Table Storage)
+- Failed activities retry via DF `RetryPolicy` (maxAttempts: 4, 30s backoff, 2x coefficient)
+- Poison messages move to `activation-requests-poison` after 5 failures (Azure Queue built-in)
+- Full observability: `[QUEUE-001]` enqueue, `[QUEUE-002]` trigger, `[ACTV-003]` complete
 
 ---
 
@@ -177,7 +181,7 @@ flowchart TD
     ROOT --> CONTRACT["3 - Under Contract/"]
     ROOT --> CLOSED["4 - Closed/"]
     ROOT --> INACTIVE["5 - Inactive/"]
-    ROOT --> SKILLS["Skill Files<br/>Voice Skill.md, Personality Skill.md,<br/>Branding Kit.md, etc."]
+    ROOT --> SKILLS["Skill Files<br/>Voice Skill.md, Personality Skill.md,<br/>Branding Kit.md, etc.<br/>Per-language: Voice Skill.es.md,<br/>Personality Skill.es.md, etc."]
 
     LEADS --> L1["{Client Name}/"]
     L1 --> L2["{Property Address}/"]
@@ -261,39 +265,34 @@ so one failure doesn't abort the whole pipeline. The output for that worker is `
 
 ```mermaid
 flowchart TD
-    A[Queue message received] --> B{Phase 1 succeeds?}
-    B -->|yes| C[Checkpoint saved]
-    C --> D{Phase 2 succeeds?}
-    D -->|yes| E[Checkpoint saved]
-    E --> F{Phase 2.5 succeeds?}
-    F -->|yes| G{Phase 3 succeeds?}
-    G -->|yes| H{Phase 4 succeeds?}
-    H -->|yes| I["[QUEUE-003] Message deleted<br/>Pipeline complete"]
-
-    B -->|no| J["Exception thrown<br/>Message stays in queue"]
+    A["Queue trigger fires<br/>StartActivationFunction"] --> B["ActivationOrchestrator<br/>starts / resumes"]
+    B --> C{Phase 1 activities<br/>succeed?}
+    C -->|yes| D{Phase 2 activities<br/>succeed?}
+    C -->|no| RETRY["DF RetryPolicy<br/>maxAttempts: 4<br/>30s backoff, 2x coefficient"]
+    D -->|yes / partial| E{Phase 2.5?}
     D -->|partial| E
-    F -->|no| J
-    G -->|no| J
-    H -->|no| J
+    E -->|yes| F{Phase 3?}
+    F -->|yes| G{Phase 4?}
+    G -->|yes| I["[ACTV-003] Orchestration Complete<br/>(DF execution history retained)"]
 
-    J --> K["Visibility timeout expires (5 min)"]
-    K --> L["Message becomes visible<br/>Orchestrator re-dequeues"]
-    L --> M{Retry count < 5?}
-    M -->|yes| N["Resume from last checkpoint"]
-    M -->|no| O["Moved to poison queue<br/>activation-requests-poison"]
+    RETRY -->|"attempts exhausted"| O["Orchestration Failed<br/>Queue message → poison queue<br/>activation-requests-poison"]
+
+    F -->|no| RETRY
+    G -->|no| RETRY
 
     style I fill:#c8e6c9
     style O fill:#ffcdd2
-    style N fill:#fff9c4
+    style RETRY fill:#fff9c4
 ```
 
 **Retry behaviors:**
-- **Phase 1 failure:** Full retry (no checkpoint yet)
-- **Phase 2 partial failure:** Individual workers fail gracefully (`RunSafeAsync`), pipeline continues with null outputs. Only full phase failure triggers retry.
-- **Phase 3 failure:** Retry re-runs persist. `WriteOrUpdateAsync` is idempotent — existing files are overwritten, not duplicated.
-- **Phase 4 failure:** Welcome email has idempotency check (`Welcome Sent.md`). Safe to retry.
+- **All activity failures:** DF `RetryPolicy` retries up to 4 times with 30s initial backoff and 2x coefficient before marking the orchestration failed.
+- **Phase 2 partial failure:** Individual synthesis activities wrapped in `try/catch` inside `Task.WhenAll` — one failure does not abort other parallel activities. Pipeline continues with null outputs for failed workers.
+- **Phase 3 failure:** `WriteOrUpdateAsync` is idempotent — existing files are overwritten, not duplicated. Safe to replay.
+- **Phase 4 failure:** Welcome notification activity has idempotency check (`Welcome Sent.md`). Safe to replay via DF execution history.
 - **GDrive auth errors:** `WithRetryOnAuthErrorAsync` refreshes OAuth token and retries once per call.
 - **Claude API errors:** Polly retry policy with exponential backoff (configured per `HttpClient`).
+- **Checkpoint/resume:** Handled automatically by DF execution history stored in Azure Table Storage — no manual checkpoint JSON files needed.
 
 ---
 
@@ -428,29 +427,36 @@ flowchart LR
 ## Project Structure
 
 ```
+RealEstateStar.Functions/
+  Activation/
+    StartActivationFunction.cs                    -- [QueueTrigger] starts Durable Orchestration
+    ActivationOrchestrator.cs                     -- Durable orchestrator: Phase 1-4 coordination
+  Leads/
+    StartLeadProcessingFunction.cs                -- [QueueTrigger] starts lead orchestration
+    LeadOrchestratorFunction.cs                   -- Durable orchestrator: full lead pipeline
+
 Workers/Activation/
-  RealEstateStar.Workers.Activation.Orchestrator/        -- BackgroundService + pipeline coordination
-  RealEstateStar.Workers.Activation.EmailFetch/          -- Phase 1: Gmail corpus fetch
-  RealEstateStar.Workers.Activation.DriveIndex/          -- Phase 1: Drive indexing + PDF extraction
-  RealEstateStar.Workers.Activation.AgentDiscovery/      -- Phase 1: web scraping + profile discovery
-  RealEstateStar.Workers.Activation.VoiceExtraction/     -- Phase 2 (Opus 4.6)
-  RealEstateStar.Workers.Activation.Personality/         -- Phase 2
-  RealEstateStar.Workers.Activation.BrandingDiscovery/   -- Phase 2
-  RealEstateStar.Workers.Activation.CmaStyle/            -- Phase 2
-  RealEstateStar.Workers.Activation.MarketingStyle/      -- Phase 2
-  RealEstateStar.Workers.Activation.WebsiteStyle/        -- Phase 2
-  RealEstateStar.Workers.Activation.PipelineAnalysis/    -- Phase 2
-  RealEstateStar.Workers.Activation.Coaching/            -- Phase 2
-  RealEstateStar.Workers.Activation.BrandExtraction/     -- Phase 2
-  RealEstateStar.Workers.Activation.BrandVoice/          -- Phase 2
-  RealEstateStar.Workers.Activation.ComplianceAnalysis/  -- Phase 2
-  RealEstateStar.Workers.Activation.FeeStructure/        -- Phase 2
+  RealEstateStar.Workers.Activation.EmailFetch/          -- Phase 1: Gmail corpus fetch (activity)
+  RealEstateStar.Workers.Activation.DriveIndex/          -- Phase 1: Drive indexing + PDF extraction (activity)
+  RealEstateStar.Workers.Activation.AgentDiscovery/      -- Phase 1: web scraping + profile discovery (activity)
+  RealEstateStar.Workers.Activation.VoiceExtraction/     -- Phase 2 activity (Opus 4.6)
+  RealEstateStar.Workers.Activation.Personality/         -- Phase 2 activity
+  RealEstateStar.Workers.Activation.BrandingDiscovery/   -- Phase 2 activity
+  RealEstateStar.Workers.Activation.CmaStyle/            -- Phase 2 activity
+  RealEstateStar.Workers.Activation.MarketingStyle/      -- Phase 2 activity
+  RealEstateStar.Workers.Activation.WebsiteStyle/        -- Phase 2 activity
+  RealEstateStar.Workers.Activation.PipelineAnalysis/    -- Phase 2 activity
+  RealEstateStar.Workers.Activation.Coaching/            -- Phase 2 activity
+  RealEstateStar.Workers.Activation.BrandExtraction/     -- Phase 2 activity
+  RealEstateStar.Workers.Activation.BrandVoice/          -- Phase 2 activity
+  RealEstateStar.Workers.Activation.ComplianceAnalysis/  -- Phase 2 activity
+  RealEstateStar.Workers.Activation.FeeStructure/        -- Phase 2 activity
 Activities/Activation/
   RealEstateStar.Activities.Activation.PersistAgentProfile/   -- Phase 3
   RealEstateStar.Activities.Activation.BrandMerge/            -- Phase 3
-  RealEstateStar.Activities.Activation.ContactImportPersist/  -- Phase 3 (NEW)
+  RealEstateStar.Activities.Activation.ContactImportPersist/  -- Phase 3
 Activities/Leads/
-  RealEstateStar.Activities.Lead.ContactDetection/            -- Phase 2.5 (NEW — reusable)
+  RealEstateStar.Activities.Lead.ContactDetection/            -- Phase 2.5 (reusable)
     ContactDetectionActivity.cs      -- orchestrates extraction + classification
     PdfContactExtractor.cs           -- Claude Vision extraction from PDF pages
     EmailContactExtractor.cs         -- lead generator regex + Claude Sonnet batch
@@ -463,5 +469,5 @@ Services/Activation/
 ```
 
 **Dependency rule**: All individual Activation workers depend only on `Domain` + `Workers.Shared`.
-The Orchestrator additionally depends on all workers + activities.
+The Orchestrator (in `RealEstateStar.Functions`) depends on all workers + activities.
 Activities depend on Domain + may call Clients (via factory for per-agent context).

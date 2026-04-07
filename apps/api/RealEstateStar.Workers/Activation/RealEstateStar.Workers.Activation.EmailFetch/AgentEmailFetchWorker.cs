@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Services;
 
 namespace RealEstateStar.Workers.Activation.EmailFetch;
 
@@ -43,7 +44,21 @@ public sealed class AgentEmailFetchWorker(
         var cleanSent = StripNoise(sentEmails, signature);
         var cleanInbox = StripNoise(inboxEmails, signature);
 
-        return new EmailCorpus(cleanSent, cleanInbox, signature);
+        // Detect language for each email
+        var taggedSent = DetectLanguages(cleanSent);
+        var taggedInbox = DetectLanguages(cleanInbox);
+
+        var allTagged = taggedSent.Concat(taggedInbox).ToList();
+        var distribution = allTagged
+            .GroupBy(e => e.DetectedLocale ?? "en")
+            .OrderByDescending(g => g.Count())
+            .Select(g => $"{g.Key}={g.Count()}");
+
+        logger.LogInformation(
+            "[EFETCH-010] Email language distribution for {AgentId}: {Distribution}",
+            agentId, string.Join(", ", distribution));
+
+        return new EmailCorpus(taggedSent, taggedInbox, signature);
     }
 
     /// <summary>
@@ -282,6 +297,21 @@ public sealed class AgentEmailFetchWorker(
         }
 
         return cleaned;
+    }
+
+    /// <summary>
+    /// Detects language for each email using the character-set heuristic
+    /// and returns new records with DetectedLocale populated.
+    /// </summary>
+    internal static IReadOnlyList<EmailMessage> DetectLanguages(IReadOnlyList<EmailMessage> emails)
+    {
+        var result = new List<EmailMessage>(emails.Count);
+        foreach (var email in emails)
+        {
+            var locale = LanguageDetector.DetectLocale(email.Subject + " " + email.Body);
+            result.Add(email with { DetectedLocale = locale });
+        }
+        return result;
     }
 
     /// <summary>

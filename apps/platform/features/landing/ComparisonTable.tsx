@@ -8,9 +8,13 @@ interface ComparisonRow {
 const ROWS: ComparisonRow[] = [
   { feature: "Monthly", star: "$14.99/mo", kvcore: "$499/mo", ylopo: "$395/mo" },
   { feature: "Free Trial", star: "14 days", kvcore: "No", ylopo: "No" },
-  { feature: "Website", star: "Included", kvcore: "Included", ylopo: "Included" },
+  { feature: "Website", star: "12 templates", kvcore: "Included", ylopo: "Included" },
   { feature: "CMA Tool", star: "Included", kvcore: "Add-on", ylopo: "No" },
   { feature: "Lead Capture", star: "Included", kvcore: "Included", ylopo: "Included" },
+  { feature: "Multi-Language", star: "English + Spanish", kvcore: "No", ylopo: "No" },
+  { feature: "Legal Compliance", star: "Built-in", kvcore: "DIY", ylopo: "DIY" },
+  { feature: "SEO & AEO", star: "Included", kvcore: "Basic SEO", ylopo: "Basic SEO" },
+  { feature: "WhatsApp Alerts", star: "Included", kvcore: "No", ylopo: "No" },
   { feature: "Setup Time", star: "10 minutes", kvcore: "2-4 weeks", ylopo: "1-2 weeks" },
 ];
 

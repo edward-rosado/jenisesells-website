@@ -1,6 +1,6 @@
 // apps/agent-site/features/config/config.ts
 import type { AccountConfig, AgentConfig, ContentConfig } from "./types";
-import { accounts, accountContent, agentConfigs, agentContent, legalContent } from "./config-registry";
+import { accounts, accountContent, localizedContent, accountLanguages, agentConfigs, agentContent, legalContent } from "./config-registry";
 
 const VALID_HANDLE = /^[a-z0-9-]+$/;
 
@@ -68,6 +68,26 @@ export function loadLegalContent(
 export function getAgentIds(handle: string): string[] {
   validateHandle(handle);
   return Object.keys(agentConfigs[handle] ?? {});
+}
+
+/** Load content for a specific locale, falling back to default English content */
+export function loadLocalizedContent(
+  handle: string,
+  locale: string,
+  config?: AccountConfig,
+): ContentConfig {
+  validateHandle(handle);
+  if (locale !== "en") {
+    const localized = localizedContent[handle]?.[locale];
+    if (localized) return localized;
+  }
+  return loadAccountContent(handle, config);
+}
+
+/** Get the supported locale codes for an account (from agent config languages) */
+export function getAccountLocales(handle: string): string[] {
+  validateHandle(handle);
+  return accountLanguages[handle] ?? ["en"];
 }
 
 function buildDefaultContent(config: AccountConfig): ContentConfig {

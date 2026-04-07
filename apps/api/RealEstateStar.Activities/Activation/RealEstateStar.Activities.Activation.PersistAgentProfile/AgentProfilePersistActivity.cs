@@ -40,6 +40,18 @@ public sealed class AgentProfilePersistActivity(
     internal const string ThirdPartyProfilesFile = "Third Party Profiles.md";
     internal const string ConsentLogFile = "Consent Log.md";
 
+    // Skill key → file name prefix mapping for localized skill files
+    private static readonly Dictionary<string, string> SkillKeyToFilePrefix = new()
+    {
+        ["VoiceSkill"] = "Voice Skill",
+        ["PersonalitySkill"] = "Personality Skill",
+        ["MarketingStyle"] = "Marketing Style",
+        ["BrandExtraction"] = "Brand Extraction",
+        ["BrandVoice"] = "Brand Voice",
+        ["CmaStyleGuide"] = "CMA Style Guide",
+        ["WebsiteStyleGuide"] = "Website Style Guide",
+    };
+
     // Binary asset file names
     internal const string HeadshotFile = "headshot.jpg";
     internal const string BrokerageLogoFile = "brokerage-logo.png";
@@ -73,6 +85,7 @@ public sealed class AgentProfilePersistActivity(
 
         writeTasks.AddRange(BuildMarkdownWriteTasks(agentFolder, outputs, ct));
         writeTasks.AddRange(BuildBinaryWriteTasks(agentFolder, outputs, ct));
+        writeTasks.AddRange(BuildLocalizedSkillWriteTasks(agentFolder, agentId, outputs, ct));
 
         await Task.WhenAll(writeTasks);
 
@@ -154,6 +167,61 @@ public sealed class AgentProfilePersistActivity(
                 Convert.ToBase64String(outputs.BrokerageIconBytes), ct));
 
         return tasks;
+    }
+
+    private List<Task> BuildLocalizedSkillWriteTasks(
+        string agentFolder,
+        string agentId,
+        ActivationOutputs outputs,
+        CancellationToken ct)
+    {
+        var tasks = new List<Task>();
+
+        if (outputs.LocalizedSkills is null || outputs.LocalizedSkills.Count == 0)
+            return tasks;
+
+        foreach (var (key, content) in outputs.LocalizedSkills)
+        {
+            var fileName = MapLocalizedSkillKeyToFileName(key);
+            if (fileName is null)
+            {
+                logger.LogWarning(
+                    "[LANG-010] Unknown localized skill key {SkillKey} for agentId={AgentId}, skipping",
+                    key, agentId);
+                continue;
+            }
+
+            tasks.Add(WriteOrUpdateAsync(agentFolder, fileName, content, ct));
+
+            // Extract skill name and locale from "SkillName.locale" format
+            var dotIndex = key.LastIndexOf('.');
+            var skillName = dotIndex > 0 ? key[..dotIndex] : key;
+            var locale = dotIndex > 0 ? key[(dotIndex + 1)..] : "unknown";
+
+            logger.LogInformation(
+                "[LANG-009] Per-language skill {SkillName}.{Locale} persisted for {AgentId}",
+                skillName, locale, agentId);
+        }
+
+        return tasks;
+    }
+
+    /// <summary>
+    /// Maps a localized skill key like "VoiceSkill.es" to "Voice Skill.es.md".
+    /// </summary>
+    internal static string? MapLocalizedSkillKeyToFileName(string key)
+    {
+        // Key format: "{SkillName}.{locale}" — e.g., "VoiceSkill.es"
+        var dotIndex = key.LastIndexOf('.');
+        if (dotIndex <= 0) return null;
+
+        var skillName = key[..dotIndex];
+        var locale = key[(dotIndex + 1)..];
+
+        if (!SkillKeyToFilePrefix.TryGetValue(skillName, out var filePrefix))
+            return null;
+
+        return $"{filePrefix}.{locale}.md";
     }
 
     /// <summary>

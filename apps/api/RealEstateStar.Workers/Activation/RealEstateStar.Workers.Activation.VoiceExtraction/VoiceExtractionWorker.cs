@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Services;
 
 namespace RealEstateStar.Workers.Activation.VoiceExtraction;
 
@@ -17,6 +18,7 @@ public sealed class VoiceExtractionWorker(
     private const string Model = "claude-opus-4-6";
     private const int MaxTokens = 8192;
     private const int MinEmailsForFullProfile = 5;
+    private const int MinSpanishItemsForExtraction = 3;
     private const string Pipeline = "activation.voice-extraction";
 
     private const string SystemPrompt =
@@ -42,14 +44,67 @@ public sealed class VoiceExtractionWorker(
 
         var userMessage = BuildUserMessage(agentName, emailCorpus, driveIndex, agentDiscovery, isLowData);
 
-        var response = await anthropicClient.SendAsync(
+        // Prepare Spanish data before starting parallel calls
+        var spanishEmails = emailCorpus.SentEmails.Where(e => e.DetectedLocale == "es").ToList();
+        var spanishDocs = driveIndex.Files.Where(f => f.DetectedLocale == "es").ToList();
+        var spanishCount = spanishEmails.Count + spanishDocs.Count;
+        var hasSpanishData = spanishCount >= MinSpanishItemsForExtraction;
+
+        if (hasSpanishData)
+        {
+            logger.LogInformation(
+                "[LANG-003] Starting es voice extraction for {AgentName}: {Count} Spanish items",
+                agentName, spanishCount);
+        }
+        else if (spanishCount > 0)
+        {
+            logger.LogInformation(
+                "[LANG-010] SKIP: Spanish VoiceSkill extraction. Reason: insufficient Spanish corpus ({Count} items, need {Min}). " +
+                "Lead emails to Spanish-speaking contacts will use English voice with a Spanish system prompt instead.",
+                spanishCount, MinSpanishItemsForExtraction);
+        }
+
+        // Start English extraction
+        var englishTask = anthropicClient.SendAsync(
             Model, SystemPrompt, userMessage, MaxTokens, Pipeline, ct);
+
+        // Start Spanish extraction in parallel (if sufficient data)
+        Task<Domain.Shared.Models.AnthropicResponse>? spanishTask = hasSpanishData
+            ? anthropicClient.SendAsync(
+                Model,
+                SystemPrompt + "\n\n" +
+                    "Extract voice patterns for Spanish communication specifically. Focus on Spanish-specific catchphrases, greetings, sign-offs, and idioms this agent actually uses in Spanish. Do NOT translate English phrases — extract authentic Spanish expressions.",
+                BuildSpanishUserMessage(agentName, spanishEmails, spanishDocs, driveIndex, isLowData),
+                MaxTokens, Pipeline + ".es", ct)
+            : null;
+
+        if (spanishTask is not null)
+            await Task.WhenAll(englishTask, spanishTask);
+        else
+            await englishTask;
+
+        var response = englishTask.Result;
 
         logger.LogDebug(
             "[ACTV-011] Voice extraction complete for {AgentName}: {InputTokens} in, {OutputTokens} out, {DurationMs}ms",
             agentName, response.InputTokens, response.OutputTokens, response.DurationMs);
 
-        return new VoiceExtractionResult(response.Content, isLowData);
+        Dictionary<string, string>? localizedSkills = null;
+        if (spanishTask is not null)
+        {
+            var spanishResponse = spanishTask.Result;
+
+            logger.LogDebug(
+                "[ACTV-012] Spanish voice extraction complete for {AgentName}: {InputTokens} in, {OutputTokens} out, {DurationMs}ms",
+                agentName, spanishResponse.InputTokens, spanishResponse.OutputTokens, spanishResponse.DurationMs);
+
+            localizedSkills = new Dictionary<string, string>
+            {
+                ["VoiceSkill.es"] = spanishResponse.Content
+            };
+        }
+
+        return new VoiceExtractionResult(response.Content, isLowData, localizedSkills);
     }
 
     private string BuildUserMessage(
@@ -153,13 +208,92 @@ public sealed class VoiceExtractionWorker(
         return sb.ToString();
     }
 
+    private string BuildSpanishUserMessage(
+        string agentName,
+        List<EmailMessage> spanishEmails,
+        List<DriveFile> spanishDocs,
+        DriveIndex driveIndex,
+        bool isLowData)
+    {
+        var sb = new System.Text.StringBuilder();
+
+        var sentEmailsContent = BuildEmailContent(spanishEmails);
+        var sanitizedSentEmails = sanitizer.Sanitize(sentEmailsContent);
+        sb.AppendLine($"<user-data source=\"spanish_sent_emails\" count=\"{spanishEmails.Count}\">");
+        sb.AppendLine(sanitizedSentEmails);
+        sb.AppendLine("</user-data>");
+        sb.AppendLine();
+
+        if (spanishDocs.Count > 0)
+        {
+            var driveContent = BuildSpanishDriveContent(spanishDocs, driveIndex);
+            var sanitizedDriveContent = sanitizer.Sanitize(driveContent);
+            sb.AppendLine("<user-data source=\"spanish_drive_docs\">");
+            sb.AppendLine(sanitizedDriveContent);
+            sb.AppendLine("</user-data>");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine($"""
+            Extract a Spanish Voice Profile in this exact markdown format:
+
+            # Voice Profile ({LanguageDetector.GetLanguageName("es")}): {agentName}
+
+            ## Core Directive
+            This agent communicates with Spanish-speaking clients. All Spanish communications should prioritize cultural authenticity, warmth, and natural expression. Extract ONLY patterns observed in the agent's actual Spanish communications — do NOT translate English patterns.{(isLowData ? "\n⚠️ Low confidence — limited Spanish data analyzed." : "")}
+
+            ## Tone & Style (Spanish)
+            - **Overall tone**: [warm/professional/casual/authoritative — as expressed in Spanish]
+            - **Formality level**: [formal (usted)/informal (tú)/mixed]
+            - **Pacing**: [concise/thorough/moderate]
+            - **Hallmarks**: [2-3 distinctive stylistic traits in Spanish communication]
+
+            ## Signature Phrases & Sayings (Spanish)
+            [List 5-10 actual Spanish phrases or expressions the agent uses frequently. Quote directly from emails.]
+
+            ## Communication Preferences (Spanish)
+            - **Greeting style**: [how they open Spanish emails/messages]
+            - **Sign-off style**: [how they close in Spanish]
+            - **Subject line pattern**: [how they title Spanish emails]
+            - **Cultural markers**: [any culturally-specific patterns — regional expressions, formality shifts]
+
+            ## Email Templates (Spanish)
+
+            ### New Lead Response
+            [Draft a Spanish response to a new inquiry that sounds exactly like this agent]
+
+            ### Showing Request Confirmation
+            [Spanish template for confirming a showing appointment]
+
+            ### Follow-Up After No Response
+            [Spanish template for re-engaging a cold lead]
+            """);
+
+        return sb.ToString();
+    }
+
+    private static string BuildSpanishDriveContent(List<DriveFile> spanishDocs, DriveIndex driveIndex)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var doc in spanishDocs)
+        {
+            if (driveIndex.Contents.TryGetValue(doc.Id, out var content))
+            {
+                sb.AppendLine($"--- Document: {doc.Name} ---");
+                sb.AppendLine(content);
+                sb.AppendLine();
+            }
+        }
+        return sb.Length > 0 ? sb.ToString() : "(No Spanish Drive documents with content available)";
+    }
+
     private static string BuildEmailContent(IReadOnlyList<EmailMessage> emails)
     {
         if (emails.Count == 0)
             return "(No emails available)";
 
         var sb = new System.Text.StringBuilder();
-        foreach (var email in emails.Take(30))
+        foreach (var email in emails)
         {
             sb.AppendLine("---");
             sb.AppendLine($"Date: {email.Date:yyyy-MM-dd}");
@@ -177,7 +311,7 @@ public sealed class VoiceExtractionWorker(
             return "(No Drive documents available)";
 
         var sb = new System.Text.StringBuilder();
-        foreach (var kvp in driveIndex.Contents.Take(10))
+        foreach (var kvp in driveIndex.Contents)
         {
             sb.AppendLine($"--- Document: {kvp.Key} ---");
             sb.AppendLine(kvp.Value);
@@ -205,4 +339,7 @@ public sealed class VoiceExtractionWorker(
     }
 }
 
-public sealed record VoiceExtractionResult(string VoiceSkillMarkdown, bool IsLowConfidence);
+public sealed record VoiceExtractionResult(
+    string VoiceSkillMarkdown,
+    bool IsLowConfidence,
+    Dictionary<string, string>? LocalizedSkills = null);

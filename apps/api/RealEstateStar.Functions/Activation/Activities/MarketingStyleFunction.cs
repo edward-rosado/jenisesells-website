@@ -30,11 +30,11 @@ public sealed class MarketingStyleFunction(
         // Load Drive file contents from blob staging (workers are pure compute, don't touch storage)
         var stagedContents = await stagedContent.GetTopContentsAsync(input.AccountId, input.AgentId, 20, ct);
 
-        var (styleGuide, brandSignals) = await worker.AnalyzeAsync(
+        var (styleGuide, brandSignals, localizedSkills) = await worker.AnalyzeAsync(
             emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
             driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
             ct: ct);
 
-        return JsonSerializer.Serialize(new MarketingStyleOutput { StyleGuide = styleGuide, BrandSignals = brandSignals });
+        return JsonSerializer.Serialize(new MarketingStyleOutput { StyleGuide = styleGuide, BrandSignals = brandSignals, LocalizedSkills = localizedSkills });
     }
 }

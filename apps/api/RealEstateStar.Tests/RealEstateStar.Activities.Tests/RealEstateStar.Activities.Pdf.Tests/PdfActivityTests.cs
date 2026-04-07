@@ -158,7 +158,8 @@ public sealed class PdfActivityTests
                 It.IsAny<ReportType>(),
                 It.IsAny<byte[]?>(),
                 It.IsAny<byte[]?>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<CancellationToken>(),
+                It.IsAny<string?>()))
             .ReturnsAsync(tempFile);
 
         _pdfDataServiceMock
@@ -186,7 +187,8 @@ public sealed class PdfActivityTests
                 lead, analysis, comps, config,
                 ReportType.Standard,
                 null, null,
-                CancellationToken.None), Times.Once);
+                CancellationToken.None,
+                It.IsAny<string?>()), Times.Once);
 
             _pdfDataServiceMock.Verify(s => s.StorePdfAsync(
                 lead.FullName,
@@ -226,9 +228,10 @@ public sealed class PdfActivityTests
                 It.IsAny<ReportType>(),
                 It.IsAny<byte[]?>(),
                 It.IsAny<byte[]?>(),
-                It.IsAny<CancellationToken>()))
-            .Callback<Lead, CmaAnalysis, List<Comp>, AccountConfig, ReportType, byte[]?, byte[]?, CancellationToken>(
-                (_, _, _, cfg, _, _, _, _) => capturedConfig = cfg)
+                It.IsAny<CancellationToken>(),
+                It.IsAny<string?>()))
+            .Callback<Lead, CmaAnalysis, List<Comp>, AccountConfig, ReportType, byte[]?, byte[]?, CancellationToken, string?>(
+                (_, _, _, cfg, _, _, _, _, _) => capturedConfig = cfg)
             .ReturnsAsync(tempFile);
 
         _pdfDataServiceMock
@@ -277,7 +280,8 @@ public sealed class PdfActivityTests
                 It.IsAny<ReportType>(),
                 It.IsAny<byte[]?>(),
                 It.IsAny<byte[]?>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<CancellationToken>(),
+                It.IsAny<string?>()))
             .ThrowsAsync(new InvalidOperationException("Generator failed"));
 
         // Act
@@ -322,7 +326,8 @@ public sealed class PdfActivityTests
                 It.IsAny<ReportType>(),
                 It.IsAny<byte[]?>(),
                 It.IsAny<byte[]?>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<CancellationToken>(),
+                It.IsAny<string?>()))
             .ReturnsAsync(tempFile);
 
         _pdfDataServiceMock

@@ -26,5 +26,6 @@ public interface ICmaPdfGenerator
         ReportType reportType,
         byte[]? logoBytes,
         byte[]? headshotBytes,
-        CancellationToken ct);
+        CancellationToken ct,
+        string? locale = null);
 }

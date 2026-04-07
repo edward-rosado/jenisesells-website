@@ -40,7 +40,12 @@ public sealed class VoiceExtractionFunction(
                 agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
                 ct: ct);
 
-            return JsonSerializer.Serialize(new VoiceExtractionOutput { VoiceSkillMarkdown = result.VoiceSkillMarkdown, IsLowConfidence = result.IsLowConfidence });
+            return JsonSerializer.Serialize(new VoiceExtractionOutput
+            {
+                VoiceSkillMarkdown = result.VoiceSkillMarkdown,
+                IsLowConfidence = result.IsLowConfidence,
+                LocalizedSkills = result.LocalizedSkills
+            });
         }
         catch (Exception ex)
         {

@@ -35,6 +35,7 @@ public sealed class WelcomeNotificationFunction(
             PersonalitySkill = input.PersonalitySkill,
             CoachingReport = input.CoachingReport,
             PipelineJson = input.PipelineJson,
+            LocalizedSkills = input.LocalizedSkills,
             Discovery = new AgentDiscovery(
                 HeadshotBytes: null,
                 LogoBytes: null,

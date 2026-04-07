@@ -37,6 +37,11 @@ public sealed class PersonalityFunction(
             agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 
-        return JsonSerializer.Serialize(new PersonalityOutput { PersonalitySkillMarkdown = result.PersonalitySkillMarkdown, IsLowConfidence = result.IsLowConfidence });
+        return JsonSerializer.Serialize(new PersonalityOutput
+        {
+            PersonalitySkillMarkdown = result.PersonalitySkillMarkdown,
+            IsLowConfidence = result.IsLowConfidence,
+            LocalizedSkills = result.LocalizedSkills
+        });
     }
 }

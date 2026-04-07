@@ -20,4 +20,7 @@ public record CommunicationRecord
 
     /// <summary>SHA256 of draft inputs — dedup key. Same hash = same content, skip re-draft.</summary>
     public required string ContentHash { get; init; }
+
+    /// <summary>BCP 47 locale code of the language used when drafting this communication (e.g., "en", "es").</summary>
+    public string? Locale { get; init; }
 }

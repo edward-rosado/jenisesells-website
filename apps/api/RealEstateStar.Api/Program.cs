@@ -398,7 +398,7 @@ builder.Services.AddBrandMergeActivity();
 builder.Services.AddContactImportPersistActivity();
 builder.Services.AddTransient<ContactDetectionActivity>();
 
-// Activation pipeline — 15 workers (transient) + ActivationOrchestrator (BackgroundService)
+// Activation pipeline — 15 workers (transient). Orchestration via Azure Durable Functions.
 builder.Services.AddActivationPipeline();
 
 // Named HttpClient for AgentDiscovery worker

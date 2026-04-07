@@ -5,6 +5,9 @@
       "Bash(az containerapp:*)",
       "Bash(grep -v \"^$\")",
       "Edit(/.claude/skills/learned/**)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Edward.Rosado\\Real-Estate-Star\\.claude\\worktrees\\feat+i18n-agent-site\\apps\\agent-site\\features"
     ]
   },
   "hooks": {

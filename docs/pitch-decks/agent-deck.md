@@ -154,7 +154,24 @@ Your competitors make you figure this out yourself.
 
 ---
 
-## Slide 10: Pricing
+## Slide 10: Multi-Language Support
+
+### Speak your clients' language. Literally.
+
+46 million Americans speak Spanish at home. If you serve bilingual communities, your website and communications should meet them where they are.
+
+- **Your Website — In Two Languages** — Visitors see your site in their preferred language automatically. A one-click language switcher lets them choose. Your branding, your content — in Spanish and English.
+- **Leads Get Emails in Their Language** — When a Spanish-speaking lead submits a form, the response email, CMA report, and follow-ups are all drafted in Spanish — using your actual Spanish voice and catchphrases, not robotic translations.
+- **AI Learns How You Speak** — During setup, AI analyzes your real Spanish emails and marketing to extract your authentic Spanish voice. The result sounds like *you*, not a translation engine.
+- **Compliance Stays English** — Legal disclosures and consent text remain in English where required by law. We handle the complexity so you don't have to think about it.
+
+**Your competitors force Spanish-speaking leads through an English-only experience. That's leaving money on the table.**
+
+> **Speaker notes:** This slide resonates most in bilingual markets (Florida, Texas, California, New Jersey, New York). If the agent speaks Spanish, this is a massive differentiator. If they don't, skip this slide — it still shows the platform's sophistication.
+
+---
+
+## Slide 11: Pricing
 
 ### $14.99/mo. Everything included. No add-ons. No surprises.
 
@@ -175,7 +192,7 @@ Your competitors make you figure this out yourself.
 
 ---
 
-## Slide 11: What's Coming Next
+## Slide 12: What's Coming Next
 
 ### The platform grows with you.
 
@@ -192,7 +209,7 @@ You're getting in early.
 
 ---
 
-## Slide 12: Get Started
+## Slide 13: Get Started
 
 ### 14-day free trial. No credit card required.
 

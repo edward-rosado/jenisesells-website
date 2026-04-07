@@ -7,7 +7,8 @@ public sealed record ImportedContact(
     ContactRole Role,
     PipelineStage Stage,
     string? PropertyAddress,
-    IReadOnlyList<DocumentReference> Documents);
+    IReadOnlyList<DocumentReference> Documents,
+    string? DetectedLocale = null);
 
 public sealed record DocumentReference(
     string DriveFileId,

@@ -583,6 +583,103 @@ public class LeadEmailTemplateTests
     // Buyer with no budget in user message (coverage for min/max branch)
     // -----------------------------------------------------------------------
 
+    // -----------------------------------------------------------------------
+    // Locale / localization
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void Render_WithSpanishLocale_SetsLangAttributeToEs()
+    {
+        var html = LeadEmailTemplate.Render(
+            MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
+            string.Empty, string.Empty, null, "test-secret", locale: "es");
+
+        html.Should().Contain("lang=\"es\"");
+    }
+
+    [Fact]
+    public void Render_WithSpanishLocale_ContainsSpanishGreeting()
+    {
+        var html = LeadEmailTemplate.Render(
+            MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
+            string.Empty, string.Empty, null, "test-secret", locale: "es");
+
+        html.Should().Contain("Hola");
+    }
+
+    [Fact]
+    public void Render_WithNullLocale_SetsLangAttributeToEn()
+    {
+        var html = LeadEmailTemplate.Render(
+            MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
+            string.Empty, string.Empty, null, "test-secret", locale: null);
+
+        html.Should().Contain("lang=\"en\"");
+    }
+
+    [Fact]
+    public void Render_WithEnglishLocale_ContainsEnglishGreeting()
+    {
+        var html = LeadEmailTemplate.Render(
+            MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
+            string.Empty, string.Empty, null, "test-secret", locale: "en");
+
+        html.Should().Contain("Hi ");
+    }
+
+    [Fact]
+    public void Render_WithSpanishLocale_TcpaConsentTextStaysEnglish()
+    {
+        var html = LeadEmailTemplate.Render(
+            MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
+            string.Empty, string.Empty, null, "test-secret", locale: "es");
+
+        // CCPA link text stays English regardless of locale
+        html.Should().Contain("Do Not Sell My Information (CCPA)");
+    }
+
+    [Fact]
+    public void GetLocalizedStrings_Spanish_ReturnsSpanishStrings()
+    {
+        var strings = LeadEmailTemplate.GetLocalizedStrings("es");
+
+        strings["greeting"].Should().Be("Hola");
+        strings["cta"].Should().Be("Me encantaría conectar contigo");
+        strings["ctaSuffix"].Should().Be("no dudes en responder a este correo o llamarme al");
+        strings["privacyLink"].Should().Be("Política de Privacidad");
+        strings["unsubscribe"].Should().Be("Cancelar suscripción");
+    }
+
+    [Fact]
+    public void GetLocalizedStrings_English_ReturnsEnglishStrings()
+    {
+        var strings = LeadEmailTemplate.GetLocalizedStrings("en");
+
+        strings["greeting"].Should().Be("Hi");
+        strings["cta"].Should().Be("I'd love to connect");
+        strings["ctaSuffix"].Should().Be("feel free to reply to this email or call me at");
+        strings["privacyLink"].Should().Be("Privacy Policy");
+        strings["unsubscribe"].Should().Be("Unsubscribe");
+    }
+
+    [Fact]
+    public void GetLocalizedStrings_NullLocale_DefaultsToEnglishStrings()
+    {
+        // GetLocalizedStrings takes a non-null string, but the Render method defaults null to "en"
+        // Test through Render to verify the null→"en" default path
+        var html = LeadEmailTemplate.Render(
+            MakeSellerLead(), MakeScore(), null, null, DefaultAgent,
+            string.Empty, string.Empty, null, "test-secret", locale: null);
+
+        html.Should().Contain("Hi ");
+        html.Should().Contain("Privacy Policy");
+        html.Should().Contain("Unsubscribe");
+    }
+
+    // -----------------------------------------------------------------------
+    // Buyer with no budget
+    // -----------------------------------------------------------------------
+
     [Fact]
     public void Render_BuyerLeadWithNoBudget_DoesNotThrow()
     {

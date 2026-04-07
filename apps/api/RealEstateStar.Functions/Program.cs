@@ -121,6 +121,7 @@ builder.Services.AddOpenTelemetry()
         .AddSource("RealEstateStar.AgentNotifier")
         .AddSource("RealEstateStar.Activation")
         .AddSource("RealEstateStar.AgentContext")
+        .AddSource("RealEstateStar.Language")
         .AddHttpClientInstrumentation()
         .AddOtlpExporter(options =>
         {
@@ -150,6 +151,7 @@ builder.Services.AddOpenTelemetry()
         .AddMeter("RealEstateStar.AgentNotifier")
         .AddMeter("RealEstateStar.Activation")
         .AddMeter("RealEstateStar.AgentContext")
+        .AddMeter("RealEstateStar.Language")
         .AddHttpClientInstrumentation()
         .AddOtlpExporter(options =>
         {

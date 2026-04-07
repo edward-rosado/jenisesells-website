@@ -205,7 +205,7 @@ public class WebsiteStyleWorkerTests
     }
 
     [Fact]
-    public void BuildPrompt_HtmlExceedsLimit_Truncates()
+    public void BuildPrompt_LongHtml_IncludesFullContent()
     {
         var sanitizer = new Mock<IContentSanitizer>();
         var longHtml = new string('x', 5000);
@@ -218,7 +218,7 @@ public class WebsiteStyleWorkerTests
 
         var prompt = WebsiteStyleWorker.BuildPrompt(websites, sanitizer.Object);
 
-        prompt.Should().Contain("...");
+        prompt.Should().Contain(longHtml);
     }
 
     [Fact]

@@ -23,6 +23,9 @@ public sealed record ActivationOutputs
     public string? ThirdPartyProfiles { get; init; }
     public string? ConsentLog { get; init; }
 
+    // Localized skill variants — keyed by "{skillName}.{locale}" (e.g., "VoiceSkill.es")
+    public IReadOnlyDictionary<string, string>? LocalizedSkills { get; init; }
+
     // Structured discovery data
     public AgentDiscovery? Discovery { get; init; }
     public BrandingKit? BrandingKit { get; init; }

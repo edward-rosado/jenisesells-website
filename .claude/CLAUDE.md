@@ -162,6 +162,24 @@ When working on a skill, load the agent profile first:
 - **Contracts**: State-specific templates live in `skills/contracts/templates/{STATE}/`
 - **No hardcoding**: Agent identity, branding, and compliance data always come from config
 - **API calls**: Platform uses shared `api` instance from `@/lib/api`. Agent-site passes HMAC headers per-request via `createApiClient()`. SSE streaming stays raw `fetch`. Correlation IDs are auto-injected.
+- **Pitch decks**: `docs/pitch-decks/` contains both `.html` (presentation) and `.md` (source) for each deck. **Always update both files together** — they must stay in sync. The `.md` is the readable reference; the `.html` is the presentable version.
+- **Locale is a first-class dimension**: Every feature that touches user-facing content MUST carry locale through the entire pipeline. This is a design principle, not an afterthought. See rules below.
+
+### Locale-First Design Principle
+
+Locale is a **first-class dimension** of every design — like `agentId` or `correlationId`, it must flow through every layer that produces, transforms, or delivers content to a human.
+
+**Rules for new features:**
+1. Every DTO that carries content to users MUST have a `Locale` property
+2. Every DTO that carries synthesis results MUST have a `LocalizedSkills` property if the worker extracts per-language content
+3. Every service method that drafts user-facing text (emails, PDFs, notifications) MUST accept a locale or AgentContext parameter
+4. Every worker that analyzes agent communications MUST detect language and produce per-language output when sufficient data exists
+5. Agent personality and voice profiles MUST capture per-language catchphrases, signature expressions, and cultural heritage
+6. Welcome messages and lead emails MUST use the agent's authentic expressions in the contact's language — not generic translations
+
+**Enforced by:** `LocaleTests.cs` in Architecture.Tests — reflection-based tests verify locale fields exist on all content-carrying DTOs. CI rejects PRs that drop locale fields.
+
+**Why this matters:** Our agents serve bilingual communities. A Dominican agent's "¡Pa'lante!" is not interchangeable with a generic "¡Adelante!". The system must preserve and use each agent's authentic voice in every language they speak.
 
 ## Architecture Test Protection
 
@@ -275,6 +293,23 @@ When a seller lead is submitted, the CMA pipeline fetches comparable sales data 
 
 **PDF Download:** `DownloadCmaEndpoint` (GET `/accounts/{accountId}/agents/{agentId}/leads/{leadId}/cma/download`) streams the PDF from Azure Blob Storage. PDFs are stored automatically when the CMA pipeline completes.
 
+
+## Multi-Language Architecture
+
+Agent sites support English and Spanish. Language flows through two axes:
+
+**Agent capability** (activation): Phase 2 DF activity functions extract per-language skills from the agent's actual Spanish emails/docs. `LocalizedSkills` dictionary flows through DF serialization DTOs (`VoiceExtractionOutput`, `PersonalityOutput`, `MarketingStyleOutput`, `BrandExtractionOutput`, `BrandVoiceOutput` in `ActivationDtos.cs`) and is persisted via `PersistProfileInput.LocalizedSkills`. `CheckActivationCompleteFunction` performs per-language completion checks — when `Languages` contains `"es"`, it also verifies `Voice Skill.es.md` and `Personality Skill.es.md` exist.
+
+**Contact preference** (lead pipeline): `Lead.Locale` captured at form submission and flows through `LeadOrchestratorInput.Locale` into downstream DF activity DTOs (`DraftLeadEmailInput.Locale`, `GeneratePdfInput.Locale`, `NotifyAgentInput.Locale`, `PersistLeadResultsInput.Locale`). Email drafter loads `AgentContext.GetSkill("VoiceSkill", locale)` for per-language voice. CMA PDFs and email templates render localized content.
+
+**Key conventions:**
+- Per-language skill files: `{Skill Name}.{locale}.md` (e.g., `Voice Skill.es.md`)
+- Locale codes: BCP 47 (`en`, `es`)
+- `AgentContext.GetSkill(skillName, locale)` — falls back to English if locale version doesn't exist
+- Language detection: `LanguageDetector.DetectLocale(text)` in `Domain/Shared/Services/`
+- Observability: `RealEstateStar.Language` ActivitySource + Meter
+- TCPA consent text stays English regardless of locale (legal requirement)
+- Language features are fully integrated with DF orchestrators — no BackgroundService involvement
 
 ## Docker / Production Notes
 

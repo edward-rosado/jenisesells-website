@@ -28,6 +28,7 @@ public sealed record EmailMessageDto
     [JsonPropertyName("to")] public string[] To { get; init; } = default!;
     [JsonPropertyName("date")] public DateTime Date { get; init; }
     [JsonPropertyName("signatureBlock")] public string? SignatureBlock { get; init; }
+    [JsonPropertyName("detectedLocale")] public string? DetectedLocale { get; init; }
 }
 
 public sealed record EmailSignatureDto
@@ -67,6 +68,7 @@ public sealed record DriveFileDto
     [JsonPropertyName("mimeType")] public string MimeType { get; init; } = default!;
     [JsonPropertyName("category")] public string Category { get; init; } = default!;
     [JsonPropertyName("modifiedDate")] public DateTime ModifiedDate { get; init; }
+    [JsonPropertyName("detectedLocale")] public string? DetectedLocale { get; init; }
 }
 
 public sealed record DocumentExtractionDto
@@ -176,6 +178,7 @@ public sealed record CheckActivationCompleteInput
 {
     [JsonPropertyName("accountId")] public string AccountId { get; init; } = default!;
     [JsonPropertyName("agentId")] public string AgentId { get; init; } = default!;
+    [JsonPropertyName("languages")] public List<string>? Languages { get; init; }
 }
 
 /// <summary>Output from the CheckActivationComplete activity function.</summary>
@@ -216,6 +219,7 @@ public sealed record VoiceExtractionOutput
 {
     [JsonPropertyName("voiceSkillMarkdown")] public string? VoiceSkillMarkdown { get; init; }
     [JsonPropertyName("isLowConfidence")] public bool IsLowConfidence { get; init; }
+    [JsonPropertyName("localizedSkills")] public Dictionary<string, string>? LocalizedSkills { get; init; }
 }
 
 /// <summary>Output from Personality activity.</summary>
@@ -223,6 +227,7 @@ public sealed record PersonalityOutput
 {
     [JsonPropertyName("personalitySkillMarkdown")] public string? PersonalitySkillMarkdown { get; init; }
     [JsonPropertyName("isLowConfidence")] public bool IsLowConfidence { get; init; }
+    [JsonPropertyName("localizedSkills")] public Dictionary<string, string>? LocalizedSkills { get; init; }
 }
 
 /// <summary>Output from BrandingDiscovery activity.</summary>
@@ -272,11 +277,26 @@ public sealed record CoachingOutput
     [JsonPropertyName("isInsufficient")] public bool IsInsufficient { get; init; }
 }
 
-/// <summary>Output from MarketingStyle activity (returns two strings).</summary>
+/// <summary>Output from MarketingStyle activity (returns two strings plus localized skills).</summary>
 public sealed record MarketingStyleOutput
 {
     [JsonPropertyName("styleGuide")] public string? StyleGuide { get; init; }
     [JsonPropertyName("brandSignals")] public string? BrandSignals { get; init; }
+    [JsonPropertyName("localizedSkills")] public Dictionary<string, string>? LocalizedSkills { get; init; }
+}
+
+/// <summary>Output from BrandExtraction activity.</summary>
+public sealed record BrandExtractionOutput
+{
+    [JsonPropertyName("signals")] public string? Signals { get; init; }
+    [JsonPropertyName("localizedSkills")] public Dictionary<string, string>? LocalizedSkills { get; init; }
+}
+
+/// <summary>Output from BrandVoice activity.</summary>
+public sealed record BrandVoiceOutput
+{
+    [JsonPropertyName("signals")] public string? Signals { get; init; }
+    [JsonPropertyName("localizedSkills")] public Dictionary<string, string>? LocalizedSkills { get; init; }
 }
 
 // ── Phase 2.5 Contact Detection ───────────────────────────────────────────────
@@ -341,6 +361,7 @@ public sealed record PersistProfileInput
     [JsonPropertyName("agentLicenseNumber")] public string? AgentLicenseNumber { get; init; }
     [JsonPropertyName("serviceAreas")] public List<string> ServiceAreas { get; init; } = [];
     [JsonPropertyName("discovery")] public AgentDiscoveryOutput Discovery { get; init; } = default!;
+    [JsonPropertyName("localizedSkills")] public Dictionary<string, string>? LocalizedSkills { get; init; }
 }
 
 public sealed record BrandMergeInput
@@ -375,6 +396,7 @@ public sealed record WelcomeNotificationInput
     [JsonPropertyName("coachingReport")] public string? CoachingReport { get; init; }
     [JsonPropertyName("pipelineJson")] public string? PipelineJson { get; init; }
     [JsonPropertyName("contactCount")] public int ContactCount { get; init; }
+    [JsonPropertyName("localizedSkills")] public Dictionary<string, string>? LocalizedSkills { get; init; }
 }
 
 public sealed record CleanupStagedContentInput
