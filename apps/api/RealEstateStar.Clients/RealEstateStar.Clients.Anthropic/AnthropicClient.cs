@@ -111,9 +111,17 @@ public sealed class AnthropicClient(
             var durationMs = Stopwatch.GetElapsedTime(sw).TotalMilliseconds;
             ClaudeDiagnostics.RecordUsage(pipeline, model, inputTokens, outputTokens, durationMs);
 
+            var (inputRate, outputRate) = model switch
+            {
+                var m when m.Contains("haiku") => (0.80 / 1_000_000, 4.0 / 1_000_000),
+                var m when m.Contains("opus") => (15.0 / 1_000_000, 75.0 / 1_000_000),
+                _ => (3.0 / 1_000_000, 15.0 / 1_000_000) // sonnet default
+            };
+            var estCost = inputTokens * inputRate + outputTokens * outputRate;
+
             logger.LogInformation(
-                "[CLAUDE-020] Claude call succeeded. Pipeline: {Pipeline}, Model: {Model}, InputTokens: {InputTokens}, OutputTokens: {OutputTokens}, Duration: {Duration}ms",
-                pipeline, model, inputTokens, outputTokens, durationMs);
+                "[CLAUDE-020] Claude call succeeded. Pipeline: {Pipeline}, Model: {Model}, InputTokens: {InputTokens}, OutputTokens: {OutputTokens}, Duration: {Duration}ms, EstCost: ${EstCost:F4}",
+                pipeline, model, inputTokens, outputTokens, durationMs, estCost);
 
             return new AnthropicResponse(content, inputTokens, outputTokens, durationMs);
         }

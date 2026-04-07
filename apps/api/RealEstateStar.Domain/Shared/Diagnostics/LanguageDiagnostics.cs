@@ -19,7 +19,13 @@ public static class LanguageDiagnostics
     public static readonly Counter<long> CmaGenerated = Meter.CreateCounter<long>("language.cma.generated");
     public static readonly Counter<long> WelcomeSent = Meter.CreateCounter<long>("language.welcome.sent");
 
+    // Cost tracking — per-language Claude API token usage
+    public static readonly Counter<long> ExtractionInputTokens = Meter.CreateCounter<long>("language.extraction.input_tokens");
+    public static readonly Counter<long> ExtractionOutputTokens = Meter.CreateCounter<long>("language.extraction.output_tokens");
+    public static readonly Counter<long> BilingualActivations = Meter.CreateCounter<long>("language.activation.bilingual");
+
     // Histograms
     public static readonly Histogram<double> DetectionDuration = Meter.CreateHistogram<double>("language.detection_duration_ms");
     public static readonly Histogram<double> ExtractionDuration = Meter.CreateHistogram<double>("language.extraction_duration_ms");
+    public static readonly Histogram<double> ExtractionCostEstimate = Meter.CreateHistogram<double>("language.extraction.cost_estimate_usd");
 }

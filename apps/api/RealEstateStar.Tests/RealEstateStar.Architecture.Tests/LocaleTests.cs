@@ -164,12 +164,26 @@ public class LocaleTests
 
     private static Type? FindFunctionsDtoType(string typeName)
     {
-        // Functions DTOs are in the Functions assembly; Lead DTOs are in the same assembly
+        // Functions DTOs are in the Functions assembly; Lead DTOs are in the same assembly.
+        // ReferenceOutputAssembly=false means transitive deps aren't copied — GetTypes()
+        // throws ReflectionTypeLoadException. Use the partial types from the exception.
         var functionsPath = Path.Combine(AppContext.BaseDirectory, "RealEstateStar.Functions.dll");
         if (!File.Exists(functionsPath))
             return null;
 
         var assembly = Assembly.LoadFrom(functionsPath);
-        return assembly.GetTypes().FirstOrDefault(t => t.Name == typeName);
+        Type[] types;
+        try
+        {
+            types = assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException ex)
+        {
+            // Partial load — some types couldn't resolve dependencies.
+            // The DTO types we care about have no external deps, so they load fine.
+            types = ex.Types.Where(t => t is not null).ToArray()!;
+        }
+
+        return types.FirstOrDefault(t => t.Name == typeName);
     }
 }

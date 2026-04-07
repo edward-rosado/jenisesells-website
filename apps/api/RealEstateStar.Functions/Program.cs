@@ -84,6 +84,9 @@ if (!string.IsNullOrEmpty(otlpLogEndpoint))
     });
 }
 
+serilogConfig
+    .MinimumLevel.Override("System.Net.Http.HttpClient", Serilog.Events.LogEventLevel.Warning);
+
 Log.Logger = serilogConfig.CreateLogger();
 builder.Services.AddSerilog();
 
@@ -118,6 +121,7 @@ builder.Services.AddOpenTelemetry()
         .AddSource("RealEstateStar.AgentNotifier")
         .AddSource("RealEstateStar.Activation")
         .AddSource("RealEstateStar.AgentContext")
+        .AddSource("RealEstateStar.Language")
         .AddHttpClientInstrumentation()
         .AddOtlpExporter(options =>
         {
@@ -147,6 +151,7 @@ builder.Services.AddOpenTelemetry()
         .AddMeter("RealEstateStar.AgentNotifier")
         .AddMeter("RealEstateStar.Activation")
         .AddMeter("RealEstateStar.AgentContext")
+        .AddMeter("RealEstateStar.Language")
         .AddHttpClientInstrumentation()
         .AddOtlpExporter(options =>
         {
