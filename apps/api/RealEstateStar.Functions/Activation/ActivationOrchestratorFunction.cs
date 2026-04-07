@@ -77,20 +77,33 @@ public sealed class ActivationOrchestratorFunction
 
         // ── Phase 1: Gather ──────────────────────────────────────────────────
 
+        var phase1Start = ctx.CurrentUtcDateTime;
         if (!ctx.IsReplaying)
             logger.LogInformation("[ACTV-FN-010] Phase 1: gather for accountId={AccountId}", request.AccountId);
 
         // Email then Drive — sequential to stay under Consumption plan 1.5 GB memory limit.
         // Running both in parallel doubles peak memory (both hold Google API responses).
+        var emailStart = ctx.CurrentUtcDateTime;
         var emailJson = await ctx.CallActivityAsync<string>(
             ActivityNames.EmailFetch,
             new EmailFetchInput { AccountId = request.AccountId, AgentId = request.AgentId });
         var emailCorpus = JsonSerializer.Deserialize<EmailFetchOutput>(emailJson)!;
+        if (!ctx.IsReplaying)
+        {
+            var emailDuration = (ctx.CurrentUtcDateTime - emailStart).TotalMilliseconds;
+            logger.LogInformation("[ACTV-FN-011] EmailFetch completed in {Duration}ms", emailDuration);
+        }
 
+        var driveStart = ctx.CurrentUtcDateTime;
         var driveJson = await ctx.CallActivityAsync<string>(
             ActivityNames.DriveIndex,
             new DriveIndexInput { AccountId = request.AccountId, AgentId = request.AgentId });
         var driveIndex = JsonSerializer.Deserialize<DriveIndexOutput>(driveJson)!;
+        if (!ctx.IsReplaying)
+        {
+            var driveDuration = (ctx.CurrentUtcDateTime - driveStart).TotalMilliseconds;
+            logger.LogInformation("[ACTV-FN-012] DriveIndex completed in {Duration}ms", driveDuration);
+        }
 
         // Discovery requires email corpus to use signature info.
         // Validate email before splitting to avoid IndexOutOfRangeException on malformed input.
@@ -98,6 +111,7 @@ public sealed class ActivationOrchestratorFunction
             ? request.Email.Split('@')[0].Trim()
             : request.AccountId; // fallback to account ID when email is absent or malformed
 
+        var discoveryStart = ctx.CurrentUtcDateTime;
         var discoveryJson = await ctx.CallActivityAsync<string>(
             ActivityNames.AgentDiscovery,
             new AgentDiscoveryInput
@@ -108,9 +122,17 @@ public sealed class ActivationOrchestratorFunction
                 EmailSignature = emailCorpus.Signature,
             });
         var discovery = JsonSerializer.Deserialize<AgentDiscoveryOutput>(discoveryJson)!;
+        if (!ctx.IsReplaying)
+        {
+            var discoveryDuration = (ctx.CurrentUtcDateTime - discoveryStart).TotalMilliseconds;
+            logger.LogInformation("[ACTV-FN-013] AgentDiscovery completed in {Duration}ms", discoveryDuration);
+            var phase1Duration = (ctx.CurrentUtcDateTime - phase1Start).TotalMilliseconds;
+            logger.LogInformation("[ACTV-FN-014] Phase 1 completed in {Duration}ms", phase1Duration);
+        }
 
         // ── Phase 2: Synthesize (12 workers in parallel) ──────────────────────
 
+        var phase2Start = ctx.CurrentUtcDateTime;
         if (!ctx.IsReplaying)
             logger.LogInformation("[ACTV-FN-020] Phase 2: synthesize for agentId={AgentId}", request.AgentId);
 
@@ -134,32 +156,48 @@ public sealed class ActivationOrchestratorFunction
         // Future tier dispatches all 12 workers in 6 batches.
 
         // ── Batch 1 (MVP + Future) ──────────────────────────────────────────
+        var batch1Start = ctx.CurrentUtcDateTime;
         var voiceTask = WrapAsync<VoiceExtractionOutput>(
             ctx, ActivityNames.VoiceExtraction, synthesisInput, "[ACTV-FN-021] voice", logger);
         var personalityTask = WrapAsync<PersonalityOutput>(
             ctx, ActivityNames.Personality, synthesisInput, "[ACTV-FN-022] personality", logger);
         await Task.WhenAll(voiceTask, personalityTask);
+        if (!ctx.IsReplaying)
+            logger.LogInformation("[ACTV-FN-025] Batch 1 (voice+personality) completed in {Duration}ms",
+                (ctx.CurrentUtcDateTime - batch1Start).TotalMilliseconds);
 
         // ── Batch 2 (MVP + Future) ──────────────────────────────────────────
+        var batch2Start = ctx.CurrentUtcDateTime;
         var brandingTask = WrapAsync<BrandingDiscoveryOutput>(
             ctx, ActivityNames.BrandingDiscovery, synthesisInput, "[ACTV-FN-023] branding", logger);
         var websiteTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.WebsiteStyle, synthesisInput, "[ACTV-FN-026] website-style", logger);
         await Task.WhenAll(brandingTask, websiteTask);
+        if (!ctx.IsReplaying)
+            logger.LogInformation("[ACTV-FN-025] Batch 2 (branding+website) completed in {Duration}ms",
+                (ctx.CurrentUtcDateTime - batch2Start).TotalMilliseconds);
 
         // ── Batch 3 (MVP + Future) ──────────────────────────────────────────
+        var batch3Start = ctx.CurrentUtcDateTime;
         var cmaTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.CmaStyle, synthesisInput, "[ACTV-FN-024] cma-style", logger);
         var pipelineTask = WrapAsync<PipelineAnalysisOutput>(
             ctx, ActivityNames.PipelineAnalysis, synthesisInput, "[ACTV-FN-027] pipeline", logger);
         await Task.WhenAll(cmaTask, pipelineTask);
+        if (!ctx.IsReplaying)
+            logger.LogInformation("[ACTV-FN-025] Batch 3 (cma+pipeline) completed in {Duration}ms",
+                (ctx.CurrentUtcDateTime - batch3Start).TotalMilliseconds);
 
         // ── Batch 4 (MVP + Future) ──────────────────────────────────────────
+        var batch4Start = ctx.CurrentUtcDateTime;
         var coachingTask = WrapAsync<CoachingOutput>(
             ctx, ActivityNames.Coaching, synthesisInput, "[ACTV-FN-028] coaching", logger);
         var complianceTask = WrapAsync<StringOutput>(
             ctx, ActivityNames.ComplianceAnalysis, synthesisInput, "[ACTV-FN-031] compliance", logger);
         await Task.WhenAll(coachingTask, complianceTask);
+        if (!ctx.IsReplaying)
+            logger.LogInformation("[ACTV-FN-025] Batch 4 (coaching+compliance) completed in {Duration}ms",
+                (ctx.CurrentUtcDateTime - batch4Start).TotalMilliseconds);
 
         // ── FUTURE-tier workers (skip for MVP) ──────────────────────────────
         Task<StringOutput?> brandExtractionTask;
@@ -170,18 +208,26 @@ public sealed class ActivationOrchestratorFunction
         if (request.Tier == ActivationTier.Future)
         {
             // ── Batch 5 (Future only) ───────────────────────────────────────
+            var batch5Start = ctx.CurrentUtcDateTime;
             brandExtractionTask = WrapAsync<StringOutput>(
                 ctx, ActivityNames.BrandExtraction, synthesisInput, "[ACTV-FN-029] brand-extraction", logger);
             brandVoiceTask = WrapAsync<StringOutput>(
                 ctx, ActivityNames.BrandVoice, synthesisInput, "[ACTV-FN-030] brand-voice", logger);
             await Task.WhenAll(brandExtractionTask, brandVoiceTask);
+            if (!ctx.IsReplaying)
+                logger.LogInformation("[ACTV-FN-025] Batch 5 (brand-extraction+brand-voice) completed in {Duration}ms",
+                    (ctx.CurrentUtcDateTime - batch5Start).TotalMilliseconds);
 
             // ── Batch 6 (Future only) ───────────────────────────────────────
+            var batch6Start = ctx.CurrentUtcDateTime;
             marketingTask = WrapAsync<MarketingStyleOutput>(
                 ctx, ActivityNames.MarketingStyle, synthesisInput, "[ACTV-FN-025] marketing", logger);
             feeTask = WrapAsync<StringOutput>(
                 ctx, ActivityNames.FeeStructure, synthesisInput, "[ACTV-FN-032] fee-structure", logger);
             await Task.WhenAll(marketingTask, feeTask);
+            if (!ctx.IsReplaying)
+                logger.LogInformation("[ACTV-FN-025] Batch 6 (marketing+fee) completed in {Duration}ms",
+                    (ctx.CurrentUtcDateTime - batch6Start).TotalMilliseconds);
         }
         else
         {
@@ -212,6 +258,25 @@ public sealed class ActivationOrchestratorFunction
         var brandVoice = brandVoiceTask.Result?.Value;
         var compliance = complianceTask.Result?.Value;
         var feeStructure = feeTask.Result?.Value;
+
+        // Count succeeded/failed synthesis workers for the summary
+        object?[] mvpResults = [voice, personality, branding, cmaTask.Result, websiteTask.Result, pipelineResult, coaching, complianceTask.Result];
+        var succeededCount = mvpResults.Count(r => r is not null);
+        var failedCount = mvpResults.Length - succeededCount;
+        if (request.Tier == ActivationTier.Future)
+        {
+            object?[] futureResults = [brandExtractionTask.Result, brandVoiceTask.Result, marketing, feeTask.Result];
+            succeededCount += futureResults.Count(r => r is not null);
+            failedCount += futureResults.Count(r => r is null);
+        }
+
+        if (!ctx.IsReplaying)
+        {
+            var phase2Duration = (ctx.CurrentUtcDateTime - phase2Start).TotalMilliseconds;
+            logger.LogInformation(
+                "[ACTV-FN-034] Phase 2 completed in {Duration}ms — {Succeeded} succeeded, {Failed} failed",
+                phase2Duration, succeededCount, failedCount);
+        }
 
         // ── Phase 2.5: Contact Detection ──────────────────────────────────────
 
@@ -245,6 +310,7 @@ public sealed class ActivationOrchestratorFunction
 
         // ── Phase 3: Persist + Merge ──────────────────────────────────────────
 
+        var phase3Start = ctx.CurrentUtcDateTime;
         if (!ctx.IsReplaying)
             logger.LogInformation("[ACTV-FN-040] Phase 3: persist for agentId={AgentId}", request.AgentId);
 
@@ -348,8 +414,15 @@ public sealed class ActivationOrchestratorFunction
                 logger.LogWarning(ex, "[ACTV-FN-046] Staged content cleanup failed — non-fatal");
         }
 
+        if (!ctx.IsReplaying)
+        {
+            var phase3Duration = (ctx.CurrentUtcDateTime - phase3Start).TotalMilliseconds;
+            logger.LogInformation("[ACTV-FN-049] Phase 3 completed in {Duration}ms", phase3Duration);
+        }
+
         // ── Phase 4: Notify ───────────────────────────────────────────────────
 
+        var phase4Start = ctx.CurrentUtcDateTime;
         if (!ctx.IsReplaying)
             logger.LogInformation("[ACTV-FN-050] Phase 4: welcome notification for agentId={AgentId}", request.AgentId);
 
@@ -374,9 +447,14 @@ public sealed class ActivationOrchestratorFunction
 
         if (!ctx.IsReplaying)
         {
+            var phase4Duration = (ctx.CurrentUtcDateTime - phase4Start).TotalMilliseconds;
+            logger.LogInformation("[ACTV-FN-059] Phase 4 completed in {Duration}ms", phase4Duration);
+
+            var totalDuration = (ctx.CurrentUtcDateTime - request.Timestamp).TotalMilliseconds;
             logger.LogInformation(
-                "[ACTV-FN-099] Activation orchestration complete for accountId={AccountId}, agentId={AgentId}",
-                request.AccountId, request.AgentId);
+                "[ACTV-FN-099] Activation orchestration complete for accountId={AccountId}, agentId={AgentId}, " +
+                "Tier={Tier}, TotalDuration={TotalDuration}ms, Succeeded={Succeeded}, Failed={Failed}",
+                request.AccountId, request.AgentId, request.Tier, totalDuration, succeededCount, failedCount);
         }
     }
 

@@ -18,6 +18,9 @@ public sealed class PersistProfileFunction(
         [ActivityTrigger] PersistProfileInput input,
         CancellationToken ct)
     {
+        var memBefore = GC.GetTotalMemory(false) / 1024 / 1024;
+        logger.LogInformation("[ACTV-MEM-007] PersistProfile starting. Memory: {MemoryMB}MB", memBefore);
+
         logger.LogInformation(
             "[ACTV-FN-300] PersistProfile for accountId={AccountId}, agentId={AgentId}",
             input.AccountId, input.AgentId);
@@ -30,5 +33,8 @@ public sealed class PersistProfileFunction(
             handle: input.Handle,
             outputs: outputs,
             ct: ct);
+
+        var memAfter = GC.GetTotalMemory(false) / 1024 / 1024;
+        logger.LogInformation("[ACTV-MEM-008] PersistProfile finished. Memory: {MemoryMB}MB (delta: {DeltaMB}MB)", memAfter, memAfter - memBefore);
     }
 }
