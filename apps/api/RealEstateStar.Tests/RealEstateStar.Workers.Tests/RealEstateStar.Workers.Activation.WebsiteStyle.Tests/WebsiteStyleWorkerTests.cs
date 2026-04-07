@@ -140,7 +140,7 @@ public class WebsiteStyleWorkerTests
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task AnalyzeAsync_MalformedResponse_ThrowsInvalidOperationException()
+    public async Task AnalyzeAsync_MalformedResponse_ReturnsPartialContent()
     {
         var anthropic = new Mock<IAnthropicClient>();
         var sanitizer = new Mock<IContentSanitizer>();
@@ -154,10 +154,36 @@ public class WebsiteStyleWorkerTests
         var worker = new WebsiteStyleWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var discovery = MakeDiscoveryWith(MakeWebsite());
 
-        var act = () => worker.AnalyzeAsync(discovery, CancellationToken.None);
+        var result = await worker.AnalyzeAsync(discovery, CancellationToken.None);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*missing required section*");
+        result.Should().Be("Just some text.");
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_MalformedResponse_LogsWarningWithMissingSections()
+    {
+        var anthropic = new Mock<IAnthropicClient>();
+        var sanitizer = new Mock<IContentSanitizer>();
+        var logger = new Mock<ILogger<WebsiteStyleWorker>>();
+
+        sanitizer.Setup(s => s.Sanitize(It.IsAny<string>())).Returns<string>(s => s);
+        anthropic.Setup(a => a.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AnthropicResponse("Just some text.", 50, 20, 500));
+
+        var worker = new WebsiteStyleWorker(anthropic.Object, sanitizer.Object, logger.Object);
+        var discovery = MakeDiscoveryWith(MakeWebsite());
+
+        await worker.AnalyzeAsync(discovery, CancellationToken.None);
+
+        logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, _) => o.ToString()!.Contains("[WEB-STYLE-005]")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     // ---------------------------------------------------------------------------

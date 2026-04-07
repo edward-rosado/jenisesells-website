@@ -39,7 +39,8 @@ public sealed class DriveIndexWorker(
     private const int MaxPdfPages = 10;
     private const int PdfParallelism = 2;
     private const int MaxStagedFiles = 20;
-    private const int MaxPdfExtractions = 5;
+    private const int MaxPdfExtractions = 3;
+    private const int MaxPdfBytes = 5_242_880; // 5 MB — skip oversized PDFs to cap peak memory
     private const int MaxFileContentBytes = 1_048_576; // 1 MB — skip larger files to stay under Consumption plan memory
     private const int ClaudeMaxTokens = 1024;
     private const string ClaudePipeline = "activation-driveindex";
@@ -223,6 +224,10 @@ public sealed class DriveIndexWorker(
             var batchResults = await Task.WhenAll(
                 batch.Select(file => ExtractFromPdfAsync(accountId, agentId, file, ct)));
             extractions.AddRange(batchResults.Where(e => e is not null)!);
+
+            // Explicitly collect gen-0 after each PDF batch — PDF binary downloads can hold
+            // several MB each, and the Consumption plan has a 1.5 GB memory ceiling.
+            GC.Collect(0, GCCollectionMode.Optimized);
         }
 
         // ── Text-doc extraction (non-PDF) ─────────────────────────────────────
@@ -302,6 +307,14 @@ public sealed class DriveIndexWorker(
                 return null;
             }
 
+            if (pdfBytes.Length > MaxPdfBytes)
+            {
+                logger.LogWarning(
+                    "[DRIVEINDEX-013] Skipping oversized PDF {FileName} ({Size} bytes)",
+                    file.Name, pdfBytes.Length);
+                return null;
+            }
+
             // Send raw PDF bytes directly to Claude Vision — no local parsing needed.
             // Claude renders PDFs server-side as static images (no JS engine, no form handler),
             // so malicious PDF payloads (embedded JS, launch actions) cannot execute.
@@ -321,6 +334,9 @@ public sealed class DriveIndexWorker(
                 ClaudeMaxTokens,
                 ClaudePipeline,
                 ct);
+
+            // Release PDF bytes eagerly — each can be several MB
+            pdfBytes = null;
 
             return ParseDocumentExtraction(file.Id, file.Name, response.Content);
         }

@@ -68,11 +68,26 @@ public sealed class WebsiteStyleWorker(
         var response = await anthropicClient.SendAsync(
             Model, SystemPrompt, prompt, MaxTokens, "activation-website-style", ct);
 
-        logger.LogInformation(
-            "[WEB-STYLE-003] Received website style response ({Length} chars)",
-            response.Content.Length);
+        try
+        {
+            ValidateMarkdownOutput(response.Content);
+            logger.LogInformation(
+                "[WEB-STYLE-003] WebsiteStyle generated with 0 missing section(s)");
+        }
+        catch (InvalidOperationException)
+        {
+            var missingSections = RequiredSections
+                .Where(s => !response.Content.Contains(s, StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-        ValidateMarkdownOutput(response.Content);
+            logger.LogWarning(
+                "[WEB-STYLE-005] Partial style guide — response {Length} chars, missing sections: {MissingSections}",
+                response.Content.Length, string.Join(", ", missingSections));
+
+            logger.LogInformation(
+                "[WEB-STYLE-003] WebsiteStyle generated with {MissingSections} missing section(s)",
+                missingSections.Count);
+        }
 
         return response.Content;
     }
