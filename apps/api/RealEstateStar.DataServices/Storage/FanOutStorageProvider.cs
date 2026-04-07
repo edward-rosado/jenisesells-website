@@ -35,6 +35,12 @@ public sealed class FanOutStorageProvider : IFileStorageProvider
     /// </summary>
     private readonly bool _isSingleAgent;
 
+    /// <summary>
+    /// Tracks tiers that have already logged a failure warning.
+    /// Prevents [FANOUT-010] log spam when a tier consistently fails (e.g. platform Drive with no tokens).
+    /// </summary>
+    private readonly HashSet<string> _warnedTiers = [];
+
     public FanOutStorageProvider(
         IGDriveClient driveClient,
         IGSheetsClient sheetsClient,
@@ -236,7 +242,8 @@ public sealed class FanOutStorageProvider : IFileStorageProvider
         catch (Exception ex)
         {
             FanOutDiagnostics.TierFailures.Add(1, new KeyValuePair<string, object?>("tier", tierName));
-            _logger.LogWarning(ex, "[FANOUT-010] {Tier} tier operation failed (best-effort — continuing)", tierName);
+            if (_warnedTiers.Add(tierName))
+                _logger.LogWarning(ex, "[FANOUT-010] {Tier} tier operation failed (best-effort — continuing)", tierName);
         }
     }
 
@@ -249,7 +256,8 @@ public sealed class FanOutStorageProvider : IFileStorageProvider
         catch (Exception ex)
         {
             FanOutDiagnostics.TierFailures.Add(1, new KeyValuePair<string, object?>("tier", tierName));
-            _logger.LogWarning(ex, "[FANOUT-010] {Tier} tier operation failed (best-effort — continuing)", tierName);
+            if (_warnedTiers.Add(tierName))
+                _logger.LogWarning(ex, "[FANOUT-010] {Tier} tier operation failed (best-effort — continuing)", tierName);
         }
     }
 }
