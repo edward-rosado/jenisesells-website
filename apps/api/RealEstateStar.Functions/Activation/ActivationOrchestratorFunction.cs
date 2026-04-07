@@ -138,9 +138,14 @@ public sealed class ActivationOrchestratorFunction
 
         // Discovery requires email corpus to use signature info.
         // Validate email before splitting to avoid IndexOutOfRangeException on malformed input.
-        var agentName = !string.IsNullOrWhiteSpace(request.Email) && request.Email.Contains('@')
+        var emailHandle = !string.IsNullOrWhiteSpace(request.Email) && request.Email.Contains('@')
             ? request.Email.Split('@')[0].Trim()
-            : request.AccountId; // fallback to account ID when email is absent or malformed
+            : null;
+
+        // Agent name: prefer email signature (real name), fall back to email handle, then account ID.
+        var agentName = emailCorpus.Signature?.Name
+            ?? emailHandle
+            ?? request.AccountId;
 
         var discoveryStart = ctx.CurrentUtcDateTime;
         var discoveryJson = await ctx.CallActivityAsync<string>(
@@ -150,6 +155,10 @@ public sealed class ActivationOrchestratorFunction
                 AccountId = request.AccountId,
                 AgentId = request.AgentId,
                 AgentName = agentName,
+                BrokerageName = emailCorpus.Signature?.BrokerageName ?? string.Empty,
+                PhoneNumber = emailCorpus.Signature?.Phone,
+                EmailHandle = emailHandle,
+                AgentEmail = request.Email,
                 EmailSignature = emailCorpus.Signature,
             });
         var discovery = JsonSerializer.Deserialize<AgentDiscoveryOutput>(discoveryJson)!;

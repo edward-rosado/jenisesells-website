@@ -34,9 +34,11 @@ public sealed class AgentDiscoveryFunction(
             accountId: input.AccountId,
             agentId: input.AgentId,
             agentName: input.AgentName,
-            brokerageName: string.Empty,
-            phoneNumber: null,
+            brokerageName: input.BrokerageName,
+            phoneNumber: input.PhoneNumber,
             emailSignature: emailSignature,
+            emailHandle: input.EmailHandle,
+            agentEmail: input.AgentEmail,
             ct: ct);
 
         return JsonSerializer.Serialize(ActivationDtoMapper.ToDto(discovery));

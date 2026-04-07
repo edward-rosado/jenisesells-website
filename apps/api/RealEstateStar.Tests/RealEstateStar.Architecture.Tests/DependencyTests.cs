@@ -96,6 +96,7 @@ public class DependencyTests
     [InlineData("RealEstateStar.Clients.Azure", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.Gws", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.RentCast", new[] { "Domain" })]
+    [InlineData("RealEstateStar.Clients.Zillow", new[] { "Domain" })]
     public void Project_only_depends_on_allowed_projects(string projectName, string[] allowedSuffixes)
     {
         var assembly = Assembly.Load(projectName);
@@ -248,6 +249,7 @@ public class DependencyTests
             "RealEstateStar.Clients.Azure",
             "RealEstateStar.Clients.Gws",
             "RealEstateStar.Clients.RentCast",
+            "RealEstateStar.Clients.Zillow",
         };
 
         var violations = assembly.GetReferencedAssemblies()
@@ -333,6 +335,9 @@ public class DependencyTests
             "RealEstateStar.Clients.GoogleOAuth",
             "RealEstateStar.Clients.Scraper",
             "RealEstateStar.Clients.RentCast",
+            // Clients.Zillow — Zillow Reviews API (Bridge Interactive) for activation discovery
+            // [arch-change-approved]
+            "RealEstateStar.Clients.Zillow",
             // Clients.Gws — GWS CLI wrapper used by activation pipeline
             // [arch-change-approved]
             "RealEstateStar.Clients.Gws",
@@ -700,8 +705,9 @@ public class DependencyTests
             "RealEstateStar.Clients.Azure",
             "RealEstateStar.Clients.Gws",
             "RealEstateStar.Clients.RentCast",
+            "RealEstateStar.Clients.Zillow",
         };
-        apiAllowedProjects.Count.Should().Be(34,
+        apiAllowedProjects.Count.Should().Be(35,
             "Api allowed-project count changed — was a new dependency added to the composition root without approval?");
     }
 

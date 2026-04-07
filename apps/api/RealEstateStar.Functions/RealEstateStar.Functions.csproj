@@ -91,6 +91,7 @@
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Gws\RealEstateStar.Clients.Gws.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Scraper\RealEstateStar.Clients.Scraper.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.RentCast\RealEstateStar.Clients.RentCast.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Zillow\RealEstateStar.Clients.Zillow.csproj" />
     <!-- Services -->
     <ProjectReference Include="..\RealEstateStar.Services\RealEstateStar.Services.AgentNotifier\RealEstateStar.Services.AgentNotifier.csproj" />
     <ProjectReference Include="..\RealEstateStar.Services\RealEstateStar.Services.LeadCommunicator\RealEstateStar.Services.LeadCommunicator.csproj" />

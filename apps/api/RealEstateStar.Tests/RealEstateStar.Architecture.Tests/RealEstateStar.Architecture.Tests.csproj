@@ -51,6 +51,7 @@
     <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.Azure/RealEstateStar.Clients.Azure.csproj" />
     <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.Gws/RealEstateStar.Clients.Gws.csproj" />
     <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.RentCast/RealEstateStar.Clients.RentCast.csproj" />
+    <ProjectReference Include="../../RealEstateStar.Clients/RealEstateStar.Clients.Zillow/RealEstateStar.Clients.Zillow.csproj" />
     <ProjectReference Include="../../RealEstateStar.Api/RealEstateStar.Api.csproj" />
     <!-- Functions is a second composition root. ReferenceOutputAssembly=false prevents the
          Program class name collision with Api at compile time. The DLL is copied via a

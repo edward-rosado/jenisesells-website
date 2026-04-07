@@ -111,6 +111,10 @@ public sealed record AgentDiscoveryInput
     [JsonPropertyName("accountId")] public string AccountId { get; init; } = default!;
     [JsonPropertyName("agentId")] public string AgentId { get; init; } = default!;
     [JsonPropertyName("agentName")] public string AgentName { get; init; } = default!;
+    [JsonPropertyName("brokerageName")] public string BrokerageName { get; init; } = string.Empty;
+    [JsonPropertyName("phoneNumber")] public string? PhoneNumber { get; init; }
+    [JsonPropertyName("emailHandle")] public string? EmailHandle { get; init; }
+    [JsonPropertyName("agentEmail")] public string? AgentEmail { get; init; }
     [JsonPropertyName("emailSignature")] public EmailSignatureDto? EmailSignature { get; init; }
 }
 

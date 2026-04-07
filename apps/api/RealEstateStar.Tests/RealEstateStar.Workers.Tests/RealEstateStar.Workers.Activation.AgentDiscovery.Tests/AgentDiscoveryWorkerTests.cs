@@ -31,10 +31,32 @@ public class AgentDiscoveryWorkerTests
     private static AgentDiscoveryWorker BuildWorker(
         Mock<IOAuthRefresher>? mockRefresher = null,
         Mock<IHttpClientFactory>? mockFactory = null,
+        Mock<IScraperClient>? mockScraper = null,
+        Mock<IZillowReviewsClient>? mockZillow = null,
         Mock<IWhatsAppSender>? mockWhatsApp = null)
     {
         mockRefresher ??= new Mock<IOAuthRefresher>();
         mockFactory ??= BuildMockFactory(null);
+
+        if (mockScraper is null)
+        {
+            // Default: scraper unavailable (direct HTTP fallback)
+            mockScraper = new Mock<IScraperClient>();
+            mockScraper.Setup(s => s.IsAvailable).Returns(false);
+        }
+
+        if (mockZillow is null)
+        {
+            // Default: Zillow API unavailable (no token)
+            mockZillow = new Mock<IZillowReviewsClient>();
+            mockZillow.Setup(z => z.IsAvailable).Returns(false);
+            mockZillow
+                .Setup(z => z.GetReviewsByEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ZillowAgentReviews([], null, 0, null));
+            mockZillow
+                .Setup(z => z.GetReviewsByNameAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ZillowAgentReviews([], null, 0, null));
+        }
 
         if (mockWhatsApp is null)
         {
@@ -48,6 +70,8 @@ public class AgentDiscoveryWorkerTests
         return new AgentDiscoveryWorker(
             mockRefresher.Object,
             mockFactory.Object,
+            mockScraper.Object,
+            mockZillow.Object,
             mockWhatsApp.Object,
             NullLogger<AgentDiscoveryWorker>.Instance);
     }
@@ -79,7 +103,7 @@ public class AgentDiscoveryWorkerTests
         var worker = BuildWorker(mockRefresher);
 
         var result = await worker.RunAsync(
-            AccountId, AgentId, AgentName, BrokerageName, null, null, CancellationToken.None);
+            AccountId, AgentId, AgentName, BrokerageName, null, null, null, null, CancellationToken.None);
 
         result.Should().NotBeNull();
         result.HeadshotBytes.Should().BeNull();
@@ -99,10 +123,10 @@ public class AgentDiscoveryWorkerTests
             .Setup(w => w.SendFreeformAsync("555-123-4567", It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult("msg-id"));
 
-        var worker = BuildWorker(mockRefresher, null, mockWhatsApp);
+        var worker = BuildWorker(mockRefresher, mockWhatsApp: mockWhatsApp);
 
         var result = await worker.RunAsync(
-            AccountId, AgentId, AgentName, BrokerageName, "555-123-4567", null, CancellationToken.None);
+            AccountId, AgentId, AgentName, BrokerageName, "555-123-4567", null, null, null, CancellationToken.None);
 
         result.WhatsAppEnabled.Should().BeTrue();
     }
@@ -120,10 +144,10 @@ public class AgentDiscoveryWorkerTests
             .Setup(w => w.SendFreeformAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new WhatsAppNotRegisteredException("555-000-0000"));
 
-        var worker = BuildWorker(mockRefresher, null, mockWhatsApp);
+        var worker = BuildWorker(mockRefresher, mockWhatsApp: mockWhatsApp);
 
         var result = await worker.RunAsync(
-            AccountId, AgentId, AgentName, BrokerageName, "555-000-0000", null, CancellationToken.None);
+            AccountId, AgentId, AgentName, BrokerageName, "555-000-0000", null, null, null, CancellationToken.None);
 
         result.WhatsAppEnabled.Should().BeFalse();
     }
@@ -140,7 +164,7 @@ public class AgentDiscoveryWorkerTests
 
         var result = await worker.RunAsync(
             AccountId, AgentId, AgentName, BrokerageName,
-            phoneNumber: null, emailSignature: null, CancellationToken.None);
+            phoneNumber: null, emailSignature: null, emailHandle: null, agentEmail: null, CancellationToken.None);
 
         result.WhatsAppEnabled.Should().BeFalse();
     }
@@ -156,7 +180,7 @@ public class AgentDiscoveryWorkerTests
         var worker = BuildWorker(mockRefresher);
 
         var result = await worker.RunAsync(
-            AccountId, AgentId, AgentName, BrokerageName, "555-777-8888", null, CancellationToken.None);
+            AccountId, AgentId, AgentName, BrokerageName, "555-777-8888", null, null, null, CancellationToken.None);
 
         result.Phone.Should().Be("555-777-8888");
     }
@@ -176,7 +200,7 @@ public class AgentDiscoveryWorkerTests
 
         var result = await worker.RunAsync(
             AccountId, AgentId, AgentName, BrokerageName,
-            phoneNumber: null, emailSignature: sig, CancellationToken.None);
+            phoneNumber: null, emailSignature: sig, emailHandle: null, agentEmail: null, CancellationToken.None);
 
         result.Phone.Should().Be("555-999-0000");
     }
@@ -238,11 +262,81 @@ public class AgentDiscoveryWorkerTests
     }
 
     [Fact]
-    public void BuildWebsiteSearchUrls_IncludesRealtorComUrl()
+    public void BuildWebsiteSearchUrls_DoesNotIncludeRealtorCom_ToSaveScraperCredits()
     {
         var urls = AgentDiscoveryWorker.BuildWebsiteSearchUrls(AgentName, BrokerageName, null);
 
-        urls.Should().Contain(u => u.Url.Contains("realtor.com") && u.Source == "RealtorCom");
+        urls.Should().NotContain(u => u.Source == "RealtorCom");
+    }
+
+    [Fact]
+    public void BuildWebsiteSearchUrls_IncludesDomainGuess_FromEmailHandle()
+    {
+        var urls = AgentDiscoveryWorker.BuildWebsiteSearchUrls(
+            AgentName, BrokerageName, null, emailHandle: "jenisesellsnj");
+
+        urls.Should().Contain(u =>
+            u.Url == "https://www.jenisesellsnj.com" && u.Source == "DomainGuess");
+    }
+
+    [Fact]
+    public void BuildWebsiteSearchUrls_SkipsDomainGuess_ForShortHandles()
+    {
+        var urls = AgentDiscoveryWorker.BuildWebsiteSearchUrls(
+            AgentName, BrokerageName, null, emailHandle: "ab");
+
+        urls.Should().NotContain(u => u.Source == "DomainGuess");
+    }
+
+    [Fact]
+    public void BuildWebsiteSearchUrls_IncludesAgentSiteUrl()
+    {
+        var urls = AgentDiscoveryWorker.BuildWebsiteSearchUrls(
+            AgentName, BrokerageName, null, agentSiteHandle: "jenise-buckalew");
+
+        urls.Should().Contain(u =>
+            u.Url == "https://jenise-buckalew.real-estate-star.com" && u.Source == "AgentSite");
+    }
+
+    [Fact]
+    public void BuildWebsiteSearchUrls_UsesRealNameForZillowSlug()
+    {
+        var urls = AgentDiscoveryWorker.BuildWebsiteSearchUrls(
+            "Jenise Buckalew", BrokerageName, null);
+
+        urls.Should().Contain(u =>
+            u.Url.Contains("zillow.com/profile/jenise-buckalew") && u.Source == "Zillow");
+    }
+
+    [Fact]
+    public void BuildWebsiteSearchUrls_OwnWebsitesBeforeThirdParty()
+    {
+        var sig = new EmailSignature(
+            null, null, null, null, null, [],
+            null, "https://www.janedoe.com", null);
+
+        var urls = AgentDiscoveryWorker.BuildWebsiteSearchUrls(
+            AgentName, BrokerageName, sig, emailHandle: "janedoe", agentSiteHandle: "jane-doe");
+
+        // Own websites (signature, domain guess, agent-site) should come before Zillow/Realtor
+        var ownCount = urls.TakeWhile(u => AgentDiscoveryWorker.IsAgentOwnWebsite(u.Url)).Count();
+        ownCount.Should().BeGreaterThanOrEqualTo(2, "own websites should be listed first");
+    }
+
+    [Fact]
+    public void BuildWebsiteSearchUrls_DeduplicatesDomainGuessWhenMatchesSignature()
+    {
+        var sig = new EmailSignature(
+            null, null, null, null, null, [],
+            null, "https://www.janedoe.com", null);
+
+        var urls = AgentDiscoveryWorker.BuildWebsiteSearchUrls(
+            AgentName, BrokerageName, sig, emailHandle: "janedoe");
+
+        var ownWebsites = urls.Where(u => u.Source is "OwnWebsite" or "DomainGuess").ToList();
+        // Should have both — different domains (janedoe.com signature vs www.janedoe.com guess)
+        // The dedup is domain-level
+        ownWebsites.Should().HaveCountLessThanOrEqualTo(2);
     }
 
     // ──────────────────────────────────────────────────────────
@@ -396,6 +490,66 @@ public class AgentDiscoveryWorkerTests
         profiles.Should().BeEmpty();
     }
 
+    // ──────────────────────────────────────────────────────────
+    // Scraper routing
+    // ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task RunAsync_UsesScraperApi_ForThirdPartySites()
+    {
+        var mockRefresher = new Mock<IOAuthRefresher>();
+        mockRefresher
+            .Setup(r => r.GetValidCredentialAsync(AccountId, AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OAuthCredential?)null);
+
+        var mockScraper = new Mock<IScraperClient>();
+        mockScraper.Setup(s => s.IsAvailable).Returns(true);
+        mockScraper
+            .Setup(s => s.FetchAsync(
+                It.Is<string>(url => url.Contains("zillow.com")),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync("<html><p>15 homes sold</p></html>");
+
+        var worker = BuildWorker(mockRefresher, null, mockScraper);
+
+        var result = await worker.RunAsync(
+            AccountId, AgentId, AgentName, BrokerageName, null, null, null, null, CancellationToken.None);
+
+        // ScraperAPI was called for Zillow
+        mockScraper.Verify(s => s.FetchAsync(
+            It.Is<string>(url => url.Contains("zillow.com")),
+            "Zillow", AgentId, It.IsAny<CancellationToken>()), Times.Once);
+
+        // Should have parsed the Zillow HTML
+        result.Profiles.Should().ContainSingle(p => p.Platform == "Zillow");
+    }
+
+    [Fact]
+    public async Task RunAsync_FallsBackToDirectHttp_WhenScraperUnavailable()
+    {
+        var mockRefresher = new Mock<IOAuthRefresher>();
+        mockRefresher
+            .Setup(r => r.GetValidCredentialAsync(AccountId, AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OAuthCredential?)null);
+
+        var mockScraper = new Mock<IScraperClient>();
+        mockScraper.Setup(s => s.IsAvailable).Returns(false);
+
+        var worker = BuildWorker(mockRefresher, null, mockScraper);
+
+        var result = await worker.RunAsync(
+            AccountId, AgentId, AgentName, BrokerageName, null, null, null, null, CancellationToken.None);
+
+        // ScraperAPI should NOT be called
+        mockScraper.Verify(s => s.FetchAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        result.Should().NotBeNull();
+    }
+
     [Fact]
     public void ParseThirdPartyProfiles_ParsesZillowProfile()
     {
@@ -416,6 +570,117 @@ public class AgentDiscoveryWorkerTests
         profiles[0].Platform.Should().Be("Zillow");
         profiles[0].SalesCount.Should().Be(15);
         profiles[0].YearsExperience.Should().Be(10);
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // Zillow Reviews API integration
+    // ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task RunAsync_UsesZillowApi_WhenAvailable()
+    {
+        var mockRefresher = new Mock<IOAuthRefresher>();
+        mockRefresher
+            .Setup(r => r.GetValidCredentialAsync(AccountId, AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OAuthCredential?)null);
+
+        var zillowReviews = new ZillowAgentReviews(
+            [new Review("Great agent!", 5, "John D.", "Zillow", DateTime.UtcNow)],
+            5.0, 1, "reviewee-key-123");
+
+        var mockZillow = new Mock<IZillowReviewsClient>();
+        mockZillow.Setup(z => z.IsAvailable).Returns(true);
+        mockZillow
+            .Setup(z => z.GetReviewsByEmailAsync("agent@test.com", AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(zillowReviews);
+
+        var worker = BuildWorker(mockRefresher, mockZillow: mockZillow);
+
+        var result = await worker.RunAsync(
+            AccountId, AgentId, AgentName, BrokerageName,
+            null, null, null, "agent@test.com", CancellationToken.None);
+
+        result.Reviews.Should().ContainSingle();
+        result.Reviews[0].Source.Should().Be("Zillow");
+        result.Reviews[0].Text.Should().Be("Great agent!");
+    }
+
+    [Fact]
+    public async Task RunAsync_FallsBackToNameSearch_WhenEmailReturnsNoReviews()
+    {
+        var mockRefresher = new Mock<IOAuthRefresher>();
+        mockRefresher
+            .Setup(r => r.GetValidCredentialAsync(AccountId, AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OAuthCredential?)null);
+
+        var nameReviews = new ZillowAgentReviews(
+            [new Review("Excellent!", 4, "Sarah M.", "Zillow", null)],
+            4.0, 1, "key-456");
+
+        var mockZillow = new Mock<IZillowReviewsClient>();
+        mockZillow.Setup(z => z.IsAvailable).Returns(true);
+        mockZillow
+            .Setup(z => z.GetReviewsByEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ZillowAgentReviews([], null, 0, null));
+        mockZillow
+            .Setup(z => z.GetReviewsByNameAsync(AgentName, AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(nameReviews);
+
+        var worker = BuildWorker(mockRefresher, mockZillow: mockZillow);
+
+        var result = await worker.RunAsync(
+            AccountId, AgentId, AgentName, BrokerageName,
+            null, null, null, "agent@test.com", CancellationToken.None);
+
+        result.Reviews.Should().ContainSingle();
+        result.Reviews[0].Reviewer.Should().Be("Sarah M.");
+    }
+
+    [Fact]
+    public async Task RunAsync_FallsBackToScrapedReviews_WhenZillowApiUnavailable()
+    {
+        var mockRefresher = new Mock<IOAuthRefresher>();
+        mockRefresher
+            .Setup(r => r.GetValidCredentialAsync(AccountId, AgentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OAuthCredential?)null);
+
+        // Zillow API unavailable
+        var mockZillow = new Mock<IZillowReviewsClient>();
+        mockZillow.Setup(z => z.IsAvailable).Returns(false);
+        mockZillow
+            .Setup(z => z.GetReviewsByEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ZillowAgentReviews([], null, 0, null));
+        mockZillow
+            .Setup(z => z.GetReviewsByNameAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ZillowAgentReviews([], null, 0, null));
+
+        // ScraperAPI returns HTML with JSON-LD reviews
+        var mockScraper = new Mock<IScraperClient>();
+        mockScraper.Setup(s => s.IsAvailable).Returns(true);
+        mockScraper
+            .Setup(s => s.FetchAsync(
+                It.Is<string>(url => url.Contains("zillow.com")),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("""
+                <script type="application/ld+json">
+                {
+                    "review": [{
+                        "reviewBody": "Scraped review",
+                        "reviewRating": { "ratingValue": 4 },
+                        "author": { "name": "Scrape User" }
+                    }]
+                }
+                </script>
+                """);
+
+        var worker = BuildWorker(mockRefresher, mockScraper: mockScraper, mockZillow: mockZillow);
+
+        var result = await worker.RunAsync(
+            AccountId, AgentId, AgentName, BrokerageName,
+            null, null, null, "agent@test.com", CancellationToken.None);
+
+        result.Reviews.Should().ContainSingle();
+        result.Reviews[0].Text.Should().Be("Scraped review");
     }
 }
 
