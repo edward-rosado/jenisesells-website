@@ -83,8 +83,9 @@ public sealed class MarketingStyleWorker(
         else if (spanishCount > 0)
         {
             logger.LogInformation(
-                "[LANG-010] Skipping es extraction for MarketingStyle: only {Count} Spanish items in corpus",
-                spanishCount);
+                "[LANG-010] SKIP: Spanish MarketingStyle extraction. Reason: insufficient Spanish marketing emails ({Count} items, need {Min}). " +
+                "Spanish marketing style and keywords will not be captured.",
+                spanishCount, MinSpanishItemsForExtraction);
         }
 
         // Start English extraction

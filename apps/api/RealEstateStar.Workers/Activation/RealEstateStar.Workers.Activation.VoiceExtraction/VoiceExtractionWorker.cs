@@ -59,8 +59,9 @@ public sealed class VoiceExtractionWorker(
         else if (spanishCount > 0)
         {
             logger.LogInformation(
-                "[LANG-010] Skipping es extraction for VoiceSkill: only {Count} Spanish items in corpus",
-                spanishCount);
+                "[LANG-010] SKIP: Spanish VoiceSkill extraction. Reason: insufficient Spanish corpus ({Count} items, need {Min}). " +
+                "Lead emails to Spanish-speaking contacts will use English voice with a Spanish system prompt instead.",
+                spanishCount, MinSpanishItemsForExtraction);
         }
 
         // Start English extraction

@@ -59,8 +59,9 @@ public sealed class PersonalityWorker(
         else if (spanishCount > 0)
         {
             logger.LogInformation(
-                "[LANG-010] Skipping es extraction for PersonalitySkill: only {Count} Spanish items in corpus",
-                spanishCount);
+                "[LANG-010] SKIP: Spanish PersonalitySkill extraction. Reason: insufficient Spanish corpus ({Count} items, need {Min}). " +
+                "Spanish personality traits and catchphrases will not be captured for this agent.",
+                spanishCount, MinSpanishItemsForExtraction);
         }
 
         // Start English extraction

@@ -118,8 +118,10 @@ public sealed class ActivationOrchestratorFunction
             if (!ctx.IsReplaying)
             {
                 logger.LogInformation(
-                    "[ACTV-FN-003] Activation already complete for accountId={AccountId}, agentId={AgentId} — sending welcome (idempotent)",
-                    request.AccountId, request.AgentId);
+                    "[ACTV-FN-003] SKIP: Activation already complete for accountId={AccountId}, agentId={AgentId}. " +
+                    "Reason: all required files exist (including language-specific files for [{Languages}]). Sending welcome (idempotent).",
+                    request.AccountId, request.AgentId,
+                    detectedLanguages.Count > 0 ? string.Join(",", detectedLanguages) : "en-only");
             }
 
             await ctx.CallActivityAsync(
@@ -263,8 +265,10 @@ public sealed class ActivationOrchestratorFunction
             if (!ctx.IsReplaying)
             {
                 logger.LogInformation(
-                    "[ACTV-FN-033] Skipping FUTURE-tier workers for MVP activation agentId={AgentId}",
-                    request.AgentId);
+                    "[ACTV-FN-033] SKIP: Future-tier workers (BrandExtraction, BrandVoice, MarketingStyle, FeeStructure) " +
+                    "for agentId={AgentId}. Reason: Tier={Tier}. These workers run only on Future-tier activations. " +
+                    "Bilingual extraction for these skills is deferred until tier upgrade.",
+                    request.AgentId, request.Tier);
             }
 
             brandExtractionTask = Task.FromResult<BrandExtractionOutput?>(null);
@@ -407,7 +411,10 @@ public sealed class ActivationOrchestratorFunction
         }
         else if (!ctx.IsReplaying)
         {
-            logger.LogInformation("[ACTV-FN-042] Skipping BrandMerge for single-agent account {AccountId}", request.AccountId);
+            logger.LogInformation(
+                "[ACTV-FN-042] SKIP: BrandMerge for accountId={AccountId}. " +
+                "Reason: single-agent account (accountId == agentId). Brand merge only applies to multi-agent brokerages.",
+                request.AccountId);
         }
 
         // ContactImport is non-fatal (warning on failure, pipeline continues)

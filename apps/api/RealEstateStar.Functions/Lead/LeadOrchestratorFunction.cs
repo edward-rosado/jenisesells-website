@@ -45,8 +45,25 @@ public sealed class LeadOrchestratorFunction
         var logger = ctx.CreateReplaySafeLogger<LeadOrchestratorFunction>();
 
         if (!ctx.IsReplaying)
+        {
             logger.LogInformation("[ORCH-001] Lead orchestration started. LeadId={LeadId}, AgentId={AgentId}, CorrelationId={CorrelationId}",
                 input.LeadId, input.AgentId, input.CorrelationId);
+
+            if (string.IsNullOrWhiteSpace(input.Locale) || input.Locale == "en")
+            {
+                logger.LogInformation(
+                    "[ORCH-002] Locale={Locale} for LeadId={LeadId}. Reason: {Reason}. All content will render in English.",
+                    input.Locale ?? "null",
+                    input.LeadId,
+                    input.Locale is null ? "no locale submitted with lead form" : "lead specified English");
+            }
+            else
+            {
+                logger.LogInformation(
+                    "[ORCH-002] Locale={Locale} for LeadId={LeadId}. Lead email, CMA PDF, and notifications will render in {Language}.",
+                    input.Locale, input.LeadId, input.Locale == "es" ? "Spanish" : input.Locale);
+            }
+        }
 
         // Step 1: Load agent config
         var configJson = await ctx.CallActivityAsync<string>(

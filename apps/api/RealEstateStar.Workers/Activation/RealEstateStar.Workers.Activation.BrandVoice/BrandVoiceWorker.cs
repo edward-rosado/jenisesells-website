@@ -73,8 +73,9 @@ public sealed class BrandVoiceWorker(
         else if (spanishCount > 0)
         {
             logger.LogInformation(
-                "[LANG-010] Skipping es extraction for BrandVoice: only {Count} Spanish items in corpus",
-                spanishCount);
+                "[LANG-010] SKIP: Spanish BrandVoice extraction. Reason: insufficient Spanish corpus ({Count} items, need {Min}). " +
+                "Spanish brand voice patterns will not be captured.",
+                spanishCount, MinSpanishItemsForExtraction);
         }
 
         // Start English extraction
