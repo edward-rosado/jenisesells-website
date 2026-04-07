@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
@@ -7,17 +8,19 @@ using RealEstateStar.Domain.Shared.Interfaces.External;
 namespace RealEstateStar.Activities.Lead.ContactDetection;
 
 /// <summary>
-/// Extracts contacts from general inbox emails by sending batches of 20 to Claude Sonnet.
+/// Extracts contacts from general inbox emails by sending batches of 40 to Claude Haiku.
+/// Strips quoted reply chains and truncates bodies to 500 chars to minimize token cost.
 /// Uses &lt;user-data&gt; tags to prevent prompt injection.
 /// </summary>
 internal sealed class EmailContactExtractor(
     IAnthropicClient anthropicClient,
     ILogger<EmailContactExtractor> logger)
 {
-    internal const int BatchSize = 20;
-    internal const string Model = "claude-sonnet-4-5";
+    internal const int BatchSize = 40;
+    internal const string Model = "claude-haiku-4-5";
     internal const int MaxTokens = 4096;
     internal const string Pipeline = "contact-detection";
+    internal const int MaxBodyLength = 500;
 
     private const string SystemPrompt = """
         You are a contact extraction assistant for a real estate agent.
@@ -108,12 +111,44 @@ internal sealed class EmailContactExtractor(
             sb.AppendLine($"Subject: {email.Subject}");
             // Use <user-data> tags to prevent prompt injection from email content
             sb.AppendLine("<user-data>");
-            sb.AppendLine(email.Body);
+            var body = StripQuotedReplies(email.Body);
+            if (body.Length > MaxBodyLength)
+                body = body[..MaxBodyLength];
+            sb.AppendLine(body);
             sb.AppendLine("</user-data>");
             sb.AppendLine();
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Strips quoted reply chains from email bodies. Removes lines starting with '>'
+    /// and "On ... wrote:" header lines that introduce quoted content.
+    /// </summary>
+    internal static string StripQuotedReplies(string body)
+    {
+        if (string.IsNullOrEmpty(body)) return body;
+
+        var lines = body.Split('\n');
+        var sb = new StringBuilder();
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.TrimStart();
+
+            // Skip quoted lines (lines starting with >)
+            if (trimmed.StartsWith('>'))
+                continue;
+
+            // Skip "On ... wrote:" reply headers
+            if (Regex.IsMatch(trimmed, @"^On\s+.+wrote:\s*$", RegexOptions.IgnoreCase))
+                continue;
+
+            sb.AppendLine(line);
+        }
+
+        return sb.ToString().TrimEnd();
     }
 
     internal static IReadOnlyList<ExtractedClient> ParseResponse(string content)
