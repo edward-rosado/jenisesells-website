@@ -293,7 +293,7 @@ var dockerConfigPath = Path.Combine(builder.Environment.ContentRootPath, "config
 var localConfigPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "accounts");
 var configPath = Directory.Exists(dockerConfigPath) ? dockerConfigPath : localConfigPath;
 if (!Directory.Exists(configPath))
-    Log.Warning("[STARTUP-WARN] Agent config directory not found: {ConfigPath}", configPath);
+    Log.Debug("[STARTUP-DEBUG] Agent config directory not found: {ConfigPath} (expected on Azure — config loaded from blob)", configPath);
 
 // ── Data Protection — must match Api's key ring to decrypt OAuth tokens ──────
 var dpBuilder = builder.Services.AddDataProtection()
