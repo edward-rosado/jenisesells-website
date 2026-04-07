@@ -70,6 +70,7 @@ if (!string.IsNullOrEmpty(otlpLogEndpoint))
     serilogConfig.WriteTo.OpenTelemetry(opts =>
     {
         opts.Endpoint = otlpLogEndpoint;
+        opts.Protocol = Serilog.Sinks.OpenTelemetry.OtlpProtocol.HttpProtobuf;
         if (!string.IsNullOrEmpty(otlpLogHeaders))
         {
             var parts = otlpLogHeaders.Split('=', 2);
