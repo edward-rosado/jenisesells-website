@@ -87,6 +87,7 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
     [InlineData(typeof(IRentCastClient))]
     [InlineData(typeof(IGmailReader))]
     [InlineData(typeof(IAgentContextLoader))]
+    [InlineData(typeof(IZillowReviewsClient))]
     public void Domain_interface_resolves_from_DI(Type interfaceType)
     {
         var service = _services.GetService(interfaceType);
@@ -102,7 +103,7 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
         // If you add a new Domain interface to the [InlineData] list above, update this count.
         // This prevents AI agents from silently removing interfaces from the registration check.
         // Current count verified on 2026-04-02 — removed LeadOrchestratorChannel (Phase 4 DF migration).
-        const int expectedInterfaceCount = 22;
+        const int expectedInterfaceCount = 23;
 
         var inlineDataTypes = new[]
         {
@@ -128,6 +129,7 @@ public class DiRegistrationTests : IClassFixture<DiRegistrationTests.TestFactory
             typeof(IRentCastClient),
             typeof(IGmailReader),
             typeof(IAgentContextLoader),
+            typeof(IZillowReviewsClient),
         };
 
         inlineDataTypes.Length.Should().Be(expectedInterfaceCount,

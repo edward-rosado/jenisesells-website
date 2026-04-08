@@ -13,12 +13,14 @@ namespace RealEstateStar.Workers.Activation.AgentDiscovery;
 /// and brokerage logo, scrapes third-party profiles (Zillow, Realtor.com), extracts GA4
 /// measurement IDs, and checks WhatsApp registration status.
 ///
-/// Pure compute — calls IOAuthRefresher, IHttpClientFactory, and IWhatsAppSender only.
-/// No storage, no DataServices.
+/// Pure compute — calls IOAuthRefresher, IHttpClientFactory, IScraperClient,
+/// IZillowReviewsClient, and IWhatsAppSender only. No storage, no DataServices.
 /// </summary>
 public sealed class AgentDiscoveryWorker(
     IOAuthRefresher oAuthRefresher,
     IHttpClientFactory httpClientFactory,
+    IScraperClient scraperClient,
+    IZillowReviewsClient zillowClient,
     IWhatsAppSender whatsAppSender,
     ILogger<AgentDiscoveryWorker> logger)
 {
@@ -60,18 +62,20 @@ public sealed class AgentDiscoveryWorker(
         string brokerageName,
         string? phoneNumber,
         EmailSignature? emailSignature,
+        string? emailHandle,
+        string? agentEmail,
         CancellationToken ct)
     {
         logger.LogInformation(
-            "[AGENTDISCOVERY-001] Starting discovery for account {AccountId}, agent {AgentId}.",
-            accountId, agentId);
+            "[AGENTDISCOVERY-001] Starting discovery for account {AccountId}, agent {AgentId}, name={AgentName}.",
+            accountId, agentId, agentName);
 
         // Fetch headshot + logo in parallel
         var headshotTask = DownloadHeadshotAsync(accountId, agentId, ct);
         var logoTask = DownloadLogoAsync(emailSignature, ct);
 
-        // Discover websites via Google People API + email sig + search
-        var websiteUrls = BuildWebsiteSearchUrls(agentName, brokerageName, emailSignature);
+        // Discover websites via email sig, domain guessing, agent-site, and third-party profiles
+        var websiteUrls = BuildWebsiteSearchUrls(agentName, brokerageName, emailSignature, emailHandle, agentId);
 
         // Log whether we found an agent-owned website for branding extraction
         var ownWebsite = websiteUrls.FirstOrDefault(u => u.Source == "OwnWebsite");
@@ -86,24 +90,31 @@ public sealed class AgentDiscoveryWorker(
                 "[DISCOVERY-051] No agent website found, falling back to third-party profiles");
         }
 
-        // Fetch all discovered websites
-        var websiteTask = FetchWebsitesAsync(websiteUrls, ct);
+        // Fetch all discovered websites (ScraperAPI for third-party, direct HTTP for own sites)
+        var websiteTask = FetchWebsitesAsync(websiteUrls, agentId, ct);
+
+        // Fetch Zillow reviews via official API (Bridge Interactive) — cheap, structured data.
+        // Try email first (exact match), fall back to name search.
+        var zillowReviewsTask = FetchZillowReviewsAsync(agentEmail, agentName, agentId, ct);
 
         // Check WhatsApp
         var whatsAppTask = CheckWhatsAppAsync(phoneNumber, ct);
 
-        await Task.WhenAll(headshotTask, logoTask, websiteTask, whatsAppTask);
+        await Task.WhenAll(headshotTask, logoTask, websiteTask, zillowReviewsTask, whatsAppTask);
 
         var headshot = headshotTask.Result;
         var logo = logoTask.Result;
         var websites = websiteTask.Result;
+        var zillowReviews = zillowReviewsTask.Result;
         var whatsAppEnabled = whatsAppTask.Result;
 
-        // Parse third-party profiles from fetched websites
+        // Parse third-party profiles from fetched websites (bio, sales count, specialties — not reviews)
         var profiles = ParseThirdPartyProfiles(websites);
 
-        // Extract reviews from profiles
-        var allReviews = profiles.SelectMany(p => p.Reviews).ToList();
+        // Reviews: prefer Zillow API (structured, reliable), fall back to HTML-scraped reviews
+        var allReviews = zillowReviews.Reviews.Count > 0
+            ? zillowReviews.Reviews.ToList()
+            : profiles.SelectMany(p => p.Reviews).ToList();
 
         // Extract GA4 measurement ID from agent-owned websites
         var ga4Id = ExtractGa4MeasurementId(websites);
@@ -270,23 +281,54 @@ public sealed class AgentDiscoveryWorker(
     internal static IReadOnlyList<(string Url, string Source)> BuildWebsiteSearchUrls(
         string agentName,
         string brokerageName,
-        EmailSignature? signature)
+        EmailSignature? signature,
+        string? emailHandle = null,
+        string? agentSiteHandle = null)
     {
         var ownWebsiteUrls = new List<(string, string)>();
         var thirdPartyUrls = new List<(string, string)>();
+        var seenDomains = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // Check email signature URL — if it's the agent's own website, prioritize it
         if (!string.IsNullOrWhiteSpace(signature?.WebsiteUrl))
         {
             if (IsAgentOwnWebsite(signature.WebsiteUrl))
+            {
                 ownWebsiteUrls.Add((signature.WebsiteUrl, "OwnWebsite"));
+                if (Uri.TryCreate(signature.WebsiteUrl, UriKind.Absolute, out var sigUri))
+                    seenDomains.Add(sigUri.Host);
+            }
             else
+            {
                 thirdPartyUrls.Add((signature.WebsiteUrl, "EmailSignature"));
+            }
         }
 
-        // Always include third-party profiles for reviews/stats
-        thirdPartyUrls.Add(($"https://www.zillow.com/profile/{Uri.EscapeDataString(agentName)}/", "Zillow"));
-        thirdPartyUrls.Add(($"https://www.realtor.com/realestateagents/{Uri.EscapeDataString(agentName)}/", "RealtorCom"));
+        // Domain guessing from email handle (e.g., jenisesellsnj@gmail.com → jenisesellsnj.com)
+        if (!string.IsNullOrWhiteSpace(emailHandle))
+        {
+            var guessedDomain = emailHandle.ToLowerInvariant();
+            // Only guess if the handle looks like a plausible domain (letters, numbers, hyphens)
+            if (Regex.IsMatch(guessedDomain, @"^[a-z0-9][a-z0-9\-]{2,}$") &&
+                !seenDomains.Contains($"www.{guessedDomain}.com") &&
+                !seenDomains.Contains($"{guessedDomain}.com"))
+            {
+                ownWebsiteUrls.Add(($"https://www.{guessedDomain}.com", "DomainGuess"));
+                seenDomains.Add($"www.{guessedDomain}.com");
+            }
+        }
+
+        // Agent-site URL (e.g., jenise-buckalew.real-estate-star.com)
+        if (!string.IsNullOrWhiteSpace(agentSiteHandle))
+        {
+            ownWebsiteUrls.Add(($"https://{agentSiteHandle}.real-estate-star.com", "AgentSite"));
+        }
+
+        // Use the agent's real name for Zillow (format: "firstname-lastname")
+        // Zillow is the only third-party profile we scrape — it has the richest agent data
+        // (bio, sales count, specialties, reviews). Skip Realtor.com to save ScraperAPI credits.
+        var zillowSlug = agentName.Trim().Replace(" ", "-").ToLowerInvariant();
+        thirdPartyUrls.Add(($"https://www.zillow.com/profile/{Uri.EscapeDataString(zillowSlug)}/", "Zillow"));
 
         // Own website first, then third-party profiles
         var urls = new List<(string, string)>(ownWebsiteUrls.Count + thirdPartyUrls.Count);
@@ -297,6 +339,7 @@ public sealed class AgentDiscoveryWorker(
 
     private async Task<IReadOnlyList<DiscoveredWebsite>> FetchWebsitesAsync(
         IReadOnlyList<(string Url, string Source)> urlSources,
+        string agentId,
         CancellationToken ct)
     {
         var results = new List<DiscoveredWebsite>();
@@ -315,14 +358,42 @@ public sealed class AgentDiscoveryWorker(
                 continue;
             }
 
+            // Use ScraperAPI for third-party sites (Zillow, Realtor.com, etc.) — they block raw HTTP.
+            // Use direct HTTP for agent-owned sites (cheaper, faster, no JS rendering needed).
+            var isThirdParty = !IsAgentOwnWebsite(url);
+            if (isThirdParty && scraperClient.IsAvailable)
+            {
+                var html = await scraperClient.FetchAsync(url, source, agentId, ct);
+                if (html is not null)
+                {
+                    results.Add(new DiscoveredWebsite(url, source, html));
+                    logger.LogInformation(
+                        "[AGENTDISCOVERY-022] Fetched {Source} via ScraperAPI ({Chars} chars): {Url}",
+                        source, html.Length, url);
+                    continue;
+                }
+
+                logger.LogWarning(
+                    "[AGENTDISCOVERY-023] ScraperAPI returned null for {Source}: {Url}. " +
+                    "Reason: ScraperAPI may be rate-limited or the page may not exist. " +
+                    "Impact: no profile data from {Source} — reviews, sales count, and bio will be missing.",
+                    source, url, source);
+                results.Add(new DiscoveredWebsite(url, source, null));
+                continue;
+            }
+
             try
             {
                 using var response = await http.GetAsync(url, HttpCompletionOption.ResponseContentRead, ct);
                 if (!response.IsSuccessStatusCode)
                 {
-                    logger.LogDebug(
-                        "[AGENTDISCOVERY-020] URL {Url} returned {Status}. Skipping.",
-                        url, response.StatusCode);
+                    logger.LogWarning(
+                        "[AGENTDISCOVERY-020] SKIP {Source}: {Url} returned HTTP {Status}. " +
+                        "Reason: {Reason}. Impact: no data from this source.",
+                        source, url, (int)response.StatusCode,
+                        isThirdParty
+                            ? "third-party site blocked raw HTTP (bot detection) and ScraperAPI unavailable"
+                            : "site may be down or URL is incorrect");
                     results.Add(new DiscoveredWebsite(url, source, null));
                     continue;
                 }
@@ -330,14 +401,16 @@ public sealed class AgentDiscoveryWorker(
                 var html = await response.Content.ReadAsStringAsync(ct);
                 results.Add(new DiscoveredWebsite(url, source, html));
 
-                logger.LogDebug(
-                    "[AGENTDISCOVERY-021] Fetched {Url} ({Bytes} chars) from source {Source}.",
-                    url, html.Length, source);
+                logger.LogInformation(
+                    "[AGENTDISCOVERY-021] Fetched {Source} via direct HTTP ({Chars} chars): {Url}",
+                    source, html.Length, url);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogWarning(ex,
-                    "[AGENTDISCOVERY-032] Failed to fetch {Url} ({Source}).", url, source);
+                    "[AGENTDISCOVERY-032] SKIP {Source}: failed to fetch {Url}. " +
+                    "Reason: {ExMessage}. Impact: no data from this source.",
+                    source, url, ex.Message);
                 results.Add(new DiscoveredWebsite(url, source, null));
             }
         }
@@ -604,6 +677,47 @@ public sealed class AgentDiscoveryWorker(
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Fetches reviews from the Zillow Reviews API (Bridge Interactive).
+    /// Tries email lookup first (exact match), falls back to name search.
+    /// Returns empty if the API is unavailable — the worker continues without reviews.
+    /// </summary>
+    private async Task<ZillowAgentReviews> FetchZillowReviewsAsync(
+        string? agentEmail, string agentName, string agentId, CancellationToken ct)
+    {
+        if (!zillowClient.IsAvailable)
+        {
+            logger.LogWarning(
+                "[AGENTDISCOVERY-060] SKIP Zillow Reviews API: not configured (no API token). " +
+                "Agent: {AgentId}. Impact: reviews will only come from HTML scraping (if ScraperAPI available).",
+                agentId);
+            return new ZillowAgentReviews([], null, 0, null);
+        }
+
+        // Try email first — exact match, most reliable
+        if (!string.IsNullOrWhiteSpace(agentEmail))
+        {
+            var byEmail = await zillowClient.GetReviewsByEmailAsync(agentEmail, agentId, ct);
+            if (byEmail.TotalReviewCount > 0)
+                return byEmail;
+
+            logger.LogInformation(
+                "[AGENTDISCOVERY-061] No Zillow reviews found by email ({Email}), trying name search.",
+                agentEmail, agentId);
+        }
+
+        // Fall back to name search
+        var byName = await zillowClient.GetReviewsByNameAsync(agentName, agentId, ct);
+        if (byName.TotalReviewCount == 0)
+        {
+            logger.LogInformation(
+                "[AGENTDISCOVERY-062] No Zillow reviews found for agent {AgentId} by email or name.",
+                agentId);
+        }
+
+        return byName;
     }
 
     private async Task<bool> CheckWhatsAppAsync(string? phoneNumber, CancellationToken ct)

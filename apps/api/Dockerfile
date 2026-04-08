@@ -32,6 +32,7 @@ COPY ["RealEstateStar.Clients/RealEstateStar.Clients.Turnstile/RealEstateStar.Cl
 COPY ["RealEstateStar.Clients/RealEstateStar.Clients.Azure/RealEstateStar.Clients.Azure.csproj", "RealEstateStar.Clients/RealEstateStar.Clients.Azure/"]
 COPY ["RealEstateStar.Clients/RealEstateStar.Clients.Gws/RealEstateStar.Clients.Gws.csproj", "RealEstateStar.Clients/RealEstateStar.Clients.Gws/"]
 COPY ["RealEstateStar.Clients/RealEstateStar.Clients.RentCast/RealEstateStar.Clients.RentCast.csproj", "RealEstateStar.Clients/RealEstateStar.Clients.RentCast/"]
+COPY ["RealEstateStar.Clients/RealEstateStar.Clients.Zillow/RealEstateStar.Clients.Zillow.csproj", "RealEstateStar.Clients/RealEstateStar.Clients.Zillow/"]
 # Activation workers
 COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.Orchestrator/RealEstateStar.Workers.Activation.Orchestrator.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.Orchestrator/"]
 COPY ["RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.AgentDiscovery/RealEstateStar.Workers.Activation.AgentDiscovery.csproj", "RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.AgentDiscovery/"]
