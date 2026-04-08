@@ -121,13 +121,22 @@ public sealed class DriveIndexWorker(
             "[DRIVEINDEX-002] Found {FileCount} total files in Drive. Platform folder: {FolderId}",
             allFiles.Count, folderId);
 
-        // Filter for real-estate-related documents
+        // Filter for real-estate-related documents, deduplicate by file ID.
+        // Google Drive can return the same file from multiple shared drives/folders.
         var realEstateFiles = allFiles
             .Where(f => IsRealEstateFile(f.Name, f.MimeType))
+            .GroupBy(f => f.Id)
+            .Select(g => g.First())
             .ToList();
 
+        var dedupRemoved = allFiles.Count(f => IsRealEstateFile(f.Name, f.MimeType)) - realEstateFiles.Count;
+        if (dedupRemoved > 0)
+            logger.LogInformation(
+                "[DRIVEINDEX-013] Deduplicated {Removed} duplicate file entries (same file in multiple folders).",
+                dedupRemoved);
+
         logger.LogInformation(
-            "[DRIVEINDEX-003] Identified {Count} real estate documents for account {AccountId}, agent {AgentId}.",
+            "[DRIVEINDEX-003] Identified {Count} unique real estate documents for account {AccountId}, agent {AgentId}.",
             realEstateFiles.Count, accountId, agentId);
 
         // Read content of each real-estate doc.

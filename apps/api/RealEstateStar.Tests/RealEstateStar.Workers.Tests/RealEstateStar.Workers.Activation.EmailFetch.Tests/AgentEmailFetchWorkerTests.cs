@@ -270,4 +270,84 @@ public class AgentEmailFetchWorkerTests
 
         sig.SocialLinks.Should().BeEmpty();
     }
+
+    [Fact]
+    public void ParseSignature_ExtractsNameFromTitleLine_CommaSeparated()
+    {
+        var block = "Jenise Buckalew, REALTOR®\nGreen Light Realty LLC\n(347) 393-5993\njenisesellsnj@gmail.com\njenisesellsnj.com";
+
+        var sig = AgentEmailFetchWorker.ParseSignature(block);
+
+        sig.Name.Should().Be("Jenise Buckalew");
+        sig.Title.Should().Contain("REALTOR");
+        sig.Phone.Should().Be("(347) 393-5993");
+        sig.BrokerageName.Should().Contain("Green Light Realty");
+        sig.WebsiteUrl.Should().Be("https://www.jenisesellsnj.com");
+    }
+
+    [Fact]
+    public void ParseSignature_ExtractsNameFromTitleLine_DashSeparated()
+    {
+        var block = "John Smith - Broker Associate\nSunrise Realty\n555-123-4567";
+
+        var sig = AgentEmailFetchWorker.ParseSignature(block);
+
+        sig.Name.Should().Be("John Smith");
+        sig.Title.Should().Contain("Broker Associate");
+    }
+
+    [Fact]
+    public void ParseSignature_ExtractsNameFromTitleLine_PipeSeparated()
+    {
+        var block = "Maria Garcia | Agent\nCoastal Properties\n555-999-0000";
+
+        var sig = AgentEmailFetchWorker.ParseSignature(block);
+
+        sig.Name.Should().Be("Maria Garcia");
+        sig.Title.Should().Contain("Agent");
+    }
+
+    [Fact]
+    public void ParseSignature_ExtractsBareDomainUrl()
+    {
+        var block = "Jane Doe\n555-000-1111\njanedoe.com";
+
+        var sig = AgentEmailFetchWorker.ParseSignature(block);
+
+        sig.WebsiteUrl.Should().Be("https://www.janedoe.com");
+    }
+
+    [Fact]
+    public void ParseSignature_PrefersHttpsUrl_OverBareDomain()
+    {
+        var block = "Jane Doe\nhttps://janedoe.com\n555-000-1111\njanedoe.com";
+
+        var sig = AgentEmailFetchWorker.ParseSignature(block);
+
+        sig.WebsiteUrl.Should().Be("https://janedoe.com");
+    }
+
+    [Fact]
+    public void ParseSignature_HandlesRealWorldJeniseSignature()
+    {
+        // Exact format from Jenise's actual emails
+        var block = """
+            Jenise Buckalew, REALTOR®
+            Green Light Realty LLC
+            1109 Englishtown Rd, Old Bridge, NJ 08857
+            (347) 393-5993
+            jenisesellsnj@gmail.com
+            jenisesellsnj.com
+            Se Habla Español
+            Forward. Moving.
+            """;
+
+        var sig = AgentEmailFetchWorker.ParseSignature(block);
+
+        sig.Name.Should().Be("Jenise Buckalew");
+        sig.Title.Should().Contain("REALTOR");
+        sig.Phone.Should().Be("(347) 393-5993");
+        sig.BrokerageName.Should().Contain("Green Light Realty");
+        sig.WebsiteUrl.Should().Be("https://www.jenisesellsnj.com");
+    }
 }
