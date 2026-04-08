@@ -41,6 +41,11 @@ public sealed class AzureTableTokenStore : ITokenStore
 
     public async Task<OAuthCredential?> GetAsync(string accountId, string agentId, string provider, CancellationToken ct)
     {
+        // Normalize to lowercase — prevents duplicate entries from case-inconsistent OAuth link generation.
+        // e.g., "GLR/Jenise:google" vs "glr/jenise:google" are the same agent.
+        accountId = accountId.ToLowerInvariant();
+        agentId = agentId.ToLowerInvariant();
+
         var sw = Stopwatch.GetTimestamp();
         using var activity = TokenStoreDiagnostics.ActivitySource.StartActivity("TokenStore.Get");
         try
@@ -80,6 +85,13 @@ public sealed class AzureTableTokenStore : ITokenStore
 
     public async Task SaveAsync(OAuthCredential credential, string provider, CancellationToken ct)
     {
+        // Normalize to lowercase — consistent with GetAsync
+        credential = credential with
+        {
+            AccountId = credential.AccountId?.ToLowerInvariant(),
+            AgentId = credential.AgentId?.ToLowerInvariant()
+        };
+
         var sw = Stopwatch.GetTimestamp();
         using var activity = TokenStoreDiagnostics.ActivitySource.StartActivity("TokenStore.Save");
         try
@@ -104,6 +116,13 @@ public sealed class AzureTableTokenStore : ITokenStore
 
     public async Task<bool> SaveIfUnchangedAsync(OAuthCredential credential, string provider, string etag, CancellationToken ct)
     {
+        // Normalize to lowercase — consistent with GetAsync/SaveAsync
+        credential = credential with
+        {
+            AccountId = credential.AccountId?.ToLowerInvariant(),
+            AgentId = credential.AgentId?.ToLowerInvariant()
+        };
+
         var sw = Stopwatch.GetTimestamp();
         using var activity = TokenStoreDiagnostics.ActivitySource.StartActivity("TokenStore.SaveIfUnchanged");
         try
@@ -138,6 +157,9 @@ public sealed class AzureTableTokenStore : ITokenStore
 
     public async Task DeleteAsync(string accountId, string agentId, string provider, CancellationToken ct)
     {
+        accountId = accountId.ToLowerInvariant();
+        agentId = agentId.ToLowerInvariant();
+
         var sw = Stopwatch.GetTimestamp();
         using var activity = TokenStoreDiagnostics.ActivitySource.StartActivity("TokenStore.Delete");
         try
