@@ -47,8 +47,15 @@ public sealed class GoogleOAuthRefresher : IOAuthRefresher
         if (!credential.IsExpired)
             return credential;
 
-        _logger.LogDebug("[OAUTH-010] Token expired for account {AccountId}, agent {AgentId}. Refreshing.",
+        _logger.LogInformation("[OAUTH-010] Token expired for account {AccountId}, agent {AgentId}. Refreshing.",
             accountId, agentId);
+
+        if (string.IsNullOrEmpty(credential.Email))
+            _logger.LogWarning(
+                "[OAUTH-012] Token for {AccountId}/{AgentId} has no Email metadata — " +
+                "may have been stored by an older code path or case-mismatched key. " +
+                "Re-authorize to restore full metadata.",
+                accountId, agentId);
 
         var refreshed = await RefreshTokenAsync(credential, ct);
         if (refreshed is null)
