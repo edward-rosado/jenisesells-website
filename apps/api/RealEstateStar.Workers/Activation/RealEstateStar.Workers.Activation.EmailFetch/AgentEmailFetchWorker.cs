@@ -198,7 +198,7 @@ public sealed class AgentEmailFetchWorker(
                 }
             }
 
-            // URLs
+            // URLs (with https:// prefix)
             var urlMatch = Regex.Match(line, @"https?://\S+");
             if (urlMatch.Success)
             {
@@ -208,6 +208,18 @@ public sealed class AgentEmailFetchWorker(
                 else if (websiteUrl is null)
                     websiteUrl = url;
                 continue;
+            }
+
+            // Bare domain URLs without https:// (e.g., "jenisesellsnj.com")
+            if (websiteUrl is null)
+            {
+                var bareDomainMatch = Regex.Match(line, @"^([a-zA-Z0-9][a-zA-Z0-9\-]*\.(com|net|org|io|co|us|realty|realtor|homes))$",
+                    RegexOptions.IgnoreCase);
+                if (bareDomainMatch.Success)
+                {
+                    websiteUrl = $"https://www.{bareDomainMatch.Value}";
+                    continue;
+                }
             }
 
             // Image URLs (logo/headshot in img tags or standalone)
@@ -231,12 +243,26 @@ public sealed class AgentEmailFetchWorker(
                 continue;
             }
 
-            // Title (common agent titles)
+            // Title line — may also contain name (e.g., "Jenise Buckalew, REALTOR®")
             if (title is null && Regex.IsMatch(line,
                 @"(REALTOR|Agent|Broker|Associate|Consultant|Specialist|Advisor)",
                 RegexOptions.IgnoreCase))
             {
-                title = line;
+                // Try to split name from title: "Name, REALTOR®" or "Name | Agent" or "Name - Broker"
+                var titleSplitMatch = Regex.Match(line,
+                    @"^(.+?)\s*[,|\-–—]\s*(REALTOR|Agent|Broker|Associate|Consultant|Specialist|Advisor).*$",
+                    RegexOptions.IgnoreCase);
+                if (titleSplitMatch.Success)
+                {
+                    var candidateName = titleSplitMatch.Groups[1].Value.Trim();
+                    if (name is null && LooksLikeName(candidateName))
+                        name = candidateName;
+                    title = line;
+                }
+                else
+                {
+                    title = line;
+                }
                 continue;
             }
 
