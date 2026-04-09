@@ -11,6 +11,7 @@ internal static class ActivityNames
 
     // Phase 1: Gather
     public const string EmailFetch = "ActivationEmailFetch";
+    public const string EmailTransactionExtraction = "ActivationEmailTransactionExtraction";
     public const string DriveIndex = "ActivationDriveIndex";
     public const string AgentDiscovery = "ActivationAgentDiscovery";
 

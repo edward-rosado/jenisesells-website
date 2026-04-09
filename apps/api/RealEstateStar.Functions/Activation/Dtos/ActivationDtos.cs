@@ -45,6 +45,14 @@ public sealed record EmailSignatureDto
     [JsonPropertyName("logoUrl")] public string? LogoUrl { get; init; }
 }
 
+/// <summary>Input to the EmailTransactionExtraction activity function.</summary>
+public sealed record EmailTransactionExtractionInput
+{
+    [JsonPropertyName("accountId")] public string AccountId { get; init; } = default!;
+    [JsonPropertyName("agentId")] public string AgentId { get; init; } = default!;
+    [JsonPropertyName("emailCorpus")] public EmailFetchOutput EmailCorpus { get; init; } = default!;
+}
+
 /// <summary>Input to the DriveIndex activity function.</summary>
 public sealed record DriveIndexInput
 {

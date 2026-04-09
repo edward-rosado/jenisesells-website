@@ -65,6 +65,7 @@
     <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.PipelineAnalysis\RealEstateStar.Workers.Activation.PipelineAnalysis.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.VoiceExtraction\RealEstateStar.Workers.Activation.VoiceExtraction.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.WebsiteStyle\RealEstateStar.Workers.Activation.WebsiteStyle.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.EmailTransactionExtraction\RealEstateStar.Workers.Activation.EmailTransactionExtraction.csproj" />
     <!-- Activation activities -->
     <ProjectReference Include="..\RealEstateStar.Activities\Activation\RealEstateStar.Activities.Activation.BrandMerge\RealEstateStar.Activities.Activation.BrandMerge.csproj" />
     <ProjectReference Include="..\RealEstateStar.Activities\Activation\RealEstateStar.Activities.Activation.PersistAgentProfile\RealEstateStar.Activities.Activation.PersistAgentProfile.csproj" />
