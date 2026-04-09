@@ -12,6 +12,17 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddScraperClient(this IServiceCollection services, IConfiguration configuration, ILogger pollyLogger)
     {
         services.Configure<ScraperOptions>(configuration.GetSection("Scraper"));
+
+        var apiKey = configuration["Scraper:ApiKey"];
+        if (string.IsNullOrWhiteSpace(apiKey))
+            pollyLogger.LogWarning(
+                "[STARTUP-SCRAPER] Scraper:ApiKey is not configured. " +
+                "ScraperAPI will be unavailable — third-party sites (Zillow, Realtor.com) " +
+                "will fall back to direct HTTP which gets blocked by bot detection. " +
+                "Set Scraper__ApiKey in app settings to enable.");
+        else
+            pollyLogger.LogInformation("[STARTUP-SCRAPER] ScraperAPI configured (key present).");
+
         services.AddSingleton<IScraperClient, ScraperClient>();
         services.AddHttpClient("ScraperAPI")
             .AddResilienceHandler("scraper-api", pipeline =>

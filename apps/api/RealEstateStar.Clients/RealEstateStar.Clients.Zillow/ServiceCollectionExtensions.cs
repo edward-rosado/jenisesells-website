@@ -12,6 +12,17 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddZillowClient(this IServiceCollection services, IConfiguration configuration, ILogger pollyLogger)
     {
         services.Configure<ZillowOptions>(configuration.GetSection("Zillow"));
+
+        var apiToken = configuration["Zillow:ApiToken"];
+        if (string.IsNullOrWhiteSpace(apiToken))
+            pollyLogger.LogWarning(
+                "[STARTUP-ZILLOW] Zillow:ApiToken is not configured. " +
+                "Zillow Reviews API will be unavailable — reviews will only come from " +
+                "HTML scraping (if ScraperAPI is available). " +
+                "Register at bridgedataoutput.com and set Zillow__ApiToken to enable.");
+        else
+            pollyLogger.LogInformation("[STARTUP-ZILLOW] Zillow Reviews API configured (token present).");
+
         services.AddSingleton<IZillowReviewsClient, ZillowReviewsClient>();
         services.AddHttpClient("ZillowAPI")
             .AddResilienceHandler("zillow-api", pipeline =>
