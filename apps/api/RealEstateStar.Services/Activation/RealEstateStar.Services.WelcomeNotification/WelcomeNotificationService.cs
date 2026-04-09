@@ -129,6 +129,11 @@ public sealed class WelcomeNotificationService(
         var coachingContext = outputs.CoachingReport;
         var agentName = outputs.AgentName ?? agentId;
 
+        // Extract catchphrases from Voice Skill for direct injection into the prompt.
+        // The full Voice Skill is 10-15KB — catchphrases get buried. Extracting them
+        // as a short list forces Claude to actually use them.
+        var catchphrases = ExtractCatchphrases(voiceContext);
+
         // Pull localized personality + voice for bilingual agents
         var localizedSkills = outputs.LocalizedSkills;
         string? spanishPersonality = null;
@@ -150,10 +155,15 @@ public sealed class WelcomeNotificationService(
                   "If their warmth is high, be genuinely warm. If confidence is high, be assertive. " +
                   "If humor usage is none, do not use humor.\n\n"
                 : "") +
+            (catchphrases.Count > 0
+                ? $"AGENT'S ACTUAL CATCHPHRASES (use at least one):\n" +
+                  string.Join("\n", catchphrases.Select(p => $"- \"{p}\"")) + "\n" +
+                  "INSTRUCTION: You MUST weave at least one of these exact phrases into the email. " +
+                  "These are the agent's real words — using them makes the email feel personal.\n\n"
+                : "") +
             (voiceContext != null
                 ? $"AGENT VOICE & CORE DIRECTIVE:\n{voiceContext}\n" +
-                  "INSTRUCTION: Use their catchphrase or sign-off naturally if one exists. " +
-                  "Reference their core directive traits (e.g., 'client-first', 'deal-making').\n\n"
+                  "INSTRUCTION: Match the agent's tone, formality, and communication style.\n\n"
                 : "") +
             (spanishPersonality != null || spanishVoice != null
                 ? "BILINGUAL AGENT CONTEXT:\n" +
@@ -200,6 +210,53 @@ public sealed class WelcomeNotificationService(
             Model, systemPrompt, userMessage, MaxTokens, Pipeline, ct);
 
         return response.Content.Trim();
+    }
+
+    // ── Catchphrase extraction ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Extracts catchphrases from the Voice Skill markdown.
+    /// Looks for lines in the "Signature Phrases" section that start with a number and contain quoted text.
+    /// Returns up to 5 of the most distinctive phrases.
+    /// </summary>
+    internal static IReadOnlyList<string> ExtractCatchphrases(string? voiceSkill)
+    {
+        if (string.IsNullOrWhiteSpace(voiceSkill))
+            return [];
+
+        var phrases = new List<string>();
+        var inSection = false;
+
+        foreach (var line in voiceSkill.Split('\n'))
+        {
+            var trimmed = line.Trim();
+
+            // Detect the "Signature Phrases" section header
+            if (trimmed.StartsWith("## Signature Phrases", StringComparison.OrdinalIgnoreCase))
+            {
+                inSection = true;
+                continue;
+            }
+
+            // Stop at the next section header
+            if (inSection && trimmed.StartsWith("## "))
+                break;
+
+            if (!inSection)
+                continue;
+
+            // Extract quoted text from numbered list items: 1. "phrase here"
+            var quoteMatch = System.Text.RegularExpressions.Regex.Match(trimmed,
+                @"^\d+\.\s+""([^""]+)""");
+            if (quoteMatch.Success)
+                phrases.Add(quoteMatch.Groups[1].Value);
+        }
+
+        // Return up to 5, skip generic ones
+        return phrases
+            .Where(p => p.Length > 5 && p.Length < 100)
+            .Take(5)
+            .ToList();
     }
 
     // ── Pipeline context builder ─────────────────────────────────────────────
