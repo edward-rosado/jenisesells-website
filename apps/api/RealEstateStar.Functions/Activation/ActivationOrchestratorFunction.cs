@@ -586,6 +586,45 @@ public sealed class ActivationOrchestratorFunction
         sb.AppendLine($"## Files ({driveIndex.Files.Count})");
         foreach (var file in driveIndex.Files)
             sb.AppendLine($"- [{file.Name}] ({file.Category}) — {file.MimeType}");
+
+        if (driveIndex.Extractions.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"## PDF Extractions ({driveIndex.Extractions.Count})");
+            foreach (var ext in driveIndex.Extractions)
+            {
+                sb.AppendLine($"### {ext.FileName}");
+                sb.AppendLine($"- **Type**: {ext.Type}");
+                if (ext.Date is not null)
+                    sb.AppendLine($"- **Date**: {ext.Date:yyyy-MM-dd}");
+                if (ext.Property is not null)
+                    sb.AppendLine($"- **Property**: {ext.Property.Address}" +
+                        (ext.Property.City is not null ? $", {ext.Property.City}" : "") +
+                        (ext.Property.State is not null ? $", {ext.Property.State}" : "") +
+                        (ext.Property.Zip is not null ? $" {ext.Property.Zip}" : ""));
+                if (ext.KeyTerms?.Price is not null)
+                    sb.AppendLine($"- **Price**: {ext.KeyTerms.Price}");
+                if (ext.KeyTerms?.Commission is not null)
+                    sb.AppendLine($"- **Commission**: {ext.KeyTerms.Commission}");
+                if (ext.Clients.Count > 0)
+                {
+                    sb.AppendLine("- **Clients**:");
+                    foreach (var client in ext.Clients)
+                        sb.AppendLine($"  - {client.Name} ({client.Role})" +
+                            (client.Phone is not null ? $" — {client.Phone}" : "") +
+                            (client.Email is not null ? $" — {client.Email}" : ""));
+                }
+            }
+        }
+
+        if (driveIndex.DiscoveredUrls.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"## Discovered URLs ({driveIndex.DiscoveredUrls.Count})");
+            foreach (var url in driveIndex.DiscoveredUrls)
+                sb.AppendLine($"- {url}");
+        }
+
         return sb.ToString();
     }
 

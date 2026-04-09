@@ -39,7 +39,7 @@ public sealed class DriveIndexWorker(
     private const int MaxPdfPages = 10;
     private const int PdfParallelism = 2;
     private const int MaxStagedFiles = 20;
-    private const int MaxPdfExtractions = 3;
+    private const int MaxPdfExtractions = 10;
     private const int MaxPdfBytes = 5_242_880; // 5 MB — skip oversized PDFs to cap peak memory
     private const int MaxFileContentBytes = 1_048_576; // 1 MB — skip larger files to stay under Consumption plan memory
     private const int ClaudeMaxTokens = 1024;
