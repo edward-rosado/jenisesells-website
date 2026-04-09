@@ -336,13 +336,28 @@ public sealed class AgentEmailFetchWorker(
         Regex.IsMatch(url, @"(headshot|photo|profile|avatar|portrait)",
             RegexOptions.IgnoreCase);
 
+    /// <summary>
+    /// Common email sign-off phrases that start with a capital letter and look like names
+    /// but are not. Only includes actual closing salutations — NOT identity signals like
+    /// "Se Habla Español" or brand taglines like "Forward. Moving." which belong in the signature.
+    /// </summary>
+    private static readonly HashSet<string> SignOffPhrases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Best Regards", "Warm Regards", "Kind Regards", "Regards",
+        "Sincerely", "Sincerely Yours", "Thanks", "Thank You", "Many Thanks",
+        "Cheers", "Best", "Best Wishes", "Respectfully", "Cordially",
+        "All the best", "Looking forward", "Talk soon", "Take care",
+        "See you soon", "With appreciation", "Warmly",
+    };
+
     private static bool LooksLikeName(string line) =>
         line.Length > 2
         && line.Length < 60
         && !line.Contains('@')
         && !line.Contains('/')
         && !line.Contains(':')
-        && Regex.IsMatch(line, @"^[A-Z][a-z]");
+        && Regex.IsMatch(line, @"^[A-Z][a-z]")
+        && !SignOffPhrases.Contains(line.TrimEnd('.', ',', '!'));
 
     /// <summary>
     /// Removes quoted reply blocks, "On ... wrote:" headers, and boilerplate from email bodies.
