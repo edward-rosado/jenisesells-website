@@ -60,60 +60,52 @@ public sealed class WelcomeNotificationService(
 
         var message = await DraftMessageAsync(accountId, agentId, handle, outputs, ct);
 
-        var agentPhone = outputs.AgentPhone;
-        var whatsAppEnabled = outputs.Discovery?.WhatsAppEnabled == true;
-
+        // Send via email (WhatsApp disabled — not yet operational)
         var sent = false;
-
-        // Try WhatsApp first
-        if (whatsAppEnabled && !string.IsNullOrWhiteSpace(agentPhone))
+        var agentEmail = outputs.AgentEmail;
+        if (!string.IsNullOrWhiteSpace(agentEmail))
         {
             try
             {
-                await whatsAppSender.SendFreeformAsync(agentPhone, message, ct);
+                var htmlBody = WrapHtml(message, outputs.AgentName);
+                await gmailSender.SendAsync(
+                    accountId, agentId, agentEmail,
+                    "Welcome to Real Estate Star! The premier AI automation platform for real estate agents.",
+                    htmlBody, ct);
                 sent = true;
                 logger.LogInformation(
-                    "[WELCOME-030] Welcome sent via WhatsApp for agentId={AgentId}", agentId);
+                    "[WELCOME-032] Welcome sent via email for agentId={AgentId}, to={Email}",
+                    agentId, agentEmail);
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex,
-                    "[WELCOME-031] WhatsApp failed for agentId={AgentId}, falling back to email", agentId);
+                logger.LogError(ex,
+                    "[WELCOME-033] Email send failed for agentId={AgentId}, to={Email}. " +
+                    "Welcome message NOT delivered. Will retry on next activation.",
+                    agentId, agentEmail);
             }
         }
-
-        // Fallback to email
-        if (!sent)
+        else
         {
-            var agentEmail = outputs.AgentEmail;
-            if (!string.IsNullOrWhiteSpace(agentEmail))
-            {
-                try
-                {
-                    var htmlBody = WrapHtml(message, outputs.AgentName);
-                    await gmailSender.SendAsync(
-                        accountId, agentId, agentEmail,
-                        "Welcome to Real Estate Star! The premier AI automation platform for real estate agents.",
-                        htmlBody, ct);
-                    sent = true;
-                    logger.LogInformation(
-                        "[WELCOME-032] Welcome sent via email for agentId={AgentId}", agentId);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex,
-                        "[WELCOME-033] Both WhatsApp and email failed for agentId={AgentId}", agentId);
-                }
-            }
+            logger.LogWarning(
+                "[WELCOME-034] No email address available for agentId={AgentId}. " +
+                "Welcome message drafted but NOT delivered.",
+                agentId);
         }
 
-        // Record sent flag (even if both channels failed — avoids retry spam)
+        // Only record sent flag on actual delivery success — allows retry on next activation
         if (sent)
         {
-            var record = $"---\nsent: true\nsent_at: {DateTime.UtcNow:O}\n---\n\n{message}";
+            var record = $"---\nsent: true\nsent_at: {DateTime.UtcNow:O}\nchannel: email\nrecipient: {agentEmail}\n---\n\n{message}";
             await storage.WriteDocumentAsync(agentFolder, WelcomeSentFile, record, ct);
             await idempotencyStore.MarkCompletedAsync(idempotencyKey, ct);
             logger.LogInformation("[WELCOME-090] Welcome sent flag recorded for agentId={AgentId}", agentId);
+        }
+        else
+        {
+            logger.LogWarning(
+                "[WELCOME-091] Welcome NOT recorded as sent for agentId={AgentId} — will retry on next activation.",
+                agentId);
         }
     }
 
@@ -181,17 +173,21 @@ public sealed class WelcomeNotificationService(
             "CRITICAL RULES:\n" +
             "- ONLY mention Real Estate Star by name\n" +
             "- DO NOT reference any other company or brand from the agent's data\n" +
-            "- Include ALL 4 sections below\n" +
+            "- Include ALL sections below\n" +
             "- Under 300 words total\n" +
-            "- Plain text only, no markdown, no HTML\n\n" +
-            "SECTIONS (include all 4):\n" +
-            "1. Personalized greeting using agent's name, reflecting their personality and cultural identity\n" +
+            "- Plain text only, no markdown, no HTML\n" +
+            "- You MUST include at least one of the agent's actual catchphrases or signature phrases " +
+            "from the Voice Skill data. Do NOT use generic phrases — use THEIR words.\n" +
+            "- If the agent's data mentions 'Se Habla Español', Spanish, bilingual service, or any " +
+            "non-English language capability, you MUST acknowledge this as a strength. Mention that " +
+            "Real Estate Star will serve their clients in their preferred language.\n\n" +
+            "SECTIONS (include all):\n" +
+            "1. Personalized greeting using agent's name and one of their catchphrases or sign-off phrases\n" +
             "2. 'We found your leads' — reference specific lead(s) by name and property from pipeline data\n" +
             "3. One concrete coaching insight with real numbers and an industry benchmark\n" +
-            "4. What Real Estate Star will do for them specifically, include their site URL" +
-            (spanishPersonality != null || spanishVoice != null
-                ? "\n5. If bilingual: mention that their site and lead emails will speak their clients' language too"
-                : "");
+            "4. What Real Estate Star will do for them specifically, include their site URL\n" +
+            "5. If agent data shows bilingual/multilingual service: mention that their platform will " +
+            "serve leads in the right language automatically";
 
         var userMessage =
             $"Write a welcome email for {agentName}.\n\n" +

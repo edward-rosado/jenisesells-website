@@ -121,19 +121,24 @@ public sealed class DriveIndexWorker(
             "[DRIVEINDEX-002] Found {FileCount} total files in Drive. Platform folder: {FolderId}",
             allFiles.Count, folderId);
 
-        // Filter for real-estate-related documents, deduplicate by file ID.
-        // Google Drive can return the same file from multiple shared drives/folders.
-        var realEstateFiles = allFiles
+        // Filter for real-estate-related documents, deduplicate by name + MIME type.
+        // Google Drive assigns unique IDs even for the same file in multiple folders/shared drives,
+        // so dedup by ID doesn't help. Dedup by name + MIME type catches the real duplicates.
+        var allRealEstateFiles = allFiles
             .Where(f => IsRealEstateFile(f.Name, f.MimeType))
-            .GroupBy(f => f.Id)
-            .Select(g => g.First())
             .ToList();
 
-        var dedupRemoved = allFiles.Count(f => IsRealEstateFile(f.Name, f.MimeType)) - realEstateFiles.Count;
+        var realEstateFiles = allRealEstateFiles
+            .GroupBy(f => $"{f.Name}|{f.MimeType}", StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderByDescending(f => f.ModifiedTime ?? DateTime.MinValue).First())
+            .ToList();
+
+        var dedupRemoved = allRealEstateFiles.Count - realEstateFiles.Count;
         if (dedupRemoved > 0)
             logger.LogInformation(
-                "[DRIVEINDEX-013] Deduplicated {Removed} duplicate file entries (same file in multiple folders).",
-                dedupRemoved);
+                "[DRIVEINDEX-013] Deduplicated {Removed} files ({Before} → {After}). " +
+                "Same-named files in multiple folders/shared drives collapsed to most recent.",
+                dedupRemoved, allRealEstateFiles.Count, realEstateFiles.Count);
 
         logger.LogInformation(
             "[DRIVEINDEX-003] Identified {Count} unique real estate documents for account {AccountId}, agent {AgentId}.",
