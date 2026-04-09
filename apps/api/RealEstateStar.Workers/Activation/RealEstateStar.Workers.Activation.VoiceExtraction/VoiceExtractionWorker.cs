@@ -322,20 +322,31 @@ public sealed class VoiceExtractionWorker(
 
     private static string BuildBiosContent(AgentDiscovery discovery)
     {
-        if (discovery.Profiles.Count == 0)
-            return "(No third-party profiles available)";
-
         var sb = new System.Text.StringBuilder();
+
         foreach (var profile in discovery.Profiles)
         {
             if (string.IsNullOrWhiteSpace(profile.Bio))
                 continue;
-
-            sb.AppendLine($"--- {profile.Platform} ---");
+            sb.AppendLine($"--- {profile.Platform} Bio ---");
             sb.AppendLine(profile.Bio);
             sb.AppendLine();
         }
-        return sb.Length > 0 ? sb.ToString() : "(No bios available)";
+
+        // Client reviews — rich signals for voice, personality, language, service style
+        if (discovery.Reviews.Count > 0)
+        {
+            sb.AppendLine($"--- Client Reviews ({discovery.Reviews.Count} total) ---");
+            sb.AppendLine("INSTRUCTION: Use these reviews to understand how clients describe this agent.");
+            sb.AppendLine("Look for: language mentions (bilingual, Spanish), personality traits,");
+            sb.AppendLine("service style, areas of expertise, and recurring themes.");
+            sb.AppendLine();
+            foreach (var review in discovery.Reviews.Take(15))
+                sb.AppendLine($"[{review.Source}, {review.Rating}★] {review.Reviewer}: {review.Text}");
+            sb.AppendLine();
+        }
+
+        return sb.Length > 0 ? sb.ToString() : "(No third-party profiles or reviews available)";
     }
 }
 
