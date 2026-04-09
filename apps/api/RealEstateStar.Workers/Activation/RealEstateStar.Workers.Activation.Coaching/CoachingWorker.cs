@@ -217,14 +217,22 @@ public sealed class CoachingWorker(
     private static string BuildReviewContent(AgentDiscovery agentDiscovery)
     {
         var sb = new System.Text.StringBuilder();
-        var reviews = agentDiscovery.Profiles.SelectMany(p => p.Reviews).ToList();
+
+        // Use the merged reviews (Zillow API + Google Places + HTML-scraped)
+        var reviews = agentDiscovery.Reviews;
+        if (reviews.Count == 0)
+        {
+            // Fall back to profile-embedded reviews for backward compat
+            reviews = agentDiscovery.Profiles.SelectMany(p => p.Reviews).ToList();
+        }
+
         if (reviews.Count == 0)
             return "(No reviews available)";
 
-        foreach (var review in reviews)
-        {
-            sb.AppendLine($"[{review.Rating}/5 — {review.Source}] {review.Text}");
-        }
+        sb.AppendLine($"Total reviews: {reviews.Count} (sources: {string.Join(", ", reviews.Select(r => r.Source).Distinct())})");
+        sb.AppendLine();
+        foreach (var review in reviews.Take(20))
+            sb.AppendLine($"[{review.Rating}/5 — {review.Source}] {review.Reviewer}: {review.Text}");
         return sb.ToString();
     }
 }

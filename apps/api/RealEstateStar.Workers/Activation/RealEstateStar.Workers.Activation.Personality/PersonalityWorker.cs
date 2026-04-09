@@ -326,20 +326,31 @@ public sealed class PersonalityWorker(
 
     private static string BuildBiosContent(AgentDiscovery discovery)
     {
-        if (discovery.Profiles.Count == 0)
-            return "(No third-party profiles available)";
-
         var sb = new System.Text.StringBuilder();
+
         foreach (var profile in discovery.Profiles)
         {
             if (string.IsNullOrWhiteSpace(profile.Bio))
                 continue;
-
-            sb.AppendLine($"--- {profile.Platform} ---");
+            sb.AppendLine($"--- {profile.Platform} Bio ---");
             sb.AppendLine(profile.Bio);
             sb.AppendLine();
         }
-        return sb.Length > 0 ? sb.ToString() : "(No bios available)";
+
+        // Client reviews — external validation of personality traits
+        if (discovery.Reviews.Count > 0)
+        {
+            sb.AppendLine($"--- Client Reviews ({discovery.Reviews.Count} total) ---");
+            sb.AppendLine("INSTRUCTION: Use these reviews as external evidence for personality traits.");
+            sb.AppendLine("Clients describe how the agent made them FEEL — this is the ground truth");
+            sb.AppendLine("for empathy, warmth, responsiveness, and communication style.");
+            sb.AppendLine();
+            foreach (var review in discovery.Reviews.Take(15))
+                sb.AppendLine($"[{review.Source}, {review.Rating}★] {review.Reviewer}: {review.Text}");
+            sb.AppendLine();
+        }
+
+        return sb.Length > 0 ? sb.ToString() : "(No third-party profiles or reviews available)";
     }
 }
 
