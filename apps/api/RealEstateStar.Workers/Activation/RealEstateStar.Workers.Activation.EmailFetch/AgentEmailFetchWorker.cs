@@ -62,9 +62,13 @@ public sealed class AgentEmailFetchWorker(
     }
 
     /// <summary>
-    /// Finds the most common signature block across sent emails by looking for
-    /// the repeated trailing block that appears after a separator line (--) or
-    /// "Best regards" / "Sincerely" / "Thanks" closings.
+    /// Extracts a composite signature by parsing ALL candidate blocks from sent emails,
+    /// then merging fields across them. This captures identity signals that appear in
+    /// full client-facing signatures even when short office signatures are more frequent.
+    ///
+    /// For example, the agent's cell phone, name, and personal website might only appear
+    /// in their full CMA email signature (20% of emails), while the short office signature
+    /// (80% of quick replies) only has the office phone and brokerage name.
     /// </summary>
     internal static EmailSignature? ExtractSignature(IReadOnlyList<EmailMessage> sentEmails)
     {
@@ -83,17 +87,58 @@ public sealed class AgentEmailFetchWorker(
         if (candidates.Count == 0)
             return null;
 
-        // Use the most common block (or the longest if all are unique)
-        var mostCommon = candidates
-            .GroupBy(b => b, StringComparer.OrdinalIgnoreCase)
+        // Parse EVERY candidate block, then merge the richest fields across all of them.
+        // This captures the agent's name from their full signature even if their short
+        // office signature is more common.
+        var parsed = candidates
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(ParseSignature)
+            .ToList();
+
+        return MergeSignatures(parsed);
+    }
+
+    /// <summary>
+    /// Merges multiple parsed signatures by picking the best (most frequent non-null) value
+    /// for each field. For name and phone, prefers the most frequently seen value.
+    /// For fields like websiteUrl, any non-null value wins.
+    /// </summary>
+    internal static EmailSignature MergeSignatures(IReadOnlyList<EmailSignature> signatures)
+    {
+        if (signatures.Count == 0)
+            return new EmailSignature(null, null, null, null, null, [], null, null, null);
+        if (signatures.Count == 1)
+            return signatures[0];
+
+        // For each field, pick the most frequently seen non-null value
+        var name = MostFrequent(signatures.Select(s => s.Name));
+        var title = MostFrequent(signatures.Select(s => s.Title));
+        var phone = MostFrequent(signatures.Select(s => s.Phone));
+        var licenseNumber = MostFrequent(signatures.Select(s => s.LicenseNumber));
+        var brokerageName = MostFrequent(signatures.Select(s => s.BrokerageName));
+        var headshotUrl = signatures.Select(s => s.HeadshotUrl).FirstOrDefault(u => u is not null);
+        var websiteUrl = signatures.Select(s => s.WebsiteUrl).FirstOrDefault(u => u is not null);
+        var logoUrl = signatures.Select(s => s.LogoUrl).FirstOrDefault(u => u is not null);
+        var socialLinks = signatures
+            .SelectMany(s => s.SocialLinks)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return new EmailSignature(name, title, phone, licenseNumber, brokerageName,
+            socialLinks, headshotUrl, websiteUrl, logoUrl);
+    }
+
+    /// <summary>
+    /// Returns the most frequently occurring non-null value from a sequence of candidates.
+    /// </summary>
+    private static string? MostFrequent(IEnumerable<string?> values)
+    {
+        return values
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .GroupBy(v => v!, StringComparer.OrdinalIgnoreCase)
             .OrderByDescending(g => g.Count())
-            .ThenByDescending(g => g.Key.Length)
+            .ThenByDescending(g => g.Key.Length) // prefer longer on tie (e.g., full name vs first name)
             .FirstOrDefault()?.Key;
-
-        if (mostCommon is null)
-            return null;
-
-        return ParseSignature(mostCommon);
     }
 
     /// <summary>
