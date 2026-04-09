@@ -247,7 +247,7 @@ public sealed class AgentEmailFetchWorker(
             var urlMatch = Regex.Match(line, @"https?://\S+");
             if (urlMatch.Success)
             {
-                var url = urlMatch.Value.TrimEnd('.', ',', ')');
+                var url = CleanExtractedUrl(urlMatch.Value);
                 if (IsSocialUrl(url))
                     socialLinks.Add(url);
                 else if (websiteUrl is null)
@@ -326,6 +326,23 @@ public sealed class AgentEmailFetchWorker(
             headshotUrl,
             websiteUrl,
             logoUrl);
+    }
+
+    /// <summary>
+    /// Strips trailing HTML tags, punctuation, and junk from URLs extracted via regex.
+    /// Email signatures are often HTML — \S+ captures trailing tags like &lt;/I&gt;, &lt;br&gt;, quotes, etc.
+    /// </summary>
+    internal static string CleanExtractedUrl(string url)
+    {
+        // Strip anything from the first '<' onward (HTML tag attached to URL)
+        var ltIndex = url.IndexOf('<');
+        if (ltIndex > 0)
+            url = url[..ltIndex];
+
+        // Strip trailing punctuation, quotes, parens, angle brackets
+        url = url.TrimEnd('.', ',', ')', '>', '"', '\'', ';', '!', '?');
+
+        return url;
     }
 
     private static bool IsSocialUrl(string url) =>
