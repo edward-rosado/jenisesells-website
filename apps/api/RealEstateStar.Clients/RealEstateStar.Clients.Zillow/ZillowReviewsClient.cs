@@ -50,7 +50,7 @@ public class ZillowReviewsClient(
             return Empty;
         }
 
-        var filter = $"contains(RevieweeName, '{EscapeODataString(agentName)}')";
+        var filter = $"contains(RevieweeFullName, '{EscapeODataString(agentName)}')";
         return await FetchRevieweesAsync(filter, agentId, "name", ct);
     }
 
