@@ -48,13 +48,31 @@ public sealed class DriveIndexWorker(
 
     internal const string DocumentExtractionSystemPrompt =
         """
-        You are a real estate document parser. Extract structured contact and property data from the document.
+        You are a real estate document parser. Extract ALL structured data from this document in one pass.
+        This is expensive to read, so capture everything valuable.
 
         Return ONLY valid JSON matching this schema (no explanation, no markdown fences):
-        {"type":"<one of: ListingAgreement, BuyerAgreement, PurchaseContract, Disclosure, ClosingStatement, Cma, Inspection, Appraisal, Other>","date":"<ISO 8601 date or null>","clients":[{"name":"<full name>","role":"<one of: Buyer, Seller, Both, Unknown>","email":"<email or null>","phone":"<phone or null>"}],"property":{"address":"<street address>","city":"<city or null>","state":"<state abbreviation or null>","zip":"<zip or null>"},"keyTerms":{"price":"<sale price as string or null>","commission":"<commission as string or null>","contingencies":["<contingency description>"]}}
+        {
+          "type":"<one of: ListingAgreement, BuyerAgreement, PurchaseContract, Disclosure, ClosingStatement, Cma, Inspection, Appraisal, Other>",
+          "date":"<ISO 8601 date or null>",
+          "clients":[{"name":"<full name>","role":"<Buyer|Seller|Both|Unknown>","email":"<or null>","phone":"<or null>"}],
+          "property":{"address":"<street address>","city":"<or null>","state":"<state abbr or null>","zip":"<or null>"},
+          "keyTerms":{"price":"<sale price string or null>","commission":"<string or null>","contingencies":["<description>"]},
+          "inferredPath":"<folder path — see rules below>",
+          "agentIdentity":{"name":"<listing/selling agent name or null>","brokerageName":"<or null>","licenseNumber":"<or null>","phone":"<or null>","email":"<or null>"},
+          "language":"<document language: en, es, or null if uncertain>",
+          "transactionStatus":"<Pending|Active|Closed|Expired|Withdrawn or null>",
+          "serviceAreas":["<city or county mentioned>"],
+          "notes":"<any other notable details: MLS number, special conditions, HOA info, etc. or null>"
+        }
 
-        If a field is not present in the document, use null (or empty array for contingencies).
-        Do not invent data. Only extract what is explicitly stated.
+        inferredPath rules:
+        - Format: "transactions/{address-slug}/{doc-category}/{filename}"
+        - address-slug: lowercase, hyphens (e.g., "534-jefferson-ave")
+        - doc-category: contracts, disclosures, closings, listings, inspections, cma, offers, other
+        - No address? Use "general/{doc-category}/{filename}"
+
+        Extract EVERYTHING present. Do not invent data. Use null for missing fields.
         """;
 
     internal const string DocumentExtractionUserTemplate =
@@ -465,7 +483,40 @@ public sealed class DriveIndexWorker(
                 keyTerms = new ExtractedKeyTerms(price, commission, contingencies);
             }
 
-            return new DocumentExtraction(fileId, fileName, type, clients, property, date, keyTerms);
+            var inferredPath = root.TryGetProperty("inferredPath", out var pathProp) && pathProp.ValueKind != JsonValueKind.Null
+                ? pathProp.GetString() : null;
+            inferredPath ??= InferPath(property, type, fileName);
+
+            // Agent identity (listing/selling agent info found in the document)
+            ExtractedAgentIdentity? agentIdentity = null;
+            if (root.TryGetProperty("agentIdentity", out var aiProp) && aiProp.ValueKind == JsonValueKind.Object)
+            {
+                var aiName = aiProp.TryGetProperty("name", out var ainProp) && ainProp.ValueKind != JsonValueKind.Null ? ainProp.GetString() : null;
+                var aiBrokerage = aiProp.TryGetProperty("brokerageName", out var aibProp) && aibProp.ValueKind != JsonValueKind.Null ? aibProp.GetString() : null;
+                var aiLicense = aiProp.TryGetProperty("licenseNumber", out var ailProp) && ailProp.ValueKind != JsonValueKind.Null ? ailProp.GetString() : null;
+                var aiPhone = aiProp.TryGetProperty("phone", out var aipProp) && aipProp.ValueKind != JsonValueKind.Null ? aipProp.GetString() : null;
+                var aiEmail = aiProp.TryGetProperty("email", out var aieProp) && aieProp.ValueKind != JsonValueKind.Null ? aieProp.GetString() : null;
+                if (aiName is not null || aiBrokerage is not null)
+                    agentIdentity = new ExtractedAgentIdentity(aiName, aiBrokerage, aiLicense, aiPhone, aiEmail);
+            }
+
+            var language = root.TryGetProperty("language", out var langProp) && langProp.ValueKind != JsonValueKind.Null
+                ? langProp.GetString() : null;
+            var txStatus = root.TryGetProperty("transactionStatus", out var txProp) && txProp.ValueKind != JsonValueKind.Null
+                ? txProp.GetString() : null;
+
+            var serviceAreas = new List<string>();
+            if (root.TryGetProperty("serviceAreas", out var saProp) && saProp.ValueKind == JsonValueKind.Array)
+                foreach (var sa in saProp.EnumerateArray())
+                    if (sa.GetString() is string saVal && !string.IsNullOrWhiteSpace(saVal))
+                        serviceAreas.Add(saVal);
+
+            var notes = root.TryGetProperty("notes", out var notesProp) && notesProp.ValueKind != JsonValueKind.Null
+                ? notesProp.GetString() : null;
+
+            return new DocumentExtraction(fileId, fileName, type, clients, property, date, keyTerms,
+                inferredPath, agentIdentity, language, txStatus,
+                serviceAreas.Count > 0 ? serviceAreas : null, notes);
         }
         catch
         {
@@ -495,6 +546,74 @@ public sealed class DriveIndexWorker(
             "Both" => ContactRole.Both,
             _ => ContactRole.Unknown
         };
+
+    // ── Folder path inference ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Infers a folder path from extracted property data and document type.
+    /// Used when Claude doesn't return an inferredPath or for fallback.
+    /// </summary>
+    internal static string InferPath(ExtractedProperty? property, DocumentType type, string fileName)
+    {
+        var slug = property is not null
+            ? Regex.Replace(property.Address.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-')
+            : null;
+
+        var category = type switch
+        {
+            DocumentType.PurchaseContract => "contracts",
+            DocumentType.ListingAgreement => "listings",
+            DocumentType.BuyerAgreement => "contracts",
+            DocumentType.Disclosure => "disclosures",
+            DocumentType.ClosingStatement => "closings",
+            DocumentType.Cma => "cma",
+            DocumentType.Inspection => "inspections",
+            DocumentType.Appraisal => "inspections",
+            _ => "other"
+        };
+
+        var cleanName = Regex.Replace(fileName.ToLowerInvariant(), @"[^a-z0-9\.\-]+", "-").Trim('-');
+
+        return slug is not null
+            ? $"transactions/{slug}/{category}/{cleanName}"
+            : $"general/{category}/{cleanName}";
+    }
+
+    /// <summary>
+    /// Infers a folder path from a file name alone — used for the ~39 files that don't
+    /// get Claude extraction. Uses regex patterns to extract addresses from file names.
+    /// </summary>
+    internal static string InferPathFromFileName(string fileName, string category)
+    {
+        // Try to extract a street address from the filename
+        // Common patterns: "534 JEFFERSON FE CONTRACT", "129 Cottrell Rd", "16 Hershey rd"
+        var addressMatch = Regex.Match(fileName,
+            @"(\d+\s+[A-Za-z]+(?:\s+[A-Za-z]+)?)\s*(?:Rd|St|Ave|Dr|Ct|Ln|Way|Blvd|Pl|Cir|Ter)?",
+            RegexOptions.IgnoreCase);
+
+        string? slug = null;
+        if (addressMatch.Success)
+        {
+            slug = Regex.Replace(addressMatch.Groups[1].Value.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+            if (slug.Length < 3) slug = null; // too short to be meaningful
+        }
+
+        var docCategory = category.ToLowerInvariant() switch
+        {
+            "contract" => "contracts",
+            "listing" => "listings",
+            "disclosure" => "disclosures",
+            "cma" => "cma",
+            "marketing" => "marketing",
+            _ => "other"
+        };
+
+        var cleanName = Regex.Replace(fileName.ToLowerInvariant(), @"[^a-z0-9\.\-]+", "-").Trim('-');
+
+        return slug is not null
+            ? $"transactions/{slug}/{docCategory}/{cleanName}"
+            : $"general/{docCategory}/{cleanName}";
+    }
 
     // ── Regex-based extraction ─────────────────────────────────────────────────
 

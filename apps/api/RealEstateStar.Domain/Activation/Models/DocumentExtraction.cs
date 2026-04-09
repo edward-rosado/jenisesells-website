@@ -7,7 +7,20 @@ public sealed record DocumentExtraction(
     IReadOnlyList<ExtractedClient> Clients,
     ExtractedProperty? Property,
     DateTime? Date,
-    ExtractedKeyTerms? KeyTerms);
+    ExtractedKeyTerms? KeyTerms,
+    string? InferredPath = null,
+    ExtractedAgentIdentity? AgentIdentity = null,
+    string? Language = null,
+    string? TransactionStatus = null,
+    IReadOnlyList<string>? ServiceAreas = null,
+    string? Notes = null);
+
+public sealed record ExtractedAgentIdentity(
+    string? Name,
+    string? BrokerageName,
+    string? LicenseNumber,
+    string? Phone,
+    string? Email);
 
 public sealed record ExtractedClient(
     string Name,

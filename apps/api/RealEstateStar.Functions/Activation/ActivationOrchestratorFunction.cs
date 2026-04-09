@@ -596,6 +596,10 @@ public sealed class ActivationOrchestratorFunction
         foreach (var file in driveIndex.Files)
             sb.AppendLine($"- [{file.Name}] ({file.Category}) — {file.MimeType}");
 
+        // Build a lookup of extraction results by file ID for enrichment
+        var extractionsByFileId = driveIndex.Extractions
+            .ToDictionary(e => e.DriveFileId, e => e);
+
         if (driveIndex.Extractions.Count > 0)
         {
             sb.AppendLine();
@@ -604,6 +608,8 @@ public sealed class ActivationOrchestratorFunction
             {
                 sb.AppendLine($"### {ext.FileName}");
                 sb.AppendLine($"- **Type**: {ext.Type}");
+                if (ext.InferredPath is not null)
+                    sb.AppendLine($"- **Inferred Path**: `{ext.InferredPath}`");
                 if (ext.Date is not null)
                     sb.AppendLine($"- **Date**: {ext.Date:yyyy-MM-dd}");
                 if (ext.Property is not null)
@@ -615,6 +621,18 @@ public sealed class ActivationOrchestratorFunction
                     sb.AppendLine($"- **Price**: {ext.KeyTerms.Price}");
                 if (ext.KeyTerms?.Commission is not null)
                     sb.AppendLine($"- **Commission**: {ext.KeyTerms.Commission}");
+                if (ext.TransactionStatus is not null)
+                    sb.AppendLine($"- **Status**: {ext.TransactionStatus}");
+                if (ext.Language is not null)
+                    sb.AppendLine($"- **Language**: {ext.Language}");
+                if (ext.AgentIdentity is not null)
+                    sb.AppendLine($"- **Agent**: {ext.AgentIdentity.Name ?? "?"}" +
+                        (ext.AgentIdentity.BrokerageName is not null ? $" @ {ext.AgentIdentity.BrokerageName}" : "") +
+                        (ext.AgentIdentity.LicenseNumber is not null ? $" (Lic# {ext.AgentIdentity.LicenseNumber})" : ""));
+                if (ext.ServiceAreas is { Count: > 0 })
+                    sb.AppendLine($"- **Service Areas**: {string.Join(", ", ext.ServiceAreas)}");
+                if (ext.Notes is not null)
+                    sb.AppendLine($"- **Notes**: {ext.Notes}");
                 if (ext.Clients.Count > 0)
                 {
                     sb.AppendLine("- **Clients**:");
@@ -626,15 +644,83 @@ public sealed class ActivationOrchestratorFunction
             }
         }
 
+        // Proposed folder organization for ALL files — extracted ones use Claude's
+        // inferred path, non-extracted ones use filename heuristics.
+        sb.AppendLine();
+        sb.AppendLine("## Proposed Organization");
+        sb.AppendLine("Inferred folder structure based on property addresses and document types:");
+        sb.AppendLine();
+
+        var pathGroups = new Dictionary<string, List<string>>();
+        foreach (var file in driveIndex.Files)
+        {
+            string path;
+            if (extractionsByFileId.TryGetValue(file.Id, out var ext) && ext.InferredPath is not null)
+                path = ext.InferredPath;
+            else
+                path = InferPathFromFileName(file.Name, file.Category);
+
+            var folder = path.Contains('/') ? path[..path.LastIndexOf('/')] : "general";
+            if (!pathGroups.TryGetValue(folder, out var files))
+            {
+                files = [];
+                pathGroups[folder] = files;
+            }
+            files.Add(file.Name);
+        }
+
+        foreach (var (folder, files) in pathGroups.OrderBy(g => g.Key))
+        {
+            sb.AppendLine($"### `{folder}/`");
+            foreach (var file in files)
+                sb.AppendLine($"- {file}");
+            sb.AppendLine();
+        }
+
         if (driveIndex.DiscoveredUrls.Count > 0)
         {
-            sb.AppendLine();
             sb.AppendLine($"## Discovered URLs ({driveIndex.DiscoveredUrls.Count})");
             foreach (var url in driveIndex.DiscoveredUrls)
                 sb.AppendLine($"- {url}");
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Infers a folder path from a file name and category — lightweight heuristic for files
+    /// that don't get Claude extraction. Extracts street addresses from filenames.
+    /// </summary>
+    private static string InferPathFromFileName(string fileName, string category)
+    {
+        var addressMatch = System.Text.RegularExpressions.Regex.Match(fileName,
+            @"(\d+\s+[A-Za-z]+(?:\s+[A-Za-z]+)?)\s*(?:Rd|St|Ave|Dr|Ct|Ln|Way|Blvd|Pl|Cir|Ter)?",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        string? slug = null;
+        if (addressMatch.Success)
+        {
+            slug = System.Text.RegularExpressions.Regex.Replace(
+                addressMatch.Groups[1].Value.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+            if (slug.Length < 3) slug = null;
+        }
+
+        var docCategory = category.ToLowerInvariant() switch
+        {
+            "contract" => "contracts",
+            "listing" => "listings",
+            "disclosure" => "disclosures",
+            "cma" => "cma",
+            "marketing" => "marketing",
+            _ => "other"
+        };
+
+        var cleanName = System.Text.RegularExpressions.Regex.Replace(
+            fileName.ToLowerInvariant(), @"[^a-z0-9\.\-]+", "-").Trim('-');
+
+        return slug is not null
+            ? $"transactions/{slug}/{docCategory}/{cleanName}"
+            : $"general/{docCategory}/{cleanName}";
     }
 
     private static string BuildDiscoveryMarkdown(AgentDiscoveryOutput discovery)

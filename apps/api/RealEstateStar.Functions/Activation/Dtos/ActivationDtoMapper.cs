@@ -74,7 +74,20 @@ internal static class ActivationDtoMapper
             Clients = d.Clients.Select(ToDto).ToList(),
             Property = d.Property is null ? null : ToDto(d.Property),
             Date = d.Date,
-            KeyTerms = d.KeyTerms is null ? null : ToDto(d.KeyTerms)
+            KeyTerms = d.KeyTerms is null ? null : ToDto(d.KeyTerms),
+            InferredPath = d.InferredPath,
+            AgentIdentity = d.AgentIdentity is null ? null : new ExtractedAgentIdentityDto
+            {
+                Name = d.AgentIdentity.Name,
+                BrokerageName = d.AgentIdentity.BrokerageName,
+                LicenseNumber = d.AgentIdentity.LicenseNumber,
+                Phone = d.AgentIdentity.Phone,
+                Email = d.AgentIdentity.Email
+            },
+            Language = d.Language,
+            TransactionStatus = d.TransactionStatus,
+            ServiceAreas = d.ServiceAreas?.ToList() ?? [],
+            Notes = d.Notes
         };
 
     public static ExtractedClientDto ToDto(ExtractedClient c) =>
@@ -232,7 +245,15 @@ internal static class ActivationDtoMapper
             Clients: dto.Clients.Select(ToDomain).ToList(),
             Property: dto.Property is null ? null : ToDomain(dto.Property),
             Date: dto.Date,
-            KeyTerms: dto.KeyTerms is null ? null : ToDomain(dto.KeyTerms));
+            KeyTerms: dto.KeyTerms is null ? null : ToDomain(dto.KeyTerms),
+            InferredPath: dto.InferredPath,
+            AgentIdentity: dto.AgentIdentity is null ? null : new ExtractedAgentIdentity(
+                dto.AgentIdentity.Name, dto.AgentIdentity.BrokerageName,
+                dto.AgentIdentity.LicenseNumber, dto.AgentIdentity.Phone, dto.AgentIdentity.Email),
+            Language: dto.Language,
+            TransactionStatus: dto.TransactionStatus,
+            ServiceAreas: dto.ServiceAreas.Count > 0 ? dto.ServiceAreas : null,
+            Notes: dto.Notes);
 
     public static ExtractedClient ToDomain(ExtractedClientDto dto) =>
         new(dto.Name, Enum.Parse<ContactRole>(dto.Role), dto.Email, dto.Phone);

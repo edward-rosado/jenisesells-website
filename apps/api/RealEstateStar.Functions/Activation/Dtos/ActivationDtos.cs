@@ -81,6 +81,21 @@ public sealed record DocumentExtractionDto
     [JsonPropertyName("property")] public ExtractedPropertyDto? Property { get; init; }
     [JsonPropertyName("date")] public DateTime? Date { get; init; }
     [JsonPropertyName("keyTerms")] public ExtractedKeyTermsDto? KeyTerms { get; init; }
+    [JsonPropertyName("inferredPath")] public string? InferredPath { get; init; }
+    [JsonPropertyName("agentIdentity")] public ExtractedAgentIdentityDto? AgentIdentity { get; init; }
+    [JsonPropertyName("language")] public string? Language { get; init; }
+    [JsonPropertyName("transactionStatus")] public string? TransactionStatus { get; init; }
+    [JsonPropertyName("serviceAreas")] public List<string> ServiceAreas { get; init; } = [];
+    [JsonPropertyName("notes")] public string? Notes { get; init; }
+}
+
+public sealed record ExtractedAgentIdentityDto
+{
+    [JsonPropertyName("name")] public string? Name { get; init; }
+    [JsonPropertyName("brokerageName")] public string? BrokerageName { get; init; }
+    [JsonPropertyName("licenseNumber")] public string? LicenseNumber { get; init; }
+    [JsonPropertyName("phone")] public string? Phone { get; init; }
+    [JsonPropertyName("email")] public string? Email { get; init; }
 }
 
 public sealed record ExtractedClientDto
