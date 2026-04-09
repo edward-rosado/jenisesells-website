@@ -24,6 +24,7 @@ using RealEstateStar.Clients.RentCast;
 using RealEstateStar.Clients.Gws;
 using RealEstateStar.Clients.Scraper;
 using RealEstateStar.Clients.Zillow;
+using RealEstateStar.Clients.GooglePlaces;
 using RealEstateStar.DataServices;
 using RealEstateStar.DataServices.Storage;
 using RealEstateStar.DataServices.WhatsApp;
@@ -108,6 +109,7 @@ builder.Services.AddOpenTelemetry()
         .AddSource(OrchestratorDiagnostics.ServiceName)
         .AddSource(ScraperDiagnostics.ServiceName)
         .AddSource(ZillowDiagnostics.ServiceName)
+        .AddSource(GooglePlacesDiagnostics.ServiceName)
         .AddSource(WhatsAppDiagnostics.ServiceName)
         .AddSource(ClaudeDiagnostics.ServiceName)
         .AddSource(GmailDiagnostics.ServiceName)
@@ -139,6 +141,7 @@ builder.Services.AddOpenTelemetry()
         .AddMeter(OrchestratorDiagnostics.ServiceName)
         .AddMeter(ScraperDiagnostics.ServiceName)
         .AddMeter(ZillowDiagnostics.ServiceName)
+        .AddMeter(GooglePlacesDiagnostics.ServiceName)
         .AddMeter(WhatsAppDiagnostics.ServiceName)
         .AddMeter(ClaudeDiagnostics.ServiceName)
         .AddMeter(GmailDiagnostics.ServiceName)
@@ -393,6 +396,9 @@ builder.Services.AddScraperClient(builder.Configuration, pollyLogger);
 
 // ── Zillow Reviews API client (Bridge Interactive) ────────────────────────────
 builder.Services.AddZillowClient(builder.Configuration, pollyLogger);
+
+// ── Google Places API client (business reviews) ──────────────────────────────
+builder.Services.AddGooglePlacesClient(builder.Configuration, pollyLogger);
 
 // ── RentCast client ────────────────────────────────────────────────────────────
 builder.Services.AddRentCastClient(builder.Configuration, pollyLogger);

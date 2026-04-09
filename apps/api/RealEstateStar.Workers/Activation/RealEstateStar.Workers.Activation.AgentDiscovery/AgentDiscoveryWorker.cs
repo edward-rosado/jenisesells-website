@@ -14,13 +14,15 @@ namespace RealEstateStar.Workers.Activation.AgentDiscovery;
 /// measurement IDs, and checks WhatsApp registration status.
 ///
 /// Pure compute — calls IOAuthRefresher, IHttpClientFactory, IScraperClient,
-/// IZillowReviewsClient, and IWhatsAppSender only. No storage, no DataServices.
+/// IZillowReviewsClient, IGoogleReviewsClient, and IWhatsAppSender only.
+/// No storage, no DataServices.
 /// </summary>
 public sealed class AgentDiscoveryWorker(
     IOAuthRefresher oAuthRefresher,
     IHttpClientFactory httpClientFactory,
     IScraperClient scraperClient,
     IZillowReviewsClient zillowClient,
+    IGoogleReviewsClient googleReviewsClient,
     IWhatsAppSender whatsAppSender,
     ILogger<AgentDiscoveryWorker> logger)
 {
@@ -94,28 +96,32 @@ public sealed class AgentDiscoveryWorker(
         // Fetch all discovered websites (ScraperAPI for third-party, direct HTTP for own sites)
         var websiteTask = FetchWebsitesAsync(websiteUrls, agentId, ct);
 
-        // Fetch Zillow reviews via official API (Bridge Interactive) — cheap, structured data.
-        // Try email first (exact match), fall back to name search.
+        // Fetch reviews from Zillow API + Google Places API in parallel — both are cheap, structured.
         var zillowReviewsTask = FetchZillowReviewsAsync(agentEmail, agentName, agentId, ct);
+        var googleSearchQuery = $"{agentName} {brokerageName}".Trim();
+        var googleReviewsTask = FetchGoogleReviewsAsync(googleSearchQuery, agentId, ct);
 
         // Check WhatsApp
         var whatsAppTask = CheckWhatsAppAsync(phoneNumber, ct);
 
-        await Task.WhenAll(headshotTask, logoTask, websiteTask, zillowReviewsTask, whatsAppTask);
+        await Task.WhenAll(headshotTask, logoTask, websiteTask, zillowReviewsTask, googleReviewsTask, whatsAppTask);
 
         var headshot = headshotTask.Result;
         var logo = logoTask.Result;
         var websites = websiteTask.Result;
         var zillowReviews = zillowReviewsTask.Result;
+        var googleReviews = googleReviewsTask.Result;
         var whatsAppEnabled = whatsAppTask.Result;
 
         // Parse third-party profiles from fetched websites (bio, sales count, specialties — not reviews)
         var profiles = ParseThirdPartyProfiles(websites);
 
-        // Reviews: prefer Zillow API (structured, reliable), fall back to HTML-scraped reviews
-        var allReviews = zillowReviews.Reviews.Count > 0
-            ? zillowReviews.Reviews.ToList()
-            : profiles.SelectMany(p => p.Reviews).ToList();
+        // Merge reviews from all sources: Zillow API + Google Places + HTML-scraped
+        var allReviews = new List<Review>();
+        allReviews.AddRange(zillowReviews.Reviews);
+        allReviews.AddRange(googleReviews.Reviews);
+        if (allReviews.Count == 0)
+            allReviews.AddRange(profiles.SelectMany(p => p.Reviews));
 
         // Extract GA4 measurement ID from agent-owned websites
         var ga4Id = ExtractGa4MeasurementId(websites);
@@ -739,6 +745,33 @@ public sealed class AgentDiscoveryWorker(
         }
 
         return byName;
+    }
+
+    /// <summary>
+    /// Fetches reviews from Google Places API.
+    /// Searches by agent name + brokerage name to find their Google Business listing.
+    /// </summary>
+    private async Task<GooglePlaceReviews> FetchGoogleReviewsAsync(
+        string searchQuery, string agentId, CancellationToken ct)
+    {
+        if (!googleReviewsClient.IsAvailable)
+        {
+            logger.LogWarning(
+                "[AGENTDISCOVERY-070] SKIP Google Reviews: not configured (no API key). " +
+                "Agent: {AgentId}. Impact: no Google reviews.",
+                agentId);
+            return new GooglePlaceReviews([], null, 0, null, null, null);
+        }
+
+        var result = await googleReviewsClient.GetReviewsAsync(searchQuery, agentId, ct);
+        if (result.TotalReviewCount == 0)
+        {
+            logger.LogInformation(
+                "[AGENTDISCOVERY-071] No Google reviews found for agent {AgentId}, query '{Query}'.",
+                agentId, searchQuery);
+        }
+
+        return result;
     }
 
     private async Task<bool> CheckWhatsAppAsync(string? phoneNumber, CancellationToken ct)
