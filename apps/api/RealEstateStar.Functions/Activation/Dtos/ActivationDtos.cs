@@ -17,6 +17,7 @@ public sealed record EmailFetchOutput
     [JsonPropertyName("sentEmails")] public List<EmailMessageDto> SentEmails { get; init; } = [];
     [JsonPropertyName("inboxEmails")] public List<EmailMessageDto> InboxEmails { get; init; } = [];
     [JsonPropertyName("signature")] public EmailSignatureDto? Signature { get; init; }
+    [JsonPropertyName("discoveredProfileUrls")] public List<string> DiscoveredProfileUrls { get; init; } = [];
 }
 
 public sealed record EmailMessageDto
@@ -115,6 +116,7 @@ public sealed record AgentDiscoveryInput
     [JsonPropertyName("phoneNumber")] public string? PhoneNumber { get; init; }
     [JsonPropertyName("emailHandle")] public string? EmailHandle { get; init; }
     [JsonPropertyName("agentEmail")] public string? AgentEmail { get; init; }
+    [JsonPropertyName("discoveredUrls")] public List<string> DiscoveredUrls { get; init; } = [];
     [JsonPropertyName("emailSignature")] public EmailSignatureDto? EmailSignature { get; init; }
 }
 

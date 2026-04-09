@@ -64,6 +64,7 @@ public sealed class AgentDiscoveryWorker(
         EmailSignature? emailSignature,
         string? emailHandle,
         string? agentEmail,
+        IReadOnlyList<string>? discoveredUrls,
         CancellationToken ct)
     {
         logger.LogInformation(
@@ -74,8 +75,8 @@ public sealed class AgentDiscoveryWorker(
         var headshotTask = DownloadHeadshotAsync(accountId, agentId, ct);
         var logoTask = DownloadLogoAsync(emailSignature, ct);
 
-        // Discover websites via email sig, domain guessing, agent-site, and third-party profiles
-        var websiteUrls = BuildWebsiteSearchUrls(agentName, brokerageName, emailSignature, emailHandle, agentId);
+        // Discover websites via email sig, domain guessing, agent-site, discovered URLs, and third-party profiles
+        var websiteUrls = BuildWebsiteSearchUrls(agentName, brokerageName, emailSignature, emailHandle, agentId, discoveredUrls);
 
         // Log whether we found an agent-owned website for branding extraction
         var ownWebsite = websiteUrls.FirstOrDefault(u => u.Source == "OwnWebsite");
@@ -283,52 +284,72 @@ public sealed class AgentDiscoveryWorker(
         string brokerageName,
         EmailSignature? signature,
         string? emailHandle = null,
-        string? agentSiteHandle = null)
+        string? agentSiteHandle = null,
+        IReadOnlyList<string>? discoveredUrls = null)
     {
         var ownWebsiteUrls = new List<(string, string)>();
         var thirdPartyUrls = new List<(string, string)>();
-        var seenDomains = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Discovered URLs from email bodies and Drive documents — these are the agent's REAL
+        // profile URLs (e.g., zillow.com/profile/jenisebuck), not guessed from their name.
+        // Prefer these over any guessed URLs.
+        var hasDiscoveredZillow = false;
+        if (discoveredUrls is not null)
+        {
+            foreach (var url in discoveredUrls)
+            {
+                if (seenUrls.Contains(url)) continue;
+                seenUrls.Add(url);
+
+                if (IsAgentOwnWebsite(url))
+                    ownWebsiteUrls.Add((url, "Discovered"));
+                else
+                {
+                    thirdPartyUrls.Add((url, "Discovered"));
+                    if (url.Contains("zillow.com", StringComparison.OrdinalIgnoreCase))
+                        hasDiscoveredZillow = true;
+                }
+            }
+        }
 
         // Check email signature URL — if it's the agent's own website, prioritize it
-        if (!string.IsNullOrWhiteSpace(signature?.WebsiteUrl))
+        if (!string.IsNullOrWhiteSpace(signature?.WebsiteUrl) && !seenUrls.Contains(signature.WebsiteUrl))
         {
+            seenUrls.Add(signature.WebsiteUrl);
             if (IsAgentOwnWebsite(signature.WebsiteUrl))
-            {
                 ownWebsiteUrls.Add((signature.WebsiteUrl, "OwnWebsite"));
-                if (Uri.TryCreate(signature.WebsiteUrl, UriKind.Absolute, out var sigUri))
-                    seenDomains.Add(sigUri.Host);
-            }
             else
-            {
                 thirdPartyUrls.Add((signature.WebsiteUrl, "EmailSignature"));
-            }
         }
 
         // Domain guessing from email handle (e.g., jenisesellsnj@gmail.com → jenisesellsnj.com)
         if (!string.IsNullOrWhiteSpace(emailHandle))
         {
-            var guessedDomain = emailHandle.ToLowerInvariant();
-            // Only guess if the handle looks like a plausible domain (letters, numbers, hyphens)
-            if (Regex.IsMatch(guessedDomain, @"^[a-z0-9][a-z0-9\-]{2,}$") &&
-                !seenDomains.Contains($"www.{guessedDomain}.com") &&
-                !seenDomains.Contains($"{guessedDomain}.com"))
+            var guessedUrl = $"https://www.{emailHandle.ToLowerInvariant()}.com";
+            if (Regex.IsMatch(emailHandle.ToLowerInvariant(), @"^[a-z0-9][a-z0-9\-]{2,}$") &&
+                !seenUrls.Contains(guessedUrl))
             {
-                ownWebsiteUrls.Add(($"https://www.{guessedDomain}.com", "DomainGuess"));
-                seenDomains.Add($"www.{guessedDomain}.com");
+                ownWebsiteUrls.Add((guessedUrl, "DomainGuess"));
+                seenUrls.Add(guessedUrl);
             }
         }
 
         // Agent-site URL (e.g., jenise-buckalew.real-estate-star.com)
         if (!string.IsNullOrWhiteSpace(agentSiteHandle))
         {
-            ownWebsiteUrls.Add(($"https://{agentSiteHandle}.real-estate-star.com", "AgentSite"));
+            var agentSiteUrl = $"https://{agentSiteHandle}.real-estate-star.com";
+            if (!seenUrls.Contains(agentSiteUrl))
+                ownWebsiteUrls.Add((agentSiteUrl, "AgentSite"));
         }
 
-        // Use the agent's real name for Zillow (format: "firstname-lastname")
-        // Zillow is the only third-party profile we scrape — it has the richest agent data
-        // (bio, sales count, specialties, reviews). Skip Realtor.com to save ScraperAPI credits.
-        var zillowSlug = agentName.Trim().Replace(" ", "-").ToLowerInvariant();
-        thirdPartyUrls.Add(($"https://www.zillow.com/profile/{Uri.EscapeDataString(zillowSlug)}/", "Zillow"));
+        // Only guess the Zillow URL if we didn't discover a real one from emails/docs.
+        // Guessed URLs (from agent name) are often wrong — Zillow usernames are user-chosen.
+        if (!hasDiscoveredZillow)
+        {
+            var zillowSlug = agentName.Trim().Replace(" ", "-").ToLowerInvariant();
+            thirdPartyUrls.Add(($"https://www.zillow.com/profile/{Uri.EscapeDataString(zillowSlug)}/", "ZillowGuess"));
+        }
 
         // Own website first, then third-party profiles
         var urls = new List<(string, string)>(ownWebsiteUrls.Count + thirdPartyUrls.Count);

@@ -147,6 +147,14 @@ public sealed class ActivationOrchestratorFunction
             ?? emailHandle
             ?? request.AccountId;
 
+        // Combine profile URLs discovered from emails and Drive documents.
+        // These are the agent's REAL profile URLs (e.g., zillow.com/profile/jenisebuck)
+        // — more reliable than guessing from their name.
+        var discoveredUrls = (emailCorpus.DiscoveredProfileUrls ?? [])
+            .Concat(driveIndex.DiscoveredUrls ?? [])
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
         var discoveryStart = ctx.CurrentUtcDateTime;
         var discoveryJson = await ctx.CallActivityAsync<string>(
             ActivityNames.AgentDiscovery,
@@ -159,6 +167,7 @@ public sealed class ActivationOrchestratorFunction
                 PhoneNumber = emailCorpus.Signature?.Phone,
                 EmailHandle = emailHandle,
                 AgentEmail = request.Email,
+                DiscoveredUrls = discoveredUrls,
                 EmailSignature = emailCorpus.Signature,
             });
         var discovery = JsonSerializer.Deserialize<AgentDiscoveryOutput>(discoveryJson)!;

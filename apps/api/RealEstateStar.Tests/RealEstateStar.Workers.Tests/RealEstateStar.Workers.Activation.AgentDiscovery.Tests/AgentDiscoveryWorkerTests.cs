@@ -103,7 +103,7 @@ public class AgentDiscoveryWorkerTests
         var worker = BuildWorker(mockRefresher);
 
         var result = await worker.RunAsync(
-            AccountId, AgentId, AgentName, BrokerageName, null, null, null, null, CancellationToken.None);
+            AccountId, AgentId, AgentName, BrokerageName, null, null, null, null, null, CancellationToken.None);
 
         result.Should().NotBeNull();
         result.HeadshotBytes.Should().BeNull();
@@ -126,7 +126,7 @@ public class AgentDiscoveryWorkerTests
         var worker = BuildWorker(mockRefresher, mockWhatsApp: mockWhatsApp);
 
         var result = await worker.RunAsync(
-            AccountId, AgentId, AgentName, BrokerageName, "555-123-4567", null, null, null, CancellationToken.None);
+            AccountId, AgentId, AgentName, BrokerageName, "555-123-4567", null, null, null, null, CancellationToken.None);
 
         result.WhatsAppEnabled.Should().BeTrue();
     }
@@ -147,7 +147,7 @@ public class AgentDiscoveryWorkerTests
         var worker = BuildWorker(mockRefresher, mockWhatsApp: mockWhatsApp);
 
         var result = await worker.RunAsync(
-            AccountId, AgentId, AgentName, BrokerageName, "555-000-0000", null, null, null, CancellationToken.None);
+            AccountId, AgentId, AgentName, BrokerageName, "555-000-0000", null, null, null, null, CancellationToken.None);
 
         result.WhatsAppEnabled.Should().BeFalse();
     }
@@ -164,7 +164,7 @@ public class AgentDiscoveryWorkerTests
 
         var result = await worker.RunAsync(
             AccountId, AgentId, AgentName, BrokerageName,
-            phoneNumber: null, emailSignature: null, emailHandle: null, agentEmail: null, CancellationToken.None);
+            phoneNumber: null, emailSignature: null, emailHandle: null, agentEmail: null, discoveredUrls: null, CancellationToken.None);
 
         result.WhatsAppEnabled.Should().BeFalse();
     }
@@ -180,7 +180,7 @@ public class AgentDiscoveryWorkerTests
         var worker = BuildWorker(mockRefresher);
 
         var result = await worker.RunAsync(
-            AccountId, AgentId, AgentName, BrokerageName, "555-777-8888", null, null, null, CancellationToken.None);
+            AccountId, AgentId, AgentName, BrokerageName, "555-777-8888", null, null, null, null, CancellationToken.None);
 
         result.Phone.Should().Be("555-777-8888");
     }
@@ -200,7 +200,7 @@ public class AgentDiscoveryWorkerTests
 
         var result = await worker.RunAsync(
             AccountId, AgentId, AgentName, BrokerageName,
-            phoneNumber: null, emailSignature: sig, emailHandle: null, agentEmail: null, CancellationToken.None);
+            phoneNumber: null, emailSignature: sig, emailHandle: null, agentEmail: null, discoveredUrls: null, CancellationToken.None);
 
         result.Phone.Should().Be("555-999-0000");
     }
@@ -258,7 +258,7 @@ public class AgentDiscoveryWorkerTests
     {
         var urls = AgentDiscoveryWorker.BuildWebsiteSearchUrls(AgentName, BrokerageName, null);
 
-        urls.Should().Contain(u => u.Url.Contains("zillow.com") && u.Source == "Zillow");
+        urls.Should().Contain(u => u.Url.Contains("zillow.com") && u.Source == "ZillowGuess");
     }
 
     [Fact]
@@ -305,7 +305,7 @@ public class AgentDiscoveryWorkerTests
             "Jenise Buckalew", BrokerageName, null);
 
         urls.Should().Contain(u =>
-            u.Url.Contains("zillow.com/profile/jenise-buckalew") && u.Source == "Zillow");
+            u.Url.Contains("zillow.com/profile/jenise-buckalew") && u.Source == "ZillowGuess");
     }
 
     [Fact]
@@ -515,12 +515,12 @@ public class AgentDiscoveryWorkerTests
         var worker = BuildWorker(mockRefresher, null, mockScraper);
 
         var result = await worker.RunAsync(
-            AccountId, AgentId, AgentName, BrokerageName, null, null, null, null, CancellationToken.None);
+            AccountId, AgentId, AgentName, BrokerageName, null, null, null, null, null, CancellationToken.None);
 
         // ScraperAPI was called for Zillow
         mockScraper.Verify(s => s.FetchAsync(
             It.Is<string>(url => url.Contains("zillow.com")),
-            "Zillow", AgentId, It.IsAny<CancellationToken>()), Times.Once);
+            "ZillowGuess", AgentId, It.IsAny<CancellationToken>()), Times.Once);
 
         // Should have parsed the Zillow HTML
         result.Profiles.Should().ContainSingle(p => p.Platform == "Zillow");
@@ -540,7 +540,7 @@ public class AgentDiscoveryWorkerTests
         var worker = BuildWorker(mockRefresher, null, mockScraper);
 
         var result = await worker.RunAsync(
-            AccountId, AgentId, AgentName, BrokerageName, null, null, null, null, CancellationToken.None);
+            AccountId, AgentId, AgentName, BrokerageName, null, null, null, null, null, CancellationToken.None);
 
         // ScraperAPI should NOT be called
         mockScraper.Verify(s => s.FetchAsync(
@@ -598,7 +598,7 @@ public class AgentDiscoveryWorkerTests
 
         var result = await worker.RunAsync(
             AccountId, AgentId, AgentName, BrokerageName,
-            null, null, null, "agent@test.com", CancellationToken.None);
+            null, null, null, "agent@test.com", null, CancellationToken.None);
 
         result.Reviews.Should().ContainSingle();
         result.Reviews[0].Source.Should().Be("Zillow");
@@ -630,7 +630,7 @@ public class AgentDiscoveryWorkerTests
 
         var result = await worker.RunAsync(
             AccountId, AgentId, AgentName, BrokerageName,
-            null, null, null, "agent@test.com", CancellationToken.None);
+            null, null, null, "agent@test.com", null, CancellationToken.None);
 
         result.Reviews.Should().ContainSingle();
         result.Reviews[0].Reviewer.Should().Be("Sarah M.");
@@ -677,7 +677,7 @@ public class AgentDiscoveryWorkerTests
 
         var result = await worker.RunAsync(
             AccountId, AgentId, AgentName, BrokerageName,
-            null, null, null, "agent@test.com", CancellationToken.None);
+            null, null, null, "agent@test.com", null, CancellationToken.None);
 
         result.Reviews.Should().ContainSingle();
         result.Reviews[0].Text.Should().Be("Scraped review");
