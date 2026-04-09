@@ -58,7 +58,18 @@ public sealed class AgentEmailFetchWorker(
             "[EFETCH-010] Email language distribution for {AgentId}: {Distribution}",
             agentId, string.Join(", ", distribution));
 
-        return new EmailCorpus(taggedSent, taggedInbox, signature);
+        // Scan all email bodies + signature blocks for third-party profile URLs.
+        // These are the agent's REAL profile URLs (e.g., zillow.com/profile/jenisebuck)
+        // — more reliable than guessing from their name.
+        var profileUrls = ExtractProfileUrls(sentEmails, inboxEmails);
+        if (profileUrls.Count > 0)
+        {
+            logger.LogInformation(
+                "[EFETCH-011] Discovered {Count} profile URLs for {AgentId}: {Urls}",
+                profileUrls.Count, agentId, string.Join(", ", profileUrls));
+        }
+
+        return new EmailCorpus(taggedSent, taggedInbox, signature, profileUrls);
     }
 
     /// <summary>
@@ -471,5 +482,40 @@ public sealed class AgentEmailFetchWorker(
         }
 
         return string.Join("\n", result).TrimEnd();
+    }
+
+    /// <summary>
+    /// Scans all email bodies and signature blocks for third-party profile URLs.
+    /// Returns distinct URLs matching known real estate platforms (Zillow, Realtor.com, etc.)
+    /// </summary>
+    internal static IReadOnlyList<string> ExtractProfileUrls(
+        IReadOnlyList<EmailMessage> sentEmails,
+        IReadOnlyList<EmailMessage> inboxEmails)
+    {
+        var urls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var profileUrlRegex = new Regex(
+            @"https?://(?:www\.)?(?:zillow\.com|realtor\.com|homes\.com|trulia\.com|redfin\.com)/[^\s<>""']+",
+            RegexOptions.IgnoreCase);
+
+        foreach (var email in sentEmails.Concat(inboxEmails))
+        {
+            ScanText(email.Body, profileUrlRegex, urls);
+            ScanText(email.SignatureBlock, profileUrlRegex, urls);
+        }
+
+        return urls.ToList();
+
+        static void ScanText(string? text, Regex regex, HashSet<string> results)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            foreach (Match match in regex.Matches(text))
+            {
+                var url = match.Value.TrimEnd('.', ',', ')', '>', '"', '\'', ';');
+                var ltIdx = url.IndexOf('<');
+                if (ltIdx > 0) url = url[..ltIdx];
+                if (url.Length > 20) // skip truncated fragments
+                    results.Add(url);
+            }
+        }
     }
 }

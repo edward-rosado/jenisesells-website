@@ -15,7 +15,8 @@ internal static class ActivationDtoMapper
         {
             SentEmails = corpus.SentEmails.Select(ToDto).ToList(),
             InboxEmails = corpus.InboxEmails.Select(ToDto).ToList(),
-            Signature = corpus.Signature is null ? null : ToDto(corpus.Signature)
+            Signature = corpus.Signature is null ? null : ToDto(corpus.Signature),
+            DiscoveredProfileUrls = corpus.DiscoveredProfileUrls.ToList()
         };
 
     public static EmailMessageDto ToDto(EmailMessage m) =>

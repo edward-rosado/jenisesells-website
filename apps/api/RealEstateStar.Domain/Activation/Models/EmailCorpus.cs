@@ -3,7 +3,12 @@ namespace RealEstateStar.Domain.Activation.Models;
 public sealed record EmailCorpus(
     IReadOnlyList<EmailMessage> SentEmails,
     IReadOnlyList<EmailMessage> InboxEmails,
-    EmailSignature? Signature);
+    EmailSignature? Signature,
+    IReadOnlyList<string> DiscoveredProfileUrls = default!)
+{
+    /// <summary>Defaults to empty list when not provided (backward compat).</summary>
+    public IReadOnlyList<string> DiscoveredProfileUrls { get; init; } = DiscoveredProfileUrls ?? [];
+}
 
 public sealed record EmailMessage(
     string Id,

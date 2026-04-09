@@ -39,6 +39,7 @@ public sealed class AgentDiscoveryFunction(
             emailSignature: emailSignature,
             emailHandle: input.EmailHandle,
             agentEmail: input.AgentEmail,
+            discoveredUrls: input.DiscoveredUrls,
             ct: ct);
 
         return JsonSerializer.Serialize(ActivationDtoMapper.ToDto(discovery));
