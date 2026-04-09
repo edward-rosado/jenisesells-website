@@ -97,6 +97,7 @@ public class DependencyTests
     [InlineData("RealEstateStar.Clients.Gws", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.RentCast", new[] { "Domain" })]
     [InlineData("RealEstateStar.Clients.Zillow", new[] { "Domain" })]
+    [InlineData("RealEstateStar.Clients.GooglePlaces", new[] { "Domain" })]
     public void Project_only_depends_on_allowed_projects(string projectName, string[] allowedSuffixes)
     {
         var assembly = Assembly.Load(projectName);
@@ -250,6 +251,7 @@ public class DependencyTests
             "RealEstateStar.Clients.Gws",
             "RealEstateStar.Clients.RentCast",
             "RealEstateStar.Clients.Zillow",
+            "RealEstateStar.Clients.GooglePlaces",
         };
 
         var violations = assembly.GetReferencedAssemblies()
@@ -338,6 +340,7 @@ public class DependencyTests
             // Clients.Zillow — Zillow Reviews API (Bridge Interactive) for activation discovery
             // [arch-change-approved]
             "RealEstateStar.Clients.Zillow",
+            "RealEstateStar.Clients.GooglePlaces",
             // Clients.Gws — GWS CLI wrapper used by activation pipeline
             // [arch-change-approved]
             "RealEstateStar.Clients.Gws",

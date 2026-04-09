@@ -33,6 +33,7 @@ public class AgentDiscoveryWorkerTests
         Mock<IHttpClientFactory>? mockFactory = null,
         Mock<IScraperClient>? mockScraper = null,
         Mock<IZillowReviewsClient>? mockZillow = null,
+        Mock<IGoogleReviewsClient>? mockGoogle = null,
         Mock<IWhatsAppSender>? mockWhatsApp = null)
     {
         mockRefresher ??= new Mock<IOAuthRefresher>();
@@ -40,14 +41,12 @@ public class AgentDiscoveryWorkerTests
 
         if (mockScraper is null)
         {
-            // Default: scraper unavailable (direct HTTP fallback)
             mockScraper = new Mock<IScraperClient>();
             mockScraper.Setup(s => s.IsAvailable).Returns(false);
         }
 
         if (mockZillow is null)
         {
-            // Default: Zillow API unavailable (no token)
             mockZillow = new Mock<IZillowReviewsClient>();
             mockZillow.Setup(z => z.IsAvailable).Returns(false);
             mockZillow
@@ -58,9 +57,17 @@ public class AgentDiscoveryWorkerTests
                 .ReturnsAsync(new ZillowAgentReviews([], null, 0, null));
         }
 
+        if (mockGoogle is null)
+        {
+            mockGoogle = new Mock<IGoogleReviewsClient>();
+            mockGoogle.Setup(g => g.IsAvailable).Returns(false);
+            mockGoogle
+                .Setup(g => g.GetReviewsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new GooglePlaceReviews([], null, 0, null, null, null));
+        }
+
         if (mockWhatsApp is null)
         {
-            // Default: WhatsApp throws not-registered
             mockWhatsApp = new Mock<IWhatsAppSender>();
             mockWhatsApp
                 .Setup(w => w.SendFreeformAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -72,6 +79,7 @@ public class AgentDiscoveryWorkerTests
             mockFactory.Object,
             mockScraper.Object,
             mockZillow.Object,
+            mockGoogle.Object,
             mockWhatsApp.Object,
             NullLogger<AgentDiscoveryWorker>.Instance);
     }

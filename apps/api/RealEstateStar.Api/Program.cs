@@ -41,6 +41,7 @@ using RealEstateStar.Clients.Gws;
 using RealEstateStar.Clients.RentCast;
 using RealEstateStar.Clients.Scraper;
 using RealEstateStar.Clients.Zillow;
+using RealEstateStar.Clients.GooglePlaces;
 using RealEstateStar.Clients.WhatsApp;
 using RealEstateStar.DataServices;
 using RealEstateStar.Domain.Cma.Interfaces;
@@ -387,6 +388,9 @@ builder.Services.AddScraperClient(builder.Configuration, pollyLogger);
 
 // Zillow Reviews API client (Bridge Interactive) — agent review data
 builder.Services.AddZillowClient(builder.Configuration, pollyLogger);
+
+// Google Places API client — business reviews
+builder.Services.AddGooglePlacesClient(builder.Configuration, pollyLogger);
 
 // Lead pipeline — new decomposed orchestrator wiring
 // TODO: Phase 5 — register IDiagnosticsProvider implementations via AddAllDiagnosticsProviders()
