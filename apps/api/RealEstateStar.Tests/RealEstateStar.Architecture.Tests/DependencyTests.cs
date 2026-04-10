@@ -75,6 +75,7 @@ public class DependencyTests
         "Workers.Activation.MarketingStyle", "Workers.Activation.Personality",
         "Workers.Activation.PipelineAnalysis", "Workers.Activation.VoiceExtraction",
         "Workers.Activation.WebsiteStyle",
+        "Workers.Activation.EmailTransactionExtraction",
         "Activities.Activation.PersistAgentProfile", "Activities.Activation.BrandMerge",
         "Activities.Lead.ContactDetection", "Activities.Activation.ContactImportPersist",
     })]
@@ -305,6 +306,7 @@ public class DependencyTests
             "RealEstateStar.Workers.Activation.PipelineAnalysis",
             "RealEstateStar.Workers.Activation.VoiceExtraction",
             "RealEstateStar.Workers.Activation.WebsiteStyle",
+            "RealEstateStar.Workers.Activation.EmailTransactionExtraction",
             // Phase 1: Activation activities
             "RealEstateStar.Activities.Activation.BrandMerge",
             "RealEstateStar.Activities.Activation.PersistAgentProfile",

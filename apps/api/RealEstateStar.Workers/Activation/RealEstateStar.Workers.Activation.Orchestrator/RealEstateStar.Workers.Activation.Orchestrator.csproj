@@ -19,6 +19,7 @@
     <ProjectReference Include="..\RealEstateStar.Workers.Activation.EmailFetch\RealEstateStar.Workers.Activation.EmailFetch.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers.Activation.DriveIndex\RealEstateStar.Workers.Activation.DriveIndex.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers.Activation.AgentDiscovery\RealEstateStar.Workers.Activation.AgentDiscovery.csproj" />
+    <ProjectReference Include="..\RealEstateStar.Workers.Activation.EmailTransactionExtraction\RealEstateStar.Workers.Activation.EmailTransactionExtraction.csproj" />
     <!-- Phase 2 workers -->
     <ProjectReference Include="..\RealEstateStar.Workers.Activation.VoiceExtraction\RealEstateStar.Workers.Activation.VoiceExtraction.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers.Activation.Personality\RealEstateStar.Workers.Activation.Personality.csproj" />

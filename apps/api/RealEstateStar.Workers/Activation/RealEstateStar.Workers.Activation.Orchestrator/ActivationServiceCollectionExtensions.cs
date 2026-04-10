@@ -8,6 +8,7 @@ using RealEstateStar.Workers.Activation.Coaching;
 using RealEstateStar.Workers.Activation.ComplianceAnalysis;
 using RealEstateStar.Workers.Activation.DriveIndex;
 using RealEstateStar.Workers.Activation.EmailFetch;
+using RealEstateStar.Workers.Activation.EmailTransactionExtraction;
 using RealEstateStar.Workers.Activation.FeeStructure;
 using RealEstateStar.Workers.Activation.MarketingStyle;
 using RealEstateStar.Workers.Activation.Personality;
@@ -31,6 +32,7 @@ public static class ActivationServiceCollectionExtensions
         services.AddTransient<AgentEmailFetchWorker>();
         services.AddTransient<DriveIndexWorker>();
         services.AddTransient<AgentDiscoveryWorker>();
+        services.AddTransient<EmailTransactionExtractor>();
 
         // Phase 2: synthesis workers
         services.AddTransient<VoiceExtractionWorker>();

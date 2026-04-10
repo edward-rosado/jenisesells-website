@@ -79,6 +79,30 @@ public sealed class ActivationOrchestratorFunction
             logger.LogInformation("[ACTV-FN-012] DriveIndex completed in {Duration}ms", driveDuration);
         }
 
+        // Extract transaction data from emails (property, price, commission, clients, status)
+        var emailTxStart = ctx.CurrentUtcDateTime;
+        var emailTxJson = await ctx.CallActivityAsync<string>(
+            ActivityNames.EmailTransactionExtraction,
+            new EmailTransactionExtractionInput
+            {
+                AccountId = request.AccountId,
+                AgentId = request.AgentId,
+                EmailCorpus = emailCorpus,
+            });
+        var emailExtractions = JsonSerializer.Deserialize<List<DocumentExtractionDto>>(emailTxJson) ?? [];
+        if (!ctx.IsReplaying)
+        {
+            var emailTxDuration = (ctx.CurrentUtcDateTime - emailTxStart).TotalMilliseconds;
+            logger.LogInformation("[ACTV-FN-016] EmailTransactionExtraction completed in {Duration}ms. Extractions: {Count}",
+                emailTxDuration, emailExtractions.Count);
+        }
+
+        // Merge email extractions into Drive Index extractions for unified downstream processing
+        driveIndex = driveIndex with
+        {
+            Extractions = driveIndex.Extractions.Concat(emailExtractions).ToList()
+        };
+
         // Derive distinct detected locales from Phase 1 outputs for language-aware completion check.
         var detectedLanguages = emailCorpus.SentEmails
             .Concat(emailCorpus.InboxEmails)
