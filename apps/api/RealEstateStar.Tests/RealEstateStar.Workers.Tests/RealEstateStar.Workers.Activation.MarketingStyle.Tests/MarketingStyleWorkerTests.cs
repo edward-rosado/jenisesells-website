@@ -59,7 +59,7 @@ public class MarketingStyleWorkerTests
         var worker = new MarketingStyleWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWith(MakeRegularEmail());
 
-        var (style, signals, _) = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
+        var (style, signals, _) = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), null, CancellationToken.None);
 
         style.Should().BeNull();
         signals.Should().BeNull();
@@ -86,7 +86,7 @@ public class MarketingStyleWorkerTests
         var worker = new MarketingStyleWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWith(MakeMarketingEmail());
 
-        await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
+        await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), null, CancellationToken.None);
 
         callOrder.Should().StartWith(["sanitize"]);
         callOrder.Should().Contain("claude");
@@ -108,7 +108,7 @@ public class MarketingStyleWorkerTests
         var worker = new MarketingStyleWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWith(MakeMarketingEmail());
 
-        var (style, signals, _) = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
+        var (style, signals, _) = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), null, CancellationToken.None);
 
         style.Should().NotBeNull();
         style.Should().Contain("## Marketing Style");
@@ -135,7 +135,7 @@ public class MarketingStyleWorkerTests
         var worker = new MarketingStyleWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWith(MakeMarketingEmail());
 
-        var act = () => worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
+        var act = () => worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), null, CancellationToken.None);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*missing required section*");
@@ -178,7 +178,7 @@ public class MarketingStyleWorkerTests
         var emails = new List<EmailMessage> { MakeMarketingEmail() };
         var driveIndex = MakeEmptyDriveIndex();
 
-        var prompt = MarketingStyleWorker.BuildPrompt(emails, driveIndex, sanitizer.Object);
+        var prompt = MarketingStyleWorker.BuildPrompt(emails, driveIndex, null, sanitizer.Object);
 
         prompt.Should().Contain("<user-data>");
         prompt.Should().Contain("</user-data>");
@@ -195,7 +195,7 @@ public class MarketingStyleWorkerTests
             new("1", "Just Listed", "raw body content", "a@b.com", ["c@d.com"], DateTime.UtcNow, null)
         };
 
-        MarketingStyleWorker.BuildPrompt(emails, MakeEmptyDriveIndex(), sanitizer.Object);
+        MarketingStyleWorker.BuildPrompt(emails, MakeEmptyDriveIndex(), null, sanitizer.Object);
 
         sanitizer.Verify(s => s.Sanitize("raw body content"), Times.Once);
     }

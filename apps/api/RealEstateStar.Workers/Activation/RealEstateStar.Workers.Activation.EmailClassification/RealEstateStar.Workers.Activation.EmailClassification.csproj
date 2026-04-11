@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="RealEstateStar.Workers.Activation.EmailClassification.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.5" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\RealEstateStar.Domain\RealEstateStar.Domain.csproj" />
+    <ProjectReference Include="..\..\RealEstateStar.Workers.Shared\RealEstateStar.Workers.Shared.csproj" />
+  </ItemGroup>
+</Project>

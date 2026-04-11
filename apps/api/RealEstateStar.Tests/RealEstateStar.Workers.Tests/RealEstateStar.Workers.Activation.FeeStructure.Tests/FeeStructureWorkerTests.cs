@@ -65,7 +65,7 @@ public class FeeStructureWorkerTests
         var worker = new FeeStructureWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWith(MakeRegularEmail());
 
-        var result = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), [], CancellationToken.None);
+        var result = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), [], Array.Empty<Review>(), CancellationToken.None);
 
         result.Should().BeNull();
         anthropic.Verify(a => a.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
@@ -95,7 +95,7 @@ public class FeeStructureWorkerTests
         var worker = new FeeStructureWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWith(MakeFeeEmail());
 
-        await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), [], CancellationToken.None);
+        await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), [], Array.Empty<Review>(), CancellationToken.None);
 
         callOrder.Should().Contain("sanitize");
         callOrder.Should().Contain("claude");
@@ -121,7 +121,7 @@ public class FeeStructureWorkerTests
         var worker = new FeeStructureWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWith(MakeFeeEmail());
 
-        var result = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), [], CancellationToken.None);
+        var result = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), [], Array.Empty<Review>(), CancellationToken.None);
 
         result.Should().Contain("## Commission Structure");
         result.Should().Contain("### Brokerage Split");
@@ -144,7 +144,7 @@ public class FeeStructureWorkerTests
         var driveIndex = new DriveIndex("f1", [MakeFeeDoc()], new Dictionary<string, string>(), [], []);
         var emptyCorpus = MakeCorpusWith();
 
-        await worker.AnalyzeAsync(emptyCorpus, driveIndex, [], CancellationToken.None);
+        await worker.AnalyzeAsync(emptyCorpus, driveIndex, [], Array.Empty<Review>(), CancellationToken.None);
 
         anthropic.Verify(a => a.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<int>(), "activation-fee-structure", It.IsAny<CancellationToken>()), Times.Once);
@@ -169,7 +169,7 @@ public class FeeStructureWorkerTests
         var worker = new FeeStructureWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWith(MakeFeeEmail());
 
-        var act = () => worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), [], CancellationToken.None);
+        var act = () => worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), [], Array.Empty<Review>(), CancellationToken.None);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*missing required section*");

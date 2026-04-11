@@ -38,6 +38,7 @@ public sealed class FeeStructureFunction(
                 emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
                 driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
                 websites: discovery.Websites,
+                reviews: discovery.Reviews,
                 ct: ct);
 
             return JsonSerializer.Serialize(new StringOutput { Value = result });

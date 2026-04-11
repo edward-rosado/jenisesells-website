@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Workers.Activation.MarketingStyle;
 
@@ -47,6 +48,7 @@ public sealed class MarketingStyleWorker(
     public async Task<(string? StyleGuide, string? BrandSignals, Dictionary<string, string>? LocalizedSkills)> AnalyzeAsync(
         EmailCorpus emailCorpus,
         DriveIndex driveIndex,
+        AgentDiscovery? agentDiscovery,
         CancellationToken ct)
     {
         var marketingEmails = FilterMarketingEmails(emailCorpus.SentEmails);
@@ -57,7 +59,7 @@ public sealed class MarketingStyleWorker(
             return (null, null, null);
         }
 
-        var prompt = BuildPrompt(marketingEmails, driveIndex, sanitizer);
+        var prompt = BuildPrompt(marketingEmails, driveIndex, agentDiscovery, sanitizer);
 
         logger.LogInformation(
             "[MKT-STYLE-002] Analyzing {Count} marketing emails",
@@ -98,7 +100,7 @@ public sealed class MarketingStyleWorker(
                 Model,
                 SystemPrompt + "\n\n" +
                     "Analyze marketing patterns for Spanish campaigns specifically. Note: Spanish real estate marketing may use different channels, cultural references, community connections, and persuasion patterns than English marketing.",
-                BuildPrompt(spanishMarketingEmails, driveIndex, sanitizer),
+                BuildPrompt(spanishMarketingEmails, driveIndex, agentDiscovery, sanitizer),
                 MaxTokens, "activation-marketing-style.es", ct)
             : null;
 
@@ -164,6 +166,7 @@ public sealed class MarketingStyleWorker(
     internal static string BuildPrompt(
         IReadOnlyList<EmailMessage> marketingEmails,
         DriveIndex driveIndex,
+        AgentDiscovery? agentDiscovery,
         IContentSanitizer sanitizer)
     {
         var sb = new StringBuilder();
@@ -205,6 +208,19 @@ public sealed class MarketingStyleWorker(
                 }
                 sb.AppendLine();
             }
+        }
+
+        // Client reviews — validate marketing effectiveness
+        if (agentDiscovery?.Reviews.Count > 0)
+        {
+            var reviewContent = ReviewFormatter.FormatReviews(
+                agentDiscovery.Reviews,
+                maxCount: 10,
+                instruction: "Use these reviews to understand what marketing messages resonate with actual clients. Look for: recurring themes clients mention, language clients use to describe the agent's value, service aspects that surprise clients (these are untapped marketing opportunities).");
+            sb.AppendLine("<user-data source=\"client_reviews\">");
+            sb.AppendLine(sanitizer.Sanitize(reviewContent));
+            sb.AppendLine("</user-data>");
+            sb.AppendLine();
         }
 
         return sb.ToString();

@@ -20,6 +20,8 @@
     <ProjectReference Include="..\RealEstateStar.Workers.Activation.DriveIndex\RealEstateStar.Workers.Activation.DriveIndex.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers.Activation.AgentDiscovery\RealEstateStar.Workers.Activation.AgentDiscovery.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers.Activation.EmailTransactionExtraction\RealEstateStar.Workers.Activation.EmailTransactionExtraction.csproj" />
+    <!-- Phase 1.5 workers -->
+    <ProjectReference Include="..\RealEstateStar.Workers.Activation.EmailClassification\RealEstateStar.Workers.Activation.EmailClassification.csproj" />
     <!-- Phase 2 workers -->
     <ProjectReference Include="..\RealEstateStar.Workers.Activation.VoiceExtraction\RealEstateStar.Workers.Activation.VoiceExtraction.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers.Activation.Personality\RealEstateStar.Workers.Activation.Personality.csproj" />
@@ -33,6 +35,8 @@
     <ProjectReference Include="..\RealEstateStar.Workers.Activation.BrandVoice\RealEstateStar.Workers.Activation.BrandVoice.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers.Activation.ComplianceAnalysis\RealEstateStar.Workers.Activation.ComplianceAnalysis.csproj" />
     <ProjectReference Include="..\RealEstateStar.Workers.Activation.FeeStructure\RealEstateStar.Workers.Activation.FeeStructure.csproj" />
+    <!-- Phase 2.25 workers -->
+    <ProjectReference Include="..\RealEstateStar.Workers.Activation.SynthesisMerge\RealEstateStar.Workers.Activation.SynthesisMerge.csproj" />
     <!-- Activities -->
     <ProjectReference Include="..\..\..\RealEstateStar.Activities\Activation\RealEstateStar.Activities.Activation.PersistAgentProfile\RealEstateStar.Activities.Activation.PersistAgentProfile.csproj" />
     <ProjectReference Include="..\..\..\RealEstateStar.Activities\Activation\RealEstateStar.Activities.Activation.BrandMerge\RealEstateStar.Activities.Activation.BrandMerge.csproj" />
