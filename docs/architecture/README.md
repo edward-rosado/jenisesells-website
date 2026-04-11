@@ -102,6 +102,11 @@ Design spec: `docs/superpowers/specs/2026-03-21-api-project-restructure-design.m
 | [OAuth Authorization Flow](oauth-authorization-flow.md) | HMAC-signed link → Google OAuth → token storage → activation enqueue |
 | [Agent Activation Pipeline](agent-activation-pipeline.md) | 5-phase pipeline: Gather → Synthesize → Persist → Notify |
 | [Activation MVP Redesign](activation-mvp-redesign.md) | MVP tier: 8 workers, pipeline.json, C# optimizations, tier dispatch |
+| [Activation Pipeline Data Flow](activation-pipeline-data-flow.md) | 6-phase pipeline: Gather → Classify → Synthesize → Merge → Persist → Notify |
+| [Activation Synthesis Merge](activation-synthesis-merge.md) | Phase 2.25: coaching enrichment, contradiction detection, strengths summary |
+| [Activation Data Enrichment](activation-data-enrichment.md) | How extraction records and reviews flow into synthesis workers |
+| [Activation Cost Model](activation-cost-model.md) | Per-agent and per-lead Claude API cost breakdown |
+| [Activation Analysis Dimensions](activation-analysis-dimensions.md) | User-facing explainer of the nine analysis dimensions |
 
 ## WhatsApp Integration
 
