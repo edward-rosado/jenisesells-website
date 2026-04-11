@@ -18,7 +18,7 @@ public sealed class EmailClassificationWorker(
     ILogger<EmailClassificationWorker> logger)
 {
     private const string Model = "claude-haiku-4-5";
-    private const int MaxTokens = 4096;
+    private const int MaxTokens = 8192;
     private const int PreviewLength = 200;
     private const string Pipeline = "activation.email-classification";
 
@@ -124,7 +124,20 @@ public sealed class EmailClassificationWorker(
                 trimmed = trimmed[..^3].TrimEnd();
         }
 
-        using var doc = JsonDocument.Parse(trimmed);
+        // Handle truncated JSON from token limit — try to parse, fall back to empty result
+        JsonDocument doc;
+        try
+        {
+            doc = JsonDocument.Parse(trimmed);
+        }
+        catch (JsonException)
+        {
+            // Response was truncated — return empty classification so workers fall back to keyword filtering
+            return new EmailClassificationResult(
+                [], new CorpusSummary(0, 0, 0, 0, 0, 0, new Dictionary<string, int>(), null, null));
+        }
+
+        using var _ = doc;
         var root = doc.RootElement;
 
         var classifications = new List<ClassifiedEmail>();
