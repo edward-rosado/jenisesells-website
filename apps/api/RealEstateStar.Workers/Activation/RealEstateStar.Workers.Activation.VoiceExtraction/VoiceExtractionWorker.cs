@@ -3,6 +3,7 @@ using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Services;
+using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Workers.Activation.VoiceExtraction;
 
@@ -333,18 +334,14 @@ public sealed class VoiceExtractionWorker(
             sb.AppendLine();
         }
 
-        // Client reviews — rich signals for voice, personality, language, service style
-        if (discovery.Reviews.Count > 0)
-        {
-            sb.AppendLine($"--- Client Reviews ({discovery.Reviews.Count} total) ---");
-            sb.AppendLine("INSTRUCTION: Use these reviews to understand how clients describe this agent.");
-            sb.AppendLine("Look for: language mentions (bilingual, Spanish), personality traits,");
-            sb.AppendLine("service style, areas of expertise, and recurring themes.");
-            sb.AppendLine();
-            foreach (var review in discovery.Reviews.Take(15))
-                sb.AppendLine($"[{review.Source}, {review.Rating}★] {review.Reviewer}: {review.Text}");
-            sb.AppendLine();
-        }
+        var reviewContent = ReviewFormatter.FormatReviews(
+            discovery.Reviews,
+            discovery.Profiles,
+            maxCount: 15,
+            instruction: "Use these reviews to understand how clients describe this agent. Look for: language mentions (bilingual, Spanish), personality traits, service style, areas of expertise, and recurring themes.");
+
+        if (!reviewContent.StartsWith("(No"))
+            sb.AppendLine(reviewContent);
 
         return sb.Length > 0 ? sb.ToString() : "(No third-party profiles or reviews available)";
     }

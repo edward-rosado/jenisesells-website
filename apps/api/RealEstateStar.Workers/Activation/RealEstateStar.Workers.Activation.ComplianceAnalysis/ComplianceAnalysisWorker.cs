@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Workers.Activation.ComplianceAnalysis;
 
@@ -148,6 +149,19 @@ public sealed class ComplianceAnalysisWorker(
                 sb.AppendLine("</user-data>");
                 sb.AppendLine();
             }
+        }
+
+        // Client reviews — may surface compliance concerns
+        if (discovery.Reviews.Count > 0)
+        {
+            var reviewContent = ReviewFormatter.FormatReviews(
+                discovery.Reviews,
+                maxCount: 5,
+                instruction: "Look for any client mentions of missing disclosures, licensing concerns, or compliance-related complaints.");
+            sb.AppendLine("<user-data source=\"client_reviews\">");
+            sb.AppendLine(sanitizer.Sanitize(reviewContent));
+            sb.AppendLine("</user-data>");
+            sb.AppendLine();
         }
 
         sb.AppendLine("## Standard Compliance Requirements (reference)");

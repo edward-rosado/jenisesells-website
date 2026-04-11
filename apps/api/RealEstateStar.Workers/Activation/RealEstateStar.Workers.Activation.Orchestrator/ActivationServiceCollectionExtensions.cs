@@ -8,11 +8,13 @@ using RealEstateStar.Workers.Activation.Coaching;
 using RealEstateStar.Workers.Activation.ComplianceAnalysis;
 using RealEstateStar.Workers.Activation.DriveIndex;
 using RealEstateStar.Workers.Activation.EmailFetch;
+using RealEstateStar.Workers.Activation.EmailClassification;
 using RealEstateStar.Workers.Activation.EmailTransactionExtraction;
 using RealEstateStar.Workers.Activation.FeeStructure;
 using RealEstateStar.Workers.Activation.MarketingStyle;
 using RealEstateStar.Workers.Activation.Personality;
 using RealEstateStar.Workers.Activation.PipelineAnalysis;
+using RealEstateStar.Workers.Activation.SynthesisMerge;
 using RealEstateStar.Workers.Activation.VoiceExtraction;
 using RealEstateStar.Workers.Activation.WebsiteStyle;
 
@@ -34,6 +36,9 @@ public static class ActivationServiceCollectionExtensions
         services.AddTransient<AgentDiscoveryWorker>();
         services.AddTransient<EmailTransactionExtractor>();
 
+        // Phase 1.5: email classification
+        services.AddTransient<EmailClassificationWorker>();
+
         // Phase 2: synthesis workers
         services.AddTransient<VoiceExtractionWorker>();
         services.AddTransient<PersonalityWorker>();
@@ -47,6 +52,9 @@ public static class ActivationServiceCollectionExtensions
         services.AddTransient<BrandVoiceWorker>();
         services.AddTransient<ComplianceAnalysisWorker>();
         services.AddTransient<FeeStructureWorker>();
+
+        // Phase 2.25: synthesis merge
+        services.AddTransient<SynthesisMergeWorker>();
 
         return services;
     }

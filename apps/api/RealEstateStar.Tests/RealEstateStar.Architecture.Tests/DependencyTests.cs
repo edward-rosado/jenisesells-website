@@ -64,6 +64,8 @@ public class DependencyTests
     [InlineData("RealEstateStar.Workers.Activation.PipelineAnalysis", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Activation.VoiceExtraction", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Activation.WebsiteStyle", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.EmailClassification", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.SynthesisMerge", new[] { "Domain", "Workers.Shared" })]
     // Activation orchestrator — coordinates all activation workers + activities
     [InlineData("RealEstateStar.Workers.Activation.Orchestrator", new[] {
         "Domain", "Workers.Shared",
@@ -76,6 +78,8 @@ public class DependencyTests
         "Workers.Activation.PipelineAnalysis", "Workers.Activation.VoiceExtraction",
         "Workers.Activation.WebsiteStyle",
         "Workers.Activation.EmailTransactionExtraction",
+        "Workers.Activation.EmailClassification",
+        "Workers.Activation.SynthesisMerge",
         "Activities.Activation.PersistAgentProfile", "Activities.Activation.BrandMerge",
         "Activities.Lead.ContactDetection", "Activities.Activation.ContactImportPersist",
     })]
@@ -307,6 +311,8 @@ public class DependencyTests
             "RealEstateStar.Workers.Activation.VoiceExtraction",
             "RealEstateStar.Workers.Activation.WebsiteStyle",
             "RealEstateStar.Workers.Activation.EmailTransactionExtraction",
+            "RealEstateStar.Workers.Activation.EmailClassification",
+            "RealEstateStar.Workers.Activation.SynthesisMerge",
             // Phase 1: Activation activities
             "RealEstateStar.Activities.Activation.BrandMerge",
             "RealEstateStar.Activities.Activation.PersistAgentProfile",

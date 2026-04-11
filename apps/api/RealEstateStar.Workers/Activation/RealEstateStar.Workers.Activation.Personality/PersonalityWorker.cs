@@ -3,6 +3,7 @@ using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
 using RealEstateStar.Domain.Shared.Services;
+using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Workers.Activation.Personality;
 
@@ -337,18 +338,14 @@ public sealed class PersonalityWorker(
             sb.AppendLine();
         }
 
-        // Client reviews — external validation of personality traits
-        if (discovery.Reviews.Count > 0)
-        {
-            sb.AppendLine($"--- Client Reviews ({discovery.Reviews.Count} total) ---");
-            sb.AppendLine("INSTRUCTION: Use these reviews as external evidence for personality traits.");
-            sb.AppendLine("Clients describe how the agent made them FEEL — this is the ground truth");
-            sb.AppendLine("for empathy, warmth, responsiveness, and communication style.");
-            sb.AppendLine();
-            foreach (var review in discovery.Reviews.Take(15))
-                sb.AppendLine($"[{review.Source}, {review.Rating}★] {review.Reviewer}: {review.Text}");
-            sb.AppendLine();
-        }
+        var reviewContent = ReviewFormatter.FormatReviews(
+            discovery.Reviews,
+            discovery.Profiles,
+            maxCount: 15,
+            instruction: "Use these reviews as external evidence for personality traits. Clients describe how the agent made them FEEL — this is the ground truth for empathy, warmth, responsiveness, and communication style.");
+
+        if (!reviewContent.StartsWith("(No"))
+            sb.AppendLine(reviewContent);
 
         return sb.Length > 0 ? sb.ToString() : "(No third-party profiles or reviews available)";
     }

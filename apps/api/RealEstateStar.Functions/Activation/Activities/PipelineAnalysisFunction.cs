@@ -28,6 +28,7 @@ public sealed class PipelineAnalysisFunction(
         var result = await worker.AnalyzeAsync(
             emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
             driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
+            agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 
         return JsonSerializer.Serialize(new PipelineAnalysisOutput

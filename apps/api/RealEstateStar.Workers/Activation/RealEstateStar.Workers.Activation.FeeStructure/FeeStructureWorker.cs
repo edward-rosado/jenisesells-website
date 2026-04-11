@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Workers.Activation.FeeStructure;
 
@@ -59,6 +60,7 @@ public sealed class FeeStructureWorker(
         EmailCorpus emailCorpus,
         DriveIndex driveIndex,
         IReadOnlyList<DiscoveredWebsite> websites,
+        IReadOnlyList<Review> reviews,
         CancellationToken ct)
     {
         var feeEmails = FilterFeeRelatedEmails(emailCorpus.SentEmails, emailCorpus.InboxEmails);
@@ -73,7 +75,7 @@ public sealed class FeeStructureWorker(
             return null;
         }
 
-        var prompt = BuildPrompt(feeEmails, feeDocs, driveIndex.Contents, feeWebsitePages, sanitizer);
+        var prompt = BuildPrompt(feeEmails, feeDocs, driveIndex.Contents, feeWebsitePages, driveIndex.Extractions, reviews, sanitizer);
 
         logger.LogInformation(
             "[FEE-002] Analyzing {EmailCount} fee emails, {DocCount} fee docs, {WebCount} fee pages",
@@ -135,12 +137,28 @@ public sealed class FeeStructureWorker(
         IReadOnlyList<DriveFile> feeDocs,
         IReadOnlyDictionary<string, string> contents,
         IReadOnlyList<DiscoveredWebsite> feeWebsitePages,
+        IReadOnlyList<DocumentExtraction> extractions,
+        IReadOnlyList<Review> reviews,
         IContentSanitizer sanitizer)
     {
         var sb = new StringBuilder();
         sb.AppendLine("Extract fee structure and commission information from the following sources.");
         sb.AppendLine("IMPORTANT: Anonymize all client names and specific transaction details.");
         sb.AppendLine();
+
+        // Pre-extracted commission data — verified baseline
+        var feeExtractionContent = ExtractionFormatter.FormatFeeExtractions(extractions, maxCount: 15);
+        if (!feeExtractionContent.StartsWith("(No"))
+        {
+            sb.AppendLine("## Pre-Extracted Commission Data (structured, verified)");
+            sb.AppendLine("Use these pre-extracted commission rates as baseline data. Focus your analysis on patterns, negotiation signals, and fee structure evolution.");
+            sb.AppendLine();
+            sb.AppendLine("<user-data source=\"pre_extracted_commissions\">");
+            sb.AppendLine(sanitizer.Sanitize(feeExtractionContent));
+            sb.AppendLine("</user-data>");
+            sb.AppendLine();
+        }
+
 
         if (feeEmails.Count > 0)
         {
@@ -196,6 +214,19 @@ public sealed class FeeStructureWorker(
                 sb.AppendLine("</user-data>");
                 sb.AppendLine();
             }
+        }
+
+        // Client reviews — behavioral fee perception
+        if (reviews.Count > 0)
+        {
+            var reviewContent = ReviewFormatter.FormatReviews(
+                reviews,
+                maxCount: 10,
+                instruction: "Look for any mentions of fees, costs, commission negotiation, or value-for-money perception.");
+            sb.AppendLine("<user-data source=\"client_reviews\">");
+            sb.AppendLine(sanitizer.Sanitize(reviewContent));
+            sb.AppendLine("</user-data>");
+            sb.AppendLine();
         }
 
         return sb.ToString();

@@ -72,7 +72,7 @@ public class PipelineAnalysisWorkerTests
         var worker = new PipelineAnalysisWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWithInboxEmails(inboxCount: 4);
 
-        var result = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
+        var result = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), null, CancellationToken.None);
 
         result.Should().BeNull();
         anthropic.Verify(a => a.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
@@ -92,7 +92,7 @@ public class PipelineAnalysisWorkerTests
         var worker = new PipelineAnalysisWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWithInboxEmails(inboxCount: inboxCount);
 
-        await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
+        await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), null, CancellationToken.None);
 
         anthropic.Verify(a => a.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -121,7 +121,7 @@ public class PipelineAnalysisWorkerTests
         var worker = new PipelineAnalysisWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWithInboxEmails(inboxCount: 10);
 
-        await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
+        await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), null, CancellationToken.None);
 
         callOrder.Should().Contain("sanitize");
         callOrder.Should().Contain("claude");
@@ -147,7 +147,7 @@ public class PipelineAnalysisWorkerTests
         var worker = new PipelineAnalysisWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWithInboxEmails(inboxCount: 10);
 
-        var result = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
+        var result = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), null, CancellationToken.None);
 
         result.Should().NotBeNull();
         result!.PipelineJson.Should().Contain("\"leads\"");
@@ -175,7 +175,7 @@ public class PipelineAnalysisWorkerTests
         var worker = new PipelineAnalysisWorker(anthropic.Object, sanitizer.Object, logger.Object);
         var corpus = MakeCorpusWithInboxEmails(inboxCount: 10);
 
-        var result = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), CancellationToken.None);
+        var result = await worker.AnalyzeAsync(corpus, MakeEmptyDriveIndex(), null, CancellationToken.None);
 
         result.Should().BeNull();
     }
@@ -203,7 +203,7 @@ public class PipelineAnalysisWorkerTests
         var corpus = MakeCorpusWithInboxEmails(5);
         var driveIndex = MakeEmptyDriveIndex();
 
-        var prompt = PipelineAnalysisWorker.BuildPrompt(corpus, driveIndex, sanitizer.Object);
+        var prompt = PipelineAnalysisWorker.BuildPrompt(corpus, driveIndex, null, sanitizer.Object);
 
         prompt.Should().Contain("Client A");
     }
@@ -217,7 +217,7 @@ public class PipelineAnalysisWorkerTests
         var corpus = MakeCorpusWithInboxEmails(5);
         var driveIndex = MakeEmptyDriveIndex();
 
-        var prompt = PipelineAnalysisWorker.BuildPrompt(corpus, driveIndex, sanitizer.Object);
+        var prompt = PipelineAnalysisWorker.BuildPrompt(corpus, driveIndex, null, sanitizer.Object);
 
         prompt.Should().Contain("<user-data>");
         prompt.Should().Contain("</user-data>");

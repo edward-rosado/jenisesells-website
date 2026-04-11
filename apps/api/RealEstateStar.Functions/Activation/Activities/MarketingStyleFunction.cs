@@ -33,6 +33,7 @@ public sealed class MarketingStyleFunction(
         var (styleGuide, brandSignals, localizedSkills) = await worker.AnalyzeAsync(
             emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
             driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
+            agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
             ct: ct);
 
         return JsonSerializer.Serialize(new MarketingStyleOutput { StyleGuide = styleGuide, BrandSignals = brandSignals, LocalizedSkills = localizedSkills });

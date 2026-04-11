@@ -103,6 +103,41 @@ public sealed class ActivationOrchestratorFunction
             Extractions = driveIndex.Extractions.Concat(emailExtractions).ToList()
         };
 
+        // ── Phase 1.5: Email Classification ─────────────────────────────────
+        // Classify all emails once using a lightweight Haiku call so downstream
+        // workers receive pre-tagged subsets instead of doing their own keyword filtering.
+
+        EmailClassificationOutput? emailClassification = null;
+        try
+        {
+            var classificationStart = ctx.CurrentUtcDateTime;
+            var classificationJson = await ctx.CallActivityAsync<string>(
+                ActivityNames.EmailClassification,
+                new EmailClassificationInput
+                {
+                    AccountId = request.AccountId,
+                    AgentId = request.AgentId,
+                    EmailCorpus = emailCorpus,
+                });
+            emailClassification = JsonSerializer.Deserialize<EmailClassificationOutput>(classificationJson)!;
+            if (!ctx.IsReplaying)
+            {
+                var classificationDuration = (ctx.CurrentUtcDateTime - classificationStart).TotalMilliseconds;
+                logger.LogInformation(
+                    "[ACTV-FN-019] EmailClassification completed in {Duration}ms. Categories: tx={Tx}, mkt={Mkt}, fee={Fee}, compliance={Compliance}",
+                    classificationDuration,
+                    emailClassification.Summary.TransactionCount,
+                    emailClassification.Summary.MarketingCount,
+                    emailClassification.Summary.FeeRelatedCount,
+                    emailClassification.Summary.ComplianceCount);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            if (!ctx.IsReplaying)
+                logger.LogWarning(ex, "[ACTV-FN-019] EmailClassification failed — workers will fall back to keyword filtering");
+        }
+
         // Derive distinct detected locales from Phase 1 outputs for language-aware completion check.
         var detectedLanguages = emailCorpus.SentEmails
             .Concat(emailCorpus.InboxEmails)
@@ -217,6 +252,7 @@ public sealed class ActivationOrchestratorFunction
             EmailCorpus = emailCorpus,
             DriveIndex = driveIndex,
             Discovery = discovery,
+            EmailClassification = emailClassification,
         };
 
         // Each worker wrapped in try/catch to preserve RunSafeAsync semantics:
@@ -361,6 +397,57 @@ public sealed class ActivationOrchestratorFunction
                 phase2Duration, succeededCount, failedCount);
         }
 
+        // ── Phase 2.25: Synthesis Merge ──────────────────────────────────────
+        // Cross-reference Phase 2 outputs: enrich coaching with personality + pipeline context,
+        // detect contradictions between workers, and build a strengths summary for the welcome email.
+
+        SynthesisMergeOutput? synthesisMerge = null;
+        if (voice is not null && personality is not null)
+        {
+            try
+            {
+                if (!ctx.IsReplaying)
+                    logger.LogInformation("[ACTV-FN-037] Phase 2.25: synthesis merge for agentId={AgentId}", request.AgentId);
+
+                var mergeJson = await ctx.CallActivityAsync<string>(
+                    ActivityNames.SynthesisMerge,
+                    new SynthesisMergeInput
+                    {
+                        AccountId = request.AccountId,
+                        AgentId = request.AgentId,
+                        VoiceSkill = voice.VoiceSkillMarkdown,
+                        PersonalitySkill = personality.PersonalitySkillMarkdown,
+                        CoachingReport = coaching?.CoachingReportMarkdown,
+                        PipelineJson = pipelineJson,
+                        PipelineMarkdown = salesPipeline,
+                        Reviews = discovery.Reviews,
+                    });
+                synthesisMerge = JsonSerializer.Deserialize<SynthesisMergeOutput>(mergeJson)!;
+
+                if (!ctx.IsReplaying)
+                {
+                    logger.LogInformation(
+                        "[ACTV-FN-038] SynthesisMerge completed: enrichedCoaching={HasEnriched}, contradictions={ContradictionCount}, strengths={HasStrengths}",
+                        synthesisMerge.EnrichedCoachingReport is not null,
+                        synthesisMerge.Contradictions.Count,
+                        synthesisMerge.StrengthsSummary is not null);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                if (!ctx.IsReplaying)
+                    logger.LogWarning(ex, "[ACTV-FN-039] Synthesis merge failed — continuing with original outputs");
+            }
+        }
+        else if (!ctx.IsReplaying)
+        {
+            logger.LogInformation(
+                "[ACTV-FN-037] SKIP: Synthesis merge for agentId={AgentId}. " +
+                "Reason: voice={HasVoice}, personality={HasPersonality}. " +
+                "Merge requires both voice and personality outputs.",
+                request.AgentId, voice is not null, personality is not null);
+        }
+
         // ── Phase 2.5: Contact Detection ──────────────────────────────────────
 
         if (!ctx.IsReplaying)
@@ -433,6 +520,9 @@ public sealed class ActivationOrchestratorFunction
             ServiceAreas = serviceAreas,
             Discovery = discovery,
             LocalizedSkills = localizedSkills?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+            EnrichedCoachingReport = synthesisMerge?.EnrichedCoachingReport,
+            Contradictions = synthesisMerge?.Contradictions,
+            StrengthsSummary = synthesisMerge?.StrengthsSummary,
         };
 
         // PersistProfile is fatal if it fails — let it propagate
@@ -527,10 +617,11 @@ public sealed class ActivationOrchestratorFunction
                 // Synthesis data for personalized welcome email
                 VoiceSkill = voice?.VoiceSkillMarkdown,
                 PersonalitySkill = personality?.PersonalitySkillMarkdown,
-                CoachingReport = coaching?.CoachingReportMarkdown,
+                CoachingReport = synthesisMerge?.EnrichedCoachingReport ?? coaching?.CoachingReportMarkdown,
                 PipelineJson = pipelineJson,
                 ContactCount = contactDetectionResult.Contacts.Count,
                 LocalizedSkills = localizedSkills?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                StrengthsSummary = synthesisMerge?.StrengthsSummary,
             });
 
         if (!ctx.IsReplaying)

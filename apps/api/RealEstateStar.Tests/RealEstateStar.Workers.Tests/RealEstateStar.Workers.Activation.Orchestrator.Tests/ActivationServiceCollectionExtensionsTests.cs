@@ -13,6 +13,8 @@ using RealEstateStar.Workers.Activation.FeeStructure;
 using RealEstateStar.Workers.Activation.MarketingStyle;
 using RealEstateStar.Workers.Activation.Personality;
 using RealEstateStar.Workers.Activation.PipelineAnalysis;
+using RealEstateStar.Workers.Activation.EmailClassification;
+using RealEstateStar.Workers.Activation.SynthesisMerge;
 using RealEstateStar.Workers.Activation.VoiceExtraction;
 using RealEstateStar.Workers.Activation.WebsiteStyle;
 
@@ -26,12 +28,12 @@ namespace RealEstateStar.Workers.Activation.Orchestrator.Tests;
 public class ActivationServiceCollectionExtensionsTests
 {
     [Fact]
-    public void AddActivationPipeline_RegistersAllFifteenWorkers()
+    public void AddActivationPipeline_RegistersAllSeventeenWorkers()
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddActivationPipeline();
 
-        // Verify all 15 worker types are registered by inspecting descriptors
+        // Verify all 17 worker types are registered by inspecting descriptors
         // (not resolving instances — workers have external dependencies not registered here)
         var registeredTypes = serviceCollection
             .Select(d => d.ServiceType)
@@ -41,6 +43,9 @@ public class ActivationServiceCollectionExtensionsTests
         registeredTypes.Should().Contain(typeof(AgentEmailFetchWorker));
         registeredTypes.Should().Contain(typeof(DriveIndexWorker));
         registeredTypes.Should().Contain(typeof(AgentDiscoveryWorker));
+
+        // Phase 1.5: email classification
+        registeredTypes.Should().Contain(typeof(EmailClassificationWorker));
 
         // Phase 2: synthesis workers
         registeredTypes.Should().Contain(typeof(VoiceExtractionWorker));
@@ -55,6 +60,9 @@ public class ActivationServiceCollectionExtensionsTests
         registeredTypes.Should().Contain(typeof(BrandVoiceWorker));
         registeredTypes.Should().Contain(typeof(ComplianceAnalysisWorker));
         registeredTypes.Should().Contain(typeof(FeeStructureWorker));
+
+        // Phase 2.25: synthesis merge
+        registeredTypes.Should().Contain(typeof(SynthesisMergeWorker));
     }
 
     [Fact]

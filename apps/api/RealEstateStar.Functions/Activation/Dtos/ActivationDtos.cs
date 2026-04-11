@@ -227,6 +227,7 @@ public sealed record SynthesisInput
     [JsonPropertyName("emailCorpus")] public EmailFetchOutput EmailCorpus { get; init; } = default!;
     [JsonPropertyName("driveIndex")] public DriveIndexOutput DriveIndex { get; init; } = default!;
     [JsonPropertyName("discovery")] public AgentDiscoveryOutput Discovery { get; init; } = default!;
+    [JsonPropertyName("emailClassification")] public EmailClassificationOutput? EmailClassification { get; init; }
 }
 
 // ── Phase 2 string outputs (workers returning string?) ────────────────────────
@@ -391,6 +392,9 @@ public sealed record PersistProfileInput
     [JsonPropertyName("serviceAreas")] public List<string> ServiceAreas { get; init; } = [];
     [JsonPropertyName("discovery")] public AgentDiscoveryOutput Discovery { get; init; } = default!;
     [JsonPropertyName("localizedSkills")] public Dictionary<string, string>? LocalizedSkills { get; init; }
+    [JsonPropertyName("enrichedCoachingReport")] public string? EnrichedCoachingReport { get; init; }
+    [JsonPropertyName("contradictions")] public List<ContradictionDto>? Contradictions { get; init; }
+    [JsonPropertyName("strengthsSummary")] public string? StrengthsSummary { get; init; }
 }
 
 public sealed record BrandMergeInput
@@ -426,10 +430,74 @@ public sealed record WelcomeNotificationInput
     [JsonPropertyName("pipelineJson")] public string? PipelineJson { get; init; }
     [JsonPropertyName("contactCount")] public int ContactCount { get; init; }
     [JsonPropertyName("localizedSkills")] public Dictionary<string, string>? LocalizedSkills { get; init; }
+    [JsonPropertyName("strengthsSummary")] public string? StrengthsSummary { get; init; }
 }
 
 public sealed record CleanupStagedContentInput
 {
     [JsonPropertyName("accountId")] public string AccountId { get; init; } = default!;
     [JsonPropertyName("agentId")] public string AgentId { get; init; } = default!;
+}
+
+// ── Phase 1.5 Email Classification ───────────────────────────────────────────
+
+public sealed record EmailClassificationInput
+{
+    [JsonPropertyName("accountId")] public string AccountId { get; init; } = default!;
+    [JsonPropertyName("agentId")] public string AgentId { get; init; } = default!;
+    [JsonPropertyName("emailCorpus")] public EmailFetchOutput EmailCorpus { get; init; } = default!;
+}
+
+public sealed record EmailClassificationOutput
+{
+    [JsonPropertyName("classifications")] public List<ClassifiedEmailDto> Classifications { get; init; } = [];
+    [JsonPropertyName("summary")] public CorpusSummaryDto Summary { get; init; } = default!;
+}
+
+public sealed record ClassifiedEmailDto
+{
+    [JsonPropertyName("emailId")] public string EmailId { get; init; } = default!;
+    [JsonPropertyName("categories")] public List<string> Categories { get; init; } = [];
+}
+
+public sealed record CorpusSummaryDto
+{
+    [JsonPropertyName("totalEmails")] public int TotalEmails { get; init; }
+    [JsonPropertyName("transactionCount")] public int TransactionCount { get; init; }
+    [JsonPropertyName("marketingCount")] public int MarketingCount { get; init; }
+    [JsonPropertyName("feeRelatedCount")] public int FeeRelatedCount { get; init; }
+    [JsonPropertyName("complianceCount")] public int ComplianceCount { get; init; }
+    [JsonPropertyName("leadNurtureCount")] public int LeadNurtureCount { get; init; }
+    [JsonPropertyName("languageDistribution")] public Dictionary<string, int> LanguageDistribution { get; init; } = [];
+    [JsonPropertyName("dominantTone")] public string? DominantTone { get; init; }
+    [JsonPropertyName("averageEmailLength")] public string? AverageEmailLength { get; init; }
+}
+
+// ── Phase 2.25 Synthesis Merge ───────────────────────────────────────────────
+
+public sealed record SynthesisMergeInput
+{
+    [JsonPropertyName("accountId")] public string AccountId { get; init; } = default!;
+    [JsonPropertyName("agentId")] public string AgentId { get; init; } = default!;
+    [JsonPropertyName("voiceSkill")] public string? VoiceSkill { get; init; }
+    [JsonPropertyName("personalitySkill")] public string? PersonalitySkill { get; init; }
+    [JsonPropertyName("coachingReport")] public string? CoachingReport { get; init; }
+    [JsonPropertyName("pipelineJson")] public string? PipelineJson { get; init; }
+    [JsonPropertyName("pipelineMarkdown")] public string? PipelineMarkdown { get; init; }
+    [JsonPropertyName("reviews")] public List<ReviewDto> Reviews { get; init; } = [];
+}
+
+public sealed record SynthesisMergeOutput
+{
+    [JsonPropertyName("enrichedCoachingReport")] public string? EnrichedCoachingReport { get; init; }
+    [JsonPropertyName("contradictions")] public List<ContradictionDto> Contradictions { get; init; } = [];
+    [JsonPropertyName("strengthsSummary")] public string? StrengthsSummary { get; init; }
+}
+
+public sealed record ContradictionDto
+{
+    [JsonPropertyName("source1")] public string Source1 { get; init; } = default!;
+    [JsonPropertyName("source2")] public string Source2 { get; init; } = default!;
+    [JsonPropertyName("signal")] public string Signal { get; init; } = default!;
+    [JsonPropertyName("description")] public string Description { get; init; } = default!;
 }

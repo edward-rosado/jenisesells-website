@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Workers.Shared;
 
 namespace RealEstateStar.Workers.Activation.PipelineAnalysis;
 
@@ -76,6 +77,7 @@ public sealed class PipelineAnalysisWorker(
     public async Task<PipelineAnalysisResult?> AnalyzeAsync(
         EmailCorpus emailCorpus,
         DriveIndex driveIndex,
+        AgentDiscovery? agentDiscovery,
         CancellationToken ct)
     {
         if (emailCorpus.InboxEmails.Count < MinInboxEmailsRequired)
@@ -86,7 +88,7 @@ public sealed class PipelineAnalysisWorker(
             return null;
         }
 
-        var prompt = BuildPrompt(emailCorpus, driveIndex, sanitizer);
+        var prompt = BuildPrompt(emailCorpus, driveIndex, agentDiscovery, sanitizer);
 
         logger.LogInformation(
             "[PIPELINE-002] Analyzing {SentCount} sent + {InboxCount} inbox emails",
@@ -114,12 +116,27 @@ public sealed class PipelineAnalysisWorker(
     internal static string BuildPrompt(
         EmailCorpus emailCorpus,
         DriveIndex driveIndex,
+        AgentDiscovery? agentDiscovery,
         IContentSanitizer sanitizer)
     {
         var sb = new StringBuilder();
         sb.AppendLine("Analyze the following email correspondence and documents to identify active leads/clients and map the agent's sales pipeline.");
         sb.AppendLine("IMPORTANT: Do not identify individual clients by name. Use 'Client A', 'Client B', etc.");
         sb.AppendLine();
+
+        // Pre-extracted transaction data — verified facts to seed pipeline analysis
+        if (driveIndex.Extractions.Count > 0)
+        {
+            sb.AppendLine("## Pre-Extracted Transaction Data (structured, verified)");
+            sb.AppendLine("The following transactions were already extracted from emails and documents.");
+            sb.AppendLine("Use these as verified facts to seed your pipeline analysis. Focus on inferring stages, timelines, and next actions rather than re-extracting property/price data.");
+            sb.AppendLine();
+            var extractionContent = ExtractionFormatter.FormatExtractions(driveIndex.Extractions, maxCount: 30);
+            sb.AppendLine("<user-data source=\"pre_extracted_transactions\">");
+            sb.AppendLine(sanitizer.Sanitize(extractionContent));
+            sb.AppendLine("</user-data>");
+            sb.AppendLine();
+        }
 
         sb.AppendLine("## Sent Emails (agent's outbound communication)");
         foreach (var email in emailCorpus.SentEmails)
@@ -159,6 +176,20 @@ public sealed class PipelineAnalysisWorker(
             {
                 sb.AppendLine($"- {doc.Name} ({doc.Category}, modified: {doc.ModifiedDate:yyyy-MM-dd})");
             }
+            sb.AppendLine();
+        }
+
+        // Client reviews — supplementary pipeline validation
+        if (agentDiscovery?.Reviews.Count > 0)
+        {
+            var reviewContent = ReviewFormatter.FormatReviews(
+                agentDiscovery.Reviews,
+                maxCount: 10,
+                instruction: "Use reviews to validate and supplement pipeline inference. Look for: mentions of specific transactions, deal types, neighborhoods, and timeline clues.");
+            sb.AppendLine("<user-data source=\"client_reviews\">");
+            sb.AppendLine(sanitizer.Sanitize(reviewContent));
+            sb.AppendLine("</user-data>");
+            sb.AppendLine();
         }
 
         return sb.ToString();

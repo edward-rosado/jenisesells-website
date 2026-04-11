@@ -15,6 +15,9 @@ internal static class ActivityNames
     public const string DriveIndex = "ActivationDriveIndex";
     public const string AgentDiscovery = "ActivationAgentDiscovery";
 
+    // Phase 1.5: Email Classification
+    public const string EmailClassification = "ActivationEmailClassification";
+
     // Phase 2: Synthesize
     public const string VoiceExtraction = "ActivationVoiceExtraction";
     public const string Personality = "ActivationPersonality";
@@ -28,6 +31,9 @@ internal static class ActivityNames
     public const string BrandVoice = "ActivationBrandVoice";
     public const string ComplianceAnalysis = "ActivationComplianceAnalysis";
     public const string FeeStructure = "ActivationFeeStructure";
+
+    // Phase 2.25: Synthesis Merge
+    public const string SynthesisMerge = "ActivationSynthesisMerge";
 
     // Phase 2.5: Contact Detection
     public const string ContactDetection = "ActivationContactDetection";
