@@ -23,6 +23,12 @@ public sealed record ActivationOutputs
     public string? ThirdPartyProfiles { get; init; }
     public string? ConsentLog { get; init; }
 
+    // Synthesis merge outputs (Phase 2.25)
+    /// <summary>Coaching report enriched with personality + pipeline cross-references. Replaces CoachingReport if non-null.</summary>
+    public string? EnrichedCoachingReport { get; init; }
+    /// <summary>Agent strengths summary for welcome email personalization.</summary>
+    public string? StrengthsSummary { get; init; }
+
     // Localized skill variants — keyed by "{skillName}.{locale}" (e.g., "VoiceSkill.es")
     public IReadOnlyDictionary<string, string>? LocalizedSkills { get; init; }
 

@@ -103,41 +103,6 @@ public sealed class ActivationOrchestratorFunction
             Extractions = driveIndex.Extractions.Concat(emailExtractions).ToList()
         };
 
-        // ── Phase 1.5: Email Classification ─────────────────────────────────
-        // Classify all emails once using a lightweight Haiku call so downstream
-        // workers receive pre-tagged subsets instead of doing their own keyword filtering.
-
-        EmailClassificationOutput? emailClassification = null;
-        try
-        {
-            var classificationStart = ctx.CurrentUtcDateTime;
-            var classificationJson = await ctx.CallActivityAsync<string>(
-                ActivityNames.EmailClassification,
-                new EmailClassificationInput
-                {
-                    AccountId = request.AccountId,
-                    AgentId = request.AgentId,
-                    EmailCorpus = emailCorpus,
-                });
-            emailClassification = JsonSerializer.Deserialize<EmailClassificationOutput>(classificationJson)!;
-            if (!ctx.IsReplaying)
-            {
-                var classificationDuration = (ctx.CurrentUtcDateTime - classificationStart).TotalMilliseconds;
-                logger.LogInformation(
-                    "[ACTV-FN-019] EmailClassification completed in {Duration}ms. Categories: tx={Tx}, mkt={Mkt}, fee={Fee}, compliance={Compliance}",
-                    classificationDuration,
-                    emailClassification.Summary.TransactionCount,
-                    emailClassification.Summary.MarketingCount,
-                    emailClassification.Summary.FeeRelatedCount,
-                    emailClassification.Summary.ComplianceCount);
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            if (!ctx.IsReplaying)
-                logger.LogWarning(ex, "[ACTV-FN-019] EmailClassification failed — workers will fall back to keyword filtering");
-        }
-
         // Derive distinct detected locales from Phase 1 outputs for language-aware completion check.
         var detectedLanguages = emailCorpus.SentEmails
             .Concat(emailCorpus.InboxEmails)
@@ -252,8 +217,41 @@ public sealed class ActivationOrchestratorFunction
             EmailCorpus = emailCorpus,
             DriveIndex = driveIndex,
             Discovery = discovery,
-            EmailClassification = emailClassification,
         };
+
+        // ── Phase 1.5: Email Classification ─────────────────────────────────
+        // Classify all emails once using a lightweight Haiku call so downstream
+        // workers receive pre-tagged subsets instead of doing their own keyword filtering.
+        // Uses SynthesisInput (same as Phase 2 workers) for consistent DF serialization.
+
+        EmailClassificationOutput? emailClassification = null;
+        try
+        {
+            var classificationStart = ctx.CurrentUtcDateTime;
+            var classificationJson = await ctx.CallActivityAsync<string>(
+                ActivityNames.EmailClassification, synthesisInput);
+            emailClassification = JsonSerializer.Deserialize<EmailClassificationOutput>(classificationJson)!;
+
+            // Update synthesisInput with classification results for downstream workers
+            synthesisInput = synthesisInput with { EmailClassification = emailClassification };
+
+            if (!ctx.IsReplaying)
+            {
+                var classificationDuration = (ctx.CurrentUtcDateTime - classificationStart).TotalMilliseconds;
+                logger.LogInformation(
+                    "[ACTV-FN-019] EmailClassification completed in {Duration}ms. Categories: tx={Tx}, mkt={Mkt}, fee={Fee}, compliance={Compliance}",
+                    classificationDuration,
+                    emailClassification.Summary.TransactionCount,
+                    emailClassification.Summary.MarketingCount,
+                    emailClassification.Summary.FeeRelatedCount,
+                    emailClassification.Summary.ComplianceCount);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            if (!ctx.IsReplaying)
+                logger.LogWarning(ex, "[ACTV-FN-019] EmailClassification failed — workers will fall back to keyword filtering");
+        }
 
         // Each worker wrapped in try/catch to preserve RunSafeAsync semantics:
         // one worker failure does NOT abort the pipeline — it contributes null output.

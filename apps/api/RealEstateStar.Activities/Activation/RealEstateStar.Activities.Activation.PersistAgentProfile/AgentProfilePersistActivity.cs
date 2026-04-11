@@ -113,6 +113,10 @@ public sealed class AgentProfilePersistActivity(
     {
         var tasks = new List<Task>();
 
+        // Use enriched coaching report (cross-referenced with personality + pipeline) when available,
+        // falling back to the original coaching report.
+        var coachingContent = outputs.EnrichedCoachingReport ?? outputs.CoachingReport;
+
         var markdownFiles = new[]
         {
             (VoiceSkillFile, outputs.VoiceSkill),
@@ -120,7 +124,7 @@ public sealed class AgentProfilePersistActivity(
             (CmaStyleGuideFile, outputs.CmaStyleGuide),
             (WebsiteStyleGuideFile, outputs.WebsiteStyleGuide),
             (SalesPipelineFile, outputs.SalesPipeline),
-            (CoachingReportFile, outputs.CoachingReport),
+            (CoachingReportFile, coachingContent),
             (BrandingKitFile, outputs.BrandingKitMarkdown),
             (ComplianceAnalysisFile, outputs.ComplianceAnalysis),
             (DriveIndexFile, outputs.DriveIndex),

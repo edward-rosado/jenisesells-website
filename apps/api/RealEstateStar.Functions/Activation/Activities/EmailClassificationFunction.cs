@@ -19,7 +19,7 @@ public sealed class EmailClassificationFunction(
 {
     [Function(ActivityNames.EmailClassification)]
     public async Task<string> RunAsync(
-        [ActivityTrigger] EmailClassificationInput input,
+        [ActivityTrigger] SynthesisInput input,
         CancellationToken ct)
     {
         logger.LogInformation(

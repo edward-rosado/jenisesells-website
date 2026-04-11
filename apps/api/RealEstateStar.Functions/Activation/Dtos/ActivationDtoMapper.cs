@@ -350,6 +350,8 @@ internal static class ActivationDtoMapper
             AgentLicenseNumber = input.AgentLicenseNumber,
             ServiceAreas = input.ServiceAreas,
             LocalizedSkills = input.LocalizedSkills,
+            EnrichedCoachingReport = input.EnrichedCoachingReport,
+            StrengthsSummary = input.StrengthsSummary,
         };
     }
 }
