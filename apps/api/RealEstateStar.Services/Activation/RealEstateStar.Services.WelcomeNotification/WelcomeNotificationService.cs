@@ -61,52 +61,32 @@ public sealed class WelcomeNotificationService(
         var message = await DraftMessageAsync(accountId, agentId, handle, outputs, ct);
 
         // Send via email (WhatsApp disabled — not yet operational)
-        var sent = false;
         var agentEmail = outputs.AgentEmail;
-        if (!string.IsNullOrWhiteSpace(agentEmail))
+        if (string.IsNullOrWhiteSpace(agentEmail))
         {
-            try
-            {
-                var htmlBody = WrapHtml(message, outputs.AgentName);
-                await gmailSender.SendAsync(
-                    accountId, agentId, agentEmail,
-                    "Welcome to Real Estate Star! The premier AI automation platform for real estate agents.",
-                    htmlBody, ct);
-                sent = true;
-                logger.LogInformation(
-                    "[WELCOME-032] Welcome sent via email for agentId={AgentId}, to={Email}",
-                    agentId, agentEmail);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex,
-                    "[WELCOME-033] Email send failed for agentId={AgentId}, to={Email}. " +
-                    "Welcome message NOT delivered. Will retry on next activation.",
-                    agentId, agentEmail);
-            }
-        }
-        else
-        {
-            logger.LogWarning(
-                "[WELCOME-034] No email address available for agentId={AgentId}. " +
-                "Welcome message drafted but NOT delivered.",
-                agentId);
+            throw new InvalidOperationException(
+                $"[WELCOME-034] No email address available for agentId={agentId}. " +
+                "Cannot send welcome email — aborting so Durable Functions retries.");
         }
 
-        // Only record sent flag on actual delivery success — allows retry on next activation
-        if (sent)
-        {
-            var record = $"---\nsent: true\nsent_at: {DateTime.UtcNow:O}\nchannel: email\nrecipient: {agentEmail}\n---\n\n{message}";
-            await storage.WriteDocumentAsync(agentFolder, WelcomeSentFile, record, ct);
-            await idempotencyStore.MarkCompletedAsync(idempotencyKey, ct);
-            logger.LogInformation("[WELCOME-090] Welcome sent flag recorded for agentId={AgentId}", agentId);
-        }
-        else
-        {
-            logger.LogWarning(
-                "[WELCOME-091] Welcome NOT recorded as sent for agentId={AgentId} — will retry on next activation.",
-                agentId);
-        }
+        // Let exceptions propagate — Durable Functions will retry the activity on failure.
+        // This ensures transient issues (token refresh, network, DPAPI key rotation) are retried
+        // instead of silently dropping the welcome email.
+        var htmlBody = WrapHtml(message, outputs.AgentName);
+        await gmailSender.SendAsync(
+            accountId, agentId, agentEmail,
+            "Welcome to Real Estate Star! The premier AI automation platform for real estate agents.",
+            htmlBody, ct);
+
+        logger.LogInformation(
+            "[WELCOME-032] Welcome sent via email for agentId={AgentId}, to={Email}",
+            agentId, agentEmail);
+
+        // Record sent flag — prevents re-sending on future activations
+        var record = $"---\nsent: true\nsent_at: {DateTime.UtcNow:O}\nchannel: email\nrecipient: {agentEmail}\n---\n\n{message}";
+        await storage.WriteDocumentAsync(agentFolder, WelcomeSentFile, record, ct);
+        await idempotencyStore.MarkCompletedAsync(idempotencyKey, ct);
+        logger.LogInformation("[WELCOME-090] Welcome sent flag recorded for agentId={AgentId}", agentId);
     }
 
     // ── Message drafting ──────────────────────────────────────────────────────

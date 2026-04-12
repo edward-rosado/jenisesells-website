@@ -27,16 +27,25 @@ public sealed class CoachingFunction(
         logger.LogInformation(
             "[ACTV-FN-170] Coaching for agentId={AgentId}", input.AgentId);
 
-        // Load Drive file contents from blob staging (workers are pure compute, don't touch storage)
-        var stagedContents = await stagedContent.GetTopContentsAsync(input.AccountId, input.AgentId, 5, ct);
+        try
+        {
+            // Load Drive file contents from blob staging (workers are pure compute, don't touch storage)
+            var stagedContents = await stagedContent.GetTopContentsAsync(input.AccountId, input.AgentId, 5, ct);
 
-        var result = await worker.AnalyzeAsync(
-            agentName: input.AgentName,
-            emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
-            driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
-            agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
-            ct: ct);
+            var result = await worker.AnalyzeAsync(
+                agentName: input.AgentName,
+                emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
+                driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
+                agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
+                ct: ct);
 
-        return JsonSerializer.Serialize(new CoachingOutput { CoachingReportMarkdown = result.CoachingReportMarkdown, IsInsufficient = result.IsInsufficient });
+            return JsonSerializer.Serialize(new CoachingOutput { CoachingReportMarkdown = result.CoachingReportMarkdown, IsInsufficient = result.IsInsufficient });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ACTV-FN-171] Coaching FAILED for agentId={AgentId}: {Message}",
+                input.AgentId, ex.Message);
+            throw;
+        }
     }
 }

@@ -26,12 +26,21 @@ public sealed class EmailTransactionExtractionFunction(
             "[ACTV-FN-045] EmailTransactionExtraction for accountId={AccountId}, agentId={AgentId}",
             input.AccountId, input.AgentId);
 
-        var sentEmails = input.EmailCorpus.SentEmails.Select(ActivationDtoMapper.ToDomain).ToList();
-        var inboxEmails = input.EmailCorpus.InboxEmails.Select(ActivationDtoMapper.ToDomain).ToList();
+        try
+        {
+            var sentEmails = input.EmailCorpus.SentEmails.Select(ActivationDtoMapper.ToDomain).ToList();
+            var inboxEmails = input.EmailCorpus.InboxEmails.Select(ActivationDtoMapper.ToDomain).ToList();
 
-        var extractions = await extractor.ExtractAsync(sentEmails, inboxEmails, ct);
+            var extractions = await extractor.ExtractAsync(sentEmails, inboxEmails, ct);
 
-        var dtos = extractions.Select(ActivationDtoMapper.ToDto).ToList();
-        return JsonSerializer.Serialize(dtos);
+            var dtos = extractions.Select(ActivationDtoMapper.ToDto).ToList();
+            return JsonSerializer.Serialize(dtos);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ACTV-FN-046] EmailTransactionExtraction FAILED for agentId={AgentId}: {Message}",
+                input.AgentId, ex.Message);
+            throw;
+        }
     }
 }

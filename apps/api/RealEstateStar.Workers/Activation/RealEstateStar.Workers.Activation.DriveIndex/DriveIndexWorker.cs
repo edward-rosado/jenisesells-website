@@ -370,7 +370,7 @@ public sealed class DriveIndexWorker(
             // Release PDF bytes eagerly — each can be several MB
             pdfBytes = null;
 
-            return ParseDocumentExtraction(file.Id, file.Name, response.Content);
+            return ParseDocumentExtraction(file.Id, file.Name, response.Content, logger);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -401,7 +401,7 @@ public sealed class DriveIndexWorker(
                 ClaudePipeline,
                 ct);
 
-            return ParseDocumentExtraction(file.Id, file.Name, response.Content);
+            return ParseDocumentExtraction(file.Id, file.Name, response.Content, logger);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -414,7 +414,7 @@ public sealed class DriveIndexWorker(
 
     // ── JSON parsing helpers ──────────────────────────────────────────────────
 
-    internal static DocumentExtraction? ParseDocumentExtraction(string fileId, string fileName, string json)
+    internal static DocumentExtraction? ParseDocumentExtraction(string fileId, string fileName, string json, ILogger? logger = null)
     {
         if (string.IsNullOrWhiteSpace(json))
             return null;
@@ -518,8 +518,11 @@ public sealed class DriveIndexWorker(
                 inferredPath, agentIdentity, language, txStatus,
                 serviceAreas.Count > 0 ? serviceAreas : null, notes);
         }
-        catch
+        catch (JsonException ex)
         {
+            logger?.LogWarning(ex,
+                "[DRIVEINDEX-022] Failed to parse JSON extraction response for file {FileId} ({FileName}).",
+                fileId, fileName);
             return null;
         }
     }

@@ -11,7 +11,7 @@ namespace RealEstateStar.Clients.GSheets.Tests;
 /// Tests for GSheetsApiClient.
 ///
 /// Note: SheetsService.Spreadsheets.Values.* makes live HTTP calls to Google's API and cannot
-/// be unit-tested without a full Google API mock framework. The no-op paths (missing token,
+/// be unit-tested without a full Google API mock framework. The throw paths (missing token,
 /// refresh failure) are fully exercised without hitting the Google API, and diagnostics counters
 /// are verified for the token-missing path.
 /// </summary>
@@ -50,11 +50,11 @@ public class GSheetsApiClientTests
     }
 
     // ──────────────────────────────────────────────────────────
-    // AppendRowAsync — no-op paths (no token / refresh fails)
+    // AppendRowAsync — throws when no token / refresh fails
     // ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task AppendRowAsync_NoOp_WhenTokenMissing()
+    public async Task AppendRowAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
@@ -62,7 +62,7 @@ public class GSheetsApiClientTests
             AccountId, AgentId, SpreadsheetId, SheetName,
             ["col1", "col2"], CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
@@ -85,15 +85,17 @@ public class GSheetsApiClientTests
         });
         listener.Start();
 
-        await client.AppendRowAsync(
-            AccountId, AgentId, SpreadsheetId, SheetName,
-            ["col1"], CancellationToken.None);
+        // AppendRowAsync now throws after incrementing the counter — catch the exception
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.AppendRowAsync(
+                AccountId, AgentId, SpreadsheetId, SheetName,
+                ["col1"], CancellationToken.None));
 
         captured.Should().BeGreaterThanOrEqualTo(1);
     }
 
     [Fact]
-    public async Task AppendRowAsync_NoOp_WhenRefreshFails()
+    public async Task AppendRowAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
 
@@ -113,11 +115,11 @@ public class GSheetsApiClientTests
             AccountId, AgentId, SpreadsheetId, SheetName,
             ["col1"], CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     // ──────────────────────────────────────────────────────────
-    // ReadRowsAsync — no-op paths
+    // ReadRowsAsync — still returns empty when no token (silent path)
     // ──────────────────────────────────────────────────────────
 
     [Fact]
@@ -181,11 +183,11 @@ public class GSheetsApiClientTests
     }
 
     // ──────────────────────────────────────────────────────────
-    // RedactRowsAsync — no-op paths
+    // RedactRowsAsync — throws when no token / refresh fails
     // ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task RedactRowsAsync_NoOp_WhenTokenMissing()
+    public async Task RedactRowsAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
@@ -193,7 +195,7 @@ public class GSheetsApiClientTests
             AccountId, AgentId, SpreadsheetId, SheetName,
             "Email", "buyer@example.com", "[REDACTED]", CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
@@ -216,15 +218,17 @@ public class GSheetsApiClientTests
         });
         listener.Start();
 
-        await client.RedactRowsAsync(
-            AccountId, AgentId, SpreadsheetId, SheetName,
-            "Email", "buyer@example.com", "[REDACTED]", CancellationToken.None);
+        // RedactRowsAsync now throws after incrementing the counter — catch the exception
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.RedactRowsAsync(
+                AccountId, AgentId, SpreadsheetId, SheetName,
+                "Email", "buyer@example.com", "[REDACTED]", CancellationToken.None));
 
         captured.Should().BeGreaterThanOrEqualTo(1);
     }
 
     [Fact]
-    public async Task RedactRowsAsync_NoOp_WhenRefreshFails()
+    public async Task RedactRowsAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
 
@@ -244,7 +248,7 @@ public class GSheetsApiClientTests
             AccountId, AgentId, SpreadsheetId, SheetName,
             "Email", "buyer@example.com", "[REDACTED]", CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
 }

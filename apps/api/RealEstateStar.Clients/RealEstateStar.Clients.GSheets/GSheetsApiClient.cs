@@ -20,9 +20,10 @@ internal sealed class GSheetsApiClient(
         List<string> values,
         CancellationToken ct)
     {
-        var service = await BuildServiceAsync(accountId, agentId, ct);
-        if (service is null)
-            return;
+        var service = await BuildServiceAsync(accountId, agentId, ct)
+            ?? throw new InvalidOperationException(
+                $"[GSHEETS-010] No valid OAuth token for account {accountId}, agent {agentId}. " +
+                "Cannot append row — data would be silently lost.");
 
         var sw = Stopwatch.GetTimestamp();
         using var activity = GSheetsDiagnostics.ActivitySource.StartActivity("gsheets.append");
@@ -114,9 +115,10 @@ internal sealed class GSheetsApiClient(
         string redactedMarker,
         CancellationToken ct)
     {
-        var service = await BuildServiceAsync(accountId, agentId, ct);
-        if (service is null)
-            return;
+        var service = await BuildServiceAsync(accountId, agentId, ct)
+            ?? throw new InvalidOperationException(
+                $"[GSHEETS-010] No valid OAuth token for account {accountId}, agent {agentId}. " +
+                "Cannot redact rows — GDPR/CCPA compliance operation would be silently skipped.");
 
         var sw = Stopwatch.GetTimestamp();
         using var activity = GSheetsDiagnostics.ActivitySource.StartActivity("gsheets.redact");

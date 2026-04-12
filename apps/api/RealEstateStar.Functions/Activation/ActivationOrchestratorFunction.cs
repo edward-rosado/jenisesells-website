@@ -60,7 +60,8 @@ public sealed class ActivationOrchestratorFunction
         var emailStart = ctx.CurrentUtcDateTime;
         var emailJson = await ctx.CallActivityAsync<string>(
             ActivityNames.EmailFetch,
-            new EmailFetchInput { AccountId = request.AccountId, AgentId = request.AgentId });
+            new EmailFetchInput { AccountId = request.AccountId, AgentId = request.AgentId },
+            ActivationRetryPolicies.Gather);
         var emailCorpus = JsonSerializer.Deserialize<EmailFetchOutput>(emailJson)!;
         if (!ctx.IsReplaying)
         {
@@ -71,7 +72,8 @@ public sealed class ActivationOrchestratorFunction
         var driveStart = ctx.CurrentUtcDateTime;
         var driveJson = await ctx.CallActivityAsync<string>(
             ActivityNames.DriveIndex,
-            new DriveIndexInput { AccountId = request.AccountId, AgentId = request.AgentId });
+            new DriveIndexInput { AccountId = request.AccountId, AgentId = request.AgentId },
+            ActivationRetryPolicies.Gather);
         var driveIndex = JsonSerializer.Deserialize<DriveIndexOutput>(driveJson)!;
         if (!ctx.IsReplaying)
         {
@@ -88,7 +90,8 @@ public sealed class ActivationOrchestratorFunction
                 AccountId = request.AccountId,
                 AgentId = request.AgentId,
                 EmailCorpus = emailCorpus,
-            });
+            },
+            ActivationRetryPolicies.Gather);
         var emailExtractions = JsonSerializer.Deserialize<List<DocumentExtractionDto>>(emailTxJson) ?? [];
         if (!ctx.IsReplaying)
         {
@@ -134,7 +137,8 @@ public sealed class ActivationOrchestratorFunction
                 AccountId = request.AccountId,
                 AgentId = request.AgentId,
                 Languages = detectedLanguages.Count > 0 ? detectedLanguages : null,
-            });
+            },
+            ActivationRetryPolicies.Gather);
         var completeCheck = JsonSerializer.Deserialize<CheckActivationCompleteOutput>(completeCheckJson)!;
 
         if (completeCheck.IsComplete)
@@ -148,14 +152,23 @@ public sealed class ActivationOrchestratorFunction
                     detectedLanguages.Count > 0 ? string.Join(",", detectedLanguages) : "en-only");
             }
 
-            await ctx.CallActivityAsync(
-                ActivityNames.WelcomeNotification,
-                new WelcomeNotificationInput
-                {
-                    AccountId = request.AccountId,
-                    AgentId = request.AgentId,
-                    Handle = request.AgentId,
-                });
+            try
+            {
+                await ctx.CallActivityAsync(
+                    ActivityNames.WelcomeNotification,
+                    new WelcomeNotificationInput
+                    {
+                        AccountId = request.AccountId,
+                        AgentId = request.AgentId,
+                        Handle = request.AgentId,
+                    },
+                    ActivationRetryPolicies.Notify);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                if (!ctx.IsReplaying)
+                    logger.LogWarning(ex, "[ACTV-FN-004] WelcomeNotification failed on skip path for agentId={AgentId} — best-effort, activation already complete", request.AgentId);
+            }
 
             return;
         }
@@ -193,7 +206,8 @@ public sealed class ActivationOrchestratorFunction
                 AgentEmail = request.Email,
                 DiscoveredUrls = discoveredUrls,
                 EmailSignature = emailCorpus.Signature,
-            });
+            },
+            ActivationRetryPolicies.Gather);
         var discovery = JsonSerializer.Deserialize<AgentDiscoveryOutput>(discoveryJson)!;
         if (!ctx.IsReplaying)
         {
@@ -229,7 +243,7 @@ public sealed class ActivationOrchestratorFunction
         {
             var classificationStart = ctx.CurrentUtcDateTime;
             var classificationJson = await ctx.CallActivityAsync<string>(
-                ActivityNames.EmailClassification, synthesisInput);
+                ActivityNames.EmailClassification, synthesisInput, ActivationRetryPolicies.Gather);
             emailClassification = JsonSerializer.Deserialize<EmailClassificationOutput>(classificationJson)!;
 
             // Update synthesisInput with classification results for downstream workers
@@ -265,9 +279,9 @@ public sealed class ActivationOrchestratorFunction
         // ── Batch 1 (MVP + Future) ──────────────────────────────────────────
         var batch1Start = ctx.CurrentUtcDateTime;
         var voiceTask = WrapAsync<VoiceExtractionOutput>(
-            ctx, ActivityNames.VoiceExtraction, synthesisInput, "[ACTV-FN-021] voice", logger);
+            ctx, ActivityNames.VoiceExtraction, synthesisInput, "[ACTV-FN-021] voice", logger, ActivationRetryPolicies.Synthesis);
         var personalityTask = WrapAsync<PersonalityOutput>(
-            ctx, ActivityNames.Personality, synthesisInput, "[ACTV-FN-022] personality", logger);
+            ctx, ActivityNames.Personality, synthesisInput, "[ACTV-FN-022] personality", logger, ActivationRetryPolicies.Synthesis);
         await Task.WhenAll(voiceTask, personalityTask);
         if (!ctx.IsReplaying)
             logger.LogInformation("[ACTV-FN-025] Batch 1 (voice+personality) completed in {Duration}ms",
@@ -276,9 +290,9 @@ public sealed class ActivationOrchestratorFunction
         // ── Batch 2 (MVP + Future) ──────────────────────────────────────────
         var batch2Start = ctx.CurrentUtcDateTime;
         var brandingTask = WrapAsync<BrandingDiscoveryOutput>(
-            ctx, ActivityNames.BrandingDiscovery, synthesisInput, "[ACTV-FN-023] branding", logger);
+            ctx, ActivityNames.BrandingDiscovery, synthesisInput, "[ACTV-FN-023] branding", logger, ActivationRetryPolicies.Synthesis);
         var websiteTask = WrapAsync<StringOutput>(
-            ctx, ActivityNames.WebsiteStyle, synthesisInput, "[ACTV-FN-026] website-style", logger);
+            ctx, ActivityNames.WebsiteStyle, synthesisInput, "[ACTV-FN-026] website-style", logger, ActivationRetryPolicies.Synthesis);
         await Task.WhenAll(brandingTask, websiteTask);
         if (!ctx.IsReplaying)
             logger.LogInformation("[ACTV-FN-025] Batch 2 (branding+website) completed in {Duration}ms",
@@ -287,9 +301,9 @@ public sealed class ActivationOrchestratorFunction
         // ── Batch 3 (MVP + Future) ──────────────────────────────────────────
         var batch3Start = ctx.CurrentUtcDateTime;
         var cmaTask = WrapAsync<StringOutput>(
-            ctx, ActivityNames.CmaStyle, synthesisInput, "[ACTV-FN-024] cma-style", logger);
+            ctx, ActivityNames.CmaStyle, synthesisInput, "[ACTV-FN-024] cma-style", logger, ActivationRetryPolicies.Synthesis);
         var pipelineTask = WrapAsync<PipelineAnalysisOutput>(
-            ctx, ActivityNames.PipelineAnalysis, synthesisInput, "[ACTV-FN-027] pipeline", logger);
+            ctx, ActivityNames.PipelineAnalysis, synthesisInput, "[ACTV-FN-027] pipeline", logger, ActivationRetryPolicies.Synthesis);
         await Task.WhenAll(cmaTask, pipelineTask);
         if (!ctx.IsReplaying)
             logger.LogInformation("[ACTV-FN-025] Batch 3 (cma+pipeline) completed in {Duration}ms",
@@ -298,9 +312,9 @@ public sealed class ActivationOrchestratorFunction
         // ── Batch 4 (MVP + Future) ──────────────────────────────────────────
         var batch4Start = ctx.CurrentUtcDateTime;
         var coachingTask = WrapAsync<CoachingOutput>(
-            ctx, ActivityNames.Coaching, synthesisInput, "[ACTV-FN-028] coaching", logger);
+            ctx, ActivityNames.Coaching, synthesisInput, "[ACTV-FN-028] coaching", logger, ActivationRetryPolicies.Synthesis);
         var complianceTask = WrapAsync<StringOutput>(
-            ctx, ActivityNames.ComplianceAnalysis, synthesisInput, "[ACTV-FN-031] compliance", logger);
+            ctx, ActivityNames.ComplianceAnalysis, synthesisInput, "[ACTV-FN-031] compliance", logger, ActivationRetryPolicies.Synthesis);
         await Task.WhenAll(coachingTask, complianceTask);
         if (!ctx.IsReplaying)
             logger.LogInformation("[ACTV-FN-025] Batch 4 (coaching+compliance) completed in {Duration}ms",
@@ -317,9 +331,9 @@ public sealed class ActivationOrchestratorFunction
             // ── Batch 5 (Future only) ───────────────────────────────────────
             var batch5Start = ctx.CurrentUtcDateTime;
             brandExtractionTask = WrapAsync<BrandExtractionOutput>(
-                ctx, ActivityNames.BrandExtraction, synthesisInput, "[ACTV-FN-029] brand-extraction", logger);
+                ctx, ActivityNames.BrandExtraction, synthesisInput, "[ACTV-FN-029] brand-extraction", logger, ActivationRetryPolicies.Synthesis);
             brandVoiceTask = WrapAsync<BrandVoiceOutput>(
-                ctx, ActivityNames.BrandVoice, synthesisInput, "[ACTV-FN-030] brand-voice", logger);
+                ctx, ActivityNames.BrandVoice, synthesisInput, "[ACTV-FN-030] brand-voice", logger, ActivationRetryPolicies.Synthesis);
             await Task.WhenAll(brandExtractionTask, brandVoiceTask);
             if (!ctx.IsReplaying)
                 logger.LogInformation("[ACTV-FN-025] Batch 5 (brand-extraction+brand-voice) completed in {Duration}ms",
@@ -328,9 +342,9 @@ public sealed class ActivationOrchestratorFunction
             // ── Batch 6 (Future only) ───────────────────────────────────────
             var batch6Start = ctx.CurrentUtcDateTime;
             marketingTask = WrapAsync<MarketingStyleOutput>(
-                ctx, ActivityNames.MarketingStyle, synthesisInput, "[ACTV-FN-025] marketing", logger);
+                ctx, ActivityNames.MarketingStyle, synthesisInput, "[ACTV-FN-025] marketing", logger, ActivationRetryPolicies.Synthesis);
             feeTask = WrapAsync<StringOutput>(
-                ctx, ActivityNames.FeeStructure, synthesisInput, "[ACTV-FN-032] fee-structure", logger);
+                ctx, ActivityNames.FeeStructure, synthesisInput, "[ACTV-FN-032] fee-structure", logger, ActivationRetryPolicies.Synthesis);
             await Task.WhenAll(marketingTask, feeTask);
             if (!ctx.IsReplaying)
                 logger.LogInformation("[ACTV-FN-025] Batch 6 (marketing+fee) completed in {Duration}ms",
@@ -524,20 +538,28 @@ public sealed class ActivationOrchestratorFunction
         };
 
         // PersistProfile is fatal if it fails — let it propagate
-        await ctx.CallActivityAsync(ActivityNames.PersistProfile, persistInput);
+        await ctx.CallActivityAsync(ActivityNames.PersistProfile, persistInput, ActivationRetryPolicies.Persist);
 
         // BrandMerge only for multi-agent accounts (brokerage)
         if (request.AccountId != request.AgentId)
         {
-            await ctx.CallActivityAsync(
-                ActivityNames.BrandMerge,
-                new BrandMergeInput
-                {
-                    AccountId = request.AccountId,
-                    AgentId = request.AgentId,
-                    BrandingKit = branding?.BrandingKitMarkdown ?? string.Empty,
-                    VoiceSkill = voice?.VoiceSkillMarkdown ?? string.Empty,
-                });
+            try
+            {
+                await ctx.CallActivityAsync(
+                    ActivityNames.BrandMerge,
+                    new BrandMergeInput
+                    {
+                        AccountId = request.AccountId,
+                        AgentId = request.AgentId,
+                        BrandingKit = branding?.BrandingKitMarkdown ?? string.Empty,
+                        VoiceSkill = voice?.VoiceSkillMarkdown ?? string.Empty,
+                    });
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                if (!ctx.IsReplaying)
+                    logger.LogWarning(ex, "[ACTV-FN-044] BrandMerge failed for accountId={AccountId}, agentId={AgentId} — non-fatal, continuing", request.AccountId, request.AgentId);
+            }
         }
         else if (!ctx.IsReplaying)
         {
@@ -601,26 +623,35 @@ public sealed class ActivationOrchestratorFunction
         if (!ctx.IsReplaying)
             logger.LogInformation("[ACTV-FN-050] Phase 4: welcome notification for agentId={AgentId}", request.AgentId);
 
-        await ctx.CallActivityAsync(
-            ActivityNames.WelcomeNotification,
-            new WelcomeNotificationInput
-            {
-                AccountId = request.AccountId,
-                AgentId = request.AgentId,
-                Handle = request.AgentId,
-                AgentName = emailCorpus.Signature?.Name,
-                AgentPhone = emailCorpus.Signature?.Phone ?? discovery.Phone,
-                WhatsAppEnabled = discovery.WhatsAppEnabled,
-                AgentEmail = request.Email,
-                // Synthesis data for personalized welcome email
-                VoiceSkill = voice?.VoiceSkillMarkdown,
-                PersonalitySkill = personality?.PersonalitySkillMarkdown,
-                CoachingReport = synthesisMerge?.EnrichedCoachingReport ?? coaching?.CoachingReportMarkdown,
-                PipelineJson = pipelineJson,
-                ContactCount = contactDetectionResult.Contacts.Count,
-                LocalizedSkills = localizedSkills?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                StrengthsSummary = synthesisMerge?.StrengthsSummary,
-            });
+        try
+        {
+            await ctx.CallActivityAsync(
+                ActivityNames.WelcomeNotification,
+                new WelcomeNotificationInput
+                {
+                    AccountId = request.AccountId,
+                    AgentId = request.AgentId,
+                    Handle = request.AgentId,
+                    AgentName = emailCorpus.Signature?.Name,
+                    AgentPhone = emailCorpus.Signature?.Phone ?? discovery.Phone,
+                    WhatsAppEnabled = discovery.WhatsAppEnabled,
+                    AgentEmail = request.Email,
+                    // Synthesis data for personalized welcome email
+                    VoiceSkill = voice?.VoiceSkillMarkdown,
+                    PersonalitySkill = personality?.PersonalitySkillMarkdown,
+                    CoachingReport = synthesisMerge?.EnrichedCoachingReport ?? coaching?.CoachingReportMarkdown,
+                    PipelineJson = pipelineJson,
+                    ContactCount = contactDetectionResult.Contacts.Count,
+                    LocalizedSkills = localizedSkills?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                    StrengthsSummary = synthesisMerge?.StrengthsSummary,
+                },
+                ActivationRetryPolicies.Notify);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            if (!ctx.IsReplaying)
+                logger.LogWarning(ex, "[ACTV-FN-051] WelcomeNotification failed for agentId={AgentId} — best-effort after persist succeeded", request.AgentId);
+        }
 
         if (!ctx.IsReplaying)
         {
@@ -657,11 +688,12 @@ public sealed class ActivationOrchestratorFunction
         string activityName,
         SynthesisInput input,
         string logPrefix,
-        ILogger logger) where T : class
+        ILogger logger,
+        TaskOptions? options = null) where T : class
     {
         try
         {
-            var json = await ctx.CallActivityAsync<string>(activityName, input);
+            var json = await ctx.CallActivityAsync<string>(activityName, input, options);
             return json is null ? null : JsonSerializer.Deserialize<T>(json);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

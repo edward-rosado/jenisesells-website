@@ -18,6 +18,15 @@ public sealed class CleanupStagedContentFunction(
             "[ACTV-FN-045] Cleaning up staged content for accountId={AccountId}, agentId={AgentId}",
             input.AccountId, input.AgentId);
 
-        await stagedContent.CleanupAsync(input.AccountId, input.AgentId, ct);
+        try
+        {
+            await stagedContent.CleanupAsync(input.AccountId, input.AgentId, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ACTV-FN-047] CleanupStagedContent FAILED for agentId={AgentId}: {Message}",
+                input.AgentId, ex.Message);
+            throw;
+        }
     }
 }

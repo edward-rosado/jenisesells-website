@@ -87,7 +87,17 @@ public sealed class AgentProfilePersistActivity(
         writeTasks.AddRange(BuildBinaryWriteTasks(agentFolder, outputs, ct));
         writeTasks.AddRange(BuildLocalizedSkillWriteTasks(agentFolder, agentId, outputs, ct));
 
-        await Task.WhenAll(writeTasks);
+        var results = await Task.WhenAll(writeTasks.Select(async t => {
+            try { await t; return (Exception?)null; }
+            catch (Exception ex) when (ex is not OperationCanceledException) { return ex; }
+        }));
+        var failures = results.Where(e => e is not null).ToList();
+        if (failures.Count > 0)
+        {
+            foreach (var ex in failures)
+                logger.LogError(ex!, "[PERSIST-AGENT-030] Write task failed during fan-out for agentId={AgentId}", agentId);
+            throw new AggregateException($"[PERSIST-AGENT-031] {failures.Count} of {writeTasks.Count} write(s) failed for agentId={agentId}", failures!);
+        }
 
         logger.LogInformation(
             "[PERSIST-AGENT-050] Markdown and binary assets persisted for agentId={AgentId}", agentId);

@@ -26,22 +26,31 @@ public sealed class AgentDiscoveryFunction(
             "[ACTV-FN-040] AgentDiscovery for accountId={AccountId}, agentId={AgentId}",
             input.AccountId, input.AgentId);
 
-        var emailSignature = input.EmailSignature is null
-            ? null
-            : ActivationDtoMapper.ToDomain(input.EmailSignature);
+        try
+        {
+            var emailSignature = input.EmailSignature is null
+                ? null
+                : ActivationDtoMapper.ToDomain(input.EmailSignature);
 
-        var discovery = await worker.RunAsync(
-            accountId: input.AccountId,
-            agentId: input.AgentId,
-            agentName: input.AgentName,
-            brokerageName: input.BrokerageName,
-            phoneNumber: input.PhoneNumber,
-            emailSignature: emailSignature,
-            emailHandle: input.EmailHandle,
-            agentEmail: input.AgentEmail,
-            discoveredUrls: input.DiscoveredUrls,
-            ct: ct);
+            var discovery = await worker.RunAsync(
+                accountId: input.AccountId,
+                agentId: input.AgentId,
+                agentName: input.AgentName,
+                brokerageName: input.BrokerageName,
+                phoneNumber: input.PhoneNumber,
+                emailSignature: emailSignature,
+                emailHandle: input.EmailHandle,
+                agentEmail: input.AgentEmail,
+                discoveredUrls: input.DiscoveredUrls,
+                ct: ct);
 
-        return JsonSerializer.Serialize(ActivationDtoMapper.ToDto(discovery));
+            return JsonSerializer.Serialize(ActivationDtoMapper.ToDto(discovery));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ACTV-FN-041] AgentDiscovery FAILED for agentId={AgentId}: {Message}",
+                input.AgentId, ex.Message);
+            throw;
+        }
     }
 }

@@ -13,7 +13,7 @@ namespace RealEstateStar.Clients.GDocs.Tests;
 /// Tests for GDocsApiClient.
 ///
 /// Note: DocsService makes live HTTP calls to Google's API and cannot be unit-tested without a
-/// full Google API mock framework. The no-op paths (missing token, refresh failure) are fully
+/// full Google API mock framework. The throw paths (missing token, refresh failure) are fully
 /// exercised without hitting the Google API. Internal static helpers (ExtractPlainText,
 /// GetBodyEndIndex) are tested directly.
 /// </summary>
@@ -50,66 +50,66 @@ public class GDocsApiClientTests
     }
 
     // ──────────────────────────────────────────────────────────
-    // No-op paths (no token / refresh fails) — no Google API hit
+    // Throw paths (no token / refresh fails) — no Google API hit
     // ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task CreateDocumentAsync_ReturnsEmpty_WhenTokenMissing()
-    {
-        var (client, _, _) = BuildClient();
-
-        var result = await client.CreateDocumentAsync(
-            AccountId, AgentId, "My Title", "Some content", CancellationToken.None);
-
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task CreateDocumentAsync_DoesNotThrow_WhenTokenMissing()
+    public async Task CreateDocumentAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
         var act = async () => await client.CreateDocumentAsync(
             AccountId, AgentId, "My Title", "Some content", CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task ReadDocumentAsync_ReturnsNull_WhenTokenMissing()
+    public async Task CreateDocumentAsync_ThrowsInvalidOperationException_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
-        var result = await client.ReadDocumentAsync(
-            AccountId, AgentId, "some-doc-id", CancellationToken.None);
+        var act = async () => await client.CreateDocumentAsync(
+            AccountId, AgentId, "My Title", "Some content", CancellationToken.None);
 
-        result.Should().BeNull();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task ReadDocumentAsync_DoesNotThrow_WhenTokenMissing()
+    public async Task ReadDocumentAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
         var act = async () => await client.ReadDocumentAsync(
             AccountId, AgentId, "some-doc-id", CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task UpdateDocumentAsync_DoesNotThrow_WhenTokenMissing()
+    public async Task ReadDocumentAsync_ThrowsInvalidOperationException_WhenTokenMissing()
+    {
+        var (client, _, _) = BuildClient();
+
+        var act = async () => await client.ReadDocumentAsync(
+            AccountId, AgentId, "some-doc-id", CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task UpdateDocumentAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
         var act = async () => await client.UpdateDocumentAsync(
             AccountId, AgentId, "some-doc-id", "New content", CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task CreateDocumentAsync_DoesNotThrow_WhenRefreshFails()
+    public async Task CreateDocumentAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
 
@@ -128,11 +128,11 @@ public class GDocsApiClientTests
         var act = async () => await client.CreateDocumentAsync(
             AccountId, AgentId, "Title", "Content", CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task ReadDocumentAsync_DoesNotThrow_WhenRefreshFails()
+    public async Task ReadDocumentAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
 
@@ -151,11 +151,11 @@ public class GDocsApiClientTests
         var act = async () => await client.ReadDocumentAsync(
             AccountId, AgentId, "some-doc-id", CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task UpdateDocumentAsync_DoesNotThrow_WhenRefreshFails()
+    public async Task UpdateDocumentAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
 
@@ -174,7 +174,7 @@ public class GDocsApiClientTests
         var act = async () => await client.UpdateDocumentAsync(
             AccountId, AgentId, "some-doc-id", "New content", CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     // ──────────────────────────────────────────────────────────
@@ -188,15 +188,17 @@ public class GDocsApiClientTests
         // and verify increment (reset is not possible on Meter counters)
         var (client, _, _) = BuildClient();
 
-        // Act — two calls to ensure the counter increments (no throw path)
-        await client.CreateDocumentAsync(AccountId, AgentId, "Title", "Content", CancellationToken.None);
-        await client.CreateDocumentAsync(AccountId, AgentId, "Title", "Content", CancellationToken.None);
+        // Act — two calls to ensure the counter increments; catch the expected throw
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.CreateDocumentAsync(AccountId, AgentId, "Title", "Content", CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.CreateDocumentAsync(AccountId, AgentId, "Title", "Content", CancellationToken.None));
 
         // The counter itself is a static field — we simply verify the calls
-        // complete without error (counter increment is side-effectful and not
+        // complete the token-missing path (counter increment is side-effectful and not
         // directly readable in unit tests without a MeterListener setup).
-        // Smoke-level assertion: no exception thrown.
-        true.Should().BeTrue("token missing path completed without exception");
+        // Smoke-level assertion: exception is of the correct type.
+        true.Should().BeTrue("token missing path incremented counter and threw InvalidOperationException");
     }
 
     // ──────────────────────────────────────────────────────────

@@ -25,17 +25,26 @@ public sealed class ContactDetectionFunction(
         logger.LogInformation(
             "[ACTV-FN-250] ContactDetection for agentId={AgentId}", input.AgentId);
 
-        var driveExtractions = input.DriveExtractions
-            .Select(ActivationDtoMapper.ToDomain)
-            .ToList();
-
-        var emailCorpus = ActivationDtoMapper.ToDomain(input.EmailCorpus);
-
-        var contacts = await activity.ExecuteAsync(driveExtractions, emailCorpus, ct);
-
-        return JsonSerializer.Serialize(new ContactDetectionOutput
+        try
         {
-            Contacts = contacts.Select(ActivationDtoMapper.ToDto).ToList(),
-        });
+            var driveExtractions = input.DriveExtractions
+                .Select(ActivationDtoMapper.ToDomain)
+                .ToList();
+
+            var emailCorpus = ActivationDtoMapper.ToDomain(input.EmailCorpus);
+
+            var contacts = await activity.ExecuteAsync(driveExtractions, emailCorpus, ct);
+
+            return JsonSerializer.Serialize(new ContactDetectionOutput
+            {
+                Contacts = contacts.Select(ActivationDtoMapper.ToDto).ToList(),
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ACTV-FN-251] ContactDetection FAILED for agentId={AgentId}: {Message}",
+                input.AgentId, ex.Message);
+            throw;
+        }
     }
 }

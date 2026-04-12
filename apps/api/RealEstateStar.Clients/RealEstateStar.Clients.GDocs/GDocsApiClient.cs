@@ -238,11 +238,10 @@ internal sealed class GDocsApiClient(
         var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
         if (credential is null)
         {
-            logger.LogWarning(
-                "[GDOCS-010] No valid token for account {AccountId}, agent {AgentId}. Skipping operation.",
-                accountId, agentId);
             GDocsDiagnostics.TokenMissing.Add(1);
-            return null;
+            throw new InvalidOperationException(
+                $"[GDOCS-010] No valid OAuth token for account {accountId}, agent {agentId}. " +
+                "Token may be missing, expired with no refresh token, or failed to decrypt.");
         }
 
         return BuildDocsService(credential);

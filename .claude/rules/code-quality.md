@@ -1,5 +1,35 @@
 # Code Quality & Observability Rules
 
+## Resilience & Retry Rules (Durable Functions)
+
+### Google API Clients MUST Throw on Missing Credentials
+- [ ] `GetCredentialAsync` / `BuildServiceAsync` NEVER returns null — always throw `InvalidOperationException`
+- [ ] Gmail, GDrive, GDocs, GSheets: no silent `return;` or `return null;` or `return [];` on missing OAuth token
+- [ ] The caller (activity function) gets the exception → DF retries the activity automatically
+- [ ] Rationale: A silent null return means the entire pipeline proceeds with empty data, producing garbage results that look like success
+
+### Activity Functions MUST Have try/catch/log/rethrow
+- [ ] Every activity function wraps its core logic in `try { ... } catch (Exception ex) { logger.LogError(ex, "[ACTV-FN-NNN] ..."); throw; }`
+- [ ] The catch block MUST include a unique `[ACTV-FN-NNN]` log code and the `agentId` for Grafana correlation
+- [ ] NEVER catch and swallow — always rethrow so Durable Functions can retry
+- [ ] Pattern: see `VoiceExtractionFunction.cs` as the reference implementation
+
+### Every CallActivityAsync MUST Have a Retry Policy
+- [ ] No bare `ctx.CallActivityAsync(name, input)` — always pass `TaskOptions` from the retry policy class
+- [ ] Activation pipeline: use `ActivationRetryPolicies.Gather`, `.Synthesis`, `.Persist`, or `.Notify`
+- [ ] Lead pipeline: use `LeadRetryPolicies.Standard` or `.EmailDelivery`
+- [ ] Rationale: Without retry, a single transient failure (rate limit, token refresh race, network blip) permanently fails the activity
+
+### Classify Activities as FATAL vs BEST-EFFORT
+- [ ] **FATAL activities** (EmailFetch, DriveIndex, PersistProfile): Let exceptions propagate — the orchestration SHOULD fail if these fail after all retries
+- [ ] **BEST-EFFORT activities** (EmailClassification, SynthesisMerge, ContactDetection, BrandMerge, WelcomeNotification): Wrap in try/catch in the orchestrator — log warning, continue with degraded output
+- [ ] WelcomeNotification is BEST-EFFORT after PersistProfile succeeds — a notification failure must never make activation appear failed
+
+### No Bare catch Blocks
+- [ ] Every `catch` MUST have an exception type filter (`catch (JsonException ex)`, not bare `catch`)
+- [ ] Every `catch` MUST have a `logger.Log*` call with a unique log code
+- [ ] Returning null from a catch is acceptable (best-effort parsing), but the log must be present
+
 ## Post-Build Smoke Check
 Run these checks after writing code, before committing:
 

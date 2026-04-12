@@ -649,11 +649,10 @@ internal sealed class GDriveApiClient(
         var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
         if (credential is null)
         {
-            logger.LogWarning(
-                "[GDRIVE-010] No valid token for account {AccountId}, agent {AgentId}. Skipping operation.",
-                accountId, agentId);
             GDriveDiagnostics.TokenMissing.Add(1);
-            return null;
+            throw new InvalidOperationException(
+                $"[GDRIVE-010] No valid OAuth token for account {accountId}, agent {agentId}. " +
+                "Token may be missing, expired with no refresh token, or failed to decrypt.");
         }
 
         return BuildDriveService(credential);

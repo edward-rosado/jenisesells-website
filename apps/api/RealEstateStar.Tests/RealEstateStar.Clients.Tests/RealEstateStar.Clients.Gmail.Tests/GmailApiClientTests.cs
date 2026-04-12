@@ -15,7 +15,7 @@ namespace RealEstateStar.Clients.Gmail.Tests;
 /// Note: GmailService.Users.Messages.Send() makes a live HTTP call to Google's API and cannot
 /// be unit-tested without a full Google API mock framework. The happy-path email send test is
 /// therefore tested via the MimeKit MIME-building and base64-encoding helpers, which are the
-/// core logic owned by this client. The no-op paths (missing token, refresh failure) are fully
+/// core logic owned by this client. The throw paths (missing token, refresh failure) are fully
 /// exercised without hitting the Google API.
 /// </summary>
 public class GmailApiClientTests
@@ -51,23 +51,22 @@ public class GmailApiClientTests
     }
 
     // ──────────────────────────────────────────────────────────
-    // No-op paths (no token / refresh fails) — no Google API hit
+    // Throw paths (no token / refresh fails) — no Google API hit
     // ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task SendAsync_NoOp_WhenTokenMissing()
+    public async Task SendAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
-        // No credential stored — should be a no-op (no throw)
         var act = async () => await client.SendAsync(
             AccountId, AgentId, "buyer@example.com", "Subject", "<p>Hello</p>", CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task SendWithAttachmentAsync_NoOp_WhenTokenMissing()
+    public async Task SendWithAttachmentAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
@@ -75,11 +74,11 @@ public class GmailApiClientTests
             AccountId, AgentId, "buyer@example.com", "Subject", "<p>Hello</p>",
             Encoding.UTF8.GetBytes("PDF content"), "report.pdf", CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task SendAsync_NoOp_WhenRefreshFails()
+    public async Task SendAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
 
@@ -100,11 +99,11 @@ public class GmailApiClientTests
         var act = async () => await client.SendAsync(
             AccountId, AgentId, "buyer@example.com", "Subject", "<p>Hello</p>", CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task SendWithAttachmentAsync_NoOp_WhenRefreshFails()
+    public async Task SendWithAttachmentAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
 
@@ -124,7 +123,7 @@ public class GmailApiClientTests
             AccountId, AgentId, "buyer@example.com", "Subject", "<p>Hello</p>",
             Encoding.UTF8.GetBytes("PDF content"), "report.pdf", CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     // ──────────────────────────────────────────────────────────

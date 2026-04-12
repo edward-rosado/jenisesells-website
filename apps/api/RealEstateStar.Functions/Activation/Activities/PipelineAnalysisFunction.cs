@@ -25,16 +25,25 @@ public sealed class PipelineAnalysisFunction(
         logger.LogInformation(
             "[ACTV-FN-160] PipelineAnalysis for agentId={AgentId}", input.AgentId);
 
-        var result = await worker.AnalyzeAsync(
-            emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
-            driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
-            agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
-            ct: ct);
-
-        return JsonSerializer.Serialize(new PipelineAnalysisOutput
+        try
         {
-            PipelineJson = result?.PipelineJson,
-            Markdown = result?.Markdown
-        });
+            var result = await worker.AnalyzeAsync(
+                emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
+                driveIndex: ActivationDtoMapper.ToDomain(input.DriveIndex),
+                agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
+                ct: ct);
+
+            return JsonSerializer.Serialize(new PipelineAnalysisOutput
+            {
+                PipelineJson = result?.PipelineJson,
+                Markdown = result?.Markdown
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ACTV-FN-161] PipelineAnalysis FAILED for agentId={AgentId}: {Message}",
+                input.AgentId, ex.Message);
+            throw;
+        }
     }
 }

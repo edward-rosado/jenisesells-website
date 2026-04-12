@@ -51,126 +51,126 @@ public class GDriveApiClientTests
     }
 
     // ──────────────────────────────────────────────────────────
-    // Missing token — all methods return empty/null (no throw)
+    // Missing token — all methods throw InvalidOperationException
     // ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task CreateFolderAsync_ReturnsEmpty_WhenTokenMissing()
+    public async Task CreateFolderAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
-        var result = await client.CreateFolderAsync(AccountId, AgentId, "leads/2026", CancellationToken.None);
+        var act = async () => await client.CreateFolderAsync(AccountId, AgentId, "leads/2026", CancellationToken.None);
 
-        result.Should().BeEmpty();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task UploadFileAsync_ReturnsEmpty_WhenTokenMissing()
+    public async Task UploadFileAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
-        var result = await client.UploadFileAsync(
+        var act = async () => await client.UploadFileAsync(
             AccountId, AgentId, FolderId, FileName, "# Lead\nContent here", CancellationToken.None);
 
-        result.Should().BeEmpty();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task UploadBinaryAsync_ReturnsEmpty_WhenTokenMissing()
+    public async Task UploadBinaryAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
-        var result = await client.UploadBinaryAsync(
+        var act = async () => await client.UploadBinaryAsync(
             AccountId, AgentId, FolderId, "report.pdf",
             Encoding.UTF8.GetBytes("PDF content"), "application/pdf", CancellationToken.None);
 
-        result.Should().BeEmpty();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task DownloadFileAsync_ReturnsNull_WhenTokenMissing()
+    public async Task DownloadFileAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
-        var result = await client.DownloadFileAsync(
+        var act = async () => await client.DownloadFileAsync(
             AccountId, AgentId, FolderId, FileName, CancellationToken.None);
 
-        result.Should().BeNull();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task DeleteFileAsync_NoOp_WhenTokenMissing()
+    public async Task DeleteFileAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
         var act = async () => await client.DeleteFileAsync(
             AccountId, AgentId, FileId, CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task ListFilesAsync_ReturnsEmpty_WhenTokenMissing()
+    public async Task ListFilesAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
-        var result = await client.ListFilesAsync(AccountId, AgentId, FolderId, CancellationToken.None);
+        var act = async () => await client.ListFilesAsync(AccountId, AgentId, FolderId, CancellationToken.None);
 
-        result.Should().BeEmpty();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     // ──────────────────────────────────────────────────────────
-    // Refresh failure — all methods return empty/null (no throw)
+    // Refresh failure — all methods throw InvalidOperationException
     // ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task CreateFolderAsync_ReturnsEmpty_WhenRefreshFails()
+    public async Task CreateFolderAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
         await store.SaveAsync(ExpiredCredential(), OAuthProviders.Google, CancellationToken.None);
         oauthHandler.ResponseToReturn = UnauthorizedResponse();
 
-        var result = await client.CreateFolderAsync(AccountId, AgentId, "leads/2026", CancellationToken.None);
+        var act = async () => await client.CreateFolderAsync(AccountId, AgentId, "leads/2026", CancellationToken.None);
 
-        result.Should().BeEmpty();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task UploadFileAsync_ReturnsEmpty_WhenRefreshFails()
+    public async Task UploadFileAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
         await store.SaveAsync(ExpiredCredential(), OAuthProviders.Google, CancellationToken.None);
         oauthHandler.ResponseToReturn = UnauthorizedResponse();
 
-        var result = await client.UploadFileAsync(
+        var act = async () => await client.UploadFileAsync(
             AccountId, AgentId, FolderId, FileName, "content", CancellationToken.None);
 
-        result.Should().BeEmpty();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task DownloadFileAsync_ReturnsNull_WhenRefreshFails()
+    public async Task DownloadFileAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
         await store.SaveAsync(ExpiredCredential(), OAuthProviders.Google, CancellationToken.None);
         oauthHandler.ResponseToReturn = UnauthorizedResponse();
 
-        var result = await client.DownloadFileAsync(
+        var act = async () => await client.DownloadFileAsync(
             AccountId, AgentId, FolderId, FileName, CancellationToken.None);
 
-        result.Should().BeNull();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task ListFilesAsync_ReturnsEmpty_WhenRefreshFails()
+    public async Task ListFilesAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
         await store.SaveAsync(ExpiredCredential(), OAuthProviders.Google, CancellationToken.None);
         oauthHandler.ResponseToReturn = UnauthorizedResponse();
 
-        var result = await client.ListFilesAsync(AccountId, AgentId, FolderId, CancellationToken.None);
+        var act = async () => await client.ListFilesAsync(AccountId, AgentId, FolderId, CancellationToken.None);
 
-        result.Should().BeEmpty();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     // ──────────────────────────────────────────────────────────
@@ -178,70 +178,75 @@ public class GDriveApiClientTests
     // ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task AllMethods_IncrementTokenMissingCounter_WhenTokenMissing()
+    public async Task AllMethods_ThrowInvalidOperationException_WhenTokenMissing()
     {
         // This test verifies the code path reaches GDriveDiagnostics.TokenMissing.Add(1)
-        // by exercising all methods with no stored token. Since metrics are global counters
-        // we can't assert the delta easily, so we just verify no exception is thrown and
-        // that the methods return gracefully (proving the early-exit path executed).
+        // and then throws InvalidOperationException for all methods.
         var (client, _, _) = BuildClient();
 
-        await client.CreateFolderAsync(AccountId, AgentId, "path", CancellationToken.None);
-        await client.UploadFileAsync(AccountId, AgentId, FolderId, FileName, "c", CancellationToken.None);
-        await client.UploadBinaryAsync(AccountId, AgentId, FolderId, "f.pdf", [], "application/pdf", CancellationToken.None);
-        var download = await client.DownloadFileAsync(AccountId, AgentId, FolderId, FileName, CancellationToken.None);
-        await client.DeleteFileAsync(AccountId, AgentId, FileId, CancellationToken.None);
-        var list = await client.ListFilesAsync(AccountId, AgentId, FolderId, CancellationToken.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.CreateFolderAsync(AccountId, AgentId, "path", CancellationToken.None));
 
-        // All missing-token paths return gracefully
-        download.Should().BeNull();
-        list.Should().BeEmpty();
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.UploadFileAsync(AccountId, AgentId, FolderId, FileName, "c", CancellationToken.None));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.UploadBinaryAsync(AccountId, AgentId, FolderId, "f.pdf", [], "application/pdf", CancellationToken.None));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.DownloadFileAsync(AccountId, AgentId, FolderId, FileName, CancellationToken.None));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.DeleteFileAsync(AccountId, AgentId, FileId, CancellationToken.None));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.ListFilesAsync(AccountId, AgentId, FolderId, CancellationToken.None));
     }
 
     [Fact]
-    public async Task DownloadBinaryAsync_ReturnsNull_WhenTokenMissing()
+    public async Task DownloadBinaryAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
-        var result = await client.DownloadBinaryAsync(AccountId, AgentId, FileId, CancellationToken.None);
+        var act = async () => await client.DownloadBinaryAsync(AccountId, AgentId, FileId, CancellationToken.None);
 
-        result.Should().BeNull();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task DownloadBinaryAsync_ReturnsNull_WhenRefreshFails()
+    public async Task DownloadBinaryAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
         await store.SaveAsync(ExpiredCredential(), OAuthProviders.Google, CancellationToken.None);
         oauthHandler.ResponseToReturn = UnauthorizedResponse();
 
-        var result = await client.DownloadBinaryAsync(AccountId, AgentId, FileId, CancellationToken.None);
+        var act = async () => await client.DownloadBinaryAsync(AccountId, AgentId, FileId, CancellationToken.None);
 
-        result.Should().BeNull();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task CopyFileAsync_ReturnsEmpty_WhenTokenMissing()
+    public async Task CopyFileAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
-        var result = await client.CopyFileAsync(
+        var act = async () => await client.CopyFileAsync(
             AccountId, AgentId, FileId, FolderId, "copy.pdf", CancellationToken.None);
 
-        result.Should().BeEmpty();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task CopyFileAsync_ReturnsEmpty_WhenRefreshFails()
+    public async Task CopyFileAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
         await store.SaveAsync(ExpiredCredential(), OAuthProviders.Google, CancellationToken.None);
         oauthHandler.ResponseToReturn = UnauthorizedResponse();
 
-        var result = await client.CopyFileAsync(
+        var act = async () => await client.CopyFileAsync(
             AccountId, AgentId, FileId, FolderId, null, CancellationToken.None);
 
-        result.Should().BeEmpty();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     // ──────────────────────────────────────────────────────────

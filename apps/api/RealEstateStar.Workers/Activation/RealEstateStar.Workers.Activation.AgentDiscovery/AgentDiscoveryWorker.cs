@@ -114,7 +114,7 @@ public sealed class AgentDiscoveryWorker(
         var whatsAppEnabled = whatsAppTask.Result;
 
         // Parse third-party profiles from fetched websites (bio, sales count, specialties — not reviews)
-        var profiles = ParseThirdPartyProfiles(websites);
+        var profiles = ParseThirdPartyProfiles(websites, logger);
 
         // Merge reviews from all sources: Zillow API + Google Places + HTML-scraped
         var allReviews = new List<Review>();
@@ -175,7 +175,7 @@ public sealed class AgentDiscoveryWorker(
             }
 
             var json = await peopleResponse.Content.ReadAsStringAsync(ct);
-            var photoUrl = ExtractPhotoUrl(json);
+            var photoUrl = ExtractPhotoUrl(json, logger);
 
             if (photoUrl is null)
                 return null;
@@ -206,7 +206,7 @@ public sealed class AgentDiscoveryWorker(
         }
     }
 
-    internal static string? ExtractPhotoUrl(string peopleApiJson)
+    internal static string? ExtractPhotoUrl(string peopleApiJson, ILogger? logger = null)
     {
         try
         {
@@ -218,9 +218,11 @@ public sealed class AgentDiscoveryWorker(
                     return urlEl.GetString();
             }
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)
         {
-            // Ignore malformed JSON
+            logger?.LogDebug(ex,
+                "[DISCOVERY-022] Failed to parse People API JSON for photo URL ({JsonLength} chars).",
+                peopleApiJson.Length);
         }
         return null;
     }
@@ -450,7 +452,7 @@ public sealed class AgentDiscoveryWorker(
     /// Uses regex heuristics on the HTML — no scraping library dependency.
     /// </summary>
     internal static IReadOnlyList<ThirdPartyProfile> ParseThirdPartyProfiles(
-        IReadOnlyList<DiscoveredWebsite> websites)
+        IReadOnlyList<DiscoveredWebsite> websites, ILogger? logger = null)
     {
         var profiles = new List<ThirdPartyProfile>();
 
@@ -464,13 +466,13 @@ public sealed class AgentDiscoveryWorker(
 
             var platform = DeterminePlatform(site.Url);
             var bio = ExtractBio(site.Html);
-            var reviews = ExtractReviews(site.Html, platform);
+            var reviews = ExtractReviews(site.Html, platform, logger);
             var salesCount = ExtractSalesCount(site.Html);
             var yearsExp = ExtractYearsExperience(site.Html);
             var specialties = ExtractSpecialties(site.Html);
             var serviceAreas = ExtractServiceAreas(site.Html);
-            var activeListings = ExtractListings(site.Html, "active");
-            var recentSales = ExtractListings(site.Html, "sold");
+            var activeListings = ExtractListings(site.Html, "active", logger);
+            var recentSales = ExtractListings(site.Html, "sold", logger);
 
             profiles.Add(new ThirdPartyProfile(
                 Platform: platform,
@@ -519,7 +521,7 @@ public sealed class AgentDiscoveryWorker(
         return null;
     }
 
-    internal static IReadOnlyList<Review> ExtractReviews(string html, string source)
+    internal static IReadOnlyList<Review> ExtractReviews(string html, string source, ILogger? logger = null)
     {
         var reviews = new List<Review>();
 
@@ -562,9 +564,11 @@ public sealed class AgentDiscoveryWorker(
                     }
                 }
             }
-            catch
+            catch (JsonException ex)
             {
-                // Ignore malformed JSON-LD
+                logger?.LogDebug(ex,
+                    "[DISCOVERY-023] Failed to parse JSON-LD review block from {Source} ({JsonLength} chars).",
+                    source, jsonLdMatch.Groups[1].Value.Length);
             }
         }
 
@@ -616,7 +620,7 @@ public sealed class AgentDiscoveryWorker(
         return areas.Take(20).ToList();
     }
 
-    internal static IReadOnlyList<ListingInfo> ExtractListings(string html, string status)
+    internal static IReadOnlyList<ListingInfo> ExtractListings(string html, string status, ILogger? logger = null)
     {
         var listings = new List<ListingInfo>();
 
@@ -673,9 +677,11 @@ public sealed class AgentDiscoveryWorker(
                     ImageUrl: null,
                     Date: null));
             }
-            catch
+            catch (JsonException ex)
             {
-                // Ignore malformed JSON-LD
+                logger?.LogDebug(ex,
+                    "[DISCOVERY-024] Failed to parse JSON-LD listing block ({Status}, {JsonLength} chars).",
+                    status, jsonLdMatch.Groups[1].Value.Length);
             }
         }
 

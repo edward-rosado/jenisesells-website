@@ -13,7 +13,7 @@ namespace RealEstateStar.Clients.Gmail.Reader.Tests;
 /// Tests for GmailReaderClient.
 ///
 /// Note: GmailService.Users.Messages.List() / Get() make live HTTP calls to Google's API
-/// and cannot be unit-tested without a full Google API mock. The no-op paths (missing token,
+/// and cannot be unit-tested without a full Google API mock. The throw paths (missing token,
 /// refresh failure) are fully exercised. The MIME parsing helpers are tested as unit tests.
 /// </summary>
 public class GmailReaderClientTests
@@ -50,31 +50,31 @@ public class GmailReaderClientTests
     }
 
     // ──────────────────────────────────────────────────────────
-    // No-op paths (no token / refresh fails)
+    // Throw paths (no token / refresh fails)
     // ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetSentEmailsAsync_ReturnsEmpty_WhenTokenMissing()
+    public async Task GetSentEmailsAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
-        var result = await client.GetSentEmailsAsync(AccountId, AgentId, 10, CancellationToken.None);
+        var act = async () => await client.GetSentEmailsAsync(AccountId, AgentId, 10, CancellationToken.None);
 
-        result.Should().BeEmpty();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task GetInboxEmailsAsync_ReturnsEmpty_WhenTokenMissing()
+    public async Task GetInboxEmailsAsync_Throws_WhenTokenMissing()
     {
         var (client, _, _) = BuildClient();
 
-        var result = await client.GetInboxEmailsAsync(AccountId, AgentId, 10, CancellationToken.None);
+        var act = async () => await client.GetInboxEmailsAsync(AccountId, AgentId, 10, CancellationToken.None);
 
-        result.Should().BeEmpty();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task GetSentEmailsAsync_ReturnsEmpty_WhenRefreshFails()
+    public async Task GetSentEmailsAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
 
@@ -90,13 +90,13 @@ public class GmailReaderClientTests
             Content = new StringContent("{\"error\": \"invalid_grant\"}", Encoding.UTF8, "application/json")
         };
 
-        var result = await client.GetSentEmailsAsync(AccountId, AgentId, 10, CancellationToken.None);
+        var act = async () => await client.GetSentEmailsAsync(AccountId, AgentId, 10, CancellationToken.None);
 
-        result.Should().BeEmpty();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task GetInboxEmailsAsync_ReturnsEmpty_WhenRefreshFails()
+    public async Task GetInboxEmailsAsync_Throws_WhenRefreshFails()
     {
         var (client, store, oauthHandler) = BuildClient();
 
@@ -112,9 +112,9 @@ public class GmailReaderClientTests
             Content = new StringContent("{\"error\": \"invalid_grant\"}", Encoding.UTF8, "application/json")
         };
 
-        var result = await client.GetInboxEmailsAsync(AccountId, AgentId, 10, CancellationToken.None);
+        var act = async () => await client.GetInboxEmailsAsync(AccountId, AgentId, 10, CancellationToken.None);
 
-        result.Should().BeEmpty();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     // ──────────────────────────────────────────────────────────

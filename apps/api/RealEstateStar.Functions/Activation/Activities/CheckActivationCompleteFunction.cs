@@ -54,32 +54,41 @@ public sealed class CheckActivationCompleteFunction(
             "[ACTV-FN-010] Checking activation complete for accountId={AccountId}, agentId={AgentId}",
             input.AccountId, input.AgentId);
 
-        var agentFolder = $"real-estate-star/{input.AgentId}";
-        var accountFolder = $"real-estate-star/{input.AccountId}";
-
-        var checkTasks = new List<Task<bool>>();
-
-        foreach (var file in RequiredAgentFiles)
-            checkTasks.Add(FileExistsAsync(agentFolder, file, ct));
-
-        foreach (var file in RequiredAccountFiles)
-            checkTasks.Add(FileExistsAsync(accountFolder, file, ct));
-
-        // If the agent supports Spanish, also require localized skill files
-        if (input.Languages is not null && input.Languages.Contains("es", StringComparer.OrdinalIgnoreCase))
+        try
         {
-            foreach (var file in SpanishAgentFiles)
+            var agentFolder = $"real-estate-star/{input.AgentId}";
+            var accountFolder = $"real-estate-star/{input.AccountId}";
+
+            var checkTasks = new List<Task<bool>>();
+
+            foreach (var file in RequiredAgentFiles)
                 checkTasks.Add(FileExistsAsync(agentFolder, file, ct));
+
+            foreach (var file in RequiredAccountFiles)
+                checkTasks.Add(FileExistsAsync(accountFolder, file, ct));
+
+            // If the agent supports Spanish, also require localized skill files
+            if (input.Languages is not null && input.Languages.Contains("es", StringComparer.OrdinalIgnoreCase))
+            {
+                foreach (var file in SpanishAgentFiles)
+                    checkTasks.Add(FileExistsAsync(agentFolder, file, ct));
+            }
+
+            var results = await Task.WhenAll(checkTasks);
+            var isComplete = results.All(exists => exists);
+
+            logger.LogInformation(
+                "[ACTV-FN-011] Activation complete check: {IsComplete} for agentId={AgentId}",
+                isComplete, input.AgentId);
+
+            return JsonSerializer.Serialize(new CheckActivationCompleteOutput { IsComplete = isComplete });
         }
-
-        var results = await Task.WhenAll(checkTasks);
-        var isComplete = results.All(exists => exists);
-
-        logger.LogInformation(
-            "[ACTV-FN-011] Activation complete check: {IsComplete} for agentId={AgentId}",
-            isComplete, input.AgentId);
-
-        return JsonSerializer.Serialize(new CheckActivationCompleteOutput { IsComplete = isComplete });
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ACTV-FN-012] CheckActivationComplete FAILED for agentId={AgentId}: {Message}",
+                input.AgentId, ex.Message);
+            throw;
+        }
     }
 
     private async Task<bool> FileExistsAsync(string folder, string file, CancellationToken ct)

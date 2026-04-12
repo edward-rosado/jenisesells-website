@@ -25,10 +25,19 @@ public sealed class WebsiteStyleFunction(
         logger.LogInformation(
             "[ACTV-FN-150] WebsiteStyle for agentId={AgentId}", input.AgentId);
 
-        var result = await worker.AnalyzeAsync(
-            discovery: ActivationDtoMapper.ToDomain(input.Discovery),
-            ct: ct);
+        try
+        {
+            var result = await worker.AnalyzeAsync(
+                discovery: ActivationDtoMapper.ToDomain(input.Discovery),
+                ct: ct);
 
-        return JsonSerializer.Serialize(new StringOutput { Value = result });
+            return JsonSerializer.Serialize(new StringOutput { Value = result });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ACTV-FN-151] WebsiteStyle FAILED for agentId={AgentId}: {Message}",
+                input.AgentId, ex.Message);
+            throw;
+        }
     }
 }

@@ -72,7 +72,8 @@ public sealed class LeadOrchestratorFunction
             {
                 AgentId = input.AgentId,
                 CorrelationId = input.CorrelationId
-            });
+            },
+            LeadRetryPolicies.Standard);
         var configOutput = JsonSerializer.Deserialize<LoadAgentConfigOutput>(configJson)!;
 
         if (!configOutput.Found || configOutput.AgentNotificationConfig is null)
@@ -93,7 +94,8 @@ public sealed class LeadOrchestratorFunction
                 AgentId = input.AgentId,
                 LeadId = input.LeadId,
                 CorrelationId = input.CorrelationId
-            });
+            },
+            LeadRetryPolicies.Standard);
         var scoreOutput = JsonSerializer.Deserialize<ScoreLeadOutput>(scoreJson)!;
 
         var score = scoreOutput.Score;
@@ -111,7 +113,7 @@ public sealed class LeadOrchestratorFunction
         };
 
         var cacheJson = await ctx.CallActivityAsync<string>(
-            "CheckContentCache", cacheCheckInput);
+            "CheckContentCache", cacheCheckInput, LeadRetryPolicies.Standard);
         var cacheOutput = JsonSerializer.Deserialize<CheckContentCacheOutput>(cacheJson)!;
 
         // Step 4: Dispatch CMA + HomeSearch in parallel based on lead type + cache state
@@ -155,7 +157,8 @@ public sealed class LeadOrchestratorFunction
                             LeadId = input.LeadId,
                             CorrelationId = input.CorrelationId,
                             AgentNotificationConfig = agentConfig
-                        });
+                        },
+                        LeadRetryPolicies.Standard);
                     cmaOutput = JsonSerializer.Deserialize<CmaFunctionOutput>(cmaJson)!;
                 }
                 catch (Exception ex)
@@ -182,7 +185,8 @@ public sealed class LeadOrchestratorFunction
                             LeadId = input.LeadId,
                             CorrelationId = input.CorrelationId,
                             AgentNotificationConfig = agentConfig
-                        });
+                        },
+                        LeadRetryPolicies.Standard);
                     hsOutput = JsonSerializer.Deserialize<HomeSearchFunctionOutput>(hsJson)!;
                 }
                 catch (Exception ex)
@@ -230,7 +234,8 @@ public sealed class LeadOrchestratorFunction
                         CorrelationId = input.CorrelationId,
                         CmaResult = cmaOutput.Result,
                         Locale = input.Locale
-                    });
+                    },
+                    LeadRetryPolicies.Standard);
                 pdfOutput = JsonSerializer.Deserialize<GeneratePdfOutput>(pdfJson)!;
             }
             catch (Exception ex)
@@ -258,7 +263,8 @@ public sealed class LeadOrchestratorFunction
                     CmaResult = cmaOutput?.Result,
                     HsResult = hsOutput?.Result,
                     Locale = input.Locale
-                });
+                },
+                LeadRetryPolicies.Standard);
             emailDraft = JsonSerializer.Deserialize<DraftLeadEmailOutput>(draftJson)!;
         }
         catch (Exception ex)
@@ -287,7 +293,8 @@ public sealed class LeadOrchestratorFunction
                         Score = score,
                         CmaResult = cmaOutput?.Result,
                         HsResult = hsOutput?.Result
-                    });
+                    },
+                    LeadRetryPolicies.EmailDelivery);
                 emailSent = true;
             }
             catch (Exception ex)
@@ -315,7 +322,8 @@ public sealed class LeadOrchestratorFunction
                     CmaResult = cmaOutput?.Result,
                     HsResult = hsOutput?.Result,
                     Locale = input.Locale
-                });
+                },
+                LeadRetryPolicies.EmailDelivery);
             agentNotified = true;
         }
         catch (Exception ex)
@@ -345,7 +353,8 @@ public sealed class LeadOrchestratorFunction
                     CmaInputHash = input.CmaInputHash,
                     HsInputHash = input.HsInputHash,
                     Locale = input.Locale
-                });
+                },
+                LeadRetryPolicies.Standard);
         }
         catch (Exception ex)
         {
@@ -366,7 +375,8 @@ public sealed class LeadOrchestratorFunction
                     CmaResult = cmaOutput?.Result,
                     HsResult = hsOutput?.Result,
                     CorrelationId = input.CorrelationId
-                });
+                },
+                LeadRetryPolicies.Standard);
         }
         catch (Exception ex)
         {

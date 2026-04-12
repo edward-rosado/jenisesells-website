@@ -27,15 +27,24 @@ public sealed class MarketingStyleFunction(
         logger.LogInformation(
             "[ACTV-FN-140] MarketingStyle for agentId={AgentId}", input.AgentId);
 
-        // Load Drive file contents from blob staging (workers are pure compute, don't touch storage)
-        var stagedContents = await stagedContent.GetTopContentsAsync(input.AccountId, input.AgentId, 20, ct);
+        try
+        {
+            // Load Drive file contents from blob staging (workers are pure compute, don't touch storage)
+            var stagedContents = await stagedContent.GetTopContentsAsync(input.AccountId, input.AgentId, 20, ct);
 
-        var (styleGuide, brandSignals, localizedSkills) = await worker.AnalyzeAsync(
-            emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
-            driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
-            agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
-            ct: ct);
+            var (styleGuide, brandSignals, localizedSkills) = await worker.AnalyzeAsync(
+                emailCorpus: ActivationDtoMapper.ToDomain(input.EmailCorpus),
+                driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
+                agentDiscovery: ActivationDtoMapper.ToDomain(input.Discovery),
+                ct: ct);
 
-        return JsonSerializer.Serialize(new MarketingStyleOutput { StyleGuide = styleGuide, BrandSignals = brandSignals, LocalizedSkills = localizedSkills });
+            return JsonSerializer.Serialize(new MarketingStyleOutput { StyleGuide = styleGuide, BrandSignals = brandSignals, LocalizedSkills = localizedSkills });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ACTV-FN-141] MarketingStyle FAILED for agentId={AgentId}: {Message}",
+                input.AgentId, ex.Message);
+            throw;
+        }
     }
 }

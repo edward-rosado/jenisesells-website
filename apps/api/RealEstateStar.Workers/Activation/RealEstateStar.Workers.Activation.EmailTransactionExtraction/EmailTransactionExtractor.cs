@@ -149,7 +149,7 @@ public sealed class EmailTransactionExtractor(
             var response = await anthropicClient.SendAsync(
                 Model, ExtractionSystemPrompt, sb.ToString(), MaxTokens, Pipeline, ct);
 
-            return ParseExtractionResponse(response.Content, batch);
+            return ParseExtractionResponse(response.Content, batch, logger);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -163,7 +163,7 @@ public sealed class EmailTransactionExtractor(
     /// Parses Claude's JSON array response into DocumentExtraction records.
     /// </summary>
     internal static IReadOnlyList<DocumentExtraction> ParseExtractionResponse(
-        string json, IReadOnlyList<EmailMessage> sourceEmails)
+        string json, IReadOnlyList<EmailMessage> sourceEmails, ILogger? logger = null)
     {
         var results = new List<DocumentExtraction>();
 
@@ -269,9 +269,11 @@ public sealed class EmailTransactionExtractor(
                     serviceAreas.Count > 0 ? serviceAreas : null, notes));
             }
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            // Malformed response — return what we have
+            logger?.LogWarning(ex,
+                "[EMAILTX-022] Failed to parse JSON extraction response from Claude ({JsonLength} chars).",
+                json.Length);
         }
 
         return results;

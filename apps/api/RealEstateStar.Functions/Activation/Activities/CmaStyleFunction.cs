@@ -27,13 +27,22 @@ public sealed class CmaStyleFunction(
         logger.LogInformation(
             "[ACTV-FN-130] CmaStyle for agentId={AgentId}", input.AgentId);
 
-        // Load Drive file contents from blob staging (workers are pure compute, don't touch storage)
-        var stagedContents = await stagedContent.GetTopContentsAsync(input.AccountId, input.AgentId, 20, ct);
+        try
+        {
+            // Load Drive file contents from blob staging (workers are pure compute, don't touch storage)
+            var stagedContents = await stagedContent.GetTopContentsAsync(input.AccountId, input.AgentId, 20, ct);
 
-        var result = await worker.AnalyzeAsync(
-            driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
-            ct: ct);
+            var result = await worker.AnalyzeAsync(
+                driveIndex: ActivationDtoMapper.ToDomainWithContents(input.DriveIndex, stagedContents),
+                ct: ct);
 
-        return JsonSerializer.Serialize(new StringOutput { Value = result });
+            return JsonSerializer.Serialize(new StringOutput { Value = result });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ACTV-FN-131] CmaStyle FAILED for agentId={AgentId}: {Message}",
+                input.AgentId, ex.Message);
+            throw;
+        }
     }
 }

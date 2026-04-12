@@ -33,11 +33,11 @@ internal sealed class GmailReaderClient(
         var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
         if (credential is null)
         {
-            logger.LogWarning(
-                "[GMAILREADER-010] No valid token for account {AccountId}, agent {AgentId}. Returning empty list.",
-                accountId, agentId);
             GmailDiagnostics.TokenMissing.Add(1);
-            return [];
+            throw new InvalidOperationException(
+                $"[GMAILREADER-010] No valid OAuth token for account {accountId}, agent {agentId}. " +
+                "Token may be missing, expired with no refresh token, or failed to decrypt. " +
+                "Cannot read emails — aborting so the pipeline retries.");
         }
 
         var sw = Stopwatch.GetTimestamp();

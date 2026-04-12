@@ -23,9 +23,6 @@ internal sealed class GmailApiClient(
         CancellationToken ct)
     {
         var credential = await GetCredentialAsync(accountId, agentId, ct);
-        if (credential is null)
-            return;
-
         var from = ResolveFromAddress(credential.Email, to);
         var message = BuildMimeMessage(from, to, subject, htmlBody);
         await SendMessageAsync(credential, message, accountId, agentId, ct);
@@ -42,9 +39,6 @@ internal sealed class GmailApiClient(
         CancellationToken ct)
     {
         var credential = await GetCredentialAsync(accountId, agentId, ct);
-        if (credential is null)
-            return;
-
         var from = ResolveFromAddress(credential.Email, to);
         var message = BuildMimeMessage(from, to, subject, htmlBody, attachmentBytes, fileName);
         await SendMessageAsync(credential, message, accountId, agentId, ct);
@@ -123,7 +117,7 @@ internal sealed class GmailApiClient(
         return new Message { Raw = raw };
     }
 
-    private async Task<Domain.Shared.Models.OAuthCredential?> GetCredentialAsync(
+    private async Task<Domain.Shared.Models.OAuthCredential> GetCredentialAsync(
         string accountId,
         string agentId,
         CancellationToken ct)
@@ -131,10 +125,10 @@ internal sealed class GmailApiClient(
         var credential = await refresher.GetValidCredentialAsync(accountId, agentId, ct);
         if (credential is null)
         {
-            logger.LogWarning(
-                "[GMAIL-010] No valid token for account {AccountId}, agent {AgentId}. Skipping operation.",
-                accountId, agentId);
             GmailDiagnostics.TokenMissing.Add(1);
+            throw new InvalidOperationException(
+                $"[GMAIL-010] No valid OAuth token for account {accountId}, agent {agentId}. " +
+                "Token may be missing, expired with no refresh token, or failed to decrypt.");
         }
 
         return credential;
