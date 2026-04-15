@@ -1,6 +1,6 @@
 # Agent Site Comprehensive Design
 
-**Status:** Draft (Revision 3 — incorporates existing-codebase verification and routing design correction)
+**Status:** Draft (Revision 4 — codebase-verified accuracy pass over R3, routing CAS moved to Azure Table)
 **Date:** 2026-04-12
 **Owner:** Eddie Rosado
 **Author:** Claude (Opus 4.6)
@@ -16,6 +16,13 @@
 >   - **§8.3 AccountConfig concurrency** — R2 specified a "compare-and-set with fallback lock table" approach that doesn't exist in the codebase. Codebase audit confirmed `AzureTableTokenStore.SaveIfUnchangedAsync` + `GoogleOAuthRefresher.GetValidCredentialAsync` already implement the ETag retry-and-re-read pattern. R3 extends `IAccountConfigService` with the same `SaveIfUnchangedAsync` signature and reuses the caller pattern. No new lock abstraction. Decision D44.
 >   - **§8.4 Lead routing** — R2 embedded the routing counter inside `account.json` and proposed no manual-edit path. User feedback: "the benefit of being able to modify who gets the next lead manually by altering a file in google drive is a feature not a bug." R3 splits the state: `routing-policy.json` lives in the agent's Drive folder (human-editable, `next_lead` strict one-shot override, auto-clears after consumption), and `brokerage-routing-counters` is a dedicated Azure Table partitioned by accountId for atomic round-robin. Append-only `routing-log.csv` in Drive serves as audit trail, matching the existing consent log pattern. Decision D43.
 >   - **Appendix G traceability** updated to mark findings 1.1 (EHO) and 3.1 (TCPA) as "R3 correction — already implemented" and 8.3-1/8.4-1/8.4-2 as "R3 correction" with links to the new decisions.
+> - **R4 (this version)**: Codebase-verification pass over R3 after user review: "i also dont think everything is accurate on the review. Please make sure to not make any assumptions when doing a review and compare to what is actually implmented on the branch. generally i want all of this fixed as part of the next spec iteration". Three parallel verification agents audited every R3 claim against `feat/azure-cost-reduction`. Four substantive corrections:
+>   - **§8.4 lead routing rewritten (Option C)** — R3 specified `SaveIfUnchangedAsync` directly on the Drive policy file. Verified: `IFileStorageProvider` at `apps/api/RealEstateStar.Domain/Shared/Interfaces/Storage/IFileStorageProvider.cs` has **zero CAS primitives**, and `GDriveApiClient.UploadAsync` is unconditional (no If-Match, no revisions). R4 moves all atomicity onto a single Azure Table row `brokerage-routing-consumption` keyed by `PolicyContentHash`. Drive is read-only on the routing path. Both the `next_lead` override consumption and the round-robin counter increment commit in a single ETag CAS on that row. Human edits to Drive still take effect on the next lead via hash change → automatic realignment. Preserves the user-stated feature "editing the file is a feature not a bug" without requiring Drive to have CAS. Decision D43 revised. Applies to §8.4 prose, pseudocode, the classDiagram, the flowchart, the sequence diagram, the unit test matrix, and the standalone `docs/architecture/routing-policy-next-lead-cas.md` diagram.
+>   - **§17.1.1 EHO nuance** — R3 described `Footer.tsx` as rendering `EqualHousingNotice` "unconditionally." Verified: `apps/agent-site/features/sections/shared/Footer.tsx:141-145` renders inside `{state && (...)}`, so an account with null `state` silently ships without the notice. R4 adds a publish-gate architecture test: no account can transition from Preview to Live with `state === null`. The Footer conditional is safe because the gate prevents the case. Decision D41 revised.
+>   - **§17.3 TCPA composition chain** — R3 implied every template imports `LeadForm` directly. Verified: the real chain is `template → CmaSection → LeadForm`, and `apps/agent-site/features/sections/shared/CmaSection.tsx:7` is the only direct import site. R4 rewrites the §17.3 architecture test to enforce the real chain (scan templates for `<CmaSection>`, pin the `LeadForm` import on `CmaSection.tsx`) instead of falsely expecting templates to import `LeadForm` directly. Decision D42 clarified.
+>   - **§8.3 GoogleOAuthRefresher loop structure** — R3 described `GoogleOAuthRefresher.GetValidCredentialAsync` as a "retry-and-re-read loop." Verified: it performs a **single re-read on 412** and returns the fresher credential without re-refreshing — "another worker already refreshed" is itself the win condition. The `AccountConfigService` brokerage-join path **does** need a bounded retry loop because each writer appends unique content. R4 separates the two patterns in the spec: same `SaveIfUnchangedAsync` primitive, different loop structure by use case. Decision D44 clarified.
+>   - **Minor consistency fixes**: D16 self-contradiction in §2 resolved (decision log now matches §11.4's "disclaimer included" position); D30 marked superseded by D42; §13.4 Tier 2 example JSON stripped of the fabricated `tcpa_consent` / `fields` keys (the contact form owns that schema via `LeadForm`, not `content.json`).
+>   - **What R4 does NOT change**: every BLOCKER remediation from R2/R3, the overall section structure, the 34 Mermaid diagrams (§8.4 sequence diagram and the standalone `docs/architecture/routing-policy-next-lead-cas.md` are the only two updated), the decision log numbering (D1-D44), and the acceptance criteria in §15.5. R4 is an accuracy pass, not a redesign.
 
 ---
 
@@ -117,7 +124,7 @@ Every significant architectural decision in this spec has a callout in the relev
 | D13 | Lead routing algorithm | Service-area hard filter → specialty score boost → round-robin with fairness counter | Pure round-robin OR pure first-match | §8 |
 | D14 | Custom domain scope | BYOD (bring your own) in MVP, Cloudflare for SaaS integration | Phase 2 OR full registrar | §9 |
 | D15 | Preview flow | Preview → Approve → Bill → Edit; draft lives alongside live in KV | Auto-publish with post-launch edit OR bill before preview | §10 |
-| D16 | Legal pages disclaimer | No disclaimer — pages ship as the compliance work product | Disclaimer to reduce liability | §11 |
+| D16 | Legal pages disclaimer | Disclaimer included on every generated legal page ("generated from professional info — review with legal counsel") | Ship pages as work product with no disclaimer | §11.4 |
 | D17 | Existing account migration | Manual trigger only, no auto-regeneration | Grandfather OR auto-migrate | §13 |
 | D18 | i18n architecture | Reuse existing file-per-locale loader, extend pipeline to produce files | Introduce new `Localized<T>` schema | §3 / §5 |
 | D19 | Portuguese completion | Ship as part of this project to validate locale-registry design | Leave stubbed | §5 |
@@ -131,7 +138,7 @@ Every significant architectural decision in this spec has a callout in the relev
 | D27 | Scraping SSRF defense | Scheme + IP range + redirect + DNS-rebind validation on every outbound HTTP call in TeamScrapeWorker and any future scraper | Trust brokerage URL as-is | §16.4 |
 | D28 | Scraped content XSS defense | All scraped strings parsed to text-only via HTML parser before persist; CSP with nonce on all agent-site responses; React auto-escaping only (unsafe-HTML injection APIs forbidden on scraped data) | Sanitize at render time only | §16.4 |
 | D29 | Equal Housing Opportunity enforcement | Every template renders EHO footer on every page in every locale; CI grep test enforces presence; rendering invariant blocks template merge without it | Only a dedicated Fair Housing page | §17.1 |
-| D30 | Contact form TCPA consent capture | Required checkbox with express consent language, recorded as `TcpaConsent { Given, Timestamp, Text, TextVersion, IpAddress, UserAgent }` in the lead record | Hope the agent captures it themselves | §17.3 |
+| D30 | ~~Contact form TCPA consent capture~~ **SUPERSEDED by D42** — original D30 invented a new `TcpaConsent` record. The real implementation already exists as `MarketingConsent` with a triple-write pipeline. See D42. | — | — | §17.3 |
 | D31 | Brand color contrast validation | `ContrastValidator` in `BuildLocalizedSiteContent` auto-darkens/lightens colors that fail WCAG 4.5:1 until threshold met; blocks publish if unrepairable | Use scraped colors as-is | §17.6 |
 | D32 | Alt text source | Deterministic per image type: headshot = "Portrait of {name}", logo = "{brokerage} logo", gallery = "{street}, {city} — sold {month year}", hero background = haiku-generated. Required at schema level; no image element can render without alt | Agent fills in manually | §17.6 |
 | D33 | License / broker-name hard publish block | §10 state machine adds a pre-publish gate that verifies every field marked `required_for_state_X` is populated; missing fields move site to `Needs Info` state, not `Live` | Render gracefully if null | §17.7 |
@@ -142,10 +149,10 @@ Every significant architectural decision in this spec has a callout in the relev
 | D38 | Feature flags | `Activation:SiteContentGeneration:Enabled`, `Activation:FairHousingLinter:Enabled`, per-account deny lists for gradual rollout and emergency kill switches | No flags | §18 |
 | D39 | KV key versioning | All KV keys include a `v1:` segment (`content:v1:{accountId}:{locale}:live`); Worker reads current version first, falls back to prior on miss | Unversioned keys | §6.1.2 |
 | D40 | Endpoint authentication matrix | Explicit per-endpoint auth table in §16.3 — no endpoint ships without documented auth semantics | Defer to implementation | §16.3 |
-| D41 | EHO footer — already implemented | Existing `Footer.tsx` in every template unconditionally renders `EqualHousingNotice` from `packages/legal`, state-aware for NJ. R3 adds architecture test only, no new code. | Build as new | §17.1.1 |
+| D41 | EHO footer — already implemented (with state-conditional nuance) | Existing `Footer.tsx:141-145` renders `EqualHousingNotice` from `packages/legal` whenever `state` is defined on the account config. State-aware for NJ. R4 nuance: the current render is **conditional on `state` being present**, not unconditional. Missing-state accounts silently lose the notice today — the architecture test from this decision now has two parts: (a) `Footer.tsx` must import `EqualHousingNotice`, (b) no agent site can ship with `state === null` on the account config. | Build as new | §17.1.1 |
 | D42 | TCPA consent — already implemented via triple-write | Existing `MarketingConsent` record captured by `LeadForm` + `SubmitLeadEndpoint`, triple-written to agent Drive sheet (`MarketingConsentLog`), compliance Drive (`ComplianceConsentWriter`), and Azure Table with HMAC (`ConsentAuditService`). R3 adds architecture test enforcing shared `LeadForm` usage, plus `RoutingDecision` sibling record for brokerage routing metadata only. | Invent new schema | §17.3 |
-| D43 | Lead routing state split | `routing-policy.json` in agent Drive holds human-editable policy with `next_lead` strict one-shot override; `brokerage-routing-counters` Azure Table holds atomic counter partitioned by accountId; `routing-log.csv` append-only in Drive for audit | Counter embedded in `account.json` | §8.4 |
-| D44 | AccountConfig ETag concurrency reuses `ITokenStore` pattern | Extend `IAccountConfigService` with `SaveIfUnchangedAsync(account, etag, ct)` mirroring `AzureTableTokenStore.SaveIfUnchangedAsync`; caller uses the same retry-and-re-read loop as `GoogleOAuthRefresher.GetValidCredentialAsync`; no new lock abstractions | R2's fabricated fallback lock table | §8.3 |
+| D43 | Lead routing state split (R4 revised) | `routing-policy.json` in agent Drive holds human-editable policy (read-only on routing path); `brokerage-routing-consumption` Azure Table row holds both the round-robin `Counter` AND the `OverrideConsumed` flag keyed by `PolicyContentHash`; both mutations commit in a single ETag CAS on that row. Drive is never written on the routing path because `IFileStorageProvider` has no CAS primitives. Human edits to Drive take effect via hash change → automatic realignment on next lead. | R3's `SaveIfUnchangedAsync` directly on Drive (invalid — no CAS on `GDriveApiClient`) | §8.4 |
+| D44 | AccountConfig ETag concurrency reuses `ITokenStore` pattern | Extend `IAccountConfigService` with `SaveIfUnchangedAsync(account, etag, ct)` mirroring `AzureTableTokenStore.SaveIfUnchangedAsync`. **Caller pattern (R4 corrected)**: `AccountConfigService`'s brokerage-join path implements a multi-attempt retry-and-re-read loop because each writer appends different content. `GoogleOAuthRefresher.GetValidCredentialAsync` does NOT have a retry loop — it does a single re-read on 412 and returns the fresher credential (because for token refresh, "someone else already refreshed" is itself the win condition). The shared primitive is `SaveIfUnchangedAsync` + conditional 412 handling; the loop structure differs by use case. | R2's fabricated fallback lock table | §8.3 |
 
 ---
 
@@ -385,7 +392,7 @@ Legend: **T1** = Tier 1 (real data), **T3** = Tier 3 (Claude polish over T1), **
 | `thank_you.heading` | T3: per locale | Template default | Per-locale |
 | `thank_you.subheading` | T3: per locale | Template default | Per-locale |
 | `thank_you.body` | T3: per locale + {firstName} interpolation | Template default | Per-locale |
-| `footer.equal_housing_notice` | **Already implemented**: `EqualHousingNotice` component in `packages/legal` is rendered unconditionally by the shared `Footer.tsx` in every template. State-aware (NJ-extended class list when `agentState === "NJ"`). R3 adds an architecture test that prevents future templates from stripping it. No schema additions in `content.json`. **See §17.1.1** | **UNCONDITIONAL, existing code** | Per-locale body text via existing i18n; logo is federal standard (not translated). |
+| `footer.equal_housing_notice` | **Already implemented (state-conditional)**: `EqualHousingNotice` component in `packages/legal` is rendered by the shared `Footer.tsx:141-145` in every template **whenever `state` is defined** on the account config. State-aware (NJ-extended class list when `agentState === "NJ"`). R4 adds a two-part architecture test: (a) template Footer imports `EqualHousingNotice`, (b) publish gate rejects accounts with null `state`. No schema additions in `content.json`. **See §17.1.1** | **CONDITIONAL ON `state` — publish gate enforces non-null** | Per-locale body text via existing i18n; logo is federal standard (not translated). |
 | `footer.privacy_choices_link` | D: always rendered, routes to `/privacy-choices` | **UNCONDITIONAL** | Per-locale label. **See §17.5.2** |
 | `footer.cookie_consent_banner` | D: geo-gated, always rendered for EU/state-privacy visitors | **UNCONDITIONAL for EU/CA/etc.** | Per-locale text. **See §17.5.1** |
 | All image fields (headshot, logo, gallery, hero bg, icon) | **REQUIRED**: `alt` field populated per §17.6.2 deterministic rules | — | Alt uses stable English phrasing (screen reader safe regardless of page locale) |
@@ -1277,7 +1284,7 @@ stateDiagram-v2
 
 **Decision D44: AccountConfig concurrency uses the existing `ITokenStore` ETag pattern.**
 
-> **Correction from R2**: R2 specified a "compare-and-set with fallback lock table" approach that doesn't match anything in the codebase. Review of existing concurrency patterns revealed that `AzureTableTokenStore` already implements optimistic locking via ETag, and `GoogleOAuthRefresher` has a proven retry-and-re-read loop using that pattern. The correct design is to extend `IAccountConfigService` with the **same** ETag semantics rather than invent a parallel abstraction. R3 strikes the fabricated lock-table fallback and reuses the existing pattern verbatim.
+> **Correction from R2 (R3/R4)**: R2 specified a "compare-and-set with fallback lock table" approach that doesn't match anything in the codebase. Review of existing concurrency patterns revealed that `AzureTableTokenStore` already implements optimistic locking via ETag, and `GoogleOAuthRefresher` uses that ETag primitive with a single re-read on 412. The correct design is to extend `IAccountConfigService` with the **same** ETag semantics rather than invent a parallel abstraction. R3 struck the fabricated lock-table fallback. **R4 correction**: R3's preamble described `GoogleOAuthRefresher.GetValidCredentialAsync` as a "retry-and-re-read loop" — that is not accurate. The refresher does **one attempt**: if `SaveIfUnchangedAsync` returns false (412), it re-reads the token store once and returns the fresher credential without re-refreshing. It is a *single re-read on conflict*, not a loop, because for token refresh "another worker already refreshed" is the win condition. The `AccountConfigService` brokerage-join path **does** need an actual bounded retry loop (shown below at lines 1327+) because each writer's append is distinct content. R4 separates these two patterns in the documentation.
 
 #### The problem
 
@@ -1290,7 +1297,7 @@ The existing `ITokenStore` / `AzureTableTokenStore` pattern solves the identical
 - **`apps/api/RealEstateStar.Domain/Shared/Interfaces/Storage/ITokenStore.cs:9`** — `Task<bool> SaveIfUnchangedAsync(OAuthCredential credential, string provider, string etag, CancellationToken ct)`
 - **`apps/api/RealEstateStar.Domain/Shared/Models/OAuthCredential.cs:16`** — `public string? ETag { get; init; }` populated by the store on read
 - **`apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/AzureTableTokenStore.cs:117-156`** — implementation using Azure Table `UpdateEntityAsync` with ETag precondition; returns `false` on 412, `true` on success
-- **`apps/api/RealEstateStar.Clients/RealEstateStar.Clients.GoogleOAuth/GoogleOAuthRefresher.cs:64-72`** — the retry-and-re-read consumer loop that R3's `AccountConfigService` should mirror
+- **`apps/api/RealEstateStar.Clients/RealEstateStar.Clients.GoogleOAuth/GoogleOAuthRefresher.cs:64-72`** — the consumer pattern for a **single re-read on 412**. On conflict it re-reads the token store once and returns the fresher credential without re-refreshing (because another worker refreshing the token is already the correct outcome). `AccountConfigService` borrows the same `SaveIfUnchangedAsync` primitive but wraps it in a **bounded retry loop** (5 attempts with exponential backoff, see below) because each writer appends distinct content and simply re-reading would lose the caller's appended agent.
 
 Metrics and diagnostics already exist:
 - **`TokenStoreDiagnostics.Conflicts.Add(1)`** — counter incremented on every 412 — R3 adds an analogous `AccountConfigDiagnostics.Conflicts` for brokerage merge conflicts
@@ -1320,11 +1327,11 @@ public sealed record AccountConfig(
 );
 ```
 
-The implementation populates `AccountConfig.ETag` on read, uses it as the precondition on write, returns `false` on ETag mismatch (412), and returns `true` on success. **No retry logic inside the service.** Retry is the caller's responsibility — exactly as it is for `GoogleOAuthRefresher`.
+The implementation populates `AccountConfig.ETag` on read, uses it as the precondition on write, returns `false` on ETag mismatch (412), and returns `true` on success. **No retry logic inside the service.** Retry is the caller's responsibility — same primitive as `GoogleOAuthRefresher`, but a different loop structure because the use case differs.
 
 #### Caller pattern
 
-The join-path activity that appends a new agent to the brokerage uses the same retry-and-re-read loop pattern as `GoogleOAuthRefresher.GetValidCredentialAsync`:
+The join-path activity that appends a new agent to the brokerage implements a bounded retry loop — **not** the single-re-read behavior of `GoogleOAuthRefresher`. The two use cases diverge: token refresh can short-circuit on conflict (the fresher token is the win condition), but account-join must actually retry the append (each writer contributes unique content that must land in the final state):
 
 ```csharp
 // In BrokerageJoinActivity (new) or PersistSiteContentActivity
@@ -1437,18 +1444,21 @@ sequenceDiagram
 
 ### 8.4 Intelligent lead routing algorithm
 
-**Decision D43: Lead routing state split — human-editable `routing-policy.json` in agent Drive, atomic counter in Azure Table.**
+**Decision D43: Lead routing state split — human-editable `routing-policy.json` in agent Drive for display + policy shape; atomic consumption record in Azure Table for `next_lead` override and round-robin counter.**
 
-> **Correction from R2**: R2 embedded the routing counter inside `account.json` and proposed no manual-edit path. User feedback: "I think the benefit of being able to modify who gets the next lead manually by altering a file in google drive is a feature not a bug." R3 splits the state into two pieces that serve different consumers: the **policy** is human-editable in Drive, and the **counter** is an atomic increment in a dedicated Azure Table row. Manual edits in Drive are an authoritative input to the routing algorithm, not an accident.
+> **Correction from R2 and R3**: R2 embedded the routing counter inside `account.json` with no manual-edit path. R3 split the state into Drive (policy) + Azure Table (counter) but specified `SaveIfUnchangedAsync` directly on the Drive file to consume `next_lead`. **R4 correction**: `IFileStorageProvider` (verified at `apps/api/RealEstateStar.Domain/Shared/Interfaces/Storage/IFileStorageProvider.cs`) has zero CAS primitives, and `GDriveApiClient` writes are unconditional (no If-Match, no revisions). Drive has no mechanism to atomically consume a field. R4 rewrites the consumption step to move **all** atomicity into Azure Table — which already has verified ETag CAS support via `AzureTableTokenStore.SaveIfUnchangedAsync`. Drive remains human-editable; the Azure Table row is the serialization point.
+>
+> **User feedback that shaped this**: "the benefit of being able to modify who gets the next lead manually by altering a file in google drive is a feature not a bug" — preserved. Human edits to the Drive file still take effect on the next lead.
 
 #### Design principles
 
-1. **Policy lives where humans edit it.** `routing-policy.json` is a file in the agent's Drive folder (sibling to the existing consent log sheet). A brokerage owner opens the file in Drive, edits a field, saves. The next lead picks up the change.
-2. **Atomic counter lives where machines update it.** `brokerage-routing-counters` is a dedicated Azure Table with a single row per brokerage. Atomic increment via `MergeEntity` with ETag. No hot-key contention in Cloudflare KV. Separates the read-heavy human-editable path from the write-heavy machine path.
-3. **Manual override is a feature.** `next_lead: "alice"` in the policy file forces the next incoming lead to a specific agent, then auto-clears on consumption. Documented, expected, first-class.
-4. **Human knows best.** The manual override is **strict** — if the brokerage owner writes `next_lead: alice`, the lead goes to Alice even if Alice's service area doesn't match or she's marked `enabled: false`. The human is making a judgment call the algorithm can't verify (maybe Alice is covering for Bob today). Trust the edit.
-5. **One-shot semantics.** After the override is consumed, the field is cleared atomically in the same write that bumps the version counter. No stale override re-consumed on subsequent leads.
-6. **Policy and counter are versioned together.** A manual edit to the policy increments `version` (via the ETag write path), which invalidates the in-flight counter for that brokerage — the next tiebreak starts from zero against the new policy. Prevents counter stale-state bugs when the brokerage roster changes.
+1. **Policy lives where humans edit it.** `routing-policy.json` is a file in the agent's Drive folder (sibling to the existing consent log sheet). A brokerage owner opens the file in Drive, edits a field, saves. The next lead picks up the change. Drive is authoritative for the **shape** of the policy — agent roster, service areas, specialties, weights, and the human's `next_lead` hint.
+2. **Atomic consumption lives where machines can do CAS.** `brokerage-routing-consumption` is a dedicated Azure Table with a single row per brokerage. Two operations are atomic on that row: (a) consuming a `next_lead` override, and (b) incrementing the round-robin counter. Both use ETag CAS via the same `SaveIfUnchangedAsync` pattern already implemented in `AzureTableTokenStore`. Drive itself is **never** the CAS target.
+3. **Policy content hash as the bridge.** The Azure Table row carries a `PolicyContentHash` field — the SHA-256 of the canonical JSON of the Drive policy at read time (excluding `_version`, `_etag`, `_last_edited_at`, `_last_edited_by` which are bookkeeping). Every routing decision reads Drive, computes the hash, and compares it to the row. If the hash differs, the human edited the policy since the last decision: the row's `OverrideConsumed` flag resets to `false` and the `Counter` resets to 0. This is how a Drive edit "takes effect" on the next lead — the hash comparison forces the Azure Table row to realign with the new policy on the next read.
+4. **Manual override is a feature.** `next_lead: "alice"` in the Drive policy forces the next incoming lead to Alice. Once consumed (via the Azure Table CAS), the consumption record marks `OverrideConsumed = true` **for that content hash**. Subsequent leads see the flag and fall through to algorithmic routing. The human re-asserts the override by editing the Drive file again — which changes the content hash, which resets `OverrideConsumed` to `false` for the new hash.
+5. **Human knows best.** The manual override is **strict** — the lead goes to the named agent even if they're marked `enabled: false` or their service area doesn't match. The human is making a judgment call (maybe Alice is covering for Bob today). Trust the edit.
+6. **One-shot semantics.** The first lead to win the Azure Table CAS consumes the override. Concurrent leads that lose the CAS re-read both stores and fall through.
+7. **Drive file never mutates on the routing path.** The routing service **reads** Drive and **writes** Azure Table. It does not write back to Drive to clear `next_lead`. The Drive file still shows `next_lead: "alice"` after consumption — the `OverrideConsumed` flag in Azure Table is the source of truth for whether that override has been spent. This is intentional: it avoids a lost-write race on Drive (where GDriveApiClient has no conditional writes) and it makes the human's Drive edit durable (they can see exactly what they set, even after it's been consumed). An optional nightly cleanup job can rewrite the Drive file to clear stale consumed overrides, but that is a convenience, not a correctness requirement.
 
 #### `routing-policy.json` schema
 
@@ -1542,11 +1552,14 @@ classDiagram
         +string tiebreak
         +string fall_back_when_no_match
     }
-    class BrokerageRoutingCounter {
+    class BrokerageRoutingConsumption {
         +string AccountId PK
-        +string RowKey constant counter
+        +string RowKey constant consumption
+        +string PolicyContentHash
         +int Counter
-        +int PolicyVersion
+        +bool OverrideConsumed
+        +string? ConsumedByLeadId
+        +DateTime? ConsumedAt
         +string ETag
         +DateTime LastUpdated
     }
@@ -1563,35 +1576,46 @@ classDiagram
     }
     RoutingPolicy --> RoutingAgent : composes
     RoutingPolicy --> RoutingDefaults : composes
-    BrokerageRoutingCounter ..> RoutingPolicy : pinned by PolicyVersion
+    BrokerageRoutingConsumption ..> RoutingPolicy : pinned by PolicyContentHash
     RoutingDecision ..> RoutingPolicy : captures version at decision
 ```
 
-**Storage**: `RoutingPolicy` lives as a JSON file in Drive; `BrokerageRoutingCounter` lives in Azure Table; `RoutingDecision` is both a row in `brokerage-routing-decisions` Azure Table AND a CSV row in `routing-log.csv` in Drive. Dotted edges in the diagram represent references by value, not foreign keys.
+**Storage**: `RoutingPolicy` lives as a JSON file in Drive and is **read-only** on the routing path; `BrokerageRoutingConsumption` lives in Azure Table and is the sole atomic write target for routing decisions (both `next_lead` consumption AND round-robin counter increments happen in one CAS against this row); `RoutingDecision` is both a row in `brokerage-routing-decisions` Azure Table AND a CSV row in `routing-log.csv` in Drive. Dotted edges in the diagram represent references by value, not foreign keys.
 
-#### `brokerage-routing-counters` Azure Table schema
+#### `brokerage-routing-consumption` Azure Table schema
 
 ```
-Table:        brokerage-routing-counters
+Table:        brokerage-routing-consumption
 PartitionKey: {accountId}
-RowKey:       "counter"
+RowKey:       "consumption"
 
 Columns:
-    Counter       int        // monotonically increasing
-    PolicyVersion int        // matches routing-policy.json._version
-    ETag          string     // for atomic CAS
-    LastUpdated   DateTime
+    PolicyContentHash string    // SHA-256 of canonical policy JSON at last alignment
+    Counter           int       // round-robin counter for the current hash
+    OverrideConsumed  bool      // whether next_lead override has been spent for this hash
+    ConsumedByLeadId  string?   // audit pointer: which lead consumed the override (null if !OverrideConsumed)
+    ConsumedAt        DateTime? // when the override was consumed
+    ETag              string    // for atomic CAS
+    LastUpdated       DateTime
 ```
 
-When a lead is routed:
+When a lead is routed, the routing service performs a two-store read + one-store CAS:
 
-1. Service reads `routing-policy.json` from Drive (with 60s edge cache).
-2. Service reads the counter row for this accountId from Azure Table.
-3. If `counter_row.PolicyVersion != policy._version`, the policy has been edited — reset `Counter = 0` and `PolicyVersion = policy._version` (atomic via `UpsertEntity` with ETag precondition).
-4. Service runs the routing algorithm, consuming the counter on tiebreak.
-5. Service increments the counter via `UpdateEntity` with ETag precondition. On 412, re-read and retry.
+1. **Read policy from Drive** (60s edge cache). Compute `currentHash = SHA-256(canonical(policy without bookkeeping fields))`.
+2. **Read the consumption row** for `accountId` from Azure Table.
+3. **Hash alignment**: if `row.PolicyContentHash != currentHash`, the human edited the Drive file since the last decision. Build a realigned row in memory: `{ PolicyContentHash = currentHash, Counter = 0, OverrideConsumed = false, ConsumedByLeadId = null, ConsumedAt = null }`. This is **not yet persisted** — it becomes the proposed-new-state for the CAS in step 5.
+4. **Route the lead** using the aligned state:
+   - If `policy.next_lead != null` AND the proposed-new-state has `OverrideConsumed = false`, the routing target is `policy.agents[policy.next_lead]` and the proposed-new-state flips `OverrideConsumed = true, ConsumedByLeadId = lead.Id, ConsumedAt = now`.
+   - Otherwise, run the algorithmic path. If tiebreak is needed, use `Counter % len(tied)` to pick the winner and set proposed-new-state `Counter = row.Counter + 1`.
+5. **Single atomic CAS** to persist the proposed-new-state: `AzureTable.UpdateEntity(newRow, If-Match=row.ETag)`.
+   - **200 OK** → routing decision is committed. Dispatch the lead to the winner.
+   - **412 Precondition Failed** → another lead raced us. Go to step 1 and retry the entire decision. Because step 3 rebuilds the proposed state from a fresh read, the retry correctly sees the winning lead's write (including `OverrideConsumed = true` if the winner consumed the override).
 
-**Hot-key contention**: the counter row is partition-keyed by accountId, so contention is per-brokerage, not global. A single brokerage at 100+ leads/second would hit contention, but real brokerages are orders of magnitude below that, and Azure Table's per-partition throughput is well within our needs.
+**Why this works**: every routing decision — override consumption AND counter increment — happens inside a single ETag CAS on the Azure Table row. Two concurrent leads racing on the same `next_lead` override both read `OverrideConsumed = false`, both propose `OverrideConsumed = true`, both call `UpdateEntity`. Exactly one gets 200; the loser gets 412, re-reads, sees `OverrideConsumed = true`, and falls through to algorithmic routing. The Drive file is only ever **read** on this path, never written — which matches what `GDriveApiClient` actually supports.
+
+**Hot-key contention**: the consumption row is partition-keyed by accountId, so contention is per-brokerage, not global. A single brokerage at 100+ leads/second would hit contention, but real brokerages are orders of magnitude below that, and Azure Table's per-partition throughput is well within our needs. Retry budget: 5 attempts with exponential backoff (same policy as `GoogleOAuthRefresher`'s conflict retry).
+
+**Drive file is never mutated by the routing path**. A brokerage owner who sets `next_lead: alice`, sees Alice receive a lead, and looks back at the Drive file will still see `next_lead: alice` — the Azure Table row is what tracks consumption. An optional nightly cleanup job can rewrite the Drive file to clear consumed overrides (for human readability), but that job uses the normal unconditional Drive write and is purely cosmetic — correctness does not depend on it. If the human wants to re-issue the override, they edit the Drive file (even a no-op save), which changes `_last_edited_at` and the content hash, which resets `OverrideConsumed` on the next lead.
 
 #### `routing-log.csv` audit trail
 
@@ -1613,39 +1637,40 @@ The `reason` column is human-readable so a brokerage owner scanning the sheet in
 ```mermaid
 flowchart TD
     Lead["Lead L arrives for<br/>brokerage accountId"] --> ReadPolicy["Read routing-policy.json<br/>from Drive<br/>60s edge cache"]
-    ReadPolicy --> Override{"policy.next_lead<br/>is set?"}
-    Override -->|"Yes"| ResolveTarget["Resolve target_id<br/>from policy.agents"]
-    ResolveTarget --> Exists{"Target exists<br/>in policy.agents?"}
-    Exists -->|"No typo"| LogFailed["Log LEAD-ROUTE-OVERRIDE-003<br/>Leave next_lead set<br/>Grafana alert<br/>Fall through"]
-    Exists -->|"Yes"| CAS["SaveIfUnchangedAsync<br/>set next_lead null<br/>bump _version"]
-    CAS -->|"200 CAS succeeds"| RouteOverride["Route L to target<br/>strict override<br/>Log LEAD-ROUTE-OVERRIDE-001"]
-    CAS -.->|"412 another lead<br/>raced us"| LogLost["Log LEAD-ROUTE-OVERRIDE-002<br/>Re-read policy<br/>Fall through"]
-    LogFailed --> FilterStart
-    LogLost --> ReadPolicy
+    ReadPolicy --> HashPolicy["Compute currentHash<br/>SHA-256 canonical policy"]
+    HashPolicy --> ReadRow["Read consumption row<br/>from Azure Table<br/>PK accountId"]
+    ReadRow --> HashMatch{"row.PolicyContentHash<br/>equals currentHash?"}
+    HashMatch -->|"No human edited"| Realign["Build proposed state<br/>Counter 0<br/>OverrideConsumed false<br/>Hash currentHash"]
+    HashMatch -->|"Yes"| UseRow["Use row as baseline<br/>for proposed state"]
+    Realign --> Override
+    UseRow --> Override{"policy.next_lead<br/>is set?"}
     Override -->|"No"| FilterStart["Filter enabled agents<br/>by policy.agents items"]
-    FilterStart --> FilterArea["Hard filter:<br/>L.property_city in<br/>a.service_areas"]
-    FilterArea --> AnyMatch{"Any agent<br/>matches area?"}
-    AnyMatch -->|"No"| Fallback{"defaults<br/>fall_back_when_no_match<br/>is any-enabled-agent?"}
-    Fallback -->|"Yes"| UseAll["Use all enabled agents<br/>as candidates"]
-    Fallback -->|"No reject"| Reject["Return 422 unroutable<br/>Log LEAD-ROUTE-UNROUTABLE-001"]
-    AnyMatch -->|"Yes"| Score["Score each candidate<br/>specialty plus language<br/>plus inquiry type match"]
+    Override -->|"Yes"| ConsumedCheck{"proposed state<br/>OverrideConsumed<br/>already true?"}
+    ConsumedCheck -->|"Yes already spent"| FilterStart
+    ConsumedCheck -->|"No available"| ResolveTarget["Resolve target_id<br/>from policy.agents"]
+    ResolveTarget --> Exists{"Target exists<br/>in policy.agents?"}
+    Exists -->|"No typo"| LogFailed["Log LEAD-ROUTE-OVERRIDE-003<br/>Grafana alert<br/>Fall through"]
+    Exists -->|"Yes"| ProposeOverride["Proposed state<br/>OverrideConsumed true<br/>ConsumedByLeadId L.id<br/>ConsumedAt now"]
+    LogFailed --> FilterStart
+    FilterStart --> FilterArea["Hard filter by<br/>service_areas"]
+    FilterArea --> AnyMatch{"Any agent<br/>matches?"}
+    AnyMatch -->|"No"| Fallback{"fall_back_when_no_match<br/>is any-enabled-agent?"}
+    Fallback -->|"Yes"| UseAll["Use all enabled"]
+    Fallback -->|"No reject"| Reject["Return 422<br/>Log LEAD-ROUTE-UNROUTABLE-001"]
+    AnyMatch -->|"Yes"| Score["Score candidates<br/>specialty plus language"]
     UseAll --> Score
     Score --> TopScore["Find max score"]
-    TopScore --> OneWinner{"Exactly one<br/>agent at top?"}
-    OneWinner -->|"Yes"| DispatchReason["Reason equals<br/>specialty or area match"]
-    OneWinner -->|"No tied"| ReadCounter["Read counter row<br/>from Azure Table"]
-    ReadCounter --> VersionMatch{"counter.PolicyVersion<br/>equals policy._version?"}
-    VersionMatch -->|"No"| ResetCounter["Reset Counter 0<br/>PolicyVersion bump"]
-    VersionMatch -->|"Yes"| UseCounter
-    ResetCounter --> UseCounter["Expand tied list<br/>by weight"]
-    UseCounter --> ModPick["winner equals<br/>expanded mod counter"]
-    ModPick --> IncCounter["UpdateEntity<br/>Counter plus 1<br/>ETag If-Match"]
-    IncCounter --> DispatchReason2["Reason equals<br/>weighted-round-robin"]
-    RouteOverride --> DispatchFinal
-    DispatchReason --> DispatchFinal
-    DispatchReason2 --> DispatchFinal
-    DispatchFinal["Append row to<br/>routing-log.csv<br/>Upsert RoutingDecision"]
-    DispatchFinal --> Deliver["Deliver L to winner<br/>email or queue<br/>Log LEAD-ROUTE-001"]
+    TopScore --> OneWinner{"Exactly one<br/>at top?"}
+    OneWinner -->|"Yes"| ProposeNoCounter["Winner is top<br/>No counter bump"]
+    OneWinner -->|"No tied"| ProposeCounter["Winner is<br/>tied mod Counter<br/>Proposed Counter plus 1"]
+    ProposeOverride --> SingleCAS
+    ProposeNoCounter --> SingleCAS
+    ProposeCounter --> SingleCAS
+    SingleCAS["Single atomic CAS<br/>UpdateEntity<br/>If-Match row.ETag"]
+    SingleCAS -->|"200 committed"| AppendLog["Append routing-log.csv<br/>Upsert RoutingDecision"]
+    SingleCAS -.->|"412 raced<br/>retry"| LogLost["Log LEAD-ROUTE-OVERRIDE-002<br/>if override path"]
+    LogLost --> ReadPolicy
+    AppendLog --> Deliver["Deliver L to winner<br/>Log LEAD-ROUTE-001"]
     Deliver --> Done(["Done"])
     Reject --> Done
 ```
@@ -1656,99 +1681,138 @@ flowchart TD
 
 ```
 route_lead(lead L, accountId):
+  // The whole function is a retry loop. Every routing decision commits via a
+  // single atomic CAS on the Azure Table consumption row. Drive is READ ONLY
+  // on this path — it is never written by the routing service.
 
-  1. Read policy from Drive:
-       policy = DriveStorage.ReadAsync("routing-policy.json", accountId)
-       (cached at edge, 60s TTL)
+  for attempt in 1..5:
 
-  2. Manual override — strict, one-shot, human-knows-best:
-       if policy.next_lead is not null:
-           target_id = policy.next_lead
+    1. Read policy from Drive:
+         policy = DriveStorage.ReadAsync("routing-policy.json", accountId)
+         (cached at edge, 60s TTL)
 
-           // Clear the override atomically via SaveIfUnchangedAsync
-           updated = policy with { next_lead = null, _version = policy._version + 1 }
-           saved = AccountConfigService.SaveIfUnchangedAsync(updated, policy._etag)
+    2. Compute content hash of the human-editable fields:
+         currentHash = SHA-256(canonical_json(policy without _version, _etag,
+                                               _last_edited_at, _last_edited_by))
 
-           if saved:
-               route L to policy.agents[target_id]
-               append audit: reason = "manual-override(next_lead={target_id})"
-               log [LEAD-ROUTE-OVERRIDE-001]
-               return
-           else:
-               // Another lead raced us. Re-read and fall through.
-               log [LEAD-ROUTE-OVERRIDE-002] "override consumed by concurrent lead"
-               goto step 1
+    3. Read the consumption row from Azure Table:
+         row = AzureTable.Read("brokerage-routing-consumption", accountId, "consumption")
 
-  3. Algorithmic routing:
-       candidates = [agent for id, agent in policy.agents.items() if agent.enabled]
+         if row is null:
+             row = { PolicyContentHash = "", Counter = 0, OverrideConsumed = false, ETag = null }
 
-       // Hard filter by service area
-       filtered = [a for a in candidates if L.property_city in a.service_areas]
-       if filtered is empty:
-           filtered = candidates if policy.defaults.fall_back_when_no_match == "any-enabled-agent" else []
-           if filtered is empty:
-               log [LEAD-ROUTE-UNROUTABLE-001] "no matching agent for {L.property_city}"
-               return 422 to the caller
+    4. Align the in-memory "proposed next state" with the current policy hash:
+         if row.PolicyContentHash != currentHash:
+             // Human edited the Drive file since the last routing decision.
+             // Start fresh against the new policy.
+             proposed = {
+                 PolicyContentHash = currentHash,
+                 Counter = 0,
+                 OverrideConsumed = false,
+                 ConsumedByLeadId = null,
+                 ConsumedAt = null,
+             }
+         else:
+             proposed = row with nothing changed yet
 
-       // Score by specialty + language
-       scored = []
-       for a in filtered:
-           score = 0
-           if L.inquiry_type == "buying"     and "buyers"     in a.specialties: score += 2
-           if L.inquiry_type == "selling"    and "sellers"    in a.specialties: score += 2
-           if L.inquiry_type == "investment" and "investment" in a.specialties: score += 3
-           if L.language != "en" and L.language in a.languages:                 score += 3
-           scored.append((a, score))
+    5. Manual override path — strict, one-shot, human-knows-best:
+         if policy.next_lead is not null and not proposed.OverrideConsumed:
+             target_id = policy.next_lead
 
-       max_score = max(s for _, s in scored)
-       tied = [(a, a.weight) for (a, s) in scored if s == max_score]
+             if target_id not in policy.agents:
+                 log [LEAD-ROUTE-OVERRIDE-003] "next_lead references unknown agent"
+                 // Do NOT mark consumed. Fall through to algorithmic routing.
+                 // The brokerage owner will see the typo in the Drive file.
+                 goto algorithmic
 
-  4. Tiebreak via Azure Table counter (atomic, partition-keyed by accountId):
-       if len(tied) == 1:
-           winner = tied[0].agent
-       else:
-           counter_row = AzureTable.Read(accountId, "counter")
+             winner = policy.agents[target_id]
+             reason = "manual-override(next_lead={target_id})"
+             proposed.OverrideConsumed = true
+             proposed.ConsumedByLeadId = L.id
+             proposed.ConsumedAt = now()
+             goto commit
 
-           if counter_row.PolicyVersion != policy._version:
-               // Policy was edited — reset counter to align with new policy
-               counter_row.Counter = 0
-               counter_row.PolicyVersion = policy._version
-               // (will be persisted in step 5)
+    algorithmic:
+    6. Algorithmic routing:
+         candidates = [a for id, a in policy.agents.items() if a.enabled]
+         filtered   = [a for a in candidates if L.property_city in a.service_areas]
 
-           // Weighted round-robin: expand tied list by weight
-           expanded = flatten([ [agent] * weight for (agent, weight) in tied ])
-           winner = expanded[counter_row.Counter % len(expanded)]
+         if filtered is empty:
+             if policy.defaults.fall_back_when_no_match == "any-enabled-agent":
+                 filtered = candidates
+             else:
+                 log [LEAD-ROUTE-UNROUTABLE-001] "no matching agent for {L.property_city}"
+                 return 422
 
-           // Atomic increment with ETag
-           counter_row.Counter += 1
-           AzureTable.UpdateEntity(counter_row, counter_row.ETag)
-           // On 412: re-read and retry (same pattern as ITokenStore)
+         scored = []
+         for a in filtered:
+             score = 0
+             if L.inquiry_type == "buying"     and "buyers"     in a.specialties: score += 2
+             if L.inquiry_type == "selling"    and "sellers"    in a.specialties: score += 2
+             if L.inquiry_type == "investment" and "investment" in a.specialties: score += 3
+             if L.language != "en" and L.language in a.languages:                 score += 3
+             scored.append((a, score))
 
-  5. Dispatch:
-       send L to winner.email (or to winner's lead queue)
-       append to routing-log.csv: reason = tiebreak ? "weighted-round-robin" : f"specialty-match+{details}"
-       log [LEAD-ROUTE-001]
+         max_score = max(s for _, s in scored)
+         tied      = [(a, a.weight) for (a, s) in scored if s == max_score]
+
+         if len(tied) == 1:
+             winner = tied[0].agent
+             reason = "specialty-or-area-match"
+             // No counter bump on unambiguous winner
+         else:
+             expanded = flatten([ [agent] * int(weight) for (agent, weight) in tied ])
+             winner   = expanded[proposed.Counter % len(expanded)]
+             reason   = "weighted-round-robin"
+             proposed.Counter += 1
+
+    commit:
+    7. Single atomic CAS on the Azure Table consumption row:
+         try:
+             AzureTable.UpdateEntity(proposed, If-Match=row.ETag)
+         except 412 PreconditionFailed:
+             // Another lead raced us. Re-read EVERYTHING (Drive + Table) and retry.
+             // Do not log OVERRIDE-002 unless we were taking the override path.
+             if policy.next_lead is not null and not row.OverrideConsumed_at_read_time:
+                 log [LEAD-ROUTE-OVERRIDE-002] "override lost to concurrent lead"
+             continue   // next attempt in the outer retry loop
+
+    8. Dispatch (only reached on CAS success):
+         send L to winner.email (or winner's lead queue)
+         append to routing-log.csv: reason
+         upsert RoutingDecision row in brokerage-routing-decisions
+         log [LEAD-ROUTE-001] if override path: log [LEAD-ROUTE-OVERRIDE-001]
+         return
+
+  // Fell out of the retry loop after 5 attempts
+  log [LEAD-ROUTE-CONTENTION-001] "5 CAS failures on consumption row"
+  return 503 to caller  // Dead-letter; caller retries via queue
 ```
 
 #### What this replaces
 
 R2 specified `lead_routing.counter` embedded in `account.json` with `last_assignments[]` as an inline audit array. R3 removes both:
 
-1. **~~`lead_routing.counter` in `account.json`~~** → dedicated `brokerage-routing-counters` Azure Table, partition-keyed by accountId. The security review's hot-key concern is resolved by partitioning.
+1. **~~`lead_routing.counter` in `account.json`~~** → dedicated `brokerage-routing-consumption` Azure Table, partition-keyed by accountId. Carries both the counter and the `next_lead` consumption state — both mutations commit in a single ETag CAS. The security review's hot-key concern is resolved by partitioning.
 2. **~~`last_assignments[]` embedded array~~** → append-only `routing-log.csv` in the agent's Drive folder, matching the existing consent log pattern. Unbounded, auditable, and readable by the brokerage owner without engineering help.
 3. **~~Routing policy embedded in `account.json`~~** → dedicated `routing-policy.json` file in Drive. `account.json` stays stable; routing evolves independently.
+4. **~~`SaveIfUnchangedAsync` on the Drive policy file (R3)~~** → all atomicity moved to the Azure Table consumption row. `IFileStorageProvider` has no CAS primitives; Drive stays read-only on the routing path.
 
 #### Unit test matrix
 
-- **Manual override happy path**: policy has `next_lead = "alice"`, lead arrives → Alice receives it, policy is updated with `next_lead = null`, audit log records `manual-override(next_lead=alice)`
-- **Manual override with disabled agent**: policy has `next_lead = "bob"`, Bob has `enabled = false` → Bob still receives the lead (strict override, human knows best), audit log records `manual-override(next_lead=bob, enabled=false)` so the override is visible
+- **Manual override happy path**: policy has `next_lead = "alice"`, consumption row exists with `OverrideConsumed = false`, lead arrives → Alice receives it, consumption row updated to `OverrideConsumed = true` with `ConsumedByLeadId` set, Drive file unchanged, audit log records `manual-override(next_lead=alice)`
+- **Manual override already consumed**: policy still has `next_lead = "alice"` in Drive, consumption row has `OverrideConsumed = true` for the same content hash → falls through to algorithmic routing, override is NOT re-consumed, audit log notes the fall-through reason
+- **Manual override with disabled agent**: policy has `next_lead = "bob"`, Bob has `enabled = false` → Bob still receives the lead (strict override, human knows best), consumption row updated, audit log records `manual-override(next_lead=bob, enabled=false)`
 - **Manual override with service-area mismatch**: policy has `next_lead = "alice"`, lead is for city outside Alice's service_areas → Alice still receives the lead, audit log records `manual-override(next_lead=alice, service_area_mismatch=true)`
-- **Manual override concurrent consumption**: two leads arrive at the same time, only one CAS wins, the other falls through to algorithmic routing, both are routed without error
-- **Policy version reset**: counter is at 5 with policy version 3, policy is edited to version 4, next lead resets counter to 0 before picking
+- **Manual override concurrent consumption**: two leads arrive at the same time, both read `OverrideConsumed = false`, only one wins the Azure Table CAS, the other gets 412 → retries, sees `OverrideConsumed = true`, falls through to algorithmic routing. Both routed without error.
+- **Human re-issues override after consumption**: consumption row has `OverrideConsumed = true` for hash H1, human edits Drive file (even a no-op save), `_last_edited_at` changes → next lead computes new hash H2, hash mismatch triggers in-memory realignment with `OverrideConsumed = false`, CAS commits, override fires again
+- **Policy edit resets counter**: consumption row has `Counter = 5, PolicyContentHash = H1`, human edits the Drive policy to change agent weights, new hash is H2 → next lead aligns to H2 with `Counter = 0` before picking the tiebreak winner, CAS commits with new hash
 - **Weighted round-robin**: two tied agents with weights 2 and 1 → over 6 leads the 2-weight agent gets 4, the 1-weight gets 2
 - **Service-area hard filter with no match**: no agent covers the lead's city, `fall_back_when_no_match = "any-enabled-agent"` → falls through to any enabled agent; if set to `"reject"` → returns 422
-- **Counter contention**: 20 parallel leads against one brokerage with 3 tied agents → all 20 routed, counter final value is 20, Azure Table conflicts retried successfully
-- **Policy read cached**: first lead reads from Drive, second lead within 60s reads from edge cache, third lead after 61s re-reads from Drive
+- **CAS contention budget**: 20 parallel leads against one brokerage with 3 tied agents → all 20 routed, counter final value is 20, Azure Table conflicts retried successfully within the 5-attempt budget
+- **CAS budget exhausted**: fault-inject 6 consecutive 412s on the same lead → returns 503 to caller, logs `[LEAD-ROUTE-CONTENTION-001]`, lead is re-queued upstream
+- **Drive read cached**: first lead reads from Drive, second lead within 60s reads from edge cache, third lead after 61s re-reads from Drive
+- **Drive file never written**: assert via mock `IFileStorageProvider` that the routing path issues zero `WriteAsync` / `UpdateAsync` calls against `routing-policy.json` across all test cases above (architecture-level invariant)
 
 #### next_lead manual override — concurrent leads racing
 
@@ -1760,43 +1824,54 @@ sequenceDiagram
     participant L2 as Lead 2<br/>buyer in Edison
     participant R as RoutingService
     participant D as Drive<br/>routing-policy.json
-    participant T as Azure Table<br/>counter
+    participant T as Azure Table<br/>brokerage-routing-consumption
 
-    par Both leads arrive roughly simultaneously
+    par Both leads arrive simultaneously
         L1->>R: route_lead Lead 1
         R->>D: Read routing-policy.json
-        D-->>R: policy next_lead alice<br/>_version 7 _etag v1
+        D-->>R: policy next_lead alice<br/>human-editable
+        R->>R: currentHash H1
+        R->>T: Read consumption row<br/>PK glr
     and
         L2->>R: route_lead Lead 2
         R->>D: Read routing-policy.json
-        D-->>R: policy next_lead alice<br/>_version 7 _etag v1
+        D-->>R: policy next_lead alice<br/>human-editable
+        R->>R: currentHash H1
+        R->>T: Read consumption row<br/>PK glr
     end
-    Note over R: Both have seen next_lead alice
-    par Both try to consume the override
-        R->>D: SaveIfUnchangedAsync<br/>next_lead null<br/>_version 8<br/>If-Match v1
-        D-->>R: 200 saved<br/>new ETag v2
+    T-->>R: row PolicyContentHash H1<br/>OverrideConsumed false<br/>Counter 3 ETag e1
+    T-->>R: row PolicyContentHash H1<br/>OverrideConsumed false<br/>Counter 3 ETag e1
+    Note over R: Both see the override available
+    par Both try to consume via single CAS on Azure Table
+        R->>T: UpdateEntity<br/>OverrideConsumed true<br/>ConsumedByLeadId L1<br/>If-Match e1
+        T-->>R: 200 saved ETag e2
         R-->>L1: Routed to Alice<br/>reason manual-override
     and
-        R->>D: SaveIfUnchangedAsync<br/>next_lead null<br/>_version 8<br/>If-Match v1
-        D-->>R: 412 precondition failed
-        R-->>L2: Fell through
+        R->>T: UpdateEntity<br/>OverrideConsumed true<br/>ConsumedByLeadId L2<br/>If-Match e1
+        T-->>R: 412 precondition failed
+        R->>R: Log LEAD-ROUTE-OVERRIDE-002<br/>retry attempt 2
     end
-    R->>R: Log LEAD-ROUTE-OVERRIDE-002<br/>override lost to concurrent lead
+    Note over R: L2 retries the whole decision
     R->>D: Re-read routing-policy.json
-    D-->>R: policy next_lead null<br/>_version 8 _etag v2
-    Note over R: next_lead already cleared<br/>Proceed with algorithmic routing
-    R->>R: Filter by Edison service area<br/>Score by specialty
-    R->>T: Read counter partition glr
-    T-->>R: counter 3 policyVersion 8
-    Note over R: Version matches<br/>no reset needed
-    R->>T: UpdateEntity counter 4<br/>If-Match ETag
-    T-->>R: 200 saved
+    D-->>R: policy next_lead alice<br/>still there human unchanged
+    R->>R: currentHash still H1
+    R->>T: Re-read consumption row
+    T-->>R: row PolicyContentHash H1<br/>OverrideConsumed true<br/>ConsumedByLeadId L1 ETag e2
+    Note over R: Override already consumed<br/>for this hash<br/>Fall through to algorithmic
+    R->>R: Filter by Edison service area<br/>Score by specialty<br/>Jenise wins on language match
+    R->>T: UpdateEntity<br/>Counter 4<br/>If-Match e2
+    T-->>R: 200 saved ETag e3
     R-->>L2: Routed to Jenise<br/>reason specialty-match
+    Note over D: Drive file is never written.<br/>routing-policy.json still<br/>shows next_lead alice —<br/>OverrideConsumed in the<br/>Azure Table row is the<br/>source of truth.
 ```
 
-**Key invariant**: the override goes to exactly one lead, even under contention. The CAS on `SaveIfUnchangedAsync` is the serialization point. The losing lead **does not** see the override a second time because the re-read returns the already-cleared policy. There is no window where both leads could consume the same override, and there is no window where the override is lost without being used.
+**Key invariant**: the override goes to exactly one lead, even under contention. The CAS on the Azure Table consumption row is the serialization point — the whole routing decision (override consumption OR counter increment) commits in a single `UpdateEntity` call. The losing lead **does not** see the override a second time because on its retry it re-reads the Azure Table row and sees `OverrideConsumed = true` for the same content hash. There is no window where both leads could consume the same override, and there is no window where the override is lost without being used.
 
-**Error recovery**: if the losing lead's retry also loses the CAS (three simultaneous leads, maybe), the pattern continues — each failed CAS triggers another re-read until one lead gets a clean policy to work with. In practice, three-way contention on the same manual override is essentially impossible given real lead arrival rates.
+**Why Drive is never written on this path**: `GDriveApiClient` has no conditional-write primitive — `IFileStorageProvider` defines `WriteAsync` with no ETag or revision parameter. Writing to Drive during routing would create a lost-write race where two concurrent leads both "clear" `next_lead` with no way to detect contention. Moving all atomicity to Azure Table (which has verified ETag CAS via `AzureTableTokenStore.SaveIfUnchangedAsync`) sidesteps this entirely. The Drive file remains human-authored and human-visible; the Azure Table row decides who gets the lead.
+
+**How a brokerage owner re-issues the override**: they edit `routing-policy.json` in Drive — even a no-op save counts because `_last_edited_at` changes, which changes the content hash, which resets `OverrideConsumed` on the next routing decision. This preserves the user-stated feature ("edit the file, it takes effect on the next lead") without needing any write primitive on Drive.
+
+**Error recovery**: if the losing lead's retry also loses the CAS (three simultaneous leads, maybe), the retry loop continues up to 5 attempts with exponential backoff. Three-way contention on the same routing row is essentially impossible given real brokerage lead arrival rates; the budget exists purely as a safety valve.
 
 #### Observability
 
@@ -2491,8 +2566,12 @@ The mitigation is a **two-tier fallback chain** inside `BuildLocalizedSiteConten
     }},
     "contact_form": { "enabled": true, "data": {
       "title": "{template.defaultContent.contact_form.title}",
-      "tcpa_consent": { "required": true, "text_version": "v1", "text": "..." },
-      "fields": [ /* standard 4 fields: name, email, phone, message */ ]
+      "subtitle": "{template.defaultContent.contact_form.subtitle}"
+      // NOTE: the contact form itself is the shared `LeadForm` component from
+      // `@real-estate-star/forms`, rendered via `CmaSection`. TCPA consent text,
+      // required fields, and the `MarketingConsent` capture schema are owned by
+      // that component — not by content.json. Content.json only carries display
+      // strings (title/subtitle). See D42 and §17.3 for the triple-write pipeline.
     }}
   }}}
 }
@@ -3292,9 +3371,11 @@ This section consolidates legal compliance rules that must be enforced across th
 
 #### 17.1.1 Site-wide Equal Housing Opportunity display
 
-**Decision D41: EHO footer is already implemented in the existing codebase; R3 enforces it via an architecture test, no new code.**
+**Decision D41: EHO footer is already implemented in the existing codebase (with a state-conditional nuance — see below); R4 enforces it via a two-part architecture test, no new code.**
 
-> **Correction from R2**: R2 framed the EHO footer as a new requirement to build. This was wrong. A codebase audit confirmed that every template already renders a shared `Footer` component which unconditionally includes `EqualHousingNotice`. The component is already state-aware (renders the NJ-extended protected class list when `agentState === "NJ"`). R3 removes the "build this" language and replaces it with "lock it in so it can't regress."
+> **Correction from R2 (R3)**: R2 framed the EHO footer as a new requirement to build. This was wrong. A codebase audit confirmed that every template already renders a shared `Footer` component which conditionally renders `EqualHousingNotice` when account state is defined. The component is already state-aware (renders the NJ-extended protected class list when `agentState === "NJ"`). R3 removed the "build this" language and replaced it with "lock it in so it can't regress."
+>
+> **R4 nuance**: R3 described the rendering as "unconditional," but `Footer.tsx:141-145` actually renders inside `{state && (...)}`. An account with `state === null` would silently ship without the EHO notice — which is a compliance bug hiding behind an architectural claim. The R4 architecture test is now two parts: (a) the template-Footer import assertion from R3, plus (b) a publish-gate assertion that no account can advance to `Live` with `state === null`. See the "Two-part architecture test" subsection below.
 
 #### Existing implementation — verified
 
@@ -3303,15 +3384,20 @@ Every rendered page on every agent site, in every locale, already displays the E
 **Verified against the codebase**:
 
 1. **All 10 templates render the shared Footer**: `coastal-living.tsx:99`, `commercial.tsx:104`, `country-estate.tsx:99`, `emerald-classic.tsx:96`, `light-luxury.tsx:101`, `luxury-estate.tsx:101`, `modern-minimal.tsx:96`, `new-beginnings.tsx:99`, `urban-loft.tsx:99`, `warm-community.tsx:96`. Every template passes `accountId` into `<Footer />`.
-2. **Shared Footer component**: `apps/agent-site/features/sections/shared/Footer.tsx:141-145` renders `<EqualHousingNotice agentState={state} />` unconditionally when state is defined. The component accepts `accountId` from templates and derives the state from the account config.
+2. **Shared Footer component**: `apps/agent-site/features/sections/shared/Footer.tsx:141-145` renders `<EqualHousingNotice agentState={state} />` **inside a `{state && (...)}` conditional**. If the account config has `state` defined, the EHO notice renders in every template footer. If `state` is missing or null, the notice is silently skipped — this is the R4-identified gap that the publish gate closes. The component accepts `accountId` from templates and derives the state from the account config.
 3. **`EqualHousingNotice` component**: `packages/legal/src/EqualHousingNotice/EqualHousingNotice.tsx:28-75` renders the EHO logo (SVG), "Equal Housing Opportunity" text, and a state-aware compliance statement. Federal seven-class statement for most states (`FEDERAL_CLASSES`, line 7), NJ-extended class list (`NJ_CLASSES`, lines 9-13) when `agentState === "NJ"` (line 16).
 4. **Localization**: the notice body is localized via the existing i18n infrastructure. The EHO logo itself is a federal standard and not translated — that's correct per HUD guidance.
 
-#### What R3 adds: regression-prevention architecture test
+#### Two-part architecture test (R4)
 
-The existing implementation is compliant today. The risk is that a future engineer adds a new template (R3 does not spec any, but template 11 is inevitable at some point) and forgets the shared `Footer`. R3 adds an architecture test that prevents this:
+The existing implementation is compliant *when `state` is defined*. Two independent risks remain:
 
-**Test**: `apps/agent-site/__tests__/compliance/eho-footer.test.ts`
+1. A future engineer adds a new template (template 11) and forgets the shared `Footer`.
+2. An account is created or migrated with `state === null` and ships live — the `{state && ...}` conditional silently strips the EHO notice.
+
+R4 closes both with a two-part test:
+
+**Test 1 — Template Footer import invariant**: `apps/agent-site/__tests__/compliance/eho-footer.test.ts`
 
 ```typescript
 // Scans every file under apps/agent-site/features/templates/*.tsx
@@ -3325,20 +3411,38 @@ The existing implementation is compliant today. The risk is that a future engine
 // with a custom footer missing <EqualHousingNotice /> fails CI.
 ```
 
-**Smoke test** (Playwright, runs against test fixtures):
+**Test 2 — Publish-gate state assertion** (C#, integrated into the §10 preview → live state machine):
+
+```csharp
+// apps/api/RealEstateStar.Tests/Activation/AgentSiteComplianceGateTests.cs
+// When BuildLocalizedSiteContent transitions an account from Preview to Live:
+//   1. Load the account config
+//   2. Assert account.state is not null and not empty
+//   3. If null, block the transition and move site to "Needs Info" state
+//      with reason = "eho-state-missing"
+// This is the enforcement path. An account that slipped through onboarding
+// without a state cannot ship — the EHO conditional in Footer.tsx
+// becomes a no-op safely because the publish gate prevents the case from
+// reaching production.
+```
+
+**Smoke test** (Playwright, runs against test fixtures): `apps/agent-site/__tests__/compliance/eho-footer-rendered.test.ts`
 
 ```typescript
-// apps/agent-site/__tests__/compliance/eho-footer-rendered.test.ts
 // For each test fixture (jenise-buckalew, glr, test-brokerage, ...):
 //   1. Navigate to the home page
 //   2. Assert the DOM contains an element matching the EHO logo selector
 //      (data-testid="equal-housing-notice" or role="img" with EHO alt text)
 //   3. Also check contact, about, and one legal page
-// Failure mode: a rendering regression that hides or strips the footer
+//   4. Include a negative fixture with state === null that MUST be blocked
+//      by the publish gate — assert the gate rejects it, not that the page
+//      renders without EHO
+// Failure mode: a rendering regression that hides or strips the footer,
+// or a publish-gate regression that lets a null-state account through,
 // fails CI before merge.
 ```
 
-**What the test does not do**: re-verify the existing Footer component's behavior. That's covered by the existing component unit tests. This test's job is architectural — enforce that every template continues to use the compliance-embedded Footer.
+**What the tests do not do**: re-verify the existing `EqualHousingNotice` component's internal rendering (logo SVG, federal vs NJ class list). That's covered by the existing component unit tests in `packages/legal`. Test 1 enforces "every template uses the compliance-embedded Footer"; Test 2 enforces "every live account has the state field that the Footer conditional depends on."
 
 #### Files unchanged by R3
 
@@ -3441,7 +3545,7 @@ TCPA consent capture is already live in the lead submission pipeline. The agent-
     channels: ["email", "calls"],
   }
   ```
-- **`apps/agent-site/features/sections/shared/CmaSection.tsx:150`** — every template renders the contact form via `<LeadForm>` from the shared `packages/forms` package. All 10 templates use the same component. The checkbox is included by construction.
+- **`apps/agent-site/features/sections/shared/CmaSection.tsx:7`** — `import { LeadForm } from "@real-estate-star/forms"`. `CmaSection` is the **only** component that imports `LeadForm` directly. The 10 templates do **not** import `LeadForm` themselves — they compose `CmaSection` (typically via the contact/CMA section slot), and `CmaSection` composes `LeadForm`. The path is therefore: `template → CmaSection → LeadForm`. The TCPA checkbox is included by construction at the leaf of that chain. **R4 note**: the architecture test in §17.3 #1 below must scan the **shared section** layer for the `LeadForm` import, not the template layer. A test that requires every template to directly import `LeadForm` would fail against real code.
 
 **API-side (backend)**:
 
@@ -3494,9 +3598,15 @@ Every captured consent is written to **three** storage locations in order, match
 
 R3 does **not** introduce any new consent storage. It adds three things to lock the existing behavior in and extend it for brokerage routing:
 
-**1. Architecture test — every template must use shared `LeadForm`**:
+**1. Architecture test — the contact form composition chain is locked in (R4 revised)**:
 
-`apps/agent-site/__tests__/compliance/tcpa-form.test.ts` scans every template's JSX for the contact form rendering. A template that builds a custom form instead of using `<LeadForm>` from `packages/forms` fails the test. This prevents a future template author from accidentally creating a form that skips the TCPA checkbox.
+`apps/agent-site/__tests__/compliance/tcpa-form.test.ts` enforces the real composition chain `template → CmaSection → LeadForm`:
+
+1. **Scan every template** for contact-form rendering. Assert each template either (a) uses `<CmaSection>` from `features/sections/shared`, OR (b) directly imports `<LeadForm>` from `@real-estate-star/forms` if the template has a non-CMA contact form.
+2. **Scan `features/sections/shared/CmaSection.tsx`** specifically: assert the file contains `import { LeadForm } from "@real-estate-star/forms"`. This is the pin — if a refactor renames `LeadForm`, moves it out of `packages/forms`, or replaces it with a custom element, this line moves and the test fails.
+3. **Disallow forbidden patterns**: no template or shared section may contain an inline `<form>` element with email/phone inputs that is not wrapped by `LeadForm`. A grep for `<form.*email.*phone` (or a JSX-aware AST walk) in all template + shared-section files must return zero matches outside `LeadForm.tsx` itself.
+
+This prevents a future template author from accidentally creating a custom form that skips the TCPA checkbox, and it prevents a refactor from silently unwiring `CmaSection` from the shared `LeadForm`.
 
 **2. Architecture test — `LeadForm` always includes the checkbox**:
 
@@ -4348,12 +4458,12 @@ Mapping of every BLOCKER and HIGH finding from the three R1 review passes to whe
 
 | # | Finding | Severity | Addressed in |
 |---|---|---|---|
-| 1.1 | No site-wide EHO footer | BLOCKER | **R3 correction — already implemented**. Existing `Footer.tsx` + `EqualHousingNotice` in every template. R3 adds architecture test only. §17.1.1, D29, D41 |
+| 1.1 | No site-wide EHO footer | BLOCKER | **R3 correction — already implemented (with R4 nuance)**. Existing `Footer.tsx:141-145` renders `EqualHousingNotice` inside `{state && (...)}` — rendering is **conditional on account state being non-null**, not unconditional as R3 claimed. R4 architecture test is two parts: (a) template Footer imports `EqualHousingNotice`, (b) publish gate rejects accounts with null `state`. §17.1.1, D29, D41 |
 | 1.2 | No steering-language filter | HIGH | §17.1.2, D35 |
 | 1.3 | State protected classes incomplete | MEDIUM | §17.1.3 state table |
 | 2.1 | Gallery IDX: no attribution/refresh/rights | BLOCKER | §17.2, §4.1 gallery row, D34 |
 | 2.2 | Bridge Interactive TOS not referenced | MEDIUM | §17.2 last paragraph |
-| 3.1 | Contact form TCPA consent not captured | BLOCKER | **R3 correction — already implemented**. Existing `LeadForm` + `MarketingConsent` triple-write (`MarketingConsentLog` → agent Drive sheet, `ComplianceConsentWriter` → compliance Drive, `ConsentAuditService` → Azure Table with HMAC). R3 adds architecture test enforcing shared `LeadForm` usage + `RoutingDecision` sibling record for brokerage routing metadata only. §17.3, D30, D42 |
+| 3.1 | Contact form TCPA consent not captured | BLOCKER | **R3 correction — already implemented (R4 clarified import path)**. Existing `LeadForm` + `MarketingConsent` triple-write (`MarketingConsentLog` → agent Drive sheet, `ComplianceConsentWriter` → compliance Drive, `ConsentAuditService` → Azure Table with HMAC). **R4 correction**: templates do NOT import `LeadForm` directly — the composition chain is `template → CmaSection → LeadForm`, and `CmaSection.tsx:7` is the only direct import site. R4 rewrites the §17.3 architecture test to enforce this chain (scan templates for `<CmaSection>`, scan `CmaSection.tsx` for the `LeadForm` import) instead of falsely expecting every template to import `LeadForm`. `RoutingDecision` sibling record unchanged. §17.3, D30 (superseded), D42 |
 | 3.2 | Prospect table missing consent schema | MEDIUM | §16.8 PII handling + §7.2 schema |
 | 4.1 | Welcome email CAN-SPAM violation | HIGH | §10.4 updated, §17.4 |
 | 5.1 | No cookie consent banner | HIGH | §17.5.1, §4.1 footer row |
@@ -4389,8 +4499,8 @@ Mapping of every BLOCKER and HIGH finding from the three R1 review passes to whe
 | 9.5-3 | No rate limit on `POST /domains` | HIGH | §16.2, §18.4 |
 | 9.5-4 | No typosquat/reserved blocklist | HIGH | §16.2, D25 |
 | 9.5-5 | DNS rebind vulnerable verifier | MEDIUM | §16.2 multi-resolver consensus |
-| 8.3-1 | CAS fallback lock lifecycle undefined | HIGH | **R3 correction** — R2 fabricated a lock table pattern. R3 extends `IAccountConfigService.SaveIfUnchangedAsync` using the existing `ITokenStore` ETag pattern (verified in `AzureTableTokenStore.cs:117-156` and `GoogleOAuthRefresher.cs:64-72`). No new lock abstraction. §8.3, D44 |
-| 8.4-1 | Lead routing counter hot key | HIGH | **R3 correction** — Counter moved to dedicated `brokerage-routing-counters` Azure Table partitioned by accountId (no cross-brokerage contention). Policy lives in `routing-policy.json` in agent Drive (human-editable, `next_lead` strict one-shot override). §8.4, D43 |
+| 8.3-1 | CAS fallback lock lifecycle undefined | HIGH | **R3 correction, R4 clarified** — R2 fabricated a lock table pattern. R3 extends `IAccountConfigService.SaveIfUnchangedAsync` using the existing `ITokenStore` ETag pattern (verified in `AzureTableTokenStore.cs:117-156` and `GoogleOAuthRefresher.cs:64-72`). R4 clarifies that `GoogleOAuthRefresher` does a **single re-read on 412**, not a retry loop — the brokerage-join caller needs an actual bounded retry loop because its writers each append unique content. Same primitive, different loop structure. §8.3, D44 |
+| 8.4-1 | Lead routing counter hot key | HIGH | **R3 correction, R4 rewritten** — R3 moved the counter to Azure Table but specified `SaveIfUnchangedAsync` against the Drive policy file to consume `next_lead`. R4 verified that `IFileStorageProvider` has **zero CAS primitives** and `GDriveApiClient` writes are unconditional. R4 rewrites §8.4 with Option C: all atomicity (both `OverrideConsumed` AND `Counter`) moves to a single Azure Table row `brokerage-routing-consumption` keyed by `PolicyContentHash`. Drive stays read-only on the routing path; human edits take effect via hash change → automatic realignment on next lead. §8.4, D43 |
 | 8.4-2 | `last_assignments` embedded array | MEDIUM | **R3 correction** — Replaced by append-only `routing-log.csv` in agent Drive (matches existing consent log pattern) + `brokerage-routing-decisions` Azure Table for programmatic queries. §8.4, D43 |
 | 8.4-3 | No rate limit on brokerage form | MEDIUM | §18.4 |
 | 7-1 | SSRF via brokerage URL | BLOCKER | §16.4, §7.3, D27 |
@@ -4454,14 +4564,23 @@ Mapping of every BLOCKER and HIGH finding from the three R1 review passes to whe
 
 ### G.4 Summary
 
-- **Legal/ADA**: 7 BLOCKERS → all addressed (2 of 7 already implemented in existing code, verified via codebase audit: EHO footer, TCPA consent capture); 6 HIGH → all addressed; 10 MEDIUM → all addressed; 2 LOW → addressed
-- **Security**: 7 BLOCKERS → all addressed in §16 + §10 + §7 updates; 13 HIGH → all addressed (lead routing + concurrency corrected in R3 to reference existing `ITokenStore` pattern and partitioned Azure Table counter); 10 MEDIUM → addressed or explicitly noted as future work with reference
+- **Legal/ADA**: 7 BLOCKERS → all addressed (2 of 7 already implemented in existing code, verified via codebase audit: EHO footer with R4 state-conditional nuance, TCPA consent capture via `template → CmaSection → LeadForm` chain); 6 HIGH → all addressed; 10 MEDIUM → all addressed; 2 LOW → addressed
+- **Security**: 7 BLOCKERS → all addressed in §16 + §10 + §7 updates; 13 HIGH → all addressed (R4 rewrote lead routing with Option C two-store mechanism after verifying `IFileStorageProvider` has no CAS primitives); 10 MEDIUM → addressed or explicitly noted as future work with reference
 - **Maintainability**: 2 CRITICAL → addressed (`IVoicedContentGenerator` §5.3, rollback-for-net-new §13.4); 14 HIGH → all addressed; 10 MEDIUM → addressed; 2 LOW → addressed
 
 **No deferred BLOCKERs.** All 17 are in v1 per project decision (D21).
 
-**R3 correction summary**: R3 corrected two BLOCKER findings that R2 framed as net-new work — EHO footer (finding 1.1) and TCPA consent capture (finding 3.1) were already fully implemented in the existing codebase. R3 replaces the "build new" language with "enforce existing via architecture test" and adds decisions D41–D44 to record the correction. R3 also rewrote §8.3 and §8.4 to reference the existing `ITokenStore` ETag pattern and a partitioned Azure Table counter, removing R2's fabricated lock table design. Every R3 change is backed by explicit file paths and line numbers verified against the codebase audit.
+**R3 correction summary**: R3 corrected two BLOCKER findings that R2 framed as net-new work — EHO footer (finding 1.1) and TCPA consent capture (finding 3.1) were already fully implemented in the existing codebase. R3 replaced the "build new" language with "enforce existing via architecture test" and added decisions D41–D44 to record the correction. R3 also rewrote §8.3 and §8.4 to reference the existing `ITokenStore` ETag pattern and a partitioned Azure Table counter, removing R2's fabricated lock table design.
+
+**R4 correction summary**: R4 is a codebase-verified accuracy pass over R3. Four changes of substance:
+
+1. **§8.4 rewritten** — R3 specified `SaveIfUnchangedAsync` directly on the Drive `routing-policy.json` file. Codebase audit confirmed `IFileStorageProvider` has zero CAS primitives and `GDriveApiClient` writes are unconditional. R4 moves all routing atomicity (both `next_lead` consumption AND round-robin counter) onto a single Azure Table row `brokerage-routing-consumption` keyed by `PolicyContentHash`, with Drive read-only on the routing path. Human edits to Drive still take effect on the next lead via hash change + automatic realignment.
+2. **§17.1.1 EHO nuance** — R3 described rendering as "unconditional." `Footer.tsx:141-145` actually renders inside `{state && (...)}`. Publish gate added to reject accounts with null `state` so the conditional is safe.
+3. **§17.3 TCPA import path** — R3 implied every template imports `LeadForm` directly. Real composition chain is `template → CmaSection → LeadForm`. Architecture test rewritten to enforce the real chain.
+4. **§8.3 retry loop** — R3 described `GoogleOAuthRefresher` as a "retry-and-re-read loop." It does a **single re-read on 412**. `AccountConfigService` join path needs an actual bounded retry loop because writers append unique content. Same primitive, different loop structure — documented explicitly.
+
+D16 self-contradiction fixed, D30 marked superseded by D42, §13.4 Tier 2 example JSON stripped of fabricated `tcpa_consent`, standalone diagram files in `docs/architecture/` updated to match. Every R4 change is backed by explicit file paths and line numbers from the `feat/azure-cost-reduction` branch.
 
 ---
 
-**End of design document — Revision 3.**
+**End of design document — Revision 4.**
