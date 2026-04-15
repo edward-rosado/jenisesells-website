@@ -1,6 +1,6 @@
 # Agent Site Comprehensive Design
 
-**Status:** Draft (Revision 2 — incorporates legal, security, and maintainability review)
+**Status:** Draft (Revision 3 — incorporates existing-codebase verification and routing design correction)
 **Date:** 2026-04-12
 **Owner:** Eddie Rosado
 **Author:** Claude (Opus 4.6)
@@ -9,7 +9,13 @@
 
 > **Revision history**
 > - **R1 (initial)**: First draft committed after scoping conversation.
-> - **R2 (this version)**: Incorporates three independent reviews (legal/ADA, security, maintainability) that together flagged 17 BLOCKER-severity issues and 33 HIGH-severity issues. All 17 BLOCKERs are addressed in v1 per project decision. New cross-cutting sections §16 (Security & Trust Model), §17 (Compliance Requirements Matrix), and §18 (Tunables and Thresholds) hold the invariants the reviewers identified as missing. Appendices D (Test Inventory), E (Log Code Ranges), and F (Runtime Worker DAG) added to support maintainability. The `IVoicedContentGenerator` abstraction is introduced in §5.3 to eliminate the ~15 duplicate Claude call sites flagged in the maintainability review.
+> - **R2**: Incorporated three independent reviews (legal/ADA, security, maintainability) that together flagged 17 BLOCKER-severity issues and 33 HIGH-severity issues. All 17 BLOCKERs kept in v1 per project decision. New cross-cutting sections §16 (Security & Trust Model), §17 (Compliance Requirements Matrix), and §18 (Tunables and Thresholds) hold the invariants the reviewers identified as missing. Appendices D (Test Inventory), E (Log Code Ranges), and F (Runtime Worker DAG) added to support maintainability. The `IVoicedContentGenerator` abstraction introduced in §5.3.
+> - **R3 (this version)**: Codebase-verification pass after user review of R2 flagged three R2 errors where the spec described building features that already exist in the codebase, and a design refinement for lead routing to preserve manual-edit-in-Drive as a first-class feature. Corrections:
+>   - **§17.1.1 EHO footer** — R2 framed the site-wide Equal Housing Opportunity footer as a new requirement to build. Codebase audit confirmed `apps/agent-site/features/sections/shared/Footer.tsx:141-145` already unconditionally renders `EqualHousingNotice` from `packages/legal` in every template. R3 removes the "build this" language and replaces it with an architecture test that prevents regression. Decision D41.
+>   - **§17.3 TCPA consent** — R2 proposed a brand-new `TcpaConsent` record stored in "lead markdown frontmatter," a fourth storage location that doesn't exist. Codebase audit confirmed the existing `LeadForm` + `SubmitLeadEndpoint` + `MarketingConsent` triple-write pattern already captures TCPA consent to (1) the agent's Drive sheet via `MarketingConsentLog`, (2) the compliance Drive via `ComplianceConsentWriter`, and (3) Azure Table with HMAC via `ConsentAuditService`. R3 removes the fabricated schema and references the existing one. `RoutingDecision` sibling record added for brokerage routing metadata only — not a replacement for consent capture. Decision D42.
+>   - **§8.3 AccountConfig concurrency** — R2 specified a "compare-and-set with fallback lock table" approach that doesn't exist in the codebase. Codebase audit confirmed `AzureTableTokenStore.SaveIfUnchangedAsync` + `GoogleOAuthRefresher.GetValidCredentialAsync` already implement the ETag retry-and-re-read pattern. R3 extends `IAccountConfigService` with the same `SaveIfUnchangedAsync` signature and reuses the caller pattern. No new lock abstraction. Decision D44.
+>   - **§8.4 Lead routing** — R2 embedded the routing counter inside `account.json` and proposed no manual-edit path. User feedback: "the benefit of being able to modify who gets the next lead manually by altering a file in google drive is a feature not a bug." R3 splits the state: `routing-policy.json` lives in the agent's Drive folder (human-editable, `next_lead` strict one-shot override, auto-clears after consumption), and `brokerage-routing-counters` is a dedicated Azure Table partitioned by accountId for atomic round-robin. Append-only `routing-log.csv` in Drive serves as audit trail, matching the existing consent log pattern. Decision D43.
+>   - **Appendix G traceability** updated to mark findings 1.1 (EHO) and 3.1 (TCPA) as "R3 correction — already implemented" and 8.3-1/8.4-1/8.4-2 as "R3 correction" with links to the new decisions.
 
 ---
 
@@ -136,6 +142,10 @@ Every significant architectural decision in this spec has a callout in the relev
 | D38 | Feature flags | `Activation:SiteContentGeneration:Enabled`, `Activation:FairHousingLinter:Enabled`, per-account deny lists for gradual rollout and emergency kill switches | No flags | §18 |
 | D39 | KV key versioning | All KV keys include a `v1:` segment (`content:v1:{accountId}:{locale}:live`); Worker reads current version first, falls back to prior on miss | Unversioned keys | §6.1.2 |
 | D40 | Endpoint authentication matrix | Explicit per-endpoint auth table in §16.3 — no endpoint ships without documented auth semantics | Defer to implementation | §16.3 |
+| D41 | EHO footer — already implemented | Existing `Footer.tsx` in every template unconditionally renders `EqualHousingNotice` from `packages/legal`, state-aware for NJ. R3 adds architecture test only, no new code. | Build as new | §17.1.1 |
+| D42 | TCPA consent — already implemented via triple-write | Existing `MarketingConsent` record captured by `LeadForm` + `SubmitLeadEndpoint`, triple-written to agent Drive sheet (`MarketingConsentLog`), compliance Drive (`ComplianceConsentWriter`), and Azure Table with HMAC (`ConsentAuditService`). R3 adds architecture test enforcing shared `LeadForm` usage, plus `RoutingDecision` sibling record for brokerage routing metadata only. | Invent new schema | §17.3 |
+| D43 | Lead routing state split | `routing-policy.json` in agent Drive holds human-editable policy with `next_lead` strict one-shot override; `brokerage-routing-counters` Azure Table holds atomic counter partitioned by accountId; `routing-log.csv` append-only in Drive for audit | Counter embedded in `account.json` | §8.4 |
+| D44 | AccountConfig ETag concurrency reuses `ITokenStore` pattern | Extend `IAccountConfigService` with `SaveIfUnchangedAsync(account, etag, ct)` mirroring `AzureTableTokenStore.SaveIfUnchangedAsync`; caller uses the same retry-and-re-read loop as `GoogleOAuthRefresher.GetValidCredentialAsync`; no new lock abstractions | R2's fabricated fallback lock table | §8.3 |
 
 ---
 
@@ -334,8 +344,8 @@ Legend: **T1** = Tier 1 (real data), **T3** = Tier 3 (Claude polish over T1), **
 | `contact_form.data.title` | T3: per locale | Template default | Per-locale |
 | `contact_form.data.subtitle` | T3: per locale | Template default | Per-locale |
 | `contact_form.data.description` | T3: per locale | Template default | Per-locale |
-| `contact_form.data.tcpa_consent` | **REQUIRED**: TCPA express consent checkbox, English-only text, versioned template | — | Identical (English only per TCPA). **See §17.3** |
-| `contact_form.data.fields[]` | D: per template, each with label, autocomplete, required, aria_describedby | — | Labels per-locale, field names identical. **See §17.6.4** |
+| `contact_form` rendering | **REQUIRED**: every template must render the shared `<LeadForm>` component from `packages/forms` — which already includes the TCPA consent checkbox, the full `MarketingConsent` triple-write (agent Drive sheet + compliance Drive + Azure Table with HMAC), and is enforced by architecture test. No new contact form schema fields are introduced by R3. **See §17.3** |
+| `contact_form.data.form_fields[]` rendering | Fields (name, email, phone, message) rendered by shared `LeadForm` with labels (per-locale), autocomplete attributes (WCAG 2.1 SC 1.3.5), required flags, and ARIA descriptions. Handled by the existing component — no schema additions in `content.json`. **See §17.6.4** |
 | `about.data.title` | T3: per locale, e.g., "About Jenise" / "Acerca de Jenise" | Template default | Per-locale |
 | `about.data.bio` | T3: polished from profile scrape + voice skill, per locale; **anti-plagiarism check** vs source | Template placeholder | Per-locale (key — bio should feel native). **See §17.8** |
 | `about.data.credentials` | T1: `agent.credentials` | `[]` | Identical across locales |
@@ -345,7 +355,7 @@ Legend: **T1** = Tier 1 (real data), **T3** = Tier 3 (Claude polish over T1), **
 | `thank_you.heading` | T3: per locale | Template default | Per-locale |
 | `thank_you.subheading` | T3: per locale | Template default | Per-locale |
 | `thank_you.body` | T3: per locale + {firstName} interpolation | Template default | Per-locale |
-| `footer.equal_housing_notice` | D: always rendered, localized EHO statement | **UNCONDITIONAL** | Per-locale. **See §17.1.1** |
+| `footer.equal_housing_notice` | **Already implemented**: `EqualHousingNotice` component in `packages/legal` is rendered unconditionally by the shared `Footer.tsx` in every template. State-aware (NJ-extended class list when `agentState === "NJ"`). R3 adds an architecture test that prevents future templates from stripping it. No schema additions in `content.json`. **See §17.1.1** | **UNCONDITIONAL, existing code** | Per-locale body text via existing i18n; logo is federal standard (not translated). |
 | `footer.privacy_choices_link` | D: always rendered, routes to `/privacy-choices` | **UNCONDITIONAL** | Per-locale label. **See §17.5.2** |
 | `footer.cookie_consent_banner` | D: geo-gated, always rendered for EU/state-privacy visitors | **UNCONDITIONAL for EU/CA/etc.** | Per-locale text. **See §17.5.1** |
 | All image fields (headshot, logo, gallery, hero bg, icon) | **REQUIRED**: `alt` field populated per §17.6.2 deterministic rules | — | Alt uses stable English phrasing (screen reader safe regardless of page locale) |
@@ -1023,75 +1033,353 @@ stateDiagram-v2
 
 ### 8.3 Account.json concurrency
 
-When two agents from the same brokerage join simultaneously, both orchestrations would read the same `account.json`, append themselves, and write it back. Without concurrency control, one overwrites the other.
+**Decision D44: AccountConfig concurrency uses the existing `ITokenStore` ETag pattern.**
 
-**Protection**: KV put uses `If-None-Match` / `If-Match` semantics via a write-conditional wrapper. Cloudflare KV does not natively support ETag conditional writes across regions, so we use a lightweight approach:
+> **Correction from R2**: R2 specified a "compare-and-set with fallback lock table" approach that doesn't match anything in the codebase. Review of existing concurrency patterns revealed that `AzureTableTokenStore` already implements optimistic locking via ETag, and `GoogleOAuthRefresher` has a proven retry-and-re-read loop using that pattern. The correct design is to extend `IAccountConfigService` with the **same** ETag semantics rather than invent a parallel abstraction. R3 strikes the fabricated lock-table fallback and reuses the existing pattern verbatim.
 
-1. Read `account.json` + capture a `_version` number stored in the JSON
-2. Append the new agent
-3. Increment `_version`
-4. Write back with a **compare-and-set** helper that: (a) re-reads current version, (b) aborts if version differs, (c) writes if unchanged
-5. On failure, re-read and retry up to 3 times
-6. On persistent conflict, log `[ACCOUNT-MERGE-010]` and fall back to a durable lock via Azure Table Storage's `Insert` operation (atomic "acquire lock row")
+#### The problem
 
-Durable Functions already gives us retry semantics for the whole activity, so the merge activity can simply throw on conflict and let DF retry. This is the cheapest safe option.
+When two agents from the same brokerage join simultaneously, both orchestrations would read the same `account.json`, append themselves, and write it back. Without concurrency control, one overwrites the other and an agent is silently dropped from the brokerage's agent list.
+
+#### Reference implementation already exists
+
+The existing `ITokenStore` / `AzureTableTokenStore` pattern solves the identical problem for OAuth tokens. Every activation that refreshes tokens runs through this path, and the pattern has been battle-tested under real parallel load. The key files:
+
+- **`apps/api/RealEstateStar.Domain/Shared/Interfaces/Storage/ITokenStore.cs:9`** — `Task<bool> SaveIfUnchangedAsync(OAuthCredential credential, string provider, string etag, CancellationToken ct)`
+- **`apps/api/RealEstateStar.Domain/Shared/Models/OAuthCredential.cs:16`** — `public string? ETag { get; init; }` populated by the store on read
+- **`apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/AzureTableTokenStore.cs:117-156`** — implementation using Azure Table `UpdateEntityAsync` with ETag precondition; returns `false` on 412, `true` on success
+- **`apps/api/RealEstateStar.Clients/RealEstateStar.Clients.GoogleOAuth/GoogleOAuthRefresher.cs:64-72`** — the retry-and-re-read consumer loop that R3's `AccountConfigService` should mirror
+
+Metrics and diagnostics already exist:
+- **`TokenStoreDiagnostics.Conflicts.Add(1)`** — counter incremented on every 412 — R3 adds an analogous `AccountConfigDiagnostics.Conflicts` for brokerage merge conflicts
+
+#### Target design for `IAccountConfigService`
+
+Extend the existing `IAccountConfigService` with an ETag-aware save method that mirrors `ITokenStore.SaveIfUnchangedAsync` field-for-field:
+
+```csharp
+public interface IAccountConfigService
+{
+    // Existing
+    Task<AccountConfig?> GetAccountAsync(string handle, CancellationToken ct);
+
+    // NEW — replaces the non-locking UpdateAccountAsync for any writer that
+    // performs a read-modify-write (joining agents, editing policy, etc.)
+    Task<bool> SaveIfUnchangedAsync(
+        AccountConfig account,
+        string etag,
+        CancellationToken ct);
+}
+
+public sealed record AccountConfig(
+    // Existing identity/branding fields...
+    // NEW:
+    string? ETag  // populated by GetAccountAsync on every read; null on fresh creation
+);
+```
+
+The implementation populates `AccountConfig.ETag` on read, uses it as the precondition on write, returns `false` on ETag mismatch (412), and returns `true` on success. **No retry logic inside the service.** Retry is the caller's responsibility — exactly as it is for `GoogleOAuthRefresher`.
+
+#### Caller pattern
+
+The join-path activity that appends a new agent to the brokerage uses the same retry-and-re-read loop pattern as `GoogleOAuthRefresher.GetValidCredentialAsync`:
+
+```csharp
+// In BrokerageJoinActivity (new) or PersistSiteContentActivity
+for (int attempt = 0; attempt < 3; attempt++)
+{
+    var account = await _accountConfigService.GetAccountAsync(accountId, ct);
+    if (account is null)
+        throw new InvalidOperationException($"[ACCOUNT-MERGE-020] account {accountId} not found");
+
+    if (account.Agents.Any(a => a.Id == newAgentId))
+    {
+        // Idempotent — another replay of this orchestration already merged
+        _logger.LogInformation("[ACCOUNT-MERGE-030] agent {AgentId} already in account {AccountId}, idempotent no-op",
+            newAgentId, accountId);
+        return;
+    }
+
+    var updated = account with { Agents = account.Agents.Append(newAgentEntry).ToList() };
+    var saved = await _accountConfigService.SaveIfUnchangedAsync(updated, account.ETag!, ct);
+
+    if (saved)
+    {
+        _logger.LogInformation("[ACCOUNT-MERGE-001] agent {AgentId} merged into {AccountId} on attempt {Attempt}",
+            newAgentId, accountId, attempt);
+        return;
+    }
+
+    // ETag conflict — another join ran in parallel. Re-read and retry.
+    AccountConfigDiagnostics.Conflicts.Add(1);
+    _logger.LogInformation("[ACCOUNT-MERGE-010] ETag conflict on attempt {Attempt}, retrying", attempt);
+}
+
+_logger.LogError("[ACCOUNT-MERGE-040] account {AccountId} merge failed after 3 attempts, letting DF retry", accountId);
+throw new InvalidOperationException("AccountConfig merge exhausted retries");
+```
+
+Durable Functions' own retry policy wraps the activity, so after 3 in-activity retries the orchestrator will retry the whole activity. This is the same pattern every other activity in the codebase uses for transient failures.
+
+#### What this replaces
+
+R2 specified two things that R3 explicitly removes:
+
+1. **~~"Fallback to Azure Table Storage `Insert` operation as a durable lock"~~** — no such pattern exists in the codebase. The fabricated fallback was solving a problem that doesn't exist: ETag contention under 3-attempt retry is already bounded, and Durable Functions' retry-the-whole-activity semantics cover the unlikely persistent-conflict case.
+2. **~~"Lease with AcquiredAt/ExpiresAt and fencing tokens"~~** (mentioned in R2's §16.7) — also fabricated. No fencing token pattern exists in the codebase, and the ETag + DF retry combination is sufficient.
+
+#### Unit test matrix
+
+- Two concurrent `SaveIfUnchangedAsync` calls with the same ETag: one returns `true`, the other returns `false`
+- Consumer retry loop on 3 consecutive conflicts: throws after attempt 3, metric incremented 3 times
+- Consumer retry loop on 2 conflicts + 1 success: returns success, metric incremented 2 times
+- Idempotent replay (agent already in list): short-circuits without any writes
+- Integration test: 10 parallel `BrokerageJoinActivity` invocations with distinct agents against the same account, all succeed eventually, final account contains all 10 agents
+
+#### Reused observability
+
+- `[ACCOUNT-MERGE-001..049]` log codes in Appendix E — no changes
+- `AccountConfigDiagnostics.Conflicts` metric (new, mirrors `TokenStoreDiagnostics.Conflicts`) — surfaces in the existing Grafana activation dashboard as a new panel
+- ActivitySource `RealEstateStar.DataServices.AccountConfigService` (new) — spans tagged with `account_id`, `attempt`, `outcome` (`saved`, `conflict`, `retry-exhausted`)
 
 ### 8.4 Intelligent lead routing algorithm
 
-**Decision D13: Service-area hard filter → specialty score boost → round-robin with fairness counter**
+**Decision D43: Lead routing state split — human-editable `routing-policy.json` in agent Drive, atomic counter in Azure Table.**
 
-> **Conversation reference**: Turn where user confirmed the routing approach "that looks correct for lead routing."
+> **Correction from R2**: R2 embedded the routing counter inside `account.json` and proposed no manual-edit path. User feedback: "I think the benefit of being able to modify who gets the next lead manually by altering a file in google drive is a feature not a bug." R3 splits the state into two pieces that serve different consumers: the **policy** is human-editable in Drive, and the **counter** is an atomic increment in a dedicated Azure Table row. Manual edits in Drive are an authoritative input to the routing algorithm, not an accident.
 
-The brokerage lead form submits to a single endpoint that routes the lead to one of the brokerage's agents:
+#### Design principles
 
-```
-Algorithm: route_lead(lead, brokerage)
+1. **Policy lives where humans edit it.** `routing-policy.json` is a file in the agent's Drive folder (sibling to the existing consent log sheet). A brokerage owner opens the file in Drive, edits a field, saves. The next lead picks up the change.
+2. **Atomic counter lives where machines update it.** `brokerage-routing-counters` is a dedicated Azure Table with a single row per brokerage. Atomic increment via `MergeEntity` with ETag. No hot-key contention in Cloudflare KV. Separates the read-heavy human-editable path from the write-heavy machine path.
+3. **Manual override is a feature.** `next_lead: "alice"` in the policy file forces the next incoming lead to a specific agent, then auto-clears on consumption. Documented, expected, first-class.
+4. **Human knows best.** The manual override is **strict** — if the brokerage owner writes `next_lead: alice`, the lead goes to Alice even if Alice's service area doesn't match or she's marked `enabled: false`. The human is making a judgment call the algorithm can't verify (maybe Alice is covering for Bob today). Trust the edit.
+5. **One-shot semantics.** After the override is consumed, the field is cleared atomically in the same write that bumps the version counter. No stale override re-consumed on subsequent leads.
+6. **Policy and counter are versioned together.** A manual edit to the policy increments `version` (via the ETag write path), which invalidates the in-flight counter for that brokerage — the next tiebreak starts from zero against the new policy. Prevents counter stale-state bugs when the brokerage roster changes.
 
-1. Candidates = [agent for agent in brokerage.agents if agent.enabled]
+#### `routing-policy.json` schema
 
-2. Hard filter by service area:
-   filtered = [a for a in candidates if lead.property_city in a.service_areas]
-   if filtered is empty:
-       filtered = candidates  // fall through to any enabled agent
+Lives at `{agent-drive-root}/real-estate-star/{accountId}/routing-policy.json` — sibling to the consent log sheet and lead profiles. File header is a hardcoded comment preserved across rewrites so a human opening the file immediately sees the instructions:
 
-3. Score filter by specialty:
-   scored = []
-   for a in filtered:
-       score = 0
-       if lead.inquiry_type == "buying" and "buyers" in a.specialties: score += 2
-       if lead.inquiry_type == "selling" and "sellers" in a.specialties: score += 2
-       if lead.inquiry_type == "investment" and "investment" in a.specialties: score += 3
-       if lead.language != "en" and lead.language in a.languages: score += 3
-       scored.append((a, score))
-
-4. Highest score wins. Ties broken by round-robin fairness counter:
-   max_score = max(s for _, s in scored)
-   tied = [a for a, s in scored if s == max_score]
-   if len(tied) > 1:
-       counter = brokerage.lead_routing_counter  // stored in account.json
-       winner = tied[counter % len(tied)]
-       brokerage.lead_routing_counter += 1
-       persist account.json
-   else:
-       winner = tied[0]
-
-5. Lead dispatched to winner.email, logged with [LEAD-ROUTE-001]
-```
-
-Stored in `account.json`:
-```json
+```jsonc
+// Real Estate Star — Lead Routing Policy
+// Edit this file to change how incoming brokerage leads are routed.
+//
+// next_lead: set this to an agent id (e.g. "alice") to force the next
+//            incoming lead to that agent. It will be cleared automatically
+//            after consumption. Leave null for normal algorithmic routing.
+//
+// agents.{id}.enabled: set to false to stop routing leads to an agent
+//                     (e.g. during vacation). Their config is preserved.
+//
+// agents.{id}.weight: relative weight for round-robin ties. 0 = no leads,
+//                    1 = normal, 2 = twice as many as a weight-1 peer.
+//
+// Version is maintained automatically. Do not edit _etag or _version.
 {
-  "lead_routing": {
-    "counter": 7,
-    "last_assignments": [
-      {"agent_id": "jenise", "lead_id": "...", "at": "..."},
-      ...
-    ]
+  "_version": 7,
+  "_etag": "W/\"0x8D9B...\"",
+  "_last_edited_at": "2026-04-12T14:22:00Z",
+  "_last_edited_by": "jenise@glr.com",
+
+  "next_lead": null,  // or "alice" — auto-clears after consumption
+
+  "agents": {
+    "jenise": {
+      "enabled": true,
+      "service_areas": ["Carteret", "Woodbridge", "Edison"],
+      "specialties": ["first-time-buyers", "bilingual-spanish"],
+      "languages": ["en", "es"],
+      "weight": 1.0
+    },
+    "alice": {
+      "enabled": true,
+      "service_areas": ["Edison", "New Brunswick"],
+      "specialties": ["luxury"],
+      "languages": ["en"],
+      "weight": 1.0
+    },
+    "bob": {
+      "enabled": false,
+      "service_areas": ["Carteret", "Edison"],
+      "specialties": ["first-time-buyers"],
+      "languages": ["en"],
+      "weight": 1.0,
+      "notes": "On vacation until 2026-05-01"
+    }
+  },
+
+  "defaults": {
+    "tiebreak": "round-robin",
+    "fall_back_when_no_match": "any-enabled-agent"
   }
 }
 ```
 
-The `last_assignments` list is capped at 20 entries for audit.
+**Field notes**:
+
+- `next_lead` is the **strict** override. See decision D43 and the algorithm below for consumption semantics.
+- `agents.{id}.enabled = false` removes that agent from the **algorithmic** candidate pool but does NOT block `next_lead` — the human can still manually route to a disabled agent (for vacation coverage).
+- `agents.{id}.weight` is a soft preference used in round-robin tiebreak. Weight 0 means zero probability unless `next_lead` forces it.
+- `_version`, `_etag`, `_last_edited_by`, `_last_edited_at` are maintained by the routing service. Manual edits in Drive don't touch them directly — the Drive write invalidates the `_etag`, the next service read populates a fresh one on its own CAS cycle.
+- The file format is JSON with `//` comments in the header. The parsing layer strips `//`-prefixed lines before `System.Text.Json.JsonSerializer.Deserialize`, then writes them back preserved on update.
+
+#### `brokerage-routing-counters` Azure Table schema
+
+```
+Table:        brokerage-routing-counters
+PartitionKey: {accountId}
+RowKey:       "counter"
+
+Columns:
+    Counter       int        // monotonically increasing
+    PolicyVersion int        // matches routing-policy.json._version
+    ETag          string     // for atomic CAS
+    LastUpdated   DateTime
+```
+
+When a lead is routed:
+
+1. Service reads `routing-policy.json` from Drive (with 60s edge cache).
+2. Service reads the counter row for this accountId from Azure Table.
+3. If `counter_row.PolicyVersion != policy._version`, the policy has been edited — reset `Counter = 0` and `PolicyVersion = policy._version` (atomic via `UpsertEntity` with ETag precondition).
+4. Service runs the routing algorithm, consuming the counter on tiebreak.
+5. Service increments the counter via `UpdateEntity` with ETag precondition. On 412, re-read and retry.
+
+**Hot-key contention**: the counter row is partition-keyed by accountId, so contention is per-brokerage, not global. A single brokerage at 100+ leads/second would hit contention, but real brokerages are orders of magnitude below that, and Azure Table's per-partition throughput is well within our needs.
+
+#### `routing-log.csv` audit trail
+
+Append-only CSV in the agent's Drive folder (using the same `ISheetStorageProvider.AppendRowAsync` pattern as the existing consent log):
+
+```
+timestamp,lead_id,lead_city,lead_inquiry,lead_language,winner_agent,reason,policy_version,counter_at_decision
+2026-04-12T14:30:00Z,lead-abc,Carteret,buying,en,jenise,manual-override(next_lead=jenise),7,0
+2026-04-12T14:45:00Z,lead-def,Edison,buying,es,jenise,specialty-match+language,7,1
+2026-04-12T15:02:00Z,lead-ghi,Woodbridge,selling,en,jenise,service-area-match,7,2
+```
+
+The `reason` column is human-readable so a brokerage owner scanning the sheet in Drive understands why each decision was made. `counter_at_decision` is the counter value used for this routing decision (for reproducibility in post-mortems).
+
+#### Algorithm
+
+```
+route_lead(lead L, accountId):
+
+  1. Read policy from Drive:
+       policy = DriveStorage.ReadAsync("routing-policy.json", accountId)
+       (cached at edge, 60s TTL)
+
+  2. Manual override — strict, one-shot, human-knows-best:
+       if policy.next_lead is not null:
+           target_id = policy.next_lead
+
+           // Clear the override atomically via SaveIfUnchangedAsync
+           updated = policy with { next_lead = null, _version = policy._version + 1 }
+           saved = AccountConfigService.SaveIfUnchangedAsync(updated, policy._etag)
+
+           if saved:
+               route L to policy.agents[target_id]
+               append audit: reason = "manual-override(next_lead={target_id})"
+               log [LEAD-ROUTE-OVERRIDE-001]
+               return
+           else:
+               // Another lead raced us. Re-read and fall through.
+               log [LEAD-ROUTE-OVERRIDE-002] "override consumed by concurrent lead"
+               goto step 1
+
+  3. Algorithmic routing:
+       candidates = [agent for id, agent in policy.agents.items() if agent.enabled]
+
+       // Hard filter by service area
+       filtered = [a for a in candidates if L.property_city in a.service_areas]
+       if filtered is empty:
+           filtered = candidates if policy.defaults.fall_back_when_no_match == "any-enabled-agent" else []
+           if filtered is empty:
+               log [LEAD-ROUTE-UNROUTABLE-001] "no matching agent for {L.property_city}"
+               return 422 to the caller
+
+       // Score by specialty + language
+       scored = []
+       for a in filtered:
+           score = 0
+           if L.inquiry_type == "buying"     and "buyers"     in a.specialties: score += 2
+           if L.inquiry_type == "selling"    and "sellers"    in a.specialties: score += 2
+           if L.inquiry_type == "investment" and "investment" in a.specialties: score += 3
+           if L.language != "en" and L.language in a.languages:                 score += 3
+           scored.append((a, score))
+
+       max_score = max(s for _, s in scored)
+       tied = [(a, a.weight) for (a, s) in scored if s == max_score]
+
+  4. Tiebreak via Azure Table counter (atomic, partition-keyed by accountId):
+       if len(tied) == 1:
+           winner = tied[0].agent
+       else:
+           counter_row = AzureTable.Read(accountId, "counter")
+
+           if counter_row.PolicyVersion != policy._version:
+               // Policy was edited — reset counter to align with new policy
+               counter_row.Counter = 0
+               counter_row.PolicyVersion = policy._version
+               // (will be persisted in step 5)
+
+           // Weighted round-robin: expand tied list by weight
+           expanded = flatten([ [agent] * weight for (agent, weight) in tied ])
+           winner = expanded[counter_row.Counter % len(expanded)]
+
+           // Atomic increment with ETag
+           counter_row.Counter += 1
+           AzureTable.UpdateEntity(counter_row, counter_row.ETag)
+           // On 412: re-read and retry (same pattern as ITokenStore)
+
+  5. Dispatch:
+       send L to winner.email (or to winner's lead queue)
+       append to routing-log.csv: reason = tiebreak ? "weighted-round-robin" : f"specialty-match+{details}"
+       log [LEAD-ROUTE-001]
+```
+
+#### What this replaces
+
+R2 specified `lead_routing.counter` embedded in `account.json` with `last_assignments[]` as an inline audit array. R3 removes both:
+
+1. **~~`lead_routing.counter` in `account.json`~~** → dedicated `brokerage-routing-counters` Azure Table, partition-keyed by accountId. The security review's hot-key concern is resolved by partitioning.
+2. **~~`last_assignments[]` embedded array~~** → append-only `routing-log.csv` in the agent's Drive folder, matching the existing consent log pattern. Unbounded, auditable, and readable by the brokerage owner without engineering help.
+3. **~~Routing policy embedded in `account.json`~~** → dedicated `routing-policy.json` file in Drive. `account.json` stays stable; routing evolves independently.
+
+#### Unit test matrix
+
+- **Manual override happy path**: policy has `next_lead = "alice"`, lead arrives → Alice receives it, policy is updated with `next_lead = null`, audit log records `manual-override(next_lead=alice)`
+- **Manual override with disabled agent**: policy has `next_lead = "bob"`, Bob has `enabled = false` → Bob still receives the lead (strict override, human knows best), audit log records `manual-override(next_lead=bob, enabled=false)` so the override is visible
+- **Manual override with service-area mismatch**: policy has `next_lead = "alice"`, lead is for city outside Alice's service_areas → Alice still receives the lead, audit log records `manual-override(next_lead=alice, service_area_mismatch=true)`
+- **Manual override concurrent consumption**: two leads arrive at the same time, only one CAS wins, the other falls through to algorithmic routing, both are routed without error
+- **Policy version reset**: counter is at 5 with policy version 3, policy is edited to version 4, next lead resets counter to 0 before picking
+- **Weighted round-robin**: two tied agents with weights 2 and 1 → over 6 leads the 2-weight agent gets 4, the 1-weight gets 2
+- **Service-area hard filter with no match**: no agent covers the lead's city, `fall_back_when_no_match = "any-enabled-agent"` → falls through to any enabled agent; if set to `"reject"` → returns 422
+- **Counter contention**: 20 parallel leads against one brokerage with 3 tied agents → all 20 routed, counter final value is 20, Azure Table conflicts retried successfully
+- **Policy read cached**: first lead reads from Drive, second lead within 60s reads from edge cache, third lead after 61s re-reads from Drive
+
+#### Observability
+
+- `[LEAD-ROUTE-001..099]` log codes (see Appendix E)
+- `[LEAD-ROUTE-OVERRIDE-001]` — manual override consumed
+- `[LEAD-ROUTE-OVERRIDE-002]` — override lost to concurrent lead, fell through
+- `[LEAD-ROUTE-UNROUTABLE-001]` — no matching agent, `fall_back_when_no_match = "reject"`
+- Grafana panel: routing decisions by reason (manual-override / specialty-match / service-area / weighted-round-robin)
+- Grafana panel: counter contention rate per brokerage (alerts when > 5% 412s in a 5-minute window)
+- Grafana panel: `next_lead` manual override usage rate per brokerage (anomaly detection — brokerages with 50%+ manual override rate may need a policy tune)
+
+#### When the override is ambiguous
+
+If the agent sets `next_lead: "alice"` but the policy has no entry for `"alice"` (typo), the routing service:
+
+1. Logs `[LEAD-ROUTE-OVERRIDE-003]` with the typo
+2. Does **not** clear the override (so the brokerage owner sees it's still set and can fix)
+3. Falls through to algorithmic routing
+4. Appends audit entry: `manual-override-failed(next_lead=alice, agent_not_in_policy)`
+5. Emits a Grafana alert so the brokerage owner is notified through the existing operational channel
+
+This is the one case where the human is "wrong" — the override references something that doesn't exist. Don't silently succeed; surface it.
 
 ### 8.5 Brokerage home vs agent subpage routing
 
@@ -2352,16 +2640,62 @@ This section consolidates legal compliance rules that must be enforced across th
 
 #### 17.1.1 Site-wide Equal Housing Opportunity display
 
-Every rendered page on every agent site, in every locale, must display the Equal Housing Opportunity logo and statement. This is **not** satisfied by the Fair Housing legal page alone — HUD advertising guidance and NAR Code of Ethics Article 10 apply to all marketing channels, which includes every page of the agent's site.
+**Decision D41: EHO footer is already implemented in the existing codebase; R3 enforces it via an architecture test, no new code.**
 
-**Implementation**:
+> **Correction from R2**: R2 framed the EHO footer as a new requirement to build. This was wrong. A codebase audit confirmed that every template already renders a shared `Footer` component which unconditionally includes `EqualHousingNotice`. The component is already state-aware (renders the NJ-extended protected class list when `agentState === "NJ"`). R3 removes the "build this" language and replaces it with "lock it in so it can't regress."
 
-1. `apps/agent-site/features/shared/Footer.tsx` includes `<EqualHousingNotice />` as an unconditional child. The component already exists in `packages/legal`.
-2. Every template's root layout includes `Footer` with no conditionals. Templates that want to render a custom footer still include `EqualHousingNotice` as a required child.
-3. **CI test** (`tests/agent-site/validation.test.ts`): greps every template file for `<EqualHousingNotice` or `<Footer`. Templates that include `<Footer` pass. Templates that include a custom footer without `<EqualHousingNotice` fail.
-4. **Smoke test**: a Playwright test loads each test fixture's home page and asserts the EHO logo image is present in the DOM. Runs in CI.
+#### Existing implementation — verified
 
-**Localization**: the EHO notice is localized (the component already supports it), but the logo itself is a federal standard and not translated.
+Every rendered page on every agent site, in every locale, already displays the Equal Housing Opportunity logo and statement via existing infrastructure. HUD advertising guidance and NAR Code of Ethics Article 10 apply to all marketing channels, which includes every page of the agent's site — and the existing templates already comply.
+
+**Verified against the codebase**:
+
+1. **All 10 templates render the shared Footer**: `coastal-living.tsx:99`, `commercial.tsx:104`, `country-estate.tsx:99`, `emerald-classic.tsx:96`, `light-luxury.tsx:101`, `luxury-estate.tsx:101`, `modern-minimal.tsx:96`, `new-beginnings.tsx:99`, `urban-loft.tsx:99`, `warm-community.tsx:96`. Every template passes `accountId` into `<Footer />`.
+2. **Shared Footer component**: `apps/agent-site/features/sections/shared/Footer.tsx:141-145` renders `<EqualHousingNotice agentState={state} />` unconditionally when state is defined. The component accepts `accountId` from templates and derives the state from the account config.
+3. **`EqualHousingNotice` component**: `packages/legal/src/EqualHousingNotice/EqualHousingNotice.tsx:28-75` renders the EHO logo (SVG), "Equal Housing Opportunity" text, and a state-aware compliance statement. Federal seven-class statement for most states (`FEDERAL_CLASSES`, line 7), NJ-extended class list (`NJ_CLASSES`, lines 9-13) when `agentState === "NJ"` (line 16).
+4. **Localization**: the notice body is localized via the existing i18n infrastructure. The EHO logo itself is a federal standard and not translated — that's correct per HUD guidance.
+
+#### What R3 adds: regression-prevention architecture test
+
+The existing implementation is compliant today. The risk is that a future engineer adds a new template (R3 does not spec any, but template 11 is inevitable at some point) and forgets the shared `Footer`. R3 adds an architecture test that prevents this:
+
+**Test**: `apps/agent-site/__tests__/compliance/eho-footer.test.ts`
+
+```typescript
+// Scans every file under apps/agent-site/features/templates/*.tsx
+// For each template:
+//   1. Parses the JSX (or greps for <Footer)
+//   2. Asserts the file references the shared Footer component
+//   3. Asserts the file does NOT define a custom Footer that bypasses
+//      the shared component unless it also imports EqualHousingNotice
+//      directly from packages/legal
+// Failure mode: a new template that skips <Footer /> or replaces it
+// with a custom footer missing <EqualHousingNotice /> fails CI.
+```
+
+**Smoke test** (Playwright, runs against test fixtures):
+
+```typescript
+// apps/agent-site/__tests__/compliance/eho-footer-rendered.test.ts
+// For each test fixture (jenise-buckalew, glr, test-brokerage, ...):
+//   1. Navigate to the home page
+//   2. Assert the DOM contains an element matching the EHO logo selector
+//      (data-testid="equal-housing-notice" or role="img" with EHO alt text)
+//   3. Also check contact, about, and one legal page
+// Failure mode: a rendering regression that hides or strips the footer
+// fails CI before merge.
+```
+
+**What the test does not do**: re-verify the existing Footer component's behavior. That's covered by the existing component unit tests. This test's job is architectural — enforce that every template continues to use the compliance-embedded Footer.
+
+#### Files unchanged by R3
+
+- `apps/agent-site/features/sections/shared/Footer.tsx` — no changes
+- `packages/legal/src/EqualHousingNotice/EqualHousingNotice.tsx` — no changes
+- Any of the 10 existing template files — no changes
+- `config/accounts/*/account.json` state fields — no changes
+
+The only net-new deliverable for §17.1.1 is the two architecture tests above. No worker changes, no pipeline changes, no schema changes.
 
 #### 17.1.2 Steering-language linter
 
@@ -2434,67 +2768,122 @@ GalleryItem {
 
 ### 17.3 TCPA compliance
 
-**Decision D30: Contact form captures TCPA consent with full audit record.**
+**Decision D42: TCPA consent capture is already implemented in the existing codebase. R3 enforces that every template's contact form uses the shared `LeadForm` component, and extends the existing triple-write pattern for brokerage-specific routing metadata only.**
 
-Every contact form across every template, every locale, must capture TCPA express written consent from the lead **before** the agent is allowed to call or text them. Real Estate Star's entire lead pipeline assumes agents will follow up via phone/SMS — without captured consent, any such follow-up is a TCPA violation.
+> **Correction from R2**: R2 specified a brand-new `TcpaConsent` record stored in "lead markdown frontmatter" and implied a fourth storage location. A codebase audit revealed that TCPA consent is **already fully captured and triple-written** via the existing `MarketingConsent` pattern. Your pushback was exactly right — the agent Drive is layer 1 of the existing pattern. R3 removes the fabricated schema and references the real one. Zero new storage locations.
 
-#### Contact form schema additions
+#### Existing implementation — verified
 
-```typescript
-ContactFormData {
-  title: LocalizedString;
-  subtitle: LocalizedString;
-  description?: LocalizedString;
-  // NEW: TCPA consent (ENGLISH ONLY per TCPA)
-  tcpa_consent: {
-    text_version: string;              // e.g., "v1.0"
-    text: string;                      // required checkbox label, English only
-    required: true;                    // cannot be disabled by agent
-  };
-  fields: FormField[];                 // NEW — defined below
-}
+TCPA consent capture is already live in the lead submission pipeline. The agent-site contact form collects it, the API records it, and it is persisted to three locations in a triple-write pattern that predates this spec.
 
-FormField {
-  name: string;
-  label: LocalizedString;              // per-locale label
-  type: "text" | "email" | "tel" | "textarea" | "select";
-  required: boolean;
-  autocomplete: string;                // WCAG 2.1 SC 1.3.5
-  aria_describedby?: string;
-  validation?: ValidationRule[];
-}
-```
+**Form-side (agent-site)**:
 
-The `tcpa_consent.text` is a templated string with legal language approved for the platform. Example (English only):
+- **`packages/forms/src/LeadForm/LeadForm.tsx:15-20`** — defines `TCPA_CONSENT_TEXT(agentFirstName)` — the required English-only express-consent disclosure. Templated with the agent's first name.
+- **Lines 732-742** — renders the checkbox with label containing the full consent statement. Unchecked by default. Required for form submission.
+- **Line 190** — `const [tcpaConsent, setTcpaConsent] = useState(false)`.
+- **Lines 340-344** — builds the `marketingConsent` object sent to the API:
+  ```
+  marketingConsent: {
+    optedIn: tcpaConsent,
+    consentText: TCPA_CONSENT_TEXT(agentFirstName ?? "the agent"),
+    channels: ["email", "calls"],
+  }
+  ```
+- **`apps/agent-site/features/sections/shared/CmaSection.tsx:150`** — every template renders the contact form via `<LeadForm>` from the shared `packages/forms` package. All 10 templates use the same component. The checkbox is included by construction.
 
-> By submitting this form, you agree to receive calls, texts, or emails from {agent.name} at the phone number and email address you provided, including via automated technology and pre-recorded messages. Consent is not a condition of purchase. Message and data rates may apply.
+**API-side (backend)**:
 
-The checkbox renders above the submit button, unchecked by default, and submission is blocked server-side if `tcpa_consent.given` is false.
+- **`apps/api/RealEstateStar.Api/Features/Leads/Submit/SubmitLeadEndpoint.cs:18`** — the submission endpoint accepts a `MarketingConsentRequest` in the body.
+- **Schema**: `SubmitLeadRequest.cs:45-50` defines the request shape.
+- **Lines 164-178** — builds a `MarketingConsent` record with full audit fields:
+  - `LeadId`
+  - `Email`, `FirstName`, `LastName`
+  - `OptedIn` (bool)
+  - `Channels` (`["email", "calls"]`)
+  - `ConsentText` (the exact text the user saw)
+  - `IpAddress` (from request)
+  - `UserAgent` (from request)
+  - `Timestamp` (server time)
+  - `Action` (`OptIn`)
+  - `Source` (`LeadForm`)
 
-#### Lead record schema additions
+**Lead domain model**: `apps/api/RealEstateStar.Domain/Leads/Models/Lead.cs:21-23` has the `Lead` record with `ConsentToken`, `ConsentTokenHash`, and `MarketingOptedIn` — this connects the lead back to its consent record via HMAC-verifiable token lookup. The `MarketingConsent` record is the full audit trail; the `Lead` carries only a reference to it.
 
-Every lead submitted via an agent-site contact form records a `TcpaConsent` struct:
+#### The triple-write pattern — verified (SubmitLeadEndpoint.cs:184-192)
+
+Every captured consent is written to **three** storage locations in order, matching the existing pattern the user referenced:
+
+**Layer 1 — Agent Drive (sheet append)**:
+
+- **`apps/api/RealEstateStar.DataServices/Privacy/MarketingConsentLog.cs:26`**
+- `await fileStorageProvider.AppendRowAsync(LeadPaths.ConsentLogSheet, row, ct)`
+- Appends one CSV row to the agent's Google Sheet in their own Drive folder
+- This is the agent's copy — readable by the agent and their staff
+- Uses `ISheetStorageProvider` with the agent's OAuth tokens
+
+**Layer 2 — Compliance Drive (separate service account)**:
+
+- **`apps/api/RealEstateStar.DataServices/Privacy/ComplianceConsentWriter.cs:15-17`**
+- Path: `compliance/{agentId}/consent-log`
+- `await storageProvider.AppendRowAsync(path, row, ct)` via `IComplianceFileStorageProvider`
+- Writes to a separate Drive folder under the Real Estate Star compliance service account
+- This is the platform's copy — inaccessible to the agent, readable only by compliance reviews
+
+**Layer 3 — Azure Table (cryptographic audit)**:
+
+- **`apps/api/RealEstateStar.DataServices/Privacy/ConsentAuditService.cs:18-33`**
+- Builds a `ConsentAuditEntry` with `PartitionKey = agentId`, `RowKey = Guid.NewGuid()`
+- HMAC-signed entry stored via `UpsertEntityAsync(entry, TableUpdateMode.Merge)`
+- This is the cryptographic audit trail — verifiable for legal proceedings
+
+**All three layers must succeed** for the lead submission to succeed. Any layer failure causes the submission to roll back. This is the existing behavior and R3 does not change it.
+
+#### What R3 adds
+
+R3 does **not** introduce any new consent storage. It adds three things to lock the existing behavior in and extend it for brokerage routing:
+
+**1. Architecture test — every template must use shared `LeadForm`**:
+
+`apps/agent-site/__tests__/compliance/tcpa-form.test.ts` scans every template's JSX for the contact form rendering. A template that builds a custom form instead of using `<LeadForm>` from `packages/forms` fails the test. This prevents a future template author from accidentally creating a form that skips the TCPA checkbox.
+
+**2. Architecture test — `LeadForm` always includes the checkbox**:
+
+Component unit test in `packages/forms` asserts that rendering `<LeadForm>` always includes a form element with `data-testid="tcpa-consent-checkbox"` and that the submit button is disabled until the checkbox is checked. This is belt-and-suspenders against a refactor that accidentally removes the checkbox.
+
+**3. Extension: `RoutingDecision` sibling record for brokerage lead routing**:
+
+The existing `MarketingConsent` record captures consent. For brokerage leads routed via §8.4, we also want to capture the routing decision — which agent got the lead, why, and what the policy version was at decision time. This is **not** a replacement for the consent record; it's a sibling:
 
 ```csharp
-public sealed record TcpaConsent(
-    bool Given,                      // true if checkbox checked
-    DateTimeOffset Timestamp,        // server time at submission
-    string Text,                     // the exact consent text shown
-    string TextVersion,              // version ID of the consent text
-    string IpAddress,                // client IP (for audit)
-    string UserAgent,                // client UA (for audit)
-    string? Locale                   // locale the form was rendered in
+public sealed record RoutingDecision(
+    string LeadId,                   // FK to the lead
+    string AccountId,                // brokerage
+    string WinnerAgentId,            // agent who got the lead
+    string Reason,                   // "manual-override" | "specialty-match" | "service-area-match" | "weighted-round-robin" | "any-enabled-agent-fallback"
+    int PolicyVersion,               // version of routing-policy.json at decision time
+    int? CounterAtDecision,          // counter value used for round-robin tiebreak, null if no tiebreak needed
+    DateTimeOffset DecidedAt,
+    string? NextLeadOverrideValue,   // populated if manual override consumed
+    string? NextLeadOverrideOutcome  // "consumed" | "failed-not-in-policy" | null
 );
 ```
 
-This record is stored in the lead markdown frontmatter (for the Drive/blob triple-write) and in the compliance audit log. Indefinite retention while the lead exists. A lead without a valid `TcpaConsent.Given = true` is **not accepted** — the API returns 400 with `[TCPA-001]`.
+`RoutingDecision` is appended to the agent's Drive folder as a new row in `routing-log.csv` (§8.4) and also upserted to a new Azure Table `brokerage-routing-decisions` (partition by `AccountId`, row by `LeadId`) for programmatic query. **It does not replace the `MarketingConsent` triple-write** — both records exist for brokerage-routed leads.
 
-#### Enforcement
+**No changes** to:
 
-1. **API-side**: the lead submission endpoint (`POST /leads`) requires `tcpa_consent.given = true` in the request body. Missing or false → 400.
-2. **Form-side**: the contact form component disables the submit button while the checkbox is unchecked. Submission JS also client-side validates.
-3. **CI test** (`tests/agent-site/tcpa-consent.test.ts`): loads every template that renders a contact form, asserts the form contains an element matching the TCPA consent checkbox selector with an accessible label.
-4. **Integration test**: a mocked lead submission without consent is rejected by the API with 400 and `[TCPA-001]` log.
+- `packages/forms/src/LeadForm/LeadForm.tsx`
+- `apps/api/RealEstateStar.Api/Features/Leads/Submit/SubmitLeadEndpoint.cs`
+- `apps/api/RealEstateStar.DataServices/Privacy/MarketingConsentLog.cs`
+- `apps/api/RealEstateStar.DataServices/Privacy/ComplianceConsentWriter.cs`
+- `apps/api/RealEstateStar.DataServices/Privacy/ConsentAuditService.cs`
+- `apps/api/RealEstateStar.Domain/Leads/Models/Lead.cs`
+
+Those six files are already correct. R3 touches zero lines of them.
+
+#### Localization note
+
+The TCPA consent text is English-only by legal requirement (TCPA regulations do not recognize translated consent as valid for English-language calls from U.S. numbers). The existing `TCPA_CONSENT_TEXT` already reflects this — the rest of the form (labels, submit button) is localized, but the consent text stays English. This matches R3's general rule in §5 that TCPA language stays English regardless of the site's locale.
 
 ### 17.4 CAN-SPAM
 
@@ -3251,12 +3640,12 @@ Mapping of every BLOCKER and HIGH finding from the three R1 review passes to whe
 
 | # | Finding | Severity | Addressed in |
 |---|---|---|---|
-| 1.1 | No site-wide EHO footer | BLOCKER | §17.1.1, §4.1 footer row, D29 |
+| 1.1 | No site-wide EHO footer | BLOCKER | **R3 correction — already implemented**. Existing `Footer.tsx` + `EqualHousingNotice` in every template. R3 adds architecture test only. §17.1.1, D29, D41 |
 | 1.2 | No steering-language filter | HIGH | §17.1.2, D35 |
 | 1.3 | State protected classes incomplete | MEDIUM | §17.1.3 state table |
 | 2.1 | Gallery IDX: no attribution/refresh/rights | BLOCKER | §17.2, §4.1 gallery row, D34 |
 | 2.2 | Bridge Interactive TOS not referenced | MEDIUM | §17.2 last paragraph |
-| 3.1 | Contact form TCPA consent not captured | BLOCKER | §17.3, §4.1 contact_form row, D30 |
+| 3.1 | Contact form TCPA consent not captured | BLOCKER | **R3 correction — already implemented**. Existing `LeadForm` + `MarketingConsent` triple-write (`MarketingConsentLog` → agent Drive sheet, `ComplianceConsentWriter` → compliance Drive, `ConsentAuditService` → Azure Table with HMAC). R3 adds architecture test enforcing shared `LeadForm` usage + `RoutingDecision` sibling record for brokerage routing metadata only. §17.3, D30, D42 |
 | 3.2 | Prospect table missing consent schema | MEDIUM | §16.8 PII handling + §7.2 schema |
 | 4.1 | Welcome email CAN-SPAM violation | HIGH | §10.4 updated, §17.4 |
 | 5.1 | No cookie consent banner | HIGH | §17.5.1, §4.1 footer row |
@@ -3292,9 +3681,9 @@ Mapping of every BLOCKER and HIGH finding from the three R1 review passes to whe
 | 9.5-3 | No rate limit on `POST /domains` | HIGH | §16.2, §18.4 |
 | 9.5-4 | No typosquat/reserved blocklist | HIGH | §16.2, D25 |
 | 9.5-5 | DNS rebind vulnerable verifier | MEDIUM | §16.2 multi-resolver consensus |
-| 8.3-1 | CAS fallback lock lifecycle undefined | HIGH | §16 (new fencing tokens in §16 generic concurrency pattern) |
-| 8.4-1 | Lead routing counter hot key | HIGH | §16.7 defense-in-depth (suggests moving counter, remains to decide in impl) |
-| 8.4-2 | `last_assignments` embedded array | MEDIUM | §16.7 |
+| 8.3-1 | CAS fallback lock lifecycle undefined | HIGH | **R3 correction** — R2 fabricated a lock table pattern. R3 extends `IAccountConfigService.SaveIfUnchangedAsync` using the existing `ITokenStore` ETag pattern (verified in `AzureTableTokenStore.cs:117-156` and `GoogleOAuthRefresher.cs:64-72`). No new lock abstraction. §8.3, D44 |
+| 8.4-1 | Lead routing counter hot key | HIGH | **R3 correction** — Counter moved to dedicated `brokerage-routing-counters` Azure Table partitioned by accountId (no cross-brokerage contention). Policy lives in `routing-policy.json` in agent Drive (human-editable, `next_lead` strict one-shot override). §8.4, D43 |
+| 8.4-2 | `last_assignments` embedded array | MEDIUM | **R3 correction** — Replaced by append-only `routing-log.csv` in agent Drive (matches existing consent log pattern) + `brokerage-routing-decisions` Azure Table for programmatic queries. §8.4, D43 |
 | 8.4-3 | No rate limit on brokerage form | MEDIUM | §18.4 |
 | 7-1 | SSRF via brokerage URL | BLOCKER | §16.4, §7.3, D27 |
 | 7-2 | No response size cap | HIGH | §16.4, §18.1 |
@@ -3357,12 +3746,14 @@ Mapping of every BLOCKER and HIGH finding from the three R1 review passes to whe
 
 ### G.4 Summary
 
-- **Legal/ADA**: 7 BLOCKERS → all addressed in §17 + §4.1; 6 HIGH → all addressed; 10 MEDIUM → all addressed; 2 LOW → addressed
-- **Security**: 7 BLOCKERS → all addressed in §16 + §10 + §7 updates; 13 HIGH → all addressed; 10 MEDIUM → addressed or explicitly noted as future work with reference
+- **Legal/ADA**: 7 BLOCKERS → all addressed (2 of 7 already implemented in existing code, verified via codebase audit: EHO footer, TCPA consent capture); 6 HIGH → all addressed; 10 MEDIUM → all addressed; 2 LOW → addressed
+- **Security**: 7 BLOCKERS → all addressed in §16 + §10 + §7 updates; 13 HIGH → all addressed (lead routing + concurrency corrected in R3 to reference existing `ITokenStore` pattern and partitioned Azure Table counter); 10 MEDIUM → addressed or explicitly noted as future work with reference
 - **Maintainability**: 2 CRITICAL → addressed (`IVoicedContentGenerator` §5.3, rollback-for-net-new §13.4); 14 HIGH → all addressed; 10 MEDIUM → addressed; 2 LOW → addressed
 
 **No deferred BLOCKERs.** All 17 are in v1 per project decision (D21).
 
+**R3 correction summary**: R3 corrected two BLOCKER findings that R2 framed as net-new work — EHO footer (finding 1.1) and TCPA consent capture (finding 3.1) were already fully implemented in the existing codebase. R3 replaces the "build new" language with "enforce existing via architecture test" and adds decisions D41–D44 to record the correction. R3 also rewrote §8.3 and §8.4 to reference the existing `ITokenStore` ETag pattern and a partitioned Azure Table counter, removing R2's fabricated lock table design. Every R3 change is backed by explicit file paths and line numbers verified against the codebase audit.
+
 ---
 
-**End of design document — Revision 2.**
+**End of design document — Revision 3.**
