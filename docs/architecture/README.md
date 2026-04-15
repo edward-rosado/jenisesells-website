@@ -31,6 +31,17 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | [Observability Span Tree](observability-span-tree.md) | Trace span hierarchy with per-activity metrics |
 | [Security Hardening Layers](security-hardening-layers.md) | Defense-in-depth: input sanitization, output encoding, secret management |
 
+## Agent site comprehensive design (PR #155, R3)
+
+Diagrams supporting the comprehensive agent site design spec at `docs/superpowers/specs/2026-04-12-agent-site-comprehensive-design.md`. The spec contains 34 total Mermaid diagrams; these four are surfaced here as the ones most useful to implement against.
+
+| Document | Description |
+|----------|------------|
+| [Voiced Content Generator Lifecycle](voiced-content-generator-lifecycle.md) | Request/response sequence for the new `IVoicedContentGenerator` abstraction — cache, schema validation, fair housing linter, retry, fallback. Eliminates ~15 duplicate Claude call sites across T3 polish fields. |
+| [Routing Policy next_lead CAS](routing-policy-next-lead-cas.md) | Two leads racing on a shared `next_lead` manual override — only one consumes it via `SaveIfUnchangedAsync` CAS, the other falls through to algorithmic routing. |
+| [AccountConfig ETag Concurrency](account-config-etag-concurrency.md) | Two brokerage join writers racing on `account.json` — reuses the existing `ITokenStore` ETag pattern (`AzureTableTokenStore.SaveIfUnchangedAsync` + 412 retry loop). |
+| [BYOD Two-Phase Verification](byod-two-phase-verification.md) | Bring Your Own Domain lifecycle — TXT challenge for ownership, CNAME for routing, Cloudflare for SaaS provisioning, daily re-verification, suspended/removed transitions. |
+
 ## API Project Structure (44+ Projects + 34 Test Projects)
 
 The .NET 10 backend (`apps/api/`) is split into 44+ isolated production projects and 34 test projects following a strict dependency graph:
