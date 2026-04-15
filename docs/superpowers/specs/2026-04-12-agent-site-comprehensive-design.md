@@ -285,6 +285,36 @@ Every field on the site has a sourcing rule: where it comes from, what the fallb
 >
 > **Conversation reference**: Turn where user said "always prefer real data over Claude, use Claude only as last-resort polish" and added "use the personality and voice found in onboarding but in the most professional and personal manner."
 
+#### Sourcing decision tree
+
+Every field in §4.1 is classified by how it's sourced. This decision tree is the algorithm the pipeline follows when populating any user-visible field:
+
+```mermaid
+flowchart TD
+    Start["Populating field F"] --> T1Q{"Is there real data<br/>for F in activation<br/>outputs?"}
+    T1Q -->|"Yes"| T1Kind{"What kind<br/>of field?"}
+    T1Q -->|"No"| T2Q{"Tier 2 onboarding<br/>input available?"}
+    T1Kind -->|"Fact numbers<br/>addresses names"| T1Verbatim["Use T1 value verbatim<br/>No Claude call"]
+    T1Kind -->|"User-visible copy<br/>headline tagline bio"| T1Polish["Run T1 facts through<br/>IVoicedContentGenerator<br/>with locale voice skill"]
+    T1Kind -->|"Derived field<br/>canonical URL nav href"| T1Derive["Compute deterministically<br/>from other fields"]
+    T2Q -->|"Yes"| T2Note["Out of scope in R3<br/>Reserved for auto-onboard"]
+    T2Q -->|"No"| T3Q{"Is field<br/>required for<br/>agent state?"}
+    T3Q -->|"Yes"| Block["Block publish<br/>Move site to Needs Info<br/>See 17.7"]
+    T3Q -->|"No"| Default["Use template<br/>default content"]
+    T1Polish --> Linter{"FairHousingLinter<br/>flags the output?"}
+    Linter -->|"No"| Persist["Persist to<br/>content-locale.json"]
+    Linter -.->|"Yes"| Retry["One regeneration<br/>with anti-steering<br/>instruction"]
+    Retry --> RetryCheck{"Still flagged?"}
+    RetryCheck -->|"No"| Persist
+    RetryCheck -.->|"Yes"| Fallback["Return FallbackValue<br/>Log FHA-001"]
+    T1Verbatim --> Persist
+    T1Derive --> Persist
+    Default --> Persist
+    Fallback --> Persist
+```
+
+**How to read it**: solid arrows are the happy path, dotted arrows are error/exception recovery. Every field lands at one of four terminal states: `Persist`, `Block publish`, `Default`, or `Fallback`. Fields that would land at `Default` and are also `required_for_state_X` (§17.7) escalate to `Block publish` instead.
+
 ### 4.1 Field-by-field sourcing matrix
 
 Legend: **T1** = Tier 1 (real data), **T3** = Tier 3 (Claude polish over T1), **D** = Deterministic from other fields, **DEF** = Template default if empty.
@@ -537,6 +567,65 @@ public sealed record VoicedResult<T>(
 
 **Observability**: single ActivitySource `RealEstateStar.Clients.Anthropic.VoicedContentGenerator` with per-call spans tagged with `field.name`, `locale`, `pipeline.step`, `is_fallback`, `failure_reason`. One Grafana dashboard panel shows voiced-content cost, success rate, and fallback rate broken down by field and locale.
 
+**End-to-end request lifecycle** — every FieldSpec flows through these steps:
+
+```mermaid
+sequenceDiagram
+    participant W as Worker or Activity
+    participant G as VoicedContentGenerator
+    participant C as ContentCache<br/>Azure Table
+    participant A as IAnthropicClient
+    participant L as IFairHousingLinter
+    participant Log as Logger OTel
+
+    W->>G: GenerateAsync VoicedRequest<br/>Facts Voice FieldSpec PipelineStep
+    G->>G: Hash Facts plus FieldSpec plus Locale<br/>for cache key
+    G->>C: Get cache key
+    alt Cache hit within 24h
+        C-->>G: Cached value
+        G->>Log: VCG-010 cache hit
+        G-->>W: VoicedResult value IsFallback false
+    else Cache miss
+        G->>G: Assemble prompt<br/>Inject voice skill system<br/>Interpolate facts user
+        G->>A: SendAsync model prompt maxTokens
+        alt Claude success
+            A-->>G: Response tokens
+            G->>G: Parse and schema validate
+            alt Schema valid
+                G->>L: CheckAsync output
+                alt Linter passes
+                    L-->>G: Clean
+                    G->>C: Put cached value 24h TTL
+                    G->>Log: CLAUDE-020 with PipelineStep<br/>VCG-020 schema pass
+                    G-->>W: VoicedResult value
+                else Linter flags
+                    L-->>G: Flagged phrase category
+                    G->>A: SendAsync regenerate with<br/>anti-steering instruction
+                    A-->>G: Retry response
+                    G->>L: CheckAsync again
+                    alt Retry clean
+                        L-->>G: Clean
+                        G-->>W: VoicedResult value
+                    else Retry flagged
+                        L-->>G: Still flagged
+                        G->>Log: FHA-001 VCG-040 fallback
+                        G-->>W: VoicedResult FallbackValue<br/>IsFallback true
+                    end
+                end
+            else Schema invalid
+                G->>Log: VCG-030 schema fail
+                G-->>W: VoicedResult FallbackValue
+            end
+        else Claude error after retries
+            A-->>G: 429 or 5xx exhausted
+            G->>Log: CLAUDE-FAIL VCG-030
+            G-->>W: VoicedResult FallbackValue<br/>IsFallback true
+        end
+    end
+```
+
+**Key invariant**: the worker receives a `VoicedResult<T>` in every case. It never throws. `IsFallback` tells the caller whether to treat the value as authoritative or degraded. The orchestrator uses the `IsFallback` flag to decide whether a locale's content generation should be marked BEST-EFFORT successful or should trigger the tier-2 rollback in §13.4.
+
 #### SiteFactExtractor (new)
 
 - **Project**: `RealEstateStar.Workers.Activation.SiteFactExtractor`
@@ -561,6 +650,104 @@ public sealed record VoicedResult<T>(
 
 - **Cost**: ~$0.01 (one haiku-4-5 call with input context)
 - **Determinism**: pure compute from ActivationOutputs, same inputs → same outputs, cacheable for replay
+
+**SiteFacts composition** — the type graph:
+
+```mermaid
+classDiagram
+    class SiteFacts {
+        +AgentIdentity Agent
+        +BrokerageIdentity Brokerage
+        +LocationFacts Location
+        +SpecialtiesFacts Specialties
+        +TrustSignals Trust
+        +IReadOnlyList~RecentSale~ RecentSales
+        +IReadOnlyList~Review~ Testimonials
+        +IReadOnlyList~Credential~ Credentials
+        +PipelineStages Stages
+        +IReadOnlyDictionary~string LocaleVoice~ VoicesByLocale
+        +string FactsHash
+    }
+    class AgentIdentity {
+        +string Name
+        +string LegalName
+        +string Title
+        +string Email
+        +string Phone
+        +string LicenseNumber
+        +int YearsExperience
+        +IReadOnlyList~string~ Languages
+    }
+    class BrokerageIdentity {
+        +string Name
+        +string LegalName
+        +string LicenseNumber
+        +string OfficeAddress
+        +string OfficePhone
+        +string DomainHint
+    }
+    class LocationFacts {
+        +string State
+        +IReadOnlyList~string~ ServiceAreas
+        +IReadOnlyDictionary~string int~ ListingFrequencyByCity
+    }
+    class SpecialtiesFacts {
+        +IReadOnlyList~string~ Specialties
+        +IReadOnlyList~string~ VibeHints
+        +IReadOnlyDictionary~string int~ EvidenceCount
+    }
+    class TrustSignals {
+        +int ReviewCount
+        +decimal AverageRating
+        +int TransactionCount
+        +TimeSpan AverageResponseTime
+        +decimal AverageSalePrice
+    }
+    class RecentSale {
+        +string Address
+        +string City
+        +string State
+        +decimal Price
+        +DateTime SoldDate
+        +bool SoldByAgent
+        +string ListingCourtesyOf
+        +string ImageUrl
+    }
+    class Review {
+        +string Text
+        +int Rating
+        +string Reviewer
+        +string Source
+        +DateTime Date
+    }
+    class Credential {
+        +string Name
+        +string Issuer
+        +DateTime IssuedAt
+    }
+    class PipelineStages {
+        +IReadOnlyList~string~ StageNames
+        +IReadOnlyDictionary~string int~ LeadCountByStage
+    }
+    class LocaleVoice {
+        +string Locale
+        +string VoiceSkillMarkdown
+        +string PersonalitySkillMarkdown
+        +string VoiceHash
+    }
+    SiteFacts --> AgentIdentity
+    SiteFacts --> BrokerageIdentity
+    SiteFacts --> LocationFacts
+    SiteFacts --> SpecialtiesFacts
+    SiteFacts --> TrustSignals
+    SiteFacts --> RecentSale
+    SiteFacts --> Review
+    SiteFacts --> Credential
+    SiteFacts --> PipelineStages
+    SiteFacts --> LocaleVoice
+```
+
+**Every field on the site traces back to exactly one of these types.** A spec grep test (Appendix D.1) asserts that every T1 entry in the §4.1 data sourcing matrix references a path in `SiteFacts`. This keeps §4.1 and §5.3 synchronized — a new matrix row without a corresponding fact field fails CI.
 
 #### BuildLocalizedSiteContentActivity (new)
 
@@ -721,6 +908,30 @@ Rules:
 
 - **FATAL** failures propagate and fail the orchestration (user sees error). Used for steps whose failure makes the pipeline pointless.
 - **BEST-EFFORT** failures are logged and the orchestration continues with degraded output. One worker or one locale failing does not abort the whole pipeline.
+
+**Per-activity retry state machine** — every activity in the pipeline transits these states, regardless of phase:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pending
+    Pending --> Running: Activity dispatched by orchestrator
+    Running --> Success: Returned successfully
+    Running --> Transient: Claude 429 or Azure 5xx<br/>or network timeout
+    Running --> Permanent: Schema error or auth failure<br/>or deterministic bug
+    Transient --> Running: Retry up to 3x<br/>exponential backoff with jitter
+    Transient --> RetryExhausted: 3 attempts failed
+    Permanent --> Classified
+    RetryExhausted --> Classified
+    Classified --> FatalRaise: FATAL classification<br/>abort orchestration
+    Classified --> BestEffortLog: BEST-EFFORT classification<br/>log and continue
+    Success --> [*]
+    FatalRaise --> [*]: Orchestration fails
+    BestEffortLog --> [*]: Orchestration continues<br/>with degraded output
+```
+
+**Reading the diagram**: every activity starts in `Pending`, transits to `Running` when the orchestrator dispatches it, and ends in one of three terminal outcomes (`Success`, `FatalRaise`, or `BestEffortLog`). Transient errors re-enter `Running` via retry; permanent errors skip straight to classification. The classification step checks the retry table above to decide whether the failure aborts the pipeline (FATAL) or is logged and swallowed (BEST-EFFORT).
+
+**What's not shown**: Durable Functions' own orchestrator-level retry. If a FATAL failure reaches `FatalRaise` and the orchestrator throws, DF will retry the whole orchestrator instance per its configured policy. This is intentional — it catches transient infrastructure issues that even in-activity retry can't smooth over (function app cold start, temporary KV partition unavailability).
 
 ---
 
@@ -933,6 +1144,37 @@ Key design choices:
 - **User agent**: `RealEstateStarBot/1.0 (+https://real-estate-star.com/bot; abuse@real-estate-star.com)`. Honest, attributable, provides an abuse contact.
 - **Rate limiting per host**: the worker respects `Crawl-delay` from robots.txt and self-limits to 2 requests/second to any single host even without a crawl-delay directive.
 
+**Team-page discovery decision tree** — how TeamScrapeWorker chooses which URLs to scrape:
+
+```mermaid
+flowchart TD
+    Start["Brokerage domain detected<br/>from email signature"] --> Robots["Fetch robots.txt<br/>via ISsrfGuard"]
+    Robots --> RobotsOk{"robots.txt<br/>fetched successfully?"}
+    RobotsOk -->|"No"| FailClosed["Skip team capture<br/>Log TMS-030 fail-closed"]
+    RobotsOk -->|"Yes"| ParseRobots["Parse Disallow rules<br/>Cache 24h per domain"]
+    ParseRobots --> Denylist{"Domain in manual<br/>scrape-denylist.json?"}
+    Denylist -->|"Yes"| Skip["Skip team capture<br/>Log TMS-031 opt-out"]
+    Denylist -->|"No"| Sitemap["Fetch sitemap.xml<br/>via ISsrfGuard 512KB cap"]
+    Sitemap --> SitemapOk{"Sitemap found<br/>and parseable?"}
+    SitemapOk -->|"Yes"| Filter["Filter URLs:<br/>path contains agent team realtor staff<br/>depth less than or equal 3<br/>priority greater than or equal 0.5"]
+    Filter --> HasMatches{"Any matches?"}
+    HasMatches -->|"Yes"| ScrapeList["Scrape each matched URL<br/>respecting Disallow<br/>max 10 pages"]
+    HasMatches -->|"No"| Fallback
+    SitemapOk -->|"No"| Fallback["Try conservative paths:<br/>/agents /team /our-team"]
+    Fallback --> FallbackResult{"Any paths return<br/>a valid HTML page?"}
+    FallbackResult -->|"Yes"| ScrapeFallback["Scrape matching paths<br/>respecting Disallow"]
+    FallbackResult -->|"No"| Homepage["Scrape only homepage<br/>for branding<br/>Log TMS-040 no team page"]
+    ScrapeList --> Extract["Extract prospect rows<br/>via AngleSharp sanitization"]
+    ScrapeFallback --> Extract
+    Homepage --> Extract
+    Extract --> Persist["Upsert to<br/>real-estate-star-prospects<br/>Azure Table"]
+    FailClosed --> End["End"]
+    Skip --> End
+    Persist --> End
+```
+
+**Why fail-closed on robots.txt**: if we can't read robots.txt, we can't verify we're allowed to crawl. The worker chooses "skip team capture" over "assume permission" to stay on the safe side of publisher intent.
+
 ### 7.4 Warm-start flow at join time
 
 ```mermaid
@@ -1142,6 +1384,57 @@ R2 specified two things that R3 explicitly removes:
 - `AccountConfigDiagnostics.Conflicts` metric (new, mirrors `TokenStoreDiagnostics.Conflicts`) — surfaces in the existing Grafana activation dashboard as a new panel
 - ActivitySource `RealEstateStar.DataServices.AccountConfigService` (new) — spans tagged with `account_id`, `attempt`, `outcome` (`saved`, `conflict`, `retry-exhausted`)
 
+#### Two concurrent writers racing — the happy path
+
+The hardest concurrency case to reason about is two agents joining the same brokerage simultaneously. Here's what actually happens — both writers succeed, neither loses an update:
+
+```mermaid
+sequenceDiagram
+    participant W1 as Writer 1<br/>Noelle joins
+    participant W2 as Writer 2<br/>Bob joins
+    participant S as AccountConfigService
+    participant T as Azure Table<br/>accounts
+    participant Met as AccountConfigDiagnostics
+
+    par Concurrent reads
+        W1->>S: GetAccountAsync glr
+        S->>T: ReadEntity
+        T-->>S: AccountConfig ETag v1
+        S-->>W1: account with ETag v1
+    and
+        W2->>S: GetAccountAsync glr
+        S->>T: ReadEntity
+        T-->>S: AccountConfig ETag v1
+        S-->>W2: account with ETag v1
+    end
+    W1->>W1: Append Noelle to agents
+    W2->>W2: Append Bob to agents
+    par Concurrent writes
+        W1->>S: SaveIfUnchangedAsync ETag v1
+        S->>T: UpdateEntity If-Match v1
+        T-->>S: 200 OK ETag now v2
+        S-->>W1: true saved
+    and
+        W2->>S: SaveIfUnchangedAsync ETag v1
+        S->>T: UpdateEntity If-Match v1
+        T-->>S: 412 Precondition Failed
+        S-->>W2: false conflict
+    end
+    W2->>Met: Conflicts.Add 1
+    W2->>S: GetAccountAsync glr retry
+    S->>T: ReadEntity
+    T-->>S: AccountConfig ETag v2<br/>now contains Noelle
+    S-->>W2: account with ETag v2
+    W2->>W2: Append Bob to agents<br/>now Noelle plus Bob
+    W2->>S: SaveIfUnchangedAsync ETag v2
+    S->>T: UpdateEntity If-Match v2
+    T-->>S: 200 OK ETag now v3
+    S-->>W2: true saved
+    Note over T: Final state contains<br/>Noelle and Bob<br/>No updates lost
+```
+
+**The invariant**: at any point during this sequence, the `accounts` table holds a valid `AccountConfig` with a consistent agent list. The only observable effect of the race is that `Writer 2` needs two attempts instead of one. `AccountConfigDiagnostics.Conflicts` records the retry so contention can be measured in Grafana.
+
 ### 8.4 Intelligent lead routing algorithm
 
 **Decision D43: Lead routing state split — human-editable `routing-policy.json` in agent Drive, atomic counter in Azure Table.**
@@ -1224,6 +1517,58 @@ Lives at `{agent-drive-root}/real-estate-star/{accountId}/routing-policy.json` �
 - `_version`, `_etag`, `_last_edited_by`, `_last_edited_at` are maintained by the routing service. Manual edits in Drive don't touch them directly — the Drive write invalidates the `_etag`, the next service read populates a fresh one on its own CAS cycle.
 - The file format is JSON with `//` comments in the header. The parsing layer strips `//`-prefixed lines before `System.Text.Json.JsonSerializer.Deserialize`, then writes them back preserved on update.
 
+**Type relationships** — the deserialized `RoutingPolicy` record and its children:
+
+```mermaid
+classDiagram
+    class RoutingPolicy {
+        +int _version
+        +string _etag
+        +DateTimeOffset _last_edited_at
+        +string _last_edited_by
+        +string? next_lead
+        +IReadOnlyDictionary~string RoutingAgent~ agents
+        +RoutingDefaults defaults
+    }
+    class RoutingAgent {
+        +bool enabled
+        +IReadOnlyList~string~ service_areas
+        +IReadOnlyList~string~ specialties
+        +IReadOnlyList~string~ languages
+        +double weight
+        +string? notes
+    }
+    class RoutingDefaults {
+        +string tiebreak
+        +string fall_back_when_no_match
+    }
+    class BrokerageRoutingCounter {
+        +string AccountId PK
+        +string RowKey constant counter
+        +int Counter
+        +int PolicyVersion
+        +string ETag
+        +DateTime LastUpdated
+    }
+    class RoutingDecision {
+        +string LeadId
+        +string AccountId
+        +string WinnerAgentId
+        +string Reason
+        +int PolicyVersion
+        +int? CounterAtDecision
+        +DateTimeOffset DecidedAt
+        +string? NextLeadOverrideValue
+        +string? NextLeadOverrideOutcome
+    }
+    RoutingPolicy --> RoutingAgent : composes
+    RoutingPolicy --> RoutingDefaults : composes
+    BrokerageRoutingCounter ..> RoutingPolicy : pinned by PolicyVersion
+    RoutingDecision ..> RoutingPolicy : captures version at decision
+```
+
+**Storage**: `RoutingPolicy` lives as a JSON file in Drive; `BrokerageRoutingCounter` lives in Azure Table; `RoutingDecision` is both a row in `brokerage-routing-decisions` Azure Table AND a CSV row in `routing-log.csv` in Drive. Dotted edges in the diagram represent references by value, not foreign keys.
+
 #### `brokerage-routing-counters` Azure Table schema
 
 ```
@@ -1262,6 +1607,52 @@ timestamp,lead_id,lead_city,lead_inquiry,lead_language,winner_agent,reason,polic
 The `reason` column is human-readable so a brokerage owner scanning the sheet in Drive understands why each decision was made. `counter_at_decision` is the counter value used for this routing decision (for reproducibility in post-mortems).
 
 #### Algorithm
+
+**High-level decision flow** — the full routing decision as a flowchart:
+
+```mermaid
+flowchart TD
+    Lead["Lead L arrives for<br/>brokerage accountId"] --> ReadPolicy["Read routing-policy.json<br/>from Drive<br/>60s edge cache"]
+    ReadPolicy --> Override{"policy.next_lead<br/>is set?"}
+    Override -->|"Yes"| ResolveTarget["Resolve target_id<br/>from policy.agents"]
+    ResolveTarget --> Exists{"Target exists<br/>in policy.agents?"}
+    Exists -->|"No typo"| LogFailed["Log LEAD-ROUTE-OVERRIDE-003<br/>Leave next_lead set<br/>Grafana alert<br/>Fall through"]
+    Exists -->|"Yes"| CAS["SaveIfUnchangedAsync<br/>set next_lead null<br/>bump _version"]
+    CAS -->|"200 CAS succeeds"| RouteOverride["Route L to target<br/>strict override<br/>Log LEAD-ROUTE-OVERRIDE-001"]
+    CAS -.->|"412 another lead<br/>raced us"| LogLost["Log LEAD-ROUTE-OVERRIDE-002<br/>Re-read policy<br/>Fall through"]
+    LogFailed --> FilterStart
+    LogLost --> ReadPolicy
+    Override -->|"No"| FilterStart["Filter enabled agents<br/>by policy.agents items"]
+    FilterStart --> FilterArea["Hard filter:<br/>L.property_city in<br/>a.service_areas"]
+    FilterArea --> AnyMatch{"Any agent<br/>matches area?"}
+    AnyMatch -->|"No"| Fallback{"defaults<br/>fall_back_when_no_match<br/>is any-enabled-agent?"}
+    Fallback -->|"Yes"| UseAll["Use all enabled agents<br/>as candidates"]
+    Fallback -->|"No reject"| Reject["Return 422 unroutable<br/>Log LEAD-ROUTE-UNROUTABLE-001"]
+    AnyMatch -->|"Yes"| Score["Score each candidate<br/>specialty plus language<br/>plus inquiry type match"]
+    UseAll --> Score
+    Score --> TopScore["Find max score"]
+    TopScore --> OneWinner{"Exactly one<br/>agent at top?"}
+    OneWinner -->|"Yes"| DispatchReason["Reason equals<br/>specialty or area match"]
+    OneWinner -->|"No tied"| ReadCounter["Read counter row<br/>from Azure Table"]
+    ReadCounter --> VersionMatch{"counter.PolicyVersion<br/>equals policy._version?"}
+    VersionMatch -->|"No"| ResetCounter["Reset Counter 0<br/>PolicyVersion bump"]
+    VersionMatch -->|"Yes"| UseCounter
+    ResetCounter --> UseCounter["Expand tied list<br/>by weight"]
+    UseCounter --> ModPick["winner equals<br/>expanded mod counter"]
+    ModPick --> IncCounter["UpdateEntity<br/>Counter plus 1<br/>ETag If-Match"]
+    IncCounter --> DispatchReason2["Reason equals<br/>weighted-round-robin"]
+    RouteOverride --> DispatchFinal
+    DispatchReason --> DispatchFinal
+    DispatchReason2 --> DispatchFinal
+    DispatchFinal["Append row to<br/>routing-log.csv<br/>Upsert RoutingDecision"]
+    DispatchFinal --> Deliver["Deliver L to winner<br/>email or queue<br/>Log LEAD-ROUTE-001"]
+    Deliver --> Done(["Done"])
+    Reject --> Done
+```
+
+**How to read it**: solid arrows are the normal routing path; dotted arrows are contention recovery. Every lead ends at `Done`, either via successful delivery or an unroutable 422. The manual override path short-circuits scoring entirely when it succeeds.
+
+**Pseudocode form** (same algorithm, with code-level detail for implementation):
 
 ```
 route_lead(lead L, accountId):
@@ -1358,6 +1749,54 @@ R2 specified `lead_routing.counter` embedded in `account.json` with `last_assign
 - **Service-area hard filter with no match**: no agent covers the lead's city, `fall_back_when_no_match = "any-enabled-agent"` → falls through to any enabled agent; if set to `"reject"` → returns 422
 - **Counter contention**: 20 parallel leads against one brokerage with 3 tied agents → all 20 routed, counter final value is 20, Azure Table conflicts retried successfully
 - **Policy read cached**: first lead reads from Drive, second lead within 60s reads from edge cache, third lead after 61s re-reads from Drive
+
+#### next_lead manual override — concurrent leads racing
+
+The subtlest case in §8.4 is two leads arriving at the same time when the brokerage owner has set `next_lead: alice`. Only one lead should go to Alice; the other should fall through to the normal algorithm. This diagram shows both leads racing through the CAS and lands them correctly:
+
+```mermaid
+sequenceDiagram
+    participant L1 as Lead 1<br/>Noelle in Carteret
+    participant L2 as Lead 2<br/>buyer in Edison
+    participant R as RoutingService
+    participant D as Drive<br/>routing-policy.json
+    participant T as Azure Table<br/>counter
+
+    par Both leads arrive roughly simultaneously
+        L1->>R: route_lead Lead 1
+        R->>D: Read routing-policy.json
+        D-->>R: policy next_lead alice<br/>_version 7 _etag v1
+    and
+        L2->>R: route_lead Lead 2
+        R->>D: Read routing-policy.json
+        D-->>R: policy next_lead alice<br/>_version 7 _etag v1
+    end
+    Note over R: Both have seen next_lead alice
+    par Both try to consume the override
+        R->>D: SaveIfUnchangedAsync<br/>next_lead null<br/>_version 8<br/>If-Match v1
+        D-->>R: 200 saved<br/>new ETag v2
+        R-->>L1: Routed to Alice<br/>reason manual-override
+    and
+        R->>D: SaveIfUnchangedAsync<br/>next_lead null<br/>_version 8<br/>If-Match v1
+        D-->>R: 412 precondition failed
+        R-->>L2: Fell through
+    end
+    R->>R: Log LEAD-ROUTE-OVERRIDE-002<br/>override lost to concurrent lead
+    R->>D: Re-read routing-policy.json
+    D-->>R: policy next_lead null<br/>_version 8 _etag v2
+    Note over R: next_lead already cleared<br/>Proceed with algorithmic routing
+    R->>R: Filter by Edison service area<br/>Score by specialty
+    R->>T: Read counter partition glr
+    T-->>R: counter 3 policyVersion 8
+    Note over R: Version matches<br/>no reset needed
+    R->>T: UpdateEntity counter 4<br/>If-Match ETag
+    T-->>R: 200 saved
+    R-->>L2: Routed to Jenise<br/>reason specialty-match
+```
+
+**Key invariant**: the override goes to exactly one lead, even under contention. The CAS on `SaveIfUnchangedAsync` is the serialization point. The losing lead **does not** see the override a second time because the re-read returns the already-cleared policy. There is no window where both leads could consume the same override, and there is no window where the override is lost without being used.
+
+**Error recovery**: if the losing lead's retry also loses the CAS (three simultaneous leads, maybe), the pattern continues — each failed CAS triggers another re-read until one lead gets a clean policy to work with. In practice, three-way contention on the same manual override is essentially impossible given real lead arrival rates.
 
 #### Observability
 
@@ -1550,6 +1989,80 @@ Background timer-triggered Azure Function runs every 5 minutes:
 6. For **suspended** rows: continue daily checks; on recovery, move back to `live`.
 7. Expire rows in `pending` for > 7 days → `failed` with reason "ownership-timeout".
 8. All state transitions emit `[DOMAIN-VERIFY-NNN]` logs (Appendix E).
+
+**End-to-end BYOD provisioning** — agent, platform API, DNS, and Cloudflare for SaaS working together:
+
+```mermaid
+sequenceDiagram
+    participant A as Agent
+    participant P as Platform API
+    participant DB as Azure Table<br/>custom-hostnames
+    participant DNS as Public DNS<br/>three resolvers
+    participant CF as Cloudflare<br/>for SaaS
+    participant J as Background job<br/>every 5 minutes
+
+    A->>P: POST /domains<br/>hostname jenisesellsnj.com<br/>canonical true
+    P->>P: Validate hostname<br/>blocklist homoglyph Levenshtein<br/>per-account quota check
+    P->>DB: Insert row<br/>status submitted<br/>VerificationCname fresh nonce
+    P-->>A: CNAME challenge instructions<br/>_realstar-challenge TXT nonce
+    Note over A: Agent adds TXT record<br/>at their registrar
+
+    loop Every 5 minutes
+        J->>DB: Query rows needing action
+        DB-->>J: pending rows
+
+        par Multi-resolver consensus
+            J->>DNS: Resolve via 1.1.1.1
+            DNS-->>J: TXT nonce
+        and
+            J->>DNS: Resolve via 8.8.8.8
+            DNS-->>J: TXT nonce
+        and
+            J->>DNS: Resolve via 9.9.9.9
+            DNS-->>J: TXT nonce
+        end
+
+        alt All three see the nonce
+            J->>DB: Update status<br/>ownership-verified
+            J->>A: Email add CNAME now<br/>point at real-estate-star.com
+        else Resolver disagreement or timeout
+            J->>DB: Update LastCheckedAt
+            J->>J: Log DOMAIN-VERIFY-010 retry
+        end
+    end
+
+    Note over A: Agent adds CNAME record
+    loop Next 5 minute tick
+        J->>DB: Query ownership-verified rows
+        DB-->>J: row
+        J->>DNS: Resolve CNAME target
+        alt Points at real-estate-star.com
+            J->>CF: POST custom_hostnames<br/>hostname jenisesellsnj.com
+            CF-->>J: id pending ssl
+            J->>DB: Update status provisioning<br/>CloudflareHostnameId
+        end
+    end
+
+    loop Next 5 minute tick
+        J->>CF: GET custom_hostnames id
+        CF-->>J: ssl active
+        J->>DB: Update status live<br/>VerifiedAt now
+        J->>A: Email your site is live
+    end
+
+    Note over A: Site reachable on custom domain
+    loop Daily re-verification forever
+        J->>DB: Query live rows
+        J->>DNS: Re-resolve CNAME
+        alt Still points at us
+            J->>DB: Update LastCheckedAt
+        else Fails
+            J->>DB: Status suspended<br/>on second consecutive failure
+            J->>A: Email your custom domain stopped working
+            Note over J: 7 day grace then removed plus CF delete
+        end
+    end
+```
 
 ### 9.6 Canonical URL resolution
 
@@ -1997,6 +2510,48 @@ Crucially, the Tier 2 fallback **still enforces all §17 compliance rules**: EHO
 - `BuildResult` is `Fallback` with reason `"feature-flag-disabled"` when `Activation:SiteContentGeneration:Enabled = false`
 - Tier 2 output still passes every §17 compliance test
 - Tier 2 output still passes nav ↔ section validation
+
+**Fallback decision tree** — how `BuildLocalizedSiteContentActivity` decides between full generation and the tier 2 emergency content:
+
+```mermaid
+flowchart TD
+    Start["BuildLocalizedSiteContent<br/>for accountId"] --> Flag{"Feature flag<br/>SiteContentGeneration<br/>enabled?"}
+    Flag -->|"No"| Tier2Flag["Tier 2 fallback<br/>reason feature-flag-disabled"]
+    Flag -->|"Yes"| Deny{"accountId in<br/>deny list?"}
+    Deny -->|"Yes"| Tier2Deny["Tier 2 fallback<br/>reason account-denied"]
+    Deny -->|"No"| Facts["Run SiteFactExtractor"]
+    Facts --> FactsOk{"Facts<br/>extracted?"}
+    FactsOk -->|"No"| Tier2Facts["Tier 2 fallback<br/>reason fact-extractor-failed"]
+    FactsOk -->|"Yes"| Locales["For each supported locale<br/>in parallel max 2"]
+    Locales --> PerLocale["Run BuildLocalizedContent<br/>for locale"]
+    PerLocale --> LocaleResult{"Result<br/>classification"}
+    LocaleResult -->|"Full"| Collect["Collect locale result"]
+    LocaleResult -.->|"Retry once with<br/>degraded prompts"| PerLocaleRetry["Second attempt"]
+    PerLocaleRetry --> RetryResult{"Retry result"}
+    RetryResult -->|"Full"| Collect
+    RetryResult -.->|"Fail"| LocaleFail["Mark locale failed"]
+    Collect --> AllDone{"All locales<br/>processed?"}
+    LocaleFail --> AllDone
+    AllDone -->|"No"| PerLocale
+    AllDone -->|"Yes"| Assess{"Any locale<br/>succeeded?"}
+    Assess -->|"Yes at least one"| PartialOk["Full result for<br/>succeeded locales<br/>Mark others<br/>best-effort skipped"]
+    Assess -->|"No all failed"| Tier2All["Tier 2 fallback<br/>reason all-locales-failed"]
+    PartialOk --> ComplianceCheck["Compliance check<br/>per 17<br/>state advertising EHO TCPA"]
+    Tier2Flag --> BuildMinimal
+    Tier2Deny --> BuildMinimal
+    Tier2Facts --> BuildMinimal
+    Tier2All --> BuildMinimal
+    BuildMinimal["Build minimal content.json<br/>from account.json identity<br/>plus template defaultContent"]
+    BuildMinimal --> ComplianceCheck
+    ComplianceCheck --> Compliant{"All compliance<br/>tests pass?"}
+    Compliant -->|"Yes"| PersistDraft["Persist to KV draft<br/>Mark site state"]
+    Compliant -.->|"No required<br/>field missing"| NeedsInfo["Move site to Needs Info<br/>Email agent with<br/>missing fields list"]
+    PersistDraft --> Phase4["Phase 4 WelcomeNotification<br/>with BuildResult reason"]
+    NeedsInfo --> Phase4
+    Phase4 --> End(["End"])
+```
+
+**Guarantee**: even Tier 2 fallback produces a site that passes every §17 compliance test. If a required field (license number, brokerage name) is missing from `account.json`, the activity escalates to `Needs Info` state — it never ships a non-compliant site. Tier 2 is "minimal but compliant," not "degraded."
 
 ---
 
@@ -2519,6 +3074,43 @@ The guard enforces:
 | `https://public.com` with gzip bomb | Aborted at 10x ratio, `[SCRAPE-BOMB]` logged |
 | `https://public.com` normal 200 OK 2 MB | Success |
 
+**Per-request validation flow** — every step an outbound HTTP call transits through `ISsrfGuard`:
+
+```mermaid
+flowchart TD
+    Start["SafeGetAsync url"] --> Parse{"Valid URL<br/>per Uri.TryCreate?"}
+    Parse -->|"No"| RejectParse["Reject malformed<br/>Log SSRF-050"]
+    Parse -->|"Yes"| Scheme{"Scheme equals<br/>https?"}
+    Scheme -->|"No"| RejectScheme["Reject scheme<br/>Log SSRF-001"]
+    Scheme -->|"Yes"| Blocklist{"Hostname in<br/>infrastructure<br/>blocklist?"}
+    Blocklist -->|"Yes"| RejectBlock["Reject our own infra<br/>Log SSRF-003"]
+    Blocklist -->|"No"| Resolve["DNS resolve host<br/>via GetHostAddressesAsync"]
+    Resolve --> ResolveOk{"Resolution<br/>succeeded?"}
+    ResolveOk -->|"No"| RejectResolve["Reject NXDOMAIN<br/>Log SSRF-005"]
+    ResolveOk -->|"Yes"| IpCheck{"Any resolved IP<br/>in denylist?"}
+    IpCheck -->|"Yes private loopback<br/>link-local CGNAT"| RejectIp["Reject IP range<br/>Log SSRF-002"]
+    IpCheck -->|"No"| Connect["SocketsHttpHandler<br/>ConnectCallback<br/>re-resolve before TCP"]
+    Connect --> Rebind{"Connect-time IP<br/>matches earlier?"}
+    Rebind -->|"No"| RejectRebind["Reject DNS rebind<br/>Log SSRF-020"]
+    Rebind -->|"Yes"| SendReq["Send HTTP request<br/>15s timeout"]
+    SendReq --> Response{"Response<br/>received?"}
+    Response -->|"Timeout or error"| RejectTimeout["Reject timeout<br/>Log SSRF-060"]
+    Response -->|"3xx redirect"| ReValidate["Re-run full guard<br/>on redirect target"]
+    ReValidate --> RedirectCount{"Redirects<br/>less than 3?"}
+    RedirectCount -->|"Yes"| Parse
+    RedirectCount -->|"No"| RejectLoop["Reject redirect loop<br/>Log SSRF-030"]
+    Response -->|"2xx"| Encoding{"Content-Encoding<br/>gzip?"}
+    Encoding -->|"Yes"| LimitedStream["Wrap in LimitedStream<br/>10x ratio cap"]
+    Encoding -->|"No"| StreamBody
+    LimitedStream --> StreamBody["Stream body<br/>5 MB cap"]
+    StreamBody --> Size{"Size exceeded?"}
+    Size -->|"Yes"| RejectSize["Truncate abort<br/>Log SSRF-004"]
+    Size -->|"No"| ReturnBody["Return HttpResponseMessage<br/>to caller"]
+    ReturnBody --> Done(["Done"])
+```
+
+**Defense in depth**: every step is checked independently, and the order matters. Early checks (scheme, blocklist) are cheap and catch the obvious attacks. Late checks (redirect revalidation, body size) cover attacks that try to sneak past early validation. DNS rebinding — where DNS resolves to a public IP during validation then flips to a private IP during connect — is caught by the connect-time re-resolution, which is why `SocketsHttpHandler.ConnectCallback` is used instead of the default connection logic.
+
 #### XSS sanitization
 
 Every string scraped from an external source goes through `IHtmlTextExtractor.ToPlainText` before it is persisted. This uses a hardened HTML parser (AngleSharp) to extract visible text content only — no tags, no attributes, no scripts, no inline handlers.
@@ -2572,6 +3164,66 @@ The R1 design referenced `/sites/{accountId}/publish` as "called by Stripe webho
 - Tampered payload (signature valid but `accountId` mismatch) → 400
 - Non-Stripe IP → 403
 - `checkout.session.completed` with `payment_status: "unpaid"` → 200, no state change
+
+**End-to-end billing flow** — agent approval through to live site:
+
+```mermaid
+sequenceDiagram
+    participant A as Agent
+    participant W as Agent-site Worker
+    participant API as Platform API
+    participant KV as Cloudflare KV
+    participant S as Stripe
+    participant WH as Stripe Webhook
+    participant EV as Azure Table<br/>stripe-events
+
+    A->>W: GET preview URL<br/>with rs_preview cookie
+    W->>KV: Read draft content
+    KV-->>W: content.json.draft
+    W-->>A: Render draft site
+    A->>W: Click Approve and Continue
+    W->>API: POST /sites/accountId/approve<br/>rs_preview cookie
+    API->>API: Validate preview session<br/>scope check
+    API->>S: Session.create<br/>Idempotency-Key approve-accountId-sessionId<br/>line_items STRIPE_PRICE_ID<br/>metadata accountId previewSessionId
+    S-->>API: Checkout session URL
+    API-->>W: 200 checkoutUrl
+    W-->>A: Redirect to Stripe checkout
+    A->>S: Complete payment
+    S->>WH: POST /sites/accountId/publish<br/>checkout.session.completed<br/>Stripe-Signature header
+    WH->>WH: Verify signature<br/>ConstructEvent<br/>5 min tolerance
+    alt Signature fails
+        WH-->>S: 400 STRIPE-WH-001
+    end
+    WH->>WH: Check Stripe IP allowlist
+    alt IP not Stripe
+        WH-->>S: 403 STRIPE-WH-003
+    end
+    WH->>EV: Insert event.id with TTL 30d
+    alt Duplicate event
+        EV-->>WH: Conflict
+        WH-->>S: 200 STRIPE-WH-002 skip
+    end
+    WH->>WH: Validate event.metadata.accountId<br/>equals URL accountId
+    alt Scope mismatch
+        WH-->>S: 400 STRIPE-WH-004
+    end
+    WH->>WH: Check payment_status equals paid
+    WH->>KV: Copy content draft to live<br/>per locale
+    KV-->>WH: OK
+    WH->>KV: Update site-state accountId<br/>status live liveAt now
+    KV-->>WH: OK
+    WH->>KV: Purge edge cache
+    WH->>API: Enqueue welcome live email
+    WH-->>S: 200
+    API->>A: Email Your site is live<br/>public URL
+```
+
+**Key invariants**:
+
+- The webhook handler is the only code path that can promote a draft to live. No API endpoint exposes "manually publish" without going through Stripe.
+- Event ID idempotency means duplicate webhook deliveries (Stripe retries after timeouts) don't double-publish.
+- The `metadata.accountId` check ensures a webhook for brokerage A can't be replayed against brokerage B even if an attacker finds the signature secret.
+- Price is never taken from the client. Server-side `STRIPE_PRICE_ID` is the only source.
 
 ### 16.6 Secrets inventory
 
@@ -2968,6 +3620,36 @@ The `BrandingDiscoveryWorker` extracts primary, secondary, and accent colors fro
 
 **Unit test matrix**: canonical failure colors (`#FFFF00` yellow on white, `#333333` dark gray on black, `#808080` gray), canonical pass colors (`#1B5E20` green on white, `#FFFFFF` on `#1B5E20`), edge cases (exact 4.5:1).
 
+**Contrast adjustment decision flow** — per brand color, per contrast check context:
+
+```mermaid
+flowchart TD
+    Start["Brand color C<br/>from BrandingDiscoveryWorker"] --> Checks["Compute contrast ratios<br/>vs white vs dark bg vs text color"]
+    Checks --> AnyFail{"Any ratio<br/>below 4.5:1?"}
+    AnyFail -->|"No"| Pass["Persist C as-is<br/>Log CONTRAST-000 pass"]
+    AnyFail -->|"Yes"| Direction{"Failure<br/>direction?"}
+    Direction -->|"Light on light"| Darken["Reduce HSL lightness<br/>by 5 percent"]
+    Direction -->|"Dark on dark"| Lighten["Increase HSL lightness<br/>by 5 percent"]
+    Darken --> DarkRecheck["Recompute contrast"]
+    Lighten --> LightRecheck["Recompute contrast"]
+    DarkRecheck --> DarkMet{"Ratio at least<br/>4.5:1?"}
+    LightRecheck --> LightMet{"Ratio at least<br/>4.5:1?"}
+    DarkMet -->|"Yes"| Adjusted["Persist adjusted color<br/>Log CONTRAST-001<br/>Advisory in welcome email"]
+    LightMet -->|"Yes"| Adjusted
+    DarkMet -->|"No"| DarkFloor{"Lightness<br/>below 10 percent?"}
+    LightMet -->|"No"| LightCeiling{"Lightness<br/>above 90 percent?"}
+    DarkFloor -->|"No keep going"| Darken
+    LightCeiling -->|"No keep going"| Lighten
+    DarkFloor -->|"Yes cannot darken further"| Unusable["Color cannot converge<br/>to 4.5:1 against any context"]
+    LightCeiling -->|"Yes cannot lighten further"| Unusable
+    Unusable --> Block["Log CONTRAST-002<br/>Move site state to<br/>Needs Info<br/>Require manual color review"]
+    Pass --> Done(["Done"])
+    Adjusted --> Done
+    Block --> Done
+```
+
+**Why HSL and not RGB**: HSL lightness adjustments preserve hue and saturation, so an agent's "brand green" adjusted for contrast still looks green, just darker or lighter. Adjusting in RGB space produces muddy, off-brand colors. The 5% step size is a balance between convergence speed and overshoot — smaller steps converge slowly, larger steps can overshoot and end up darker/lighter than necessary.
+
 #### 17.6.2 Alt text for every image
 
 **No image element may render on an agent site without an alt attribute**. Alt text comes from deterministic sources per image type:
@@ -3074,6 +3756,32 @@ The R1 spec marked these fields as nullable with "null fallback." This is a regu
 5. `BuildLocalizedSiteContent` does NOT attempt to Claude-generate missing required fields. These are facts, not copy — hallucinating a license number is unthinkable.
 
 **Test**: unit tests per state verify that a `SiteFacts` with each individual required field missing produces a `Needs Info` status, not a `Live` site.
+
+**State-advertising hard-block decision flow** — runs at publish time:
+
+```mermaid
+flowchart TD
+    Start["Site ready to publish<br/>accountId"] --> ReadState["Read account.location.state"]
+    ReadState --> StateKnown{"State in<br/>advertising-requirements.json?"}
+    StateKnown -->|"No"| FederalOnly["Apply federal defaults<br/>brokerage name license<br/>agent license"]
+    StateKnown -->|"Yes"| LoadRules["Load state required list<br/>e.g. NJ requires 5 fields"]
+    LoadRules --> Fields["For each required field"]
+    FederalOnly --> Fields
+    Fields --> Check{"Field populated<br/>in SiteFacts?"}
+    Check -->|"Yes"| NextField{"More fields<br/>to check?"}
+    Check -->|"No"| Missing["Collect field name<br/>into missing list"]
+    Missing --> NextField
+    NextField -->|"Yes"| Fields
+    NextField -->|"No"| AnyMissing{"Missing list<br/>is empty?"}
+    AnyMissing -->|"Yes"| Allow["Allow publish<br/>Site can transition to Live"]
+    AnyMissing -->|"No"| Block["Block publish<br/>Log STATE-ADV-001<br/>Set site-state to Needs Info<br/>Email agent with missing list<br/>plus data-collection form link"]
+    Allow --> Done(["Proceed to Stripe approve flow"])
+    Block --> WaitAgent(["Agent provides missing data<br/>then re-trigger activation"])
+```
+
+**What qualifies as a required field**: each state's JSON row in `config/legal/state-advertising-requirements.json` is authoritative. Currently the list covers NJ, CA, TX, FL, NY at minimum (federal defaults apply for other states until their specific rules are added). The list is maintained as legal research happens — additions require a `[legal-review-approved]` commit marker.
+
+**What the hard block never does**: Claude-generate a license number, fabricate a brokerage name, guess an office address. These are facts. If we don't have them, we don't publish. Period.
 
 ### 17.8 Copyright and content provenance
 
