@@ -139,7 +139,8 @@ public sealed class ActivityFunctionTests
         var mergeResult = new BrandMergeResult("# Brand Profile", "# Brand Voice");
 
         brandMergeService
-            .Setup(s => s.MergeAsync("acc1", "agent1", "branding kit content", "voice skill content", Ct))
+            .Setup(s => s.MergeAsync("acc1", "agent1", "branding kit content", "voice skill content",
+                It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(mergeResult);
 
         storage.Setup(s => s.EnsureFolderExistsAsync(It.IsAny<string>(), Ct))
@@ -308,6 +309,8 @@ public sealed class ActivityFunctionTests
             ActivityNames.BrandMerge,
             ActivityNames.ContactImport,
             ActivityNames.WelcomeNotification,
+            ActivityNames.BuildLocalizedSiteContent,
+            ActivityNames.PersistSiteContent,
         };
 
         // All names must be unique

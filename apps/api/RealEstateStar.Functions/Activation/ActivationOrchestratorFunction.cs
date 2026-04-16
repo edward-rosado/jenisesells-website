@@ -657,7 +657,198 @@ public sealed class ActivationOrchestratorFunction
         {
             var phase4Duration = (ctx.CurrentUtcDateTime - phase4Start).TotalMilliseconds;
             logger.LogInformation("[ACTV-FN-059] Phase 4 completed in {Duration}ms", phase4Duration);
+        }
 
+        // ── Phase 2.75: Site Fact Extraction ───────────────────────────────────
+        // Extracts locale-neutral facts (agent identity, branding, location, specialties, etc.)
+        // from Phase 2 synthesis outputs for use by localized content generation.
+
+        var siteFactsStart = ctx.CurrentUtcDateTime;
+        if (!ctx.IsReplaying)
+            logger.LogInformation("[ACTV-FN-060] Phase 2.75: site fact extraction for agentId={AgentId}", request.AgentId);
+
+        SiteFactsOutput? siteFacts = null;
+        List<string> supportedLocales = [];
+        try
+        {
+            var factJson = await ctx.CallActivityAsync<string>(
+                ActivityNames.SiteFactExtractor,
+                new SiteFactExtractorInput
+                {
+                    AccountId = request.AccountId,
+                    AgentId = request.AgentId,
+                    CorrelationId = ctx.InstanceId,
+                    Voice = voice,
+                    Personality = personality,
+                    BrandExtraction = brandExtractionTask.Result,
+                    BrandVoice = brandVoiceTask.Result,
+                    ContactDetection = contactDetectionResult,
+                    Discovery = discovery,
+                    DriveIndex = driveIndex,
+                },
+                ActivationRetryPolicies.SiteContent);
+            siteFacts = JsonSerializer.Deserialize<SiteFactsOutput>(factJson)!;
+            supportedLocales = siteFacts.SupportedLocales.ToList();
+
+            if (!ctx.IsReplaying)
+            {
+                var factDuration = (ctx.CurrentUtcDateTime - siteFactsStart).TotalMilliseconds;
+                logger.LogInformation(
+                    "[ACTV-FN-061] SiteFactExtractor completed in {Duration}ms. locales={LocaleCount}",
+                    factDuration, supportedLocales.Count);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            if (!ctx.IsReplaying)
+                logger.LogWarning(ex, "[ACTV-FN-062] SiteFactExtractor failed for agentId={AgentId} — site content generation will be skipped", request.AgentId);
+        }
+
+        // ── Phase 3: Build Localized Site Content ────────────────────────────────
+        // Generates voiced, localized content for all supported locales using VoicedContentGenerator.
+
+        var siteContentStart = ctx.CurrentUtcDateTime;
+        if (!ctx.IsReplaying)
+            logger.LogInformation("[ACTV-FN-063] Phase 3: build localized site content for agentId={AgentId}", request.AgentId);
+
+        RealEstateStar.Domain.Activation.Models.BuildResult? buildResult = null;
+        if (siteFacts?.Facts is not null && supportedLocales.Count > 0)
+        {
+            try
+            {
+                var contentJson = await ctx.CallActivityAsync<string>(
+                    ActivityNames.BuildLocalizedSiteContent,
+                    new BuildSiteContentInput
+                    {
+                        AccountId = request.AccountId,
+                        AgentId = request.AgentId,
+                        CorrelationId = ctx.InstanceId,
+                        Facts = siteFacts.Facts,
+                        SupportedLocales = supportedLocales,
+                        TemplateName = request.AgentId,
+                    },
+                    ActivationRetryPolicies.SiteContent);
+                buildResult = JsonSerializer.Deserialize<RealEstateStar.Domain.Activation.Models.BuildResult>(contentJson)!;
+
+                if (!ctx.IsReplaying)
+                {
+                    var contentDuration = (ctx.CurrentUtcDateTime - siteContentStart).TotalMilliseconds;
+                    logger.LogInformation(
+                        "[ACTV-FN-064] BuildLocalizedSiteContent completed in {Duration}ms. type={ResultType}, locales={LocaleCount}",
+                        contentDuration, buildResult.ResultType, buildResult.ContentByLocale.Count);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                if (!ctx.IsReplaying)
+                    logger.LogWarning(ex, "[ACTV-FN-065] BuildLocalizedSiteContent failed for agentId={AgentId} — site persistence will be skipped", request.AgentId);
+            }
+        }
+        else if (!ctx.IsReplaying)
+        {
+            logger.LogInformation(
+                "[ACTV-FN-063] SKIP: BuildLocalizedSiteContent for agentId={AgentId}. " +
+                "Reason: siteFacts={HasFacts}, supportedLocales={LocaleCount}. " +
+                "Site content generation requires both facts and at least one supported locale.",
+                request.AgentId, siteFacts?.Facts is not null, supportedLocales.Count);
+        }
+
+        // ── Phase 3: Persist Site Content to Cloudflare KV ────────────────────
+        // Writes generated site content and account config to Cloudflare KV as draft.
+
+        var persistSiteStart = ctx.CurrentUtcDateTime;
+        if (!ctx.IsReplaying)
+            logger.LogInformation("[ACTV-FN-066] Phase 3: persist site content to KV for agentId={AgentId}", request.AgentId);
+
+        if (buildResult?.ContentByLocale.Count > 0)
+        {
+            try
+            {
+                // Load account.json for writing to KV
+                var accountJson = string.Empty; // In a real implementation, this would be loaded from config storage
+
+                await ctx.CallActivityAsync(
+                    ActivityNames.PersistSiteContent,
+                    new PersistSiteContentInput
+                    {
+                        AccountId = request.AccountId,
+                        AgentId = request.AgentId,
+                        CorrelationId = ctx.InstanceId,
+                        BuildResult = buildResult,
+                        AccountConfigJson = accountJson,
+                    },
+                    ActivationRetryPolicies.SiteContent);
+
+                if (!ctx.IsReplaying)
+                {
+                    var persistDuration = (ctx.CurrentUtcDateTime - persistSiteStart).TotalMilliseconds;
+                    logger.LogInformation(
+                        "[ACTV-FN-067] PersistSiteContent completed in {Duration}ms. locales={LocaleCount}",
+                        persistDuration, buildResult.ContentByLocale.Count);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                if (!ctx.IsReplaying)
+                    logger.LogWarning(ex, "[ACTV-FN-068] PersistSiteContent failed for agentId={AgentId} — asset rehosting will be skipped", request.AgentId);
+            }
+        }
+        else if (!ctx.IsReplaying)
+        {
+            logger.LogInformation(
+                "[ACTV-FN-066] SKIP: PersistSiteContent for agentId={AgentId}. " +
+                "Reason: buildResult={HasContent}. Site content persistence requires a successful build.",
+                request.AgentId, buildResult?.ContentByLocale.Count ?? 0);
+        }
+
+        // ── Phase 3: Rehost Assets to R2 ──────────────────────────────────────
+        // Copies agent images and referenced assets to Cloudflare R2 for production delivery.
+
+        var rehostStart = ctx.CurrentUtcDateTime;
+        if (!ctx.IsReplaying)
+            logger.LogInformation("[ACTV-FN-069] Phase 3: rehost assets to R2 for agentId={AgentId}", request.AgentId);
+
+        if (siteFacts?.Facts is not null && buildResult?.ContentByLocale.Count > 0)
+        {
+            try
+            {
+                var rehostJson = await ctx.CallActivityAsync<string>(
+                    ActivityNames.RehostAssetsToR2,
+                    new RehostAssetsToR2Input
+                    {
+                        AccountId = request.AccountId,
+                        AgentId = request.AgentId,
+                        CorrelationId = ctx.InstanceId,
+                        BuildResult = buildResult,
+                        Facts = siteFacts.Facts,
+                    },
+                    ActivationRetryPolicies.SiteContent);
+                var rehostOutput = JsonSerializer.Deserialize<RehostAssetsToR2Output>(rehostJson)!;
+
+                if (!ctx.IsReplaying)
+                {
+                    var rehostDuration = (ctx.CurrentUtcDateTime - rehostStart).TotalMilliseconds;
+                    logger.LogInformation(
+                        "[ACTV-FN-070] RehostAssetsToR2 completed in {Duration}ms. rehosted={Count}",
+                        rehostDuration, rehostOutput.RehostedCount);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                if (!ctx.IsReplaying)
+                    logger.LogWarning(ex, "[ACTV-FN-071] RehostAssetsToR2 failed for agentId={AgentId} — best-effort, site content is still valid without rehosted assets", request.AgentId);
+            }
+        }
+        else if (!ctx.IsReplaying)
+        {
+            logger.LogInformation(
+                "[ACTV-FN-069] SKIP: RehostAssetsToR2 for agentId={AgentId}. " +
+                "Reason: siteFacts={HasFacts}, buildResult={HasContent}. Asset rehosting requires facts and successful build.",
+                request.AgentId, siteFacts?.Facts is not null, buildResult?.ContentByLocale.Count ?? 0);
+        }
+
+        if (!ctx.IsReplaying)
+        {
             var totalDuration = (ctx.CurrentUtcDateTime - request.Timestamp).TotalMilliseconds;
             var localizedSkillCount = localizedSkills?.Count ?? 0;
             logger.LogInformation(

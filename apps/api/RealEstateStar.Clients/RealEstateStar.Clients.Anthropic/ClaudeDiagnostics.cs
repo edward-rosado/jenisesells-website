@@ -22,9 +22,11 @@ public static class ClaudeDiagnostics
     public static readonly Histogram<double> CallDuration = Meter.CreateHistogram<double>(
         "claude.call_duration_ms", description: "Claude API call duration in milliseconds");
 
-    public static void RecordUsage(string pipeline, string model, int inputTokens, int outputTokens, double durationMs)
+    public static void RecordUsage(string pipeline, string model, int inputTokens, int outputTokens, double durationMs, string? pipelineStep = null)
     {
         var tags = new TagList { { "pipeline", pipeline }, { "model", model } };
+        if (pipelineStep is not null)
+            tags.Add("pipeline_step", pipelineStep);
 
         TokensInput.Add(inputTokens, tags);
         TokensOutput.Add(outputTokens, tags);
