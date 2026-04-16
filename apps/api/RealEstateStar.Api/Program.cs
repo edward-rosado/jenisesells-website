@@ -58,6 +58,10 @@ using RealEstateStar.Workers.Lead.HomeSearch;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.WhatsApp;
 using RealEstateStar.Workers.Activation.Orchestrator;
+using RealEstateStar.Api.Features.Preview;
+using RealEstateStar.Api.Features.Sites;
+using RealEstateStar.Clients.Cloudflare;
+using RealEstateStar.Domain.Activation.Interfaces;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -419,6 +423,37 @@ builder.Services.AddHttpClient("AgentDiscovery", client =>
 
 // RentCast client (options, IRentCastClient, HttpClient "RentCast" with resilience)
 builder.Services.AddRentCastClient(builder.Configuration, pollyLogger);
+
+// Cloudflare KV client — used by Sites endpoints (Approve, GetState) for site-state reads/writes
+builder.Services.AddCloudflareKvClient(builder.Configuration);
+
+// SiteOptions — KV namespace ID for site-state (shared key schema with Functions/B10)
+builder.Services.Configure<SiteOptions>(builder.Configuration.GetSection("SiteContent"));
+
+// Preview session options — HMAC key for exchange token validation
+builder.Services.Configure<PreviewOptions>(builder.Configuration.GetSection("Preview"));
+var previewHmacKey = builder.Configuration["Preview:HmacKey"];
+if (string.IsNullOrWhiteSpace(previewHmacKey))
+    Log.Warning("[STARTUP-095] Preview:HmacKey not configured — exchange token validation will fail");
+
+// IPreviewSessionStore — Azure Table Storage when connection string is available, no-op fallback for dev.
+if (!string.IsNullOrEmpty(storageConnStr))
+{
+    builder.Services.AddSingleton<IPreviewSessionStore>(sp =>
+    {
+        var tableClient = new Azure.Data.Tables.TableClient(storageConnStr, "previewsessions");
+        tableClient.CreateIfNotExists();
+        return new PreviewSessionStore(
+            tableClient,
+            sp.GetRequiredService<ILogger<PreviewSessionStore>>());
+    });
+    Log.Information("[STARTUP-096] IPreviewSessionStore: PreviewSessionStore (table: previewsessions)");
+}
+else
+{
+    builder.Services.AddSingleton<IPreviewSessionStore, NullPreviewSessionStore>();
+    Log.Warning("[STARTUP-097] AzureStorage:ConnectionString not configured — preview sessions are no-op");
+}
 
 // CMA pipeline (channel, worker, RentCastCompSource, ICompSource, ICompAggregator, ICmaAnalyzer)
 builder.Services.AddCmaPipeline();
