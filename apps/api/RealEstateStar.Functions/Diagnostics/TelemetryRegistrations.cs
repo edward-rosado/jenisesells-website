@@ -48,8 +48,9 @@ public static class TelemetryRegistrations
         "RealEstateStar.Language",
         "RealEstateStar.Onboarding",
 
-        // ── Durable Functions tracing middleware ───────────────────────────────
-        DurableOrchestratorTracingMiddleware.SourceName,
+        // ── Durable Functions tracing middleware (A11) ─────────────────────────
+        // TODO(A11): replace with DurableOrchestratorTracingMiddleware.SourceName once A11 merges
+        "RealEstateStar.DurableOrchestrator",
 
         // ── Planned / not yet backed by a Diagnostics class ───────────────────
         // Registered early so in-flight spans are not dropped when the class is added.

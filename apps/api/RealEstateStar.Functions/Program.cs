@@ -440,6 +440,10 @@ builder.Services.AddBrandMergeActivity();
 builder.Services.AddContactImportPersistActivity();
 builder.Services.AddTransient<ContactDetectionActivity>();
 
+// ── B9: VoicedContentGenerator — BuildLocalizedSiteContentFunction dependency ─
+// Transient: stateless, each activity invocation gets its own instance.
+builder.Services.AddTransient<RealEstateStar.Clients.Anthropic.VoicedContentGenerator>();
+
 var app = builder.Build();
 var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
 startupLogger.LogInformation("[STARTUP] Functions app built successfully. Starting host...");
