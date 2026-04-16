@@ -46,6 +46,7 @@ using RealEstateStar.Workers.Lead.Orchestrator;
 using RealEstateStar.Workers.Shared;
 using RealEstateStar.Workers.WhatsApp;
 using RealEstateStar.Domain.Shared;
+using RealEstateStar.Functions.Diagnostics;
 using Microsoft.AspNetCore.DataProtection;
 using Serilog;
 
@@ -126,6 +127,7 @@ builder.Services.AddOpenTelemetry()
         .AddSource("RealEstateStar.Activation")
         .AddSource("RealEstateStar.AgentContext")
         .AddSource("RealEstateStar.Language")
+        .AddSource(DurableOrchestratorTracingMiddleware.SourceName)
         .AddHttpClientInstrumentation()
         .AddOtlpExporter(options =>
         {
@@ -439,6 +441,13 @@ builder.Services.AddPersistAgentProfileActivity();
 builder.Services.AddBrandMergeActivity();
 builder.Services.AddContactImportPersistActivity();
 builder.Services.AddTransient<ContactDetectionActivity>();
+
+// ── Middleware pipeline ───────────────────────────────────────────────────────
+// UseMiddleware must be called on the builder (IFunctionsWorkerApplicationBuilder)
+// before Build() — after Build() returns IHost which does not have this extension.
+// DurableOrchestratorTracingMiddleware attaches stable trace IDs to orchestrator
+// replays and propagates correlation via Baggage to activity function spans.
+builder.UseMiddleware<DurableOrchestratorTracingMiddleware>();
 
 var app = builder.Build();
 var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
