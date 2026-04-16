@@ -1,6 +1,6 @@
 # Agent Site Comprehensive Design
 
-**Status:** Draft (Revision 5 — observability review adds SLOs, span registry, DF trace middleware, cache metrics, trace-to-audit linking)
+**Status:** Draft (Revision 6 — staff-engineer simplification pass; cuts wrapper interfaces, consolidates diagnostics, removes legal-page Claude calls, defers §12 refresh scope, defers SLO thresholds)
 **Date:** 2026-04-12
 **Owner:** Eddie Rosado
 **Author:** Claude (Opus 4.6)
@@ -36,6 +36,19 @@
 >   - **§E.3 rule 5: single-file telemetry registration** — R5 creates `apps/api/RealEstateStar.Shared.Telemetry/TelemetryRegistrations.cs` as the source of truth for ActivitySource names, Meter names, and log code ranges. Both `Api/Program.cs` and `Functions/Program.cs` import the same list. New arch test `TelemetryRegistrationIsCentralized` prevents drift between the two hosts.
 >   - **Appendix G.4 observability review subsection** (new) — 13 OBS-NNN findings tracked separately from the legal/security/maintainability G.1-G.3 passes so the observability work is discoverable and owned.
 >   - **What R5 does NOT change**: zero BLOCKER remediations from R1-R4, zero section renames, zero diagram rewrites (the 34 existing Mermaid diagrams are untouched), zero decisions in the D1-D44 log (R5 is additive — new rules and sections, not modified decisions), zero acceptance criteria in §15.5. R5 is an **instrumentation layer** that sits underneath every section already specified.
+> - **R6 (this version)**: Staff-engineer simplification pass after user direction: *"review the entire spec again but this time looking for redundancies in the design. There is a lot of infra we have already built that could be reused rather than regenerated. I think there is lots of opportunity to decrease our cyclomatic complexity by improving our abstractions and utilizing them more broadly. I would like to see a deep review from the lens of a staff engineer having maintained this software. He doesnt need excess wrapper interfaces it needs to be easy to understand."* Two parallel audits — one for duplicated infra, one for over-abstraction — found the spec was ~80% sound but had measurable over-engineering in predictable spots. R6 applies 11 simplifications:
+>   - **R6-1 voiced content cache reuses existing `IDistributedContentCache`** — the codebase already has a full content cache story (`IContentCache`, `IDistributedContentCache`, `TableStorageContentCache`, `MemoryContentCache`, `FakeContentCache`, `FakeDistributedContentCache`, plus `CheckContentCache`/`UpdateContentCache` DF activities). Earlier revisions wrote as if caching was new work. R6 injects the existing interface into `VoicedContentGenerator`. Zero new cache classes.
+>   - **R6-2 diagnostics consolidate into one `ActivationDiagnostics` class** — R5 specified `AccountConfigDiagnostics`, `BrokerageRoutingDiagnostics`, `VoicedContentGeneratorDiagnostics`, `CacheDiagnostics` as four new classes. R6 cuts them to **one** `ActivationDiagnostics` class with a bounded `component` tag. Rationale: the codebase convention is one Diagnostics class per client boundary — AccountConfig, routing, and voiced content are activation-pipeline internals, not clients. Cost counters reuse existing `ClaudeDiagnostics` (the `AnthropicClient` already tracks cost; R6 adds a `pipeline_step` tag instead of inventing a parallel counter). Four classes collapse to one.
+>   - **R6-3 `IVoicedContentGenerator` interface dropped** — one implementation, no test double beyond a stub, no real client/domain boundary. R6 makes `VoicedContentGenerator` a sealed class. Workers inject the concrete type. If A/B testing prompt strategies ever needs a second implementation, extract the interface then — 10-minute refactor.
+>   - **R6-4 pure-compute interfaces dropped** — `ISsrfGuard` becomes a sealed `SsrfGuard` class. `IHtmlTextExtractor` becomes a sealed static `HtmlTextExtractor`. Rationale: pure-compute utility classes don't earn interfaces. `IRoutingPolicyStore` stays as an interface because it crosses a real storage boundary (Drive + Azure Table + hashing). `IFairHousingLinter` stays because feature flag `ClaudeSecondPass:Enabled` can swap implementations.
+>   - **R6-5 §8.3 reframed as "add one method to existing `IAccountConfigService`"** — R3/R4 prose read like new architecture; it's a 20-line change to an existing file. Reframing removes maintainer overhead.
+>   - **R6-6 DF orchestrator middleware registered from existing `OpenTelemetryExtensions`** — R5 specified a new middleware class in a new file registered from `Program.cs`. R6 keeps the class (required by `IFunctionsWorkerMiddleware`) but moves its registration into `AddRealEstateStarOpenTelemetry(...)`. One telemetry setup file; one place for maintainers to find observability wiring.
+>   - **R6-7 shared `EtagCasRetryPolicy.ExecuteAsync` helper** — §8.3 and §8.4 both implemented bounded retry loops inline. R6 extracts a single static helper at `RealEstateStar.Workers.Shared/Concurrency/EtagCasRetryPolicy.cs`. Both sections call it with a lambda. No interface, no builder, no fluent API — one static method. Cuts ~30 lines of duplicated pseudocode per section.
+>   - **R6-8 §11 legal pages become pure-Markdown templates with no Claude** — user direction: *"we dont need claude voice on legal documents. those are the legal documents reviewed by lawyers via disclaimer."* R6 replaces `LegalPagesWorker`'s per-page Claude call (~$0.17 per bilingual activation) with `config/legal/templates/{_defaults|by-state}/{locale}/{page}.md` files rendered via variable substitution. The existing §11.4 disclaimer footer stays. Annual savings at 1000 activations: ~$170 + zero variance between legal documents + auditable by lawyers.
+>   - **R6-9 §12 "Refresh worker scope" deleted** — earlier revisions defined field-level boundaries for a future refresh worker. That is the "design for hypothetical future requirements" anti-pattern from CLAUDE.md. R6 deletes the section. When refresh is designed, a future RFC inherits whatever notes are worth preserving. v1 ships the fields v1 needs.
+>   - **R6-10 §18.7 SLO thresholds deferred post-baseline** — committing "activation success ≥99%" as a numeric target with zero baseline data would produce 47 false alarms in week one. R6 keeps the SLO *structure* (definition, metric query, burn-rate alert format) and replaces the thresholds with a literal `TBD_POST_BASELINE` sentinel. Alert files exist in the repo; a v1.5 tuning pass after 14 days of production traffic fills in the numbers. Also drops two of the five R5 dashboards (voiced-content.json redundant after metric consolidation; slos-overview.json premature without thresholds) — SLO panels fold into `activation-pipeline.json`.
+>   - **R6-12 preview session row trimmed from 10+ fields to 5** — `AgentId`, `IssuedAt`, `HardCapAt`, `LastUsedAt`, `RevokedReason`, `Scope`, `IpAddressFirstUse`, `UserAgentFirstUse` all dropped. Tenant binding already provides the security benefit the IP/UA fields were supposed to provide. If abuse patterns emerge, add fields then.
+>   - **What R6 does NOT change**: every BLOCKER remediation from R1-R5, the overall section structure, the 34 existing Mermaid diagrams, the decision log numbering (D1-D44), §16.9 span attribute registry, §16.10 trace-to-audit linking, the R4 routing CAS design, §5.8 DF trace propagation as a concept, R5's `TelemetryRegistrations.All` single-file rule, and zero acceptance criteria in §15.5. R6 is a **simplification pass**, not a redesign. Net effect: ~400 lines of spec prose removed or tightened, ~6 interfaces cut, ~3 Diagnostics classes collapsed to 1, ~2 dashboard files dropped, 1 whole section deleted. Maintainer can read the spec in fewer words and find fewer moving parts to keep track of.
 
 ---
 
@@ -507,23 +520,39 @@ graph LR
 
 ### 5.3 New and modified workers
 
-#### IVoicedContentGenerator (new shared abstraction — foundational)
+#### VoicedContentGenerator (new shared class — foundational)
 
-**Decision D36: one abstraction, one implementation, many declarative fields**
+**Decision D36: one concrete class, declarative FieldSpec inputs, no interface**
 
-> Every T3 field in the §4.1 matrix follows the same shape: "take Tier 1 facts + VoiceSkill for locale + field-specific prompt → get polished string in agent voice, validated against a schema." Hero, tagline, features items, steps, about bio, contact copy, thank-you, nav labels, legal pages — all 15+ fields have this identical shape. Without a shared abstraction, the implementation would have 15 near-duplicate Claude call sites scattered across workers, each inventing its own prompt structure, its own error handling, its own log codes, and its own cost attribution.
+> Every T3 field in the §4.1 matrix follows the same shape: "take Tier 1 facts + VoiceSkill for locale + field-specific prompt → get polished string in agent voice, validated against a schema." Hero, tagline, features items, steps, about bio, contact copy, thank-you, nav labels — all 15+ fields have this identical shape. Without a shared primitive, the implementation would have 15 near-duplicate Claude call sites scattered across workers, each inventing its own prompt structure, its own error handling, its own log codes, and its own cost attribution.
 >
-> This is caught as a CRITICAL maintainability finding in review pass 2. The fix is introduced here (v1, not v1.1) because retroactive extraction after the fifth duplicate is cheap; after the tenth it's expensive; after the fifteenth it means touching every worker.
+> **R6 revision**: earlier revisions specified an `IVoicedContentGenerator` interface. R6 drops the interface because (1) there is only one implementation, (2) the only consumer is the activation pipeline DI root, and (3) a `FakeVoicedContentGenerator` for tests is a stub not a real alternate implementation — which means the interface exists for architecture purity, not contract. Staff-engineer review: one-implementation interfaces are bloat. If a second implementation ever materializes (A/B test, self-hosted model), extract the interface then — it's a 10-minute refactor.
 
-**Interface** (lives in `RealEstateStar.Domain.Activation.Interfaces`):
+**Type** (sealed class, lives in `RealEstateStar.Clients.Anthropic`):
 
 ```csharp
-public interface IVoicedContentGenerator
+public sealed class VoicedContentGenerator
 {
-    Task<VoicedResult<T>> GenerateAsync<T>(VoicedRequest<T> request, CancellationToken ct);
-    Task<VoicedResult<IReadOnlyList<T>>> GenerateBatchAsync<T>(
-        VoicedBatchRequest<T> request,
-        CancellationToken ct);
+    private readonly IAnthropicClient _claude;
+    private readonly IDistributedContentCache _cache;   // existing interface — see R6 note below
+    private readonly IFairHousingLinter _linter;
+    private readonly ILogger<VoicedContentGenerator> _logger;
+
+    public VoicedContentGenerator(
+        IAnthropicClient claude,
+        IDistributedContentCache cache,
+        IFairHousingLinter linter,
+        ILogger<VoicedContentGenerator> logger)
+    {
+        _claude = claude;
+        _cache = cache;
+        _linter = linter;
+        _logger = logger;
+    }
+
+    public Task<VoicedResult<T>> GenerateAsync<T>(VoicedRequest<T> request, CancellationToken ct) { /* ... */ }
+
+    public Task<VoicedResult<IReadOnlyList<T>>> GenerateBatchAsync<T>(VoicedBatchRequest<T> request, CancellationToken ct) { /* ... */ }
 }
 
 public sealed record VoicedRequest<T>(
@@ -559,7 +588,9 @@ public sealed record VoicedResult<T>(
 );
 ```
 
-**Implementation**: `VoicedContentGenerator` lives in `RealEstateStar.Clients.Anthropic` and is the **only** class that may call `IAnthropicClient.SendAsync` for T3 field generation. An architecture test enforces: no class outside `RealEstateStar.Clients.Anthropic` may reference `IAnthropicClient` within Phase 2.5/2.6/2.75 worker projects. Workers that need voiced content inject `IVoicedContentGenerator` instead.
+**Reuse note (R6)**: `IDistributedContentCache` and its Azure Table implementation already exist in the codebase (verified: [apps/api/RealEstateStar.Domain/Shared/Interfaces/IDistributedContentCache.cs](apps/api/RealEstateStar.Domain/Shared/Interfaces/IDistributedContentCache.cs), [apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TableStorageContentCache.cs](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TableStorageContentCache.cs), [apps/api/RealEstateStar.Tests/RealEstateStar.TestUtilities/FakeDistributedContentCache.cs](apps/api/RealEstateStar.Tests/RealEstateStar.TestUtilities/FakeDistributedContentCache.cs)). Earlier revisions spoke as if voiced content needed a new cache abstraction — it does not. `VoicedContentGenerator` injects the existing `IDistributedContentCache`, uses `(FieldSpec.Name, Facts.Hash, Locale, VoiceHash)` as the cache key, and sets a 24h TTL. Zero new cache classes.
+
+**Implementation**: `VoicedContentGenerator` is the **only** class that may call `IAnthropicClient.SendAsync` for T3 field generation. An architecture test enforces: no class outside `RealEstateStar.Clients.Anthropic` may reference `IAnthropicClient` within Phase 2.5/2.6/2.75 worker projects. Workers that need voiced content inject `VoicedContentGenerator` (the concrete class) directly.
 
 **Responsibilities** of the generator (single place to change):
 
@@ -585,64 +616,17 @@ public sealed record VoicedResult<T>(
 
 **Unit testing**: `IVoicedContentGenerator` is stubbed in worker/activity tests via `FakeVoicedContentGenerator` which returns canned results keyed by `FieldSpec.Name`. Tests don't invoke real Claude. Golden-output tests (Appendix D) run against the real generator with VCR-recorded Claude responses to catch prompt regressions.
 
-**Observability (R5 — codebase-aligned)**: the `IVoicedContentGenerator` diagnostics live in a new `VoicedContentGeneratorDiagnostics` class at `apps/api/RealEstateStar.Workers.Shared/Diagnostics/VoicedContentGeneratorDiagnostics.cs`. Following the codebase convention of **short service-scoped names** (verified: your existing meters are `RealEstateStar.Leads`, `RealEstateStar.Claude`, `RealEstateStar.TokenStore`, etc. — not nested paths), the `ServiceName` is `RealEstateStar.VoicedContentGenerator` — **not** `RealEstateStar.Clients.Anthropic.VoicedContentGenerator` as R1-R4 incorrectly specified. The short form keeps `AddSource(...)` registrations in `TelemetryRegistrations.All` (§E.3 rule 5) grep-consistent with existing sources.
+**Observability (R6 — reuses existing diagnostics)**: `VoicedContentGenerator` does **not** get its own Diagnostics class. Earlier revisions (R5) specified a `VoicedContentGeneratorDiagnostics` with six instruments — R6 cuts this because the codebase convention is one Diagnostics class per client boundary, and voiced content generation is an activation-pipeline internal, not a new client. Instead:
 
-**Full instrument set:**
+1. **Cost attribution reuses existing `ClaudeDiagnostics`**. The `AnthropicClient` already exposes cost counters today. R6 extends them with a `pipeline_step` tag (bounded enum, ~50 values) so every Claude call for voiced content is attributed correctly via the same counter path as every other Claude call in the system. Single source of truth for Claude cost; no split between "voiced content cost" and "other Claude cost."
+2. **Non-cost metrics live on `ActivationDiagnostics`** (new, single class — see §8.3/§8.4/§5.3 consolidated observability below). Counters are `activation.generations`, `activation.fallbacks`, `activation.generation_duration_ms`, all tagged with `component="voiced_content"`, `pipeline_step`, `locale`, and `outcome`.
+3. **Cache hit/miss flows through the existing `IDistributedContentCache`** (see reuse note above). The cache implementation emits its own hit/miss counters — R6 adds those counters **to the existing `TableStorageContentCache`** rather than a new `CacheDiagnostics` class (see §18.2 R6 rewrite).
 
-```csharp
-public static class VoicedContentGeneratorDiagnostics
-{
-    public const string ServiceName = "RealEstateStar.VoicedContentGenerator";
-    public static readonly Meter Meter = new(ServiceName);
-    public static readonly ActivitySource ActivitySource = new(ServiceName);
-
-    // Generation outcome — tagged by pipeline_step (bounded: ~15 field types) and outcome
-    public static readonly Counter<long> Generations = Meter.CreateCounter<long>(
-        "vcg.generations",
-        description: "Voiced content generation calls, tagged by pipeline_step + outcome");
-
-    // Cache hit rate — critical cost signal (§R5 OBS-9 cache rule)
-    public static readonly Counter<long> CacheHits = Meter.CreateCounter<long>(
-        "vcg.cache_hits",
-        description: "Voiced content cache hits (Azure Table, 24h TTL)");
-    public static readonly Counter<long> CacheMisses = Meter.CreateCounter<long>(
-        "vcg.cache_misses",
-        description: "Voiced content cache misses → Claude call fired");
-
-    // Fallback tracking — how often do we hit the fail-safe?
-    public static readonly Counter<long> Fallbacks = Meter.CreateCounter<long>(
-        "vcg.fallbacks",
-        description: "Fallback values returned, tagged by reason");
-
-    // Latency — the whole generation including cache lookup + Claude call + linter
-    public static readonly Histogram<double> GenerationDuration = Meter.CreateHistogram<double>(
-        "vcg.generation_duration_ms", unit: "ms",
-        description: "End-to-end voiced content generation latency");
-
-    // Cost — first-class counter (not grep of [CLAUDE-020], per §R5 OBS-7)
-    public static readonly Counter<double> CostUsd = Meter.CreateCounter<double>(
-        "vcg.cost_usd", unit: "USD",
-        description: "Estimated Claude cost per voiced content generation");
-}
-```
-
-**Metric tag policy**:
-
-| Instrument | Allowed tags | Disallowed |
-|---|---|---|
-| `vcg.generations` | `pipeline_step` (bounded ~15), `outcome` ∈ `{success, fallback, cache_hit}`, `locale` | `account_id`, `facts_hash` |
-| `vcg.cache_hits` / `vcg.cache_misses` | `pipeline_step`, `locale` | all identifiers |
-| `vcg.fallbacks` | `pipeline_step`, `reason` ∈ `{schema-mismatch, fair-housing-violation, claude-exhausted, linter-exhausted}` | all identifiers |
-| `vcg.generation_duration_ms` | `pipeline_step`, `outcome` | all identifiers |
-| `vcg.cost_usd` | `pipeline_step`, `model` ∈ `{haiku-4-5, sonnet-4-6}`, `locale` | all identifiers |
-
-`account_id`, `facts_hash`, and `request_id` go on **spans only**. This is the single most important rule for cost-bounded cardinality.
-
-**ActivitySource**: `VoicedContentGeneratorDiagnostics.ActivitySource` — registered in `TelemetryRegistrations.All`. Per-call span `vcg.generate` with attributes: `pipeline.step`, `locale`, `is_fallback`, `failure_reason`, `facts_hash`, `account.id`, `correlation.id` (propagated via baggage — see §5.8).
+**ActivitySource**: `ActivationDiagnostics.ActivitySource` — single source registered in `TelemetryRegistrations.All` (see §8.3/§8.4 consolidation note). Per-call span `activation.voiced_generate` with attributes: `pipeline.step`, `locale`, `is_fallback`, `failure_reason`, `facts.hash`, `account.id`, `correlation.id` (propagated via baggage — see §5.8).
 
 **Log codes**: `[VCG-001..099]` per Appendix E.1.
 
-**Relationship to `[CLAUDE-020]`**: the generator continues to emit `[CLAUDE-020]` cost log lines for backward compatibility with existing Grafana queries, **but** the authoritative cost signal at scale is `vcg.cost_usd`. The spec commits to deprecating `[CLAUDE-020]` log-based aggregation in favor of the metric counter once §18.7 dashboards are rewritten. See R5 OBS-7.
+**Relationship to `[CLAUDE-020]`**: the existing `[CLAUDE-020]` cost log line already flows from `AnthropicClient` for every Claude call. R6 adds the `pipeline_step` attribute to that existing log line (structured logging field, not a new code). The authoritative cost signal at scale is the existing `ClaudeDiagnostics` cost counter — no deprecation or migration needed. This is the single biggest R6 reuse: voiced content generation does not add a new observability surface, it annotates the existing one.
 
 **End-to-end request lifecycle** — every FieldSpec flows through these steps:
 
@@ -1016,11 +1000,11 @@ stateDiagram-v2
 
 Simultaneously, **correlation IDs are passed as method parameters into activity functions** (verified in `PdfActivity` and peers), which works but fails silently if a new activity forgets the parameter, and doesn't automatically flow into the activity's own OTel span.
 
-**R5 fix**: both problems are solved by adding a thin middleware layer to the DF worker host that (1) creates an orchestrator-level parent span from the instance ID and (2) propagates correlation ID via `Baggage` rather than method parameters.
+**R5 fix, R6 simplified**: both problems are solved by adding a thin middleware to the DF worker host that (1) creates an orchestrator-level parent span from the instance ID and (2) propagates correlation ID via `Baggage` rather than method parameters. R6 **keeps the middleware class** (required by `IFunctionsWorkerMiddleware`) but **moves its registration into the existing `OpenTelemetryExtensions`** file so telemetry setup lives in one place. Functions `Program.cs` calls `services.AddRealEstateStarOpenTelemetry()` once — that method registers every ActivitySource, every Meter, every OTel exporter, AND the DF middleware. No new "telemetry setup" location for maintainers to know about.
 
 #### Orchestrator span middleware
 
-A new `DurableOrchestratorTracingMiddleware` in `apps/api/RealEstateStar.Functions/Diagnostics/DurableOrchestratorTracingMiddleware.cs` implements `IFunctionsWorkerMiddleware`:
+The middleware class lives at `apps/api/RealEstateStar.Functions/Diagnostics/DurableOrchestratorTracingMiddleware.cs` and implements `IFunctionsWorkerMiddleware` (required by the Azure Functions worker pipeline — middleware cannot be a static method). But it is **registered from `OpenTelemetryExtensions.AddRealEstateStarOpenTelemetry(...)`**, not from `Program.cs` directly. This keeps the rule "telemetry setup lives in one file" true after R6.
 
 ```csharp
 public sealed class DurableOrchestratorTracingMiddleware : IFunctionsWorkerMiddleware
@@ -1101,16 +1085,54 @@ public sealed class DurableOrchestratorTracingMiddleware : IFunctionsWorkerMiddl
 }
 ```
 
-Registered once in `Program.cs`:
+Registered from `OpenTelemetryExtensions.AddRealEstateStarOpenTelemetry(...)` — the same method `Program.cs` already calls for trace/meter setup:
 
 ```csharp
-host.ConfigureFunctionsWorkerDefaults(builder =>
+// In apps/api/RealEstateStar.Api/Diagnostics/OpenTelemetryExtensions.cs
+public static IServiceCollection AddRealEstateStarOpenTelemetry(
+    this IServiceCollection services,
+    IConfiguration config,
+    bool includeDurableFunctionsMiddleware = false)
 {
-    builder.UseMiddleware<DurableOrchestratorTracingMiddleware>();
-});
+    // Existing: AddOpenTelemetry, AddSource for each entry in TelemetryRegistrations.All,
+    // AddMeter for each, OTLP exporter, etc.
+    services.AddOpenTelemetry()
+        .ConfigureResource(r => r.AddService(...))
+        .WithTracing(t => { foreach (var src in TelemetryRegistrations.All) t.AddSource(src); /* ... */ })
+        .WithMetrics(m => { foreach (var src in TelemetryRegistrations.All) m.AddMeter(src); /* ... */ });
+
+    // R6 addition: Functions host asks for the DF middleware via the bool flag.
+    // Api host passes false (no DF middleware needed — AspNetCoreInstrumentation covers it).
+    if (includeDurableFunctionsMiddleware)
+    {
+        services.AddSingleton<DurableOrchestratorTracingMiddleware>();
+        // The Functions worker picks it up when it configures its worker pipeline;
+        // see the Program.cs excerpt below.
+    }
+
+    return services;
+}
 ```
 
-And the `RealEstateStar.DurableOrchestrator` source is registered in `TelemetryRegistrations.All` so both hosts' OTel wiring picks it up (§E.3 rule 5).
+Functions `Program.cs`:
+
+```csharp
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureFunctionsWorkerDefaults(worker =>
+    {
+        worker.UseMiddleware<DurableOrchestratorTracingMiddleware>();
+    })
+    .ConfigureServices((ctx, services) =>
+    {
+        services.AddRealEstateStarOpenTelemetry(ctx.Configuration, includeDurableFunctionsMiddleware: true);
+        // ... rest of DI
+    })
+    .Build();
+```
+
+`Api/Program.cs` calls the same extension method with `includeDurableFunctionsMiddleware: false`. Both hosts share one telemetry setup file. The `RealEstateStar.DurableOrchestrator` source is registered in `TelemetryRegistrations.All` (§E.3 rule 5), so the `AddSource` loop above picks it up for both hosts automatically.
+
+**Why keep the middleware as a class and not fold the logic into `OpenTelemetryExtensions` directly**: `IFunctionsWorkerMiddleware` is a framework contract. Azure Functions requires an instance type that implements it. Moving the *logic* into an extension method would still require a wrapper class that forwards `Invoke` to static methods — same complexity, less clarity. The R6 simplification is about the *registration site*, not about class-vs-method shape. One telemetry setup file, one middleware class, one line of registration.
 
 #### Parent-span propagation within an orchestration
 
@@ -1381,9 +1403,9 @@ Key design choices:
   ```
 - **Dispatch**: runs **in parallel** with AgentDiscovery during Phase 1, but only if the detected brokerage domain is distinct from known third-party platforms.
 - **Memory budget**: Each scraped page ≤ 1 MB HTML, max 10 pages per brokerage, HTML released after parse. Target peak memory < 20 MB for worker alone.
-- **HTTP safety**: every outbound request goes through `ISsrfGuard` (§16.4) which enforces scheme allowlist, IP range denylist (RFC 1918, link-local, cloud metadata), DNS rebinding defense, redirect revalidation, 5 MB body cap, 10x decompression ratio cap, and 15s timeout. Direct `HttpClient` usage is forbidden by architecture test.
+- **HTTP safety**: every outbound request goes through `SsrfGuard` (§16.4) which enforces scheme allowlist, IP range denylist (RFC 1918, link-local, cloud metadata), DNS rebinding defense, redirect revalidation, 5 MB body cap, 10x decompression ratio cap, and 15s timeout. Direct `HttpClient` usage is forbidden by architecture test.
 - **Parsing**: **AngleSharp** (new dependency on `Workers.Shared`) is used for HTML → plain text conversion on scraped fields that become part of `ProspectiveAgent` records. Regex is still used for URL extraction and structured data patterns, but any string that will be persisted as a name, title, bio, specialty, or service area passes through `AngleSharp.Dom.Element.TextContent` first to strip tags, attributes, scripts, and event handlers. See §16.4 for the full sanitization rules.
-- **Robots compliance**: A dedicated `RobotsTxtParser` in `Workers.Shared` (new utility) handles fetching, caching per domain, and checking Disallow rules. Respects the `User-Agent: *` rule set. Robots.txt is fetched through `ISsrfGuard` with a 512 KB cap. A manual `config/legal/scrape-denylist.json` opt-out list is also checked.
+- **Robots compliance**: A dedicated `RobotsTxtParser` in `Workers.Shared` (new utility) handles fetching, caching per domain, and checking Disallow rules. Respects the `User-Agent: *` rule set. Robots.txt is fetched through `SsrfGuard` with a 512 KB cap. A manual `config/legal/scrape-denylist.json` opt-out list is also checked.
 - **User agent**: `RealEstateStarBot/1.0 (+https://real-estate-star.com/bot; abuse@real-estate-star.com)`. Honest, attributable, provides an abuse contact.
 - **Rate limiting per host**: the worker respects `Crawl-delay` from robots.txt and self-limits to 2 requests/second to any single host even without a crawl-delay directive.
 
@@ -1536,11 +1558,11 @@ The existing `ITokenStore` / `AzureTableTokenStore` pattern solves the identical
 - **`apps/api/RealEstateStar.Clients/RealEstateStar.Clients.GoogleOAuth/GoogleOAuthRefresher.cs:64-72`** — the consumer pattern for a **single re-read on 412**. On conflict it re-reads the token store once and returns the fresher credential without re-refreshing (because another worker refreshing the token is already the correct outcome). `AccountConfigService` borrows the same `SaveIfUnchangedAsync` primitive but wraps it in a **bounded retry loop** (5 attempts with exponential backoff, see below) because each writer appends distinct content and simply re-reading would lose the caller's appended agent.
 
 Metrics and diagnostics already exist:
-- **`TokenStoreDiagnostics.Conflicts.Add(1)`** — counter incremented on every 412 — R3 adds an analogous `AccountConfigDiagnostics.Conflicts` for brokerage merge conflicts
+- **`TokenStoreDiagnostics.Conflicts.Add(1)`** — counter incremented on every 412 — R6 routes the brokerage merge conflict signal through `ActivationDiagnostics.Conflicts.Add(1, tag component=account_config)` (see the consolidated observability section below)
 
-#### Target design for `IAccountConfigService`
+#### Target design: add one method to existing `IAccountConfigService`
 
-Extend the existing `IAccountConfigService` with an ETag-aware save method that mirrors `ITokenStore.SaveIfUnchangedAsync` field-for-field:
+This is **not** new architecture. [`IAccountConfigService`](apps/api/RealEstateStar.Domain/Shared/Interfaces/Storage/IAccountConfigService.cs) already exists with `GetAccountAsync`, `ListAllAsync`, and `UpdateAccountAsync`. The concrete implementation lives at [`apps/api/RealEstateStar.DataServices/Config/AccountConfigService.cs`](apps/api/RealEstateStar.DataServices/Config/AccountConfigService.cs). R6 adds **one method** to the existing interface and **one matching implementation method** that mirrors `ITokenStore.SaveIfUnchangedAsync` field-for-field. It's a ~20-line change across two files, not a service redesign. The section name below reads "Target design" for historical reasons (R3/R4 framing) — read it as "add one method."
 
 ```csharp
 public interface IAccountConfigService
@@ -1597,15 +1619,56 @@ for (int attempt = 0; attempt < 5; attempt++)
     }
 
     // ETag conflict — another join ran in parallel. Re-read and retry.
-    AccountConfigDiagnostics.Conflicts.Add(1);
+    // R6: counter lives on the consolidated ActivationDiagnostics class.
+    ActivationDiagnostics.Conflicts.Add(1, new TagList { {"component", "account_config"} });
     _logger.LogInformation("[ACCOUNT-MERGE-010] ETag conflict on attempt {Attempt}, retrying", attempt);
 }
 
-_logger.LogError("[ACCOUNT-MERGE-040] account {AccountId} merge failed after 3 attempts, letting DF retry", accountId);
+_logger.LogError("[ACCOUNT-MERGE-040] account {AccountId} merge failed after 5 attempts, letting DF retry", accountId);
 throw new InvalidOperationException("AccountConfig merge exhausted retries");
 ```
 
-Durable Functions' own retry policy wraps the activity, so after 3 in-activity retries the orchestrator will retry the whole activity. This is the same pattern every other activity in the codebase uses for transient failures.
+Durable Functions' own retry policy wraps the activity, so after 5 in-activity retries the orchestrator will retry the whole activity. This is the same pattern every other activity in the codebase uses for transient failures.
+
+#### Shared retry primitive (R6)
+
+§8.3 account-join and §8.4 brokerage routing both implement the same bounded-retry-with-ETag-CAS shape. R6 extracts it as a single static helper at `apps/api/RealEstateStar.Workers.Shared/Concurrency/EtagCasRetryPolicy.cs`:
+
+```csharp
+public static class EtagCasRetryPolicy
+{
+    public static async Task<CasOutcome> ExecuteAsync(
+        int maxAttempts,
+        Func<CancellationToken, Task<CasAttemptResult>> attemptFn,
+        ILogger logger,
+        string component, // "account_config" | "routing"
+        CancellationToken ct)
+    {
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            var result = await attemptFn(ct);
+            if (result.Committed) return CasOutcome.Success(attempt);
+            if (!result.ShouldRetry) return CasOutcome.Failed(attempt, result.Reason);
+
+            ActivationDiagnostics.Conflicts.Add(1, new TagList { {"component", component} });
+            // Exponential backoff with jitter, capped at 2s
+            var delay = TimeSpan.FromMilliseconds(Math.Min(2000, 50 * Math.Pow(2, attempt - 1))
+                + Random.Shared.Next(0, 50));
+            await Task.Delay(delay, ct);
+        }
+
+        ActivationDiagnostics.RetriesExhausted.Add(1, new TagList { {"component", component} });
+        return CasOutcome.Exhausted(maxAttempts);
+    }
+}
+
+public readonly record struct CasAttemptResult(bool Committed, bool ShouldRetry, string? Reason);
+public readonly record struct CasOutcome(bool Succeeded, int AttemptCount, string? FailureReason);
+```
+
+Both §8.3 brokerage-join and §8.4 routing call this helper with a lambda that does the read + CAS + returns a `CasAttemptResult`. No interface, no builder, no fluent API — just a static method. Cuts the ~30 lines of retry loop in each section's pseudocode down to a single `await EtagCasRetryPolicy.ExecuteAsync(...)` call.
+
+**Not** a general retry framework. Specifically for ETag CAS loops. Any other retry pattern (Claude 429 backoff, HTTP transient errors) stays in its existing place.
 
 #### What this replaces
 
@@ -1622,47 +1685,70 @@ R2 specified two things that R3 explicitly removes:
 - Idempotent replay (agent already in list): short-circuits without any writes
 - Integration test: 10 parallel `BrokerageJoinActivity` invocations with distinct agents against the same account, all succeed eventually, final account contains all 10 agents
 
-#### Observability (R5 — explicit)
+#### Observability (R6 — consolidated into ActivationDiagnostics)
 
-`AccountConfigDiagnostics` does **not** exist on the branch yet (verified). This spec creates it as a new file `apps/api/RealEstateStar.DataServices/Diagnostics/AccountConfigDiagnostics.cs`, following the exact pattern of [apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TokenStoreDiagnostics.cs](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TokenStoreDiagnostics.cs).
+R5 specified a standalone `AccountConfigDiagnostics` class. R6 cuts it in favor of a **single `ActivationDiagnostics` class** that carries AccountConfig, BrokerageRouting, and VoicedContentGenerator metrics under one `Meter` and `ActivitySource`. Rationale: the codebase convention is one Diagnostics class per client boundary (`TokenStoreDiagnostics`, `ScraperDiagnostics`, `PdfDiagnostics`, `FanOutDiagnostics`). Account config, routing, and voiced content are not new clients — they are internals of the activation pipeline. Three separate classes were bloat; one class with a bounded `component` tag gives operators a single `activation_*` metric prefix and matches existing taste.
 
-**Full instrument set:**
+**The shared class** (new file `apps/api/RealEstateStar.DataServices/Diagnostics/ActivationDiagnostics.cs`, follows the pattern of [apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TokenStoreDiagnostics.cs](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TokenStoreDiagnostics.cs)):
 
 ```csharp
-public static class AccountConfigDiagnostics
+public static class ActivationDiagnostics
 {
-    public const string ServiceName = "RealEstateStar.AccountConfig"; // short, matches codebase convention
+    public const string ServiceName = "RealEstateStar.Activation"; // matches existing RealEstateStar.Activation source
     public static readonly Meter Meter = new(ServiceName);
     public static readonly ActivitySource ActivitySource = new(ServiceName);
 
-    public static readonly Counter<long> Reads = Meter.CreateCounter<long>(
-        "accountconfig.reads", description: "AccountConfig read operations");
-    public static readonly Counter<long> Writes = Meter.CreateCounter<long>(
-        "accountconfig.writes", description: "AccountConfig write attempts (successful SaveIfUnchangedAsync)");
+    // Component-scoped counters — `component` tag is a bounded enum:
+    //   "account_config" | "routing" | "voiced_content" | "persist" | ...
+    public static readonly Counter<long> Operations = Meter.CreateCounter<long>(
+        "activation.operations",
+        description: "Activation operations, tagged by component + outcome");
     public static readonly Counter<long> Conflicts = Meter.CreateCounter<long>(
-        "accountconfig.conflicts", description: "ETag conflicts (412) on SaveIfUnchangedAsync");
+        "activation.conflicts",
+        description: "ETag CAS conflicts (412), tagged by component");
     public static readonly Counter<long> RetriesExhausted = Meter.CreateCounter<long>(
-        "accountconfig.retries_exhausted", description: "Join-path retries exhausted (5 attempts)");
+        "activation.retries_exhausted",
+        description: "Bounded retry exhausted, tagged by component");
     public static readonly Histogram<double> Duration = Meter.CreateHistogram<double>(
-        "accountconfig.duration_ms", unit: "ms", description: "AccountConfig operation duration");
+        "activation.duration_ms", unit: "ms",
+        description: "Activation operation duration, tagged by component + operation");
+
+    // Voiced-content-specific — fallback tracking is the one place the tag set
+    // genuinely differs (reason is only meaningful for voiced_content)
+    public static readonly Counter<long> VoicedFallbacks = Meter.CreateCounter<long>(
+        "activation.voiced_fallbacks",
+        description: "Voiced content fallback returns, tagged by pipeline_step + reason");
+
+    // NOTE: Claude cost is NOT in this class. Cost flows through the existing
+    // ClaudeDiagnostics cost counter (R6 adds a pipeline_step tag to it).
+    // This is the R6 "one diagnostics class per client boundary" rule.
 }
 ```
 
-**Metric tag policy** — allowed tags per R5 Span Attribute Registry (§16.9):
-- `Reads` / `Writes` / `Conflicts` / `RetriesExhausted`: no tags (single counter per brokerage is sufficient; brokerage identity goes on spans, not metrics, to avoid cardinality explosion)
-- `Duration`: tag `operation` ∈ `{read, write}` only
+**Metric tag policy** (§16.9 registry):
+- `activation.operations`: tag `component` ∈ `{account_config, routing, voiced_content, persist}`, `outcome` ∈ `{success, fallback, conflict}`
+- `activation.conflicts`: tag `component` only
+- `activation.retries_exhausted`: tag `component` only
+- `activation.duration_ms`: tag `component`, `operation` ∈ bounded enum per component (`{read, write}` for account_config; `{decide}` for routing; `{generate, cache_lookup}` for voiced_content)
+- `activation.voiced_fallbacks`: tag `pipeline_step` (~15 values), `reason` ∈ `{schema-mismatch, fair-housing-violation, claude-exhausted, linter-exhausted}`
 
-**ActivitySource wiring**: `AccountConfigDiagnostics.ActivitySource` must be added to `TelemetryRegistrations.All` (§E.3 rule 5) so both API and Functions hosts register it.
+**ActivitySource**: `ActivationDiagnostics.ActivitySource` — registered once in `TelemetryRegistrations.All` (§E.3 rule 5). Used by AccountConfigService, RoutingService, and VoicedContentGenerator.
 
-**Span attributes** (per the §16.9 registry): `account.id`, `attempt`, `outcome` ∈ `{saved, conflict, retry-exhausted}`, `correlation.id` (inherited from request/activity context via baggage — see §5.8).
+**Span attributes** (§16.9 registry): `account.id`, `component`, `attempt`, `outcome`, `correlation.id` (propagated via Baggage, see §5.8). Component-specific attributes (`lead.id`, `pipeline.step`, `policy.content_hash`) are added by the call site as per §16.9.
 
-**Log codes**: `[ACCOUNT-MERGE-001..099]` — see Appendix E.1 for the full assignment.
+**AccountConfig-specific usage**:
+- `ActivationDiagnostics.Operations.Add(1, new TagList { {"component", "account_config"}, {"outcome", "success"} });`
+- `ActivationDiagnostics.Conflicts.Add(1, new TagList { {"component", "account_config"} });`
+- `ActivationDiagnostics.RetriesExhausted.Add(1, new TagList { {"component", "account_config"} });`
+- Spans created via `ActivationDiagnostics.ActivitySource.StartActivity("activation.account_config.save")` with `component="account_config"` tag.
 
-**Grafana panel** (new, spec-defined — see §18.7 for dashboard commitments):
+**Log codes**: `[ACCOUNT-MERGE-001..099]` — see Appendix E.1.
+
+**Grafana queries** (see §18.7 for the dashboard commitment):
 - Title: "AccountConfig concurrency"
-- Query 1: `rate(accountconfig_conflicts_total[5m])` — conflict rate
-- Query 2: `histogram_quantile(0.95, accountconfig_duration_ms_bucket)` — p95 latency
-- Query 3: `rate(accountconfig_retries_exhausted_total[1h])` — alert-ready: >0 in an hour is a paging event
+- Query 1: `rate(activation_conflicts_total{component="account_config"}[5m])`
+- Query 2: `histogram_quantile(0.95, sum by (le) (rate(activation_duration_ms_bucket{component="account_config"}[5m])))`
+- Query 3: `rate(activation_retries_exhausted_total{component="account_config"}[1h])` — alert-ready: >0 in an hour pages.
 
 #### Two concurrent writers racing — the happy path
 
@@ -1674,7 +1760,7 @@ sequenceDiagram
     participant W2 as Writer 2<br/>Bob joins
     participant S as AccountConfigService
     participant T as Azure Table<br/>accounts
-    participant Met as AccountConfigDiagnostics
+    participant Met as ActivationDiagnostics<br/>component=account_config
 
     par Concurrent reads
         W1->>S: GetAccountAsync glr
@@ -1713,7 +1799,7 @@ sequenceDiagram
     Note over T: Final state contains<br/>Noelle and Bob<br/>No updates lost
 ```
 
-**The invariant**: at any point during this sequence, the `accounts` table holds a valid `AccountConfig` with a consistent agent list. The only observable effect of the race is that `Writer 2` needs two attempts instead of one. `AccountConfigDiagnostics.Conflicts` records the retry so contention can be measured in Grafana.
+**The invariant**: at any point during this sequence, the `accounts` table holds a valid `AccountConfig` with a consistent agent list. The only observable effect of the race is that `Writer 2` needs two attempts instead of one. `ActivationDiagnostics.Conflicts.Add(1, component=account_config)` records the retry so contention can be measured in Grafana.
 
 ### 8.4 Intelligent lead routing algorithm
 
@@ -2146,66 +2232,39 @@ sequenceDiagram
 
 **Error recovery**: if the losing lead's retry also loses the CAS (three simultaneous leads, maybe), the retry loop continues up to 5 attempts with exponential backoff. Three-way contention on the same routing row is essentially impossible given real brokerage lead arrival rates; the budget exists purely as a safety valve.
 
-#### Observability (R5 — explicit)
+#### Observability (R6 — consolidated into ActivationDiagnostics)
 
-A new `BrokerageRoutingDiagnostics` class at `apps/api/RealEstateStar.DataServices/Diagnostics/BrokerageRoutingDiagnostics.cs` carries the routing metrics and ActivitySource. Pattern matches [apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TokenStoreDiagnostics.cs](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TokenStoreDiagnostics.cs).
+R5 specified a standalone `BrokerageRoutingDiagnostics` class with six instruments. R6 cuts it in favor of the shared `ActivationDiagnostics` class defined in §8.3 — one class, one `component` tag, bounded cardinality. Routing-specific tags stay bounded because `reason` is an enum of ~5 values and `outcome` for overrides is an enum of 3.
 
-**Full instrument set:**
+**Routing-specific usage of `ActivationDiagnostics`** (see §8.3 for the class definition):
 
-```csharp
-public static class BrokerageRoutingDiagnostics
-{
-    public const string ServiceName = "RealEstateStar.BrokerageRouting";
-    public static readonly Meter Meter = new(ServiceName);
-    public static readonly ActivitySource ActivitySource = new(ServiceName);
+- Every routing decision: `ActivationDiagnostics.Operations.Add(1, new TagList { {"component", "routing"}, {"outcome", reason} });` where `reason ∈ {manual-override, specialty-match, service-area-match, weighted-round-robin, any-enabled-agent-fallback}` — the routing-reason enum is small enough to live on `outcome` without cardinality concerns
+- CAS conflicts: `ActivationDiagnostics.Conflicts.Add(1, new TagList { {"component", "routing"} });`
+- CAS retries exhausted: `ActivationDiagnostics.RetriesExhausted.Add(1, new TagList { {"component", "routing"} });`
+- Latency: `ActivationDiagnostics.Duration.Record(ms, new TagList { {"component", "routing"}, {"operation", "decide"} });`
 
-    // Decisions — tagged ONLY by reason (bounded enum, ~5 values)
-    public static readonly Counter<long> Decisions = Meter.CreateCounter<long>(
-        "routing.decisions",
-        description: "Routing decisions, tagged by outcome reason");
+**Override outcomes** — R5 specified a separate `OverrideOutcomes` counter. R6 folds override outcomes into the main `Operations` counter via an `override_outcome` tag attached only to `component=routing` rows:
+- `Operations.Add(1, new TagList { {"component", "routing"}, {"outcome", "manual-override"}, {"override_outcome", "consumed"} })`
+- `Operations.Add(1, new TagList { {"component", "routing"}, {"outcome", "manual-override"}, {"override_outcome", "lost-race"} })`
+- `Operations.Add(1, new TagList { {"component", "routing"}, {"outcome", "manual-override"}, {"override_outcome", "typo-ignored"} })`
 
-    // CAS conflicts — untagged; contention observed per brokerage is a span attribute, not a metric tag
-    public static readonly Counter<long> CasConflicts = Meter.CreateCounter<long>(
-        "routing.cas_conflicts",
-        description: "412 Precondition Failed on brokerage-routing-consumption row");
+The `override_outcome` tag has three values and only appears when `outcome=manual-override`, so cardinality stays flat. Operators query it via `sum by (override_outcome) (rate(activation_operations_total{component="routing", outcome="manual-override"}[5m]))`.
 
-    public static readonly Counter<long> CasRetriesExhausted = Meter.CreateCounter<long>(
-        "routing.cas_retries_exhausted",
-        description: "Routing decision failed after 5 CAS attempts (503 to caller)");
+**Hash realignments** — R5 had a standalone `HashRealignments` counter. R6 drops it entirely. The signal it provided (how often the human edit invalidated the consumption row) is rarely actionable and can be reconstructed from the `consumed → lost-race` transition in traces when needed. If operators later want it back, add it as a tag on `Operations` — not a new counter.
 
-    // Override usage — tagged by outcome
-    public static readonly Counter<long> OverrideOutcomes = Meter.CreateCounter<long>(
-        "routing.override_outcomes",
-        description: "next_lead override outcomes: consumed, lost-race, typo-ignored");
+**Cardinality rule — THIS IS THE INVARIANT**:
 
-    // Hash realignment — counts how often the human edit invalidated the Azure Table row
-    public static readonly Counter<long> HashRealignments = Meter.CreateCounter<long>(
-        "routing.hash_realignments",
-        description: "Routing decisions that observed a fresh PolicyContentHash and reset the consumption row");
-
-    // Latency p50/p95/p99 for the whole routing decision (Drive read + Table read + decide + CAS)
-    public static readonly Histogram<double> DecisionDuration = Meter.CreateHistogram<double>(
-        "routing.decision_duration_ms", unit: "ms",
-        description: "End-to-end routing decision latency");
-}
-```
-
-**Metric tag policy** — this is the rule that keeps routing metrics from exploding:
-
-| Instrument | Allowed tags | Disallowed |
+| What | Where it lives | Why |
 |---|---|---|
-| `routing.decisions` | `reason` ∈ `{manual-override, specialty-match, service-area-match, weighted-round-robin, any-enabled-agent-fallback}` | `account_id`, `lead_id`, `agent_id` |
-| `routing.cas_conflicts` | none | everything |
-| `routing.cas_retries_exhausted` | none | everything |
-| `routing.override_outcomes` | `outcome` ∈ `{consumed, lost-race, typo-ignored}` | everything else |
-| `routing.hash_realignments` | none | everything |
-| `routing.decision_duration_ms` | `reason` (same bounded enum as decisions) | `account_id`, `lead_id` |
+| `account_id`, `lead_id`, `winner_agent_id`, `policy_content_hash` | Span attributes + log fields | Unbounded — per-request |
+| `component`, `outcome`, `override_outcome`, `operation` | Metric tags | Bounded enum (≤10 values each) |
+| Per-lead audit data | `routing-log.csv` + `brokerage-routing-decisions` Azure Table | Append-only, cheap at scale |
 
-`account_id`, `lead_id`, `winner_agent_id`, and `policy_content_hash` go on **spans** (unbounded in cardinality is fine there — they're per-request) and on **log fields**. They never appear as metric tag dimensions. This single rule is what lets the routing metrics stay cheap as the platform scales from 10 brokerages to 10,000. Audit trail for per-decision data is the `routing-log.csv` in Drive + `brokerage-routing-decisions` Azure Table, not the metric series.
+This is what keeps the metric series cost-bounded as the platform scales from 10 brokerages to 10,000.
 
-**ActivitySource**: `BrokerageRoutingDiagnostics.ActivitySource` — registered in `TelemetryRegistrations.All` (§E.3 rule 5). Spans:
-- `routing.decide` (root span per `route_lead` call) with attributes `account.id`, `lead.id`, `policy.content_hash`, `attempt`, `reason`, `winner.agent_id`, `correlation.id` (propagated via baggage — see §5.8)
-- Child spans: `routing.drive_read` (Drive round-trip), `routing.table_read` (Azure Table read), `routing.cas_commit` (the single `UpdateEntity` call)
+**ActivitySource**: `ActivationDiagnostics.ActivitySource` — same source as AccountConfig and VoicedContent, single registration in `TelemetryRegistrations.All`. Spans:
+- `activation.routing.decide` (root per `route_lead` call) with `account.id`, `lead.id`, `policy.content_hash`, `attempt`, `outcome`, `winner.agent_id`, `correlation.id`
+- Child spans: `activation.routing.drive_read`, `activation.routing.table_read`, `activation.routing.cas_commit`
 
 **Log codes** (see Appendix E.1):
 - `[LEAD-ROUTE-001]` — routed (normal success)
@@ -2215,14 +2274,14 @@ public static class BrokerageRoutingDiagnostics
 - `[LEAD-ROUTE-UNROUTABLE-001]` — no matching agent, `fall_back_when_no_match = "reject"`
 - `[LEAD-ROUTE-CONTENTION-001]` — 5 CAS failures on consumption row → 503
 
-**Grafana panels** (spec-defined in §18.7 dashboards-as-code commitment):
+**Grafana panels** (spec-defined in §18.7 dashboards-as-code commitment — queries reference the consolidated `activation_*` metrics from §8.3):
 
 | Panel | Query | Alert |
 |---|---|---|
-| Routing decisions by reason | `sum by (reason) (rate(routing_decisions_total[5m]))` | none |
-| CAS contention rate | `rate(routing_cas_conflicts_total[5m]) / rate(routing_decisions_total[5m])` | warn > 5% sustained 5min |
-| Routing decision latency p95 | `histogram_quantile(0.95, sum by (le, reason) (rate(routing_decision_duration_ms_bucket[5m])))` | warn > 500ms, page > 2s |
-| Retries exhausted | `increase(routing_cas_retries_exhausted_total[1h])` | page > 0 in 1h |
+| Routing decisions by outcome | `sum by (outcome) (rate(activation_operations_total{component="routing"}[5m]))` | none |
+| CAS contention rate | `rate(activation_conflicts_total{component="routing"}[5m]) / rate(activation_operations_total{component="routing"}[5m])` | warn > 5% sustained 5min |
+| Routing decision latency p95 | `histogram_quantile(0.95, sum by (le) (rate(activation_duration_ms_bucket{component="routing", operation="decide"}[5m])))` | warn > 500ms, page > 2s |
+| Retries exhausted | `increase(activation_retries_exhausted_total{component="routing"}[1h])` | page > 0 in 1h |
 | Override usage per brokerage | log-based metric on `[LEAD-ROUTE-OVERRIDE-001]` grouped by `account.id` span attribute via trace-to-log linking (§16.10) | anomaly: > 50% of decisions for any single account in 24h |
 
 Note on the last panel: it **cannot** be expressed as a pure Prometheus query because `account_id` is intentionally not a metric tag. The spec accepts a slower log-based panel for this specific question in exchange for keeping the metric series bounded. This is the tradeoff every mature observability stack makes.
@@ -2587,24 +2646,19 @@ Summary of the R2 design (full details in §16.1):
 7. Tenant binding is enforced: the session's `accountId` must match the hostname's resolved tenant on every request. Mismatch → 403.
 8. On draft responses: `Referrer-Policy: no-referrer`, `Cache-Control: private, no-store`.
 
-Fields stored on the session row (`real-estate-star-preview-sessions`):
+Fields stored on the session row (`real-estate-star-preview-sessions`) — **R6 trimmed to 5 fields**:
 
 ```csharp
 public sealed record PreviewSession(
-    string SessionId,           // random 256-bit opaque reference
-    string AccountId,
-    string AgentId,             // null for brokerage-wide previews
-    DateTimeOffset IssuedAt,
-    DateTimeOffset ExpiresAt,   // sliding
-    DateTimeOffset HardCapAt,   // fixed at issuance + 30d
-    DateTimeOffset? LastUsedAt,
-    bool Revoked,
-    string? RevokedReason,
-    string Scope,               // "preview" (reserved for future scopes)
-    string IpAddressFirstUse,
-    string UserAgentFirstUse
+    string SessionId,           // random 256-bit opaque reference — the cookie value
+    string AccountId,           // tenant binding enforced on every request
+    DateTimeOffset ExpiresAt,   // sliding 24h window, capped at issuance + 30d
+    bool Revoked,               // revocation flag — true wins over ExpiresAt
+    DateTimeOffset? RevokedAt   // when revocation happened (for audit)
 );
 ```
+
+**R6 cut from R5's 12-field design**: `AgentId` (derive from `AccountId` lookup when needed), `IssuedAt` (can be reconstructed from `ExpiresAt - slidingWindow`), `HardCapAt` (enforce in the sliding refresh logic, don't store), `LastUsedAt` (cookie already carries session, sliding refresh updates `ExpiresAt`), `RevokedReason` (the "I didn't request this" flow is one reason — no need to distinguish until there are two), `Scope` (reserved-for-future is the YAGNI anti-pattern — add when a second scope exists), `IpAddressFirstUse` / `UserAgentFirstUse` (provide no security benefit once tenant binding is enforced; the IP/UA audit use case belongs to the application log layer, not the session row). If session-abuse patterns emerge post-launch, add fields then — cheap. Over-specifying fields now is what breaks six months later when the shape needs to change.
 
 ### 10.3 Preview API endpoints (see §16.3 for auth matrix, §16.5 for Stripe webhook)
 
@@ -2703,56 +2757,80 @@ Five legal pages per site, per locale (except TCPA):
 | Fair Housing Disclosure | `legal/fair-housing.md` | No | Per-locale |
 | TCPA Consent Language | `legal/tcpa.md` | Yes | English only (legal requirement) |
 
-### 11.2 Data sources
+### 11.2 Data sources (R6 — pure-template, no Claude)
 
-Each page is generated from multiple inputs:
+**R6 decision**: legal pages are **not voiced**. There is no Claude call in the legal page generation path. Rationale:
 
-**Privacy Policy** inputs:
-- `ActivationOutputs.BrokerageName`, `ActivationOutputs.BrokerageLicenseNumber`
-- Brokerage office physical address (from signature or brokerage site scrape)
-- Agent's personal data handling inferred from any existing personal-site scrape (if `/privacy` found on their current site, referenced and adapted)
-- `ComplianceAnalysisWorker` output (state-specific privacy rules)
-- Stripe compliance boilerplate (payment data handling)
-- Cookie usage statement (standard for our agent-site Worker)
+1. **Legal documents are reviewed by lawyers, not stylized by LLMs.** The §11.4 disclaimer footer already tells the user that these pages are starting templates, not legal advice. Running Claude over boilerplate privacy/terms/accessibility text adds $0.17+ per bilingual activation for zero value — the text isn't supposed to sound like the agent, it's supposed to sound like a legal document.
+2. **Pure-template generation is deterministic and auditable.** A lawyer reviewing the output can read the template once and know exactly what every brokerage's page will say. Claude-polished output varies subtly between activations and between locales, which is exactly the property you don't want on a legal document.
+3. **R5 and earlier revisions specified `LegalPagesWorker` with Claude polish per locale.** R6 cuts this. The worker becomes a simple template renderer with variable interpolation.
 
-**Terms of Service** inputs:
-- Brokerage entity name, license, address
-- Governing law: agent's state from `ActivationOutputs.State`
-- Standard real-estate agent service disclaimers
-- IDX participation notice (if applicable — detected from brokerage site)
+**Template layout** on disk:
 
-**Accessibility Statement** inputs:
-- Our platform's commitment to WCAG 2.1 AA
-- Brokerage contact for accessibility issues (from signature)
-- ADA-related state requirements (California, New York have extra requirements)
+```
+config/legal/
+├── templates/
+│   ├── _defaults/                  # Federal / cross-state templates
+│   │   ├── en/
+│   │   │   ├── privacy.md
+│   │   │   ├── terms.md
+│   │   │   ├── accessibility.md
+│   │   │   ├── fair-housing.md
+│   │   │   └── tcpa.md             # English-only by legal requirement
+│   │   ├── es/
+│   │   │   ├── privacy.md
+│   │   │   ├── terms.md
+│   │   │   ├── accessibility.md
+│   │   │   └── fair-housing.md     # no tcpa.es.md — TCPA is English only
+│   │   └── pt/
+│   │       └── ... (same set as es/)
+│   └── by-state/                   # State-specific overrides that replace the default for a given page
+│       ├── NJ/
+│       │   └── en/fair-housing.md  # New Jersey's Source of Lawful Income addition
+│       ├── CA/
+│       │   └── en/privacy.md       # CCPA-specific language
+│       └── NY/
+│           └── en/accessibility.md # NY-specific ADA compliance language
+```
 
-**Fair Housing Disclosure** inputs:
-- HUD Fair Housing Act standard language
-- Equal Housing Opportunity statement
-- State-specific additions (e.g., New Jersey requires Source of Lawful Income)
-- State fair housing contact info (from static lookup table)
+**Template variables** — the full set of substitutions a template may reference:
 
-**TCPA Consent Language** inputs:
-- Standard TCPA disclosure for SMS/voice marketing
-- Brokerage entity name
-- English only — this is a legal requirement under TCPA; other languages can't substitute
+| Variable | Source | Example |
+|---|---|---|
+| `{{brokerage.name}}` | `ActivationOutputs.BrokerageName` | "GLR Real Estate" |
+| `{{brokerage.license}}` | `ActivationOutputs.BrokerageLicenseNumber` | "NJ-12345678" |
+| `{{brokerage.address}}` | scraped signature or brokerage site | "123 Main St, Edison NJ 08817" |
+| `{{brokerage.phone}}` | signature | "(732) 555-0100" |
+| `{{brokerage.email}}` | signature | "info@glr.com" |
+| `{{agent.name}}` | `ActivationOutputs.Agent.Name` | "Jenise Buckalew" |
+| `{{agent.state}}` | `ActivationOutputs.State` | "NJ" |
+| `{{agent.state_full}}` | lookup table | "New Jersey" |
+| `{{generated_at}}` | orchestrator timestamp | "April 12, 2026" |
 
-### 11.3 Generation workflow
+**Template renderer** is a sealed static class `LegalPageRenderer.Render(templatePath, variables)` using the existing `string.Replace` approach from other spec templates in the codebase (see `apps/api/RealEstateStar.Services/AgentNotifier/` for the pattern). No Claude, no Razor, no templating library beyond what's already used.
+
+**State resolution order**:
+
+1. Look for `config/legal/templates/by-state/{state}/{locale}/{page}.md`.
+2. If not found, fall back to `config/legal/templates/_defaults/{locale}/{page}.md`.
+3. If not found, fall back to `config/legal/templates/_defaults/en/{page}.md` (the English default is always present).
+4. If the page is still not found, publish gate fails and the site stays in `Needs Info` (this should never happen because `_defaults/en/` always has all 5 pages).
+
+### 11.3 Generation workflow (R6)
 
 ```mermaid
 graph LR
-    A[ComplianceAnalysisWorker output] --> D[LegalPagesWorker]
-    B[Scraped signature data] --> D
-    C[Brokerage site scrape] --> D
-    E[SiteFacts.Agent] --> D
-    F[State legal reference tables] --> D
-    D --> G[Claude polish per locale<br/>using agent voice skill]
-    G --> H[legal/{page}.{locale}.md]
+    Facts[SiteFacts + account.json] --> Renderer[LegalPageRenderer<br/>static class]
+    Templates[config/legal/templates/...] --> Renderer
+    Renderer --> Disclaimer[Append legal disclaimer footer]
+    Disclaimer --> Output[legal/{page}.{locale}.md<br/>written via existing PersistSiteContent activity]
 ```
 
-`LegalPagesWorker` (new) runs in Phase 2.75 (after synthesis, before persist). Its output feeds a persist step that writes each page to KV.
+The renderer is invoked from `BuildLocalizedSiteContentActivity` for each `(locale, page)` combination. No new worker, no new Claude call, no new activity. The existing `PersistSiteContent` activity (already in §5.3) writes the output files to KV alongside the other content files.
 
-Per-page cost (from §4.3): ~$0.042 × 4 pages × N locales. Bilingual adds ~$0.17. TCPA is English-only so it doesn't scale with locale.
+**Per-page cost**: **$0.00**. No Claude calls in this path. All 5 pages × N locales costs exactly zero Claude tokens. Earlier revisions budgeted ~$0.17 per bilingual activation for legal page polish — R6 reclaims that budget. Annual cost savings at 1000 activations: ~$170.
+
+**Architecture test `LegalPages_UseTemplates`**: scans `BuildLocalizedSiteContentActivity` and `LegalPageRenderer` call sites, asserts neither injects `IAnthropicClient` or `VoicedContentGenerator`. Legal pages are not voiced content by design.
 
 ### 11.4 Legal disclaimer footer
 
@@ -2787,38 +2865,20 @@ Legal pages are versioned — when state regulations change or the brokerage upd
 
 ---
 
-## 12. Refresh Website Worker (Future — Scope Only)
+## 12. Refresh Website Worker (deferred — see RFC)
 
-This section does not design the refresh worker. It defines its **scope boundaries** so the current design stores data in formats compatible with future refresh.
+**R6 decision**: this section was deleted. Earlier revisions defined "scope boundaries" for a future refresh worker — a list of fields the current design should carry so a future worker could use them. Staff-engineer review flagged this as the "design for hypothetical future requirements" anti-pattern from `CLAUDE.md`: every field added prematurely is a constraint harder to change later than a field added later is to add.
 
-### 12.1 What refresh should eventually do
+The refresh worker's data model will be defined when the refresh worker is. The activation pipeline ships with the fields it needs for v1, not for v2. When refresh work begins, the RFC at `docs/superpowers/specs/future/refresh-worker-rfc.md` (to be created then) inherits whatever notes are worth preserving.
 
-- Periodically re-run for each live account (initially weekly, eventually event-driven)
-- Pull new Bridge Interactive reviews, new recent sales, new MLS listings
-- Re-scrape the brokerage team page if > 90 days stale, reconcile team roster (new agents, removed agents)
-- Re-generate per-locale content if agent voice has shifted substantially (diff threshold on voice skill)
-- Refresh headshots and gallery images if originals have changed
-- Re-check legal page source hashes and regenerate if changed
-- Update `pipeline.json` with fresh transaction data
+**What v1 does ship that happens to be refresh-compatible** (no extra design cost — these are properties of the existing spec, not additions made for refresh):
 
-### 12.2 What this design commits to that supports refresh
+- All content is stored in JSON / markdown, which is diffable.
+- Persistence steps are idempotent (§5.7).
+- Source data is retained in blob backups (§6.2).
+- Prospect table tracks `LastRefreshedAt` (§7) because that field is already needed for 90-day staleness TTL — not for the future refresh worker.
 
-- All content is stored in formats that can be diffed and regenerated (JSON, markdown)
-- Every persistence step is idempotent — re-running produces the same output given the same inputs
-- Source data is retained in ActivationOutputs form (blob backups), enabling fact re-extraction without re-scraping everything
-- KV writes track version numbers and `generatedAt` timestamps
-- The prospect table tracks `LastRefreshedAt` for TTL
-- The legal page metadata tracks `sourcesHash` for change detection
-
-### 12.3 What this design does NOT build
-
-- The refresh worker itself
-- The refresh scheduler
-- Diff-based re-generation
-- Change notifications to agents ("your site was auto-refreshed")
-- Opt-out for auto-refresh
-
-All of the above are the refresh worker project's responsibility.
+No fields are added to any DTO for the sake of a future refresh worker.
 
 ---
 
@@ -3314,7 +3374,7 @@ sequenceDiagram
 **Rules**:
 
 1. **One-time exchange token** in the email URL. 15-minute TTL. Single-use (consumed on first `/preview-sessions/exchange` call). HMAC-signed so forgery fails fast without an Azure Table lookup for the common invalid case.
-2. **Opaque session ID** in an HttpOnly cookie after exchange. The session ID is a random 256-bit value. Storage is Azure Table `real-estate-star-preview-sessions` (PK = `sessionId`) with `{accountId, issuedAt, expiresAt, lastUsedAt, revoked, scope}` fields.
+2. **Opaque session ID** in an HttpOnly cookie after exchange. The session ID is a random 256-bit value. Storage is Azure Table `real-estate-star-preview-sessions` (PK = `sessionId`) with R6-trimmed `{AccountId, ExpiresAt, Revoked, RevokedAt}` fields — see §10.2 for the record definition and rationale.
 3. **Sliding 24-hour window** — each valid use updates `lastUsedAt` and extends `expiresAt` by 24 hours. Hard cap at **30 days** since original `issuedAt`.
 4. **302 redirect to strip `?x=`** — Worker never renders content on the request that carries the exchange token in the URL. After the redirect, the URL is clean and the session travels only in the cookie.
 5. **`Referrer-Policy: no-referrer`** on all preview responses. `Cache-Control: private, no-store` on draft content. Preview draft content never lands in edge cache.
@@ -3447,19 +3507,28 @@ The TeamScrapeWorker (§7) fetches URLs derived from email signatures — **an a
 
 #### SSRF validation pipeline
 
-Every outbound HTTP call made by TeamScrapeWorker (and any future scraper) goes through `ISsrfGuard`:
+Every outbound HTTP call made by TeamScrapeWorker (and any future scraper) goes through `SsrfGuard` — a sealed class, not an interface. Pure-compute utility: there is exactly one implementation, there is no client/domain boundary being crossed, and test doubles work via the existing `HttpMessageHandler` swap pattern.
 
 ```csharp
-public interface ISsrfGuard
+public sealed class SsrfGuard
 {
-    Task<HttpResponseMessage> SafeGetAsync(
+    private readonly HttpClient _httpClient; // constructed with SocketsHttpHandler + ConnectCallback
+
+    public SsrfGuard(HttpClient httpClient) => _httpClient = httpClient;
+
+    public Task<HttpResponseMessage> SafeGetAsync(
         string url,
         int maxBodyBytes,
         TimeSpan timeout,
         int maxRedirects,
-        CancellationToken ct);
+        CancellationToken ct)
+    {
+        // Scheme + IP + redirect + body cap + timeout enforcement below.
+    }
 }
 ```
+
+**R6 note**: earlier revisions specified an `SsrfGuard` interface. R6 drops it. One implementation, no contract to swap, no test benefit — just bloat. Tests swap the internal `HttpMessageHandler` via the constructor-injected `HttpClient`.
 
 The guard enforces:
 
@@ -3481,9 +3550,9 @@ The guard enforces:
 9. **Crawl-delay respect**: if `robots.txt` includes a `Crawl-delay` for our user agent, sleep between requests to the same host.
 10. **Opt-out denylist**: in addition to `robots.txt`, a manual `config/legal/scrape-denylist.json` file lists brokerages that have explicitly asked us not to scrape. Checked before every request.
 
-**Architecture test**: `TeamScrapeWorker_CannotCallHttpClientDirectly` — reflects over the worker's field declarations and constructor, asserts it injects `ISsrfGuard` and does NOT inject `HttpClient` directly.
+**Architecture test**: `TeamScrapeWorker_CannotCallHttpClientDirectly` — reflects over the worker's field declarations and constructor, asserts it injects `SsrfGuard` and does NOT inject `HttpClient` directly.
 
-**Unit test matrix** for `ISsrfGuard`:
+**Unit test matrix** for `SsrfGuard`:
 
 | Input URL | Expected outcome |
 |---|---|
@@ -3497,7 +3566,7 @@ The guard enforces:
 | `https://public.com` with gzip bomb | Aborted at 10x ratio, `[SCRAPE-BOMB]` logged |
 | `https://public.com` normal 200 OK 2 MB | Success |
 
-**Per-request validation flow** — every step an outbound HTTP call transits through `ISsrfGuard`:
+**Per-request validation flow** — every step an outbound HTTP call transits through `SsrfGuard`:
 
 ```mermaid
 flowchart TD
@@ -3536,7 +3605,9 @@ flowchart TD
 
 #### XSS sanitization
 
-Every string scraped from an external source goes through `IHtmlTextExtractor.ToPlainText` before it is persisted. This uses a hardened HTML parser (AngleSharp) to extract visible text content only — no tags, no attributes, no scripts, no inline handlers.
+Every string scraped from an external source goes through `HtmlTextExtractor.ToPlainText` before it is persisted — a sealed static class, not an interface. Uses a hardened HTML parser (AngleSharp) to extract visible text content only — no tags, no attributes, no scripts, no inline handlers.
+
+**R6 note**: earlier revisions specified an `IHtmlTextExtractor` interface. R6 drops it. Pure-compute text transformation, one implementation, zero test doubles — a static method on a sealed class is the right shape. Callers invoke `HtmlTextExtractor.ToPlainText(input)` directly.
 
 **Fields that must pass through the extractor**:
 
@@ -3738,7 +3809,7 @@ Observability consistency only pays off if attribute names are **centralized**. 
 
 > **Rule**: a span attribute may be used as a metric tag **only if** its cardinality column above says `O(10)` or less. Attributes marked `O(1k)`, `O(10k)`, or `unbounded` must **never** appear as metric tags. They belong on spans and log fields only.
 
-This rule is what makes the observability story cost-bounded as the platform scales. Every new Diagnostics class in this spec (see §8.3 `AccountConfigDiagnostics`, §8.4 `BrokerageRoutingDiagnostics`, §5.3 `VoicedContentGeneratorDiagnostics`) is already compliant. Violations are caught by a new architecture test `MetricTags_AreBoundedCardinality` that scans every `Counter.Add(...)` and `Histogram.Record(...)` call for disallowed tag keys.
+This rule is what makes the observability story cost-bounded as the platform scales. The single new Diagnostics class in this spec (`ActivationDiagnostics`, which after R6 carries AccountConfig + BrokerageRouting + VoicedContent metrics under one `component` tag) is already compliant. Violations are caught by a new architecture test `MetricTags_AreBoundedCardinality` that scans every `Counter.Add(...)` and `Histogram.Record(...)` call for disallowed tag keys.
 
 **Cross-reference**: the existing codebase already uses several of these attributes (`lead.id`, `agent.id`, `correlation.id`, `claude.pipeline`, `queue.name`, `session.id`, `session.state`, `result.success`, `message.id`) — verified via audit. R5 formalizes the set; it does not require rewriting existing code.
 
@@ -4406,27 +4477,18 @@ Every numeric tunable referenced elsewhere in this document lives in this single
 | Domain verification timeout | 7 days | `Domain:VerificationTimeoutDays` | Agents who abandon setup | §9 |
 | Domain suspended grace period | 7 days | `Domain:SuspendedGracePeriodDays` | Time for agent to fix DNS after first failure | §16.2 |
 
-**R5 OBS-9 — Cache observability rule**: every cache in this table must emit hit/miss metrics. No exceptions. Tag set is `{ cache_name }` where `cache_name` is a bounded enum drawn from the "Name" column above. The rule is enforced by architecture test `Caches_EmitHitMissMetrics` which scans for any class implementing `ICache<K,V>` or using `ObjectCache`/`MemoryCache` and asserts it increments a counter from `CacheDiagnostics`:
+**R6 Cache observability rule** (replaces R5 OBS-9): every cache in this table must emit hit/miss metrics. The rule is the same; the **implementation path** is different. R5 specified a new `CacheDiagnostics` singleton class. R6 cuts it in favor of adding counters **to the existing cache implementations**:
 
-```csharp
-public static class CacheDiagnostics
-{
-    public const string ServiceName = "RealEstateStar.Caches";
-    public static readonly Meter Meter = new(ServiceName);
+- [`apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TableStorageContentCache.cs`](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TableStorageContentCache.cs) — add `hit`/`miss`/`lookup_duration_ms` counters on the existing class. Tag set is `{ cache_name }` drawn from the "Name" column of §18.2.
+- [`apps/api/RealEstateStar.DataServices/Cache/MemoryContentCache.cs`](apps/api/RealEstateStar.DataServices/Cache/MemoryContentCache.cs) — same.
 
-    public static readonly Counter<long> Hits = Meter.CreateCounter<long>(
-        "cache.hits", description: "Cache hits, tagged by cache_name");
-    public static readonly Counter<long> Misses = Meter.CreateCounter<long>(
-        "cache.misses", description: "Cache misses, tagged by cache_name");
-    public static readonly Histogram<double> LookupDuration = Meter.CreateHistogram<double>(
-        "cache.lookup_duration_ms", unit: "ms",
-        description: "Cache lookup duration, tagged by cache_name");
-}
-```
+Each cache's counters live on that cache's own meter, following the existing Diagnostics-per-client pattern. The metric names are the same (`cache.hits`, `cache.misses`, `cache.lookup_duration_ms`) because they are defined on a cache interface — but the **Meter** that owns them lives in the cache implementation's project, not a shared singleton. The `cache_name` tag distinguishes the different cache instances (`voiced-content`, `legal-pages`, `kv-routing`, etc.).
 
-`cache_name` is bounded (O(20)) so it's a safe metric tag. `account_id`, `key`, and other per-request values are span attributes only (per §16.9).
+**Architecture test `Caches_EmitHitMissMetrics`**: scans every class implementing `IContentCache` or `IDistributedContentCache` and asserts it increments the `cache.hits` / `cache.misses` counter on every `GetAsync` path. Existing cache implementations ([TableStorageContentCache](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TableStorageContentCache.cs), [MemoryContentCache](apps/api/RealEstateStar.DataServices/Cache/MemoryContentCache.cs)) need to be updated to satisfy the test — roughly 4 lines of instrumentation per implementation.
 
 **Why this matters for scale**: cache hit rate is your primary cost signal. When activation costs spike, the first question is "did our voiced content cache hit rate drop?" — without a metric, that question takes log-parsing hours to answer. With the metric, it's a single Grafana panel query: `sum(rate(cache_hits_total{cache_name="voiced-content"}[5m])) / (sum(rate(cache_hits_total{cache_name="voiced-content"}[5m])) + sum(rate(cache_misses_total{cache_name="voiced-content"}[5m])))`.
+
+**R6 reuse note**: the codebase ships `IContentCache`, `IDistributedContentCache`, `TableStorageContentCache`, `MemoryContentCache`, `FakeContentCache`, `FakeDistributedContentCache`, and `CheckContentCache` + `UpdateContentCache` DF activities. None of this needed to be built. Earlier revisions spoke as if cache instrumentation required a new abstraction layer — it does not. Add counters to the classes that already exist.
 
 ### 18.3 Preview and billing
 
@@ -4481,17 +4543,17 @@ public static class CacheDiagnostics
 
 Prior revisions described alerts in prose ("alerts when > 5% 412s in a 5-minute window"). That is a commitment without a contract. R5 promotes every alert to **a file in the repo** so the alert exists, has a maintainer, has a severity, and has a paging destination.
 
-#### Service Level Objectives
+#### Service Level Objectives (R6 — thresholds deferred post-baseline)
 
-Three user-facing paths get SLOs. Each has an error budget measured over a rolling 30-day window and burn-rate alerts (not threshold alerts) so short spikes are tolerated but sustained degradation pages quickly.
+Three user-facing paths get SLOs. Each has an error budget measured over a rolling 30-day window and burn-rate alerts (not threshold alerts) so short spikes are tolerated but sustained degradation pages quickly. **R6 decision**: the SLO *structure* (definition, metric query, window) ships in v1 as committed files in `infra/grafana/alerts/`. The **threshold numbers** (target percentages, burn-rate cutoffs) are deferred to a v1.5 tuning pass after 2 weeks of production baseline data. Committing placeholder numbers now would produce 47 false alarms on week one and someone would disable them in the Grafana UI — exactly the drift failure R5 was supposed to prevent. The `TBD_POST_BASELINE` sentinel is a deliberate commitment: the rule file exists and fails CI if anyone forgets to tune it, but it does not page until the tuning pass completes.
 
 | SLO | Definition | Target | Window | Error budget | Burn-rate alerts |
 |---|---|---|---|---|---|
-| **Activation orchestration success** | `rate(df_orchestrator_completions{result_success="true", orchestrator="activation"}) / rate(df_orchestrator_completions{orchestrator="activation"})` | ≥ 99% | 30d | 1% (~7.2 hours of sustained failure) | 2% over 1h → warn, 5% over 5m → page |
-| **Preview → live publish success** | `rate(publish_completions{result_success="true"}) / rate(publish_completions)` | ≥ 99.5% | 30d | 0.5% | 1% over 1h → warn, 2% over 5m → page |
-| **Lead delivery latency** | `histogram_quantile(0.95, sum by (le) (rate(lead_delivery_duration_ms_bucket[5m])))` | ≤ 30 seconds p95 (lead submit → agent notified) | 30d | 2 minutes of breach per day | p95 > 45s for 10m → warn, p95 > 90s for 5m → page |
+| **Activation orchestration success** | `rate(df_orchestrator_completions{result_success="true", orchestrator="activation"}) / rate(df_orchestrator_completions{orchestrator="activation"})` | `TBD_POST_BASELINE` | 30d | `TBD_POST_BASELINE` | `TBD_POST_BASELINE` — structure committed, numbers tuned after 2 weeks |
+| **Preview → live publish success** | `rate(publish_completions{result_success="true"}) / rate(publish_completions)` | `TBD_POST_BASELINE` | 30d | `TBD_POST_BASELINE` | `TBD_POST_BASELINE` |
+| **Lead delivery latency** | `histogram_quantile(0.95, sum by (le) (rate(lead_delivery_duration_ms_bucket[5m])))` | `TBD_POST_BASELINE` | 30d | `TBD_POST_BASELINE` | `TBD_POST_BASELINE` |
 
-Each SLO has an owning team (Eddie + Claude, currently), a runbook URL placeholder, and a status-page integration target (decision deferred until §10 preview flow is built).
+Each SLO has an owning team (Eddie + Claude, currently), a runbook URL placeholder, and a status-page integration target (decision deferred until §10 preview flow is built). The v1.5 tuning pass is tracked as a follow-up task in the project plan and gated on 14 days of production traffic.
 
 #### Alert rules as code
 
@@ -4522,17 +4584,19 @@ Each YAML file carries: alert name, PromQL expression, for-duration, severity, a
 
 #### Dashboards as code
 
-Three dashboards already exist in the repo ([infra/grafana/real-estate-star-api-dashboard.json](infra/grafana/real-estate-star-api-dashboard.json), [infra/grafana/real-estate-star-functions-dashboard.json](infra/grafana/real-estate-star-functions-dashboard.json), [apps/api/infra/grafana/dashboards/cma-pipeline.json](apps/api/infra/grafana/dashboards/cma-pipeline.json)). R5 adds five more:
+Three dashboards already exist in the repo ([infra/grafana/real-estate-star-api-dashboard.json](infra/grafana/real-estate-star-api-dashboard.json), [infra/grafana/real-estate-star-functions-dashboard.json](infra/grafana/real-estate-star-functions-dashboard.json), [apps/api/infra/grafana/dashboards/cma-pipeline.json](apps/api/infra/grafana/dashboards/cma-pipeline.json)). R6 adds **three** more (down from R5's five — R6 dropped the standalone voiced-content and SLO overview dashboards because they are redundant once thresholds are deferred and voiced content metrics consolidate under `activation_*`):
 
 | Dashboard file | Covers |
 |---|---|
-| `infra/grafana/dashboards/activation-pipeline.json` | Orchestrator success, per-activity latency, per-phase error rates, cost per activation |
-| `infra/grafana/dashboards/brokerage-routing.json` | Routing decisions by reason, CAS contention, p95 decision latency, override usage by account |
-| `infra/grafana/dashboards/voiced-content.json` | VCG cost, cache hit rate, fallback rate, p95 latency, breakdown by pipeline_step and locale |
-| `infra/grafana/dashboards/slos-overview.json` | All 3 SLOs on one page with error budget burn-rate gauges |
+| `infra/grafana/dashboards/activation-pipeline.json` | Orchestrator success, per-activity latency, per-phase error rates, cost per activation, voiced-content breakdown (`activation_operations{component="voiced_content"}`), cache hit rate, all three SLOs as panels |
+| `infra/grafana/dashboards/brokerage-routing.json` | Routing decisions by outcome, CAS contention, p95 decision latency, override usage by account (log-based panel per §8.4) |
 | `infra/grafana/dashboards/support-triage.json` | Support runbook companion (§16.10) — lookup by correlation.id, trace.id, lead.id, account.id |
 
 Dashboards are committed as JSON with a `uid` that makes them stable across environments. CI deploys them via Grafana's provisioning API.
+
+**Dropped from R5**:
+- ~~`voiced-content.json`~~ — redundant with activation-pipeline.json after R6 consolidated metrics under `activation_*{component="voiced_content"}`. A separate dashboard for one component's view is a Grafana variable, not a file.
+- ~~`slos-overview.json`~~ — SLO gauges added as panels on `activation-pipeline.json` because thresholds are `TBD_POST_BASELINE` (no meaningful burn-rate gauge to render yet).
 
 #### What "world class" means here
 
@@ -4675,7 +4739,7 @@ Every test file required by this design, the invariant it enforces, and the sect
 | Test | Enforces | Reference |
 |---|---|---|
 | `VoicedContentGenerator_IsOnlyCallerOfAnthropicForVoicedFields` | No Phase 2.5/2.6/2.75 worker injects `IAnthropicClient` directly | §5.3 |
-| `TeamScrapeWorker_CannotCallHttpClientDirectly` | TeamScrapeWorker injects `ISsrfGuard`, not `HttpClient` | §16.4 |
+| `TeamScrapeWorker_CannotCallHttpClientDirectly` | TeamScrapeWorker injects `SsrfGuard`, not `HttpClient` | §16.4 |
 | `NewWorkers_DependOnDomainOnly` | SiteFactExtractor, TeamScrape, LegalPages, SiteContent all depend only on Domain + Workers.Shared | §15 |
 | `NewActivities_DependOnDomainAndServices` | BuildLocalizedSiteContent, PersistSiteContent, RehostAssetsToR2 respect dependency rules | §15 |
 | `CloudflareClient_IsOnlyCallerOfCloudflareApi` | No class outside `Clients.Cloudflare` calls Cloudflare REST API directly | §6.2 |
@@ -5111,14 +5175,36 @@ R5 is a dedicated observability review conducted after R4 shipped. Driven by use
 | OBS-12 | No end-to-end traceability path for support — "this agent said X didn't work" requires log grep by email | HIGH | New §16.10 TraceLink pattern on every audit record + correlation ID visible in welcome email/preview URL/lead emails + new `docs/runbooks/trace-reconstruction.md` |
 | OBS-13 | OTel registrations lived in two separate `Program.cs` files; drift hazard | LOW | §E.3 rule 5: single `TelemetryRegistrations.All` file both hosts import; arch test `TelemetryRegistrationIsCentralized` rejects divergence |
 
-### G.5 Summary
+### G.5 Staff-engineer simplification review (R6 — new, separate pass)
+
+R6 is a staff-engineer simplification pass conducted after R5 shipped. User direction: *"review the entire spec again but this time looking for redundancies in the design. There is a lot of infra we have already built that could be reused rather than regenerated… He doesnt need excess wrapper interfaces it needs to be easy to understand."* Two parallel audits ran: one for duplicated infra (claimed-new code that already exists), one for over-abstraction (wrapper interfaces and premature generalization). Findings are distinct from earlier passes because they target *maintainability of the spec itself*, not compliance or security.
+
+| # | Finding | Category | Addressed in |
+|---|---|---|---|
+| R6-1 | Voiced content cache duplicated existing `IDistributedContentCache` + `TableStorageContentCache` + `CheckContentCacheFunction` infrastructure | REUSE | §5.3 now injects existing `IDistributedContentCache`; zero new cache classes |
+| R6-2 | Four new Diagnostics classes (AccountConfig + BrokerageRouting + VoicedContentGenerator + CacheDiagnostics) violate the codebase convention of one-per-client-boundary | MERGE | Consolidated into single `ActivationDiagnostics` class with bounded `component` tag; cost counters reuse existing `ClaudeDiagnostics` with new `pipeline_step` tag |
+| R6-3 | `IVoicedContentGenerator` interface with one implementation, no real test double | CUT | Dropped to sealed class. Extract interface later if a second implementation materializes |
+| R6-4 | Pure-compute utility interfaces (`ISsrfGuard`, `IHtmlTextExtractor`) exist for architecture purity with no test benefit | CUT | Both replaced with sealed classes. `IRoutingPolicyStore` and `IFairHousingLinter` retained (both have real boundaries or multiple implementations) |
+| R6-5 | §8.3 prose framed the `SaveIfUnchangedAsync` addition as new architecture when it's a 20-line change to an existing interface | CLARIFY | Reframed as "add one method to existing `IAccountConfigService`" with file paths to the real location |
+| R6-6 | §5.8 DF orchestrator middleware registered from its own location, splitting telemetry setup across two files | SIMPLIFY | Registration moved into existing `OpenTelemetryExtensions.AddRealEstateStarOpenTelemetry(...)` — one telemetry setup location |
+| R6-7 | §8.3 and §8.4 both implemented bounded retry loops inline; duplicate logic | MERGE | Extracted `EtagCasRetryPolicy.ExecuteAsync` static helper; both sections call it with a lambda |
+| R6-8 | `LegalPagesWorker` ran Claude per-page per-locale (~$0.17 per bilingual activation) on legal boilerplate that nobody reads for voice | CUT | Rewritten as pure-Markdown templates under `config/legal/templates/{_defaults\|by-state}/{locale}/{page}.md`. Zero Claude calls. Variable substitution via static `LegalPageRenderer`. Annual savings ~$170 at 1000 activations + deterministic output that lawyers can audit |
+| R6-9 | §12 "Refresh worker scope" defined data-model boundaries for a worker that doesn't exist | DEFER | Section deleted. When refresh is designed, a future RFC inherits any notes worth preserving |
+| R6-10 | §18.7 SLO thresholds committed as hard numbers with zero baseline data — would produce 47 false alarms on week one | DEFER | Structure retained, thresholds replaced with `TBD_POST_BASELINE` sentinel. v1.5 tuning pass after 14 days of production traffic fills the numbers. Also dropped 2 of 5 new dashboards (voiced-content, slos-overview) as redundant after R6-2 consolidation |
+| R6-12 | Preview session row had 10+ fields (`IpAddressFirstUse`, `UserAgentFirstUse`, `RevokedReason`, `Scope`, etc.) for a 30-day session with no security benefit from the extras | SIMPLIFY | Trimmed to 5 fields: `SessionId`, `AccountId`, `ExpiresAt`, `Revoked`, `RevokedAt`. Tenant binding already provides the security benefit the IP/UA fields were supposed to provide |
+| R6-13 | `TelemetryRegistrations.All` proposed in R5 is valid and matches a real drift hazard | KEEP | No change (confirmed as genuine reuse target, not a duplication) |
+
+**What R6 does NOT change**: every BLOCKER remediation from R1-R5, every R4 routing design decision (Option C stays), every R5 observability pattern (span registry, DF trace propagation, trace-to-audit linking), the decision log numbering (D1-D44), the 34 Mermaid diagrams, and every acceptance criterion in §15.5. R6 is a simplification pass, not a redesign.
+
+### G.6 Summary
 
 - **Legal/ADA**: 7 BLOCKERS → all addressed (2 of 7 already implemented in existing code, verified via codebase audit: EHO footer with R4 state-conditional nuance, TCPA consent capture via `template → CmaSection → LeadForm` chain); 6 HIGH → all addressed; 10 MEDIUM → all addressed; 2 LOW → addressed
 - **Security**: 7 BLOCKERS → all addressed in §16 + §10 + §7 updates; 13 HIGH → all addressed (R4 rewrote lead routing with Option C two-store mechanism after verifying `IFileStorageProvider` has no CAS primitives); 10 MEDIUM → addressed or explicitly noted as future work with reference
 - **Maintainability**: 2 CRITICAL → addressed (`IVoicedContentGenerator` §5.3, rollback-for-net-new §13.4); 14 HIGH → all addressed; 10 MEDIUM → addressed; 2 LOW → addressed
 - **Observability (R5)**: 13 findings → all addressed in R5. 7 HIGH / 4 MEDIUM / 2 LOW. Verified against branch audit: 22 existing ActivitySources, 22 existing Meters, Serilog+OTLP export, 3 committed Grafana dashboards. Gaps at the SLO + dashboards-as-code + bounded-cardinality + trace-reconstruction layer are all closed.
+- **Simplification (R6)**: 11 findings → all addressed in R6. Distributed as: 4 REUSE/MERGE (diagnostics consolidation, cache reuse, retry helper, telemetry registration), 4 CUT (interfaces with one implementation, legal-page Claude calls, §12 refresh scope, redundant dashboards), 2 SIMPLIFY (preview session fields, §8.3 framing), 1 CLARIFY (§5.8 registration location). Net effect on spec: ~400 lines removed, ~6 interfaces cut, ~3 Diagnostics classes collapsed to 1, 1 whole section deleted. Every change verified against the codebase — R6 does not touch any BLOCKER remediation from R1-R5.
 
-**No deferred BLOCKERs.** All 17 R1/R2 BLOCKERs are in v1 per project decision (D21). R5 observability findings are non-BLOCKER severity but land as part of v1 to keep the commitment internally consistent.
+**No deferred BLOCKERs.** All 17 R1/R2 BLOCKERs are in v1 per project decision (D21). R5 observability findings and R6 simplifications are non-BLOCKER severity but land as part of v1 to keep the commitment internally consistent.
 
 **R3 correction summary**: R3 corrected two BLOCKER findings that R2 framed as net-new work — EHO footer (finding 1.1) and TCPA consent capture (finding 3.1) were already fully implemented in the existing codebase. R3 replaced the "build new" language with "enforce existing via architecture test" and added decisions D41–D44 to record the correction. R3 also rewrote §8.3 and §8.4 to reference the existing `ITokenStore` ETag pattern and a partitioned Azure Table counter, removing R2's fabricated lock table design.
 
@@ -5144,6 +5230,20 @@ D16 self-contradiction fixed, D30 marked superseded by D42, §13.4 Tier 2 exampl
 
 R5 changes zero BLOCKER remediations from R1-R4. It is an observability instrumentation layer that sits underneath every section already specified.
 
+**R6 simplification summary**: R6 is a staff-engineer simplification pass conducted after R5 shipped. User direction cited concerns that the spec was introducing wrapper interfaces and regenerated infrastructure where existing primitives already covered the need. Two parallel audits confirmed both concerns: the codebase already ships a full content cache story (`IContentCache`, `IDistributedContentCache`, `TableStorageContentCache`, `MemoryContentCache`, `CheckContentCache`/`UpdateContentCache` DF activities) and the convention of one Diagnostics class per client boundary (not per sub-feature). R5's four Diagnostics classes and the voiced-content cache were inconsistent with both. R6 fixes:
+
+1. **§5.3 voiced content generator** — drops `IVoicedContentGenerator` interface (one implementation, no test benefit), injects existing `IDistributedContentCache` instead of inventing a new cache abstraction, and routes cost through existing `ClaudeDiagnostics` instead of a new `VoicedContentGeneratorDiagnostics`.
+2. **§8.3 AccountConfig + §8.4 BrokerageRouting diagnostics** — consolidated into a single `ActivationDiagnostics` class with a bounded `component` tag. Four Diagnostics classes collapse to one.
+3. **§8.3 and §8.4 retry loops** — extracted shared `EtagCasRetryPolicy.ExecuteAsync` static helper used by both.
+4. **§16.4 pure-compute interfaces** — dropped `ISsrfGuard` and `IHtmlTextExtractor` in favor of sealed classes. Kept `IRoutingPolicyStore` and `IFairHousingLinter` because both have legitimate reasons for an interface.
+5. **§5.8 DF tracing middleware** — kept the class (framework requires it) but moved registration into the existing `OpenTelemetryExtensions` file so telemetry setup lives in one place.
+6. **§11 legal pages** — rewritten as pure-Markdown templates under `config/legal/templates/{_defaults|by-state}/{locale}/{page}.md`. Zero Claude calls. Deterministic, auditable, ~$170/year cheaper at 1000 activations. User direction: *"we dont need claude voice on legal documents. those are the legal documents reviewed by lawyers via disclaimer."*
+7. **§12 refresh worker scope** — section deleted. Designing for hypothetical future requirements is the anti-pattern it names. When refresh is built, its RFC inherits whatever notes are worth preserving.
+8. **§18.7 SLOs** — structure retained, thresholds deferred to `TBD_POST_BASELINE`. Committing guesses as thresholds would break R5's dashboards-as-code rule in week one. Dropped 2 of 5 R5 dashboards (voiced-content, slos-overview) as redundant after metric consolidation.
+9. **§10.2 preview session row** — trimmed from 10+ fields to 5. YAGNI applied to a storage schema that doesn't ship for months.
+
+R6 changes zero BLOCKER remediations from R1-R5. It is a simplification pass, not a redesign. The spec is ~400 lines shorter and has fewer moving parts for a maintaining engineer to keep track of.
+
 ---
 
-**End of design document — Revision 5.**
+**End of design document — Revision 6.**
