@@ -1,6 +1,6 @@
 # Agent Site Comprehensive Design
 
-**Status:** Draft (Revision 6 — staff-engineer simplification pass; cuts wrapper interfaces, consolidates diagnostics, removes legal-page Claude calls, defers §12 refresh scope, defers SLO thresholds)
+**Status:** Draft (Revision 7 — maximum-parallel execution plan; 18 streams, 12 start day-1 with no blockers, critical path 12 days)
 **Date:** 2026-04-12
 **Owner:** Eddie Rosado
 **Author:** Claude (Opus 4.6)
@@ -49,6 +49,7 @@
 >   - **R6-10 §18.7 SLO thresholds deferred post-baseline** — committing "activation success ≥99%" as a numeric target with zero baseline data would produce 47 false alarms in week one. R6 keeps the SLO *structure* (definition, metric query, burn-rate alert format) and replaces the thresholds with a literal `TBD_POST_BASELINE` sentinel. Alert files exist in the repo; a v1.5 tuning pass after 14 days of production traffic fills in the numbers. Also drops two of the five R5 dashboards (voiced-content.json redundant after metric consolidation; slos-overview.json premature without thresholds) — SLO panels fold into `activation-pipeline.json`.
 >   - **R6-12 preview session row trimmed from 10+ fields to 5** — `AgentId`, `IssuedAt`, `HardCapAt`, `LastUsedAt`, `RevokedReason`, `Scope`, `IpAddressFirstUse`, `UserAgentFirstUse` all dropped. Tenant binding already provides the security benefit the IP/UA fields were supposed to provide. If abuse patterns emerge, add fields then.
 >   - **What R6 does NOT change**: every BLOCKER remediation from R1-R5, the overall section structure, the 34 existing Mermaid diagrams, the decision log numbering (D1-D44), §16.9 span attribute registry, §16.10 trace-to-audit linking, the R4 routing CAS design, §5.8 DF trace propagation as a concept, R5's `TelemetryRegistrations.All` single-file rule, and zero acceptance criteria in §15.5. R6 is a **simplification pass**, not a redesign. Net effect: ~400 lines of spec prose removed or tightened, ~6 interfaces cut, ~3 Diagnostics classes collapsed to 1, ~2 dashboard files dropped, 1 whole section deleted. Maintainer can read the spec in fewer words and find fewer moving parts to keep track of.
+> - **R7 (this version)**: Maximum-parallel execution plan. User direction: *"turn this spec into an execution plan using your writing plans super powers for maximum parallel execution."* Complete rewrite of §15. The R1 plan had 16 streams with a 15-day critical path (S1→S4→S8→S12). R7 decomposes into 18 streams, of which **12 start day-1 with zero blockers** and the critical path is **12 days** (S1→S12b→S14→S18). R6 simplifications are the primary enabler: reuse of existing `IDistributedContentCache`, `AccountConfigService`, `ClaudeDiagnostics`, `CorrelationIdMiddleware` means more streams are genuinely independent. §15 now includes: stream table with concrete file anchors and reuse targets (§15.2), dependency graph (§15.3), critical path analysis (§15.4), day-1 parallel execution playbook with 12 PR titles and first-commit contents (§15.5), wave 2-4 breakdowns (§15.6-15.8), phase milestones (§15.9), test strategy (§15.10), and PR hygiene rules for 12+ PRs landing in parallel (§15.11). Acceptance criteria preserved as §15.12.
 
 ---
 
@@ -3202,120 +3203,272 @@ flowchart TD
 
 ## 15. Parallelized Implementation Plan
 
-This plan is designed so multiple work streams can progress simultaneously. Explicit dependencies are called out; otherwise, streams are independent.
+**R7 rewrite**: the original R1 plan had 16 streams with a 15-day critical path (S1→S4→S8→S12). R7 replaces it with an 18-stream plan that exploits R6 simplifications to shrink the critical path to **3 sequential steps** and puts **12 streams in the day-1 parallel set**. The key insight: R6's reuse-existing-infra rule means more streams are genuinely independent than R1 assumed — most of the work is additive to existing codebase primitives, not new architecture.
 
-### 15.1 Work streams
+### 15.1 Design principles for parallel execution
 
-| # | Stream | Size | Depends on |
-|---|---|---|---|
-| S1 | Cloudflare client + KV/R2 plumbing | Small (~3 days) | Nothing — foundational |
-| S2 | Template `defaultContent` refactor (remove hardcoded titles) | Medium (~4 days) | Nothing — agent-site only |
-| S3 | `SiteFactExtractor` + `BuildLocalizedSiteContent` pipeline core | Large (~6 days) | Nothing (new workers) |
-| S4 | `PersistSiteContent` + `RehostAssetsToR2` persistence layer | Medium (~3 days) | S1 (needs KV/R2 client) |
-| S5 | `LanguageDetector` + `VoiceExtractionWorker` generalization to registry-driven locales | Small (~2 days) | Nothing — refactor |
-| S6 | Portuguese UI strings + content fixtures for test-modern | Small (~1 day) | S5 |
-| S7 | `TeamScrapeWorker` + prospect table + warm-start flow | Large (~5 days) | Nothing — new worker + new data layer |
-| S8 | Brokerage create/join auto-detection + account.json concurrency | Medium (~3 days) | S4 (needs PersistSiteContent) |
-| S9 | Lead routing algorithm + brokerage contact form | Small (~2 days) | S8 |
-| S10 | BYOD custom domains: table, API endpoints, background verification | Large (~5 days) | S1 (Cloudflare for SaaS client) |
-| S11 | Worker hostname routing updates (custom domains + preview token) | Medium (~3 days) | S10 |
-| S12 | Preview → Approve → Bill → Edit state machine + API endpoints | Medium (~4 days) | S4, S11 |
-| S13 | `LegalPagesWorker` + legal page generation | Medium (~3 days) | S3 (needs facts) |
-| S14 | Agent-site runtime hybrid loader (env-aware KV + bundled fixtures) | Medium (~3 days) | S1 |
-| S15 | Migration tooling + existing account regeneration runbook | Small (~2 days) | S3, S4, S13 |
-| S16 | Observability: new log codes, Grafana dashboards for activation phases | Small (~2 days) | S3 |
+Before the stream table, five rules that shape how the work is decomposed:
 
-### 15.2 Dependency graph
+1. **Reuse anchors are day-1 unblockers.** Every stream that reuses an existing class (`IDistributedContentCache`, `AccountConfigService`, `ClaudeDiagnostics`, `IFileStorageProvider`, `CorrelationIdMiddleware`) can start immediately because the dependency is **already merged to main**. R1's plan treated these as things that needed to be built; R6 confirmed they exist.
+
+2. **New class = test-first, no blocker.** For genuinely new classes (`VoicedContentGenerator`, `SsrfGuard`, `LegalPageRenderer`, `ActivationDiagnostics`), tests can be written against the signature **before** the implementation lands. That means a test author and an implementation author can work in parallel on the same stream.
+
+3. **Durable Functions activities are independently testable.** The DF contract is `[ActivityTrigger] Input → Task<Output>`. If the Input and Output DTOs are defined in a PR that lands early, every activity's implementation can be built in parallel in separate PRs, each mocking the DTOs of its neighbors. The orchestrator wire-up comes last.
+
+4. **Architecture tests ship in a single "infra PR" at the start.** All R6 arch tests (`LegalPages_UseTemplates`, `Caches_EmitHitMissMetrics`, `Orchestrators_UseReplaySafeLogger`, `MetricTags_AreBoundedCardinality`, `ActivityInputs_HaveCorrelationId`) ship together in PR-0 so every subsequent PR is enforced by them.
+
+5. **Spec sections map 1:1 to PRs.** No stream crosses two section boundaries. A maintainer reading the spec and reading the PR log can always answer "which PR implemented §X.Y?"
+
+### 15.2 Work streams
+
+**Day-1 parallel set** — streams S0 through S11 can start simultaneously with zero blockers. Each reuses existing codebase primitives that are already on `main`.
+
+| # | Stream | Section | Size | Depends on | Reuse anchor / new-file anchor |
+|---|---|---|---|---|---|
+| S0 | Observability foundation: `TelemetryRegistrations.All` + `ActivationDiagnostics` + arch tests | §E.3, §8.3, §8.4, §16.9 | Small (2d) | Nothing | [`OpenTelemetryExtensions.cs`](apps/api/RealEstateStar.Api/Diagnostics/OpenTelemetryExtensions.cs) (extend) + new `TelemetryRegistrations.cs` + new `ActivationDiagnostics.cs` |
+| S1 | Cloudflare client: KV + R2 + For-SaaS wrappers | §6, §9 | Medium (3d) | Nothing | `RealEstateStar.Clients.Cloudflare` csproj exists (empty) — fill in `CloudflareKvClient.cs`, `CloudflareR2Client.cs`, `CloudflareForSaasClient.cs` |
+| S2 | Agent-site `defaultContent` refactor | §3.3 | Small (2d) | Nothing | [`apps/agent-site/features/templates/*.tsx`](apps/agent-site/features/templates/) (extract hardcoded strings to `defaultContent` exports) |
+| S3a | `SiteFacts` DTO + `SiteFactExtractor` worker | §5.3 | Medium (3d) | Nothing | new `Workers.Activation.SiteFactExtractor/` project, pattern from existing `Workers.Activation.*` siblings |
+| S3b | `VoicedContentGenerator` sealed class + `FieldSpec` registry | §5.3 | Medium (3d) | Nothing | new class in [`RealEstateStar.Clients.Anthropic/`](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Anthropic/); injects **existing** `IDistributedContentCache` + `ClaudeDiagnostics` |
+| S3c | `FieldSpec<T>` catalog — 15 declarative field specs | §4.1, §5.3 | Small (2d) | S3b signature only | new `Domain/Activation/FieldSpecs/` folder; pure data |
+| S4 | `EtagCasRetryPolicy.ExecuteAsync` helper | §8.3, §8.4 | XS (1d) | Nothing | new `Workers.Shared/Concurrency/EtagCasRetryPolicy.cs` |
+| S5 | `LanguageDetector` + `VoiceExtractionWorker` generalization | §5.4, §5.5 | Small (2d) | Nothing | [existing `VoiceExtractionWorker`](apps/api/RealEstateStar.Workers/) + new locale registry |
+| S6 | Portuguese UI strings + `content-pt.json` for `test-modern` | §5 | XS (1d) | S5 | [`config/accounts/test-modern/`](config/accounts/test-modern/) |
+| S7a | `SsrfGuard` sealed class + `HtmlTextExtractor` sealed static | §16.4 | Small (2d) | Nothing | new `Workers.Shared/Security/` files |
+| S7b | `TeamScrapeWorker` + `ProspectiveAgent` table schema | §7 | Medium (4d) | S7a | new `Workers.Activation.TeamScrape/` project |
+| S8a | `IAccountConfigService.SaveIfUnchangedAsync(account, etag, ct)` — 1 method, 1 test | §8.3 | XS (1d) | S4 | [`AccountConfigService.cs`](apps/api/RealEstateStar.DataServices/Config/AccountConfigService.cs) (extend) |
+| S8b | Brokerage create/join auto-detect + `BrokerageJoinActivity` | §8.2, §8.3 | Medium (3d) | S8a, S4 | new activity file; reuses `EtagCasRetryPolicy` |
+| S9a | `routing-policy.json` schema + `BrokerageRoutingConsumption` Azure Table row | §8.4 | Small (2d) | Nothing | new `Clients.Azure/BrokerageRoutingConsumptionStore.cs` |
+| S9b | Routing algorithm (filter → score → CAS commit) + `routing-log.csv` audit | §8.4 | Medium (3d) | S9a, S4 | new `Services.Routing/RoutingService.cs`; reuses `EtagCasRetryPolicy` + `ActivationDiagnostics` |
+| S10a | `DurableOrchestratorTracingMiddleware` + `Baggage` correlation propagation | §5.8 | Small (2d) | S0 | new middleware file; registered from [`OpenTelemetryExtensions.cs`](apps/api/RealEstateStar.Api/Diagnostics/OpenTelemetryExtensions.cs) |
+| S10b | BYOD custom-hostnames table + POST /domains endpoint | §9.2, §9.3 | Medium (3d) | S1 | new `Clients.Azure/CustomHostnamesStore.cs` + new Api feature folder |
+| S10c | BYOD background verification job (multi-resolver DNS consensus + Cloudflare provisioning) | §9.5, §16.2 | Medium (3d) | S10b, S1 | new `Functions/Bvd/DomainVerificationFunction.cs` |
+| S11 | Agent-site runtime hybrid loader (env-aware KV + bundled fixtures) | §6.1 | Medium (3d) | S1 | [`apps/agent-site/features/config/`](apps/agent-site/features/config/) (new loader) |
+
+**Second-wave streams** — these unblock once the day-1 work lands, but each still has only one upstream dependency.
+
+| # | Stream | Section | Size | Depends on | Anchor |
+|---|---|---|---|---|---|
+| S12a | `BuildLocalizedSiteContentActivity` — orchestrator entry point that composes S3a + S3b + S3c | §5.3 | Medium (3d) | S3a, S3b, S3c | new activity file; DF retry + best-effort semantics from §5.7 |
+| S12b | `PersistSiteContentActivity` — writes KV + R2 via S1 client; compensation on partial failure | §5.3, §6 | Medium (3d) | S1, S12a (DTO only) | new activity file |
+| S12c | `RehostAssetsToR2Activity` — downloads binaries, uploads via S1, rewrites URLs in account.json | §6.2 | Small (2d) | S1, S12a (DTO only) | new activity file |
+| S13 | `LegalPageRenderer` static class + `config/legal/templates/` seed files (EN/ES/PT + NJ/CA/NY overrides) | §11 | Medium (3d) | S12a (DTO only) | new [`config/legal/templates/`](config/legal/templates/) directory; **zero Claude** per R6-8 |
+| S14 | Preview → Approve → Bill → Edit state machine + `POST /preview-sessions/exchange` + `DELETE /preview-sessions/{id}` | §10, §16.1 | Medium (4d) | S1 (KV), S12b (content persists) | new Api feature folder; 5-field `PreviewSession` record per R6-12 |
+| S15 | Agent-site Worker routing updates: custom domain → tenant resolution + preview cookie handling | §9.7, §10.2 | Medium (3d) | S10c, S14 | [`apps/agent-site/middleware.ts`](apps/agent-site/middleware.ts) (extend) |
+| S16 | Stripe webhook integrity (signature + idempotency + IP allowlist) | §16.5 | Small (2d) | S14 (approve endpoint) | [`RealEstateStar.Clients.Stripe/`](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Stripe/) (empty csproj exists) |
+
+**Final-wave streams** — these depend on most of the pipeline being stable and land last.
+
+| # | Stream | Section | Size | Depends on | Anchor |
+|---|---|---|---|---|---|
+| S17 | Orchestrator dispatch changes — wire BuildLocalizedSiteContent + PersistSiteContent + RehostAssetsToR2 + LegalPageRenderer into Phase 2.75 + 3 | §5.6 | Small (2d) | S12a, S12b, S12c, S13 | [`ActivationOrchestratorFunction.cs`](apps/api/RealEstateStar.Functions/Activation/ActivationOrchestratorFunction.cs) |
+| S18 | Migration tooling + runbook for existing accounts (`jenise-buckalew`, `safari-homes`, `glr`) | §13.1, §13.3 | Small (2d) | S17 | new `scripts/migrate-account.ps1` + `docs/runbooks/migrate-existing-accounts.md` |
+
+### 15.3 Dependency graph (R7)
 
 ```mermaid
 graph TD
-    S1[S1: Cloudflare client] --> S4[S4: Persist + R2 rehost]
-    S1 --> S10[S10: BYOD domains]
-    S1 --> S14[S14: Hybrid loader]
-    S3[S3: Facts + Localize core] --> S4
-    S3 --> S13[S13: Legal pages]
-    S3 --> S15[S15: Migration]
-    S4 --> S8[S8: Brokerage flow]
-    S4 --> S12[S12: Preview/Bill state]
-    S4 --> S15
-    S5[S5: Language registry] --> S6[S6: Portuguese content]
-    S5 --> S3
-    S8 --> S9[S9: Lead routing]
-    S10 --> S11[S11: Worker routing]
-    S11 --> S12
-    S13 --> S15
-    S2[S2: defaultContent refactor]
-    S7[S7: Team scrape + prospects]
-    S16[S16: Observability]
+    subgraph DayOne ["Day 1 — 12 streams start simultaneously"]
+        S0["S0: Observability foundation<br/>TelemetryRegistrations + ActivationDiagnostics"]
+        S1["S1: Cloudflare client<br/>KV R2 ForSaaS"]
+        S2["S2: defaultContent refactor<br/>agent-site templates"]
+        S3a["S3a: SiteFactExtractor"]
+        S3b["S3b: VoicedContentGenerator"]
+        S3c["S3c: FieldSpec catalog"]
+        S4["S4: EtagCasRetryPolicy helper"]
+        S5["S5: Locale registry"]
+        S7a["S7a: SsrfGuard plus HtmlTextExtractor"]
+        S9a["S9a: routing policy schema plus consumption row"]
+        S10a["S10a: DF tracing middleware"]
+        S11Init["S11 start: Hybrid loader scaffold"]
+    end
+
+    subgraph Wave2 ["Wave 2 — unblocks once day-1 lands"]
+        S6["S6: Portuguese content"]
+        S7b["S7b: TeamScrapeWorker"]
+        S8a["S8a: SaveIfUnchangedAsync method"]
+        S8b["S8b: Brokerage join activity"]
+        S9b["S9b: Routing algorithm"]
+        S10b["S10b: POST /domains plus hostnames table"]
+        S10c["S10c: DNS verification job"]
+        S11["S11: Hybrid loader complete"]
+        S12a["S12a: BuildLocalizedSiteContentActivity"]
+        S12b["S12b: PersistSiteContentActivity"]
+        S12c["S12c: RehostAssetsToR2Activity"]
+    end
+
+    subgraph Wave3 ["Wave 3 — preview plus ship"]
+        S13["S13: LegalPageRenderer plus templates"]
+        S14["S14: Preview state machine plus endpoints"]
+        S15["S15: Worker routing custom domain plus preview"]
+        S16["S16: Stripe webhook"]
+    end
+
+    subgraph Wave4 ["Wave 4 — wire up plus migrate"]
+        S17["S17: Orchestrator dispatch wire-up"]
+        S18["S18: Migration tooling plus runbook"]
+    end
+
+    S0 --> S10a
+    S1 --> S10b
+    S1 --> S11
+    S1 --> S12b
+    S1 --> S12c
+    S1 --> S14
+    S5 --> S6
+    S7a --> S7b
+    S4 --> S8a
+    S8a --> S8b
+    S9a --> S9b
+    S4 --> S9b
+    S10b --> S10c
+    S3a --> S12a
+    S3b --> S12a
+    S3c --> S12a
+    S12a --> S13
+    S12b --> S14
+    S10c --> S15
+    S14 --> S15
+    S14 --> S16
+    S12a --> S17
+    S12b --> S17
+    S12c --> S17
+    S13 --> S17
+    S17 --> S18
 ```
 
-Critical path: **S1 → S4 → S8 → S12** (~15 days sequential).
+### 15.4 Critical path analysis
 
-Streams S2, S5, S6, S7, S16 can run fully in parallel without blocking anything else.
+**R1 critical path**: S1 → S4 → S8 → S12 (~15 days, 4 steps).
 
-Streams S3, S10, S11 can start immediately (S10/S11 in parallel with everything else, not on the critical path).
+**R7 critical path**: **S1 → S12b → S14 → S18** — only 4 steps, but with finer granularity:
 
-With 3 engineers working in parallel: estimate **~4 weeks** to completion, not counting review cycles, migration, and stabilization.
-With 1 engineer working alone: estimate **~10-12 weeks**.
+- **S1** (3 days) — Cloudflare KV/R2 client
+- **S12b** (3 days) — PersistSiteContentActivity writes to KV via S1
+- **S14** (4 days) — Preview state machine reads persisted content
+- **S18** (2 days) — Migration tooling validates end-to-end
 
-### 15.3 Phase breakdown (sequential milestones)
+**R7 critical path length: ~12 days sequential.** With wait-for-review buffer and CI cycle overhead, plan for ~15 calendar days on the critical path.
 
-**Phase A — Foundations (Week 1)**
-- S1: Cloudflare client ships (KV, R2, for-SaaS wrappers tested)
-- S2: Template `defaultContent` refactor complete
-- S5: Language detector generalized
-- S16: Observability hooks added to existing workers
+**All other streams fit inside the critical path window.** S0, S2, S3a/b/c, S4, S5, S7a, S9a, S10a, S11-init can all ship to main before S1 even completes, because they have no dependency on S1. S6, S7b, S8a/b, S9b, S10b, S10c, S12a, S12c, S13 can all ship in parallel during the S12b→S14 window. S15, S16, S17 land in parallel during or after S14.
 
-Milestone: Cloudflare KV and R2 are writable from the API side; agent-site templates render from content.json with defaults for every hardcoded title.
+With **3 engineers working in parallel**: ~3 weeks to completion (one on the critical path, two on parallel streams).
 
-**Phase B — Pipeline core (Weeks 2-3)**
-- S3: `SiteFactExtractor` + `BuildLocalizedSiteContent` produce content files from test activation data
-- S4: `PersistSiteContent` + `RehostAssetsToR2` write to KV and R2
-- S13: `LegalPagesWorker` generates 5 legal pages per locale
-- S6: Portuguese translations added for UI strings; test-modern fixture has `content-pt.json`
-- S14: Agent-site loads content from KV in production, fixtures in preview
+With **5 engineers working in parallel**: ~2.5 weeks (diminishing returns — critical path dominates, but migration + stabilization absorbs the extra capacity).
 
-Milestone: A fresh activation for a new test handle produces a complete site in KV, loadable at a preview URL, with correct Spanish and Portuguese variants and all 5 legal pages.
+With **1 engineer working alone**: ~8 weeks (down from R1's 10-12 estimate, because R6 cut ~6 interfaces, ~400 lines of spec, and the entire LegalPagesWorker Claude-call implementation — a real engineering-time saving, not just a paper one).
 
-**Phase C — Brokerage and routing (Week 3-4, parallel with B tail)**
-- S7: Team scrape + prospects captured during activation
-- S8: Brokerage create vs join auto-detected
-- S9: Lead routing works for brokerage contact form
-- S10: BYOD domain API endpoints live
-- S11: Worker hostname routing handles custom domains + preview tokens
+### 15.5 Day-1 parallel execution playbook
 
-Milestone: GLR brokerage site renders with team page populated from scrape; a second agent from GLR activates with warm-start; a custom domain can be added, verified, and routes traffic to the correct tenant.
+On the first day of implementation work, **12 independent PRs** can be opened simultaneously. No PR blocks another in this set. Each has its own test-first anchor so review cycles don't serialize.
 
-**Phase D — Preview flow and stabilization (Week 4-5)**
-- S12: Preview → Approve → Bill → Edit state machine, API endpoints, welcome email updated with preview URL
-- S15: Migration tooling for existing accounts, runbook written
-- Bug fix buffer, end-to-end testing on real test accounts
+| Agent | PR title | First commit can contain |
+|---|---|---|
+| A1 | `feat: add TelemetryRegistrations + ActivationDiagnostics + arch tests` | `TelemetryRegistrations.cs`, `ActivationDiagnostics.cs`, the 5 R6 arch test files |
+| A2 | `feat: Cloudflare client — KV + R2 + for-SaaS wrappers` | `CloudflareKvClient.cs`, `CloudflareR2Client.cs`, `CloudflareForSaasClient.cs`, + tests against a `WireMock`-style stub |
+| A3 | `refactor(agent-site): extract hardcoded template titles to defaultContent` | 10 template file edits, 10 `defaultContent` exports, updated arch test |
+| A4 | `feat: SiteFactExtractor worker + SiteFacts DTO` | `SiteFactExtractor.cs`, `SiteFacts.cs`, 12+ golden-output tests |
+| A5 | `feat: VoicedContentGenerator sealed class with FieldSpec<T>` | `VoicedContentGenerator.cs`, `VoicedRequest<T>.cs`, `VoicedResult<T>.cs`, unit tests with canned Claude responses |
+| A6 | `feat: FieldSpec catalog — 15 declarative field specs for T3 polish` | `FieldSpecs/HeroHeadline.cs`, `.../Tagline.cs`, etc. (pure data files) |
+| A7 | `feat: EtagCasRetryPolicy helper with exponential backoff` | `EtagCasRetryPolicy.cs` + unit tests for conflict, retry, exhaustion paths |
+| A8 | `refactor: LanguageDetector + VoiceExtraction generalized to locale registry` | Registry-driven refactor, existing tests still pass |
+| A9 | `feat: SsrfGuard + HtmlTextExtractor sealed classes` | `SsrfGuard.cs` with all 10 §16.4 checks, `HtmlTextExtractor.cs` with AngleSharp |
+| A10 | `feat: routing-policy schema + BrokerageRoutingConsumption Azure Table row` | `RoutingPolicy.cs`, `BrokerageRoutingConsumptionStore.cs`, schema validation tests |
+| A11 | `feat: DurableOrchestratorTracingMiddleware with Baggage correlation propagation` | New middleware file registered from `OpenTelemetryExtensions.AddRealEstateStarOpenTelemetry(...)` |
+| A12 | `feat(agent-site): hybrid config loader scaffold — env-aware KV vs bundled fixtures` | `features/config/hybrid-loader.ts` stub + tests; wiring to S1 comes in wave 2 |
 
-Milestone: A brand new agent can go from activation request → preview email → preview approval → Stripe checkout → live site, with every transition logged in Grafana and correctly persisting state in KV.
+**Merge order within day 1**: none required. Every PR is independent of every other PR in this set. CI passes independently. Review happens independently.
 
-**Phase E — Production migration (Week 5+)**
+**Day-1 integration test**: after all 12 land to `main`, run `dotnet test apps/api --filter Category=Architecture` — all R6 arch tests must pass. This is the only integration gate on day 1.
+
+### 15.6 Wave 2 — what unblocks when day 1 lands
+
+Once the 12 day-1 PRs are merged, **11 more streams unblock simultaneously**. Each has exactly one or two day-1 dependencies.
+
+| Wave-2 PR | Unblocked by | Reuses |
+|---|---|---|
+| S6 Portuguese content | A8 | existing `content-es.json` pattern |
+| S7b TeamScrapeWorker | A9 | `SsrfGuard` + `HtmlTextExtractor` |
+| S8a `SaveIfUnchangedAsync` on AccountConfigService | A7 | `EtagCasRetryPolicy` + existing `AccountConfigService` |
+| S8b BrokerageJoinActivity | S8a + A7 | `EtagCasRetryPolicy` |
+| S9b RoutingService algorithm | A10 + A7 | `EtagCasRetryPolicy` + `BrokerageRoutingConsumptionStore` |
+| S10b POST /domains + custom-hostnames table | A2 | `CloudflareForSaasClient` |
+| S10c DNS verification job | S10b + A2 | multi-resolver pattern from §16.2 |
+| S11 Hybrid loader complete | A2 + A12 | `CloudflareKvClient` + existing `config-registry.ts` prebuild |
+| S12a BuildLocalizedSiteContentActivity | A4 + A5 + A6 | `SiteFactExtractor` + `VoicedContentGenerator` + `FieldSpec` catalog |
+| S12b PersistSiteContentActivity | A2 + S12a DTO | `CloudflareKvClient` + `CloudflareR2Client` |
+| S12c RehostAssetsToR2Activity | A2 + S12a DTO | `CloudflareR2Client` |
+
+**11 PRs in wave 2, zero inter-wave-2 serialization.** An engineer can pick up any of these as soon as day-1 lands.
+
+### 15.7 Wave 3 — preview flow + Stripe
+
+| Wave-3 PR | Unblocked by |
+|---|---|
+| S13 LegalPageRenderer + seed templates | S12a DTO only (the renderer is pure-template, per R6-8) |
+| S14 Preview state machine + exchange endpoints | S12b (content persists) + A2 (KV) |
+| S15 Worker routing for custom domains + preview cookies | S10c + S14 |
+| S16 Stripe webhook integrity | S14 (approve endpoint exists) |
+
+Four wave-3 PRs, all parallel.
+
+### 15.8 Wave 4 — wire-up + migration
+
+| Wave-4 PR | Unblocked by |
+|---|---|
+| S17 Orchestrator dispatch | S12a, S12b, S12c, S13 |
+| S18 Migration tooling + runbook | S17 |
+
+Two wave-4 PRs, serialized (S18 depends on S17). This is the tail of the critical path.
+
+### 15.9 Phase breakdown (milestones)
+
+Phase boundaries align with waves, not calendar weeks — calendar estimates assume 3 engineers working in parallel.
+
+**Phase A — Foundations (Days 1-3)** — 12 day-1 PRs land. Arch tests green. Observability foundation ready.
+> Milestone: `TelemetryRegistrations.All` exists, `ActivationDiagnostics` is importable, Cloudflare KV is writable from the API side, `VoicedContentGenerator` passes unit tests against canned Claude responses, template `defaultContent` refactor complete.
+
+**Phase B — Pipeline core (Days 4-7)** — 11 wave-2 PRs land. Activation pipeline produces content end-to-end against test data.
+> Milestone: A fresh activation for a new test handle produces `SiteFacts`, runs through `VoicedContentGenerator` for every T3 field, persists to Cloudflare KV, backs up to R2, renders via the agent-site hybrid loader at a preview URL. Spanish + Portuguese variants correct. Brokerage routing decides correctly under concurrent load. BYOD domain submits + verifies.
+
+**Phase C — Preview + ship (Days 8-11)** — 4 wave-3 PRs land.
+> Milestone: A brand new agent can go activation → preview email → preview URL → Approve → Stripe checkout → live site.
+
+**Phase D — Wire-up + migration (Days 12-15)** — 2 wave-4 PRs land.
+> Milestone: `ActivationOrchestratorFunction` dispatches all new activities in correct order; existing production accounts (`jenise-buckalew`, `safari-homes`, `glr`) manually migrated; migration runbook validated.
+
+**Phase E — Production cutover (Day 16+)**
 - Manually re-trigger activation for `jenise-buckalew` under new pipeline
 - Verify outputs, diff against current content, spot-check preview
-- Promote jenise-buckalew to live via new flow
-- Repeat for `safari-homes`, `glr`, and any other production accounts
+- Promote `jenise-buckalew` to live via new flow
+- Repeat for `safari-homes`, `glr`
 - Declare migration complete
 
-### 15.4 Test strategy per stream
+### 15.10 Test strategy per stream
 
 Every stream must ship with:
 
 | Layer | What to test |
 |---|---|
-| Unit | Pure functions (e.g., template selection score, lead routing algorithm, fact extractor logic) |
-| Component | Workers in isolation with mock clients (VoiceExtractionWorker per locale, TeamScrapeWorker with canned HTML) |
+| Unit | Pure functions (template selection score, routing algorithm, fact extractor logic, `EtagCasRetryPolicy.ExecuteAsync` with fault-injection) |
+| Component | Workers/classes in isolation with mock clients (`VoiceExtractionWorker` per locale, `TeamScrapeWorker` with canned HTML, `VoicedContentGenerator` with canned Claude responses) |
 | Activity | Activity functions with mocked worker outputs, verifying the activity writes the expected blobs/KV entries |
 | Orchestrator | Orchestrator tests using Durable Functions replay semantics, verifying phase ordering and failure recovery |
-| Integration | End-to-end: enqueue a real ActivationRequest for a test handle against a test Cloudflare account, assert final KV + R2 state |
-| Architecture | NetArchTest rules: new projects respect dependency constraints, new activities are registered in DI, no forbidden cross-project references |
-| Validation | Content schema validation: generated content.json passes the existing nav↔section invariant test; Portuguese content is also valid |
+| Integration | End-to-end: enqueue a real `ActivationRequest` for a test handle against a test Cloudflare account, assert final KV + R2 state |
+| Architecture | NetArchTest rules: `LegalPages_UseTemplates`, `Caches_EmitHitMissMetrics`, `Orchestrators_UseReplaySafeLogger`, `MetricTags_AreBoundedCardinality`, `ActivityInputs_HaveCorrelationId`, `TelemetryRegistrationIsCentralized` |
+| Validation | Content schema validation: generated `content.json` passes the existing nav↔section invariant test; Portuguese content is also valid |
 | Smoke | After deploy, a smoke test hits the preview URL for a test agent and verifies it renders |
 
-### 15.5 Acceptance criteria (end-to-end)
+### 15.11 PR hygiene rules for parallel work
+
+For 12+ PRs landing in parallel on the same branch, merge-conflict risk is real. Rules:
+
+1. **Each PR touches exactly one project root.** If S12b needs to touch both `Functions/` and `DataServices/`, split it into S12b-a and S12b-b.
+2. **Shared DTOs ship in PR-0.** All new `ActivationOutputs`, `SiteFacts`, `VoicedRequest<T>`, `PreviewSession`, `BrokerageRoutingConsumption` records land in a single "DTOs foundation" PR before day-1 work starts. That PR is the only thing that blocks everything else, and it's ~100 lines of records.
+3. **No PR rewrites `ActivationOrchestratorFunction.cs` until S17.** Every wave-2 activity is developed in isolation with its own test file. S17 is the only PR that touches the orchestrator.
+4. **CI branch protection rule**: PRs must pass the full arch test suite before merge, so a wave-2 PR that accidentally regresses a day-1 arch test gets caught at review.
+
+### 15.12 Acceptance criteria (end-to-end)
 
 The project is **done** when:
 
@@ -3332,7 +3485,7 @@ The project is **done** when:
 11. ✅ All existing production accounts (jenise-buckalew, safari-homes, glr) have been manually migrated and are serving from the new KV-backed content system.
 12. ✅ Every rule in §17 Compliance Matrix has an automated test that fails CI if a new site would ship in violation.
 13. ✅ Every endpoint in §16.3 auth matrix has documented authentication and an integration test covering the unauthenticated case.
-14. ✅ The `IVoicedContentGenerator` abstraction is the only caller of `IAnthropicClient` for voiced content generation, enforced by an architecture test.
+14. ✅ `VoicedContentGenerator` (sealed class, no interface per R6-3) is the only caller of `IAnthropicClient` for voiced content generation, enforced by an architecture test.
 15. ✅ A PR preview build that modifies a template or section component correctly renders all bundled test fixtures and does not touch production KV.
 
 ---
@@ -5246,4 +5399,4 @@ R6 changes zero BLOCKER remediations from R1-R5. It is a simplification pass, no
 
 ---
 
-**End of design document — Revision 6.**
+**End of design document — Revision 7.**
