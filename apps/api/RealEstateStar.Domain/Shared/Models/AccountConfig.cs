@@ -38,6 +38,14 @@ public class AccountConfig
 
     [JsonPropertyName("contact_info")]
     public List<ContactInfo>? ContactInfo { get; init; }
+
+    /// <summary>
+    /// Optimistic concurrency token for SaveIfUnchangedAsync.
+    /// Populated on read, validated on write (412 on mismatch).
+    /// Not persisted to JSON — runtime-only.
+    /// </summary>
+    [JsonIgnore]
+    public string? ETag { get; set; }
 }
 
 public class AccountAgent

@@ -40,8 +40,12 @@ public partial class AccountConfigService(string configDirectory, ILogger<Accoun
 
         logger?.LogInformation("Loading account config from {FilePath}", resolvedPath);
 
+        var etag = File.GetLastWriteTimeUtc(resolvedPath).Ticks.ToString();
         await using var stream = File.OpenRead(resolvedPath);
-        return await JsonSerializer.DeserializeAsync<AccountConfig>(stream, JsonOptions, ct);
+        var config = await JsonSerializer.DeserializeAsync<AccountConfig>(stream, JsonOptions, ct);
+        if (config is not null)
+            config.ETag = etag;
+        return config;
     }
 
     public async Task<List<AccountConfig>> ListAllAsync(CancellationToken ct)
@@ -92,6 +96,54 @@ public partial class AccountConfigService(string configDirectory, ILogger<Accoun
         var json = JsonSerializer.Serialize(config, JsonOptions);
         await File.WriteAllTextAsync(resolvedPath, json, ct);
         logger?.LogInformation("[CONFIG-010] Updated account config for {Handle}", handle);
+    }
+
+    /// <summary>
+    /// File-based compare-and-swap using last-write-time as a pseudo-ETag.
+    /// Returns true if the write was committed, false if the ETag was stale (concurrent write detected).
+    /// Uses temp-file-then-rename for atomic writes.
+    /// </summary>
+    public async Task<bool> SaveIfUnchangedAsync(AccountConfig account, string etag, CancellationToken ct)
+    {
+        ValidateHandle(account.Handle);
+
+        var resolvedConfigDir = Path.GetFullPath(configDirectory);
+        var resolvedPath = Path.GetFullPath(Path.Combine(configDirectory, account.Handle, "account.json"));
+
+        if (!resolvedPath.StartsWith(resolvedConfigDir, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException($"Invalid handle: {account.Handle}", nameof(account));
+
+        // Check current last-write-time against the provided ETag.
+        if (!File.Exists(resolvedPath))
+            throw new InvalidOperationException($"Account config file not found for handle: {account.Handle}");
+
+        var currentEtag = File.GetLastWriteTimeUtc(resolvedPath).Ticks.ToString();
+        if (currentEtag != etag)
+        {
+            logger?.LogWarning(
+                "[CONFIG-021] SaveIfUnchangedAsync ETag mismatch for {Handle}: expected={Etag} actual={CurrentEtag}",
+                account.Handle, etag, currentEtag);
+            return false;
+        }
+
+        // Atomic write via temp-file-then-rename.
+        var tempPath = resolvedPath + ".tmp";
+        try
+        {
+            var json = JsonSerializer.Serialize(account, JsonOptions);
+            await File.WriteAllTextAsync(tempPath, json, ct);
+            File.Move(tempPath, resolvedPath, overwrite: true);
+        }
+        catch (Exception)
+        {
+            // Clean up temp file on failure; don't suppress the exception.
+            if (File.Exists(tempPath))
+                File.Delete(tempPath);
+            throw;
+        }
+
+        logger?.LogInformation("[CONFIG-020] SaveIfUnchangedAsync succeeded for {Handle}", account.Handle);
+        return true;
     }
 
     private static void ValidateHandle(string handle)
