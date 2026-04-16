@@ -9,7 +9,45 @@ import { TestimonialsSpotlight } from "@/features/sections/testimonials";
 import { ProfilesClean } from "@/features/sections/profiles";
 import { CmaSection, Footer, ScrollRevealSection } from "@/features/sections/shared";
 import { AboutParallax } from "@/features/sections/about";
-import { type TemplateProps, getEnabledSections } from "./types";
+import { type TemplateProps, type DefaultContent, getEnabledSections } from "./types";
+
+export const defaultContent: DefaultContent = {
+  hero: {
+    title: "Exceptional Homes. Exceptional Service.",
+    subtitle: "Where luxury meets expertise.",
+    ctaText: "Request a Private Consultation",
+  },
+  marquee: {
+    title: "As Featured In",
+  },
+  features: {
+    title: "White-Glove Services",
+    subtitle: "Premium representation at every stage.",
+  },
+  steps: {
+    title: "The Process",
+    subtitle: "A seamless experience from start to close.",
+  },
+  gallery: {
+    title: "Recent Sales",
+    subtitle: "A portfolio of exceptional transactions.",
+  },
+  testimonials: {
+    title: "Client Testimonials",
+  },
+  profiles: {
+    title: "Our Agents",
+    subtitle: "Specialists in luxury real estate.",
+  },
+  contact: {
+    title: "Begin Your Journey",
+    subtitle: "Schedule a private consultation today.",
+  },
+  about: {
+    title: "About",
+    subtitle: "A legacy of excellence in real estate.",
+  },
+};
 
 export function LuxuryEstate({ account, content, agent, locale }: TemplateProps) {
   const s = content.pages.home.sections;

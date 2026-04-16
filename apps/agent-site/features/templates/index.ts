@@ -1,6 +1,6 @@
 import type { TemplateComponent } from "./types";
 
-export type { TemplateProps, TemplateComponent } from "./types";
+export type { TemplateProps, TemplateComponent, DefaultContent } from "./types";
 
 type TemplateLoader = () => Promise<TemplateComponent>;
 

@@ -9,7 +9,45 @@ import { TestimonialsSpotlight } from "@/features/sections/testimonials";
 import { ProfilesGrid } from "@/features/sections/profiles";
 import { CmaSection, Footer, ScrollRevealSection } from "@/features/sections/shared";
 import { AboutProfessional } from "@/features/sections/about";
-import { type TemplateProps, getEnabledSections } from "./types";
+import { type TemplateProps, type DefaultContent, getEnabledSections } from "./types";
+
+export const defaultContent: DefaultContent = {
+  hero: {
+    title: "Commercial Real Estate That Performs",
+    subtitle: "Strategic transactions for serious investors.",
+    ctaText: "Request a Property Analysis",
+  },
+  marquee: {
+    title: "As Featured In",
+  },
+  features: {
+    title: "Our Services",
+    subtitle: "Full-service commercial brokerage.",
+  },
+  steps: {
+    title: "How We Work",
+    subtitle: "A disciplined process for maximum returns.",
+  },
+  gallery: {
+    title: "Recent Transactions",
+    subtitle: "Verified commercial sales and leases.",
+  },
+  testimonials: {
+    title: "Client Testimonials",
+  },
+  profiles: {
+    title: "Our Brokers",
+    subtitle: "Commercial specialists with proven track records.",
+  },
+  contact: {
+    title: "Let's Talk Business",
+    subtitle: "Get a free commercial property analysis.",
+  },
+  about: {
+    title: "About",
+    subtitle: "Commercial real estate expertise you can trust.",
+  },
+};
 
 export function Commercial({ account, content, agent, locale }: TemplateProps) {
   const s = content.pages.home.sections;

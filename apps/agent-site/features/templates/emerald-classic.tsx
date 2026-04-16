@@ -8,7 +8,42 @@ import { TestimonialsGrid } from "@/features/sections/testimonials";
 import { ProfilesGrid } from "@/features/sections/profiles";
 import { CmaSection, Footer, ScrollRevealSection } from "@/features/sections/shared";
 import { AboutSplit } from "@/features/sections/about";
-import { type TemplateProps, getEnabledSections } from "./types";
+import { type TemplateProps, type DefaultContent, getEnabledSections } from "./types";
+
+export const defaultContent: DefaultContent = {
+  hero: {
+    title: "Sell Your Home Fast",
+    subtitle: "Expert guidance every step of the way",
+    ctaText: "Get Your Free Home Value Report",
+  },
+  features: {
+    title: "What I Do for You",
+    subtitle: "Full-service representation from list to close.",
+  },
+  steps: {
+    title: "How It Works",
+    subtitle: "Three simple steps to get started.",
+  },
+  gallery: {
+    title: "Recently Sold",
+    subtitle: "Real results from real clients.",
+  },
+  testimonials: {
+    title: "What My Clients Say",
+  },
+  profiles: {
+    title: "Meet the Team",
+    subtitle: "Experienced professionals ready to help.",
+  },
+  contact: {
+    title: "What's Your Home Worth?",
+    subtitle: "Get a free Comparative Market Analysis today.",
+  },
+  about: {
+    title: "About",
+    subtitle: "Get to know your agent.",
+  },
+};
 
 export function EmeraldClassic({ account, content, agent, locale }: TemplateProps) {
   const s = content.pages.home.sections;

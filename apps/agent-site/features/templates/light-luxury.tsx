@@ -9,7 +9,45 @@ import { TestimonialsSpotlight } from "@/features/sections/testimonials";
 import { ProfilesClean } from "@/features/sections/profiles";
 import { CmaSection, Footer, ScrollRevealSection } from "@/features/sections/shared";
 import { AboutParallax } from "@/features/sections/about";
-import { type TemplateProps, getEnabledSections } from "./types";
+import { type TemplateProps, type DefaultContent, getEnabledSections } from "./types";
+
+export const defaultContent: DefaultContent = {
+  hero: {
+    title: "Refined Living. Refined Results.",
+    subtitle: "Luxury real estate with a personal touch.",
+    ctaText: "Request a Consultation",
+  },
+  marquee: {
+    title: "As Featured In",
+  },
+  features: {
+    title: "Our Services",
+    subtitle: "Elevated representation for discerning clients.",
+  },
+  steps: {
+    title: "The Experience",
+    subtitle: "Thoughtfully curated from first meeting to close.",
+  },
+  gallery: {
+    title: "Recently Sold",
+    subtitle: "Elegant properties, exceptional outcomes.",
+  },
+  testimonials: {
+    title: "What Clients Say",
+  },
+  profiles: {
+    title: "Our Team",
+    subtitle: "Curated expertise in luxury real estate.",
+  },
+  contact: {
+    title: "Let's Talk",
+    subtitle: "Begin your luxury real estate journey.",
+  },
+  about: {
+    title: "About",
+    subtitle: "A refined approach to real estate.",
+  },
+};
 
 export function LightLuxury({ account, content, agent, locale }: TemplateProps) {
   const s = content.pages.home.sections;

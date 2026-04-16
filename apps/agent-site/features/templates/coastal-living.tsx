@@ -8,7 +8,42 @@ import { TestimonialsBeach } from "@/features/sections/testimonials";
 import { ProfilesGrid } from "@/features/sections/profiles";
 import { CmaSection, Footer, ScrollRevealSection } from "@/features/sections/shared";
 import { AboutCoastal } from "@/features/sections/about";
-import { type TemplateProps, getEnabledSections } from "./types";
+import { type TemplateProps, type DefaultContent, getEnabledSections } from "./types";
+
+export const defaultContent: DefaultContent = {
+  hero: {
+    title: "Your Dream Home Awaits",
+    subtitle: "Coastal living made effortless.",
+    ctaText: "Get Your Free Home Value Report",
+  },
+  features: {
+    title: "Services",
+    subtitle: "Everything you need from the shore to the sale.",
+  },
+  steps: {
+    title: "How It Works",
+    subtitle: "Simple steps to your coastal home.",
+  },
+  gallery: {
+    title: "Recently Sold",
+    subtitle: "Coastal properties sold at top value.",
+  },
+  testimonials: {
+    title: "What Clients Say",
+  },
+  profiles: {
+    title: "Meet the Team",
+    subtitle: "Local coastal market specialists.",
+  },
+  contact: {
+    title: "Contact",
+    subtitle: "Ready to start your coastal journey?",
+  },
+  about: {
+    title: "About",
+    subtitle: "Your trusted coastal real estate guide.",
+  },
+};
 
 export function CoastalLiving({ account, content, agent, locale }: TemplateProps) {
   const s = content.pages.home.sections;

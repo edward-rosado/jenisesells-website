@@ -8,7 +8,42 @@ import { TestimonialsHeart } from "@/features/sections/testimonials";
 import { ProfilesCards } from "@/features/sections/profiles";
 import { CmaSection, Footer, ScrollRevealSection } from "@/features/sections/shared";
 import { AboutWarm } from "@/features/sections/about";
-import { type TemplateProps, getEnabledSections } from "./types";
+import { type TemplateProps, type DefaultContent, getEnabledSections } from "./types";
+
+export const defaultContent: DefaultContent = {
+  hero: {
+    title: "Your New Beginning Starts Here",
+    subtitle: "Every journey starts with a single step.",
+    ctaText: "Start Your Story",
+  },
+  features: {
+    title: "How I Help You",
+    subtitle: "Caring guidance through every step.",
+  },
+  steps: {
+    title: "Your Journey",
+    subtitle: "Three steps to your new home.",
+  },
+  gallery: {
+    title: "Success Stories",
+    subtitle: "Families who found their fresh start.",
+  },
+  testimonials: {
+    title: "Heartfelt Reviews",
+  },
+  profiles: {
+    title: "Our Team",
+    subtitle: "Guides for your new beginning.",
+  },
+  contact: {
+    title: "Ready to Begin?",
+    subtitle: "Tell us about your dream home.",
+  },
+  about: {
+    title: "About",
+    subtitle: "Dedicated to helping you move forward.",
+  },
+};
 
 export function NewBeginnings({ account, content, agent, locale }: TemplateProps) {
   const s = content.pages.home.sections;

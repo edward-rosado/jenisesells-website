@@ -8,7 +8,42 @@ import { TestimonialsRustic } from "@/features/sections/testimonials";
 import { ProfilesCards } from "@/features/sections/profiles";
 import { CmaSection, Footer, ScrollRevealSection } from "@/features/sections/shared";
 import { AboutHomestead } from "@/features/sections/about";
-import { type TemplateProps, getEnabledSections } from "./types";
+import { type TemplateProps, type DefaultContent, getEnabledSections } from "./types";
+
+export const defaultContent: DefaultContent = {
+  hero: {
+    title: "Wide Open Spaces. Wide Open Possibilities.",
+    subtitle: "Land, legacy, and the home you've always wanted.",
+    ctaText: "Get Your Free Property Valuation",
+  },
+  features: {
+    title: "What We Offer",
+    subtitle: "Country property expertise you can count on.",
+  },
+  steps: {
+    title: "How It Works",
+    subtitle: "From acreage to keys — a clear path forward.",
+  },
+  gallery: {
+    title: "Recent Sales",
+    subtitle: "Country properties sold with care.",
+  },
+  testimonials: {
+    title: "What Clients Say",
+  },
+  profiles: {
+    title: "Our Agents",
+    subtitle: "Specialists in rural and estate properties.",
+  },
+  contact: {
+    title: "Find Your Land",
+    subtitle: "Tell us about the property you're looking for.",
+  },
+  about: {
+    title: "About",
+    subtitle: "Deep roots in country real estate.",
+  },
+};
 
 export function CountryEstate({ account, content, agent, locale }: TemplateProps) {
   const s = content.pages.home.sections;

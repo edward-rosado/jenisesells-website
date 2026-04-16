@@ -8,7 +8,42 @@ import { TestimonialsClean } from "@/features/sections/testimonials";
 import { ProfilesClean } from "@/features/sections/profiles";
 import { CmaSection, Footer, ScrollRevealSection } from "@/features/sections/shared";
 import { AboutMinimal } from "@/features/sections/about";
-import { type TemplateProps, getEnabledSections } from "./types";
+import { type TemplateProps, type DefaultContent, getEnabledSections } from "./types";
+
+export const defaultContent: DefaultContent = {
+  hero: {
+    title: "Modern Living Starts Here",
+    subtitle: "Clean lines, clear results.",
+    ctaText: "Get Your Free Home Value Report",
+  },
+  features: {
+    title: "Services",
+    subtitle: "Everything you need, nothing you don't.",
+  },
+  steps: {
+    title: "How It Works",
+    subtitle: "Simple and straightforward.",
+  },
+  gallery: {
+    title: "Recently Sold",
+    subtitle: "Proven results in your market.",
+  },
+  testimonials: {
+    title: "What Clients Say",
+  },
+  profiles: {
+    title: "Meet the Team",
+    subtitle: "Dedicated professionals in your corner.",
+  },
+  contact: {
+    title: "Get Started",
+    subtitle: "Request your free home valuation today.",
+  },
+  about: {
+    title: "About",
+    subtitle: "Your trusted real estate partner.",
+  },
+};
 
 export function ModernMinimal({ account, content, agent, locale }: TemplateProps) {
   const s = content.pages.home.sections;

@@ -8,7 +8,42 @@ import { TestimonialsStack } from "@/features/sections/testimonials";
 import { ProfilesGrid } from "@/features/sections/profiles";
 import { CmaSection, Footer, ScrollRevealSection } from "@/features/sections/shared";
 import { AboutCompact } from "@/features/sections/about";
-import { type TemplateProps, getEnabledSections } from "./types";
+import { type TemplateProps, type DefaultContent, getEnabledSections } from "./types";
+
+export const defaultContent: DefaultContent = {
+  hero: {
+    title: "Live in the Heart of the City",
+    subtitle: "Urban living, elevated.",
+    ctaText: "Find Your Urban Home",
+  },
+  features: {
+    title: "Services",
+    subtitle: "Expert guidance for city buyers and sellers.",
+  },
+  steps: {
+    title: "How It Works",
+    subtitle: "From search to keys in hand.",
+  },
+  gallery: {
+    title: "Recent Sales",
+    subtitle: "Urban properties sold at top dollar.",
+  },
+  testimonials: {
+    title: "Client Reviews",
+  },
+  profiles: {
+    title: "Meet the Team",
+    subtitle: "Urban market specialists.",
+  },
+  contact: {
+    title: "Let's Connect",
+    subtitle: "Start your urban real estate journey today.",
+  },
+  about: {
+    title: "About",
+    subtitle: "Your urban real estate expert.",
+  },
+};
 
 export function UrbanLoft({ account, content, agent, locale }: TemplateProps) {
   const s = content.pages.home.sections;

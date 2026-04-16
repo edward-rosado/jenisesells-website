@@ -8,7 +8,42 @@ import { TestimonialsBubble } from "@/features/sections/testimonials";
 import { ProfilesCards } from "@/features/sections/profiles";
 import { CmaSection, Footer, ScrollRevealSection } from "@/features/sections/shared";
 import { AboutCard } from "@/features/sections/about";
-import { type TemplateProps, getEnabledSections } from "./types";
+import { type TemplateProps, type DefaultContent, getEnabledSections } from "./types";
+
+export const defaultContent: DefaultContent = {
+  hero: {
+    title: "Your Home, Your Community",
+    subtitle: "Helping families find their place.",
+    ctaText: "Get Your Free Home Value Report",
+  },
+  features: {
+    title: "How I Can Help",
+    subtitle: "Personalized service for every family.",
+  },
+  steps: {
+    title: "How It Works",
+    subtitle: "Getting started is easy.",
+  },
+  gallery: {
+    title: "Homes We've Sold",
+    subtitle: "Neighbors who found their perfect home.",
+  },
+  testimonials: {
+    title: "What Neighbors Say",
+  },
+  profiles: {
+    title: "Our Team",
+    subtitle: "Local experts who care.",
+  },
+  contact: {
+    title: "Ready to Make a Move?",
+    subtitle: "Let's find the right home for your family.",
+  },
+  about: {
+    title: "About",
+    subtitle: "Rooted in the community we serve.",
+  },
+};
 
 export function WarmCommunity({ account, content, agent, locale }: TemplateProps) {
   const s = content.pages.home.sections;
