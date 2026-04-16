@@ -66,6 +66,7 @@ public class DependencyTests
     [InlineData("RealEstateStar.Workers.Activation.WebsiteStyle", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Activation.EmailClassification", new[] { "Domain", "Workers.Shared" })]
     [InlineData("RealEstateStar.Workers.Activation.SynthesisMerge", new[] { "Domain", "Workers.Shared" })]
+    [InlineData("RealEstateStar.Workers.Activation.SiteFactExtractor", new[] { "Domain", "Workers.Shared" })]
     // Activation orchestrator — coordinates all activation workers + activities
     [InlineData("RealEstateStar.Workers.Activation.Orchestrator", new[] {
         "Domain", "Workers.Shared",

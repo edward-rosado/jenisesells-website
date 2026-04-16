@@ -245,6 +245,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.Acti
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.Activation.SynthesisMerge.Tests", "RealEstateStar.Tests\RealEstateStar.Workers.Tests\RealEstateStar.Workers.Activation.SynthesisMerge.Tests\RealEstateStar.Workers.Activation.SynthesisMerge.Tests.csproj", "{A14A8B2B-ADAE-4665-A05D-5436E02BAF8A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.Activation.SiteFactExtractor", "RealEstateStar.Workers\Activation\RealEstateStar.Workers.Activation.SiteFactExtractor\RealEstateStar.Workers.Activation.SiteFactExtractor.csproj", "{E1A2B3C4-D5E6-F7A8-B9C0-D1E2F3A4B5C6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateStar.Workers.Activation.SiteFactExtractor.Tests", "RealEstateStar.Tests\RealEstateStar.Workers.Tests\RealEstateStar.Workers.Activation.SiteFactExtractor.Tests\RealEstateStar.Workers.Activation.SiteFactExtractor.Tests.csproj", "{F2B3C4D5-E6F7-A8B9-C0D1-E2F3A4B5C6D7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
