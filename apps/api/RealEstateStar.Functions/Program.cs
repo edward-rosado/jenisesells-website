@@ -444,6 +444,20 @@ builder.Services.AddTransient<ContactDetectionActivity>();
 // Transient: stateless, each activity invocation gets its own instance.
 builder.Services.AddTransient<RealEstateStar.Clients.Anthropic.VoicedContentGenerator>();
 
+// ── B11: RehostAssetsToR2Function dependencies ────────────────────────────────
+builder.Services.Configure<RealEstateStar.Functions.Activation.Activities.RehostAssetsOptions>(
+    builder.Configuration.GetSection("RehostAssets"));
+// Named HttpClient for asset downloads during rehosting
+builder.Services.AddHttpClient("RehostAssets", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(
+        "Mozilla/5.0 (compatible; RealEstateStar-AssetRehost/1.0; +https://real-estate-star.com)");
+});
+// ICloudflareR2Client: registered as no-op until Clients.Cloudflare implements R2.
+// Replace with real CloudflareR2Client once the Clients.Cloudflare project adds the implementation.
+builder.Services.AddSingleton<ICloudflareR2Client, DisabledCloudflareR2Client>();
+
 var app = builder.Build();
 var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
 startupLogger.LogInformation("[STARTUP] Functions app built successfully. Starting host...");
@@ -515,4 +529,21 @@ file sealed class NullImageResolver : IImageResolver
 {
     public Task<byte[]?> ResolveAsync(string handle, string relativePath, CancellationToken ct)
         => Task.FromResult((byte[]?)null);
+}
+
+/// <summary>
+/// No-op <see cref="ICloudflareR2Client"/> used until Clients.Cloudflare implements R2 storage.
+/// All operations are no-ops — rehosting is a best-effort activity and will log skips without failing.
+/// TODO(B11-impl): Replace with real CloudflareR2Client once Clients.Cloudflare adds the R2 implementation.
+/// </summary>
+file sealed class DisabledCloudflareR2Client : ICloudflareR2Client
+{
+    public Task PutObjectAsync(string bucket, string key, Stream content, string contentType, CancellationToken ct)
+        => Task.CompletedTask;
+
+    public Task<Stream?> GetObjectAsync(string bucket, string key, CancellationToken ct)
+        => Task.FromResult((Stream?)null);
+
+    public Task DeleteObjectAsync(string bucket, string key, CancellationToken ct)
+        => Task.CompletedTask;
 }

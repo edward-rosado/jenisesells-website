@@ -51,4 +51,7 @@ internal static class ActivityNames
 
     // Phase 5: Build localized site content (B9)
     public const string BuildLocalizedSiteContent = "ActivationBuildLocalizedSiteContent";
+
+    // Phase 6: Rehost assets to R2 (B11)
+    public const string RehostAssetsToR2 = "ActivationRehostAssetsToR2";
 }

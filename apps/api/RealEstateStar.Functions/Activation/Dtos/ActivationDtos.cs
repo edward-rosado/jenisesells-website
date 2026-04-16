@@ -514,3 +514,31 @@ public sealed record BuildSiteContentInput
     [JsonPropertyName("supportedLocales")] public IReadOnlyList<string> SupportedLocales { get; init; } = [];
     [JsonPropertyName("templateName")] public string TemplateName { get; init; } = "";
 }
+
+// ── Phase 6: Rehost assets to R2 (B11) ────────────────────────────────────────
+
+/// <summary>
+/// Input to the RehostAssetsToR2 activity function.
+/// Contains external URLs for agent assets that should be uploaded to R2.
+/// </summary>
+public sealed record RehostAssetsInput
+{
+    [JsonPropertyName("accountId")] public string AccountId { get; init; } = "";
+    [JsonPropertyName("agentId")] public string AgentId { get; init; } = "";
+    [JsonPropertyName("correlationId")] public string CorrelationId { get; init; } = "";
+    [JsonPropertyName("headshotUrl")] public string? HeadshotUrl { get; init; }
+    [JsonPropertyName("logoUrl")] public string? LogoUrl { get; init; }
+    [JsonPropertyName("iconUrl")] public string? IconUrl { get; init; }
+}
+
+/// <summary>
+/// Output from the RehostAssetsToR2 activity function.
+/// Contains the new R2 public URLs for each successfully rehosted asset.
+/// </summary>
+public sealed record RehostAssetsResult
+{
+    [JsonPropertyName("headshotR2Url")] public string? HeadshotR2Url { get; init; }
+    [JsonPropertyName("logoR2Url")] public string? LogoR2Url { get; init; }
+    [JsonPropertyName("iconR2Url")] public string? IconR2Url { get; init; }
+    [JsonPropertyName("assetsRehosted")] public int AssetsRehosted { get; init; }
+}
