@@ -31,16 +31,18 @@ Architecture diagrams for Real Estate Star, rendered as Mermaid diagrams viewabl
 | [Observability Span Tree](observability-span-tree.md) | Trace span hierarchy with per-activity metrics |
 | [Security Hardening Layers](security-hardening-layers.md) | Defense-in-depth: input sanitization, output encoding, secret management |
 
-## Agent site comprehensive design (PR #155, R3)
+## Agent site comprehensive design (PR #155, R5)
 
-Diagrams supporting the comprehensive agent site design spec at `docs/superpowers/specs/2026-04-12-agent-site-comprehensive-design.md`. The spec contains 34 total Mermaid diagrams; these four are surfaced here as the ones most useful to implement against.
+Diagrams supporting the comprehensive agent site design spec at `docs/superpowers/specs/2026-04-12-agent-site-comprehensive-design.md`. The spec contains 34+ Mermaid diagrams; these six are surfaced here as the ones most useful to implement against. The first four came from R3; the last two were added in R5 (observability review).
 
 | Document | Description |
 |----------|------------|
 | [Voiced Content Generator Lifecycle](voiced-content-generator-lifecycle.md) | Request/response sequence for the new `IVoicedContentGenerator` abstraction — cache, schema validation, fair housing linter, retry, fallback. Eliminates ~15 duplicate Claude call sites across T3 polish fields. |
-| [Routing Policy next_lead CAS](routing-policy-next-lead-cas.md) | Two leads racing on a shared `next_lead` manual override — only one consumes it via `SaveIfUnchangedAsync` CAS, the other falls through to algorithmic routing. |
-| [AccountConfig ETag Concurrency](account-config-etag-concurrency.md) | Two brokerage join writers racing on `account.json` — reuses the existing `ITokenStore` ETag pattern (`AzureTableTokenStore.SaveIfUnchangedAsync` + 412 retry loop). |
+| [Routing Policy next_lead CAS](routing-policy-next-lead-cas.md) | Two leads racing on a shared `next_lead` manual override. **R4 rewrite**: CAS is on an Azure Table `brokerage-routing-consumption` row keyed by `PolicyContentHash`, because `IFileStorageProvider` has zero CAS primitives. Drive stays read-only on the routing path; human edits take effect via hash change + automatic realignment. |
+| [AccountConfig ETag Concurrency](account-config-etag-concurrency.md) | Two brokerage join writers racing on `account.json` — reuses the existing `ITokenStore` ETag pattern (`AzureTableTokenStore.SaveIfUnchangedAsync` + bounded retry loop). |
 | [BYOD Two-Phase Verification](byod-two-phase-verification.md) | Bring Your Own Domain lifecycle — TXT challenge for ownership, CNAME for routing, Cloudflare for SaaS provisioning, daily re-verification, suspended/removed transitions. |
+| [Durable Functions Trace Propagation](durable-functions-trace-propagation.md) | **R5**: how the new `DurableOrchestratorTracingMiddleware` turns an 18-activity activation into a single connected trace via instance-ID-seeded trace IDs and `Baggage`-propagated correlation IDs. The single biggest scaling unlock in the R5 observability pass. |
+| [Trace-to-Audit Linking for Support](trace-to-audit-linking.md) | **R5**: how the `TraceLink` pattern on every audit record + correlation IDs visible in welcome emails, preview URLs, and lead reply emails convert "30-minute log dive" into "paste the ref, click the link." The reconstruction path that works at 1000+ brokerages. |
 
 ## API Project Structure (44+ Projects + 34 Test Projects)
 
