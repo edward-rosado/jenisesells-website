@@ -501,3 +501,16 @@ public sealed record ContradictionDto
     [JsonPropertyName("signal")] public string Signal { get; init; } = default!;
     [JsonPropertyName("description")] public string Description { get; init; } = default!;
 }
+
+// ── Phase 5: Build localized site content (B9) ────────────────────────────────
+
+/// <summary>Input to the BuildLocalizedSiteContent activity function.</summary>
+public sealed record BuildSiteContentInput
+{
+    [JsonPropertyName("accountId")] public string AccountId { get; init; } = "";
+    [JsonPropertyName("agentId")] public string AgentId { get; init; } = "";
+    [JsonPropertyName("correlationId")] public string CorrelationId { get; init; } = "";
+    [JsonPropertyName("facts")] public RealEstateStar.Domain.Activation.Models.SiteFacts Facts { get; init; } = null!;
+    [JsonPropertyName("supportedLocales")] public IReadOnlyList<string> SupportedLocales { get; init; } = [];
+    [JsonPropertyName("templateName")] public string TemplateName { get; init; } = "";
+}

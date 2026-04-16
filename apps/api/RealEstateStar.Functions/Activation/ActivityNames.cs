@@ -48,4 +48,7 @@ internal static class ActivityNames
 
     // Phase 4: Notify
     public const string WelcomeNotification = "ActivationWelcomeNotification";
+
+    // Phase 5: Build localized site content (B9)
+    public const string BuildLocalizedSiteContent = "ActivationBuildLocalizedSiteContent";
 }
