@@ -14,6 +14,8 @@ using RealEstateStar.Activities.Activation.PersistAgentProfile;
 using RealEstateStar.Activities.Lead.ContactDetection;
 using RealEstateStar.Activities.Pdf;
 using RealEstateStar.Clients.Anthropic;
+using RealEstateStar.Clients.Cloudflare;
+using RealEstateStar.Functions.Activation;
 using RealEstateStar.Clients.Azure;
 using RealEstateStar.Clients.GDocs;
 using RealEstateStar.Clients.GDrive;
@@ -443,6 +445,16 @@ builder.Services.AddTransient<ContactDetectionActivity>();
 // ── B9: VoicedContentGenerator — BuildLocalizedSiteContentFunction dependency ─
 // Transient: stateless, each activity invocation gets its own instance.
 builder.Services.AddTransient<RealEstateStar.Clients.Anthropic.VoicedContentGenerator>();
+
+// ── B10: ICloudflareKvClient + SiteContentOptions — PersistSiteContentFunction dependency ─
+// SiteContent:KvNamespaceId comes from config (Cloudflare KV namespace for site content).
+var cfApiToken = builder.Configuration["Cloudflare:ApiToken"];
+var cfAccountId = builder.Configuration["Cloudflare:AccountId"];
+if (string.IsNullOrWhiteSpace(cfApiToken) || string.IsNullOrWhiteSpace(cfAccountId))
+    Log.Warning("[STARTUP-WARN] Cloudflare:ApiToken or Cloudflare:AccountId not configured — KV writes will fail");
+
+builder.Services.AddCloudflareKvClient(builder.Configuration);
+builder.Services.Configure<SiteContentOptions>(builder.Configuration.GetSection("SiteContent"));
 
 var app = builder.Build();
 var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");

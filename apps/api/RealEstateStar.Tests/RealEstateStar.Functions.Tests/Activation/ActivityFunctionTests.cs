@@ -309,6 +309,8 @@ public sealed class ActivityFunctionTests
             ActivityNames.BrandMerge,
             ActivityNames.ContactImport,
             ActivityNames.WelcomeNotification,
+            ActivityNames.BuildLocalizedSiteContent,
+            ActivityNames.PersistSiteContent,
         };
 
         // All names must be unique
