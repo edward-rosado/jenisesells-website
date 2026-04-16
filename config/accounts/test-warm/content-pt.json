@@ -1,0 +1,263 @@
+{
+  "navigation": {
+    "items": [
+      {
+        "label": "Servi\u00e7os",
+        "href": "#features",
+        "enabled": true
+      },
+      {
+        "label": "Como Funciona",
+        "href": "#steps",
+        "enabled": true
+      },
+      {
+        "label": "Im\u00f3veis Vendidos",
+        "href": "#gallery",
+        "enabled": true
+      },
+      {
+        "label": "Avalia\u00e7\u00f5es",
+        "href": "#testimonials",
+        "enabled": true
+      },
+      {
+        "label": "Equipe",
+        "href": "#profiles",
+        "enabled": true
+      },
+      {
+        "label": "Avalia\u00e7\u00e3o Gratuita",
+        "href": "#contact_form",
+        "enabled": true
+      },
+      {
+        "label": "Conhe\u00e7a a Maria",
+        "href": "#about",
+        "enabled": true
+      }
+    ]
+  },
+  "pages": {
+    "home": {
+      "sections": {
+        "hero": {
+          "enabled": true,
+          "data": {
+            "headline": "Compre ou Venda no Hill Country",
+            "tagline": "Sua Vizinha. Sua Corretora de Im\u00f3veis.",
+            "body": "Sou Maria Santiago, nascida e criada no centro do Texas. Seja voc\u00ea vendendo a casa da fam\u00edlia ou buscando um novo cap\u00edtulo, tra\u00e7o experi\u00eancia local e cuidado genuino a cada transa\u00e7\u00e3o. Com mais de 12 anos no mercado e mais de 75 im\u00f3veis vendidos, conhe\u00e7o esse mercado \u2014 e sei como entregar resultados.",
+            "cta_text": "Obtenha Sua Avalia\u00e7\u00e3o Gratuita",
+            "cta_link": "#cma-form"
+          }
+        },
+        "stats": {
+          "enabled": true,
+          "data": {
+            "items": [
+              {
+                "value": "75+",
+                "label": "Im\u00f3veis Vendidos"
+              },
+              {
+                "value": "4.9 \u2605",
+                "label": "Avalia\u00e7\u00e3o Google (27 Avalia\u00e7\u00f5es)"
+              },
+              {
+                "value": "12+",
+                "label": "Anos de Experi\u00eancia"
+              },
+              {
+                "value": "$250K\u2013$800K",
+                "label": "Faixa de Pre\u00e7o de Venda"
+              }
+            ]
+          }
+        },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "Como Posso Ajudar",
+            "subtitle": "Servi\u00e7o completo de corretagem para compradores e vendedores.",
+            "items": [
+              {
+                "title": "Avalia\u00e7\u00e3o Gratuita do Im\u00f3vel",
+                "description": "Receba uma an\u00e1lise profissional do valor atual do seu im\u00f3vel \u2014 completamente gratuita, sem compromisso."
+              },
+              {
+                "title": "Representa\u00e7\u00e3o de Compradores",
+                "description": "Encontrarei im\u00f3veis que se encaixem no seu or\u00e7amento e estilo de vida, agendarei visitas e negociarei o melhor neg\u00f3cio em seu nome."
+              },
+              {
+                "title": "An\u00fancio e Marketing",
+                "description": "Fotos profissionais, an\u00fancio no MLS, redes sociais, jornadas de porta aberta e an\u00fancios digitais direcionados para atrair compradores s\u00e9rios."
+              },
+              {
+                "title": "Apoio \u00e0 Realoca\u00e7\u00e3o",
+                "description": "Mudando-se para o centro do Texas? Vou ajud\u00e1-lo a encontrar o bairro, as escolas e a comunidade certa para sua fam\u00edlia."
+              },
+              {
+                "title": "Atendimento em Portugu\u00eas",
+                "description": "Atendimento em portugu\u00eas, ingl\u00eas e espanhol \u2014 cada cliente recebe comunica\u00e7\u00e3o clara e aten\u00e7\u00e3o personalizada no idioma de sua prefer\u00eancia."
+              }
+            ]
+          }
+        },
+        "steps": {
+          "enabled": true,
+          "data": {
+            "title": "Come\u00e7ar \u00c9 F\u00e1cil",
+            "subtitle": "Tr\u00eas passos para a sua pr\u00f3xima mudan\u00e7a.",
+            "steps": [
+              {
+                "number": 1,
+                "title": "Entre em Contato",
+                "description": "Preencha o formul\u00e1rio abaixo ou me ligue. Respondo em menos de uma hora."
+              },
+              {
+                "number": 2,
+                "title": "Receba Seu Plano",
+                "description": "Vendendo? Enviarei uma avalia\u00e7\u00e3o gratuita do seu im\u00f3vel. Comprando? Conhecerei suas necessidades e come\u00e7arei a buscar."
+              },
+              {
+                "number": 3,
+                "title": "Fa\u00e7a Sua Mudan\u00e7a",
+                "description": "Compre ou venda com confian\u00e7a \u2014 estarei com voc\u00ea em cada passo, desde a primeira visita at\u00e9 o dia do fechamento."
+              }
+            ]
+          }
+        },
+        "gallery": {
+          "enabled": true,
+          "data": {
+            "title": "Im\u00f3veis Vendidos por Maria",
+            "subtitle": "Ajudando fam\u00edlias a encontrar seu lugar no centro do Texas.",
+            "items": [
+              {
+                "address": "1100 Congress Ave",
+                "city": "Austin",
+                "state": "TX",
+                "price": "$485,000",
+                "image_url": "/agents/test-warm/sold/1100-congress.jpg"
+              },
+              {
+                "address": "450 Barton Springs Rd",
+                "city": "Austin",
+                "state": "TX",
+                "price": "$620,000",
+                "image_url": "/agents/test-warm/sold/450-barton-springs.jpg"
+              },
+              {
+                "address": "220 Round Rock Ave",
+                "city": "Round Rock",
+                "state": "TX",
+                "price": "$375,000",
+                "image_url": "/agents/test-warm/sold/220-round-rock.jpg"
+              },
+              {
+                "address": "85 Cedar Park Blvd",
+                "city": "Cedar Park",
+                "state": "TX",
+                "price": "$410,000",
+                "image_url": "/agents/test-warm/sold/85-cedar-park.jpg"
+              }
+            ]
+          }
+        },
+        "testimonials": {
+          "enabled": true,
+          "data": {
+            "title": "O Que Nossos Clientes Dizem",
+            "subtitle": "Avalia\u00e7\u00f5es reais de fam\u00edlias que ajudamos.",
+            "items": [
+              {
+                "text": "Maria tornou a venda da nossa casa muito f\u00e1cil. Ela cuidou de tudo e nos manteve informados o tempo todo. Recebemos v\u00e1rias propostas no primeiro fim de semana!",
+                "reviewer": "Fam\u00edlia Johnson",
+                "rating": 5,
+                "source": "Google"
+              },
+              {
+                "text": "\u00c9ramos compradores de primeira viagem e Maria nos guiou em cada etapa. Encontrou a casa perfeita em Round Rock e negociou $15 mil abaixo do pre\u00e7o pedido.",
+                "reviewer": "David e Lisa",
+                "rating": 5,
+                "source": "Google"
+              },
+              {
+                "text": "Maria ajudou meus pais a vender a casa onde moraram por 30 anos. Foi paciente, respeitosa e conseguiu um \u00f3timo pre\u00e7o para eles. N\u00e3o poder\u00edamos pedir uma experi\u00eancia melhor.",
+                "reviewer": "Carlos R.",
+                "rating": 5,
+                "source": "Zillow"
+              }
+            ]
+          }
+        },
+        "profiles": {
+          "enabled": true,
+          "data": {
+            "title": "Nossa Equipe",
+            "subtitle": "Corretores locais que conhecem o seu bairro.",
+            "items": [
+              {
+                "id": "agent-a",
+                "name": "Miguel Torres",
+                "title": "Especialista em Compradores",
+                "phone": "(512) 555-0201",
+                "email": "miguel@santiago-realty.com",
+                "headshot_url": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&h=300&fit=crop&crop=face",
+                "bio": "Miguel \u00e9 especialista em compradores com ra\u00edzes profundas em Austin. Nascido e criado no centro do Texas, conhece cada bairro, distrito escolar e cantinho especial. Bil\u00edngue em ingl\u00eas e espanhol, ajudou mais de 80 fam\u00edlias a encontrar o im\u00f3vel perfeito."
+              },
+              {
+                "id": "agent-b",
+                "name": "Ashley Brooks",
+                "title": "Coordenadora de An\u00fancios",
+                "phone": "(512) 555-0202",
+                "email": "ashley@santiago-realty.com",
+                "headshot_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&h=300&fit=crop&crop=face",
+                "bio": "Ashley coordena os an\u00fancios da Santiago Realty, garantindo que cada im\u00f3vel seja apresentado de forma impec\u00e1vel. Com experi\u00eancia em marketing e aten\u00e7\u00e3o aos detalhes, gerencia todo o ciclo de an\u00fancio \u2014 com m\u00e9dia de apenas 21 dias no mercado."
+              }
+            ]
+          }
+        },
+        "contact_form": {
+          "enabled": true,
+          "data": {
+            "title": "Quanto Vale Seu Im\u00f3vel?",
+            "subtitle": "Receba uma avalia\u00e7\u00e3o gratuita sem compromisso.",
+            "description": "Informe seu endere\u00e7o e enviarei uma an\u00e1lise de mercado personalizada com base em vendas recentes no seu bairro. **100% gratuito, sem compromisso.**"
+          }
+        },
+        "about": {
+          "enabled": true,
+          "data": {
+            "title": "Conhe\u00e7a a Maria",
+            "bio": [
+              "Sou Maria Santiago \u2014 texana de nascimento, m\u00e3e orgulhosa e sua vizinha. H\u00e1 mais de 12 anos ajudo fam\u00edlias a comprar e vender im\u00f3veis na regi\u00e3o de Austin, com mais de 75 transa\u00e7\u00f5es bem-sucedidas.",
+              "Acredito que o mercado imobili\u00e1rio \u00e9 sobre pessoas, n\u00e3o apenas propriedades. Cada cliente recebe minha aten\u00e7\u00e3o pessoal, conselhos honestos e o tipo de servi\u00e7o que eu gostaria para minha pr\u00f3pria fam\u00edlia. Seja comprando sua primeira casa ou reduzindo o espa\u00e7o depois que os filhos crescem, estou aqui para ajudar.",
+              "Quando n\u00e3o estou mostrando im\u00f3veis, voc\u00ea me encontra nos jogos de beisebol dos meus filhos, fazendo trabalho volunt\u00e1rio na nossa igreja ou explorando novos restaurantes na South Congress."
+            ],
+            "credentials": [
+              "Corretora Licenciada TX",
+              "75+ Im\u00f3veis Vendidos",
+              "Atendimento em Portugu\u00eas, Ingl\u00eas e Espanhol",
+              "Membro do Austin Board of REALTORS\u00ae"
+            ]
+          }
+        },
+        "city_pages": {
+          "enabled": false,
+          "data": {
+            "cities": []
+          }
+        }
+      }
+    },
+    "thank_you": {
+      "heading": "Obrigado!",
+      "subheading": "Seu Relat\u00f3rio de Avalia\u00e7\u00e3o Est\u00e1 a Caminho!",
+      "body": "{firstName} enviar\u00e1 sua an\u00e1lise personalizada para o seu e-mail em breve.",
+      "disclaimer": "Este relat\u00f3rio \u00e9 uma An\u00e1lise Comparativa de Mercado (ACM) e n\u00e3o \u00e9 uma avalia\u00e7\u00e3o oficial.",
+      "cta_call": "Ligar para {firstName}: {phone}",
+      "cta_back": "Voltar ao Site de {firstName}"
+    }
+  }
+}
