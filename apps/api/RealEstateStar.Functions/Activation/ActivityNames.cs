@@ -42,6 +42,7 @@ internal static class ActivityNames
     public const string PersistProfile = "ActivationPersistProfile";
     public const string BrandMerge = "ActivationBrandMerge";
     public const string ContactImport = "ActivationContactImport";
+    public const string BrokerageJoin = "ActivationBrokerageJoin";
 
     // Phase 3.5: Cleanup
     public const string CleanupStagedContent = "ActivationCleanupStagedContent";

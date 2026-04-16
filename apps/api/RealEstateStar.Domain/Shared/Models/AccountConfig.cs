@@ -40,6 +40,13 @@ public class AccountConfig
     public List<ContactInfo>? ContactInfo { get; init; }
 
     /// <summary>
+    /// Agents enrolled in this brokerage account.
+    /// Populated by BrokerageJoinFunction; persisted to account.json.
+    /// </summary>
+    [JsonPropertyName("agent_members")]
+    public List<AgentMember>? AgentMembers { get; init; }
+
+    /// <summary>
     /// Optimistic concurrency token for SaveIfUnchangedAsync.
     /// Populated on read, validated on write (412 on mismatch).
     /// Not persisted to JSON — runtime-only.
@@ -196,4 +203,20 @@ public class ContactInfo
 
     [JsonPropertyName("is_preferred")]
     public bool IsPreferred { get; init; }
+}
+
+/// <summary>
+/// Represents a single agent enrolled in a brokerage account.
+/// Appended atomically by BrokerageJoinFunction via ETag-based CAS.
+/// </summary>
+public class AgentMember
+{
+    [JsonPropertyName("agent_id")]
+    public string AgentId { get; init; } = "";
+
+    [JsonPropertyName("agent_name")]
+    public string AgentName { get; init; } = "";
+
+    [JsonPropertyName("joined_at")]
+    public DateTimeOffset JoinedAt { get; init; } = DateTimeOffset.UtcNow;
 }
