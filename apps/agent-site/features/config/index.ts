@@ -21,3 +21,6 @@ export {
 } from "./routing";
 
 export { loadNavConfig } from "./nav-config";
+
+export { loadContent } from "./hybrid-loader";
+export type { LoaderEnv, LoaderResult } from "./hybrid-loader";
