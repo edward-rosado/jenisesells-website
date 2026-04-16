@@ -502,6 +502,30 @@ public sealed record ContradictionDto
     [JsonPropertyName("description")] public string Description { get; init; } = default!;
 }
 
+// ── Phase 2.75: Extract site facts (B6) ──────────────────────────────────────
+
+/// <summary>Input to the SiteFactExtractor activity function (Phase 2.75).</summary>
+public sealed record SiteFactExtractorInput
+{
+    [JsonPropertyName("accountId")] public string AccountId { get; init; } = "";
+    [JsonPropertyName("agentId")] public string AgentId { get; init; } = "";
+    [JsonPropertyName("correlationId")] public string CorrelationId { get; init; } = "";
+    [JsonPropertyName("voice")] public VoiceExtractionOutput? Voice { get; init; }
+    [JsonPropertyName("personality")] public PersonalityOutput? Personality { get; init; }
+    [JsonPropertyName("brandExtraction")] public BrandExtractionOutput? BrandExtraction { get; init; }
+    [JsonPropertyName("brandVoice")] public BrandVoiceOutput? BrandVoice { get; init; }
+    [JsonPropertyName("contactDetection")] public ContactDetectionOutput? ContactDetection { get; init; }
+    [JsonPropertyName("discovery")] public AgentDiscoveryOutput? Discovery { get; init; }
+    [JsonPropertyName("driveIndex")] public DriveIndexOutput? DriveIndex { get; init; }
+}
+
+/// <summary>Output from the SiteFactExtractor activity function (Phase 2.75).</summary>
+public sealed record SiteFactsOutput
+{
+    [JsonPropertyName("facts")] public RealEstateStar.Domain.Activation.Models.SiteFacts Facts { get; init; } = null!;
+    [JsonPropertyName("supportedLocales")] public IReadOnlyList<string> SupportedLocales { get; init; } = [];
+}
+
 // ── Phase 5: Build localized site content (B9) ────────────────────────────────
 
 /// <summary>Input to the BuildLocalizedSiteContent activity function.</summary>
@@ -528,4 +552,23 @@ public sealed record PersistSiteContentInput
     [JsonPropertyName("correlationId")] public string CorrelationId { get; init; } = "";
     [JsonPropertyName("buildResult")] public RealEstateStar.Domain.Activation.Models.BuildResult BuildResult { get; init; } = null!;
     [JsonPropertyName("accountConfigJson")] public string AccountConfigJson { get; init; } = "";
+}
+
+// ── Phase 5: Rehost assets to R2 (B11) ────────────────────────────────────────
+
+/// <summary>Input to the RehostAssetsToR2 activity function.</summary>
+public sealed record RehostAssetsToR2Input
+{
+    [JsonPropertyName("accountId")] public string AccountId { get; init; } = "";
+    [JsonPropertyName("agentId")] public string AgentId { get; init; } = "";
+    [JsonPropertyName("correlationId")] public string CorrelationId { get; init; } = "";
+    [JsonPropertyName("buildResult")] public RealEstateStar.Domain.Activation.Models.BuildResult BuildResult { get; init; } = null!;
+    [JsonPropertyName("facts")] public RealEstateStar.Domain.Activation.Models.SiteFacts Facts { get; init; } = null!;
+}
+
+/// <summary>Output from the RehostAssetsToR2 activity function.</summary>
+public sealed record RehostAssetsToR2Output
+{
+    [JsonPropertyName("assetUrlsByKey")] public IReadOnlyDictionary<string, string> AssetUrlsByKey { get; init; } = new Dictionary<string, string>();
+    [JsonPropertyName("rehostedCount")] public int RehostedCount { get; init; }
 }

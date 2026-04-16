@@ -417,4 +417,202 @@ public sealed class ActivationOrchestratorFunctionTests
 
         return ctx;
     }
+
+    // ── Phase 2.75: Site Fact Extraction ───────────────────────────────────────
+
+    [Fact]
+    public async Task Orchestrator_SiteFactExtractor_SucceedsAndProceedsToContentGeneration()
+    {
+        var ctx = BuildMockOrchestratorContext(isComplete: false);
+
+        // Setup SiteFactExtractor to return facts
+        var siteFacts = new SiteFactsOutput
+        {
+            Facts = new RealEstateStar.Domain.Activation.Models.SiteFacts(
+                Agent: new RealEstateStar.Domain.Activation.Models.AgentIdentity("Jane", "Jane Doe", "Agent", "jane@example.com", "555-1234", "NJ123", 10, ["en"]),
+                Brokerage: new RealEstateStar.Domain.Activation.Models.BrokerageIdentity("Realty Co", "Realty Corp", "NJ456", "123 Main St", "555-5000", "realty.com"),
+                Location: new RealEstateStar.Domain.Activation.Models.LocationFacts("NJ", ["Newark", "Jersey City"], new Dictionary<string, int> { ["Newark"] = 5 }),
+                Specialties: new RealEstateStar.Domain.Activation.Models.SpecialtiesFacts(["Residential"], ["Professional"], new Dictionary<string, int> { ["Professional"] = 3 }),
+                Trust: new RealEstateStar.Domain.Activation.Models.TrustSignals(25, 4.8m, 50, TimeSpan.FromHours(2), 450000m),
+                RecentSales: [],
+                Testimonials: [],
+                Credentials: [],
+                Stages: new RealEstateStar.Domain.Activation.Models.PipelineStages(["Lead", "Negotiation"], new Dictionary<string, int> { ["Lead"] = 10 }),
+                VoicesByLocale: new Dictionary<string, RealEstateStar.Domain.Activation.Models.LocaleVoice> { ["en"] = new("en", "Professional tone", "Enthusiastic personality", "hash123") }),
+            SupportedLocales = ["en"],
+        };
+        ctx.Setup(c => c.CallActivityAsync<string>(
+                ActivityNames.SiteFactExtractor, It.IsAny<SiteFactExtractorInput>(), It.IsAny<TaskOptions>()))
+            .ReturnsAsync(JsonSerializer.Serialize(siteFacts));
+
+        // Setup BuildLocalizedSiteContent to return build result
+        var buildResult = new RealEstateStar.Domain.Activation.Models.BuildResult(
+            RealEstateStar.Domain.Activation.Models.BuildResultType.Full,
+            new Dictionary<string, object> { ["en"] = new Dictionary<string, string> { ["hero.headline"] = "Welcome" } },
+            null);
+        ctx.Setup(c => c.CallActivityAsync<string>(
+                ActivityNames.BuildLocalizedSiteContent, It.IsAny<BuildSiteContentInput>(), It.IsAny<TaskOptions>()))
+            .ReturnsAsync(JsonSerializer.Serialize(buildResult));
+
+        // Setup PersistSiteContent
+        ctx.Setup(c => c.CallActivityAsync(
+                ActivityNames.PersistSiteContent, It.IsAny<PersistSiteContentInput>(), It.IsAny<TaskOptions>()))
+            .Returns(Task.CompletedTask);
+
+        // Setup RehostAssetsToR2
+        var rehostOutput = new RehostAssetsToR2Output { AssetUrlsByKey = new Dictionary<string, string>(), RehostedCount = 0 };
+        ctx.Setup(c => c.CallActivityAsync<string>(
+                ActivityNames.RehostAssetsToR2, It.IsAny<RehostAssetsToR2Input>(), It.IsAny<TaskOptions>()))
+            .ReturnsAsync(JsonSerializer.Serialize(rehostOutput));
+
+        // Act
+        await ActivationOrchestratorFunction.RunAsync(ctx.Object);
+
+        // Assert: all 4 new activities called in sequence
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.SiteFactExtractor, It.IsAny<SiteFactExtractorInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.BuildLocalizedSiteContent, It.IsAny<BuildSiteContentInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync(
+            ActivityNames.PersistSiteContent, It.IsAny<PersistSiteContentInput>(), It.IsAny<TaskOptions>()), Times.Once);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.RehostAssetsToR2, It.IsAny<RehostAssetsToR2Input>(), It.IsAny<TaskOptions>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Orchestrator_SiteFactExtractorFails_SkipsContentGeneration()
+    {
+        var ctx = BuildMockOrchestratorContext(isComplete: false);
+
+        // Make SiteFactExtractor throw
+        ctx.Setup(c => c.CallActivityAsync<string>(
+                ActivityNames.SiteFactExtractor, It.IsAny<SiteFactExtractorInput>(), It.IsAny<TaskOptions>()))
+            .ThrowsAsync(new InvalidOperationException("Fact extraction failed"));
+
+        // Act — should not throw
+        await ActivationOrchestratorFunction.RunAsync(ctx.Object);
+
+        // BuildLocalizedSiteContent should NOT be called
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.BuildLocalizedSiteContent, It.IsAny<BuildSiteContentInput>(), It.IsAny<TaskOptions>()), Times.Never);
+        ctx.Verify(c => c.CallActivityAsync(
+            ActivityNames.PersistSiteContent, It.IsAny<PersistSiteContentInput>(), It.IsAny<TaskOptions>()), Times.Never);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.RehostAssetsToR2, It.IsAny<RehostAssetsToR2Input>(), It.IsAny<TaskOptions>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Orchestrator_BuildLocalizedSiteContentFails_SkipsPersistAndRehost()
+    {
+        var ctx = BuildMockOrchestratorContext(isComplete: false);
+
+        // Setup SiteFactExtractor to succeed
+        var siteFacts = new SiteFactsOutput
+        {
+            Facts = new RealEstateStar.Domain.Activation.Models.SiteFacts(
+                Agent: new RealEstateStar.Domain.Activation.Models.AgentIdentity("Jane", "Jane Doe", "Agent", "jane@example.com", "555-1234", "NJ123", 10, ["en"]),
+                Brokerage: new RealEstateStar.Domain.Activation.Models.BrokerageIdentity("Realty Co", "Realty Corp", "NJ456", "123 Main St", "555-5000", "realty.com"),
+                Location: new RealEstateStar.Domain.Activation.Models.LocationFacts("NJ", ["Newark"], new Dictionary<string, int> { ["Newark"] = 5 }),
+                Specialties: new RealEstateStar.Domain.Activation.Models.SpecialtiesFacts(["Residential"], ["Professional"], new Dictionary<string, int> { ["Professional"] = 3 }),
+                Trust: new RealEstateStar.Domain.Activation.Models.TrustSignals(25, 4.8m, 50, TimeSpan.FromHours(2), 450000m),
+                RecentSales: [],
+                Testimonials: [],
+                Credentials: [],
+                Stages: new RealEstateStar.Domain.Activation.Models.PipelineStages(["Lead"], new Dictionary<string, int> { ["Lead"] = 10 }),
+                VoicesByLocale: new Dictionary<string, RealEstateStar.Domain.Activation.Models.LocaleVoice> { ["en"] = new("en", "Professional tone", "Enthusiastic personality", "hash123") }),
+            SupportedLocales = ["en"],
+        };
+        ctx.Setup(c => c.CallActivityAsync<string>(
+                ActivityNames.SiteFactExtractor, It.IsAny<SiteFactExtractorInput>(), It.IsAny<TaskOptions>()))
+            .ReturnsAsync(JsonSerializer.Serialize(siteFacts));
+
+        // Make BuildLocalizedSiteContent throw
+        ctx.Setup(c => c.CallActivityAsync<string>(
+                ActivityNames.BuildLocalizedSiteContent, It.IsAny<BuildSiteContentInput>(), It.IsAny<TaskOptions>()))
+            .ThrowsAsync(new InvalidOperationException("Content generation failed"));
+
+        // Act — should not throw
+        await ActivationOrchestratorFunction.RunAsync(ctx.Object);
+
+        // PersistSiteContent and RehostAssetsToR2 should NOT be called
+        ctx.Verify(c => c.CallActivityAsync(
+            ActivityNames.PersistSiteContent, It.IsAny<PersistSiteContentInput>(), It.IsAny<TaskOptions>()), Times.Never);
+        ctx.Verify(c => c.CallActivityAsync<string>(
+            ActivityNames.RehostAssetsToR2, It.IsAny<RehostAssetsToR2Input>(), It.IsAny<TaskOptions>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Orchestrator_RehostAssetsToR2Fails_IsNonFatal()
+    {
+        var ctx = BuildMockOrchestratorContext(isComplete: false);
+
+        // Setup SiteFactExtractor to succeed
+        var siteFacts = new SiteFactsOutput
+        {
+            Facts = new RealEstateStar.Domain.Activation.Models.SiteFacts(
+                Agent: new RealEstateStar.Domain.Activation.Models.AgentIdentity("Jane", "Jane Doe", "Agent", "jane@example.com", "555-1234", "NJ123", 10, ["en"]),
+                Brokerage: new RealEstateStar.Domain.Activation.Models.BrokerageIdentity("Realty Co", "Realty Corp", "NJ456", "123 Main St", "555-5000", "realty.com"),
+                Location: new RealEstateStar.Domain.Activation.Models.LocationFacts("NJ", ["Newark"], new Dictionary<string, int> { ["Newark"] = 5 }),
+                Specialties: new RealEstateStar.Domain.Activation.Models.SpecialtiesFacts(["Residential"], ["Professional"], new Dictionary<string, int> { ["Professional"] = 3 }),
+                Trust: new RealEstateStar.Domain.Activation.Models.TrustSignals(25, 4.8m, 50, TimeSpan.FromHours(2), 450000m),
+                RecentSales: [],
+                Testimonials: [],
+                Credentials: [],
+                Stages: new RealEstateStar.Domain.Activation.Models.PipelineStages(["Lead"], new Dictionary<string, int> { ["Lead"] = 10 }),
+                VoicesByLocale: new Dictionary<string, RealEstateStar.Domain.Activation.Models.LocaleVoice> { ["en"] = new("en", "Professional tone", "Enthusiastic personality", "hash123") }),
+            SupportedLocales = ["en"],
+        };
+        ctx.Setup(c => c.CallActivityAsync<string>(
+                ActivityNames.SiteFactExtractor, It.IsAny<SiteFactExtractorInput>(), It.IsAny<TaskOptions>()))
+            .ReturnsAsync(JsonSerializer.Serialize(siteFacts));
+
+        // Setup BuildLocalizedSiteContent to succeed
+        var buildResult = new RealEstateStar.Domain.Activation.Models.BuildResult(
+            RealEstateStar.Domain.Activation.Models.BuildResultType.Full,
+            new Dictionary<string, object> { ["en"] = new Dictionary<string, string> { ["hero.headline"] = "Welcome" } },
+            null);
+        ctx.Setup(c => c.CallActivityAsync<string>(
+                ActivityNames.BuildLocalizedSiteContent, It.IsAny<BuildSiteContentInput>(), It.IsAny<TaskOptions>()))
+            .ReturnsAsync(JsonSerializer.Serialize(buildResult));
+
+        // Setup PersistSiteContent to succeed
+        ctx.Setup(c => c.CallActivityAsync(
+                ActivityNames.PersistSiteContent, It.IsAny<PersistSiteContentInput>(), It.IsAny<TaskOptions>()))
+            .Returns(Task.CompletedTask);
+
+        // Make RehostAssetsToR2 throw (but non-fatal, so orchestration continues)
+        ctx.Setup(c => c.CallActivityAsync<string>(
+                ActivityNames.RehostAssetsToR2, It.IsAny<RehostAssetsToR2Input>(), It.IsAny<TaskOptions>()))
+            .ThrowsAsync(new InvalidOperationException("Asset rehosting failed"));
+
+        // Act — should not throw
+        await ActivationOrchestratorFunction.RunAsync(ctx.Object);
+
+        // Orchestration should still complete normally (WelcomeNotification called)
+        ctx.Verify(c => c.CallActivityAsync(
+            ActivityNames.WelcomeNotification, It.IsAny<WelcomeNotificationInput>(), It.IsAny<TaskOptions>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Orchestrator_Phase275_UsesCorrectRetryPolicy()
+    {
+        var ctx = BuildMockOrchestratorContext(isComplete: false);
+
+        // Setup activities to capture the TaskOptions (retry policy)
+        TaskOptions capturedOptions = null;
+        ctx.Setup(c => c.CallActivityAsync<string>(
+                ActivityNames.SiteFactExtractor, It.IsAny<SiteFactExtractorInput>(), It.IsAny<TaskOptions>()))
+            .Callback<string, SiteFactExtractorInput, TaskOptions>((name, input, options) =>
+            {
+                capturedOptions = options;
+            })
+            .ReturnsAsync(JsonSerializer.Serialize(new SiteFactsOutput { SupportedLocales = [] }));
+
+        // Act
+        await ActivationOrchestratorFunction.RunAsync(ctx.Object);
+
+        // Assert: should use SiteContent retry policy (4 attempts)
+        capturedOptions.Should().NotBeNull();
+        capturedOptions.Retry?.MaxNumberOfAttempts.Should().Be(4);
+    }
 }

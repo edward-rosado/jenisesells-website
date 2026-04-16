@@ -53,4 +53,14 @@ internal static class ActivationRetryPolicies
         maxNumberOfAttempts: 2,
         firstRetryInterval: TimeSpan.FromSeconds(30),
         backoffCoefficient: 2.0));
+
+    /// <summary>
+    /// Phase 2.75 &amp; 3: Site content activities (SiteFactExtractor, BuildLocalizedSiteContent, PersistSiteContent, RehostAssetsToR2).
+    /// 4 attempts, 30s initial delay, then 60s, 120s, 240s.
+    /// Handles transient failures in Claude API calls, Cloudflare KV writes, and asset hosting.
+    /// </summary>
+    public static readonly TaskOptions SiteContent = TaskOptions.FromRetryPolicy(new RetryPolicy(
+        maxNumberOfAttempts: 4,
+        firstRetryInterval: TimeSpan.FromSeconds(30),
+        backoffCoefficient: 2.0));
 }
