@@ -1,6 +1,6 @@
 # Agent Site Comprehensive Design
 
-**Status:** Draft (Revision 4 — codebase-verified accuracy pass over R3, routing CAS moved to Azure Table)
+**Status:** Draft (Revision 5 — observability review adds SLOs, span registry, DF trace middleware, cache metrics, trace-to-audit linking)
 **Date:** 2026-04-12
 **Owner:** Eddie Rosado
 **Author:** Claude (Opus 4.6)
@@ -23,6 +23,19 @@
 >   - **§8.3 GoogleOAuthRefresher loop structure** — R3 described `GoogleOAuthRefresher.GetValidCredentialAsync` as a "retry-and-re-read loop." Verified: it performs a **single re-read on 412** and returns the fresher credential without re-refreshing — "another worker already refreshed" is itself the win condition. The `AccountConfigService` brokerage-join path **does** need a bounded retry loop because each writer appends unique content. R4 separates the two patterns in the spec: same `SaveIfUnchangedAsync` primitive, different loop structure by use case. Decision D44 clarified.
 >   - **Minor consistency fixes**: D16 self-contradiction in §2 resolved (decision log now matches §11.4's "disclaimer included" position); D30 marked superseded by D42; §13.4 Tier 2 example JSON stripped of the fabricated `tcpa_consent` / `fields` keys (the contact form owns that schema via `LeadForm`, not `content.json`).
 >   - **What R4 does NOT change**: every BLOCKER remediation from R2/R3, the overall section structure, the 34 Mermaid diagrams (§8.4 sequence diagram and the standalone `docs/architecture/routing-policy-next-lead-cas.md` are the only two updated), the decision log numbering (D1-D44), and the acceptance criteria in §15.5. R4 is an accuracy pass, not a redesign.
+> - **R5 (this version)**: Observability review pass after user direction: "review it one more time with an observability lens. we need world class logging capabilities in order to scale." Two parallel codebase audits ran: (a) inventory of observability claims in R4 vs (b) inventory of what's actually wired on `feat/azure-cost-reduction`. The audits revealed that the codebase has **22 ActivitySources, 22 Meters, Serilog+OTLP export, 3 committed Grafana dashboards, correlation ID middleware, 9 health checks, and replay-safe DF logging** — substantially stronger than the spec had been claiming — but the spec itself had 13 observability gaps that would block scaling to 1000+ brokerages. R5 closes all 13:
+>   - **§5.8 Durable Functions trace middleware** — new section. `DurableOrchestratorTracingMiddleware` creates parent orchestrator spans from instance ID with stable trace ID across replays, propagates correlation ID via `Baggage` instead of method parameters, and adds arch test `Orchestrators_UseReplaySafeLogger` to lock in the existing `!ctx.IsReplaying` discipline as a spec-wide invariant. This is the single biggest scaling unlock — today a 18-activity activation produces 18 disconnected spans; after R5 it produces one connected trace.
+>   - **§16.9 Span Attribute Registry** — new section. Formalizes the 20+ span attribute names already in use in the codebase (`lead.id`, `agent.id`, `correlation.id`, `claude.pipeline`, `queue.name`, `session.id`, `result.success`, `message.id`, etc.) plus new ones introduced by this spec (`pipeline.step`, `policy.content_hash`, `facts.hash`, `domain.status`). Each attribute has a cardinality bound. **Metric-tag-eligibility rule**: only attributes with `O(10)` or less cardinality may be used as metric tags — enforced by new arch test `MetricTags_AreBoundedCardinality`. This is what prevents metric series explosion as the platform scales.
+>   - **§16.10 End-to-end traceability for support** — new section. `TraceLink` pattern (TraceId + SpanId + timestamp) on every audit record. Correlation ID visible in welcome email footer, preview URL, lead reply email. New `docs/runbooks/trace-reconstruction.md` target describes how support reconstructs the full pipeline trace from a single ref ID. Converts "30-minute log dive" to "paste the ref into Tempo."
+>   - **§18.7 SLOs + alert rules as code + dashboards as code** — new section. Three SLOs (activation success ≥ 99%, publish success ≥ 99.5%, lead delivery p95 ≤ 30s) with error budgets and burn-rate alerts (not threshold alerts). New `infra/grafana/alerts/` directory commitment with 14 initial rule files. Five new dashboard files added to the existing 3 committed dashboards. Every alert lives in the repo, not in a Grafana UI click.
+>   - **§18.2 cache observability rule** — every cache in the TTL table must emit `cache.hits`/`cache.misses`/`cache.lookup_duration_ms` via a new `CacheDiagnostics` class with bounded `cache_name` tag. Enforced by new arch test `Caches_EmitHitMissMetrics`. This is the single most important cost signal at scale.
+>   - **§5.3 VoicedContentGenerator observability rewritten** — replaces the R1-R4 "grep `[CLAUDE-020]` logs" cost attribution pattern with a first-class `vcg.cost_usd` counter tagged by `pipeline_step`, `model`, and `locale`. Adds `vcg.cache_hits`/`vcg.cache_misses` to measure the 24h Azure Table cache. Short ActivitySource name `RealEstateStar.VoicedContentGenerator` matches codebase convention (R1-R4 used the nested `RealEstateStar.Clients.Anthropic.VoicedContentGenerator` which was inconsistent).
+>   - **§8.3 AccountConfigDiagnostics specified in full** — R4 referenced the class by name without defining it. R5 gives it a full counter list (`Reads`, `Writes`, `Conflicts`, `RetriesExhausted`, `Duration` histogram), explicit tag policy, span attribute set, Grafana panel definitions.
+>   - **§8.4 BrokerageRoutingDiagnostics specified in full** — new class for the Option C routing mechanism. Six instruments (decisions, CAS conflicts, CAS retries exhausted, override outcomes, hash realignments, decision duration). **Critical cardinality rule**: `account_id`, `lead_id`, `agent_id`, `policy_content_hash` go on **spans** (unbounded is fine there) but NEVER on metric tags. Metrics use the bounded `reason` enum only. Five Grafana panels including the log-based "override usage per brokerage" panel that accepts slower log-based query in exchange for bounded metric cardinality.
+>   - **Appendix E Status column** — every log code range now marked **EXISTS** (already emitting — grep anchor provided), **NEW** (spec creates it), or **EXTEND** (range exists; spec adds codes). Appendix E.2 "existing components" verified against the branch with file-path links (OAuth, Claude, Gmail, GDrive, activation orchestrator, WhatsApp, PDF, startup, storage, token store, etc. all confirmed).
+>   - **§E.3 rule 5: single-file telemetry registration** — R5 creates `apps/api/RealEstateStar.Shared.Telemetry/TelemetryRegistrations.cs` as the source of truth for ActivitySource names, Meter names, and log code ranges. Both `Api/Program.cs` and `Functions/Program.cs` import the same list. New arch test `TelemetryRegistrationIsCentralized` prevents drift between the two hosts.
+>   - **Appendix G.4 observability review subsection** (new) — 13 OBS-NNN findings tracked separately from the legal/security/maintainability G.1-G.3 passes so the observability work is discoverable and owned.
+>   - **What R5 does NOT change**: zero BLOCKER remediations from R1-R4, zero section renames, zero diagram rewrites (the 34 existing Mermaid diagrams are untouched), zero decisions in the D1-D44 log (R5 is additive — new rules and sections, not modified decisions), zero acceptance criteria in §15.5. R5 is an **instrumentation layer** that sits underneath every section already specified.
 
 ---
 
@@ -572,7 +585,64 @@ public sealed record VoicedResult<T>(
 
 **Unit testing**: `IVoicedContentGenerator` is stubbed in worker/activity tests via `FakeVoicedContentGenerator` which returns canned results keyed by `FieldSpec.Name`. Tests don't invoke real Claude. Golden-output tests (Appendix D) run against the real generator with VCR-recorded Claude responses to catch prompt regressions.
 
-**Observability**: single ActivitySource `RealEstateStar.Clients.Anthropic.VoicedContentGenerator` with per-call spans tagged with `field.name`, `locale`, `pipeline.step`, `is_fallback`, `failure_reason`. One Grafana dashboard panel shows voiced-content cost, success rate, and fallback rate broken down by field and locale.
+**Observability (R5 — codebase-aligned)**: the `IVoicedContentGenerator` diagnostics live in a new `VoicedContentGeneratorDiagnostics` class at `apps/api/RealEstateStar.Workers.Shared/Diagnostics/VoicedContentGeneratorDiagnostics.cs`. Following the codebase convention of **short service-scoped names** (verified: your existing meters are `RealEstateStar.Leads`, `RealEstateStar.Claude`, `RealEstateStar.TokenStore`, etc. — not nested paths), the `ServiceName` is `RealEstateStar.VoicedContentGenerator` — **not** `RealEstateStar.Clients.Anthropic.VoicedContentGenerator` as R1-R4 incorrectly specified. The short form keeps `AddSource(...)` registrations in `TelemetryRegistrations.All` (§E.3 rule 5) grep-consistent with existing sources.
+
+**Full instrument set:**
+
+```csharp
+public static class VoicedContentGeneratorDiagnostics
+{
+    public const string ServiceName = "RealEstateStar.VoicedContentGenerator";
+    public static readonly Meter Meter = new(ServiceName);
+    public static readonly ActivitySource ActivitySource = new(ServiceName);
+
+    // Generation outcome — tagged by pipeline_step (bounded: ~15 field types) and outcome
+    public static readonly Counter<long> Generations = Meter.CreateCounter<long>(
+        "vcg.generations",
+        description: "Voiced content generation calls, tagged by pipeline_step + outcome");
+
+    // Cache hit rate — critical cost signal (§R5 OBS-9 cache rule)
+    public static readonly Counter<long> CacheHits = Meter.CreateCounter<long>(
+        "vcg.cache_hits",
+        description: "Voiced content cache hits (Azure Table, 24h TTL)");
+    public static readonly Counter<long> CacheMisses = Meter.CreateCounter<long>(
+        "vcg.cache_misses",
+        description: "Voiced content cache misses → Claude call fired");
+
+    // Fallback tracking — how often do we hit the fail-safe?
+    public static readonly Counter<long> Fallbacks = Meter.CreateCounter<long>(
+        "vcg.fallbacks",
+        description: "Fallback values returned, tagged by reason");
+
+    // Latency — the whole generation including cache lookup + Claude call + linter
+    public static readonly Histogram<double> GenerationDuration = Meter.CreateHistogram<double>(
+        "vcg.generation_duration_ms", unit: "ms",
+        description: "End-to-end voiced content generation latency");
+
+    // Cost — first-class counter (not grep of [CLAUDE-020], per §R5 OBS-7)
+    public static readonly Counter<double> CostUsd = Meter.CreateCounter<double>(
+        "vcg.cost_usd", unit: "USD",
+        description: "Estimated Claude cost per voiced content generation");
+}
+```
+
+**Metric tag policy**:
+
+| Instrument | Allowed tags | Disallowed |
+|---|---|---|
+| `vcg.generations` | `pipeline_step` (bounded ~15), `outcome` ∈ `{success, fallback, cache_hit}`, `locale` | `account_id`, `facts_hash` |
+| `vcg.cache_hits` / `vcg.cache_misses` | `pipeline_step`, `locale` | all identifiers |
+| `vcg.fallbacks` | `pipeline_step`, `reason` ∈ `{schema-mismatch, fair-housing-violation, claude-exhausted, linter-exhausted}` | all identifiers |
+| `vcg.generation_duration_ms` | `pipeline_step`, `outcome` | all identifiers |
+| `vcg.cost_usd` | `pipeline_step`, `model` ∈ `{haiku-4-5, sonnet-4-6}`, `locale` | all identifiers |
+
+`account_id`, `facts_hash`, and `request_id` go on **spans only**. This is the single most important rule for cost-bounded cardinality.
+
+**ActivitySource**: `VoicedContentGeneratorDiagnostics.ActivitySource` — registered in `TelemetryRegistrations.All`. Per-call span `vcg.generate` with attributes: `pipeline.step`, `locale`, `is_fallback`, `failure_reason`, `facts_hash`, `account.id`, `correlation.id` (propagated via baggage — see §5.8).
+
+**Log codes**: `[VCG-001..099]` per Appendix E.1.
+
+**Relationship to `[CLAUDE-020]`**: the generator continues to emit `[CLAUDE-020]` cost log lines for backward compatibility with existing Grafana queries, **but** the authoritative cost signal at scale is `vcg.cost_usd`. The spec commits to deprecating `[CLAUDE-020]` log-based aggregation in favor of the metric counter once §18.7 dashboards are rewritten. See R5 OBS-7.
 
 **End-to-end request lifecycle** — every FieldSpec flows through these steps:
 
@@ -939,6 +1009,172 @@ stateDiagram-v2
 **Reading the diagram**: every activity starts in `Pending`, transits to `Running` when the orchestrator dispatches it, and ends in one of three terminal outcomes (`Success`, `FatalRaise`, or `BestEffortLog`). Transient errors re-enter `Running` via retry; permanent errors skip straight to classification. The classification step checks the retry table above to decide whether the failure aborts the pipeline (FATAL) or is logged and swallowed (BEST-EFFORT).
 
 **What's not shown**: Durable Functions' own orchestrator-level retry. If a FATAL failure reaches `FatalRaise` and the orchestrator throws, DF will retry the whole orchestrator instance per its configured policy. This is intentional — it catches transient infrastructure issues that even in-activity retry can't smooth over (function app cold start, temporary KV partition unavailability).
+
+### 5.8 Durable Functions trace instrumentation and correlation propagation (R5)
+
+**Problem**: the codebase audit (R5) confirmed that OTel is correctly wired at `apps/api/RealEstateStar.Api/Diagnostics/OpenTelemetryExtensions.cs` and mirrored in `apps/api/RealEstateStar.Functions/Program.cs`, and every Activity function produces spans via the relevant client `ActivitySource`. **But no orchestrator-level span exists**. An activation orchestration with 18 activity calls produces 18 disconnected spans in Grafana Tempo; there is no parent span that binds them into one "this agent's activation" trace. At 10 concurrent activations, reconstruction requires memorizing instance IDs. At 1000, it's impossible.
+
+Simultaneously, **correlation IDs are passed as method parameters into activity functions** (verified in `PdfActivity` and peers), which works but fails silently if a new activity forgets the parameter, and doesn't automatically flow into the activity's own OTel span.
+
+**R5 fix**: both problems are solved by adding a thin middleware layer to the DF worker host that (1) creates an orchestrator-level parent span from the instance ID and (2) propagates correlation ID via `Baggage` rather than method parameters.
+
+#### Orchestrator span middleware
+
+A new `DurableOrchestratorTracingMiddleware` in `apps/api/RealEstateStar.Functions/Diagnostics/DurableOrchestratorTracingMiddleware.cs` implements `IFunctionsWorkerMiddleware`:
+
+```csharp
+public sealed class DurableOrchestratorTracingMiddleware : IFunctionsWorkerMiddleware
+{
+    private static readonly ActivitySource OrchestratorSource = new("RealEstateStar.DurableOrchestrator");
+
+    public async Task Invoke(FunctionContext context, FunctionExecutionDelegate next)
+    {
+        // Only wrap orchestrator and activity triggers; skip HTTP/queue triggers which already have spans
+        var triggerType = context.FunctionDefinition.InputBindings
+            .Values.FirstOrDefault()?.Type ?? string.Empty;
+        var isOrchestrator = triggerType.Contains("OrchestrationTrigger", StringComparison.Ordinal);
+        var isActivity = triggerType.Contains("ActivityTrigger", StringComparison.Ordinal);
+
+        if (!isOrchestrator && !isActivity)
+        {
+            await next(context);
+            return;
+        }
+
+        // Extract instance ID and correlation ID from context
+        var instanceId = context.BindingContext.BindingData
+            .TryGetValue("instanceId", out var id) ? id?.ToString() : null;
+        var correlationId = ExtractCorrelationId(context);
+
+        using var activity = OrchestratorSource.StartActivity(
+            name: $"df.{(isOrchestrator ? "orchestrator" : "activity")}.{context.FunctionDefinition.Name}",
+            kind: isOrchestrator ? ActivityKind.Server : ActivityKind.Internal);
+
+        activity?.SetTag("df.instance_id", instanceId);
+        activity?.SetTag("df.function_name", context.FunctionDefinition.Name);
+        activity?.SetTag("correlation.id", correlationId);
+
+        // Put correlation ID into Baggage so downstream client calls inherit it automatically
+        if (!string.IsNullOrEmpty(correlationId))
+            Baggage.SetBaggage("correlation.id", correlationId);
+
+        // Put into log scope too so every logger.Log* call inside the function carries it
+        using var logScope = LogContext.PushProperty("CorrelationId", correlationId);
+
+        try
+        {
+            await next(context);
+            activity?.SetTag("result.success", true);
+        }
+        catch (Exception ex)
+        {
+            activity?.SetTag("result.success", false);
+            activity?.SetTag("error.type", ex.GetType().Name);
+            activity?.RecordException(ex);
+            throw;
+        }
+    }
+
+    private static string? ExtractCorrelationId(FunctionContext ctx)
+    {
+        // Priority order:
+        // 1. Existing Baggage (propagated from parent activity)
+        // 2. Activity input JSON (first-call case — orchestrator input carries it)
+        // 3. Fresh GUID (absolute last resort; logged as a warning)
+        var fromBaggage = Baggage.GetBaggage("correlation.id");
+        if (!string.IsNullOrEmpty(fromBaggage)) return fromBaggage;
+
+        // Try to extract from the serialized orchestrator/activity input
+        // (every activity input DTO in this spec carries a CorrelationId field — see §R5 rule below)
+        if (ctx.BindingContext.BindingData.TryGetValue("data", out var raw) && raw is string json)
+        {
+            try { return JsonDocument.Parse(json).RootElement.TryGetProperty("correlationId", out var p) ? p.GetString() : null; }
+            catch { /* fall through */ }
+        }
+
+        var fresh = Guid.NewGuid().ToString("N");
+        ctx.GetLogger<DurableOrchestratorTracingMiddleware>().LogWarning(
+            "[DF-TRACE-001] No correlation ID found for function {FunctionName} — generated fresh {CorrelationId}",
+            ctx.FunctionDefinition.Name, fresh);
+        return fresh;
+    }
+}
+```
+
+Registered once in `Program.cs`:
+
+```csharp
+host.ConfigureFunctionsWorkerDefaults(builder =>
+{
+    builder.UseMiddleware<DurableOrchestratorTracingMiddleware>();
+});
+```
+
+And the `RealEstateStar.DurableOrchestrator` source is registered in `TelemetryRegistrations.All` so both hosts' OTel wiring picks it up (§E.3 rule 5).
+
+#### Parent-span propagation within an orchestration
+
+Durable Functions replays the orchestrator function on every checkpoint, so the orchestrator span is **re-created** on every replay. To avoid generating `N` disconnected orchestrator spans for `N` checkpoints, the middleware uses the **instance ID as a trace ID seed**. The first orchestrator invocation generates a trace ID from `SHA-256(instanceId)` (first 16 bytes) so every replay produces the same trace ID. Activity spans within that orchestration link to the same trace ID via `Activity.Current?.Context` parent linking — which works as long as the activity is awaited inside the orchestrator's active span context.
+
+**Replay discipline**: the middleware only emits the orchestrator span tag `result.success` and `error.type` on non-replay invocations. The existing `!ctx.IsReplaying` guard pattern (verified at `ActivationOrchestratorFunction.cs:44-69`) is preserved and becomes a spec-wide invariant (see §R5 OBS-11 rule below).
+
+#### Correlation ID contract (R5 rule)
+
+Every activity input DTO in the codebase already carries a `CorrelationId` field — verified in the R5 audit (`LeadOrchestratorInput.CorrelationId`, `GeneratePdfInput.CorrelationId`, `DraftLeadEmailInput.CorrelationId`, `NotifyAgentInput.CorrelationId`, etc.). The pattern predates this spec. R5's contribution is to **make the pattern enforced** instead of convention, so new activities don't accidentally break it.
+
+**Rule**: every activity input DTO — existing or new — must have a `CorrelationId string` property. The middleware serializes/deserializes it from the DTO and propagates via `Baggage`; activities can continue reading it as a method parameter (the existing pattern) OR via `Baggage.GetBaggage("correlation.id")`. Both work. Baggage is the cheaper path for new code because it removes the need to thread the parameter through every method signature.
+
+**Architecture test** `ActivityInputs_HaveCorrelationId` — reflection-based scan, no marker interface required:
+
+```csharp
+// RealEstateStar.Architecture.Tests/ActivityInputsHaveCorrelationIdTests.cs
+// 1. Scan every type in RealEstateStar.Functions.dll decorated with [Function]
+// 2. For each, extract the parameter marked [ActivityTrigger] (or [OrchestrationTrigger]
+//    with an input type)
+// 3. If the parameter type is a record/class defined in our assemblies, assert it
+//    has a public string property named "CorrelationId" (case-insensitive for safety)
+// 4. Primitive or framework types (TaskOrchestrationContext, HttpRequest, etc.) are skipped
+// Failure mode: a future engineer adds a new activity with a custom input DTO and
+// forgets CorrelationId; the test fails at build time with a message pointing to
+// the offending type.
+```
+
+This approach:
+- **Requires zero migration** — every existing DTO already passes.
+- **Has no new interface** — the codebase doesn't gain `IActivityInput` or any other marker.
+- **Catches the real regression**: "future engineer adds an activity without `CorrelationId`."
+- **Runs against both existing and new DTOs uniformly** — the reflection scan doesn't care when a DTO was introduced.
+
+#### Replay-safe logger invariant (R5 OBS-11)
+
+Every orchestrator function **must** use `ctx.CreateReplaySafeLogger<T>()` and guard every `logger.Log*` call that has side effects (informational log lines that shouldn't fire on replay) with `if (!ctx.IsReplaying)`. Verified already-followed in `ActivationOrchestratorFunction.cs`. R5 adds the architecture test `Orchestrators_UseReplaySafeLogger`:
+
+```csharp
+// RealEstateStar.Architecture.Tests/ReplaySafeLoggerTests.cs
+// Scan every class with methods decorated [Function] AND a parameter of type
+// TaskOrchestrationContext. Assert:
+//   1. No direct `ILogger<T>` field or constructor injection
+//   2. `CreateReplaySafeLogger<T>()` is called inside the Run method
+//   3. Every `_logger.LogInformation`, `_logger.LogWarning`, etc. call inside
+//      the orchestrator method body is guarded by `if (!ctx.IsReplaying)`
+// Failure mode: future engineer copies a non-orchestrator logging pattern
+// into a new orchestrator and spams logs on every replay checkpoint.
+```
+
+#### Log codes
+
+- `[DF-TRACE-001]` — missing correlation ID, fresh GUID generated (warning — indicates an unwired caller)
+- `[DF-TRACE-002]` — orchestrator span created for instance ID
+- `[DF-TRACE-010]` — activity span linked to parent orchestrator span
+
+All within the new `DF-TRACE-001..099` range registered in Appendix E.1.
+
+#### What this unlocks for scale
+
+1. **Single-click reconstruction**: given an `instanceId`, Grafana Tempo returns the full trace across all 18 activities as one waterfall.
+2. **Correlation ID is free**: no activity has to remember to pass it; Baggage carries it through every `HttpClient` call (OTel's HTTP instrumentation auto-propagates W3C baggage headers), every downstream API call on the agent's behalf, every Claude call.
+3. **Support runbook from §16.10 works**: "paste the ref" → look up trace ID in Tempo → see the entire activation timeline.
+4. **Error budget math**: orchestrator-level spans let us define SLOs on orchestration success rate (§18.7) without inferring it from activity counts.
 
 ---
 
@@ -1335,7 +1571,8 @@ The join-path activity that appends a new agent to the brokerage implements a bo
 
 ```csharp
 // In BrokerageJoinActivity (new) or PersistSiteContentActivity
-for (int attempt = 0; attempt < 3; attempt++)
+// Bounded retry loop — 5 attempts matches §8.4 routing and the R5 retry budget rule
+for (int attempt = 0; attempt < 5; attempt++)
 {
     var account = await _accountConfigService.GetAccountAsync(accountId, ct);
     if (account is null)
@@ -1385,11 +1622,47 @@ R2 specified two things that R3 explicitly removes:
 - Idempotent replay (agent already in list): short-circuits without any writes
 - Integration test: 10 parallel `BrokerageJoinActivity` invocations with distinct agents against the same account, all succeed eventually, final account contains all 10 agents
 
-#### Reused observability
+#### Observability (R5 — explicit)
 
-- `[ACCOUNT-MERGE-001..049]` log codes in Appendix E — no changes
-- `AccountConfigDiagnostics.Conflicts` metric (new, mirrors `TokenStoreDiagnostics.Conflicts`) — surfaces in the existing Grafana activation dashboard as a new panel
-- ActivitySource `RealEstateStar.DataServices.AccountConfigService` (new) — spans tagged with `account_id`, `attempt`, `outcome` (`saved`, `conflict`, `retry-exhausted`)
+`AccountConfigDiagnostics` does **not** exist on the branch yet (verified). This spec creates it as a new file `apps/api/RealEstateStar.DataServices/Diagnostics/AccountConfigDiagnostics.cs`, following the exact pattern of [apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TokenStoreDiagnostics.cs](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TokenStoreDiagnostics.cs).
+
+**Full instrument set:**
+
+```csharp
+public static class AccountConfigDiagnostics
+{
+    public const string ServiceName = "RealEstateStar.AccountConfig"; // short, matches codebase convention
+    public static readonly Meter Meter = new(ServiceName);
+    public static readonly ActivitySource ActivitySource = new(ServiceName);
+
+    public static readonly Counter<long> Reads = Meter.CreateCounter<long>(
+        "accountconfig.reads", description: "AccountConfig read operations");
+    public static readonly Counter<long> Writes = Meter.CreateCounter<long>(
+        "accountconfig.writes", description: "AccountConfig write attempts (successful SaveIfUnchangedAsync)");
+    public static readonly Counter<long> Conflicts = Meter.CreateCounter<long>(
+        "accountconfig.conflicts", description: "ETag conflicts (412) on SaveIfUnchangedAsync");
+    public static readonly Counter<long> RetriesExhausted = Meter.CreateCounter<long>(
+        "accountconfig.retries_exhausted", description: "Join-path retries exhausted (5 attempts)");
+    public static readonly Histogram<double> Duration = Meter.CreateHistogram<double>(
+        "accountconfig.duration_ms", unit: "ms", description: "AccountConfig operation duration");
+}
+```
+
+**Metric tag policy** — allowed tags per R5 Span Attribute Registry (§16.9):
+- `Reads` / `Writes` / `Conflicts` / `RetriesExhausted`: no tags (single counter per brokerage is sufficient; brokerage identity goes on spans, not metrics, to avoid cardinality explosion)
+- `Duration`: tag `operation` ∈ `{read, write}` only
+
+**ActivitySource wiring**: `AccountConfigDiagnostics.ActivitySource` must be added to `TelemetryRegistrations.All` (§E.3 rule 5) so both API and Functions hosts register it.
+
+**Span attributes** (per the §16.9 registry): `account.id`, `attempt`, `outcome` ∈ `{saved, conflict, retry-exhausted}`, `correlation.id` (inherited from request/activity context via baggage — see §5.8).
+
+**Log codes**: `[ACCOUNT-MERGE-001..099]` — see Appendix E.1 for the full assignment.
+
+**Grafana panel** (new, spec-defined — see §18.7 for dashboard commitments):
+- Title: "AccountConfig concurrency"
+- Query 1: `rate(accountconfig_conflicts_total[5m])` — conflict rate
+- Query 2: `histogram_quantile(0.95, accountconfig_duration_ms_bucket)` — p95 latency
+- Query 3: `rate(accountconfig_retries_exhausted_total[1h])` — alert-ready: >0 in an hour is a paging event
 
 #### Two concurrent writers racing — the happy path
 
@@ -1873,15 +2146,86 @@ sequenceDiagram
 
 **Error recovery**: if the losing lead's retry also loses the CAS (three simultaneous leads, maybe), the retry loop continues up to 5 attempts with exponential backoff. Three-way contention on the same routing row is essentially impossible given real brokerage lead arrival rates; the budget exists purely as a safety valve.
 
-#### Observability
+#### Observability (R5 — explicit)
 
-- `[LEAD-ROUTE-001..099]` log codes (see Appendix E)
+A new `BrokerageRoutingDiagnostics` class at `apps/api/RealEstateStar.DataServices/Diagnostics/BrokerageRoutingDiagnostics.cs` carries the routing metrics and ActivitySource. Pattern matches [apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TokenStoreDiagnostics.cs](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/TokenStoreDiagnostics.cs).
+
+**Full instrument set:**
+
+```csharp
+public static class BrokerageRoutingDiagnostics
+{
+    public const string ServiceName = "RealEstateStar.BrokerageRouting";
+    public static readonly Meter Meter = new(ServiceName);
+    public static readonly ActivitySource ActivitySource = new(ServiceName);
+
+    // Decisions — tagged ONLY by reason (bounded enum, ~5 values)
+    public static readonly Counter<long> Decisions = Meter.CreateCounter<long>(
+        "routing.decisions",
+        description: "Routing decisions, tagged by outcome reason");
+
+    // CAS conflicts — untagged; contention observed per brokerage is a span attribute, not a metric tag
+    public static readonly Counter<long> CasConflicts = Meter.CreateCounter<long>(
+        "routing.cas_conflicts",
+        description: "412 Precondition Failed on brokerage-routing-consumption row");
+
+    public static readonly Counter<long> CasRetriesExhausted = Meter.CreateCounter<long>(
+        "routing.cas_retries_exhausted",
+        description: "Routing decision failed after 5 CAS attempts (503 to caller)");
+
+    // Override usage — tagged by outcome
+    public static readonly Counter<long> OverrideOutcomes = Meter.CreateCounter<long>(
+        "routing.override_outcomes",
+        description: "next_lead override outcomes: consumed, lost-race, typo-ignored");
+
+    // Hash realignment — counts how often the human edit invalidated the Azure Table row
+    public static readonly Counter<long> HashRealignments = Meter.CreateCounter<long>(
+        "routing.hash_realignments",
+        description: "Routing decisions that observed a fresh PolicyContentHash and reset the consumption row");
+
+    // Latency p50/p95/p99 for the whole routing decision (Drive read + Table read + decide + CAS)
+    public static readonly Histogram<double> DecisionDuration = Meter.CreateHistogram<double>(
+        "routing.decision_duration_ms", unit: "ms",
+        description: "End-to-end routing decision latency");
+}
+```
+
+**Metric tag policy** — this is the rule that keeps routing metrics from exploding:
+
+| Instrument | Allowed tags | Disallowed |
+|---|---|---|
+| `routing.decisions` | `reason` ∈ `{manual-override, specialty-match, service-area-match, weighted-round-robin, any-enabled-agent-fallback}` | `account_id`, `lead_id`, `agent_id` |
+| `routing.cas_conflicts` | none | everything |
+| `routing.cas_retries_exhausted` | none | everything |
+| `routing.override_outcomes` | `outcome` ∈ `{consumed, lost-race, typo-ignored}` | everything else |
+| `routing.hash_realignments` | none | everything |
+| `routing.decision_duration_ms` | `reason` (same bounded enum as decisions) | `account_id`, `lead_id` |
+
+`account_id`, `lead_id`, `winner_agent_id`, and `policy_content_hash` go on **spans** (unbounded in cardinality is fine there — they're per-request) and on **log fields**. They never appear as metric tag dimensions. This single rule is what lets the routing metrics stay cheap as the platform scales from 10 brokerages to 10,000. Audit trail for per-decision data is the `routing-log.csv` in Drive + `brokerage-routing-decisions` Azure Table, not the metric series.
+
+**ActivitySource**: `BrokerageRoutingDiagnostics.ActivitySource` — registered in `TelemetryRegistrations.All` (§E.3 rule 5). Spans:
+- `routing.decide` (root span per `route_lead` call) with attributes `account.id`, `lead.id`, `policy.content_hash`, `attempt`, `reason`, `winner.agent_id`, `correlation.id` (propagated via baggage — see §5.8)
+- Child spans: `routing.drive_read` (Drive round-trip), `routing.table_read` (Azure Table read), `routing.cas_commit` (the single `UpdateEntity` call)
+
+**Log codes** (see Appendix E.1):
+- `[LEAD-ROUTE-001]` — routed (normal success)
 - `[LEAD-ROUTE-OVERRIDE-001]` — manual override consumed
 - `[LEAD-ROUTE-OVERRIDE-002]` — override lost to concurrent lead, fell through
+- `[LEAD-ROUTE-OVERRIDE-003]` — typo (agent not in policy)
 - `[LEAD-ROUTE-UNROUTABLE-001]` — no matching agent, `fall_back_when_no_match = "reject"`
-- Grafana panel: routing decisions by reason (manual-override / specialty-match / service-area / weighted-round-robin)
-- Grafana panel: counter contention rate per brokerage (alerts when > 5% 412s in a 5-minute window)
-- Grafana panel: `next_lead` manual override usage rate per brokerage (anomaly detection — brokerages with 50%+ manual override rate may need a policy tune)
+- `[LEAD-ROUTE-CONTENTION-001]` — 5 CAS failures on consumption row → 503
+
+**Grafana panels** (spec-defined in §18.7 dashboards-as-code commitment):
+
+| Panel | Query | Alert |
+|---|---|---|
+| Routing decisions by reason | `sum by (reason) (rate(routing_decisions_total[5m]))` | none |
+| CAS contention rate | `rate(routing_cas_conflicts_total[5m]) / rate(routing_decisions_total[5m])` | warn > 5% sustained 5min |
+| Routing decision latency p95 | `histogram_quantile(0.95, sum by (le, reason) (rate(routing_decision_duration_ms_bucket[5m])))` | warn > 500ms, page > 2s |
+| Retries exhausted | `increase(routing_cas_retries_exhausted_total[1h])` | page > 0 in 1h |
+| Override usage per brokerage | log-based metric on `[LEAD-ROUTE-OVERRIDE-001]` grouped by `account.id` span attribute via trace-to-log linking (§16.10) | anomaly: > 50% of decisions for any single account in 24h |
+
+Note on the last panel: it **cannot** be expressed as a pure Prometheus query because `account_id` is intentionally not a metric tag. The spec accepts a slower log-based panel for this specific question in exchange for keeping the metric series bounded. This is the tradeoff every mature observability stack makes.
 
 #### When the override is ambiguous
 
@@ -3358,6 +3702,76 @@ The system handles PII from three sources: the activating agent, the prospects c
 - DSAR path: lead erasure requests go to the agent's email (they are the data controller for their leads, per our terms). Platform provides tooling but is not the data controller.
 - **Application-layer encryption**: lead submissions containing phone numbers and messages are encrypted with AES-GCM using a tenant-scoped key from Azure Key Vault before being written to KV (if stored there) or blob. The key is rotated per-tenant on account creation.
 
+### 16.9 Span Attribute Registry (R5)
+
+Observability consistency only pays off if attribute names are **centralized**. Your codebase already has a consistent de-facto set (verified via audit): `lead.id`, `agent.id`, `correlation.id`, `claude.pipeline`, `claude.model`, `session.id`, `session.state`, `result.success`, `queue.name`, `message.id`. R5 promotes this to a formal registry. Every component — existing or new — must draw span attribute names from this table. Adding a new attribute requires a PR that extends the registry.
+
+**Canonical attribute registry:**
+
+| Attribute | Type | Example | Cardinality | Producers | Notes |
+|---|---|---|---|---|---|
+| `correlation.id` | string (GUID no-hyphen) | `a3f1...` | unbounded per-request | Every service via baggage | Source of truth: `CorrelationIdMiddleware`. Propagated into DF activities via baggage (§5.8). |
+| `account.id` | string (handle) | `jenise-buckalew` | O(1k) | Api, Workers, Activities, Functions | Brokerage or single-agent account identifier. |
+| `agent.id` | string (handle) | `alice` | O(10k) | Workers, Activities, Routing | Individual agent within an account. |
+| `lead.id` | string (GUID) | `7c2e...` | unbounded | Lead pipeline, Routing, Activities | Per-lead trace key. |
+| `locale` | BCP 47 string | `en`, `es`, `pt` | O(10) | Content generation, Email, PDF | Always lowercase. |
+| `pipeline.step` | string (bounded enum) | `activation.hero.es`, `lead.email_draft` | O(50) | `IVoicedContentGenerator`, Claude client, activities | Identifies cost center. |
+| `claude.model` | string | `claude-sonnet-4-6`, `claude-haiku-4-5` | O(5) | Claude client | Model used for the call. |
+| `claude.pipeline` | string | legacy name for pipeline.step on older sources | O(50) | `AnthropicClient` | **Deprecated** — new code uses `pipeline.step`. R5 targets convergence in §18.7 follow-up work. |
+| `session.id` | string | onboarding session | unbounded | Onboarding, Preview sessions | |
+| `session.state` | string (state machine enum) | `Preview`, `Approved`, `Live` | O(10) | Preview/billing state machine | |
+| `queue.name` | string | `activation-requests` | O(10) | Queue diagnostics | Static allowlist. |
+| `message.id` | string | Azure Queue message ID | unbounded | Queue consumers | |
+| `result.success` | bool | `true`/`false` | 2 | Every span | Quick filter. |
+| `attempt` | int | `1`..`5` | O(10) | Retry loops (AccountConfig, Routing) | |
+| `outcome` | string (bounded enum per component) | `saved`, `conflict`, `retry-exhausted` | O(10) | Retry loops | Component-specific; see each Diagnostics class. |
+| `reason` | string (bounded enum per component) | `manual-override`, `specialty-match` | O(10) | Routing, fallback paths | Component-specific. |
+| `policy.content_hash` | string (SHA-256 prefix, 16 chars) | `e3b0c442...` | unbounded | Brokerage routing | Truncated to 16 chars in spans to bound log field size. |
+| `facts.hash` | string (SHA-256 prefix) | `9a2f...` | unbounded | SiteFactExtractor, VoicedContentGenerator | Cache key for activation output. |
+| `is_fallback` | bool | `true`/`false` | 2 | VoicedContentGenerator, BuildLocalizedSiteContent | |
+| `failure_reason` | string (bounded enum) | `schema-mismatch`, `fair-housing-violation` | O(10) | VoicedContentGenerator, linter | |
+| `tenant.id` | string (handle) | same as `account.id` for now | O(1k) | Tenant isolation middleware | Alias pending; do not use `tenant.id` in new code — use `account.id`. |
+| `hostname` | string (lowercased, normalized) | `jenisesellsnj.com` | O(1k) | BYOD, Worker routing | |
+| `domain.status` | string (state) | `submitted`, `ownership-verified`, `live`, `suspended` | O(10) | Domain verification job | |
+
+**Metric tag policy** (separate from span attributes — span attributes can be unbounded, metric tags cannot):
+
+> **Rule**: a span attribute may be used as a metric tag **only if** its cardinality column above says `O(10)` or less. Attributes marked `O(1k)`, `O(10k)`, or `unbounded` must **never** appear as metric tags. They belong on spans and log fields only.
+
+This rule is what makes the observability story cost-bounded as the platform scales. Every new Diagnostics class in this spec (see §8.3 `AccountConfigDiagnostics`, §8.4 `BrokerageRoutingDiagnostics`, §5.3 `VoicedContentGeneratorDiagnostics`) is already compliant. Violations are caught by a new architecture test `MetricTags_AreBoundedCardinality` that scans every `Counter.Add(...)` and `Histogram.Record(...)` call for disallowed tag keys.
+
+**Cross-reference**: the existing codebase already uses several of these attributes (`lead.id`, `agent.id`, `correlation.id`, `claude.pipeline`, `queue.name`, `session.id`, `session.state`, `result.success`, `message.id`) — verified via audit. R5 formalizes the set; it does not require rewriting existing code.
+
+### 16.10 End-to-end traceability for support (R5)
+
+At scale, every support inquiry will be "this agent said X didn't work, what happened?" R5 commits to a first-class reconstruction path so a support engineer can answer that in under 60 seconds.
+
+**The `TraceLink` pattern**: every persisted decision record (`RoutingDecision` §8.4, lead persist records, preview session exchange receipts, domain verification transitions) carries a `TraceLink` field:
+
+```csharp
+public sealed record TraceLink(
+    string TraceId,      // W3C traceparent trace-id (16-byte hex)
+    string SpanId,       // 8-byte hex
+    DateTimeOffset At    // when this span was closed
+);
+```
+
+`TraceLink` is a sibling column on every audit Azure Table row and the last column of every audit CSV (`routing-log.csv`, `consent-log.csv`). It is populated from `Activity.Current?.Context` at the moment of persist. Architecture test `AuditRecords_HaveTraceLink` asserts every audit DTO has the field.
+
+**Inbound surfaces carry the correlation ID visibly**:
+
+1. **Welcome email footer** — in addition to the existing "view your site" link, the footer includes a monospace `Ref: {correlationId}` line. Support asks the agent to paste the ref.
+2. **Preview URL** — `https://preview.jenisesellsnj.com/?ref={correlationId}` (cookie-based auth, query param is display-only).
+3. **Lead reply email** — the auto-draft email's transactional footer includes `Ref: {leadId}-{correlationId}`.
+
+**Support runbook** (new, `docs/runbooks/trace-reconstruction.md` — placeholder referenced here, written during implementation):
+
+1. Given a correlation ID `a3f1...`: run `logcli query '{component="api"} | json | correlation_id="a3f1..."' --limit=200` to get every log line from that request across services.
+2. Given a lead ID: look up `brokerage-routing-decisions` partition `{accountId}` row `{leadId}` — the `TraceLink.TraceId` field is the trace to pull from Grafana Tempo.
+3. Given an agent complaint about a missing site feature: look up `account.json` in Drive for the activation correlation ID (stored as `_activation.last_correlation_id` — a new field added by this spec), then pull the orchestrator span by that ID.
+
+**Why this matters for scale**: the alternative — grepping logs by agent handle or email — does not work once the platform has 1,000 brokerages. Every query needs a cheap sharding key. `correlation.id` and `trace.id` are those keys. Making them user-visible (via email footers and URL refs) turns support from an "engineer dives into logs for 30 minutes" operation into a "support pastes the ref into a dashboard" operation.
+
 ---
 
 ## 17. Compliance Requirements Matrix
@@ -3992,6 +4406,28 @@ Every numeric tunable referenced elsewhere in this document lives in this single
 | Domain verification timeout | 7 days | `Domain:VerificationTimeoutDays` | Agents who abandon setup | §9 |
 | Domain suspended grace period | 7 days | `Domain:SuspendedGracePeriodDays` | Time for agent to fix DNS after first failure | §16.2 |
 
+**R5 OBS-9 — Cache observability rule**: every cache in this table must emit hit/miss metrics. No exceptions. Tag set is `{ cache_name }` where `cache_name` is a bounded enum drawn from the "Name" column above. The rule is enforced by architecture test `Caches_EmitHitMissMetrics` which scans for any class implementing `ICache<K,V>` or using `ObjectCache`/`MemoryCache` and asserts it increments a counter from `CacheDiagnostics`:
+
+```csharp
+public static class CacheDiagnostics
+{
+    public const string ServiceName = "RealEstateStar.Caches";
+    public static readonly Meter Meter = new(ServiceName);
+
+    public static readonly Counter<long> Hits = Meter.CreateCounter<long>(
+        "cache.hits", description: "Cache hits, tagged by cache_name");
+    public static readonly Counter<long> Misses = Meter.CreateCounter<long>(
+        "cache.misses", description: "Cache misses, tagged by cache_name");
+    public static readonly Histogram<double> LookupDuration = Meter.CreateHistogram<double>(
+        "cache.lookup_duration_ms", unit: "ms",
+        description: "Cache lookup duration, tagged by cache_name");
+}
+```
+
+`cache_name` is bounded (O(20)) so it's a safe metric tag. `account_id`, `key`, and other per-request values are span attributes only (per §16.9).
+
+**Why this matters for scale**: cache hit rate is your primary cost signal. When activation costs spike, the first question is "did our voiced content cache hit rate drop?" — without a metric, that question takes log-parsing hours to answer. With the metric, it's a single Grafana panel query: `sum(rate(cache_hits_total{cache_name="voiced-content"}[5m])) / (sum(rate(cache_hits_total{cache_name="voiced-content"}[5m])) + sum(rate(cache_misses_total{cache_name="voiced-content"}[5m])))`.
+
 ### 18.3 Preview and billing
 
 | Name | Value | Config key | Rationale | Section |
@@ -4040,6 +4476,79 @@ Every numeric tunable referenced elsewhere in this document lives in this single
 | `Activation:VoicedContent:CacheEnabled` | `true` | Master switch for voiced content cache (disable to force regeneration) | §5.3 |
 | `Activation:IdxGallery:Enabled` | `true` | Master switch for IDX gallery items (disable to ship with agent-upload only) | §17.2 |
 | `Sites:EditableStateEnabled` | `false` | Master switch for post-billing editor access (out of scope but flag reserved) | §10 |
+
+### 18.7 SLOs, dashboards, and alert rules as code (R5)
+
+Prior revisions described alerts in prose ("alerts when > 5% 412s in a 5-minute window"). That is a commitment without a contract. R5 promotes every alert to **a file in the repo** so the alert exists, has a maintainer, has a severity, and has a paging destination.
+
+#### Service Level Objectives
+
+Three user-facing paths get SLOs. Each has an error budget measured over a rolling 30-day window and burn-rate alerts (not threshold alerts) so short spikes are tolerated but sustained degradation pages quickly.
+
+| SLO | Definition | Target | Window | Error budget | Burn-rate alerts |
+|---|---|---|---|---|---|
+| **Activation orchestration success** | `rate(df_orchestrator_completions{result_success="true", orchestrator="activation"}) / rate(df_orchestrator_completions{orchestrator="activation"})` | ≥ 99% | 30d | 1% (~7.2 hours of sustained failure) | 2% over 1h → warn, 5% over 5m → page |
+| **Preview → live publish success** | `rate(publish_completions{result_success="true"}) / rate(publish_completions)` | ≥ 99.5% | 30d | 0.5% | 1% over 1h → warn, 2% over 5m → page |
+| **Lead delivery latency** | `histogram_quantile(0.95, sum by (le) (rate(lead_delivery_duration_ms_bucket[5m])))` | ≤ 30 seconds p95 (lead submit → agent notified) | 30d | 2 minutes of breach per day | p95 > 45s for 10m → warn, p95 > 90s for 5m → page |
+
+Each SLO has an owning team (Eddie + Claude, currently), a runbook URL placeholder, and a status-page integration target (decision deferred until §10 preview flow is built).
+
+#### Alert rules as code
+
+A new directory `infra/grafana/alerts/` is created by this spec. All alert rules live there as JSON (Grafana provisioning format) or YAML (Prometheus rules format — decision based on whether we use Grafana-managed alerts or a separate Prometheus server). The directory is **the source of truth** for alerts — no alerts configured in the Grafana UI survive the next deploy because CI deploys only what's in the directory.
+
+Initial file set (skeleton, with placeholder thresholds that get tuned after first month of data):
+
+```
+infra/grafana/alerts/
+├── README.md                              # How to add a new alert
+├── slo-activation-orchestration.yaml      # Burn-rate alerts for SLO #1
+├── slo-preview-publish.yaml               # Burn-rate alerts for SLO #2
+├── slo-lead-delivery.yaml                 # Burn-rate alerts for SLO #3
+├── routing-cas-contention.yaml            # From §8.4 observability section
+├── routing-cas-retries-exhausted.yaml     # Page on > 0 in 1h
+├── accountconfig-conflicts.yaml           # From §8.3 observability
+├── accountconfig-retries-exhausted.yaml   # Page on > 0 in 1h
+├── vcg-fallback-rate.yaml                 # Warn when fallback rate > 10% over 1h
+├── vcg-cache-hit-rate.yaml                # Warn when cache hit rate < 50% over 1h
+├── cost-activation-per-agent.yaml         # Warn when sum(vcg_cost_usd) / activations > $2.50 per activation
+├── domain-verification-failures.yaml      # Warn on > 5 consecutive failures for any hostname
+├── stripe-webhook-signature-failures.yaml # Page on > 0 in 5m (active attack signal)
+├── tokenstore-conflicts-baseline.yaml    # Baseline existing metric — regression alert
+└── otel-export-health.yaml                # Page when OTLP exporter backlogged > 5m
+```
+
+Each YAML file carries: alert name, PromQL expression, for-duration, severity, annotation (summary + runbook link), and labels (team, component, slo). The alerts CI job validates every file with `amtool check-config` (or equivalent) and refuses merges on invalid rules.
+
+#### Dashboards as code
+
+Three dashboards already exist in the repo ([infra/grafana/real-estate-star-api-dashboard.json](infra/grafana/real-estate-star-api-dashboard.json), [infra/grafana/real-estate-star-functions-dashboard.json](infra/grafana/real-estate-star-functions-dashboard.json), [apps/api/infra/grafana/dashboards/cma-pipeline.json](apps/api/infra/grafana/dashboards/cma-pipeline.json)). R5 adds five more:
+
+| Dashboard file | Covers |
+|---|---|
+| `infra/grafana/dashboards/activation-pipeline.json` | Orchestrator success, per-activity latency, per-phase error rates, cost per activation |
+| `infra/grafana/dashboards/brokerage-routing.json` | Routing decisions by reason, CAS contention, p95 decision latency, override usage by account |
+| `infra/grafana/dashboards/voiced-content.json` | VCG cost, cache hit rate, fallback rate, p95 latency, breakdown by pipeline_step and locale |
+| `infra/grafana/dashboards/slos-overview.json` | All 3 SLOs on one page with error budget burn-rate gauges |
+| `infra/grafana/dashboards/support-triage.json` | Support runbook companion (§16.10) — lookup by correlation.id, trace.id, lead.id, account.id |
+
+Dashboards are committed as JSON with a `uid` that makes them stable across environments. CI deploys them via Grafana's provisioning API.
+
+#### What "world class" means here
+
+The definition of world-class observability for this project is:
+
+1. **Every alert exists as a file in the repo, not a Grafana UI click.** (§18.7 alert directory)
+2. **Every SLO has an error budget and burn-rate alerts, not threshold alerts.** (§18.7 SLO table)
+3. **Every user-visible operation has a single trace ID you can paste into Tempo.** (§5.8 DF middleware, §16.10 TraceLink)
+4. **Every metric tag dimension is bounded.** (§16.9 registry + arch test)
+5. **Every log line has a code and the code is in one table.** (Appendix E)
+6. **Every cache has a hit/miss metric.** (§18.2 R5 rule)
+7. **Every orchestrator is replay-safe in its logging.** (§5.8 arch test)
+8. **Every audit record has a TraceLink so support can jump from data to trace.** (§16.10)
+9. **The OTel registration list lives in one file, not two.** (§E.3 rule 5)
+
+The codebase already satisfies 0-1 of those today — you have 22 ActivitySources and 22 Meters, but no SLOs, no alerts as code, no span attribute registry, no bounded-tag enforcement, no orchestrator spans, and no audit-to-trace linking. R5 is the spec-level commitment to close that gap. The actual implementation work is tracked in §15 (Implementation Plan) — a new work stream S0 "Observability foundation" is added there as a prerequisite to every other stream.
 
 ---
 
@@ -4279,55 +4788,69 @@ Every new worker, activity, service, and endpoint has a dedicated log code range
 
 ### E.1 Component log code assignments
 
-| Component | Range | Example usage |
-|---|---|---|
-| **Workers (new)** | | |
-| `SiteFactExtractor` | `SFE-001..099` | `[SFE-001]` starting, `[SFE-010]` fact extraction complete, `[SFE-030]` insufficient data warning |
-| `TeamScrapeWorker` | `TMS-001..099` | `[TMS-001]` starting, `[TMS-010]` sitemap found, `[TMS-020]` fallback path, `[TMS-030]` robots denied, `[TMS-040]` max prospects reached |
-| `LegalPagesWorker` | `LEG-001..099` | `[LEG-001]` starting, `[LEG-010]` state rules loaded, `[LEG-020]` page generated, `[LEG-030]` disclaimer appended |
-| `FairHousingLinter` | `FHA-001..099` | `[FHA-001]` flag (phrase, category), `[FHA-010]` retry with guidance, `[FHA-020]` fallback after second flag |
-| **Activities (new)** | | |
-| `BuildLocalizedSiteContent` | `BLS-001..099` | `[BLS-001]` starting for locale, `[BLS-010]` section complete, `[BLS-020]` fallback tier 1, `[BLS-030]` fallback tier 2 |
-| `PersistSiteContent` | `PSC-001..099` | `[PSC-001]` starting, `[PSC-010]` KV write, `[PSC-020]` Drive backup, `[PSC-030]` compensation triggered |
-| `RehostAssetsToR2` | `R2H-001..099` | `[R2H-001]` starting, `[R2H-010]` asset uploaded, `[R2H-020]` URL rewrite complete, `[R2H-030]` upload failure |
-| **Domain-level components (new)** | | |
-| `VoicedContentGenerator` | `VCG-001..099` | `[VCG-001]` generation start, `[VCG-010]` cache hit, `[VCG-020]` schema validation pass, `[VCG-030]` fallback, `[VCG-040]` fair-housing rejection |
-| `SsrfGuard` | `SSRF-001..099` | `[SSRF-001]` rejected scheme, `[SSRF-002]` rejected IP range, `[SSRF-010]` size cap hit, `[SSRF-020]` DNS rebind detected |
-| `ContrastValidator` | `CONTRAST-001..099` | `[CONTRAST-001]` auto-adjusted color, `[CONTRAST-002]` cannot converge, `[CONTRAST-010]` advisory to agent |
-| `HtmlTextExtractor` | `HTML-001..099` | `[HTML-001]` extraction started, `[HTML-010]` script stripped, `[HTML-020]` malformed input |
-| **API endpoints (new)** | | |
-| `POST /domains*` | `DOMAIN-001..099` | `[DOMAIN-SUBMIT-001]`, `[DOMAIN-VERIFY-001..020]`, `[DOMAIN-REVERIFY-001..020]`, `[DOMAIN-REJECT-001..020]` (blocklist hits) |
-| `POST /preview-sessions/exchange` | `PREVIEW-001..099` | `[PREVIEW-001]` exchange ok, `[PREVIEW-010]` invalid token, `[PREVIEW-020]` expired, `[PREVIEW-030]` revoked |
-| `POST /sites/{id}/approve` | `APPROVE-001..099` | `[APPROVE-001]` click, `[APPROVE-010]` Stripe session created, `[APPROVE-020]` state transition |
-| `POST /sites/{id}/publish` | `PUBLISH-001..099` | `[PUBLISH-001]` webhook ok, `[PUBLISH-010]` promotion complete, `[PUBLISH-020]` edge cache purge |
-| Stripe webhook guards | `STRIPE-WH-001..099` | `[STRIPE-WH-001]` signature fail, `[STRIPE-WH-002]` duplicate event, `[STRIPE-WH-003]` IP not allowed, `[STRIPE-WH-004]` scope mismatch |
-| `POST /prospects/{email}/delete-request` | `DSAR-001..099` | `[DSAR-001]` request, `[DSAR-010]` verification sent, `[DSAR-020]` confirmed + deleted |
-| **Compliance enforcement (new)** | | |
-| TCPA capture | `TCPA-001..099` | `[TCPA-001]` missing consent rejection, `[TCPA-010]` valid submission recorded |
-| IDX gallery | `IDX-001..099` | `[IDX-001]` item dropped — missing attribution, `[IDX-010]` refresh cycle complete, `[IDX-020]` staleness cutoff |
-| State advertising | `STATE-ADV-001..099` | `[STATE-ADV-001]` missing required field, `[STATE-ADV-010]` site moved to Needs Info |
-| Image provenance | `IMG-PROV-001..099` | `[IMG-PROV-001]` rights dialog shown, `[IMG-PROV-010]` claim recorded, `[IMG-PROV-020]` brokerage change flagged |
-| **Tenant isolation defense-in-depth** | | |
-| Mismatch detection | `TENANT-ISOLATION-001..099` | `[TENANT-ISOLATION-001]` mismatch caught, fail closed |
+**Status column (R5)**: every code range is marked **EXISTS** (already in use on the branch — grep to find call sites), **NEW** (specified by this spec, needs to be added), or **EXTEND** (range exists; this spec adds new codes within it). This matters because an implementer working from the spec needs to know whether to search-and-reuse or create-from-scratch.
 
-### E.2 Existing components (not changed)
+| Component | Range | Status | Example usage |
+|---|---|---|---|
+| **Workers (new)** | | | |
+| `SiteFactExtractor` | `SFE-001..099` | NEW | `[SFE-001]` starting, `[SFE-010]` fact extraction complete, `[SFE-030]` insufficient data warning |
+| `TeamScrapeWorker` | `TMS-001..099` | NEW | `[TMS-001]` starting, `[TMS-010]` sitemap found, `[TMS-020]` fallback path, `[TMS-030]` robots denied, `[TMS-040]` max prospects reached |
+| `LegalPagesWorker` | `LEG-001..099` | NEW | `[LEG-001]` starting, `[LEG-010]` state rules loaded, `[LEG-020]` page generated, `[LEG-030]` disclaimer appended |
+| `FairHousingLinter` | `FHA-001..099` | NEW | `[FHA-001]` flag (phrase, category), `[FHA-010]` retry with guidance, `[FHA-020]` fallback after second flag |
+| **Activities (new)** | | | |
+| `BuildLocalizedSiteContent` | `BLS-001..099` | NEW | `[BLS-001]` starting for locale, `[BLS-010]` section complete, `[BLS-020]` fallback tier 1, `[BLS-030]` fallback tier 2 |
+| `PersistSiteContent` | `PSC-001..099` | NEW | `[PSC-001]` starting, `[PSC-010]` KV write, `[PSC-020]` Drive backup, `[PSC-030]` compensation triggered |
+| `RehostAssetsToR2` | `R2H-001..099` | NEW | `[R2H-001]` starting, `[R2H-010]` asset uploaded, `[R2H-020]` URL rewrite complete, `[R2H-030]` upload failure |
+| **Domain-level components (new)** | | | |
+| `VoicedContentGenerator` | `VCG-001..099` | NEW | `[VCG-001]` generation start, `[VCG-010]` cache hit, `[VCG-020]` schema validation pass, `[VCG-030]` fallback, `[VCG-040]` fair-housing rejection |
+| `SsrfGuard` | `SSRF-001..099` | NEW | `[SSRF-001]` rejected scheme, `[SSRF-002]` rejected IP range, `[SSRF-010]` size cap hit, `[SSRF-020]` DNS rebind detected |
+| `ContrastValidator` | `CONTRAST-001..099` | NEW | `[CONTRAST-001]` auto-adjusted color, `[CONTRAST-002]` cannot converge, `[CONTRAST-010]` advisory to agent |
+| `HtmlTextExtractor` | `HTML-001..099` | NEW | `[HTML-001]` extraction started, `[HTML-010]` script stripped, `[HTML-020]` malformed input |
+| **Concurrency primitives (new in this spec)** | | | |
+| `AccountConfigService` | `ACCOUNT-MERGE-001..099` | NEW | `[ACCOUNT-MERGE-001]` agent merged, `[ACCOUNT-MERGE-010]` ETag conflict retrying, `[ACCOUNT-MERGE-020]` account not found, `[ACCOUNT-MERGE-030]` idempotent no-op (agent already present), `[ACCOUNT-MERGE-040]` retries exhausted |
+| `BrokerageRoutingConsumption` | `LEAD-ROUTE-001..099` | NEW | `[LEAD-ROUTE-001]` routed, `[LEAD-ROUTE-OVERRIDE-001]` override consumed, `[LEAD-ROUTE-OVERRIDE-002]` override lost to concurrent lead, `[LEAD-ROUTE-OVERRIDE-003]` typo (agent not in policy), `[LEAD-ROUTE-UNROUTABLE-001]` no matching agent, `[LEAD-ROUTE-CONTENTION-001]` CAS retries exhausted |
+| **API endpoints (new)** | | | |
+| `POST /domains*` | `DOMAIN-001..099` | NEW | `[DOMAIN-SUBMIT-001]`, `[DOMAIN-VERIFY-001..020]`, `[DOMAIN-REVERIFY-001..020]`, `[DOMAIN-REJECT-001..020]` (blocklist hits) |
+| `POST /preview-sessions/exchange` | `PREVIEW-001..099` | NEW | `[PREVIEW-001]` exchange ok, `[PREVIEW-010]` invalid token, `[PREVIEW-020]` expired, `[PREVIEW-030]` revoked |
+| `POST /sites/{id}/approve` | `APPROVE-001..099` | NEW | `[APPROVE-001]` click, `[APPROVE-010]` Stripe session created, `[APPROVE-020]` state transition |
+| `POST /sites/{id}/publish` | `PUBLISH-001..099` | NEW | `[PUBLISH-001]` webhook ok, `[PUBLISH-010]` promotion complete, `[PUBLISH-020]` edge cache purge |
+| Stripe webhook guards | `STRIPE-WH-001..099` | NEW | `[STRIPE-WH-001]` signature fail, `[STRIPE-WH-002]` duplicate event, `[STRIPE-WH-003]` IP not allowed, `[STRIPE-WH-004]` scope mismatch |
+| `POST /prospects/{email}/delete-request` | `DSAR-001..099` | NEW | `[DSAR-001]` request, `[DSAR-010]` verification sent, `[DSAR-020]` confirmed + deleted |
+| **Compliance enforcement (new)** | | | |
+| TCPA capture (spec-added log codes only — the capture path itself already exists) | `TCPA-001..099` | NEW | `[TCPA-001]` missing consent rejection, `[TCPA-010]` valid submission recorded. Note: the existing `SubmitLeadEndpoint` + `MarketingConsent` triple-write already logs via other codes; `TCPA-NNN` is for the architecture-test enforcement layer in §17.3, not the existing pipeline. |
+| IDX gallery | `IDX-001..099` | NEW | `[IDX-001]` item dropped — missing attribution, `[IDX-010]` refresh cycle complete, `[IDX-020]` staleness cutoff |
+| State advertising | `STATE-ADV-001..099` | NEW | `[STATE-ADV-001]` missing required field, `[STATE-ADV-010]` site moved to Needs Info |
+| Image provenance | `IMG-PROV-001..099` | NEW | `[IMG-PROV-001]` rights dialog shown, `[IMG-PROV-010]` claim recorded, `[IMG-PROV-020]` brokerage change flagged |
+| **Tenant isolation defense-in-depth** | | | |
+| Mismatch detection | `TENANT-ISOLATION-001..099` | NEW | `[TENANT-ISOLATION-001]` mismatch caught, fail closed |
 
-These already have assigned ranges and remain stable. This spec does not modify them.
+### E.2 Existing components (already in use on the branch)
 
-| Component | Range |
-|---|---|
-| Activation orchestrator | `ACTV-FN-001..099` |
-| Anthropic client | `CLAUDE-001..030` (cost logging at `CLAUDE-020`) |
-| Gmail client (sender) | `GMAIL-001..030` |
-| Gmail reader | `GMAILREADER-001..030` |
-| Gdrive client | `GDRIVE-001..099` |
-| Zillow (Bridge Interactive) | `ZILLOW-001..030` |
-| Scraper client | `SCRAPE-001..030` |
-| WhatsApp | `WHATSAPP-001..030` |
-| Storage (blob) | `BLOB-001..030` |
-| Welcome notification | `WELCOME-001..099` |
-| Fan-out storage | `FANOUT-001..030` |
-| Durable Functions orchestrator shims | (standard Microsoft prefixes) |
+These ranges are **already emitting log lines today**. An implementer touching these files should reuse the existing codes in the range, not reassign them. Verified against the `feat/azure-cost-reduction` branch.
+
+| Component | Range | Status | Source (grep anchor) |
+|---|---|---|---|
+| API startup | `STARTUP-001..099` | EXISTS | [apps/api/RealEstateStar.Api/Program.cs](apps/api/RealEstateStar.Api/Program.cs) |
+| Activation orchestrator (DF) | `ACTV-FN-001..099` | EXISTS | [apps/api/RealEstateStar.Functions/Activation/ActivationOrchestratorFunction.cs](apps/api/RealEstateStar.Functions/Activation/ActivationOrchestratorFunction.cs) |
+| OAuth refresher | `OAUTH-000..030` | EXISTS | [apps/api/RealEstateStar.Clients/RealEstateStar.Clients.GoogleOAuth/GoogleOAuthRefresher.cs](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.GoogleOAuth/GoogleOAuthRefresher.cs) |
+| Token store (HMAC) | `HMAC-001..030` | EXISTS | [apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/AzureTableTokenStore.cs](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Azure/AzureTableTokenStore.cs) |
+| Anthropic client | `CLAUDE-001..030` (cost logging at `CLAUDE-020`) | EXISTS | [apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Anthropic/AnthropicClient.cs](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Anthropic/AnthropicClient.cs) |
+| Gmail client (sender) | `GMAIL-001..030` | EXISTS | [apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Gmail/](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.Gmail/) |
+| Gmail reader | `GMAILREADER-001..030` | EXISTS | same as above |
+| Google Drive client | `GDRIVE-001..099` | EXISTS | [apps/api/RealEstateStar.Clients/RealEstateStar.Clients.GDrive/GDriveApiClient.cs](apps/api/RealEstateStar.Clients/RealEstateStar.Clients.GDrive/GDriveApiClient.cs) |
+| Zillow (Bridge Interactive) | `ZILLOW-001..030` | EXISTS | scraping/zillow client |
+| Scraper client | `SCRAPE-001..030` | EXISTS | scraper client |
+| WhatsApp functions | `WA-FN-001..099` | EXISTS | [apps/api/RealEstateStar.Functions/WhatsApp/](apps/api/RealEstateStar.Functions/WhatsApp/) |
+| WhatsApp retry | `WA-001..099` | EXISTS | whatsapp service |
+| Lead persistence | `PERSIST-001..099` | EXISTS | activities/persist |
+| PDF generation | `PDF-001..099` | EXISTS | activities/pdf |
+| Welcome notification | `WELCOME-001..099` | EXTEND (R5 adds `WELCOME-050..060` for enriched pipeline data per §10.4) | services/welcome |
+| Fan-out storage | `FANOUT-001..030` | EXISTS | data services/fanout |
+| Storage provider | `STORAGE-001..099` | EXISTS | [apps/api/RealEstateStar.Data/](apps/api/RealEstateStar.Data/) |
+| Blob storage | `BLOB-001..030` | EXISTS | blob storage provider |
+| Durable Functions orchestrator shims | (standard Microsoft prefixes) | EXISTS | Microsoft.Azure.Functions.Worker |
+
+**How to tell at a glance**: if a row has STATUS=**NEW**, `git grep "\[XYZ-"` on the current branch should return zero matches (or only matches in this spec file). If STATUS=**EXISTS**, the grep will return call sites. CI test `LogCodes_AreWithinAssignedRanges` validates both — new ranges reserved here cannot be skipped when the component is built, and existing ranges cannot drift out of their component's files.
 
 ### E.3 Log code hygiene rules
 
@@ -4335,6 +4858,12 @@ These already have assigned ranges and remain stable. This spec does not modify 
 2. No code is reused for semantically different conditions. If you need a new message, assign a new code within your range.
 3. Grafana dashboard panels are built with code-prefix filters (`|~ "SFE-"`) — breaking the prefix convention breaks dashboards.
 4. Architecture test `LogCodes_AreWithinAssignedRanges` scans all logger calls, extracts prefixes, validates against this table.
+5. **R5 addition**: the source of truth for both log code ranges AND the OpenTelemetry `AddSource`/`AddMeter` registration list is a **single file** — `apps/api/RealEstateStar.Shared.Telemetry/TelemetryRegistrations.cs` (new, created by this spec). Both `apps/api/RealEstateStar.Api/Program.cs` and `apps/api/RealEstateStar.Functions/Program.cs` import the same list. This closes the drift hazard where a new ActivitySource gets added to only one of the two hosts. The file lists:
+   - Every `ActivitySource` name
+   - Every `Meter` name
+   - Every assigned log code range with component binding
+   - A single `IReadOnlyList<string> All` property that both hosts iterate when calling `tracing.AddSource(...)` and `metrics.AddMeter(...)`
+   The architecture test `TelemetryRegistrationIsCentralized` scans both Program.cs files and rejects any `AddSource` / `AddMeter` call that isn't a loop over `TelemetryRegistrations.All`.
 
 ---
 
@@ -4562,13 +5091,34 @@ Mapping of every BLOCKER and HIGH finding from the three R1 review passes to whe
 | 12.1 | T2 insertion point undocumented | MEDIUM | §4.2 T2 slot-in description |
 | 12.2 | Refresh-supporting fields scattered | MEDIUM | §12.2.1 refresh contract (new — to be added if refresh worker project starts) |
 
-### G.4 Summary
+### G.4 Observability review (R5 — new, separate pass)
+
+R5 is a dedicated observability review conducted after R4 shipped. Driven by user direction: "review it one more time with an observability lens. we need world class logging capabilities in order to scale." Findings are distinct from legal/security/maintainability because the observability story was assumed "good because OTel exists" in R1-R4 without verifying against the codebase.
+
+| # | Finding | Severity | Addressed in |
+|---|---|---|---|
+| OBS-1 | Appendix E didn't distinguish existing log code ranges from new ones; implementer can't tell which to grep vs create | HIGH | Appendix E.1 now has a Status column (EXISTS/NEW/EXTEND); E.2 is a verified "exists today" table with file-path anchors |
+| OBS-2 | `AccountConfigDiagnostics` and routing diagnostics classes referenced but not named or defined | HIGH | §8.3 now specifies `AccountConfigDiagnostics` with full counter list; §8.4 specifies `BrokerageRoutingDiagnostics`; both follow the verified `TokenStoreDiagnostics` pattern |
+| OBS-3 | Spec-introduced ActivitySources used nested path names (`RealEstateStar.Clients.Anthropic.VoicedContentGenerator`) inconsistent with the short-name convention used everywhere else in the codebase | MEDIUM | Renamed to short forms (`RealEstateStar.VoicedContentGenerator`, `RealEstateStar.AccountConfig`, `RealEstateStar.BrokerageRouting`) matching audit findings |
+| OBS-4 | No Span Attribute Registry — different sections used different names and cardinality bounds for the same concepts | HIGH | New §16.9 Span Attribute Registry with full table of names, types, cardinality, producers, and metric-tag-eligibility rule |
+| OBS-5 | Alerts described in prose with no alert-rules-as-code commitment, no SLOs, no error budgets, no burn-rate alerts | HIGH | New §18.7 SLOs + `infra/grafana/alerts/` directory commitment + 5 new dashboard files |
+| OBS-6 | No orchestrator-level OTel span — 18-activity activation produced 18 disconnected spans with no parent | HIGH | New §5.8 Durable Functions trace middleware creating parent orchestrator span from instance ID with stable trace ID across replays |
+| OBS-7 | Cost attribution via log-grep of `[CLAUDE-020]` is expensive at scale and not alertable on burn rate | HIGH | §5.3 `VoicedContentGeneratorDiagnostics.CostUsd` first-class counter (tagged `pipeline_step`, `model`, `locale`); `[CLAUDE-020]` kept for back-compat but deprecated |
+| OBS-8 | Routing metrics at risk of cardinality explosion if `lead_id`/`account_id`/`agent_id` became tags | MEDIUM | §8.4 explicit metric tag policy table + §16.9 registry enforcement via `MetricTags_AreBoundedCardinality` arch test |
+| OBS-9 | No cache hit/miss observability for any cache introduced in the spec | HIGH | New rule in §18.2: every cache emits `cache.hits`/`cache.misses`/`cache.lookup_duration_ms` via `CacheDiagnostics` with `cache_name` bounded tag; arch test enforces |
+| OBS-10 | Correlation ID passed as method parameter to DF activities — fragile, doesn't flow into spans | HIGH | §5.8 uses `Baggage` propagation + log scope push; arch test `ActivityInputs_HaveCorrelationId` guards the DTO contract |
+| OBS-11 | Replay-safe logging discipline not repeated for every new orchestrator the spec introduces | MEDIUM | §5.8 adds `Orchestrators_UseReplaySafeLogger` arch test making the existing `!ctx.IsReplaying` pattern enforced, not convention |
+| OBS-12 | No end-to-end traceability path for support — "this agent said X didn't work" requires log grep by email | HIGH | New §16.10 TraceLink pattern on every audit record + correlation ID visible in welcome email/preview URL/lead emails + new `docs/runbooks/trace-reconstruction.md` |
+| OBS-13 | OTel registrations lived in two separate `Program.cs` files; drift hazard | LOW | §E.3 rule 5: single `TelemetryRegistrations.All` file both hosts import; arch test `TelemetryRegistrationIsCentralized` rejects divergence |
+
+### G.5 Summary
 
 - **Legal/ADA**: 7 BLOCKERS → all addressed (2 of 7 already implemented in existing code, verified via codebase audit: EHO footer with R4 state-conditional nuance, TCPA consent capture via `template → CmaSection → LeadForm` chain); 6 HIGH → all addressed; 10 MEDIUM → all addressed; 2 LOW → addressed
 - **Security**: 7 BLOCKERS → all addressed in §16 + §10 + §7 updates; 13 HIGH → all addressed (R4 rewrote lead routing with Option C two-store mechanism after verifying `IFileStorageProvider` has no CAS primitives); 10 MEDIUM → addressed or explicitly noted as future work with reference
 - **Maintainability**: 2 CRITICAL → addressed (`IVoicedContentGenerator` §5.3, rollback-for-net-new §13.4); 14 HIGH → all addressed; 10 MEDIUM → addressed; 2 LOW → addressed
+- **Observability (R5)**: 13 findings → all addressed in R5. 7 HIGH / 4 MEDIUM / 2 LOW. Verified against branch audit: 22 existing ActivitySources, 22 existing Meters, Serilog+OTLP export, 3 committed Grafana dashboards. Gaps at the SLO + dashboards-as-code + bounded-cardinality + trace-reconstruction layer are all closed.
 
-**No deferred BLOCKERs.** All 17 are in v1 per project decision (D21).
+**No deferred BLOCKERs.** All 17 R1/R2 BLOCKERs are in v1 per project decision (D21). R5 observability findings are non-BLOCKER severity but land as part of v1 to keep the commitment internally consistent.
 
 **R3 correction summary**: R3 corrected two BLOCKER findings that R2 framed as net-new work — EHO footer (finding 1.1) and TCPA consent capture (finding 3.1) were already fully implemented in the existing codebase. R3 replaced the "build new" language with "enforce existing via architecture test" and added decisions D41–D44 to record the correction. R3 also rewrote §8.3 and §8.4 to reference the existing `ITokenStore` ETag pattern and a partitioned Azure Table counter, removing R2's fabricated lock table design.
 
@@ -4581,6 +5131,19 @@ Mapping of every BLOCKER and HIGH finding from the three R1 review passes to whe
 
 D16 self-contradiction fixed, D30 marked superseded by D42, §13.4 Tier 2 example JSON stripped of fabricated `tcpa_consent`, standalone diagram files in `docs/architecture/` updated to match. Every R4 change is backed by explicit file paths and line numbers from the `feat/azure-cost-reduction` branch.
 
+**R5 observability summary**: R5 is a dedicated observability review conducted after R4 shipped. User direction: "review it one more time with an observability lens. we need world class logging capabilities in order to scale." The audit revealed that the codebase infrastructure is already strong (22 ActivitySources, 22 Meters, Serilog+OTLP export, committed dashboards, correlation ID middleware, 9 health checks, replay-safe DF logging) but the spec was underselling it and specifying names that didn't match the codebase convention. 13 findings addressed:
+
+1. **Appendix E Status column** (OBS-1) — every log code range now marked EXISTS/NEW/EXTEND with file-path anchors for existing ranges.
+2. **AccountConfigDiagnostics + BrokerageRoutingDiagnostics + VoicedContentGeneratorDiagnostics + CacheDiagnostics** (OBS-2, OBS-3, OBS-7, OBS-9) — four new diagnostics classes specified with full counter lists, short service-scoped names matching the codebase, and explicit metric tag policies.
+3. **§16.9 Span Attribute Registry** (OBS-4) — formal registry of 20+ span attribute names with cardinality bounds; metric-tag-eligibility rule enforced by new arch test `MetricTags_AreBoundedCardinality`.
+4. **§5.8 Durable Functions OTel middleware** (OBS-6, OBS-10, OBS-11) — new `DurableOrchestratorTracingMiddleware` creates parent orchestrator spans from instance ID with stable trace ID across replays; correlation ID propagation via `Baggage` instead of method parameters; `Orchestrators_UseReplaySafeLogger` arch test locks in the `!ctx.IsReplaying` discipline.
+5. **§16.10 End-to-end traceability for support** (OBS-12) — `TraceLink` pattern on every audit record; correlation ID visible in welcome email footer, preview URL, lead reply emails; new support runbook target.
+6. **§18.7 SLOs + alert rules as code + dashboards as code** (OBS-5) — 3 user-facing SLOs with error budgets and burn-rate alerts; `infra/grafana/alerts/` directory commitment with 14 initial rule files; 5 new dashboard files.
+7. **§18.2 cache observability rule** (OBS-9) — every cache in the TTL table emits hit/miss metrics via `CacheDiagnostics` with bounded `cache_name` tag; arch test enforces.
+8. **§E.3 single-file OTel registration** (OBS-13) — `TelemetryRegistrations.All` is the single source of truth both API and Functions hosts import; arch test `TelemetryRegistrationIsCentralized` prevents drift.
+
+R5 changes zero BLOCKER remediations from R1-R4. It is an observability instrumentation layer that sits underneath every section already specified.
+
 ---
 
-**End of design document — Revision 4.**
+**End of design document — Revision 5.**
