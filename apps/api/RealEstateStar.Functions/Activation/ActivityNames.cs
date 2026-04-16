@@ -51,4 +51,7 @@ internal static class ActivityNames
 
     // Phase 5: Build localized site content (B9)
     public const string BuildLocalizedSiteContent = "ActivationBuildLocalizedSiteContent";
+
+    // Phase 5: Persist site content to Cloudflare KV (B10)
+    public const string PersistSiteContent = "ActivationPersistSiteContent";
 }

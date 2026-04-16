@@ -84,6 +84,8 @@
          IIdempotencyStore (TableStorageIdempotencyStore), ITokenStore (AzureTableTokenStore).
          Functions is a second composition root alongside Api and may reference Clients.*. -->
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Azure\RealEstateStar.Clients.Azure.csproj" />
+    <!-- B10: Cloudflare KV client — ICloudflareKvClient for PersistSiteContentFunction -->
+    <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Cloudflare\RealEstateStar.Clients.Cloudflare.csproj" />
     <!-- Client libraries needed by Lead + Activation pipeline services -->
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Anthropic\RealEstateStar.Clients.Anthropic.csproj" />
     <ProjectReference Include="..\RealEstateStar.Clients\RealEstateStar.Clients.Gmail\RealEstateStar.Clients.Gmail.csproj" />

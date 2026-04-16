@@ -514,3 +514,18 @@ public sealed record BuildSiteContentInput
     [JsonPropertyName("supportedLocales")] public IReadOnlyList<string> SupportedLocales { get; init; } = [];
     [JsonPropertyName("templateName")] public string TemplateName { get; init; } = "";
 }
+
+// ── Phase 5: Persist site content to Cloudflare KV (B10) ─────────────────────
+
+/// <summary>
+/// Input to the PersistSiteContent activity function.
+/// Carries the generated BuildResult and the raw account.json to write to Cloudflare KV.
+/// </summary>
+public sealed record PersistSiteContentInput
+{
+    [JsonPropertyName("accountId")] public string AccountId { get; init; } = "";
+    [JsonPropertyName("agentId")] public string AgentId { get; init; } = "";
+    [JsonPropertyName("correlationId")] public string CorrelationId { get; init; } = "";
+    [JsonPropertyName("buildResult")] public RealEstateStar.Domain.Activation.Models.BuildResult BuildResult { get; init; } = null!;
+    [JsonPropertyName("accountConfigJson")] public string AccountConfigJson { get; init; } = "";
+}
