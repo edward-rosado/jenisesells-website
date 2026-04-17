@@ -355,6 +355,209 @@ This file is written by **both** the inbound orchestrator (on reply) and the out
 
 ---
 
+## Part C — Message Library
+
+Each outbound message is a **template** (structured markdown) tagged with metadata that the selector uses to decide fit. Templates live in the agent's own Drive — seeded at activation from the agent's playbook, editable by the agent (optional for MVP — direct markdown edit is the customization path).
+
+### Template file layout
+
+```
+Real Estate Star/
+  {agentId}/
+    Campaigns/
+      library.yaml              ← index: list of templates + default ordering per stage
+      initial-response-buyer.md
+      initial-response-seller.md
+      intro-value-prop.md
+      cma-delivery.md
+      timeline-check-in.md
+      motivation-probe.md
+      objection-price.md
+      objection-timing.md
+      objection-competition.md
+      showing-scheduled.md
+      post-showing-followup.md
+      application-prep.md
+      re-engagement-7d.md
+      re-engagement-21d.md
+      referral-ask.md
+```
+
+Each `.md` file has YAML frontmatter with the template metadata + the body rendered through the agent's voice:
+
+```markdown
+---
+templateId: initial-response-buyer
+version: 1
+purposesServed:
+  - initial-response
+  - intro-value-prop
+requiredPriorPurposes: []
+validStages:
+  - new
+locales:
+  - en
+  - es
+cooldownAfterSend: P2D         # ISO-8601 duration — "after sending, do not evaluate next message for 2 days"
+priority: 100                   # higher fires first in selector tie-breaks
+variables:
+  - leadFirstName
+  - propertyCity
+  - agentFirstName
+leadTypeFilter: Buyer           # Buyer | Seller | Both | (omit = any)
+---
+
+Hi {{leadFirstName}},
+
+{{agentFirstName}} here — thanks for reaching out about homes in {{propertyCity}}.
+{{voiceAnchor:warm_welcome_buyer}}
+
+A couple of quick questions so I can actually help:
+- What's your timeline for moving?
+- Have you been pre-approved with a lender yet?
+
+{{voiceAnchor:cta_reply_soon}}
+
+— {{agentFirstName}}
+```
+
+### Template metadata (domain model)
+
+```csharp
+// RealEstateStar.Domain/Leads/Models/MessageTemplate.cs
+public sealed record MessageTemplate(
+    string TemplateId,                         // "initial-response-buyer"
+    int Version,
+    IReadOnlySet<string> PurposesServed,       // purposes this message delivers
+    IReadOnlySet<string> RequiredPriorPurposes,// prereqs that must be served before this fires
+    IReadOnlySet<LeadJourneyStage> ValidStages,// stages this message is appropriate for
+    IReadOnlySet<string> Locales,              // en, es
+    TimeSpan CooldownAfterSend,                // how long before next evaluation
+    int Priority,                              // higher fires first on tie-breaks
+    IReadOnlyList<string> Variables,           // required render variables
+    LeadTypeFilter LeadTypeFilter,             // Buyer | Seller | Both | Any
+    string BodyMarkdown,                       // raw body with {{placeholders}}
+    string SourcePath,                         // blob/Drive path for audit
+    string ETag);
+
+public enum LeadTypeFilter { Any, Buyer, Seller, Both }
+```
+
+### Purpose taxonomy (v1 — grounded in `CoachingWorker` and `PipelineAnalysisWorker`)
+
+Derived from what the activation pipeline already extracts about each agent's playbook. Will evolve as we see real lead traffic. **Versioned** in this spec so rev 2 is a normal spec update, not a rewrite.
+
+| Purpose ID | Maps to Coaching gap | Valid stages | Required prior | Triggers (signal) |
+|---|---|---|---|---|
+| `initial-response` | Response time | new | — | time-based (fires on Lead creation) |
+| `intro-value-prop` | Lifecycle coverage | new, contacted | `initial-response` | time-based |
+| `cma-delivered` | Lifecycle coverage | contacted, showing | `initial-response` | seller signal detected OR form-initiated |
+| `timeline-check-in` | Follow-up cadence | contacted, showing | `intro-value-prop` | time-based (7d after last outbound) |
+| `motivation-probe` | Personalization | contacted, showing | `intro-value-prop` | time-based (parallel to timeline-check-in) |
+| `objection-price` | Objection handling | contacted, showing, applied | — | signal-triggered: lead mentions commission/price |
+| `objection-timing` | Objection handling | contacted, showing | — | signal-triggered: lead mentions "not ready yet" |
+| `objection-competition` | Objection handling | contacted, showing | — | signal-triggered: lead mentions another agent |
+| `showing-scheduled` | Lifecycle coverage | showing | `cma-delivered` OR `motivation-probe` | signal-triggered: viewing confirmed |
+| `post-showing-followup` | Follow-up cadence | showing | `showing-scheduled` | time-based (24h after viewing) |
+| `application-prep` | Lifecycle coverage | applied | `motivation-probe` | signal-triggered: stage advanced to applied |
+| `re-engagement` | Nurturing gaps | any active | `intro-value-prop` | time-based (idle >7d in new/contacted, >14d in showing/applied) |
+| `referral-ask` | — | closing, closed | — | reserved — post-MVP |
+
+**Purposes are strings, not an enum**, for the same reason `SourceId` is a string — Claude can infer new purposes from emails (e.g., `"financing-concern"`, `"school-district-question"`) and they get added to the taxonomy file without a code change. The list above is the seed set the activation pipeline generates by default.
+
+### Voice rendering — `IMessageTemplateRenderer`
+
+The template body contains two kinds of placeholders:
+
+1. **Variables** (`{{leadFirstName}}`) — substituted from `Lead` + `AccountConfig` data.
+2. **Voice anchors** (`{{voiceAnchor:warm_welcome_buyer}}`) — substituted by re-prompting Claude with the agent's `VoiceSkill.md` + `PersonalitySkill.md` at the specified voice-anchor ID.
+
+```csharp
+// RealEstateStar.Domain/Leads/Interfaces/IMessageTemplateRenderer.cs
+public interface IMessageTemplateRenderer
+{
+    Task<RenderedMessage> RenderAsync(
+        MessageTemplate template,
+        Lead lead,
+        AccountConfig account,
+        AgentContext agentContext,  // provides VoiceSkill, PersonalitySkill per locale
+        CancellationToken ct);
+}
+
+public sealed record RenderedMessage(
+    string Subject,
+    string BodyText,          // plain text for Gmail
+    string BodyHtml,          // rendered HTML variant
+    IReadOnlySet<string> PurposesServed,  // echoed from template for DripState update
+    decimal VoiceFidelityScore,  // optional Claude self-assessment 0..1
+    string RenderAuditHash);   // sha256 of (templateId + lead inputs) for idempotency
+```
+
+Implementation `ClaudeVoicedMessageRenderer` in `RealEstateStar.Workers.Leads`:
+
+1. Substitute deterministic variables first (`{{leadFirstName}}`).
+2. For each `{{voiceAnchor:X}}` placeholder, make a bounded Claude call:
+   - System prompt: `VoiceSkill.md` + `PersonalitySkill.md` contents for the locale, plus the voice-anchor catalog mapping (`warm_welcome_buyer` → "greet the lead warmly, match energy to their apparent buying/selling context, use agent catchphrases where natural").
+   - User prompt: what the anchor needs to produce (1–3 sentences typically) + the surrounding context.
+   - Validate: output length within the anchor's character budget; no unrendered placeholders; no URLs/links the template didn't include.
+3. Assemble final subject + body; compute audit hash.
+4. `VoiceFidelityScore` is an optional second Claude call ("Does this sound like the agent, given their VoiceSkill?") — feature-flagged; off by default to save cost.
+
+**Cost guardrails:**
+- Template body with N voice anchors → N+0 or N+1 Claude calls per send (plus 1 for fidelity score if enabled).
+- Budget: templates limited to ≤3 voice anchors (static validation at load time). Typical send = 2–3 Claude calls = ~$0.03–0.05 per outbound.
+- Activation defaults ship with ≤2 voice anchors per template to keep cost closer to $0.02.
+
+### Template seeding at activation
+
+When the activation pipeline runs for a new agent, `AgentProfilePersistActivity` seeds the default template library by rendering the agent's `CoachingReport.md` + `PipelineAnalysis.md` + `VoiceSkill.md` into a starter set of templates.
+
+New activity `SeedMessageLibraryActivity`:
+- Input: `{accountId, agentId, coachingReportMarkdown, pipelineAnalysisMarkdown, voiceSkillMarkdown, personalitySkillMarkdown, locale}`.
+- Output: writes `Campaigns/*.md` + `Campaigns/library.yaml` to the agent's Drive via `IDocumentStorageProvider`.
+- Uses `IAnthropicClient` for a one-shot render: Claude is prompted with the coaching/voice skill content + the 13-purpose catalog above and produces agent-voiced templates.
+- Idempotent via file existence check — only runs on activation (not on re-activation that already has templates).
+
+This activity is added to the activation orchestrator between `PersistProfileActivity` and `WelcomeNotificationActivity` (still inside the 5-6 activity cap — it's a Phase 5 add that doesn't displace existing steps).
+
+### `library.yaml` — template registry
+
+Generated by `SeedMessageLibraryActivity`. Machine-readable index of what's available + stage-default sequencing (used by `NextMessageSelector` — Part D).
+
+```yaml
+schemaVersion: 1
+agentId: jenise
+locales: [en, es]
+stageDefaults:
+  new:
+    - initial-response-buyer
+    - initial-response-seller
+  contacted:
+    - intro-value-prop
+    - cma-delivery
+    - motivation-probe
+    - timeline-check-in
+    - re-engagement-7d
+  showing:
+    - post-showing-followup
+    - showing-scheduled
+    - re-engagement-14d
+  applied:
+    - application-prep
+templates:
+  - id: initial-response-buyer
+    file: initial-response-buyer.md
+    priority: 100
+  - id: cma-delivery
+    file: cma-delivery.md
+    priority: 90
+  # ...
+```
+
+**Agents customize** by editing the markdown files directly in Drive — the system re-reads on every cycle (cached with mtime for efficiency). No platform UI in MVP.
+
+---
+
 ## Detailed Component Design
 
 ### New Domain Interfaces (RealEstateStar.Domain — ZERO deps)
