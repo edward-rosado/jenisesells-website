@@ -14,7 +14,7 @@
 A single scheduled loop runs every 15 min per activated agent that does **both halves of the conversation**:
 
 - **Inbound**: reads the agent's Gmail, detects new leads from any source, detects replies on existing lead threads, merges new data into the right `Lead` record.
-- **Journey inference**: after a reply, asks Claude whether the lead's position in the sales funnel advanced and which *conversational purposes* (trust-intro, commission-explanation, timeline-established, etc.) the lead has now "served" — so future sends don't repeat points the lead has already moved past.
+- **Journey inference**: after a reply, asks Claude whether the lead's position in the sales funnel advanced and which *conversational purposes* (intro-value-prop, cma-delivered, timeline-check-in, motivation-probe, etc. — see Part C purpose taxonomy) the lead has now "served" — so future sends don't repeat points the lead has already moved past.
 - **Outbound**: picks the next-most-useful message for each lead based on current stage + served-purposes + available-templates, renders it through the agent's VoiceSkill + PersonalitySkill (so it sounds like Jenise, not ChatGPT), sends via Gmail, advances state.
 
 The loop rides on infrastructure that already exists in this codebase:
@@ -33,14 +33,14 @@ The loop rides on infrastructure that already exists in this codebase:
 
 1. Detect inbound leads in each activated agent's Gmail inbox with no manual intervention, regardless of source.
 2. Detect replies from existing leads, infer journey-stage changes + purposes-served updates, merge new data into the existing `Lead`.
-3. Maintain a per-lead `LeadJourneyState` that tracks where the lead sits in the conversation (`Unengaged → Informed → Engaged → Qualified → Converting → Client`) and a `PurposesServed` set that tracks which conversational beats the lead has moved past.
+3. Maintain a per-lead `LeadJourneyStage` (`new → contacted → showing → applied → under-contract → closing → closed`, with `lost` as a terminal state — see Part B; vocabulary reused from `PipelineAnalysisWorker.ValidStages`) and a `PurposesServed` set that tracks which conversational beats the lead has moved past.
 4. Select and send the next-most-useful outbound message per lead, per cycle, based on stage + purposes-served + time-since-last-contact + available templates. Render through the agent's `VoiceSkill` and `PersonalitySkill` so the message sounds like the agent.
 5. Reuse the existing lead pipeline end-to-end (`ILeadStore` → `ILeadOrchestrationQueue` → `LeadOrchestratorFunction`) for new-lead onboarding (scoring, CMA, initial email). **No parallel pipeline.** This loop owns mid-conversation messaging only.
 6. Maintain a **lead-source registry** — every source ever seen per agent, inventoried with counts and timestamps. Foundation for per-source journey variants, ROI reporting, and source-aware message template libraries.
 7. Survive downtime — if the loop is offline for N hours, it catches up on resume without duplicates, missed leads, or duplicate outbound sends.
 8. Multi-tenant fan-out: per-agent sub-orchestrations; slow/broken agents don't block the batch.
 9. Preserve locale as first-class — detect `en`/`es` on the inbound email body and persist to `Lead.Locale`; render outbound messages in the lead's locale.
-10. Every lead entry path (Gmail, lead-form, future channels) contributes to the same source registry and journey state machine. Lead-form submissions set `sourceId="website"` and start in `Unengaged`; Gmail-detected leads set whatever source Claude identifies.
+10. Every lead entry path (Gmail, lead-form, future channels) contributes to the same source registry and journey state machine. Lead-form submissions set `sourceId="website"` and start in `JourneyStage = New`; Gmail-detected leads set whatever source Claude identifies.
 11. Halt messaging automatically on clear disqualification or conversion signals (Claude-inferred) — never robo-spam a lead who said "not interested" or a lead who already signed.
 12. Keep the outbound cadence under human agent control — the system sends on a schedule the agent implicitly controls by writing the campaign templates (activation pipeline seeds defaults derived from the agent's own `CoachingReport`). No hidden behavior.
 
@@ -64,7 +64,7 @@ The loop rides on infrastructure that already exists in this codebase:
 
 - [ ] A lead email from ANY source (Zillow, Realtor.com, Homes.com, Trulia, Redfin, brokerage referral, direct referral, lead-form forward, etc.) delivered to an activated agent's inbox becomes a `Lead` in `ILeadStore` within 20 min p95, 15 min p50.
 - [ ] Every email-sourced lead has a non-null `SourceId` (examples: `"zillow"`, `"realtor.com"`, `"direct"`, `"brokerage"`, `"facebook"`, etc.). Source registry records `(agentId, sourceId)` with first-seen, last-seen, total-leads, conversion counters.
-- [ ] Lead-form submissions at the agent website populate `SourceId="website"` and start in `LeadJourneyState.Unengaged`.
+- [ ] Lead-form submissions at the agent website populate `SourceId="website"` and start in `LeadJourneyStage.New`.
 - [ ] Newsletter, transaction update, and non-lead email parse cost is $0 (classifier rejects before Claude).
 - [ ] Second email on the same thread triggers ThreadEnrichment: merges new data into the existing `Lead`, appends to `Email Thread Log.md`, does NOT duplicate, does NOT re-enqueue the lead pipeline.
 - [ ] A CMA-form-initiated lead whose recipient replies by email gets the reply correctly merged — the lead-form submission links the outbound CMA-delivery Gmail thread; inbound reply enriches the same Lead.
@@ -72,15 +72,16 @@ The loop rides on infrastructure that already exists in this codebase:
 
 ### Journey inference
 
-- [ ] When a lead replies, Claude infers whether the journey stage advanced and which purposes-served flags flipped. Decision is logged to `Journey History.md` with reasoning.
-- [ ] A lead who asks "what's your commission?" has the `commission-explanation` purpose marked as *needed* (upcoming). A lead who replies affirmatively after receiving the commission explanation has it marked *served*.
-- [ ] A lead who says "not interested" / "stop emailing me" / "wrong number" → `JourneyState = Disqualified`, `haltReason = "lead-disqualified"`. No further outbound sends, ever, without manual agent override.
-- [ ] A lead who says "let's meet Saturday" / "call me at 555-1234" / "I want to list my house" → `JourneyState = Converting`, outbound loop halts for that lead, agent receives WhatsApp escalation notification.
+- [ ] When a lead replies, Claude infers per-reply: whether `JourneyStage` advanced (may be null — most replies do not advance stage), what `Disposition` change applies (if any), and which `PurposesServed` / `PurposesNeeded` flags flipped. Decision is logged to `Journey History.md` with reasoning.
+- [ ] A lead who asks about commission/fees → `Disposition = Escalated` with reason "commission/fee question" (per product decision — automated outbound NEVER handles fee content; see Part G signal table). Agent receives WhatsApp escalation; outbound loop is silent for that lead until the agent responds.
+- [ ] A lead who says "not interested" / "stop emailing me" / "wrong number" → `Disposition = Halted`, `HaltReason = "lead-disqualified"`. `JourneyStage` may advance to `Lost` for terminal cases. No further outbound sends, ever, without manual agent override.
+- [ ] A lead who says "let's meet Saturday" / "call me at 555-1234" / "I want to list my house" → `Disposition = Escalated` with reason "direct contact requested" or "offer/listing intent"; outbound loop halts for that lead; agent receives WhatsApp escalation notification. Stage may advance (e.g., tour-scheduling reply advances to `Showing`).
+- [ ] Stage advance fires only on high-confidence inference (≥ `Features:LeadCommunications:StageInference:LowConfidenceThreshold`, default 0.5). Replies with inconclusive signal increment `LastInboundMessageAt` and pause outbound but keep the stage unchanged.
 - [ ] Journey-state changes are auditable — every transition has a reasoning log entry and an OTel span.
 
 ### Outbound
 
-- [ ] Every cycle, every active lead (not in `Converted`, `Disqualified`, or manually paused) is evaluated by the `NextMessageSelector`. When a message is due and appropriate, it sends.
+- [ ] Every cycle, every evaluable lead (`Disposition = Active`, not paused until a future instant, not `Halted` / `Escalated`, `JourneyStage` in an active stage — not silent/`Lost`) is evaluated by the `NextMessageSelector`. When a message is due and appropriate, it sends.
 - [ ] Selector never sends a message whose `requiredPriorPurposes` are not all in the lead's `PurposesServed` set. Example: never sends "introducing my process" to a lead who already received the CMA and replied to it.
 - [ ] Selector never sends a message whose `validStages` does not include the lead's current `JourneyState`.
 - [ ] Message rendering uses the agent's `VoiceSkill` + `PersonalitySkill` for tone; output passes a basic sanity check (length within template budget, no unrendered template variables, no references to template metadata leaking through).
@@ -181,7 +182,7 @@ Deliverables:
 
 **After Phase 1**: every lead (historical + newly detected) has accurate journey state, replies advance/halt correctly, agent sees full `Journey History.md` for every lead. Historical clients (`under-contract` / `closing` / `closed` / `lost`) are seeded correctly — no fake-new-lead creation when they email back. Outbound still happens via the pre-existing pipeline only.
 
-### Phase 2 — Outbound Engine + Message Library (~2 weeks)
+### Phase 2 — Outbound Engine + Message Library (~2–2.5 weeks)
 
 Adds the second half of the loop: templated outbound messaging selected by stage + purposes + signals.
 
@@ -220,7 +221,7 @@ The Communications Loop's central abstraction. Every `Lead` has a position in a 
 
 ### Stages — reuse `PipelineAnalysisWorker.ValidStages`
 
-The stages are NOT new vocabulary. They are exactly the stages the activation pipeline already uses (`apps/api/RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.PipelineAnalysis/PipelineAnalysisWorker.cs`) to classify a lead's position in each agent's actual email history:
+The stages are NOT new vocabulary. They are exactly the stages the activation pipeline already uses (`PipelineAnalysisWorker.ValidStages` — a `string[]` of lowercase-hyphenated values in `apps/api/RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.PipelineAnalysis/PipelineAnalysisWorker.cs`) to classify a lead's position in each agent's actual email history:
 
 ```mermaid
 stateDiagram-v2
@@ -792,11 +793,25 @@ public interface ILeadThreadIndex
 // Foundation for source-aware drip campaigns (feature #4) and ROI reporting.
 // Called by: Gmail monitor (every Gmail-detected lead), SubmitLeadEndpoint (every form submission),
 // future channels (WhatsApp, SMS, etc.).
+//
+// Idempotency design: the registry stores TWO Azure Tables to make upserts
+// atomic without ETag CAS on the aggregate row:
+//   - LeadSources: partition=agentId, row=sourceId, value=display+timestamps+etag
+//   - LeadSourceObservations: partition=(agentId, sourceId), row=leadId,
+//     value=observation (firstSeen, confidence, channel)
+//
+// Writes use Azure Table MergeEntity + insert-if-not-exists to guarantee
+// "a given leadId only contributes to counters once" without a read-modify-write
+// race. Counters are NOT stored on LeadSources directly — they are computed
+// by counting LeadSourceObservations rows on read (cheap at per-agent scale:
+// <10K rows at steady state; Azure Table partition scan is fast).
 public interface ILeadSourceRegistry
 {
     /// <summary>
-    /// Idempotent upsert. Creates the source entry if new, otherwise increments counters.
-    /// Safe to call from activity function retries — all updates are atomic increments.
+    /// Idempotent upsert. If (agentId, sourceId, leadId) is new, inserts an
+    /// observation row. If it already exists, no-op (duplicate activity retry
+    /// or re-activation). The source's DisplayName + LastSeenAt are
+    /// MergeEntity-updated atomically in the same batch transaction.
     /// </summary>
     Task RegisterOrUpdateAsync(
         string agentId,
@@ -1117,13 +1132,24 @@ Shared across both modes:
 
 ThreadEnrichment uses a lower threshold because we're already confident the thread belongs to a real lead — even partial data ("just a phone number") is high-value.
 
-**Cost math (Jenise scale):**
+**Cost math — INBOUND side only (Jenise scale):**
 
-- Classifier rejects ~95% of *new-thread* inbox traffic (newsletters, transaction updates) for $0.
-- Every message on a *tracked thread* bypasses classifier — if 150 leads/month each generate ~4 reply messages, that's ~600 extra Claude calls.
-- Total: ~300 new-thread Claude calls + ~600 thread-enrichment calls = ~900/month.
-- 900 × ~$0.015 ≈ **~$13.50/month/agent**.
-- At 100 agents: ~$1,350/month. This is the trigger point to revisit templating, not MVP.
+Assumptions used throughout:
+- ~150 real leads per month entering the funnel.
+- ~4 reply messages per active lead → ~600 thread-enrichment Claude calls per month.
+- ~300 new-thread (classifier-accepted) Claude calls per month.
+- Claude Sonnet 4.6 at ~$0.015 per parse call, ~$0.01 per stage-inference call.
+
+| Component | Calls/month | \$/call | Subtotal |
+|---|---|---|---|
+| NewLead parser | ~300 | ~$0.015 | ~$4.50 |
+| ThreadEnrichment parser | ~600 | ~$0.015 | ~$9.00 |
+| Stage inference (Part E — second call per reply) | ~600 | ~$0.010 | ~$6.00 |
+| **INBOUND total** | **~1,500** | — | **~$19.50/month/agent** |
+
+Cost math was previously understated as ~$13.50 because stage inference was counted as a Phase 2 add rather than a Phase 1 cost. Corrected. Outbound + one-time template seeding costs are tallied in Part F / Part C respectively and summed at the bottom of Part H.
+
+At 100 agents this inbound cost is ~$1,950/month — noise relative to customer LTV, but the trigger point to revisit templated-source parsers is around 500 agents (~$10K/month).
 
 ---
 
@@ -1262,11 +1288,22 @@ On the next evaluation after cooldown, the selector sees `purposesNeeded` is non
 
 ### Cooldown between sends
 
-After a send, `nextEvaluationAt = now + template.cooldownAfterSend`. Typical cooldowns:
-- `initial-response` / `intro-value-prop`: immediate next evaluation (often chain-sent with `cma-delivery`)
-- `cma-delivery`: 3 days
-- `timeline-check-in`: 7 days
-- `re-engagement-7d`: 14 days (after a re-engagement, go dark longer)
+After a send, `nextEvaluationAt = now + template.cooldownAfterSend`. One message per orchestrator invocation — there is no "chain-send" primitive; successive messages arrive one scheduler tick (15 min) apart at minimum. Typical cooldowns:
+
+| Template | cooldownAfterSend | Effective next-send spacing |
+|---|---|---|
+| `initial-response` | 15 min | next tick → `intro-value-prop` can fire |
+| `intro-value-prop` | 15 min | next tick → `cma-delivery` can fire (if applicable) |
+| `cma-delivery` | 3 days | nurture-phase spacing |
+| `timeline-check-in` | 7 days | — |
+| `motivation-probe` | 7 days | — |
+| `post-showing-followup` | 3 days | — |
+| `application-prep` | 3 days | — |
+| `re-engagement-7d` | 14 days | after a re-engagement, go dark longer |
+
+**Why short cooldowns on early templates**: the first few messages form a natural onboarding sequence (greet → value prop → CMA). Cooldown of one tick (15 min) means the lead receives them as separate emails over roughly 15–45 min — still clearly one conversation, not a blast. If we want truly chained messages (same email containing multiple purposes), that's a template-design choice: one template whose body covers both purposes, sent as one message.
+
+Per-stage **maximum send cap** in `library.yaml` caps total outbound messages per stage (e.g., max 5 in `contacted`). Prevents pathological loops where all purposes are served but a template's `requiredPriorPurposes` is poorly authored and the selector picks the same template repeatedly. If hit, the selector returns `null` and the lead is marked `Disposition = Paused` with `pausedUntil = now + 30d` + a metric `SelectorCapHit`.
 
 Per-stage **maximum send cap** in `library.yaml` caps total outbound messages per stage (e.g., max 5 in `contacted`). Prevents pathological loops where all purposes are served but a template's `requiredPriorPurposes` is poorly authored and the selector picks the same template repeatedly. If hit, the selector returns `null` and the lead is marked `Disposition = Paused` with `pausedUntil = now + 30d` + a metric `SelectorCapHit`.
 
@@ -1338,37 +1375,99 @@ Rules:
 
 ### Output application
 
+**Confidence gates are split by concern** — the inbound orchestrator *always* captures the reply into the thread log + runs the field parser; only stage/disposition/purpose mutations to `LeadDripState` are gated on confidence:
+
 ```csharp
 // In PersistAndEnqueueLeadsActivity, ThreadEnrichment branch
-var stageInference = await stageInferrer.InferAsync(
-    currentState: dripState,
-    reply: inboundMessage,
-    agentContext: agentContext,
-    ct: ct);
 
-if (stageInference.Confidence < 0.5m) {
-    // Low confidence: log, pause 48h, don't change stage
-    dripState = dripState with { Disposition = Paused, PausedUntil = now.AddHours(48) };
+// 1. ALWAYS append to Email Thread Log regardless of confidence or Claude success.
+//    The raw reply is agent-visible data; we don't gate observability on inference success.
+await leadStore.AppendEmailThreadLogAsync(agentId, leadId, BuildThreadLogEntry(inboundMessage), ct);
+
+// 2. Invoke stage-inference Claude call. Can fail in multiple ways.
+StageInferenceResult stageInference;
+try
+{
+    stageInference = await stageInferrer.InferAsync(
+        currentState: dripState,
+        reply: inboundMessage,
+        agentContext: agentContext,
+        ct: ct);
 }
-else {
-    dripState = dripState with {
-        JourneyStage = stageInference.StageAdvance ?? dripState.JourneyStage,
-        Disposition = stageInference.DispositionChange ?? Paused,
-        PausedUntil = now.AddHours(postReplyCooldownHours),
-        HaltReason = stageInference.HaltReason,
-        EscalationReason = stageInference.EscalationReason,
-        PurposesServed = dripState.PurposesServed.Union(stageInference.PurposesServed),
-        PurposesNeeded = dripState.PurposesNeeded.Union(stageInference.PurposesNeeded),
-        LastModifiedBy = "inbound-orchestrator",
-        LastModifiedAt = now,
-    };
+catch (ClaudeResponseInvalidJsonException ex)
+{
+    // Claude returned unparseable output. Log first 200 chars of response
+    // (NOT the email body) and treat as a no-op on state.
+    logger.LogError(ex,
+        "[GMLM-STAGE-020] Stage inference JSON parse failed for leadId={LeadId}. " +
+        "Response head: {ResponseHead}", leadId, ex.ResponseHead);
+    GmailMonitorDiagnostics.ClaudeParseFailures.Add(1);
+    stageInference = StageInferenceResult.Empty(confidence: 0m, reasoning: "json-parse-failure");
+}
+catch (Exception ex) when (ex is not OperationCanceledException)
+{
+    logger.LogError(ex,
+        "[GMLM-STAGE-021] Stage inference call failed for leadId={LeadId}", leadId);
+    GmailMonitorDiagnostics.ClaudeParseFailures.Add(1);
+    stageInference = StageInferenceResult.Empty(confidence: 0m, reasoning: "inference-call-failed");
 }
 
-await dripStateStore.SaveIfUnchangedAsync(dripState, originalEtag, ct);
-await journeyHistoryAppender.AppendAsync(..., stageInference.Reasoning, ct);
+// 3. Decide what to apply, gated per-concern.
+var isHighConfidence = stageInference.Confidence >= StageInferenceLowConfidenceThreshold;  // default 0.5
+
+// 3a. Disposition + pausedUntil always applied — we still know a reply came in.
+//     (Pause cooldown is the default 48h floor unless Claude asked for shorter/longer.)
+var newDisposition = isHighConfidence
+    ? (stageInference.DispositionChange ?? LeadJourneyDisposition.Paused)
+    : LeadJourneyDisposition.Paused;
+
+// 3b. Stage advance only applied on high confidence AND explicit stageAdvance.
+var newStage = isHighConfidence && stageInference.StageAdvance is { } advance
+    ? advance
+    : dripState.JourneyStage;
+
+// 3c. Purposes only merged on high confidence. Low confidence: skip, don't risk
+//     marking something served that wasn't.
+var mergedServed = isHighConfidence
+    ? dripState.PurposesServed.Union(stageInference.PurposesServed.Select(p => p.Id)).ToHashSet()
+    : dripState.PurposesServed;
+var mergedNeeded = isHighConfidence
+    ? dripState.PurposesNeeded.Union(stageInference.PurposesNeeded).ToList()
+    : dripState.PurposesNeeded;
+
+// 3d. Halt/escalation reasons only applied on high confidence — these are terminal.
+var newHaltReason = isHighConfidence ? stageInference.HaltReason : dripState.HaltReason;
+var newEscalationReason = isHighConfidence ? stageInference.EscalationReason : dripState.EscalationReason;
+
+// 4. Apply with ETag CAS. On conflict, re-read + reapply.
+dripState = dripState with {
+    JourneyStage = newStage,
+    Disposition = newDisposition,
+    PausedUntil = now.AddHours(postReplyCooldownHours),
+    HaltReason = newHaltReason,
+    EscalationReason = newEscalationReason,
+    PurposesServed = mergedServed,
+    PurposesNeeded = mergedNeeded,
+    LastInboundMessageAt = inboundMessage.ReceivedAt,
+    InboundMessageCount = dripState.InboundMessageCount + 1,
+    LastModifiedBy = "inbound-orchestrator",
+    LastModifiedAt = now,
+};
+
+var saveOk = await dripStateStore.SaveIfUnchangedAsync(dripState, originalEtag, ct);
+if (!saveOk)
+{
+    // Concurrent write (outbound orchestrator wrote meanwhile) — requeue activity for retry
+    throw new OptimisticConcurrencyException(
+        "[GMLM-STAGE-022] DripState ETag conflict for lead " + leadId);
+}
+
+// 5. Journey History — always append, always includes reasoning even on low confidence.
+await journeyHistoryAppender.AppendAsync(agentId, leadId,
+    FormatInferenceEntry(stageInference, isHighConfidence, now), ct);
 ```
 
-**After** stage inference, the existing field-level parser runs (extracting phone/email/notes). Stage inference is a lightweight first pass; the full parser is richer but focused on data, not state.
+**After** stage inference, the existing field-level parser runs (extracting phone/email/notes). Stage inference is a lightweight first pass; the full parser is richer but focused on data, not state. Field-parser failures follow the same try/catch pattern — on failure, the lead's data fields aren't enriched but the thread log + stage inference results are still persisted.
 
 ### Why two Claude calls instead of one
 
@@ -1531,6 +1630,64 @@ before step 2:
 
 This handles the "Gmail send succeeded, activity crashed before DripState save, DF retries" failure mode. 10-minute window is generous — template cooldowns are always longer, so no legitimate re-send of the same template happens inside 10 min.
 
+### Gmail send failure classification
+
+`GmailSender.SendAsync` can fail in several distinct ways; each gets different handling in `SendAndAdvanceDripStateActivity`:
+
+| Failure | HTTP | Classification | Handling |
+|---|---|---|---|
+| Token revoked / account disconnected | 401, 403 | **Permanent — per-agent** | Mark `GmailMonitorCheckpoint.ConsecutiveOAuthFailures++`, set `DisabledUntil = now + 24h`, escalate to agent via WhatsApp: "Gmail disconnected — please re-authorize." Set this lead's `DripState.Disposition = Paused, PausedUntil = now + 24h`. Do NOT retry activity. |
+| Malformed request | 400 | **Permanent — per-template** | Log with full template id + rendered subject length, increment `GmailSendMalformed{templateId}` counter, mark this lead's `DripState.Disposition = Paused, PausedUntil = now + 7d`, alert. Do NOT retry activity. |
+| Rate limited | 429 | **Transient — per-agent** | Respect `Retry-After` header. Apply exponential backoff via DF retry policy (`GmailSend`). Other leads for the same agent in the same batch retry individually, not agent-wide (rate-limit sensitivity is per-minute, not per-tick). Do NOT advance `DripState`. |
+| Quota exceeded | 429 with quota message | **Transient — per-agent, per-day** | Set `DripState.PausedUntil = midnight UTC + 1h` for this lead (tomorrow). Emit `GmailQuotaHit` counter. Other leads for this agent also pause. |
+| Server error | 5xx | **Transient — recoverable** | Standard DF retry via `GmailSend` policy (4 attempts, 30s → 60s → 120s → 240s). No state advance until success. |
+| Network timeout | — | **Transient — recoverable** | Same as 5xx. |
+
+**Implementation sketch:**
+
+```csharp
+try
+{
+    var sentRef = await gmailSender.SendAsync(agentId, rendered.Subject,
+                                               rendered.BodyHtml, rendered.ToEmail, ct);
+    // ... advance DripState, link thread, etc.
+}
+catch (GmailUnauthorizedException ex)  // 401/403 — new exception type to add
+{
+    GmailMonitorDiagnostics.GmailSendFailures.Add(1, new("reason", "unauthorized"));
+    await checkpointStore.MarkOAuthFailureAsync(accountId, agentId, ct);
+    await escalationService.NotifyAgentAsync(agentId, "gmail-reauth-required", ct);
+    dripState = dripState with { Disposition = Paused, PausedUntil = now.AddHours(24) };
+    await dripStateStore.SaveIfUnchangedAsync(dripState, originalEtag, ct);
+    return; // Do NOT throw — this is a permanent handled failure for this tick.
+}
+catch (GmailRateLimitException ex)
+{
+    GmailMonitorDiagnostics.GmailSendFailures.Add(1, new("reason", "rate-limit"));
+    // Rethrow so DF retry policy picks this up with backoff.
+    throw;
+}
+catch (GmailBadRequestException ex)  // 400
+{
+    GmailMonitorDiagnostics.GmailSendFailures.Add(1,
+        new("reason", "malformed"), new("templateId", selection.Template.Id));
+    logger.LogError(ex,
+        "[GMLM-OUT-020] Gmail 400 Bad Request for leadId={LeadId} template={TemplateId} " +
+        "subjectLen={SubjectLen} bodyLen={BodyLen}",
+        leadId, selection.Template.Id, rendered.Subject.Length, rendered.BodyHtml.Length);
+    dripState = dripState with { Disposition = Paused, PausedUntil = now.AddDays(7) };
+    await dripStateStore.SaveIfUnchangedAsync(dripState, originalEtag, ct);
+    return;
+}
+catch (HttpRequestException ex)  // 5xx, network
+{
+    GmailMonitorDiagnostics.GmailSendFailures.Add(1, new("reason", "transient"));
+    throw; // DF retries
+}
+```
+
+New exception types to add in `RealEstateStar.Clients.Gmail`: `GmailUnauthorizedException`, `GmailRateLimitException`, `GmailBadRequestException`. `GmailSender.SendAsync` maps raw HTTP status codes to these before throwing.
+
 ### Retry policies
 
 ```csharp
@@ -1545,7 +1702,40 @@ internal static class LeadCommRetryPolicies
 
 ### Fan-out + memory budget
 
-`LeadOutboundSchedulerTimerFunction` scans `IDripStateStore.ListDueForEvaluationAsync` per agent — the Azure Table index on `(agentId, nextEvaluationAt)` keeps this O(k) where k is leads due. At steady state, ~1-3 leads/tick/agent. Memory footprint per orchestration ~2 MB (DripState JSON + one rendered message). 16 concurrent orchestrations → ~32 MB. Well within 1.5 GB Consumption limit.
+`LeadOutboundSchedulerTimerFunction` scans `IDripStateStore.ListDueForEvaluationAsync` per agent. The Azure Table index on `(agentId, nextEvaluationAt)` keeps this O(k) where k = leads due. At steady state for a single agent, ~1-3 leads due per 15-min tick.
+
+**Concurrency model** — pinned explicitly in `host.json`:
+
+```jsonc
+"extensions": {
+  "queues": {
+    "batchSize": 8,              // leads processed concurrently PER function instance
+    "newBatchThreshold": 4,       // prefetch next batch when half remain
+    "maxDequeueCount": 5          // after 5 poison-queue attempts, dead-letter
+  },
+  "durableTask": {
+    "maxConcurrentOrchestratorFunctions": 8,
+    "maxConcurrentActivityFunctions": 16
+  }
+}
+```
+
+**Memory math with these pins:**
+
+| Stage | Memory held |
+|---|---|
+| `OutboundLeadOrchestrator` instance (1 in-flight per concurrent lead) | ~200 KB — DripState JSON + metadata |
+| `RenderMessageActivity` (peak — holds template + rendered body) | ~2 MB — MessageTemplate + rendered HTML + voice-anchor substitutions |
+| `SendAndAdvanceDripStateActivity` | ~500 KB — rendered message + Gmail API request/response buffers |
+| Framework overhead per orchestration + activity | ~1 MB |
+
+Worst case: 8 concurrent orchestrators × (200 KB state + 2 MB activity peak + 1 MB framework) ≈ **25 MB**.
+
+Add the inbound orchestrator running concurrently (separate timer, offset 5 min, same batch size): another ~25 MB.
+
+Total peak across both loops: **~50 MB**. Well within the 1.5 GB Consumption plan limit. If we raise `batchSize` later (e.g., to 32 for fleet scale), peak doubles linearly — still fine at 200 MB until ~250 concurrent orchestrations.
+
+**Critical constraint (enforced by this pinning):** `maxConcurrentActivityFunctions = 16` caps the total Claude-render activities running at once. At 8 orchestrators × 1 render each + 16 activity cap, we stay Claude-rate-limit-safe (Claude API is ~50 RPS; 16 concurrent renders << RPS cap).
 
 ---
 
@@ -2079,6 +2269,51 @@ The activity is idempotent by design:
 
 Re-activation after partial failure: the activity can be re-run safely; only leads not yet seeded get seeded.
 
+### DripState schema migration strategy
+
+`LeadDripState.SchemaVersion` starts at 1. When we need to evolve the schema (add a field, rename, change semantics), the migration follows a **lazy-upgrade-on-read** pattern:
+
+**Read path** (`IDripStateStore.GetAsync` implementation):
+
+```csharp
+public async Task<LeadDripState?> GetAsync(string agentId, Guid leadId, CancellationToken ct)
+{
+    var raw = await ReadBlobAsync(...);
+    if (raw is null) return null;
+
+    var doc = JsonDocument.Parse(raw);
+    var version = doc.RootElement.TryGetProperty("schemaVersion", out var v) ? v.GetInt32() : 0;
+
+    LeadDripState state = version switch
+    {
+        0 or 1 => JsonSerializer.Deserialize<LeadDripState>(raw)!,       // current
+        // 2 => MigrateV1ToV2(raw),                                       // future
+        _ => throw new SchemaVersionException(
+               $"[DS-MIGRATE-001] Unknown DripState schemaVersion={version} for lead {leadId}"),
+    };
+
+    // Lazy upgrade: if the persisted version is older than CurrentSchemaVersion,
+    // re-save with the upgraded shape on the next mutation (not here — avoids
+    // write amplification on pure reads).
+    return state;
+}
+```
+
+**Write path** always writes `CurrentSchemaVersion`. The next mutation to a v1 state upgrades it in place. Over time, the whole fleet drifts to the latest without a mass migration job.
+
+**Constraints for every migration:**
+
+1. **Additive fields only, when possible** — new nullable field with a default. Zero migration code required; old records deserialize cleanly.
+2. **Renames or semantic changes** — write an explicit `MigrateV{N}ToV{N+1}(string rawJson) → LeadDripState` function. Unit-tested with at least 5 real fixtures (captured from staging or production via a one-off export tool).
+3. **Field removals** — soft-deprecate: keep the field on the record as `[JsonIgnore, Obsolete]` for one release, then drop. Migration function copies old value → new representation.
+4. **Breaking semantic change** (e.g., the purpose taxonomy reshuffles) — requires an **eager** migration script: a one-off admin function that reads every DripState, migrates, rewrites. Not expected for v1→v2.
+
+**Test**:  `DripStateSchemaVersionTest` (already in the manifest) asserts `LeadDripState.SchemaVersion == 1`. When someone changes the constant, CI fails with a message pointing to this migration section. That forces a conscious decision, not an accident.
+
+**Journey History + Drip State.json file parity**: `Drip State.json` is the authoritative machine-readable state; `Journey History.md` is the human-readable log. Migrations only touch the JSON; the markdown log is append-only forever (new entries use whatever the current format is; old entries stay as-is).
+
+---
+
 ### Runtime loop integration: mirror updates to `AgentPipeline`
 
 Per the existing doc comment on `AgentPipeline` (*"Updated continuously by Gmail monitoring after initial activation population"*), the Communications Loop **mirrors stage changes back into `pipeline.json`**:
@@ -2286,7 +2521,7 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 
 2. ✅ **Activated-agent source: reuse existing `IAccountConfigService.ListAllAsync()`.** No new abstraction — PR #157 already added ETag/CAS to `IAccountConfigService` which will be the natural migration point if accounts ever move to Azure Table. Timer filters on `account.monitoring?.gmail?.enabled == true`.
 
-3. ✅ **No per-source templated parsers. No DKIM enforcement question.** Every candidate email goes through Claude — coverage and maintenance cost trump the ~$4.50/agent/month Claude spend. `SourceId` is a Claude-classified string, open-ended, tracked in the source registry.
+3. ✅ **No per-source templated parsers. No DKIM enforcement question.** Every candidate email goes through Claude — coverage and maintenance cost trump the Claude spend (~$19.50/agent/month inbound — see Parser Design cost math). `SourceId` is a Claude-classified string, open-ended, tracked in the source registry.
 
 ### Resolved (continued)
 
@@ -2325,7 +2560,18 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 
    Lower ThreadEnrichment threshold because we already know the thread is a real lead — even partial data enriches.
 
-   All cost/observability numbers updated in spec: ~900 Claude calls/month/agent total (~300 NewLead + ~600 ThreadEnrichment), ~$13.50/month/agent. Adding outbound messages (Phase 2) adds ~150 renders/month/agent at ~$0.03 each = +$4.50. Stage inference on replies adds ~$0.01 × ~600 replies = +$6. **Total after Phase 2: ~$24/month/agent.**
+   All cost/observability numbers updated in spec. **Total after Phase 2: ~$25–$30/month/agent** (range reflects voice-anchor usage):
+
+   | Component | Calls/month | Cost range | Phase |
+   |---|---|---|---|
+   | NewLead parser (Claude Sonnet) | ~300 | ~$4.50 | 1 |
+   | ThreadEnrichment parser (Claude Sonnet) | ~600 | ~$9.00 | 1 |
+   | Stage inference on replies (Claude Sonnet) | ~600 | ~$6.00 | 1 |
+   | Outbound renders (Claude Sonnet, 2–3 voice-anchor calls per render × 150 sends) | ~300–450 | ~$4.50–6.75 | 2 |
+   | One-time template seeding at activation | 13 (once) | ~$0.30 once | 2 |
+   | **TOTAL per agent per month, steady state** | **~1,800–1,950** | **~$24–$26** | — |
+
+   At 100 agents: ~$2,400–$2,600/month. Trigger for templated-parser optimization remains ~500 agents.
 
 ### New open questions (expanded scope)
 
