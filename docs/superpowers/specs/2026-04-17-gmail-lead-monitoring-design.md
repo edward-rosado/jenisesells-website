@@ -1,7 +1,7 @@
 # Gmail Lead Monitoring — Design Spec
 
 **Date:** 2026-04-17
-**Status:** Draft — pending open-questions resolution
+**Status:** Draft — Q1-Q3 resolved, Q4-Q7 open
 **Author:** Eddie Rosado + Claude
 **Branch:** TBD (proposed: `feat/gmail-lead-monitoring`)
 **MVP Feature:** #3 of 4 — see [2026-04-05-activation-mvp-redesign.md](./2026-04-05-activation-mvp-redesign.md)
@@ -10,23 +10,27 @@
 
 ## Summary
 
-Watch each activated agent's Gmail inbox for inbound real-estate leads (Zillow, Realtor.com, Homes.com, direct referrals), parse the email into a `Lead` record, and enqueue it into the existing lead pipeline (`lead-requests` queue → `LeadOrchestratorFunction`). This spec picks **timer-based polling with Gmail `historyId` checkpoints** as the MVP detection mechanism, a **layered parser** (source-template regex first, Claude Sonnet fallback), and **thread-based dedup** that updates an existing `Lead` when a new email arrives in the same Gmail thread.
+Watch each activated agent's Gmail inbox for inbound real-estate leads (Zillow, Realtor.com, Homes.com, direct referrals, brokerage forwards, and any other source), parse the email into a `Lead` record, and enqueue it into the existing lead pipeline (`lead-requests` queue → `LeadOrchestratorFunction`). This spec picks **timer-based polling every 15 min with Gmail `historyId` checkpoints** as the MVP detection mechanism, a **single-path Claude Sonnet parser** (no per-source regex templates — source is a Claude-classified dimension, not a fast-path switch), a **lead-source registry** that inventories every source seen per agent for future attribution + source-aware drip campaigns (MVP feature #4), and **thread-based dedup** that updates an existing `Lead` when a new email arrives in the same Gmail thread.
 
 ---
 
 ## Goals
 
-1. Detect inbound leads in each activated agent's Gmail inbox with no manual intervention.
+1. Detect inbound leads in each activated agent's Gmail inbox with no manual intervention, regardless of source.
 2. Reuse the existing lead pipeline end-to-end (`ILeadStore` → `ILeadOrchestrationQueue` → `LeadOrchestratorFunction`) — **no parallel pipeline**.
-3. Cap Claude spend to ~$0.05/lead worst-case by keeping a cheap pre-filter + regex templates for the top 3 lead sources.
-4. Survive downtime — if the monitor is offline for N hours, it catches up on resume without duplicates or missed leads.
-5. Multi-tenant fan-out: one timer orchestrator dispatches per-agent sub-orchestrations so slow agents don't block the batch.
-6. Preserve locale as first-class — detect `en`/`es` on the inbound email body and persist to `Lead.Locale`.
+3. Parse every candidate email through the same path (classifier → Claude parser → persist). No per-source templated fast-path in Phase 1; coverage > cost optimization at this stage (~$3/month Claude spend per agent at 150 leads/month is noise compared to the value of not missing leads when a source tweaks its email format).
+4. Build a **lead-source registry** as Gmail monitoring lands — every source ever seen per agent is inventoried with counts and timestamps. Foundation for source-aware drip campaigns (MVP feature #4) and per-source ROI reporting.
+5. Survive downtime — if the monitor is offline for N hours, it catches up on resume without duplicates or missed leads.
+6. Multi-tenant fan-out: one timer orchestrator dispatches per-agent sub-orchestrations so slow agents don't block the batch.
+7. Preserve locale as first-class — detect `en`/`es` on the inbound email body and persist to `Lead.Locale`.
+8. All lead entry paths (Gmail, lead-form, future channels) contribute to the same source registry. Lead-form submissions set `sourceId="website"`; Gmail-detected leads set whatever source Claude identifies.
 
 ## Non-Goals
 
 - Gmail push notifications (Pub/Sub `watch`) — Phase 2.
-- Outbound replies (agent reply drafting) — that is MVP feature #4 (lead follow-ups), separate spec.
+- Outbound replies / drip campaign execution — that is MVP feature #4 (lead follow-ups), separate spec. This spec lays the registry foundation that feature will read from.
+- Per-source templated fast-path parsers — deferred indefinitely. Will revisit only if Claude spend at scale ($300+/month) justifies the maintenance cost.
+- Source-aware drip campaign configuration UI — feature #4.
 - CRM sync, Microsoft 365 / Outlook monitoring, IMAP fallback.
 - Parsing non-English lead sources beyond Spanish (Portuguese, etc.) — detect only.
 - Agent-in-the-loop "is this a lead?" confirmation UI — fully automated for MVP.
@@ -34,10 +38,10 @@ Watch each activated agent's Gmail inbox for inbound real-estate leads (Zillow, 
 
 ## Success Criteria
 
-- [ ] A Zillow lead email delivered to an activated agent's inbox becomes a `Lead` in `ILeadStore` within 10 min p95, 5 min p50.
-- [ ] Realtor.com, Homes.com, Zillow lead emails are parsed via regex without a Claude call.
-- [ ] A direct referral email ("Hi Jenise, my friend Maria is selling her house...") is parsed via Claude and correctly classified with seller intent.
-- [ ] Newsletter, transaction update, and non-lead email parse cost is $0 (pre-filter rejects before Claude).
+- [ ] A lead email from ANY source (Zillow, Realtor.com, Homes.com, Trulia, Redfin, brokerage referral, direct referral, lead-form forward, etc.) delivered to an activated agent's inbox becomes a `Lead` in `ILeadStore` within 20 min p95, 15 min p50.
+- [ ] Every email-sourced lead has a non-null `SourceId` (examples: `"zillow"`, `"realtor.com"`, `"homes.com"`, `"direct"`, `"brokerage"`, `"facebook"`, etc. — open-ended). Source registry records `(agentId, sourceId)` with first-seen, last-seen, total-leads counters.
+- [ ] Lead-form submissions at the agent website also populate `SourceId="website"` (retrofit of the existing submit endpoint).
+- [ ] Newsletter, transaction update, and non-lead email parse cost is $0 (classifier rejects before Claude).
 - [ ] Second email on the same thread updates the existing `Lead` (merge phone/notes), does not create a duplicate.
 - [ ] Monitor offline for 6 hours → on resume, catches up all messages since last `historyId` with zero duplicates and zero misses.
 - [ ] 100% branch coverage across new production code.
@@ -54,40 +58,51 @@ flowchart TD
     end
 
     subgraph Timer["Timer-driven fan-out (Azure Functions)"]
-        T[GmailMonitorTimerFunction<br/>every 5 min]
-        T -->|enqueue 1 msg per activated agent| MQ[(gmail-monitor-requests)]
+        T[GmailMonitorTimerFunction<br/>every 15 min]
+        T -->|IAccountConfigService.ListAllAsync<br/>filter gmail.enabled true| MQ[(gmail-monitor-requests)]
     end
 
     subgraph PerAgent["Per-agent Durable Orchestration"]
         SQ[StartGmailMonitorFunction<br/>QueueTrigger]
         ORCH[GmailMonitorOrchestratorFunction<br/>Durable Function]
-        SQ -->|ScheduleNewOrchestration<br/>instanceId gmail-monitor-agentId| ORCH
+        SQ -->|ScheduleNewOrchestration<br/>instanceId gmail-monitor-agentId-floor15min| ORCH
 
-        ORCH --> A1[LoadGmailCheckpointActivity<br/>historyId, lastSeenInstant]
+        ORCH --> A1[LoadGmailCheckpointActivity<br/>historyId, lastProcessedAt]
         ORCH --> A2[FetchNewGmailMessagesActivity<br/>history.list since checkpoint]
-        ORCH --> A3[ClassifyMessagesActivity<br/>C# pre-filter + source detection]
-        ORCH --> A4[ParseLeadMessagesActivity<br/>regex templates + Claude fallback]
-        ORCH --> A5[PersistAndEnqueueLeadsActivity<br/>ILeadStore.SaveAsync or MergeAsync<br/>+ ILeadOrchestrationQueue.EnqueueAsync]
-        ORCH --> A6[SaveGmailCheckpointActivity<br/>persist new historyId + lastSeenInstant]
+        ORCH --> A3[ClassifyAndParseMessagesActivity<br/>C# classifier rejects noise<br/>Claude Sonnet parses candidates<br/>returns sourceId + confidence]
+        ORCH --> A4[PersistAndEnqueueLeadsActivity<br/>ILeadStore Save or Merge<br/>+ ILeadSourceRegistry.RegisterOrUpdate<br/>+ ILeadOrchestrationQueue.Enqueue]
+        ORCH --> A5[SaveGmailCheckpointActivity<br/>persist new historyId]
     end
 
     subgraph LeadPipeline["Existing Lead Pipeline (UNCHANGED)"]
         LQ[(lead-requests)]
         LORCH[LeadOrchestratorFunction]
-        A5 -->|per lead| LQ --> LORCH
+        A4 -->|per lead| LQ --> LORCH
+    end
+
+    subgraph LeadForm["Existing Lead Form path (small retrofit)"]
+        FORM[SubmitLeadEndpoint]
+        FORM -->|sourceId=website| LQ
+        FORM -->|RegisterOrUpdate| SREG
     end
 
     subgraph Storage["Durable state"]
         TS[ITokenStore<br/>OAuth tokens<br/>Azure Table]
+        ACC[IAccountConfigService<br/>account.json files<br/>existing]
         LS[ILeadStore<br/>Google Drive markdown]
-        GM[IGmailMonitorCheckpointStore<br/>NEW — Azure Table]
+        GM[IGmailMonitorCheckpointStore<br/>NEW — Azure Table GmailMonitorCheckpoints]
+        SREG[ILeadSourceRegistry<br/>NEW — Azure Table LeadSources<br/>agentId, sourceId, counts, timestamps]
+        IDX[ILeadThreadIndex<br/>NEW — Azure Table ProcessedGmailMessages<br/>ThreadLeads]
     end
 
+    T --- ACC
     A1 --- GM
     A2 --- TS
     A2 -.->|IGmailLeadReader| Gmail
-    A5 --- LS
-    A6 --- GM
+    A4 --- LS
+    A4 --- SREG
+    A4 --- IDX
+    A5 --- GM
 ```
 
 ---
@@ -174,6 +189,8 @@ public sealed record GmailMonitorCheckpoint(
 
 ```csharp
 // RealEstateStar.Domain/Leads/Interfaces/ILeadEmailParser.cs
+// Single-path parser. Implementation: RealEstateStar.Workers.Leads.ClaudeLeadEmailParser.
+// Q3 resolved: no per-source regex fast-path. Coverage > cost optimization for MVP.
 public interface ILeadEmailParser
 {
     Task<ParsedLeadEmail?> TryParseAsync(
@@ -183,8 +200,9 @@ public interface ILeadEmailParser
 }
 
 public sealed record ParsedLeadEmail(
-    LeadSource Source,
-    LeadType LeadType,
+    string SourceId,              // Claude-classified, open-ended; examples below
+    decimal SourceConfidence,     // 0..1 — how sure Claude is about the sourceId
+    LeadType LeadType,            // existing enum Buyer/Seller/Both/Unknown
     string FirstName,
     string LastName,
     string Email,
@@ -193,11 +211,18 @@ public sealed record ParsedLeadEmail(
     SellerDetails? SellerDetails,
     BuyerDetails? BuyerDetails,
     string? Notes,
-    string Locale,
-    decimal ParseConfidence,
-    string ParserUsed);
+    string Locale,                // en | es
+    decimal ParseConfidence,      // 0..1 — overall parse quality
+    string ParserUsed);           // "claude-sonnet-4-6" — tracked for observability
 
-public enum LeadSource { Zillow, RealtorDotCom, HomesDotCom, Direct, Unknown }
+// SourceId is a string, not an enum, to support the open-ended registry.
+// Canonical values Claude is prompted to emit when it recognizes a source:
+//   "zillow" | "realtor.com" | "homes.com" | "trulia" | "redfin"
+//   "facebook" | "instagram" | "google-ads"
+//   "brokerage" (for forwarded brokerage leads without a specific platform)
+//   "direct" (human-written referral from friend/family/network)
+//   "website" (lead-form submission — NOT set by Gmail; set by SubmitLeadEndpoint)
+// Unknown senders get Claude's best guess. Registry tracks whatever it sees.
 ```
 
 ```csharp
@@ -224,17 +249,62 @@ public interface ILeadThreadIndex
 }
 ```
 
-### Lead model extension
-
-`RealEstateStar.Domain/Leads/Models/Lead.cs` gains three init-only fields (non-breaking — nullable):
-
 ```csharp
-public string? GmailThreadId { get; init; }
-public string? GmailMessageId { get; init; }
-public LeadSource? Source { get; init; }
+// RealEstateStar.Domain/Leads/Interfaces/ILeadSourceRegistry.cs
+// Per-agent inventory of every lead source ever observed.
+// Foundation for source-aware drip campaigns (feature #4) and ROI reporting.
+// Called by: Gmail monitor (every Gmail-detected lead), SubmitLeadEndpoint (every form submission),
+// future channels (WhatsApp, SMS, etc.).
+public interface ILeadSourceRegistry
+{
+    /// <summary>
+    /// Idempotent upsert. Creates the source entry if new, otherwise increments counters.
+    /// Safe to call from activity function retries — all updates are atomic increments.
+    /// </summary>
+    Task RegisterOrUpdateAsync(
+        string agentId,
+        string sourceId,
+        LeadSourceObservation observation,
+        CancellationToken ct);
+
+    Task<LeadSourceEntry?> GetAsync(string agentId, string sourceId, CancellationToken ct);
+
+    Task<IReadOnlyList<LeadSourceEntry>> GetAllForAgentAsync(string agentId, CancellationToken ct);
+}
+
+public sealed record LeadSourceObservation(
+    Guid LeadId,
+    DateTime ObservedAt,
+    decimal SourceConfidence,
+    string? OriginChannel);       // "gmail" | "website" | "whatsapp" (future) — how the system found this lead
+
+public sealed record LeadSourceEntry(
+    string AgentId,
+    string SourceId,              // "zillow", "direct", "website", etc.
+    string DisplayName,           // "Zillow", "Direct Referral", "Website Form" — human-friendly
+    DateTime FirstSeenAt,
+    DateTime LastSeenAt,
+    int TotalLeads,
+    int ConvertedLeads,           // updated elsewhere when lead closes — nullable/zero until set
+    string ETag);
 ```
 
-`LeadMarkdownRenderer` adds these to YAML frontmatter. Roundtrip tests required per `code-quality.md`.
+### Lead model extension
+
+`RealEstateStar.Domain/Leads/Models/Lead.cs` gains four init-only fields (non-breaking — nullable):
+
+```csharp
+public string? GmailThreadId { get; init; }     // Gmail thread dedup key (null for non-Gmail leads)
+public string? GmailMessageId { get; init; }    // first Gmail message that created this lead
+public string? SourceId { get; init; }          // registry key — "zillow", "website", "direct", etc.
+public decimal? SourceConfidence { get; init; } // Claude's confidence in the sourceId (null for deterministic entries like "website")
+```
+
+`LeadMarkdownRenderer` adds all four to YAML frontmatter. Roundtrip tests required per `code-quality.md`. YAML injection tests required per same.
+
+### Existing `SubmitLeadEndpoint` retrofit
+
+`apps/api/RealEstateStar.Api/Features/Leads/Submit/SubmitLeadEndpoint.cs`: populate `SourceId = "website"` on the `Lead` written through `ILeadStore.SaveAsync`, and call `ILeadSourceRegistry.RegisterOrUpdateAsync(agentId, "website", ...)` alongside. This is the only change needed to make lead-form submissions contribute to the source registry.
 
 ### Activity function signatures
 
@@ -244,9 +314,19 @@ All activities live under `RealEstateStar.Functions/Leads/GmailMonitor/`.
 |---|---|---|---|---|
 | `LoadGmailCheckpointActivity` | `{accountId, agentId, correlationId}` | `GmailMonitorCheckpoint?` | FATAL | `Standard` |
 | `FetchNewGmailMessagesActivity` | `{accountId, agentId, sinceHistoryId, maxResults, correlationId}` | `GmailHistorySlice` | FATAL | `GmailRead` |
-| `ClassifyAndParseMessagesActivity` | `{messages, agentId, correlationId}` | `{parsed, skipped}` | BEST-EFFORT per-message | `Parse` |
-| `PersistAndEnqueueLeadsActivity` | `{parsed, agentId, accountId, messages, correlationId}` | `{created, merged, enqueued}` | FATAL (idempotent) | `Persist` |
+| `ClassifyAndParseMessagesActivity` | `{messages, agentId, correlationId}` | `{parsed, skipped}` | BEST-EFFORT per-message (one bad email cannot fail the batch) | `Parse` |
+| `PersistAndEnqueueLeadsActivity` | `{parsed, agentId, accountId, messages, correlationId}` | `{created, merged, enqueued, sourcesRegistered}` | FATAL (idempotent via `ILeadThreadIndex.HasProcessedMessageAsync` + `ILeadSourceRegistry` atomic increment) | `Persist` |
 | `SaveGmailCheckpointActivity` | `{checkpoint}` | void | FATAL | `Standard` |
+
+**`PersistAndEnqueueLeadsActivity` write sequence** (idempotent — every step safe to retry):
+
+1. For each `ParsedLeadEmail`:
+   - Skip if `ILeadThreadIndex.HasProcessedMessageAsync(agentId, gmailMessageId)` returns true.
+   - Look up existing lead via `ILeadThreadIndex.GetByThreadIdAsync(agentId, gmailThreadId)`.
+   - If found: merge notes/phone via `ILeadStore.UpdateStatusAsync` (or similar); **do not re-enqueue**.
+   - If not found: `ILeadStore.SaveAsync` with `SourceId` + `GmailThreadId` + `GmailMessageId` populated; link thread via `LinkThreadAsync`; enqueue to `lead-requests`.
+2. Mark every processed messageId via `ILeadThreadIndex.MarkMessageProcessedAsync`.
+3. Call `ILeadSourceRegistry.RegisterOrUpdateAsync(agentId, sourceId, observation)` for each lead. Atomic increment of counters — duplicate calls (retry) are a no-op on counter increment because we pass the `leadId`; the registry tracks unique leadIds per source.
 
 ### Orchestrator skeleton
 
@@ -384,40 +464,101 @@ internal static class GmailMonitorRetryPolicies
 
 ---
 
-## Layered Parser Design
+## Parser Design (single path)
 
 ```mermaid
 flowchart TD
-    M[InboundGmailMessage] --> C{Classifier}
-    C -->|List-Unsubscribe header or<br/>noreply@ without lead markers| R1[Skip — non-lead]
-    C -->|From contains @zillow.com| Z[ZillowTemplateParser<br/>regex]
-    C -->|From contains @realtor.com| RC[RealtorTemplateParser<br/>regex]
-    C -->|From contains @homes.com| H[HomesTemplateParser<br/>regex]
-    C -->|Other sender +<br/>real-estate keyword hit| CL[ClaudeFallbackParser<br/>Sonnet 4.6]
-    C -->|Other sender +<br/>no keyword hit| R2[Skip — non-lead]
-    Z -->|confidence ≥ 0.8| PE[ParsedLeadEmail]
-    RC -->|confidence ≥ 0.8| PE
-    H -->|confidence ≥ 0.8| PE
-    Z -.->|confidence < 0.8| CL
-    RC -.->|confidence < 0.8| CL
-    H -.->|confidence < 0.8| CL
-    CL --> PE
+    M[InboundGmailMessage] --> C{Classifier<br/>C# — free}
+    C -->|List-Unsubscribe header<br/>AND no lead markers| R1[Skip — non-lead]
+    C -->|noreply@ sender<br/>AND not a known lead-source domain<br/>AND no lead markers| R2[Skip — non-lead]
+    C -->|Subject starts with Re:<br/>AND In-Reply-To is agent-sent| R3[Skip — agent-initiated reply chain]
+    C -->|From is our own domain<br/>e.g. forwarded from our form| R4[Skip — we created this]
+    C -->|Otherwise| CL[ClaudeLeadEmailParser<br/>claude-sonnet-4-6<br/>~$0.01-0.03]
+    CL -->|parseConfidence ≥ threshold| PE[ParsedLeadEmail<br/>with sourceId + confidence]
+    CL -->|below threshold| LG[Log at INFO, drop<br/>counter: ClaudeLowConfidenceDrop]
 ```
 
-**Classifier (C# only, ~$0):**
+**Classifier (C# only, ~$0):** See reject rules in the diagram. Implementation: `RealEstateStar.Workers.Leads.LeadEmailClassifier`.
 
-- Reject if headers contain `List-Unsubscribe` AND body lacks lead-intent keywords.
-- Reject if `From` is `noreply@` / `do-not-reply@` AND sender domain is not on the known-lead-source allowlist.
-- Reject if subject starts with `Re:` AND `In-Reply-To` points to an agent-sent message.
-- Accept if: known lead-source domain OR body contains ≥2 of [name + phone pattern + address pattern + intent keyword].
-
-**Template parsers (regex, C#, ~$0):** Parse confidence scoring: 1.0 = all anchors matched; 0.8 = core fields present; < 0.8 → fall through to Claude.
-
-**Claude fallback (Sonnet 4.6, ~$0.01–0.03/parse):**
-- System prompt extracts structured JSON (firstName, lastName, email, phone, leadType, timeline, locale, confidence).
-- Input: subject + up to 4KB of body.
-- Prompt-injection mitigation: wrap body in `<email_body>` delimiters.
+**Claude parser (Sonnet 4.6, ~$0.01–0.03 per candidate email):**
+- System prompt instructs Claude to extract structured JSON: `firstName, lastName, email, phone, leadType, timeline, sellerDetails/buyerDetails, notes, locale, sourceId, sourceConfidence, parseConfidence`.
+- Prompt includes the canonical `sourceId` list above with permission to emit new values when the email comes from an unrecognized source.
+- Input: subject + up to 4KB of body (truncate aggressively for direct referrals).
+- **Prompt-injection mitigation:** wrap body in `<email_body>` delimiters; system prompt explicitly instructs Claude to treat content as data, not instructions.
 - Strip markdown code fences before `JsonDocument.Parse` (per MEMORY lesson).
+- On JSON parse failure: log first 200 chars of Claude response (not the email body) and skip — counts toward `ClaudeParseFailures` counter.
+
+**Cost math (Jenise scale, 150 leads/month):**
+- Classifier rejects ~95% of inbox traffic (newsletters, transaction updates, replies) for $0.
+- Remaining ~5% × 30 days × ~200 emails/day ≈ 300 candidate emails/month through Claude.
+- 300 × ~$0.015 ≈ **$4.50/month/agent** (within noise budget).
+- At 100 agents: ~$450/month. This is the number that would trigger a template-parser optimization pass, not MVP.
+
+---
+
+## Google Drive per-lead Folder Structure
+
+The existing `LeadPaths` already implements Option 4 (one folder per lead). Gmail monitoring extends the existing structure with source-context and thread-log files — no directory schema changes, just additional files inside the existing lead folder.
+
+### Existing structure (unchanged)
+
+```
+Real Estate Star/
+  1 - Leads/
+    {Lead Full Name}/
+      Lead Profile.md              ← YAML frontmatter + body (existing)
+      Research & Insights.md       ← CMA + HomeSearch output (existing)
+      Notification Draft.md        ← email draft for agent (existing)
+      Home Search/
+        YYYY-MM-DD-Home Search Results.md
+      {Property Address}/          ← CMA folder per property (existing)
+        ...
+```
+
+### New files added by Gmail monitoring
+
+```
+Real Estate Star/
+  1 - Leads/
+    {Lead Full Name}/
+      Lead Profile.md              ← existing; gains sourceId/gmailThreadId frontmatter
+      Email Thread Log.md          ← NEW: running log of every Gmail message on this thread
+      Source Context.md            ← NEW: verbatim first email that created the lead
+```
+
+- **`Email Thread Log.md`** — append-only. Each entry stamps `receivedAt`, `from`, `subject`, and the plain-text body. Agents can see the full conversation history without leaving Drive. Updated every time `ILeadThreadIndex.GetByThreadIdAsync` returns a match and we merge.
+- **`Source Context.md`** — immutable. Written once on lead creation. Preserves the original email (headers stripped to `From`/`Subject`/`Date`/`Authentication-Results` only) so the agent can audit where a lead came from even if the `sourceId` classification needs correction later.
+
+### New `LeadPaths` helpers
+
+```csharp
+// RealEstateStar.Domain/Leads/LeadPaths.cs additions
+public static string EmailThreadLogFile(string name)
+    => $"{LeadFolder(name)}/Email Thread Log.md";
+
+public static string SourceContextFile(string name)
+    => $"{LeadFolder(name)}/Source Context.md";
+```
+
+### New `ILeadStore` methods
+
+```csharp
+// RealEstateStar.Domain/Leads/Interfaces/ILeadStore.cs — additions
+Task AppendEmailThreadLogAsync(string agentId, Guid leadId, EmailThreadLogEntry entry, CancellationToken ct);
+Task WriteSourceContextAsync(string agentId, Guid leadId, SourceContextSnapshot snapshot, CancellationToken ct);
+```
+
+Implementation in `LeadFileStore` routes through `IDocumentStorageProvider` (Google Drive or local) just like existing methods — no new storage abstraction required.
+
+### Future file slots (reserved — spec feature #4 will use)
+
+```
+{Lead Full Name}/
+  Drip State.json              ← drip campaign progress (per-lead state machine)
+  Drip History.md              ← log of sent follow-up messages
+```
+
+These are called out only so spec #4 (drip campaigns) knows where to land its state. Not built in this spec.
 
 ---
 
@@ -612,24 +753,25 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 
 ---
 
-## Open Questions (Need User Decision Before Implementation)
+## Open Questions
 
-1. **Polling cadence — 5 min vs 1 min vs 15 min.** Drives p95 lead latency and Azure Function invocation cost. Spec assumes 5 min.
+### Resolved
 
-2. **Activated-agent source of truth.**
-   (a) Scan `config/accounts/*/account.json` at warm-up, cache + refresh via mtime — simple.
-   (b) `IActivationStore` + Azure Table — cleaner but new durable store.
-   Spec assumes (a).
+1. ✅ **Polling cadence: 15 min.** Real estate lead-response window is 1–4 hours, not 5 minutes. 15 min detection + 30 sec pipeline + agent's natural WhatsApp-check rhythm fits inside the window that matters for real estate. Configurable via `Features:GmailMonitor:PollingIntervalMinutes` env var.
 
-3. **Trusted-sender fast path & DKIM enforcement.** On DKIM fail: strict (drop to Claude, default) vs relaxed (still trust template). Strict = fewer false positives, breaks auto-forwarded brokerage leads. Relaxed = higher spoof risk.
+2. ✅ **Activated-agent source: reuse existing `IAccountConfigService.ListAllAsync()`.** No new abstraction — PR #157 already added ETag/CAS to `IAccountConfigService` which will be the natural migration point if accounts ever move to Azure Table. Timer filters on `account.monitoring?.gmail?.enabled == true`.
 
-4. **Gmail monitoring scope.** Raw `in:inbox` or `category:primary OR category:updates`? Raw surfaces everything (higher classifier burden). Spec: raw.
+3. ✅ **No per-source templated parsers. No DKIM enforcement question.** Every candidate email goes through Claude — coverage and maintenance cost trump the ~$4.50/agent/month Claude spend. `SourceId` is a Claude-classified string, open-ended, tracked in the source registry.
 
-5. **Opt-in vs opt-out default for existing accounts.** Default `enabled: true` at deploy, or require explicit enablement per agent? Ops risk of accidentally reading mail.
+### Still open
 
-6. **Rebaseline window after > 7 day outage.** Process `newer_than:1d`, `newer_than:3d`, or skip entirely? Spec: 1 day.
+4. **Gmail monitoring scope.** Raw `in:inbox` vs. `category:primary OR category:updates`. Raw surfaces everything Gmail delivers (including Promotions tab) at the cost of more classifier work. Narrower scope may miss Zillow/Realtor notifications that Gmail auto-tags as Promotions. Default in spec: raw.
 
-7. **Claude confidence threshold for auto-create vs drop.** No review UI in MVP — 0.5 (noisier) vs 0.85 (misses ambiguous referrals). Spec: 0.7.
+5. **Opt-in vs opt-out default for existing accounts.** Default `monitoring.gmail.enabled: true` at deploy time, or require explicit enablement per agent? "We're reading your email" is a sensitive default — ops risk of accidentally reading mail without deliberate consent. Default in spec: opt-in (explicit flip required, Jenise flipped on first as staging).
+
+6. **Rebaseline window after > 7 day outage.** When the Gmail `historyId` TTL expires (~1 week), what resume window do we scan? `newer_than:1d` (spec default — safest), `newer_than:3d` (broader catch-up), or skip entirely (accept gap)? The message-id idempotency table prevents duplicates on any choice.
+
+7. **Claude parse confidence threshold.** Threshold for auto-creating a lead vs dropping. No review UI in MVP. Low threshold = noisier pipeline + false positives. High threshold = missed ambiguous direct referrals. Default in spec: **auto-create at ≥ 0.7**, **log-without-creating for 0.4–0.7** (so we have data to tune after two weeks), **drop silently < 0.4**.
 
 ---
 
@@ -648,20 +790,20 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 ## Files to Add / Modify
 
 ### New files (Domain)
-- `Leads/Interfaces/IGmailLeadReader.cs`, `IGmailMonitorCheckpointStore.cs`, `ILeadEmailParser.cs`, `ILeadEmailClassifier.cs`, `ILeadThreadIndex.cs`, `IActivatedAgentLister.cs`, `IGmailMonitorQueue.cs`
-- `Leads/Models/GmailMonitorCheckpoint.cs`, `InboundGmailMessage.cs`, `GmailHistorySlice.cs`, `ParsedLeadEmail.cs`, `LeadSource.cs`, `LeadEmailClassification.cs`, `GmailMonitorMessage.cs`
+- `Leads/Interfaces/IGmailLeadReader.cs`, `IGmailMonitorCheckpointStore.cs`, `ILeadEmailParser.cs`, `ILeadEmailClassifier.cs`, `ILeadThreadIndex.cs`, `ILeadSourceRegistry.cs`, `IGmailMonitorQueue.cs`
+- `Leads/Models/GmailMonitorCheckpoint.cs`, `InboundGmailMessage.cs`, `GmailHistorySlice.cs`, `ParsedLeadEmail.cs`, `LeadEmailClassification.cs`, `GmailMonitorMessage.cs`, `LeadSourceEntry.cs`, `LeadSourceObservation.cs`, `EmailThreadLogEntry.cs`, `SourceContextSnapshot.cs`
 
 ### New files (Clients)
 - `Clients.Gmail/GmailLeadReader.cs`
-- `Clients.Azure/AzureGmailMonitorCheckpointStore.cs`, `AzureLeadThreadIndex.cs`, `AzureGmailMonitorQueue.cs`
+- `Clients.Azure/AzureGmailMonitorCheckpointStore.cs`, `AzureLeadThreadIndex.cs`, `AzureLeadSourceRegistry.cs`, `AzureGmailMonitorQueue.cs`
 
 ### New files (Workers.Leads)
-- `GmailMonitor/LeadEmailClassifier.cs`
-- `GmailMonitor/Parsers/{Zillow,Realtor,Homes}TemplateParser.cs`, `ClaudeFallbackParser.cs`
-- `GmailMonitor/CompositeLeadEmailParser.cs`, `GmailMonitorDiagnostics.cs`
+- `GmailMonitor/LeadEmailClassifier.cs` — C# classifier (free)
+- `GmailMonitor/ClaudeLeadEmailParser.cs` — single-path Claude parser
+- `GmailMonitor/GmailMonitorDiagnostics.cs` — ActivitySource + Meter
 
 ### New files (DataServices)
-- `Leads/ConfigActivatedAgentLister.cs`, `LeadThreadMerger.cs`
+- `Leads/LeadThreadMerger.cs` — handles merge of new Gmail message into existing Lead
 
 ### New files (Functions)
 - `Leads/GmailMonitor/GmailMonitorTimerFunction.cs`, `StartGmailMonitorFunction.cs`, `GmailMonitorOrchestratorFunction.cs`
@@ -669,9 +811,13 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 - `Leads/GmailMonitor/Models/GmailMonitorDtos.cs`, `GmailMonitorRetryPolicies.cs`
 
 ### Modified files
-- `Domain/Leads/Models/Lead.cs` — add nullable `GmailThreadId`, `GmailMessageId`, `Source`.
-- `DataServices/Leads/LeadMarkdownRenderer.cs` — render new frontmatter fields.
-- `Api/Program.cs` — register new DI interfaces.
+- `Domain/Leads/Models/Lead.cs` — add nullable `GmailThreadId`, `GmailMessageId`, `SourceId`, `SourceConfidence`.
+- `Domain/Leads/LeadPaths.cs` — add `EmailThreadLogFile`, `SourceContextFile` helpers.
+- `Domain/Leads/Interfaces/ILeadStore.cs` — add `AppendEmailThreadLogAsync`, `WriteSourceContextAsync`.
+- `DataServices/Leads/LeadFileStore.cs` — implement the two new `ILeadStore` methods (route through `IDocumentStorageProvider`).
+- `DataServices/Leads/LeadMarkdownRenderer.cs` — render new frontmatter fields (`sourceId`, `sourceConfidence`, `gmailThreadId`, `gmailMessageId`).
+- `Api/Features/Leads/Submit/SubmitLeadEndpoint.cs` — populate `SourceId = "website"`, call `ILeadSourceRegistry.RegisterOrUpdateAsync`.
+- `Api/Program.cs` — register new DI interfaces (`IGmailLeadReader`, `ILeadThreadIndex`, `ILeadSourceRegistry`, `IGmailMonitorCheckpointStore`, `IGmailMonitorQueue`, `ILeadEmailParser`, `ILeadEmailClassifier`).
 - `Architecture.Tests/{DependencyTests,DiRegistrationTests}.cs` — add new project allowlists (requires `[arch-change-approved]`).
-- `config/accounts/*/account.json` — add `monitoring.gmail.enabled`.
-- `appsettings.json` / `host.json` — `Features:GmailMonitor:Enabled` flag, timer cron override.
+- `config/accounts/*/account.json` — add `monitoring.gmail.enabled` (default false).
+- `appsettings.json` / `host.json` — `Features:GmailMonitor:Enabled` flag, `Features:GmailMonitor:PollingIntervalMinutes` (default 15), `Features:GmailMonitor:ClaudeConfidenceThreshold` (default 0.7).
