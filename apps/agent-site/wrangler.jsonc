@@ -17,7 +17,7 @@
   "kv_namespaces": [
     {
       "binding": "SITE_CONTENT_KV",
-      "id": "REPLACE_WITH_PROD_NAMESPACE_ID"
+      "id": "68e52e8dabb7499681734c8f2dac5f5a"
     }
   ],
   "vars": {
