@@ -182,6 +182,179 @@ flowchart TD
 
 ---
 
+## Part B — Journey State Machine
+
+The Communications Loop's central abstraction. Every `Lead` has a position in a stage-aware journey; every outbound message is selected to match where the lead sits and what they've already moved past.
+
+### Stages — reuse `PipelineAnalysisWorker.ValidStages`
+
+The stages are NOT new vocabulary. They are exactly the stages the activation pipeline already uses (`apps/api/RealEstateStar.Workers/Activation/RealEstateStar.Workers.Activation.PipelineAnalysis/PipelineAnalysisWorker.cs`) to classify a lead's position in each agent's actual email history:
+
+```mermaid
+stateDiagram-v2
+    [*] --> new
+    new --> contacted : we respond
+    new --> lost : disqualify
+    contacted --> showing : property viewing scheduled
+    contacted --> lost : no response / disqualify
+    showing --> applied : offer submitted
+    showing --> contacted : cold follow-up
+    showing --> lost : lost interest
+    applied --> under_contract : offer accepted
+    applied --> lost : offer fell through
+    under_contract --> closing : inspection / financing done
+    closing --> closed : deal done
+    closed --> [*]
+    lost --> [*]
+```
+
+**Active stages** (Communications Loop CAN message): `new`, `contacted`, `showing`, `applied`
+**Silent stages** (Loop does NOT message — agent owns the conversation directly): `under-contract`, `closing`, `closed`
+**Terminal** (never message again without manual agent override): `lost`
+
+The split is deliberate. Once a lead is `under-contract` or beyond, every message has real financial/legal implications and must come from the agent personally. Automating at that stage is dangerous.
+
+Note the mapping between this enum and the existing coarse `PipelineStage` enum (`Domain/Activation/Models/ContactEnums.cs`):
+
+| `LeadJourneyStage` (this spec) | Coarse `PipelineStage` (existing) |
+|---|---|
+| `new`, `contacted`, `showing`, `applied` | `Lead` |
+| `under-contract`, `closing` | `UnderContract` |
+| `closed` | `Closed` |
+| `lost` | (no mapping — add `Dead` or keep in `Lead` with `lost` substate) |
+
+The fine stage goes on `Lead.JourneyStage` (new field). The coarse `PipelineStage` remains for reporting + existing `ImportedContact` records; a domain service derives coarse from fine on persist.
+
+### `Lead.cs` extensions for the journey
+
+```csharp
+// RealEstateStar.Domain/Leads/Models/Lead.cs — additional fields
+public LeadJourneyStage JourneyStage { get; init; } = LeadJourneyStage.New;
+public IReadOnlySet<string> PurposesServed { get; init; } = new HashSet<string>();
+public DateTime? LastInboundMessageAt { get; init; }
+public DateTime? LastOutboundMessageAt { get; init; }
+public int InboundMessageCount { get; init; }
+public int OutboundMessageCount { get; init; }
+public LeadJourneyDisposition Disposition { get; init; } = LeadJourneyDisposition.Active;
+public DateTime? PausedUntil { get; init; }
+public string? HaltReason { get; init; }  // "lead-disqualified" | "converted" | "manual-override" | null
+```
+
+```csharp
+// RealEstateStar.Domain/Leads/Models/LeadJourneyStage.cs
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum LeadJourneyStage
+{
+    New,           // Received but not yet contacted by agent
+    Contacted,     // Initial response sent; awaiting lead engagement
+    Showing,       // Property viewings active
+    Applied,       // Offer submitted
+    UnderContract, // Offer accepted — silent
+    Closing,       // Inspection/financing in progress — silent
+    Closed,        // Deal done — silent
+    Lost,          // Disqualified — terminal, never message
+}
+
+// RealEstateStar.Domain/Leads/Models/LeadJourneyDisposition.cs
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum LeadJourneyDisposition
+{
+    Active,      // Normal — loop can evaluate
+    Paused,      // Recent reply — halt outbound until PausedUntil
+    Escalated,   // Agent takeover required (e.g., "let's meet Saturday")
+    Halted,      // Terminal halt — see HaltReason
+}
+```
+
+The `Disposition` axis is orthogonal to `JourneyStage`. A lead can be `Contacted` + `Active` (loop evaluates normally) or `Contacted` + `Paused` (they replied yesterday, we wait) or `Contacted` + `Escalated` (they said "call me today" — agent owns it) or `Contacted` + `Halted` (they said "not interested").
+
+### `Drip State.json` — per-lead authoritative state file
+
+Lives in the per-lead Drive folder (see Google Drive section earlier in spec). Schema:
+
+```jsonc
+{
+  "schemaVersion": 1,
+  "leadId": "...",
+  "agentId": "...",
+  "journeyStage": "contacted",
+  "disposition": "active",
+  "purposesServed": [
+    { "id": "initial-response", "servedAt": "2026-04-17T12:00:00Z", "via": "outbound-email", "messageId": "..." },
+    { "id": "intro-value-prop", "servedAt": "2026-04-17T12:00:00Z", "via": "outbound-email", "messageId": "..." },
+    { "id": "cma-delivered", "servedAt": "2026-04-17T12:05:00Z", "via": "pipeline-cma", "messageId": "..." }
+  ],
+  "purposesNeeded": [
+    { "id": "objection-price", "reason": "lead asked about commission", "priority": 1, "detectedAt": "2026-04-18T09:14:00Z" }
+  ],
+  "nextEvaluationAt": "2026-04-21T14:00:00Z",
+  "lastOutboundMessageAt": "2026-04-17T12:05:00Z",
+  "lastInboundMessageAt": "2026-04-18T09:14:00Z",
+  "pausedUntil": "2026-04-20T09:14:00Z",
+  "haltReason": null,
+  "escalationReason": null,
+  "messageHistory": [
+    { "direction": "outbound", "sentAt": "2026-04-17T12:00:00Z", "templateId": "initial-response-buyer", "purposesServed": ["initial-response","intro-value-prop"], "gmailMessageId": "...", "gmailThreadId": "..." },
+    { "direction": "outbound", "sentAt": "2026-04-17T12:05:00Z", "templateId": "cma-delivery", "purposesServed": ["cma-delivered"], "gmailMessageId": "...", "gmailThreadId": "..." },
+    { "direction": "inbound", "receivedAt": "2026-04-18T09:14:00Z", "gmailMessageId": "...", "gmailThreadId": "...", "triggeredPurposesNeeded": ["objection-price"], "stageAdvance": null }
+  ],
+  "lastModifiedBy": "outbound-orchestrator",  // | "inbound-orchestrator" | "agent-override"
+  "lastModifiedAt": "2026-04-18T09:14:00Z",
+  "etag": "W/\"abc123\""
+}
+```
+
+**ETag-protected compare-and-swap on every write.** `IDripStateStore.SaveIfUnchangedAsync(state, etag, ct)` returns `false` if another actor (inbound orchestrator mid-flight, agent UI, etc.) wrote first; caller re-reads + re-applies. Same pattern as `IAccountConfigService` (established in PR #157).
+
+### `IDripStateStore` — Domain interface
+
+```csharp
+// RealEstateStar.Domain/Leads/Interfaces/IDripStateStore.cs
+public interface IDripStateStore
+{
+    Task<LeadDripState?> GetAsync(string agentId, Guid leadId, CancellationToken ct);
+    Task<IReadOnlyList<LeadDripState>> ListDueForEvaluationAsync(
+        string agentId, DateTime asOf, CancellationToken ct);
+    Task SaveNewAsync(LeadDripState state, CancellationToken ct);
+    Task<bool> SaveIfUnchangedAsync(LeadDripState state, string etag, CancellationToken ct);
+}
+```
+
+Implementation `AzureBlobDripStateStore` writes to the agent's Drive (via `IDocumentStorageProvider`) with a blob-level ETag for CAS. `ListDueForEvaluationAsync` uses a secondary Azure Table index (`DripStateIndex` keyed by `(agentId, nextEvaluationAt)`) for efficient "who's due?" queries without scanning all Drive files.
+
+### Journey History file
+
+Appended every time Claude infers a stage advance or purpose change. Human-readable audit log. Path: `Real Estate Star/1 - Leads/{Name}/Journey History.md`.
+
+```markdown
+# Journey History — {Lead Full Name}
+
+## 2026-04-17 12:00 UTC — Lead created
+Source: zillow
+Initial stage: new
+Initial purposes served: (none)
+
+## 2026-04-17 12:05 UTC — Outbound: initial-response + intro-value-prop
+Template: initial-response-buyer
+Purposes served: initial-response, intro-value-prop
+Stage advance: new → contacted
+
+## 2026-04-17 12:05 UTC — Outbound: cma-delivered
+Template: cma-delivery
+Purposes served: cma-delivered
+
+## 2026-04-18 09:14 UTC — Inbound reply detected
+Gmail thread: 19abc...
+Claude stage inference: no advance (still contacted)
+Claude purpose inference:
+  - Lead asked about commission → purpose `objection-price` needed (priority 1)
+Disposition: active → paused (48h cooldown after reply)
+```
+
+This file is written by **both** the inbound orchestrator (on reply) and the outbound orchestrator (on send). `LastModifiedBy` on `DripState` disambiguates.
+
+---
+
 ## Detailed Component Design
 
 ### New Domain Interfaces (RealEstateStar.Domain — ZERO deps)
