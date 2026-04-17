@@ -4,6 +4,8 @@ using Microsoft.Extensions.Options;
 using Moq;
 using RealEstateStar.Domain.Activation.Models;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
+using RealEstateStar.Domain.Shared.Models;
 using RealEstateStar.Functions.Activation;
 using RealEstateStar.Functions.Activation.Activities;
 using RealEstateStar.Functions.Activation.Dtos;
@@ -19,16 +21,18 @@ public sealed class PersistSiteContentFunctionTests
     private static readonly CancellationToken Ct = CancellationToken.None;
     private const string TestNamespaceId = "ns-test-abc123";
 
-    private static (PersistSiteContentFunction Fn, Mock<ICloudflareKvClient> KvMock)
+    private static (PersistSiteContentFunction Fn, Mock<ICloudflareKvClient> KvMock, Mock<IAccountConfigService> ConfigMock)
         BuildFn(string namespaceId = TestNamespaceId)
     {
         var kvMock = new Mock<ICloudflareKvClient>(MockBehavior.Strict);
+        var configMock = new Mock<IAccountConfigService>(MockBehavior.Strict);
         var options = Options.Create(new SiteContentOptions { KvNamespaceId = namespaceId });
         var fn = new PersistSiteContentFunction(
             kvMock.Object,
+            configMock.Object,
             options,
             NullLogger<PersistSiteContentFunction>.Instance);
-        return (fn, kvMock);
+        return (fn, kvMock, configMock);
     }
 
     private static PersistSiteContentInput BuildInput(
@@ -58,7 +62,8 @@ public sealed class PersistSiteContentFunctionTests
     public async Task RunAsync_SuccessfulPersist_WritesAllLocalesAsDraft()
     {
         // Arrange
-        var (fn, kvMock) = BuildFn();
+        var (fn, kvMock, configMock) = BuildFn();
+        configMock.Setup(c => c.GetAccountAsync(It.IsAny<string>(), Ct)).ReturnsAsync((AccountConfig?)null);
         var input = BuildInput(contentByLocale: new Dictionary<string, object>
         {
             ["en"] = new Dictionary<string, string> { ["hero.headline"] = "Buy Your Dream Home" },
@@ -82,7 +87,8 @@ public sealed class PersistSiteContentFunctionTests
     public async Task RunAsync_SuccessfulPersist_KvKeyFormatIsVersioned()
     {
         // Arrange — verify key format uses v1 prefix
-        var (fn, kvMock) = BuildFn();
+        var (fn, kvMock, configMock) = BuildFn();
+        configMock.Setup(c => c.GetAccountAsync(It.IsAny<string>(), Ct)).ReturnsAsync((AccountConfig?)null);
         var input = BuildInput();
 
         string? capturedKey = null;
@@ -102,7 +108,8 @@ public sealed class PersistSiteContentFunctionTests
     public async Task RunAsync_SuccessfulPersist_WritesSiteStateAsPendingApproval()
     {
         // Arrange
-        var (fn, kvMock) = BuildFn();
+        var (fn, kvMock, configMock) = BuildFn();
+        configMock.Setup(c => c.GetAccountAsync(It.IsAny<string>(), Ct)).ReturnsAsync((AccountConfig?)null);
         var input = BuildInput();
 
         string? capturedSiteState = null;
@@ -125,7 +132,8 @@ public sealed class PersistSiteContentFunctionTests
     public async Task RunAsync_SuccessfulPersist_WritesAccountConfigToKv()
     {
         // Arrange
-        var (fn, kvMock) = BuildFn();
+        var (fn, kvMock, configMock) = BuildFn();
+        configMock.Setup(c => c.GetAccountAsync(It.IsAny<string>(), Ct)).ReturnsAsync((AccountConfig?)null);
         var accountJson = @"{""name"":""Jenise"",""handle"":""jenise""}";
         var input = BuildInput(accountConfigJson: accountJson);
 
@@ -149,7 +157,8 @@ public sealed class PersistSiteContentFunctionTests
     public async Task RunAsync_SuccessfulPersist_AccountKeyUsesVersionedFormat()
     {
         // Arrange
-        var (fn, kvMock) = BuildFn();
+        var (fn, kvMock, configMock) = BuildFn();
+        configMock.Setup(c => c.GetAccountAsync(It.IsAny<string>(), Ct)).ReturnsAsync((AccountConfig?)null);
         var input = BuildInput(accountId: "acc-xyz");
 
         string? capturedAccountKey = null;
@@ -172,7 +181,8 @@ public sealed class PersistSiteContentFunctionTests
     public async Task RunAsync_SuccessfulPersist_SiteStateKeyUsesVersionedFormat()
     {
         // Arrange
-        var (fn, kvMock) = BuildFn();
+        var (fn, kvMock, configMock) = BuildFn();
+        configMock.Setup(c => c.GetAccountAsync(It.IsAny<string>(), Ct)).ReturnsAsync((AccountConfig?)null);
         var input = BuildInput(accountId: "acc-xyz");
 
         string? capturedStateKey = null;
@@ -197,7 +207,8 @@ public sealed class PersistSiteContentFunctionTests
     public async Task RunAsync_KvWriteFails_PropagatesException()
     {
         // Arrange — KV client throws on locale write
-        var (fn, kvMock) = BuildFn();
+        var (fn, kvMock, configMock) = BuildFn();
+        configMock.Setup(c => c.GetAccountAsync(It.IsAny<string>(), Ct)).ReturnsAsync((AccountConfig?)null);
         var input = BuildInput();
 
         kvMock.Setup(k => k.PutAsync(TestNamespaceId, It.IsAny<string>(), It.IsAny<string>(), Ct))
@@ -211,7 +222,8 @@ public sealed class PersistSiteContentFunctionTests
     public async Task RunAsync_KvWriteFailsOnAccountKey_PropagatesException()
     {
         // Arrange — locale write succeeds, account write throws
-        var (fn, kvMock) = BuildFn();
+        var (fn, kvMock, configMock) = BuildFn();
+        configMock.Setup(c => c.GetAccountAsync(It.IsAny<string>(), Ct)).ReturnsAsync((AccountConfig?)null);
         var input = BuildInput();
 
         kvMock.Setup(k => k.PutAsync(TestNamespaceId, It.Is<string>(k => k.StartsWith("content:")), It.IsAny<string>(), Ct))
@@ -226,7 +238,8 @@ public sealed class PersistSiteContentFunctionTests
     public async Task RunAsync_KvWriteFailsOnSiteState_PropagatesException()
     {
         // Arrange — locale + account writes succeed, site-state write throws
-        var (fn, kvMock) = BuildFn();
+        var (fn, kvMock, configMock) = BuildFn();
+        configMock.Setup(c => c.GetAccountAsync(It.IsAny<string>(), Ct)).ReturnsAsync((AccountConfig?)null);
         var input = BuildInput();
 
         kvMock.Setup(k => k.PutAsync(TestNamespaceId, It.Is<string>(k => k.StartsWith("content:")), It.IsAny<string>(), Ct))
@@ -245,7 +258,8 @@ public sealed class PersistSiteContentFunctionTests
     public async Task RunAsync_EmptyContentByLocale_StillWritesSiteStateAndAccount()
     {
         // Arrange — no locale content (e.g. Fallback result with empty dict)
-        var (fn, kvMock) = BuildFn();
+        var (fn, kvMock, configMock) = BuildFn();
+        configMock.Setup(c => c.GetAccountAsync(It.IsAny<string>(), Ct)).ReturnsAsync((AccountConfig?)null);
         var input = BuildInput(contentByLocale: new Dictionary<string, object>());
 
         var capturedKeys = new List<string>();
@@ -266,7 +280,8 @@ public sealed class PersistSiteContentFunctionTests
     public async Task RunAsync_MultipleLocales_WritesCorrectKeyPerLocale()
     {
         // Arrange
-        var (fn, kvMock) = BuildFn();
+        var (fn, kvMock, configMock) = BuildFn();
+        configMock.Setup(c => c.GetAccountAsync(It.IsAny<string>(), Ct)).ReturnsAsync((AccountConfig?)null);
         var input = BuildInput(
             accountId: "acct-99",
             contentByLocale: new Dictionary<string, object>
@@ -294,7 +309,8 @@ public sealed class PersistSiteContentFunctionTests
     public async Task RunAsync_UsesNamespaceIdFromOptions()
     {
         // Arrange — custom namespace
-        var (fn, kvMock) = BuildFn(namespaceId: "custom-ns-456");
+        var (fn, kvMock, configMock) = BuildFn(namespaceId: "custom-ns-456");
+        configMock.Setup(c => c.GetAccountAsync(It.IsAny<string>(), Ct)).ReturnsAsync((AccountConfig?)null);
         var input = BuildInput();
 
         string? capturedNamespace = null;

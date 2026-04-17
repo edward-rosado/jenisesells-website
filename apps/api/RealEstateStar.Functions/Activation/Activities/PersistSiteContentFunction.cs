@@ -3,6 +3,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RealEstateStar.Domain.Shared.Interfaces.External;
+using RealEstateStar.Domain.Shared.Interfaces.Storage;
 using RealEstateStar.Functions.Activation.Dtos;
 
 namespace RealEstateStar.Functions.Activation.Activities;
@@ -22,6 +23,7 @@ namespace RealEstateStar.Functions.Activation.Activities;
 /// </summary>
 public sealed class PersistSiteContentFunction(
     ICloudflareKvClient kvClient,
+    IAccountConfigService accountConfigService,
     IOptions<SiteContentOptions> options,
     ILogger<PersistSiteContentFunction> logger)
 {
@@ -45,6 +47,27 @@ public sealed class PersistSiteContentFunction(
 
         try
         {
+            // Load account config if not provided by orchestrator
+            var accountConfigJson = input.AccountConfigJson;
+            if (string.IsNullOrEmpty(accountConfigJson))
+            {
+                var accountConfig = await accountConfigService.GetAccountAsync(input.AccountId, ct).ConfigureAwait(false);
+                if (accountConfig is not null)
+                {
+                    accountConfigJson = JsonSerializer.Serialize(accountConfig, JsonOpts);
+                    logger.LogInformation(
+                        "[PERSIST-005] Loaded account config for {AccountId} from storage",
+                        input.AccountId);
+                }
+                else
+                {
+                    logger.LogWarning(
+                        "[PERSIST-006] Account config not found for {AccountId}. KV write will be empty string.",
+                        input.AccountId);
+                    accountConfigJson = string.Empty;
+                }
+            }
+
             // Step 1: Write per-locale draft content
             foreach (var (locale, content) in input.BuildResult.ContentByLocale)
             {
@@ -82,7 +105,7 @@ public sealed class PersistSiteContentFunction(
             var accountKey = $"account:v1:{input.AccountId}";
             try
             {
-                await kvClient.PutAsync(namespaceId, accountKey, input.AccountConfigJson, ct).ConfigureAwait(false);
+                await kvClient.PutAsync(namespaceId, accountKey, accountConfigJson, ct).ConfigureAwait(false);
                 logger.LogInformation(
                     "[PERSIST-002] Wrote account config for {AccountId}",
                     input.AccountId);
