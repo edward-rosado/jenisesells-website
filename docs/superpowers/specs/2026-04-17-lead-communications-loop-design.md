@@ -18,7 +18,7 @@ A single scheduled loop runs every 15 min per activated agent that does **both h
 - **Outbound**: picks the next-most-useful message for each lead based on current stage + served-purposes + available-templates, renders it through the agent's VoiceSkill + PersonalitySkill (so it sounds like Jenise, not ChatGPT), sends via Gmail, advances state.
 
 The loop rides on infrastructure that already exists in this codebase:
-- `PipelineStage` enum (`Lead → ActiveClient → UnderContract → Closed`) — the coarse journey, already modelled in `Domain/Activation/Models/ContactEnums.cs`.
+- `PipelineStage` enum (`Lead → ActiveClient → UnderContract → Closed`, extended by this spec with `Dead`) — the coarse journey, already modelled in `Domain/Activation/Models/ContactEnums.cs`.
 - `LeadStatus` enum — process state within our pipeline.
 - `CoachingReport` + `PipelineAnalysis` + `VoiceSkill` + `PersonalitySkill` activation artifacts — the per-agent "how this agent sells" playbook, already extracted from their emails and Drive at activation time. These drive message tone and sequencing rules.
 - Existing lead pipeline (`LeadOrchestratorFunction`, `ILeadStore`, `LeadPaths`) — unchanged downstream.
@@ -250,12 +250,78 @@ Note the mapping between this enum and the existing coarse `PipelineStage` enum 
 
 | `LeadJourneyStage` (this spec) | Coarse `PipelineStage` (existing) |
 |---|---|
-| `new`, `contacted`, `showing`, `applied` | `Lead` |
+| `new`, `contacted` | `Lead` |
+| `showing`, `applied` | `ActiveClient` |
 | `under-contract`, `closing` | `UnderContract` |
 | `closed` | `Closed` |
-| `lost` | (no mapping — add `Dead` or keep in `Lead` with `lost` substate) |
+| `lost` | `Dead` (new enum value — see below) |
 
-The fine stage goes on `Lead.JourneyStage` (new field). The coarse `PipelineStage` remains for reporting + existing `ImportedContact` records; a domain service derives coarse from fine on persist.
+**`PipelineStage` enum extension (decision locked):** Add a `Dead` value to `PipelineStage` rather than overloading `Lead` with a substate flag. Reasons:
+- Reporting / dashboard tiles need to exclude disqualified leads from funnel counts — a distinct coarse value is cleaner than every caller having to check a sub-flag.
+- `PipelineQueryService` (WhatsApp fast-path) already filters on `PipelineStage`; adding a tombstone value is a one-line switch case.
+- `ImportedContact` records already have `PipelineStage` as a required field — the enum addition is additive; existing serialized data with the 4 current values still deserializes correctly.
+
+Migration for existing `ImportedContact` records: none required — `Dead` is a new value only emitted going forward. Existing "Lost" leads (currently `Lead` with soft classification) stay as `Lead` until re-seeded by the Communications Loop baseline.
+
+The fine stage goes on `Lead.JourneyStage` (new field). The coarse `PipelineStage` remains for reporting + existing `ImportedContact` records; a domain service (`StageMapper.CoarseFromFine`) derives coarse from fine on persist.
+
+### StageMapper — fine ↔ coarse ↔ string translation
+
+The spec uses three representations of the same concept:
+
+1. **String** — the lowercase-hyphenated values emitted by `PipelineAnalysisWorker.ValidStages` (`string[]` of `"new"`, `"contacted"`, `"showing"`, `"applied"`, `"under-contract"`, `"closing"`, `"closed"`, `"lost"`). Persisted in `AgentPipeline.json`.
+2. **Fine enum** — `LeadJourneyStage` (PascalCase). Persisted in `Lead.JourneyStage` + `LeadDripState.JourneyStage`.
+3. **Coarse enum** — `PipelineStage` (existing). Persisted in `ImportedContact`, read by reporting.
+
+`RealEstateStar.Domain/Leads/Models/StageMapper.cs` — pure static class:
+
+```csharp
+public static class StageMapper
+{
+    private static readonly IReadOnlyDictionary<string, LeadJourneyStage> StringToFine =
+        new Dictionary<string, LeadJourneyStage>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["new"]            = LeadJourneyStage.New,
+            ["contacted"]      = LeadJourneyStage.Contacted,
+            ["showing"]        = LeadJourneyStage.Showing,
+            ["applied"]        = LeadJourneyStage.Applied,
+            ["under-contract"] = LeadJourneyStage.UnderContract,
+            ["closing"]        = LeadJourneyStage.Closing,
+            ["closed"]         = LeadJourneyStage.Closed,
+            ["lost"]           = LeadJourneyStage.Lost,
+        };
+
+    public static LeadJourneyStage FromPipelineString(string value) =>
+        StringToFine.TryGetValue(value, out var stage)
+            ? stage
+            : throw new ArgumentException($"[StageMapper] Unknown stage: {value}", nameof(value));
+
+    public static string ToPipelineString(LeadJourneyStage stage) => stage switch
+    {
+        LeadJourneyStage.New           => "new",
+        LeadJourneyStage.Contacted     => "contacted",
+        LeadJourneyStage.Showing       => "showing",
+        LeadJourneyStage.Applied       => "applied",
+        LeadJourneyStage.UnderContract => "under-contract",
+        LeadJourneyStage.Closing       => "closing",
+        LeadJourneyStage.Closed        => "closed",
+        LeadJourneyStage.Lost          => "lost",
+        _ => throw new ArgumentOutOfRangeException(nameof(stage)),
+    };
+
+    public static PipelineStage CoarseFromFine(LeadJourneyStage stage) => stage switch
+    {
+        LeadJourneyStage.New or LeadJourneyStage.Contacted              => PipelineStage.Lead,
+        LeadJourneyStage.Showing or LeadJourneyStage.Applied            => PipelineStage.ActiveClient,
+        LeadJourneyStage.UnderContract or LeadJourneyStage.Closing      => PipelineStage.UnderContract,
+        LeadJourneyStage.Closed                                          => PipelineStage.Closed,
+        LeadJourneyStage.Lost                                            => PipelineStage.Dead,
+        _ => throw new ArgumentOutOfRangeException(nameof(stage)),
+    };
+}
+```
+
+Unit-tested with round-trip + exhaustive enum-value test (fails at compile-time if `LeadJourneyStage` gains a value without a corresponding mapping). Used by `SeedCommunicationsBaselineActivity` (read path), `IAgentPipelineWriter` (write path), and `ImportedContact` persistence.
 
 ### `Lead.cs` extensions for the journey
 
@@ -552,7 +618,9 @@ New activity `SeedMessageLibraryActivity`:
 - Uses `IAnthropicClient` for a one-shot render: Claude is prompted with the coaching/voice skill content + the 13-purpose catalog above and produces agent-voiced templates.
 - Idempotent via file existence check — only runs on activation (not on re-activation that already has templates).
 
-This activity is added to the activation orchestrator between `PersistProfileActivity` and `WelcomeNotificationActivity` (still inside the 5-6 activity cap — it's a Phase 5 add that doesn't displace existing steps).
+This activity is added to the activation orchestrator between `PersistProfileActivity` and `WelcomeNotificationActivity`.
+
+**Note on activity-count rules:** The "orchestrators call at most 5–6 activities" rule from CLAUDE.md applies to the *lead* and *site-content* orchestrators — small, focused ones. The activation orchestrator (`ActivationOrchestratorFunction.cs`) already dispatches 26+ activities and is architected differently (it's the coordination hub for the entire activation pipeline, which has dozens of synthesis steps). Adding `SeedMessageLibraryActivity` and `SeedCommunicationsBaselineActivity` here does NOT violate any rule — the activation orchestrator has always been allowed to be large.
 
 ### `library.yaml` — template registry
 
@@ -1419,7 +1487,8 @@ public static async Task RunAsync([OrchestrationTrigger] TaskOrchestrationContex
         },
         LeadCommRetryPolicies.Persist);
 
-    // 5 activity calls total — inside the orchestrator cap.
+    // Up to 5 activity calls per invocation (4 on the happy path — AdvanceNextEvaluation
+    // fires ONLY when the selector returned null for a template). Inside the 5–6 cap.
 }
 ```
 
@@ -1559,7 +1628,7 @@ New field on `account.json`:
   }
 }
 ```
-Default `enabled: false` on existing accounts. Feature flag `Features:GmailMonitor:Enabled` gates the timer entirely.
+Default `enabled: true` on new and existing accounts (per Q5 resolution). Feature flag `Features:LeadCommunications:Enabled` gates the timer entirely (Layer 2 kill switch — see Q5 table below).
 
 ---
 
@@ -2213,7 +2282,7 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 
 ### Resolved
 
-1. ✅ **Polling cadence: 15 min.** Real estate lead-response window is 1–4 hours, not 5 minutes. 15 min detection + 30 sec pipeline + agent's natural WhatsApp-check rhythm fits inside the window that matters for real estate. Configurable via `Features:GmailMonitor:PollingIntervalMinutes` env var.
+1. ✅ **Polling cadence: 15 min.** Real estate lead-response window is 1–4 hours, not 5 minutes. 15 min detection + 30 sec pipeline + agent's natural WhatsApp-check rhythm fits inside the window that matters for real estate. Configurable via `Features:LeadCommunications:PollingIntervalMinutes` env var.
 
 2. ✅ **Activated-agent source: reuse existing `IAccountConfigService.ListAllAsync()`.** No new abstraction — PR #157 already added ETag/CAS to `IAccountConfigService` which will be the natural migration point if accounts ever move to Azure Table. Timer filters on `account.monitoring?.gmail?.enabled == true`.
 
@@ -2228,14 +2297,15 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
    | Layer | Where | Default | Purpose |
    |---|---|---|---|
    | 1. Per-account | `account.json` → `monitoring.gmail.enabled` | `true` | Agent-level opt-out |
-   | 2. Per-environment | `Features:GmailMonitor:Enabled` env var | `true` prod / `false` dev | Ops kill switch, keeps local dev quiet |
-   | 3. Per-agent allowlist | `Features:GmailMonitor:AllowedAccountHandles` env var | empty | Progressive rollout; when non-empty, ONLY listed handles are monitored |
+   | 2. Per-environment | `Features:LeadCommunications:Enabled` env var | `true` prod / `false` dev | Ops kill switch, keeps local dev quiet |
+   | 3. Per-agent allowlist | `Features:LeadCommunications:AllowedAccountHandles` env var | empty | Progressive rollout; when non-empty, ONLY listed handles are monitored |
 
-   **Evaluation rule** (applied in `GmailMonitorTimerFunction` before enqueuing):
+   **Evaluation rule** (applied in `GmailMonitorTimerFunction` and `LeadOutboundSchedulerTimerFunction` before enqueuing):
    ```
-   should_monitor(agent) =
-       Features:GmailMonitor:Enabled == true
-     AND (AllowedAccountHandles is empty OR agent.handle in AllowedAccountHandles)
+   should_run(agent) =
+       Features:LeadCommunications:Enabled == true
+     AND (Features:LeadCommunications:AllowedAccountHandles is empty
+          OR agent.handle in AllowedAccountHandles)
      AND agent.monitoring.gmail.enabled == true
    ```
 
@@ -2317,8 +2387,10 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 ### New files (DataServices — Phase 1)
 - `Leads/LeadThreadMerger.cs` — merges enrichment deltas into existing Lead
 - `Leads/AgentPipelineWriter.cs` — ETag-CAS writer for `pipeline.json`; called by runtime loop on stage changes (see Part I)
-- `Activation/SeedMessageLibraryActivity.cs` — seeds default 13-template library at activation (Phase 2 feature, but activity lives in DataServices)
 - `Activation/SeedCommunicationsBaselineActivity.cs` — Part I; zero new Claude calls, consumes AgentPipeline + EmailClassification + ExtractedClients
+
+### New files (DataServices — Phase 2)
+- `Activation/SeedMessageLibraryActivity.cs` — Phase 2 only; consumes `CoachingReport` + `VoiceSkill` + `PersonalitySkill` + `Marketing Style` to render the 13-template default library into the agent's Drive at `Campaigns/`. One Claude call per template (~$0.02–0.03 × 13 = ~$0.30 one-time per activation). Idempotent via file existence check.
 
 ### New files (Functions — Phase 1 inbound)
 - `Leads/GmailMonitor/GmailMonitorTimerFunction.cs`, `StartGmailMonitorFunction.cs`, `GmailMonitorOrchestratorFunction.cs`
@@ -2336,9 +2408,11 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 ### Modified files (Phase 1)
 - `Domain/Leads/Models/Lead.cs` — add nullable `GmailThreadId`, `GmailMessageId`, `SourceId`, `SourceConfidence`, `JourneyStage`, `PurposesServed`, `Disposition`, `PausedUntil`, `HaltReason`, `LastInbound/OutboundMessageAt`, inbound/outbound counters, **`HistoricalPipelineId`** (preserves `L-001` / `L-002` linkage from `AgentPipeline` for audit).
 - `Domain/Activation/Models/AgentPipeline.cs` — Part I; add `IReadOnlyList<string> EmailMessageIds` to `PipelineLead` record. Non-breaking extension of existing JSON schema.
+- `Domain/Activation/Models/ContactEnums.cs` — add `Dead` value to `PipelineStage` enum (additive; existing `Lead / ActiveClient / UnderContract / Closed` values unchanged). Tombstone for disqualified/lost leads.
+- `Domain/Leads/Models/StageMapper.cs` — NEW; pure static class providing string ↔ `LeadJourneyStage` ↔ `PipelineStage` mappings. Unit-tested with exhaustive-enum coverage that fails at compile time if a new stage is added without a mapping.
 - `Workers/Activation/RealEstateStar.Workers.Activation.PipelineAnalysis/PipelineAnalysisWorker.cs` — Part I; extend `SystemPrompt` JSON schema to include `emailMessageIds: [...]` per lead, add validation that returned IDs exist in input corpus. Cost delta: ~\$0.001/activation.
 - `Workers/Activation/RealEstateStar.Workers.Activation.Orchestrator/ActivationOrchestratorWorker.cs` — insert `SeedCommunicationsBaselineActivity` call after `PersistAgentProfileActivity`, before `SeedMessageLibraryActivity` / `WelcomeNotificationActivity`.
-- `Functions/Activation/ActivationOrchestratorFunction.cs` — wire `SeedCommunicationsBaseline` activity (stays within 5–6 activity cap; counts as the same "persist + seed" step in the orchestrator).
+- `Functions/Activation/ActivationOrchestratorFunction.cs` — wire `SeedCommunicationsBaseline` activity. (Activation orchestrator is not bound by the 5–6 activity cap — see Part I note; it has 26+ activities today.)
 - `Domain/Leads/LeadPaths.cs` — add `EmailThreadLogFile`, `SourceContextFile`, `DripStateFile`, `JourneyHistoryFile` helpers.
 - `Domain/Leads/Interfaces/ILeadStore.cs` — add `AppendEmailThreadLogAsync`, `WriteSourceContextAsync`, `MergeFromEnrichmentAsync`, `LoadDripStateAsync`, `SaveDripStateIfUnchangedAsync`, `AppendJourneyHistoryAsync`.
 - `DataServices/Leads/LeadFileStore.cs` — implement the new `ILeadStore` methods.
@@ -2350,7 +2424,7 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 - `Architecture.Tests/{DependencyTests,DiRegistrationTests}.cs` — add new project allowlists (requires `[arch-change-approved]`).
 
 ### Modified files (Phase 2)
-- `Workers/Activation/Orchestrator/ActivationOrchestratorWorker.cs` — add `SeedMessageLibrary` activity call after `PersistProfile` (stays within 5-6 activity cap).
+- `Workers/Activation/Orchestrator/ActivationOrchestratorWorker.cs` — wire `SeedMessageLibrary` activity call after `SeedCommunicationsBaseline` (see Phase 2 section; activation orchestrator is not bound by the 5–6 activity cap).
 - `Functions/Activation/ActivationOrchestratorFunction.cs` — wire the new activity.
 
 ### Config + feature-flag surface
