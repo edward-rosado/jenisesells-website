@@ -158,27 +158,55 @@ flowchart TD
 
 ## Phased Rollout
 
-### Phase 1 — MVP (this spec)
+The spec scopes the full loop (features #3 + #4 combined). Implementation is sliced into phases so the first shippable version is visible in Jenise's hands in ~2 weeks rather than 6.
 
-- Timer-triggered polling every 5 min, per-agent sub-orchestrations.
-- `historyId`-based checkpoint + resume.
-- Source-template regex parser for Zillow, Realtor.com, Homes.com.
-- Claude Sonnet fallback parser for unknown senders.
-- Thread-based dedup: `Lead` keyed on `agentId + gmailThreadId`; new messages on same thread update existing lead (notes append + field merge).
-- Per-agent OAuth failure → mark "OAuth re-consent required", stop polling that agent, continue others.
+### Phase 1 — Inbound + Journey Foundation (~1.5 weeks)
 
-### Phase 2 — Push notifications
+Gets the inbound half working end-to-end + the state machine in place, but no outbound sends yet. Messages are received, leads are created/merged, journey state advances based on replies, but the loop does not yet send messages — the existing lead pipeline's one-shot CMA email is still the only outbound.
 
-- Gmail `users.watch` + Cloud Pub/Sub topic.
-- HTTP webhook endpoint on the API → enqueues the same `gmail-monitor-requests` message for the agent — so the push path and poll path converge into the same orchestrator.
-- `watch` expires every 7 days; a daily timer renews watches for all activated agents.
+Deliverables:
+- Timer-triggered polling every 15 min + `historyId` checkpoint (Parts A + B of prior scope).
+- `ILeadThreadIndex` + `ILeadSourceRegistry` + per-lead Drive folder extensions (`Email Thread Log.md`, `Source Context.md`, `Journey History.md`, `Drip State.json`).
+- Lead model extensions: `GmailThreadId`, `GmailMessageId`, `SourceId`, `SourceConfidence`, `JourneyStage`, `PurposesServed`, `Disposition`, `PausedUntil`, `HaltReason`.
+- `IDripStateStore` + `DripStateIndex` Azure Table.
+- Classifier + Claude parser (single-path, two-mode: NewLead / ThreadEnrichment).
+- `IStageInferrer` (Part E) — second Claude call on replies, updates DripState.
+- `SubmitLeadEndpoint` retrofit: `SourceId="website"`, seeds DripState in `New`.
+- `SendLeadEmailActivity` retrofit: capture `threadId` and call `ILeadThreadIndex.LinkThreadAsync`.
+- Three-layer rollout controls (Layer 1 per-account, Layer 2 env flag, Layer 3 allowlist).
+
+**After Phase 1**: every lead has accurate journey state, replies advance/halt correctly, agent sees full `Journey History.md` for every lead. Outbound still happens via the pre-existing pipeline only.
+
+### Phase 2 — Outbound Engine + Message Library (~2 weeks)
+
+Adds the second half of the loop: templated outbound messaging selected by stage + purposes + signals.
+
+Deliverables:
+- `MessageTemplate` domain model + YAML frontmatter + `library.yaml` (Part C).
+- `SeedMessageLibraryActivity` — activation pipeline writes the 13-template default library per agent, rendered from their CoachingReport + VoiceSkill.
+- `IMessageTemplateRenderer` + `ClaudeVoicedMessageRenderer` — voice-anchor substitution via Claude with VoiceSkill/PersonalitySkill.
+- `NextMessageSelector` (Part D) — deterministic, pure; extensive unit + property-based tests.
+- `LeadOutboundSchedulerTimerFunction` + `OutboundLeadOrchestrator` (Part F).
+- `SendAndAdvanceDripStateActivity` with pre-send idempotency check + ETag CAS.
+- Observability: template-id-tagged counters + message-effectiveness event table (Part H).
+
+**After Phase 2**: full loop operational. Jenise's leads now receive nurture messages automatically, stage-aware, agent-voiced.
+
+### Phase 3 — Gmail push + cost optimizations (~1 week, post-MVP)
+
+- Gmail `users.watch` + Cloud Pub/Sub topic. Same orchestrator is reused — push just enqueues the same `gmail-monitor-requests` message.
+- `watch` expires every 7 days; a daily timer renews watches.
 - Polling stays as 15-min fallback safety net.
+- Per-template effectiveness dashboard goes live (30d data minimum).
 
-### Phase 3 — Quality + ops (post-MVP)
+### Phase 4 — Post-MVP quality
 
-- Multi-language template expansion (ES, PT).
-- Per-agent parser learning — persist parse accuracy metrics per sender domain; promote domains to "trusted sender" fast path.
-- Manual re-queue tool in the portal ("mark as lead" button for missed emails).
+- Multi-language template expansion (PT, additional ES dialects).
+- Per-agent learning loop: adjust template priorities based on effectiveness data.
+- Portal UI for editing templates (eliminates direct-Drive-edit friction).
+- Portal UI for manually re-queuing missed emails as leads.
+- `referral-ask` purpose activates (closing/closed leads).
+- Template A/B testing framework.
 
 ---
 
@@ -1467,7 +1495,7 @@ This table is versioned alongside the spec. `ClaudeStageInferrer`'s test suite h
 
 ---
 
-## Detailed Component Design
+## Dedup + Replay Safety Strategy
 
 ### Message-level idempotency
 
@@ -1524,70 +1552,182 @@ Default `enabled: false` on existing accounts. Feature flag `Features:GmailMonit
 
 ---
 
-## Observability Plan
+## Part H — Observability Plan
 
 ### ActivitySource + Meter
 
+Two related but distinct sources reflect the two halves of the loop:
+
 ```csharp
-public static readonly ActivitySource ActivitySource = new("RealEstateStar.GmailMonitor");
-public static readonly Meter Meter = new("RealEstateStar.GmailMonitor");
+// RealEstateStar.Workers.Leads/Diagnostics/LeadCommunicationsDiagnostics.cs
+public static readonly ActivitySource InboundActivitySource  = new("RealEstateStar.LeadComm.Inbound");
+public static readonly ActivitySource OutboundActivitySource = new("RealEstateStar.LeadComm.Outbound");
+public static readonly ActivitySource JourneyActivitySource  = new("RealEstateStar.LeadComm.Journey");
+public static readonly Meter Meter = new("RealEstateStar.LeadComm");
 
-// Counters
-MessagesFetched, MessagesSkipped, LeadsCreated, LeadsMerged,
-ClaudeFallbacks, HistoryExpired, OAuthFailures
+// ── Inbound counters ──────────────────────────────────────
+MessagesFetched, MessagesSkipped, MessagesClassifiedCandidate,
+LeadsCreated, LeadsMerged,            // New vs ThreadEnrichment creates
+ClaudeParseFailures, ClaudeLowConfidenceDrop, ClaudeUncertainLogged,
+HistoryExpired, OAuthFailures,
+StageInferenceRuns, StageInferenceLowConfidence,
 
-// Histograms
-ParseDurationMs, FetchDurationMs, EndToEndLatencyMs
+// ── Journey counters ──────────────────────────────────────
+JourneyStageAdvance{fromStage, toStage},  // tagged — one counter, two dimensions
+PurposeServed{purposeId},                 // tagged — one per purpose id
+PurposeNeededDetected{purposeId},
+DispositionChange{from, to},
+HaltReason{reason},                        // tagged: lead-disqualified, converted, manual
+Escalations,
+
+// ── Outbound counters ─────────────────────────────────────
+LeadOutboundMessageSent{templateId},       // tagged per template id
+LeadOutboundRendered{templateId},
+SelectorReturnedNull{stage},               // no template fit — pushed next evaluation
+SelectorCapHit{stage},                     // safety cap — investigate
+VoiceRenderFailures,
+GmailSendFailures,
+IdempotencyCollisionsDetected,             // retry hit the 10-min pre-send check
+
+// ── Histograms ────────────────────────────────────────────
+InboundEndToEndLatencyMs,                  // email received → lead persisted
+OutboundEndToEndLatencyMs,                 // nextEvaluationAt fires → message sent
+ParseDurationMs, StageInferenceDurationMs, RenderDurationMs, SendDurationMs
 ```
 
-Spans: `gmail_monitor.fetch`, `gmail_monitor.parse`, `gmail_monitor.persist` with hashed `agent.id` tags (no PII).
+### Spans
+
+Inbound:
+- `leadcomm.inbound.fetch` — one per `FetchNewGmailMessagesActivity`. Tags: `agent.id` (hashed), `history.id`, `messages.count`.
+- `leadcomm.inbound.parse` — one per message. Tags: `parser.used`, `parseConfidence`, `mode` (NewLead / ThreadEnrichment).
+- `leadcomm.inbound.stage_inference` — one per ThreadEnrichment. Tags: `confidence`, `stageAdvance?`, `dispositionChange?`, `purposes_served_count`, `purposes_needed_count`.
+- `leadcomm.inbound.persist` — per activity. Tags: `leads.created`, `leads.merged`.
+
+Outbound:
+- `leadcomm.outbound.select` — one per lead evaluated. Tags: `stage`, `templateId?` (null = no fit).
+- `leadcomm.outbound.render` — one per render. Tags: `templateId`, `voiceAnchors.count`, `claudeCalls.count`.
+- `leadcomm.outbound.send` — one per send. Tags: `templateId`, `gmailMessageId` (OK — not PII).
+
+Journey:
+- `leadcomm.journey.advance` — one per stage change. Tags: `from`, `to`, `triggered_by` (inbound/outbound/agent), `confidence?`.
+
+### Message-effectiveness tracking
+
+This loop is a product feature that should get more effective over time. The data that makes that possible is emitted as part of observability, with light aggregation:
+
+For each `LeadOutboundMessageSent{templateId}` event at time `T`, we also record:
+- The lead's current `JourneyStage` at time of send.
+- What happens within the next 14 days:
+  - Did the lead reply? (`replied_within_14d: bool`)
+  - Did their journey stage advance? (`stage_advanced_within_14d: bool`)
+  - Did they get marked `Halted` / `Escalated`? (`halted_within_14d: bool`, `escalated_within_14d: bool`)
+
+Implementation: `LeadOutboundMessageSent` rows land in an Azure Table `MessageEffectivenessEvents` with the 14d followup columns populated by a daily timer (`MessageEffectivenessTimerFunction`) that re-reads each lead's state. After a month of data per agent, this powers a per-template effectiveness dashboard tile.
+
+**Why in the spec, not deferred**: the baseline data capture costs nothing extra at send time. Waiting until "we want the dashboard" means the first month of traffic has no baseline. Capture now, aggregate later.
 
 ### Structured logging
 
-- Every service emits logs with `agentId` + `correlationId`.
-- No PII in tags: hash/omit emails, subjects, phones.
-- Prompt-injection safety: log first 200 chars of Claude response on parse failure, never the email body.
+- Every activity + service emits logs with `agentId` (hashed for telemetry, cleartext for logs — logs are internal) + `leadId` + `correlationId`.
+- **No PII in telemetry tags**: hash/omit emails, subjects, phones. Never log message bodies.
+- **Prompt-injection safety**: on Claude parse/inference/render failures, log first 200 chars of Claude *response*, never the email body or rendered output.
+- Journey History.md entries are agent-visible (in their Drive) — those are allowed to contain PII because the agent owns that data.
 
-### Grafana dashboard tiles
+### Grafana dashboard tiles (post-launch)
 
-- Messages fetched/skipped/parsed/Claude-fallback per hour, per agent.
-- Leads created vs merged.
-- End-to-end latency p50/p95.
+Per-agent rollup:
+- Leads by journey stage (stacked bar: new / contacted / showing / applied / silent / lost).
+- Active disposition breakdown (active / paused / escalated / halted).
+- Inbound: messages fetched / skipped / parsed / Claude-uncertain-logged per hour.
+- Outbound: messages sent per hour, by template.
+- End-to-end latency p50/p95 — inbound + outbound.
+- Escalations per day — agent needs to see every one.
+- Halt rate by reason (disqualified vs converted).
+
+Fleet-wide:
 - OAuth failure rate — alert > 5/hr.
-- `history_expired` counter — should be near-zero.
+- `HistoryExpired` counter — should be near-zero.
+- `SelectorCapHit` — should be near-zero; spike = library config bug.
+- `IdempotencyCollisionsDetected` — should be near-zero; spike = retry-storm or clock skew.
+- Claude spend per agent per day — track against budget.
+
+Message-effectiveness dashboard (post 30-day data collection):
+- Reply rate per `templateId`.
+- Stage-advance rate per `templateId`.
+- Halt rate per `templateId` — a template that triggers halts disproportionately is likely off-tone and needs revision.
+- Cohort heat map: template × stage-at-send → outcome within 14d.
 
 ---
 
 ## Test Strategy
 
-### Unit tests
+### Unit tests (inbound side — Phase 1)
 
-- `LeadEmailClassifierTests` — 30+ table-driven scenarios (zillow, realtor, newsletter, noreply+keywords, Re: reply, etc.).
-- `{Zillow|Realtor|Homes}TemplateParserTests` — golden-file fixtures with 5+ sanitized samples per source.
-- `ClaudeFallbackParserTests` — mock `IAnthropicClient`, verify delimiters + JSON parse with code-fence strip.
-- `LanguageDetectorTests` — extend existing with Gmail body fixtures.
+- `LeadEmailClassifierTests` — 30+ table-driven scenarios. Includes the removed Re:-chain rule (now-reversed): replies on tracked threads must bypass classifier.
+- `ClaudeLeadEmailParserTests` — mock `IAnthropicClient`, verify `<email_body>` delimiters, `sourceId` extraction, code-fence stripping, confidence thresholds for NewLead and ThreadEnrichment modes.
+- `ClaudeStageInferrerTests` — mock `IAnthropicClient`, one test per row of the Part G signal-to-transition table. Asserts stage advance / disposition / halt reason / purposes served / purposes needed match expectations.
+- `LanguageDetectorTests` — extend with Gmail body fixtures.
 - `GmailLeadReaderTests` — mock Gmail SDK; historyId roundtrip, `historyNotFound` → `HistoryExpired=true`.
 - `LeadThreadIndexTests` — idempotency, thread get, concurrent access.
+- `LeadSourceRegistryTests` — upsert semantics, atomic counter increments, duplicate leadId no-op.
 
-### Integration tests
+### Unit tests (journey + selector — Phase 1/2)
 
-- `GmailMonitorOrchestrator_HappyPath` — fake reader yields 3 messages → 2 leads, 1 skipped.
-- `GmailMonitorOrchestrator_ThreadMerge` — follow-up message on same thread → single lead with merged notes.
-- `GmailMonitorOrchestrator_HistoryExpired` — rebaseline path.
-- `GmailMonitorOrchestrator_Replay` — kill activity mid-run, resume produces same leads.
+- `DripStateSerializationTests` — JSON roundtrip for all field permutations.
+- `NextMessageSelectorTests` — state × disposition × purposes matrix:
+  - Golden tests for hand-authored scenarios (e.g., "contacted lead, intro+cma served, asked about commission → selects objection-price").
+  - Property-based monotonicity test: adding to `purposesServed` never causes a prereq-violating pick.
+  - Property-based test: halted/escalated disposition always returns `null`.
+  - Signal-triggered purposesNeeded always wins over stageDefaults.
+- `JourneyHistoryAppenderTests` — append-only semantics, serialization roundtrip.
+
+### Unit tests (outbound + render — Phase 2)
+
+- `ClaudeVoicedMessageRendererTests` — mock Claude, verify deterministic-variable substitution happens first, voice-anchor calls fail-closed on missing VoiceSkill, character-budget enforcement, no-rogue-URL enforcement.
+- `MessageLibraryLoaderTests` — invalid YAML frontmatter rejection, template missing variables, mtime cache invalidation.
+- `SendAndAdvanceDripStateActivityTests` — CAS failure → retry; pre-send idempotency check catches duplicate sends; partial failure (send ok, save fail) on retry no-ops the send.
+
+### Integration tests (inbound orchestrator)
+
+- `GmailMonitorOrchestrator_NewLead_HappyPath` — fake reader yields 3 messages → 2 leads, 1 skipped.
+- `GmailMonitorOrchestrator_ThreadEnrichment_Merges` — follow-up message on tracked thread → single lead with merged notes, DripState updated with new purposesServed.
+- `GmailMonitorOrchestrator_ThreadEnrichment_HaltsOnDisqualification` — reply "not interested" → lead DripState.haltReason = lead-disqualified, outbound never fires again for that lead.
+- `GmailMonitorOrchestrator_ThreadEnrichment_EscalatesOnCallRequest` — reply "call me Saturday" → Disposition=Escalated, WhatsApp notification emitted.
+- `GmailMonitorOrchestrator_StageInference_LowConfidence_PausesWithoutAdvance` — Claude returns confidence 0.3 → pausedUntil set, stage unchanged.
+- `GmailMonitorOrchestrator_HistoryExpired` — rebaseline path, 1d lookback.
+- `GmailMonitorOrchestrator_Replay` — kill activity mid-run, resume produces same leads, DripState ETags handle.
 - `GmailMonitorOrchestrator_OAuthFailure` — `ConsecutiveOAuthFailures` increments, `DisabledUntil` set.
+
+### Integration tests (outbound orchestrator)
+
+- `OutboundLeadOrchestrator_NewLead_SendsInitialResponse` — fresh DripState in `new` → selects + renders + sends `initial-response-buyer`, DripState advances to `contacted`, purposesServed includes `initial-response` + `intro-value-prop`.
+- `OutboundLeadOrchestrator_SignalTriggered_SendsObjectionPrice` — DripState has `objection-price` in purposesNeeded → selector picks objection-price template over default stageDefaults order.
+- `OutboundLeadOrchestrator_NoTemplateFits_PushesNextEvaluation` — all purposes served for current stage → returns null, nextEvaluationAt += stage idle cadence.
+- `OutboundLeadOrchestrator_PausedUntilFuture_Skips` — DripState.pausedUntil > now → activity no-ops, no send.
+- `OutboundLeadOrchestrator_Disposition_Halted_Skips` — haltReason set → activity no-ops, no send.
+- `OutboundLeadOrchestrator_Idempotency_PreventsRetrySend` — send succeeds, DripState save crashes, retry → pre-send check sees recent outbound entry for same templateId, skips send, completes DripState save.
+- `OutboundLeadOrchestrator_CASConflict_Retries` — concurrent inbound orchestrator writes DripState first → outbound's save fails with ETag mismatch → retry with fresh state.
+
+### Integration tests (full loop)
+
+- `FullLoop_LeadFormToConversion` — form submit creates lead → outbound sends CMA → lead replies asking timeline → stage inference advances `new → contacted`, purpose `timeline-check-in` served → outbound selects next template accordingly.
+- `FullLoop_DisqualificationChain` — lead replies "stop emailing" → halted → next outbound cycle skips → lead remains halted through subsequent cycles.
+- `FullLoop_MessageEffectivenessRecorded` — send emits event, daily aggregator populates 14d-outcome columns.
 
 ### Architecture tests
 
-- `DependencyTests` — new project reference allowlists (user approval required).
-- `DiRegistrationTests` — every new interface is registered.
-- `LocaleTests` — `ParsedLeadEmail.Locale` present.
+- `DependencyTests` — new project reference allowlists (user approval required, `[arch-change-approved]`).
+- `DiRegistrationTests` — every new interface is registered in `Api/Program.cs`.
+- `LocaleTests` — `ParsedLeadEmail.Locale`, `MessageTemplate.Locales`, `RenderedMessage` locale propagation all asserted.
+- New rule: `DripStateSchemaVersionTest` — asserts `LeadDripState.SchemaVersion == 1` and will fail on bump, forcing a migration path decision.
 
 ### Quality gates (per code-quality.md)
 
 - Every `catch` in new code has a test that triggers it.
-- Every YAML frontmatter addition has render→parse roundtrip + injection test.
-- Serialization roundtrip for `GmailMonitorCheckpoint`, `GmailMonitorMessage`.
+- Every YAML frontmatter addition has render→parse roundtrip + injection test (sourceId, gmailThreadId, gmailMessageId, journeyStage, purposesServed).
+- Every Drive file write has a path-traversal test (lead name with `../` is rejected, not persisted).
+- Serialization roundtrip for every new record: `LeadDripState`, `MessageTemplate`, `ParsedLeadEmail`, `StageInferenceResult`, etc.
+- `Journey History.md` append-only behavior tested (no entry is ever overwritten).
 
 ---
 
@@ -1704,7 +1844,23 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 
    Lower ThreadEnrichment threshold because we already know the thread is a real lead — even partial data enriches.
 
-   All cost/observability numbers updated in spec: ~900 Claude calls/month/agent total (~300 NewLead + ~600 ThreadEnrichment), ~$13.50/month/agent.
+   All cost/observability numbers updated in spec: ~900 Claude calls/month/agent total (~300 NewLead + ~600 ThreadEnrichment), ~$13.50/month/agent. Adding outbound messages (Phase 2) adds ~150 renders/month/agent at ~$0.03 each = +$4.50. Stage inference on replies adds ~$0.01 × ~600 replies = +$6. **Total after Phase 2: ~$24/month/agent.**
+
+### New open questions (expanded scope)
+
+8. **Phase 1/Phase 2 ship together or separately?** Phased rollout has them as back-to-back phases. Option A ships Phase 1 (inbound + state machine, no outbound) to Jenise first for 1–2 weeks of validation, then Phase 2. Option B waits and ships both together as "v1" to avoid the awkward state where the system reads her mail but doesn't send. Default in spec: ship separately (Option A) — validates journey inference accuracy before outbound compounds any errors.
+
+9. **Post-reply cooldown duration.** When a lead replies, default pauses outbound for 48 hours. Rationale: give the agent a human window to reply personally. Alternatives: 24h (faster re-engagement, risks stepping on agent), 72h (safer, risks lead going cold). Tuneable per-agent later. Default 48h.
+
+10. **Stage inference low-confidence threshold.** When Claude's stage-inference confidence < 0.5, spec logs + pauses without changing stage. Higher threshold (0.7) = fewer false advances but more "stuck" leads needing agent intervention. Lower threshold (0.3) = more aggressive advances, more noise. Default 0.5 is conservative — errs toward stuck-over-mis-advanced. Tuneable after first month.
+
+11. **Template editing UI (Phase 4 or post-MVP).** Phase 2 ships with direct-Drive-edit as the customization path. Agents will ask for a UI. The question is whether to build it in Phase 4 (~1 week) or defer further. Default: Phase 4, prioritized based on customer feedback.
+
+12. **Escalation notification channel.** When a lead escalates ("let's meet Saturday"), the loop halts outbound and notifies the agent. Via what channel? Options: WhatsApp (already integrated per codebase), email (simplest), both. Default in spec: WhatsApp (aligns with existing lead-pipeline notification pattern).
+
+13. **Stage regression.** Spec describes stage advance (new → contacted, contacted → showing, etc.). Should stage ever *regress* (e.g., lead goes cold → back to contacted from showing)? Current spec says **no** — only explicit `Lost` halt or manual agent override. Regression would add ambiguity to the state machine for little value. Confirm.
+
+14. **Concurrent outbound from multiple sources.** If the agent personally emails a lead mid-cycle (outside our loop), we detect it as an inbound on our thread and enrich DripState. But we might already be in flight for an outbound send. Race resolved by ETag CAS on DripState — whichever write lands second retries with fresh state. Spec assumes this resolves naturally; call out for review.
 
 ---
 
@@ -1722,38 +1878,73 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 
 ## Files to Add / Modify
 
-### New files (Domain)
-- `Leads/Interfaces/IGmailLeadReader.cs`, `IGmailMonitorCheckpointStore.cs`, `ILeadEmailParser.cs`, `ILeadEmailClassifier.cs`, `ILeadThreadIndex.cs`, `ILeadSourceRegistry.cs`, `IGmailMonitorQueue.cs`
-- `Leads/Models/GmailMonitorCheckpoint.cs`, `InboundGmailMessage.cs`, `GmailHistorySlice.cs`, `ParsedLeadEmail.cs` (with `ParseMode` enum), `LeadEmailClassification.cs`, `GmailMonitorMessage.cs`, `LeadSourceEntry.cs`, `LeadSourceObservation.cs`, `EmailThreadLogEntry.cs`, `SourceContextSnapshot.cs`, `LeadEnrichmentDelta.cs`
+### New files (Domain — Phase 1)
+- `Leads/Interfaces/IGmailLeadReader.cs`, `IGmailMonitorCheckpointStore.cs`, `ILeadEmailParser.cs`, `ILeadEmailClassifier.cs`, `ILeadThreadIndex.cs`, `ILeadSourceRegistry.cs`, `IGmailMonitorQueue.cs`, `IStageInferrer.cs`, `IDripStateStore.cs`, `IDripStateIndex.cs`, `IJourneyHistoryAppender.cs`
+- `Leads/Models/GmailMonitorCheckpoint.cs`, `InboundGmailMessage.cs`, `GmailHistorySlice.cs`, `ParsedLeadEmail.cs` (with `ParseMode` enum), `LeadEmailClassification.cs`, `GmailMonitorMessage.cs`, `LeadSourceEntry.cs`, `LeadSourceObservation.cs`, `EmailThreadLogEntry.cs`, `SourceContextSnapshot.cs`, `LeadEnrichmentDelta.cs`, `LeadJourneyStage.cs` (enum), `LeadJourneyDisposition.cs` (enum), `LeadDripState.cs`, `DripMessageHistoryEntry.cs`, `PurposeServed.cs`, `PurposeNeeded.cs`, `StageInferenceResult.cs`, `InferredPurpose.cs`
 
-### New files (Clients)
+### New files (Domain — Phase 2)
+- `Leads/Interfaces/IMessageTemplateRenderer.cs`, `IMessageTemplateLibrary.cs`, `INextMessageSelector.cs`, `IOutboundLeadQueue.cs`
+- `Leads/Models/MessageTemplate.cs` (with `LeadTypeFilter` enum), `RenderedMessage.cs`, `LibraryManifest.cs`, `OutboundLeadInput.cs`, `SentMessageRef.cs`
+
+### New files (Clients — Phase 1)
 - `Clients.Gmail/GmailLeadReader.cs`
-- `Clients.Azure/AzureGmailMonitorCheckpointStore.cs`, `AzureLeadThreadIndex.cs`, `AzureLeadSourceRegistry.cs`, `AzureGmailMonitorQueue.cs`
+- `Clients.Azure/AzureGmailMonitorCheckpointStore.cs`, `AzureLeadThreadIndex.cs`, `AzureLeadSourceRegistry.cs`, `AzureGmailMonitorQueue.cs`, `AzureBlobDripStateStore.cs`, `AzureDripStateIndex.cs`, `AzureOutboundLeadQueue.cs`
 
-### New files (Workers.Leads)
+### New files (Workers.Leads — Phase 1)
 - `GmailMonitor/LeadEmailClassifier.cs` — C# classifier (free)
 - `GmailMonitor/ClaudeLeadEmailParser.cs` — single-path Claude parser
-- `GmailMonitor/GmailMonitorDiagnostics.cs` — ActivitySource + Meter
+- `GmailMonitor/ClaudeStageInferrer.cs` — Part E stage inference
+- `LeadCommunications/JourneyHistoryAppender.cs` — writes `Journey History.md`
+- `Diagnostics/LeadCommunicationsDiagnostics.cs` — ActivitySource + Meter (one shared diagnostics class for Inbound/Outbound/Journey)
 
-### New files (DataServices)
-- `Leads/LeadThreadMerger.cs` — handles merge of new Gmail message into existing Lead
+### New files (Workers.Leads — Phase 2)
+- `LeadCommunications/NextMessageSelector.cs` — deterministic selector (Part D)
+- `LeadCommunications/ClaudeVoicedMessageRenderer.cs` — voice-anchor substitution (Part C)
+- `LeadCommunications/MessageLibraryLoader.cs` — reads `library.yaml` + template files from Drive, caches with mtime
 
-### New files (Functions)
+### New files (DataServices — Phase 1)
+- `Leads/LeadThreadMerger.cs` — merges enrichment deltas into existing Lead
+- `Activation/SeedMessageLibraryActivity.cs` — seeds default 13-template library at activation (Phase 2 feature, but activity lives in DataServices)
+
+### New files (Functions — Phase 1 inbound)
 - `Leads/GmailMonitor/GmailMonitorTimerFunction.cs`, `StartGmailMonitorFunction.cs`, `GmailMonitorOrchestratorFunction.cs`
 - `Leads/GmailMonitor/Activities/LoadGmailCheckpointActivity.cs`, `FetchNewGmailMessagesActivity.cs`, `ClassifyAndParseMessagesActivity.cs`, `PersistAndEnqueueLeadsActivity.cs`, `SaveGmailCheckpointActivity.cs`
 - `Leads/GmailMonitor/Models/GmailMonitorDtos.cs`, `GmailMonitorRetryPolicies.cs`
 
-### Modified files
-- `Domain/Leads/Models/Lead.cs` — add nullable `GmailThreadId`, `GmailMessageId`, `SourceId`, `SourceConfidence`.
-- `Domain/Leads/LeadPaths.cs` — add `EmailThreadLogFile`, `SourceContextFile` helpers.
-- `Domain/Leads/Interfaces/ILeadStore.cs` — add `AppendEmailThreadLogAsync`, `WriteSourceContextAsync`, `MergeFromEnrichmentAsync`.
-- `DataServices/Leads/LeadFileStore.cs` — implement the two new `ILeadStore` methods (route through `IDocumentStorageProvider`).
-- `DataServices/Leads/LeadMarkdownRenderer.cs` — render new frontmatter fields (`sourceId`, `sourceConfidence`, `gmailThreadId`, `gmailMessageId`).
-- `Api/Features/Leads/Submit/SubmitLeadEndpoint.cs` — populate `SourceId = "website"`, call `ILeadSourceRegistry.RegisterOrUpdateAsync`.
-- `Functions/Lead/Activities/SendLeadEmailActivity.cs` (or equivalent CMA-delivery activity) — capture Gmail `threadId` returned from `GmailSender.SendAsync` and call `ILeadThreadIndex.LinkThreadAsync(agentId, leadId, threadId, messageId)` so inbound replies route to ThreadEnrichment.
-- `Domain/Shared/Interfaces/External/IGmailSender.cs` + `Clients.Gmail/GmailSender.cs` — change `SendAsync` return type to `SentMessageRef { MessageId, ThreadId }` (or add an overload). All existing callers of `GmailSender.SendAsync` must be updated.
-- `Api/Program.cs` — register new DI interfaces (`IGmailLeadReader`, `ILeadThreadIndex`, `ILeadSourceRegistry`, `IGmailMonitorCheckpointStore`, `IGmailMonitorQueue`, `ILeadEmailParser`, `ILeadEmailClassifier`).
+### New files (Functions — Phase 2 outbound)
+- `Leads/LeadCommunications/LeadOutboundSchedulerTimerFunction.cs`, `StartOutboundLeadFunction.cs`, `OutboundLeadOrchestrator.cs`
+- `Leads/LeadCommunications/Activities/LoadDripStateActivity.cs`, `SelectNextMessageActivity.cs`, `RenderMessageActivity.cs`, `SendAndAdvanceDripStateActivity.cs`, `AdvanceNextEvaluationActivity.cs`
+- `Leads/LeadCommunications/Models/LeadCommunicationsDtos.cs`, `LeadCommRetryPolicies.cs`
+
+### New files (Functions — Phase 2 observability)
+- `Leads/LeadCommunications/MessageEffectivenessTimerFunction.cs` — daily aggregation of 14d outcomes into `MessageEffectivenessEvents` Azure Table
+
+### Modified files (Phase 1)
+- `Domain/Leads/Models/Lead.cs` — add nullable `GmailThreadId`, `GmailMessageId`, `SourceId`, `SourceConfidence`, `JourneyStage`, `PurposesServed`, `Disposition`, `PausedUntil`, `HaltReason`, `LastInbound/OutboundMessageAt`, inbound/outbound counters.
+- `Domain/Leads/LeadPaths.cs` — add `EmailThreadLogFile`, `SourceContextFile`, `DripStateFile`, `JourneyHistoryFile` helpers.
+- `Domain/Leads/Interfaces/ILeadStore.cs` — add `AppendEmailThreadLogAsync`, `WriteSourceContextAsync`, `MergeFromEnrichmentAsync`, `LoadDripStateAsync`, `SaveDripStateIfUnchangedAsync`, `AppendJourneyHistoryAsync`.
+- `DataServices/Leads/LeadFileStore.cs` — implement the new `ILeadStore` methods.
+- `DataServices/Leads/LeadMarkdownRenderer.cs` — render new frontmatter fields.
+- `Api/Features/Leads/Submit/SubmitLeadEndpoint.cs` — populate `SourceId = "website"`, seed initial `LeadDripState` in `New`, call `ILeadSourceRegistry.RegisterOrUpdateAsync`.
+- `Functions/Lead/Activities/SendLeadEmailActivity.cs` — capture Gmail `threadId` returned from `GmailSender.SendAsync`, call `ILeadThreadIndex.LinkThreadAsync`, append `Email Thread Log.md` entry, update `DripState.MessageHistory` with the initial outbound.
+- `Domain/Shared/Interfaces/External/IGmailSender.cs` + `Clients.Gmail/GmailSender.cs` — `SendAsync` returns `SentMessageRef { MessageId, ThreadId }`. All existing callers updated.
+- `Api/Program.cs` — register new DI interfaces.
 - `Architecture.Tests/{DependencyTests,DiRegistrationTests}.cs` — add new project allowlists (requires `[arch-change-approved]`).
-- `config/accounts/*/account.json` — add `monitoring.gmail.enabled` (default false).
-- `appsettings.json` / `host.json` — `Features:GmailMonitor:Enabled` flag (prod `true` / dev `false`), `Features:GmailMonitor:AllowedAccountHandles` (comma-separated, empty by default; Layer 3 allowlist), `Features:GmailMonitor:PollingIntervalMinutes` (default 15), `Features:GmailMonitor:ClaudeConfidenceThreshold` (default 0.7), `Features:GmailMonitor:ClaudeLogOnlyThreshold` (default 0.4).
-- `config/accounts/*/account.json` — `monitoring.gmail.enabled` defaults to `true` (Layer 1); onboarding template writes `true` for new agents.
+
+### Modified files (Phase 2)
+- `Workers/Activation/Orchestrator/ActivationOrchestratorWorker.cs` — add `SeedMessageLibrary` activity call after `PersistProfile` (stays within 5-6 activity cap).
+- `Functions/Activation/ActivationOrchestratorFunction.cs` — wire the new activity.
+
+### Config + feature-flag surface
+- `config/accounts/*/account.json` — add `monitoring.gmail.enabled` (defaults to `true` on new activations, Layer 1 opt-out per-agent).
+- `appsettings.json` / `host.json`:
+  - `Features:LeadCommunications:Enabled` — master on/off (Layer 2), prod `true` / dev `false`
+  - `Features:LeadCommunications:AllowedAccountHandles` — comma-separated (Layer 3 allowlist, empty = all)
+  - `Features:LeadCommunications:PollingIntervalMinutes` — default 15
+  - `Features:LeadCommunications:PostReplyCooldownHours` — default 48
+  - `Features:LeadCommunications:NewLead:ClaudeConfidenceThreshold` — default 0.7
+  - `Features:LeadCommunications:NewLead:ClaudeLogOnlyThreshold` — default 0.4
+  - `Features:LeadCommunications:ThreadEnrichment:ClaudeConfidenceThreshold` — default 0.5
+  - `Features:LeadCommunications:StageInference:LowConfidenceThreshold` — default 0.5
+  - `Features:LeadCommunications:Outbound:Enabled` — Phase 2 kill switch, independent of inbound
+  - `Features:LeadCommunications:Outbound:MessageEffectivenessEnabled` — default true after Phase 2 ships
