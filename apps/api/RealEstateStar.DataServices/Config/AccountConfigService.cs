@@ -94,6 +94,18 @@ public partial class AccountConfigService(string configDirectory, ILogger<Accoun
         logger?.LogInformation("[CONFIG-010] Updated account config for {Handle}", handle);
     }
 
+    /// <summary>
+    /// Stub: file-based implementation always succeeds (no ETag support).
+    /// Real CAS implementation for Azure Table backing ships in S8a.
+    /// </summary>
+    public async Task<bool> SaveIfUnchangedAsync(AccountConfig account, string etag, CancellationToken ct)
+    {
+        // File-based storage has no ETag support — delegate to unconditional write.
+        // Azure Table implementation (production) will use ETag precondition.
+        await UpdateAccountAsync(account.Handle, account, ct);
+        return true;
+    }
+
     private static void ValidateHandle(string handle)
     {
         if (string.IsNullOrWhiteSpace(handle) || !AccountHandlePattern().IsMatch(handle))

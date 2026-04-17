@@ -45,6 +45,24 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Configure app settings
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          # Site content KV namespace (written by PersistSiteContentFunction, read by agent-site Worker)
+          SETTINGS=("SiteContent__KvNamespaceId=68e52e8dabb7499681734c8f2dac5f5a")
+          [ -n "$CF_ACCOUNT_ID" ] && SETTINGS+=("Cloudflare__AccountId=$CF_ACCOUNT_ID")
+          [ -n "$CF_TOKEN" ]      && SETTINGS+=("Cloudflare__ApiToken=$CF_TOKEN")
+          if [ ${#SETTINGS[@]} -gt 0 ]; then
+            az functionapp config appsettings set \
+              --name "$FUNCTION_APP_NAME" \
+              --resource-group "$RESOURCE_GROUP" \
+              --settings "${SETTINGS[@]}" \
+              --output none
+            echo "Applied ${#SETTINGS[@]} app settings"
+          fi
+
       - name: Build and deploy
         run: |
           cd ${{ env.FUNCTIONS_PROJECT }}

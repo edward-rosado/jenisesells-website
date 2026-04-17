@@ -14,6 +14,12 @@
       "service": "real-estate-star-agents"
     }
   ],
+  "kv_namespaces": [
+    {
+      "binding": "SITE_CONTENT_KV",
+      "id": "68e52e8dabb7499681734c8f2dac5f5a"
+    }
+  ],
   "vars": {
     "NEXT_PUBLIC_API_URL": "https://api.real-estate-star.com",
     "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyCD8Lw5xaMCxoWEzkTRCT284Jv37AMfd2Y",

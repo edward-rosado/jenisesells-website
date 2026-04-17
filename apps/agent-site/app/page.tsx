@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { loadAccountConfig, loadLocalizedContent } from "@/features/config/config";
+import {
+  getSiteState,
+  loadAccountConfigAsync,
+  loadLocalizedContentAsync,
+} from "@/features/config/kv-loader";
 import { buildCssVariableStyle } from "@/features/config/branding";
 import { getTemplate } from "@/features/templates";
 import { Analytics } from "@/features/shared/Analytics";
@@ -30,7 +34,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const { accountId } = await searchParams;
   const handle = resolveHandle(accountId);
   try {
-    const account = loadAccountConfig(handle);
+    const account = await loadAccountConfigAsync(handle);
     const name = account.agent?.name ?? account.broker?.name ?? account.brokerage.name;
     const title = account.agent?.title ?? "Real Estate";
     return {
@@ -53,8 +57,9 @@ export default async function AgentPage({ searchParams }: PageProps) {
   const resolvedLocale = locale ?? "en";
 
   try {
-    const account = loadAccountConfig(handle);
-    const content = loadLocalizedContent(handle, resolvedLocale, account);
+    const siteState = await getSiteState(handle);
+    const account = await loadAccountConfigAsync(handle, siteState);
+    const content = await loadLocalizedContentAsync(handle, resolvedLocale, account, siteState);
 
     const cssVars = buildCssVariableStyle(account.branding);
     const Template = await getTemplate(resolveTemplateOverride(templateOverride) ?? account.template);
