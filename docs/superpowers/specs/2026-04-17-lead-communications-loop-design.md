@@ -1083,15 +1083,391 @@ Implementation in `LeadFileStore` routes through `IDocumentStorageProvider` (Goo
 
 ```
 {Lead Full Name}/
-  Drip State.json              ← drip campaign progress (per-lead state machine)
-  Drip History.md              ← log of sent follow-up messages
+  Drip State.json              ← authoritative state: stage, purposes served, next evaluation
+  Journey History.md           ← human-readable log of every transition + message
 ```
 
-These are called out only so spec #4 (drip campaigns) knows where to land its state. Not built in this spec.
+These are now **part of this spec** (feature #3 + #4 merged). Schema defined in Part B. Writers: inbound orchestrator (reply received → pause, update purposes needed), outbound orchestrator (send → advance state, update purposes served).
 
 ---
 
-## Dedup + Replay Safety Strategy
+## Part D — Next-Message Selector
+
+A deterministic function that, given a lead's current state, returns the single next message to send (or `null` if nothing appropriate).
+
+### Algorithm
+
+```
+function SelectNextMessage(dripState, library, now) -> MessageTemplate?:
+  # 1. Disposition gates
+  if dripState.disposition in [Halted, Escalated]:
+    return null
+  if dripState.disposition == Paused and dripState.pausedUntil > now:
+    return null
+  if dripState.journeyStage in [UnderContract, Closing, Closed, Lost]:
+    return null   # silent stages
+
+  # 2. Candidate pool: templates valid for current stage + locale + lead type
+  candidates = library.templates where
+    stage in template.validStages
+    and lead.locale in template.locales
+    and (template.leadTypeFilter == Any or template.leadTypeFilter matches lead.leadType)
+    and (template.requiredPriorPurposes ⊆ dripState.purposesServedIds)
+    and (template.purposesServed ∩ dripState.purposesServedIds == ∅)
+        # at least one purpose on the template is NOT yet served
+
+  # 3. Priority ordering
+  #    a. Signal-triggered purposes first (purposesNeeded takes precedence)
+  if dripState.purposesNeeded is non-empty:
+    for need in dripState.purposesNeeded sorted by priority asc:
+      m = candidates.first where need.id in template.purposesServed
+      if m exists: return m
+
+  #    b. library.yaml stageDefaults order for this stage
+  stageOrder = library.stageDefaults[dripState.journeyStage]  // list of templateIds
+  for templateId in stageOrder:
+    m = candidates.first where template.id == templateId
+    if m exists: return m
+
+  #    c. Fallback: highest-priority candidate with the most new purposes
+  return candidates.ordered_by(
+    (priority desc, new_purpose_count desc)
+  ).firstOrDefault()
+```
+
+Returned template becomes the argument to `IMessageTemplateRenderer.RenderAsync` in the outbound orchestrator (Part F).
+
+### Null-return semantics (no next message)
+
+When the selector returns `null` for an active lead, the orchestrator **pushes `nextEvaluationAt` forward by the stage's idle cadence**:
+
+| Journey stage | Idle cadence (next evaluation if no template fires) |
+|---|---|
+| `new` | 4 hours (initial response gap should not be wide) |
+| `contacted` | 7 days |
+| `showing` | 14 days |
+| `applied` | 7 days |
+
+This prevents the loop from re-evaluating a fully-served lead every 15 min forever. If new purposes appear (signal from a reply), `nextEvaluationAt` is pushed to `now` immediately — the loop picks it up next cycle.
+
+### Signal-triggered needs promote to front of queue
+
+When the inbound orchestrator infers a needed purpose (Part E — "lead asked about commission → need `objection-price`"), it sets `dripState.nextEvaluationAt = now + postReplyCooldown` (default 48h) and adds to `purposesNeeded`.
+
+On the next evaluation after cooldown, the selector sees `purposesNeeded` is non-empty and prioritizes `objection-price` over the `stageDefaults` order — even if the stage would normally send `timeline-check-in` next.
+
+### Cooldown between sends
+
+After a send, `nextEvaluationAt = now + template.cooldownAfterSend`. Typical cooldowns:
+- `initial-response` / `intro-value-prop`: immediate next evaluation (often chain-sent with `cma-delivery`)
+- `cma-delivery`: 3 days
+- `timeline-check-in`: 7 days
+- `re-engagement-7d`: 14 days (after a re-engagement, go dark longer)
+
+Per-stage **maximum send cap** in `library.yaml` caps total outbound messages per stage (e.g., max 5 in `contacted`). Prevents pathological loops where all purposes are served but a template's `requiredPriorPurposes` is poorly authored and the selector picks the same template repeatedly. If hit, the selector returns `null` and the lead is marked `Disposition = Paused` with `pausedUntil = now + 30d` + a metric `SelectorCapHit`.
+
+### Deterministic + testable
+
+The selector is pure — no I/O, no Claude, no time-of-day logic. Inputs: `dripState`, `library`, `now`. Output: `MessageTemplate?`.
+
+Unit tests enumerate every combination:
+- Each stage × each disposition × varied purposesServed × varied purposesNeeded.
+- Tests include golden expected picks for hand-authored scenarios.
+- Property-based test: `SelectNextMessage` is **monotonic** — adding a purpose to `purposesServed` never causes it to return a template requiring that purpose as prereq.
+
+---
+
+## Part E — Stage Inference on Reply
+
+When the inbound orchestrator detects a message on a tracked thread (ThreadEnrichment mode), it makes a **second Claude call** before the existing field-level parser — to ask: does this reply change the lead's journey state?
+
+### The stage-inference prompt
+
+```
+System: You are analyzing a reply in a real estate agent's ongoing conversation with a lead.
+Your task: infer journey-state changes based on the reply's content.
+
+Current state:
+  journey_stage: "contacted"
+  disposition: "active"
+  purposes_served: ["initial-response", "intro-value-prop", "cma-delivered"]
+  last_outbound_template: "cma-delivery"
+
+Agent context (for tone reference, not rules):
+  <VoiceSkill markdown>
+  <PersonalitySkill markdown>
+
+Lead reply:
+  <email_body>...</email_body>
+
+Return JSON:
+{
+  "stageAdvance": "showing" | null,   // null = no change
+  "dispositionChange": "paused" | "escalated" | "halted" | null,
+  "haltReason": "lead-disqualified" | "converted" | null,
+  "escalationReason": null or a one-sentence string,
+  "purposesServed": [                  // NEW purposes this reply proves are now served
+    { "id": "<purpose-id>", "reasoning": "..." }
+  ],
+  "purposesNeeded": [                  // NEW purposes the reply indicates we should address
+    { "id": "<purpose-id>", "reasoning": "...", "priority": 1 }
+  ],
+  "confidence": 0.0-1.0,
+  "reasoning": "brief summary of the decision"
+}
+
+Valid stages: new, contacted, showing, applied, under-contract, closing, closed, lost
+Valid purposes: <library purpose list>
+Valid disposition changes: paused, escalated, halted (or null)
+
+Rules:
+- If the lead says "not interested" / "stop emailing" / "wrong number" → disposition=halted, haltReason=lead-disqualified
+- If the lead says "let's meet" / "call me" / "I want to sign" → disposition=escalated (agent takeover)
+- If the lead asks about something addressable (commission, timing, another agent) → add to purposesNeeded
+- If the lead confirms something we told them (acknowledges CMA, agrees to timeline) → add to purposesServed
+- Only advance stage on clear evidence (viewing scheduled → showing, offer submitted → applied)
+- Default: stageAdvance=null, dispositionChange=paused, confidence reflects certainty
+```
+
+### Output application
+
+```csharp
+// In PersistAndEnqueueLeadsActivity, ThreadEnrichment branch
+var stageInference = await stageInferrer.InferAsync(
+    currentState: dripState,
+    reply: inboundMessage,
+    agentContext: agentContext,
+    ct: ct);
+
+if (stageInference.Confidence < 0.5m) {
+    // Low confidence: log, pause 48h, don't change stage
+    dripState = dripState with { Disposition = Paused, PausedUntil = now.AddHours(48) };
+}
+else {
+    dripState = dripState with {
+        JourneyStage = stageInference.StageAdvance ?? dripState.JourneyStage,
+        Disposition = stageInference.DispositionChange ?? Paused,
+        PausedUntil = now.AddHours(postReplyCooldownHours),
+        HaltReason = stageInference.HaltReason,
+        EscalationReason = stageInference.EscalationReason,
+        PurposesServed = dripState.PurposesServed.Union(stageInference.PurposesServed),
+        PurposesNeeded = dripState.PurposesNeeded.Union(stageInference.PurposesNeeded),
+        LastModifiedBy = "inbound-orchestrator",
+        LastModifiedAt = now,
+    };
+}
+
+await dripStateStore.SaveIfUnchangedAsync(dripState, originalEtag, ct);
+await journeyHistoryAppender.AppendAsync(..., stageInference.Reasoning, ct);
+```
+
+**After** stage inference, the existing field-level parser runs (extracting phone/email/notes). Stage inference is a lightweight first pass; the full parser is richer but focused on data, not state.
+
+### Why two Claude calls instead of one
+
+- **Different prompts, different constraints**: stage inference needs JSON with enums + purposes catalog; field extraction needs JSON with lead-specific structured data. Combining doubles the prompt size and confuses the model.
+- **Different confidence gates**: we want to apply state changes on high-confidence inference but always run the field parser (even on low confidence) to capture contact data.
+- **Testability**: mocking two focused Claude responses is easier than mocking one giant one.
+
+Cost delta: +~$0.01 per reply (one extra Sonnet call). At ~600 replies/month/agent this is +$6/month. Already accounted for in the updated cost math (total ~$20/month/agent).
+
+### `IStageInferrer` — Domain interface
+
+```csharp
+// RealEstateStar.Domain/Leads/Interfaces/IStageInferrer.cs
+public interface IStageInferrer
+{
+    Task<StageInferenceResult> InferAsync(
+        LeadDripState currentState,
+        InboundGmailMessage reply,
+        AgentContext agentContext,
+        CancellationToken ct);
+}
+
+public sealed record StageInferenceResult(
+    LeadJourneyStage? StageAdvance,
+    LeadJourneyDisposition? DispositionChange,
+    string? HaltReason,
+    string? EscalationReason,
+    IReadOnlyList<InferredPurpose> PurposesServed,
+    IReadOnlyList<InferredPurpose> PurposesNeeded,
+    decimal Confidence,
+    string Reasoning);
+
+public sealed record InferredPurpose(string Id, string Reasoning, int Priority);
+```
+
+Implementation: `ClaudeStageInferrer` in `RealEstateStar.Workers.Leads`.
+
+---
+
+## Part F — Outbound Execution
+
+A second timer + orchestrator, running in the same 15-min loop as inbound. Same pattern as the inbound side (timer → queue → per-lead durable orchestration).
+
+### Functions
+
+```
+GmailMonitorTimerFunction            [TimerTrigger 0 */15 * * * *]
+  fans out per agent → gmail-monitor-requests
+GmailMonitorOrchestrator             [Durable]
+  inbound detection + thread enrichment (Parts B–E covered)
+  → on reply: updates DripState, may flip purposesNeeded + stage
+
+LeadOutboundSchedulerTimerFunction   [TimerTrigger 5 */15 * * * *]  ← offset 5min from inbound
+  for each activated agent, calls IDripStateStore.ListDueForEvaluationAsync
+  fans out per (agentId, leadId) → outbound-lead-requests
+StartOutboundLeadFunction            [QueueTrigger]
+  schedules OutboundLeadOrchestrator with deterministic instance id
+OutboundLeadOrchestrator             [Durable]
+  per-lead evaluation: selector → renderer → sender → DripState advance
+```
+
+**Why offset the timer by 5 min?** Inbound runs at `:00, :15, :30, :45`, outbound at `:05, :20, :35, :50`. If a lead reply arrived at `:03`, inbound processes it at `:15` (update DripState to paused), outbound at `:20` sees `pausedUntil` is in the future and skips. Without the offset, both orchestrators could race on the same DripState record. ETag CAS would reconcile, but the offset avoids the conflict entirely.
+
+### `OutboundLeadOrchestrator` skeleton
+
+```csharp
+[Function("OutboundLeadOrchestrator")]
+public static async Task RunAsync([OrchestrationTrigger] TaskOrchestrationContext ctx)
+{
+    var input = ctx.GetInput<OutboundLeadInput>()
+        ?? throw new InvalidOperationException("[LCL-OUT-000] null input");
+    var logger = ctx.CreateReplaySafeLogger<OutboundLeadOrchestrator>();
+
+    // 1. Load drip state
+    var stateResult = await ctx.CallActivityAsync<LoadDripStateOutput>(
+        "LoadDripState", input, LeadCommRetryPolicies.Standard);
+
+    if (stateResult.State is null)
+    {
+        logger.LogWarning("[LCL-OUT-001] DripState missing for lead {LeadId}", input.LeadId);
+        return;
+    }
+
+    // 2. Select next message (deterministic, no I/O — runs inside activity for retry bound)
+    var selection = await ctx.CallActivityAsync<SelectMessageOutput>(
+        "SelectNextMessage",
+        new SelectMessageInput { State = stateResult.State, Now = ctx.CurrentUtcDateTime },
+        LeadCommRetryPolicies.Standard);
+
+    if (selection.Template is null)
+    {
+        // Nothing to send — push nextEvaluationAt forward by stage idle cadence
+        await ctx.CallActivityAsync("AdvanceNextEvaluation",
+            new AdvanceEvaluationInput { DripState = stateResult.State, Etag = stateResult.Etag,
+                                          Now = ctx.CurrentUtcDateTime, Reason = "no-template-fits" },
+            LeadCommRetryPolicies.Persist);
+        return;
+    }
+
+    // 3. Render message via voice-aware renderer (Claude calls inside activity)
+    var rendered = await ctx.CallActivityAsync<RenderMessageOutput>(
+        "RenderMessage",
+        new RenderMessageInput { Template = selection.Template, LeadId = input.LeadId,
+                                  AgentId = input.AgentId, AccountId = input.AccountId,
+                                  Locale = stateResult.State.Locale },
+        LeadCommRetryPolicies.ClaudeRender);
+
+    // 4. Send via Gmail + update DripState (single atomic activity — both or neither)
+    await ctx.CallActivityAsync("SendAndAdvanceDripState",
+        new SendAndAdvanceInput {
+            DripState = stateResult.State,
+            Etag = stateResult.Etag,
+            Rendered = rendered,
+            Template = selection.Template,
+            Now = ctx.CurrentUtcDateTime,
+        },
+        LeadCommRetryPolicies.Persist);
+
+    // 5 activity calls total — inside the orchestrator cap.
+}
+```
+
+### Send + advance as one atomic activity
+
+`SendAndAdvanceDripStateActivity` is the critical idempotency boundary:
+
+```
+1. Re-read DripState, verify etag still matches (CAS check).
+   If not: fail → retry the orchestration (fresh state, reselect template).
+
+2. Gmail send via IGmailSender.SendAsync → captures SentMessageRef { MessageId, ThreadId }.
+
+3. Link thread: ILeadThreadIndex.LinkThreadAsync(agentId, leadId, threadId, messageId).
+
+4. Update DripState:
+   - PurposesServed += template.PurposesServed
+   - MessageHistory += new outbound entry (templateId, sentAt, messageId, threadId)
+   - LastOutboundMessageAt = now
+   - OutboundMessageCount += 1
+   - NextEvaluationAt = now + template.CooldownAfterSend
+   - LastModifiedBy = "outbound-orchestrator"
+   - Etag changes on write.
+   SaveIfUnchangedAsync(state, originalEtag) — MUST succeed since we CAS-verified in step 1.
+
+5. Append Journey History.md entry.
+
+6. Emit OTel span + counters: LeadOutboundMessageSent, per-template counter, per-purpose counter.
+```
+
+**Idempotency on retry**: if the activity partially completed (Gmail sent but DripState save failed), retry would resend. Prevented by a **pre-send idempotency check**:
+
+```
+before step 2:
+  if DripState.MessageHistory has any outbound entry where:
+    templateId == selection.Template.Id
+    AND sentAt > now - 10min
+  then: LOG duplicate send attempt, update DripState only (no new Gmail send)
+```
+
+This handles the "Gmail send succeeded, activity crashed before DripState save, DF retries" failure mode. 10-minute window is generous — template cooldowns are always longer, so no legitimate re-send of the same template happens inside 10 min.
+
+### Retry policies
+
+```csharp
+internal static class LeadCommRetryPolicies
+{
+    public static readonly TaskOptions Standard = ...3 attempts, 15s base, 2x...
+    public static readonly TaskOptions ClaudeRender = ...2 attempts, 30s base, 2x...
+    public static readonly TaskOptions GmailSend = ...4 attempts, 30s base, 2x...
+    public static readonly TaskOptions Persist = ...4 attempts, 15s base, 2x...
+}
+```
+
+### Fan-out + memory budget
+
+`LeadOutboundSchedulerTimerFunction` scans `IDripStateStore.ListDueForEvaluationAsync` per agent — the Azure Table index on `(agentId, nextEvaluationAt)` keeps this O(k) where k is leads due. At steady state, ~1-3 leads/tick/agent. Memory footprint per orchestration ~2 MB (DripState JSON + one rendered message). 16 concurrent orchestrations → ~32 MB. Well within 1.5 GB Consumption limit.
+
+---
+
+## Part G — Signal → Transition Table
+
+Explicit signals Claude detects in a lead reply (via stage-inference prompt) and the state transitions they trigger. Used as training examples in the prompt and as the test matrix for `ClaudeStageInferrer` integration tests.
+
+| Lead says / does | Stage effect | Disposition effect | Purpose effect |
+|---|---|---|---|
+| "Thanks for the info" (acknowledgment, no new info) | none | Paused (48h) | none |
+| "What's your commission?" | none | Paused (48h) | `objection-price` → needed (priority 1) |
+| "I'm talking to another agent" | none | Paused (48h) | `objection-competition` → needed (priority 1) |
+| "I'm not ready yet, maybe in 6 months" | none | Paused (7d) | `objection-timing` → needed (priority 2) |
+| "Not interested, please stop emailing" | none | Halted | halt reason: `lead-disqualified` |
+| "Wrong number" / "Not me" | → lost | Halted | halt reason: `lead-disqualified` |
+| "Can we schedule a tour?" | → showing | Paused (short — agent likely to respond) | `showing-scheduled` → needed (priority 1) |
+| "Let's meet Saturday" / "Call me at 555..." | none | Escalated | escalation reason: "direct contact requested" |
+| "I want to list my house" / "Draft up the contract" | → applied (seller) | Escalated | escalation reason: "offer / listing intent" |
+| Receives CMA, replies with "This is helpful, have you seen [address]?" | none | Paused (48h) | `cma-delivered` → served (confirms receipt) |
+| Replies days after showing with "We loved the house" | none | Paused (48h) | `post-showing-followup` → served |
+| Asks about schools / neighborhood / commute | none | Paused (48h) | `motivation-probe` → served (reveals priorities) |
+| Gives timeline detail ("closing by summer") | none | Paused (48h) | `timeline-check-in` → served |
+| No reply for >7 days after last outbound (time signal, not reply) | none | Active | `re-engagement` → needed (priority 3) |
+| Signs contract via transaction system (external signal — manual or contract-drafting feature) | → under-contract | Halted | halt reason: `converted` |
+
+This table is versioned alongside the spec. `ClaudeStageInferrer`'s test suite has one test per row — the prompt should produce the expected output for canonical example replies.
+
+---
+
+## Detailed Component Design
 
 ### Message-level idempotency
 
