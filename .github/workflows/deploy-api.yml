@@ -96,6 +96,7 @@ jobs:
           HMAC_API_KEY: ${{ secrets.LEAD_API_KEY }}
           RENTCAST_KEY: ${{ secrets.RENTCAST_API_KEY }}
           TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           SECRETS=()
           [ -n "$WA_PHONE" ]      && SECRETS+=("whatsapp-phone-number-id=$WA_PHONE")
@@ -108,6 +109,7 @@ jobs:
           [ -n "$HMAC_API_KEY" ]  && SECRETS+=("hmac-api-key=$HMAC_API_KEY")
           [ -n "$RENTCAST_KEY" ]  && SECRETS+=("rentcast-api-key=$RENTCAST_KEY")
           [ -n "$TURNSTILE_SECRET" ] && SECRETS+=("turnstile-secret-key=$TURNSTILE_SECRET")
+          [ -n "$CF_TOKEN" ]      && SECRETS+=("cloudflare-api-token=$CF_TOKEN")
           if [ ${#SECRETS[@]} -gt 0 ]; then
             az containerapp secret set \
               --name "$CONTAINER_APP_NAME" \
@@ -127,14 +129,24 @@ jobs:
           OTEL_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
           RENTCAST_KEY: ${{ secrets.RENTCAST_API_KEY }}
           TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           # Always set Functions health URL so it stays in sync with deploy-functions.yml
           EXTRA_ENV_VARS="AzureFunctions__HealthUrl=https://real-estate-star-functions-v3.azurewebsites.net/api/health"
+          # KV namespace for site content (writes read by agent-site Worker)
+          EXTRA_ENV_VARS="$EXTRA_ENV_VARS SiteContent__KvNamespaceId=68e52e8dabb7499681734c8f2dac5f5a Sites__KvNamespaceId=68e52e8dabb7499681734c8f2dac5f5a"
+          if [ -n "$CF_ACCOUNT_ID" ]; then
+            EXTRA_ENV_VARS="$EXTRA_ENV_VARS Cloudflare__AccountId=$CF_ACCOUNT_ID"
+          fi
+          if [ -n "$CF_TOKEN" ]; then
+            EXTRA_ENV_VARS="$EXTRA_ENV_VARS Cloudflare__ApiToken=secretref:cloudflare-api-token"
+          fi
           if [ -n "$OTEL_ENDPOINT" ]; then
             EXTRA_ENV_VARS="$EXTRA_ENV_VARS Otel__Endpoint=$OTEL_ENDPOINT"
           fi
           if [ -n "$WA_PHONE" ]; then
-            EXTRA_ENV_VARS="WhatsApp__PhoneNumberId=secretref:whatsapp-phone-number-id WhatsApp__AccessToken=secretref:whatsapp-access-token WhatsApp__AppSecret=secretref:whatsapp-app-secret WhatsApp__VerifyToken=secretref:whatsapp-verify-token WhatsApp__WabaId=secretref:whatsapp-waba-id"
+            EXTRA_ENV_VARS="$EXTRA_ENV_VARS WhatsApp__PhoneNumberId=secretref:whatsapp-phone-number-id WhatsApp__AccessToken=secretref:whatsapp-access-token WhatsApp__AppSecret=secretref:whatsapp-app-secret WhatsApp__VerifyToken=secretref:whatsapp-verify-token WhatsApp__WabaId=secretref:whatsapp-waba-id"
           fi
           if [ -n "$AZ_STORAGE" ]; then
             EXTRA_ENV_VARS="$EXTRA_ENV_VARS AzureStorage__ConnectionString=secretref:azure-storage-connection-string"
