@@ -1,52 +1,100 @@
-# Gmail Lead Monitoring — Design Spec
+# Lead Communications Loop — Design Spec
 
 **Date:** 2026-04-17
-**Status:** Ready for implementation — all 7 open questions resolved
+**Status:** Draft — expanded scope (MVP features #3 + #4 merged into one feature)
 **Author:** Eddie Rosado + Claude
-**Branch:** TBD (proposed: `feat/gmail-lead-monitoring`)
-**MVP Feature:** #3 of 4 — see [2026-04-05-activation-mvp-redesign.md](./2026-04-05-activation-mvp-redesign.md)
+**Branch:** TBD (proposed: `feat/lead-communications-loop`)
+**MVP Feature:** #3 + #4 of 4 combined — see [2026-04-05-activation-mvp-redesign.md](./2026-04-05-activation-mvp-redesign.md)
+**Supersedes:** prior "Gmail Lead Monitoring" framing (renamed in this commit — git tracks the rename)
 
 ---
 
 ## Summary
 
-Watch each activated agent's Gmail inbox for inbound real-estate leads (Zillow, Realtor.com, Homes.com, direct referrals, brokerage forwards, and any other source), parse the email into a `Lead` record, and enqueue it into the existing lead pipeline (`lead-requests` queue → `LeadOrchestratorFunction`). This spec picks **timer-based polling every 15 min with Gmail `historyId` checkpoints** as the MVP detection mechanism, a **single-path Claude Sonnet parser** (no per-source regex templates — source is a Claude-classified dimension, not a fast-path switch), a **lead-source registry** that inventories every source seen per agent for future attribution + source-aware drip campaigns (MVP feature #4), and **thread-based dedup** that updates an existing `Lead` when a new email arrives in the same Gmail thread.
+A single scheduled loop runs every 15 min per activated agent that does **both halves of the conversation**:
+
+- **Inbound**: reads the agent's Gmail, detects new leads from any source, detects replies on existing lead threads, merges new data into the right `Lead` record.
+- **Journey inference**: after a reply, asks Claude whether the lead's position in the sales funnel advanced and which *conversational purposes* (trust-intro, commission-explanation, timeline-established, etc.) the lead has now "served" — so future sends don't repeat points the lead has already moved past.
+- **Outbound**: picks the next-most-useful message for each lead based on current stage + served-purposes + available-templates, renders it through the agent's VoiceSkill + PersonalitySkill (so it sounds like Jenise, not ChatGPT), sends via Gmail, advances state.
+
+The loop rides on infrastructure that already exists in this codebase:
+- `PipelineStage` enum (`Lead → ActiveClient → UnderContract → Closed`) — the coarse journey, already modelled in `Domain/Activation/Models/ContactEnums.cs`.
+- `LeadStatus` enum — process state within our pipeline.
+- `CoachingReport` + `PipelineAnalysis` + `VoiceSkill` + `PersonalitySkill` activation artifacts — the per-agent "how this agent sells" playbook, already extracted from their emails and Drive at activation time. These drive message tone and sequencing rules.
+- Existing lead pipeline (`LeadOrchestratorFunction`, `ILeadStore`, `LeadPaths`) — unchanged downstream.
+
+**What this feature replaces:** the current one-shot "form submission → CMA email → hope the lead replies" flow. After this, every lead — regardless of source — is carried through a stage-aware conversation until they convert, disqualify, or stall.
+
+**What this feature is NOT:** a linear drip campaign. Linear drips send message N+1 regardless of whether the lead has already moved past it. This system asks "what does this lead still need to hear from us?" every cycle.
 
 ---
 
 ## Goals
 
 1. Detect inbound leads in each activated agent's Gmail inbox with no manual intervention, regardless of source.
-2. Reuse the existing lead pipeline end-to-end (`ILeadStore` → `ILeadOrchestrationQueue` → `LeadOrchestratorFunction`) — **no parallel pipeline**.
-3. Parse every candidate email through the same path (classifier → Claude parser → persist). No per-source templated fast-path in Phase 1; coverage > cost optimization at this stage (~$3/month Claude spend per agent at 150 leads/month is noise compared to the value of not missing leads when a source tweaks its email format).
-4. Build a **lead-source registry** as Gmail monitoring lands — every source ever seen per agent is inventoried with counts and timestamps. Foundation for source-aware drip campaigns (MVP feature #4) and per-source ROI reporting.
-5. Survive downtime — if the monitor is offline for N hours, it catches up on resume without duplicates or missed leads.
-6. Multi-tenant fan-out: one timer orchestrator dispatches per-agent sub-orchestrations so slow agents don't block the batch.
-7. Preserve locale as first-class — detect `en`/`es` on the inbound email body and persist to `Lead.Locale`.
-8. All lead entry paths (Gmail, lead-form, future channels) contribute to the same source registry. Lead-form submissions set `sourceId="website"`; Gmail-detected leads set whatever source Claude identifies.
+2. Detect replies from existing leads, infer journey-stage changes + purposes-served updates, merge new data into the existing `Lead`.
+3. Maintain a per-lead `LeadJourneyState` that tracks where the lead sits in the conversation (`Unengaged → Informed → Engaged → Qualified → Converting → Client`) and a `PurposesServed` set that tracks which conversational beats the lead has moved past.
+4. Select and send the next-most-useful outbound message per lead, per cycle, based on stage + purposes-served + time-since-last-contact + available templates. Render through the agent's `VoiceSkill` and `PersonalitySkill` so the message sounds like the agent.
+5. Reuse the existing lead pipeline end-to-end (`ILeadStore` → `ILeadOrchestrationQueue` → `LeadOrchestratorFunction`) for new-lead onboarding (scoring, CMA, initial email). **No parallel pipeline.** This loop owns mid-conversation messaging only.
+6. Maintain a **lead-source registry** — every source ever seen per agent, inventoried with counts and timestamps. Foundation for per-source journey variants, ROI reporting, and source-aware message template libraries.
+7. Survive downtime — if the loop is offline for N hours, it catches up on resume without duplicates, missed leads, or duplicate outbound sends.
+8. Multi-tenant fan-out: per-agent sub-orchestrations; slow/broken agents don't block the batch.
+9. Preserve locale as first-class — detect `en`/`es` on the inbound email body and persist to `Lead.Locale`; render outbound messages in the lead's locale.
+10. Every lead entry path (Gmail, lead-form, future channels) contributes to the same source registry and journey state machine. Lead-form submissions set `sourceId="website"` and start in `Unengaged`; Gmail-detected leads set whatever source Claude identifies.
+11. Halt messaging automatically on clear disqualification or conversion signals (Claude-inferred) — never robo-spam a lead who said "not interested" or a lead who already signed.
+12. Keep the outbound cadence under human agent control — the system sends on a schedule the agent implicitly controls by writing the campaign templates (activation pipeline seeds defaults derived from the agent's own `CoachingReport`). No hidden behavior.
 
 ## Non-Goals
 
-- Gmail push notifications (Pub/Sub `watch`) — Phase 2.
-- Outbound replies / drip campaign execution — that is MVP feature #4 (lead follow-ups), separate spec. This spec lays the registry foundation that feature will read from.
-- Per-source templated fast-path parsers — deferred indefinitely. Will revisit only if Claude spend at scale ($300+/month) justifies the maintenance cost.
-- Source-aware drip campaign configuration UI — feature #4.
+- Gmail push notifications (Pub/Sub `watch`) — Phase 2 inside this spec's phasing.
+- WhatsApp / SMS outbound in the loop — separate channel spec. This spec assumes email-only for outbound but the journey state machine is channel-agnostic; adding a channel later doesn't restructure the state machine.
+- Per-source templated fast-path parsers — deferred indefinitely. Will revisit only if Claude spend at scale ($1,500+/month) justifies the maintenance cost.
+- Agent-facing UI to customize journey stages, campaign templates, or thresholds — this spec assumes templates live in the agent's Drive as markdown files (generated from their activation playbook); direct edit is how customization happens for MVP.
+- Real-time conversation (chat / live-chat style turnaround within minutes) — the loop runs every 15 min and is explicitly not a conversational AI replacement for the agent.
 - CRM sync, Microsoft 365 / Outlook monitoring, IMAP fallback.
 - Parsing non-English lead sources beyond Spanish (Portuguese, etc.) — detect only.
 - Agent-in-the-loop "is this a lead?" confirmation UI — fully automated for MVP.
-- Retroactive ingestion of pre-activation emails (one-time Drive import already covers this via `ContactImport`).
+- Retroactive ingestion of pre-activation emails (one-time Drive import at activation already covers this).
+- Tracking read-receipts or email-open signals — adds complexity + tracking-pixel ethics problems; positive-engagement signal comes from replies only.
+- Automatic contract-signing state change (`Converted`) — that comes from other signals (contract-drafting feature, manual agent flip) outside the loop.
 
 ## Success Criteria
 
+### Inbound
+
 - [ ] A lead email from ANY source (Zillow, Realtor.com, Homes.com, Trulia, Redfin, brokerage referral, direct referral, lead-form forward, etc.) delivered to an activated agent's inbox becomes a `Lead` in `ILeadStore` within 20 min p95, 15 min p50.
-- [ ] Every email-sourced lead has a non-null `SourceId` (examples: `"zillow"`, `"realtor.com"`, `"homes.com"`, `"direct"`, `"brokerage"`, `"facebook"`, etc. — open-ended). Source registry records `(agentId, sourceId)` with first-seen, last-seen, total-leads counters.
-- [ ] Lead-form submissions at the agent website also populate `SourceId="website"` (retrofit of the existing submit endpoint).
+- [ ] Every email-sourced lead has a non-null `SourceId` (examples: `"zillow"`, `"realtor.com"`, `"direct"`, `"brokerage"`, `"facebook"`, etc.). Source registry records `(agentId, sourceId)` with first-seen, last-seen, total-leads, conversion counters.
+- [ ] Lead-form submissions at the agent website populate `SourceId="website"` and start in `LeadJourneyState.Unengaged`.
 - [ ] Newsletter, transaction update, and non-lead email parse cost is $0 (classifier rejects before Claude).
-- [ ] Second email on the same thread (lead's reply to the agent, agent's reply the lead responds to, etc.) triggers ThreadEnrichment mode: merges new data into the existing `Lead`, appends to `Email Thread Log.md`, does NOT create a duplicate, does NOT re-enqueue the lead pipeline.
-- [ ] A CMA-form-initiated lead whose recipient replies by email gets the reply correctly merged — the lead-form submission creates the initial Lead and links the outbound CMA-delivery Gmail thread; any inbound reply on that thread is enriched back into the same Lead.
-- [ ] Monitor offline for 6 hours → on resume, catches up all messages since last `historyId` with zero duplicates and zero misses.
+- [ ] Second email on the same thread triggers ThreadEnrichment: merges new data into the existing `Lead`, appends to `Email Thread Log.md`, does NOT duplicate, does NOT re-enqueue the lead pipeline.
+- [ ] A CMA-form-initiated lead whose recipient replies by email gets the reply correctly merged — the lead-form submission links the outbound CMA-delivery Gmail thread; inbound reply enriches the same Lead.
+- [ ] Loop offline for 6 hours → on resume, catches up all messages since last `historyId` with zero duplicates, zero misses, zero duplicate outbound sends.
+
+### Journey inference
+
+- [ ] When a lead replies, Claude infers whether the journey stage advanced and which purposes-served flags flipped. Decision is logged to `Journey History.md` with reasoning.
+- [ ] A lead who asks "what's your commission?" has the `commission-explanation` purpose marked as *needed* (upcoming). A lead who replies affirmatively after receiving the commission explanation has it marked *served*.
+- [ ] A lead who says "not interested" / "stop emailing me" / "wrong number" → `JourneyState = Disqualified`, `haltReason = "lead-disqualified"`. No further outbound sends, ever, without manual agent override.
+- [ ] A lead who says "let's meet Saturday" / "call me at 555-1234" / "I want to list my house" → `JourneyState = Converting`, outbound loop halts for that lead, agent receives WhatsApp escalation notification.
+- [ ] Journey-state changes are auditable — every transition has a reasoning log entry and an OTel span.
+
+### Outbound
+
+- [ ] Every cycle, every active lead (not in `Converted`, `Disqualified`, or manually paused) is evaluated by the `NextMessageSelector`. When a message is due and appropriate, it sends.
+- [ ] Selector never sends a message whose `requiredPriorPurposes` are not all in the lead's `PurposesServed` set. Example: never sends "introducing my process" to a lead who already received the CMA and replied to it.
+- [ ] Selector never sends a message whose `validStages` does not include the lead's current `JourneyState`.
+- [ ] Message rendering uses the agent's `VoiceSkill` + `PersonalitySkill` for tone; output passes a basic sanity check (length within template budget, no unrendered template variables, no references to template metadata leaking through).
+- [ ] Outbound send is idempotent — `Drip State.json`'s ETag + `lastOutboundMessageAt` guarantee a message never double-sends on retry.
+- [ ] An outbound send updates `PurposesServed` with the purposes that message served, updates `LastOutboundMessageAt`, and schedules `NextMessageAt` based on the message's `cooldownAfterSend` + the journey's per-stage cadence rule.
+- [ ] When `NextMessageSelector` returns `null` (lead has no useful next message for their current stage), the lead's `NextMessageAt` is pushed out by the stage's idle cadence (e.g., 7 days for `Informed`, 14 days for `Engaged`) — no "dead" messages.
+
+### Cross-cutting
+
 - [ ] 100% branch coverage across new production code.
 - [ ] All 41 architecture tests still pass.
+- [ ] Every Claude call (parse, stage-inference, voice render) uses `IAnthropicClient`, not inline `HttpClient` — per the architecture rules.
+- [ ] All user-facing content (outbound messages, notes, journey-log entries) carry locale.
+- [ ] No PII in telemetry (hashed agentId, redacted subjects/bodies).
 
 ---
 
