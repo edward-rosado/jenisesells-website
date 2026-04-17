@@ -160,22 +160,26 @@ flowchart TD
 
 The spec scopes the full loop (features #3 + #4 combined). Implementation is sliced into phases so the first shippable version is visible in Jenise's hands in ~2 weeks rather than 6.
 
-### Phase 1 — Inbound + Journey Foundation (~1.5 weeks)
+### Phase 1 — Inbound + Journey Foundation + Activation Baseline (~2 weeks)
 
-Gets the inbound half working end-to-end + the state machine in place, but no outbound sends yet. Messages are received, leads are created/merged, journey state advances based on replies, but the loop does not yet send messages — the existing lead pipeline's one-shot CMA email is still the only outbound.
+Gets the inbound half working end-to-end + the state machine + historical baseline seeded from activation. Messages are received, leads are created/merged, journey state advances based on replies — and every historical lead from the activation email corpus is pre-seeded with the correct journey stage and purposes, so day-one behavior is correct on every existing conversation. No outbound sends yet.
 
 Deliverables:
 - Timer-triggered polling every 15 min + `historyId` checkpoint (Parts A + B of prior scope).
 - `ILeadThreadIndex` + `ILeadSourceRegistry` + per-lead Drive folder extensions (`Email Thread Log.md`, `Source Context.md`, `Journey History.md`, `Drip State.json`).
-- Lead model extensions: `GmailThreadId`, `GmailMessageId`, `SourceId`, `SourceConfidence`, `JourneyStage`, `PurposesServed`, `Disposition`, `PausedUntil`, `HaltReason`.
+- Lead model extensions: `GmailThreadId`, `GmailMessageId`, `SourceId`, `SourceConfidence`, `JourneyStage`, `PurposesServed`, `Disposition`, `PausedUntil`, `HaltReason`, `HistoricalPipelineId`.
 - `IDripStateStore` + `DripStateIndex` Azure Table.
 - Classifier + Claude parser (single-path, two-mode: NewLead / ThreadEnrichment).
 - `IStageInferrer` (Part E) — second Claude call on replies, updates DripState.
+- `PipelineAnalysisWorker` extension: emits `emailMessageIds` per lead (Part I).
+- `SeedCommunicationsBaselineActivity` (Part I) — zero new Claude calls, deterministically maps the existing activation synthesis (`AgentPipeline` + `EmailClassificationResult` + `ExtractedClient`) into `ILeadStore` / `ILeadThreadIndex` / `IDripStateStore` / `ILeadSourceRegistry`. Wired into the activation orchestrator between `PersistAgentProfileActivity` and `WelcomeNotificationActivity`.
+- `PurposeFromClassificationMapper` — pure C# deterministic mapping (Part I).
+- `IAgentPipelineWriter` + `AgentPipelineWriter` — runtime mirror so `pipeline.json` stays in sync with `LeadDripState` stage changes (the "updated continuously" contract from `AgentPipeline`'s existing doc comment).
 - `SubmitLeadEndpoint` retrofit: `SourceId="website"`, seeds DripState in `New`.
 - `SendLeadEmailActivity` retrofit: capture `threadId` and call `ILeadThreadIndex.LinkThreadAsync`.
 - Three-layer rollout controls (Layer 1 per-account, Layer 2 env flag, Layer 3 allowlist).
 
-**After Phase 1**: every lead has accurate journey state, replies advance/halt correctly, agent sees full `Journey History.md` for every lead. Outbound still happens via the pre-existing pipeline only.
+**After Phase 1**: every lead (historical + newly detected) has accurate journey state, replies advance/halt correctly, agent sees full `Journey History.md` for every lead. Historical clients (`under-contract` / `closing` / `closed` / `lost`) are seeded correctly — no fake-new-lead creation when they email back. Outbound still happens via the pre-existing pipeline only.
 
 ### Phase 2 — Outbound Engine + Message Library (~2 weeks)
 
@@ -400,7 +404,6 @@ Real Estate Star/
       cma-delivery.md
       timeline-check-in.md
       motivation-probe.md
-      objection-price.md
       objection-timing.md
       objection-competition.md
       showing-scheduled.md
@@ -482,7 +485,8 @@ Derived from what the activation pipeline already extracts about each agent's pl
 | `cma-delivered` | Lifecycle coverage | contacted, showing | `initial-response` | seller signal detected OR form-initiated |
 | `timeline-check-in` | Follow-up cadence | contacted, showing | `intro-value-prop` | time-based (7d after last outbound) |
 | `motivation-probe` | Personalization | contacted, showing | `intro-value-prop` | time-based (parallel to timeline-check-in) |
-| `objection-price` | Objection handling | contacted, showing, applied | — | signal-triggered: lead mentions commission/price |
+| `objection-price` | **Escalation (no template)** | — | — | signal-triggered: lead mentions commission/price → `Disposition = Escalated`, notify agent; loop does NOT auto-respond |
+| `fee-discussed-historically` | **Read-only marker** | — | — | set by baseline seeding when agent's historical outbound had `FeeRelated` classification. Informs future escalations — if a lead asks about fees again and the agent already handled it in history, the escalation notification can highlight that |
 | `objection-timing` | Objection handling | contacted, showing | — | signal-triggered: lead mentions "not ready yet" |
 | `objection-competition` | Objection handling | contacted, showing | — | signal-triggered: lead mentions another agent |
 | `showing-scheduled` | Lifecycle coverage | showing | `cma-delivered` OR `motivation-probe` | signal-triggered: viewing confirmed |
@@ -498,7 +502,9 @@ Derived from what the activation pipeline already extracts about each agent's pl
 The template body contains two kinds of placeholders:
 
 1. **Variables** (`{{leadFirstName}}`) — substituted from `Lead` + `AccountConfig` data.
-2. **Voice anchors** (`{{voiceAnchor:warm_welcome_buyer}}`) — substituted by re-prompting Claude with the agent's `VoiceSkill.md` + `PersonalitySkill.md` at the specified voice-anchor ID.
+2. **Voice anchors** (`{{voiceAnchor:warm_welcome_buyer}}`) — substituted by re-prompting Claude with the agent's `VoiceSkill.md` + `PersonalitySkill.md` + `Marketing Style.md` at the specified voice-anchor ID.
+
+   **Explicitly excluded from renderer inputs**: `Fee Structure.md` and `CMA Style Guide.md`. Fee content is off-limits for automated outbound (per product decision — fee/commission conversations escalate to the agent); CMA content is used by the CMA PDF generator, not by outbound messages.
 
 ```csharp
 // RealEstateStar.Domain/Leads/Interfaces/IMessageTemplateRenderer.cs
@@ -525,7 +531,7 @@ Implementation `ClaudeVoicedMessageRenderer` in `RealEstateStar.Workers.Leads`:
 
 1. Substitute deterministic variables first (`{{leadFirstName}}`).
 2. For each `{{voiceAnchor:X}}` placeholder, make a bounded Claude call:
-   - System prompt: `VoiceSkill.md` + `PersonalitySkill.md` contents for the locale, plus the voice-anchor catalog mapping (`warm_welcome_buyer` → "greet the lead warmly, match energy to their apparent buying/selling context, use agent catchphrases where natural").
+   - System prompt: `VoiceSkill.md` + `PersonalitySkill.md` + `Marketing Style.md` contents for the locale, plus the voice-anchor catalog mapping (`warm_welcome_buyer` → "greet the lead warmly, match energy to their apparent buying/selling context, use agent catchphrases where natural"). Renderer MUST NOT receive `Fee Structure.md` (feature-flagged guard: renderer rejects if Fee Structure content is detected in prompt assembly).
    - User prompt: what the anchor needs to produce (1–3 sentences typically) + the surrounding context.
    - Validate: output length within the anchor's character budget; no unrendered placeholders; no URLs/links the template didn't include.
 3. Assemble final subject + body; compute audit hash.
@@ -1180,9 +1186,11 @@ This prevents the loop from re-evaluating a fully-served lead every 15 min forev
 
 ### Signal-triggered needs promote to front of queue
 
-When the inbound orchestrator infers a needed purpose (Part E — "lead asked about commission → need `objection-price`"), it sets `dripState.nextEvaluationAt = now + postReplyCooldown` (default 48h) and adds to `purposesNeeded`.
+When the inbound orchestrator infers a needed purpose — e.g., "lead asked about timing → need `objection-timing`" — it sets `dripState.nextEvaluationAt = now + postReplyCooldown` (default 48h) and adds to `purposesNeeded`.
 
-On the next evaluation after cooldown, the selector sees `purposesNeeded` is non-empty and prioritizes `objection-price` over the `stageDefaults` order — even if the stage would normally send `timeline-check-in` next.
+On the next evaluation after cooldown, the selector sees `purposesNeeded` is non-empty and prioritizes the signal-triggered purpose over the `stageDefaults` order — even if the stage would normally send `timeline-check-in` next.
+
+**Note on fee/commission questions**: these do NOT become `purposesNeeded` entries. Any mention of commission, fee, or rate triggers `Disposition = Escalated` directly (see Part G). The agent handles that conversation personally — Fee Structure content is deliberately excluded from automated outbound communications to avoid the system misquoting or undercutting the agent's rate.
 
 ### Cooldown between sends
 
@@ -1221,9 +1229,12 @@ Current state:
   purposes_served: ["initial-response", "intro-value-prop", "cma-delivered"]
   last_outbound_template: "cma-delivery"
 
-Agent context (for tone reference, not rules):
+Agent context (for tone reference + funnel shape, not rules):
   <VoiceSkill markdown>
   <PersonalitySkill markdown>
+  <Sales Pipeline markdown>   # — describes how this agent's funnel actually operates
+                               # so "next stage" inference matches the agent's real process
+Agent context DELIBERATELY excludes: Fee Structure.md, CMA Style Guide.md.
 
 Lead reply:
   <email_body>...</email_body>
@@ -1476,7 +1487,7 @@ Explicit signals Claude detects in a lead reply (via stage-inference prompt) and
 | Lead says / does | Stage effect | Disposition effect | Purpose effect |
 |---|---|---|---|
 | "Thanks for the info" (acknowledgment, no new info) | none | Paused (48h) | none |
-| "What's your commission?" | none | Paused (48h) | `objection-price` → needed (priority 1) |
+| "What's your commission?" / any fee question | none | **Escalated** | escalation reason: "lead asked about commission/fees — agent to respond personally" (Fee Structure not used for automated outbound per product decision) |
 | "I'm talking to another agent" | none | Paused (48h) | `objection-competition` → needed (priority 1) |
 | "I'm not ready yet, maybe in 6 months" | none | Paused (7d) | `objection-timing` → needed (priority 2) |
 | "Not interested, please stop emailing" | none | Halted | halt reason: `lead-disqualified` |
@@ -1659,6 +1670,390 @@ Message-effectiveness dashboard (post 30-day data collection):
 
 ---
 
+## Part I — Activation-time Baseline Seeding
+
+The Communications Loop cannot start cold. On day one after activation, the agent's inbox already contains:
+
+- Ongoing lead threads in various stages (`contacted`, `showing`, `applied`)
+- Clients mid-transaction (`under-contract`, `closing`)
+- Leads that have already been lost or disqualified
+- Past closed clients
+
+Without a baseline, inbound replies on any of these threads would be misclassified as brand-new leads. This section defines how we seed `ILeadStore`, `ILeadThreadIndex`, `IDripStateStore`, and `ILeadSourceRegistry` from the activation pipeline's **existing synthesis** — with **zero new Claude calls**.
+
+### Design principle: reuse synthesis, don't re-analyze
+
+The activation pipeline already makes ~14 Claude calls to understand the agent. Baseline seeding **consumes** those outputs rather than duplicating analysis. This is the same single-source-of-truth principle that governs `AgentPipeline` in the existing codebase (doc comment: *"the live source of truth for their lead pipeline"*).
+
+### Input corpus
+
+**Same 100 sent + 100 inbox emails already fetched by `AgentEmailFetchWorker`**, cached in `EmailCorpus`. No additional Gmail API calls. Baseline seeding works from the exact synthesis the rest of activation used.
+
+### Synthesis artifacts consumed (reuse map)
+
+| Artifact (already produced) | Consumed for |
+|---|---|
+| `AgentPipeline.Leads[]` — from `PipelineAnalysisWorker` Claude call | Authoritative per-lead **stage** (`new`/`contacted`/`showing`/`applied`/`under-contract`/`closing`/`closed`/`lost`), type, source hint, firstSeen, lastActivity, next, notes |
+| `EmailCorpus.SentEmails[]` + `EmailCorpus.InboxEmails[]` | Full email bodies + `messageId` + `threadId` for per-lead Drive artifacts (`Email Thread Log.md`, `Source Context.md`) |
+| `EmailClassificationResult.Classifications[]` — from `EmailClassificationWorker` Claude call | Per-email `EmailCategory` tags (Transaction/Marketing/FeeRelated/Compliance/LeadNurture/Negotiation/Personal/Administrative) — **deterministically mapped** to `PurposesServed` |
+| `DocumentExtraction`/`ExtractedClient` — from `EmailTransactionExtractor` Claude call | Per-lead contact info: real name, email, phone (de-anonymizes the `"Client A"` label from `PipelineAnalysisWorker`) |
+| `EmailSignature` — from `AgentEmailFetchWorker` | Agent's own email signature — used to identify outbound messages in the corpus (sender = agent) |
+
+### One small upstream modification: `PipelineAnalysisWorker` emits message linkage
+
+`PipelineAnalysisWorker` already makes the Claude call that identifies leads and classifies their stage. It does NOT currently emit which specific `EmailMessage.Id`s belong to each lead — but Claude saw them during the analysis.
+
+**Modification**: extend the `PipelineAnalysisWorker` JSON schema to include `emailMessageIds: [...]` per lead. Cost delta: ~$0.001/activation (slightly longer Claude response). Benefit: deterministic downstream linkage + every future consumer of `AgentPipeline` (audit UI, lead-drill-down) gets it for free.
+
+```csharp
+// RealEstateStar.Domain/Activation/Models/AgentPipeline.cs — extend
+public sealed record PipelineLead(
+    string Id,
+    string Name,
+    string Stage,
+    string Type,
+    string? Property,
+    string? Source,
+    DateTime FirstSeen,
+    DateTime LastActivity,
+    string? Next,
+    string? Notes,
+    IReadOnlyList<string> EmailMessageIds);  // NEW
+```
+
+```
+# PipelineAnalysisWorker.SystemPrompt — add to field definitions:
+- emailMessageIds: Array of email messageIds (from the provided <user-data> entries)
+  that belong to this lead's conversation. Include all emails where this lead is
+  sender OR recipient OR subject-matter. These will be used to link the lead to
+  its source conversations.
+```
+
+Validation: every emitted `messageId` must exist in the input `EmailCorpus` (rejected at `ValidatePipelineJson` time — Claude hallucination guard).
+
+**This is a backwards-compatible extension.** Existing consumers (`PipelineQueryService`, `AgentPipeline` dashboard) ignore the new field. The WhatsApp fast-path is unaffected.
+
+### `PurposeFromClassificationMapper` — deterministic C#, no Claude
+
+Pure function, unit-testable, zero I/O. Maps `(emailCategory, direction)` → set of purposes the email served. Direction is derived by comparing the email's `From` header against the agent's `EmailSignature` or `AccountConfig.Agent.Email`.
+
+```csharp
+// RealEstateStar.Workers.Leads/LeadCommunications/PurposeFromClassificationMapper.cs
+public static class PurposeFromClassificationMapper
+{
+    public static IReadOnlySet<string> ForLead(
+        PipelineLead lead,
+        IReadOnlyList<EmailMessage> emails,
+        IReadOnlyDictionary<string, ClassifiedEmail> classifications,  // keyed by messageId
+        string agentEmail)
+    {
+        var served = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Order emails chronologically per lead
+        var orderedEmails = emails
+            .Where(e => lead.EmailMessageIds.Contains(e.Id))
+            .OrderBy(e => e.Date)
+            .ToList();
+
+        foreach (var (idx, email) in orderedEmails.Select((e, i) => (i, e)))
+        {
+            var isOutbound = string.Equals(email.From, agentEmail, StringComparison.OrdinalIgnoreCase);
+            if (!classifications.TryGetValue(email.Id, out var classified)) continue;
+
+            foreach (var category in classified.Categories)
+            {
+                var purpose = MapCategoryToPurpose(category, isOutbound, isFirstOutbound: idx == 0 && isOutbound);
+                if (purpose is not null) served.Add(purpose);
+            }
+        }
+
+        return served;
+    }
+
+    // Deterministic mapping table — exercised by comprehensive unit tests
+    private static string? MapCategoryToPurpose(EmailCategory cat, bool isOutbound, bool isFirstOutbound) =>
+        (cat, isOutbound, isFirstOutbound) switch
+        {
+            (EmailCategory.Transaction, true,  true)  => "initial-response",
+            (EmailCategory.LeadNurture, true,  _)     => "intro-value-prop",
+            (EmailCategory.Transaction, true,  false) => "cma-delivered",          // outbound transaction email likely CMA
+            (EmailCategory.Transaction, false, _)     => "motivation-probe",       // inbound transaction = lead shared context
+            (EmailCategory.FeeRelated,  true,  _)     => "fee-discussed-historically", // agent personally discussed fee in this thread — loop won't auto-send fee content
+            (EmailCategory.FeeRelated,  false, _)     => null,                     // inbound fee q triggers Escalation at runtime (Part G) — not a purpose the loop serves
+            (EmailCategory.Negotiation, _,     _)     => "application-prep",
+            (EmailCategory.Compliance,  _,     _)     => null,                     // not a purpose
+            (EmailCategory.Marketing,   _,     _)     => null,                     // excluded
+            (EmailCategory.Personal,    _,     _)     => null,                     // not a lead thread
+            (EmailCategory.Administrative, _,  _)     => null,
+            _ => null,
+        };
+}
+```
+
+Reasoning for the mapping:
+- **`initial-response`** only fires on the agent's *first* outbound in the thread (position 0 among outbound). Matches the Communications Loop's runtime semantics.
+- **`cma-delivered`** is conservative: any subsequent outbound classified as `Transaction` is assumed CMA-adjacent. At runtime the template explicitly advertises it.
+- **`motivation-probe`** served when the lead sends inbound transaction-category email (they volunteered what they want).
+- **Inbound `FeeRelated`** maps to no purpose served — that's a signal-triggered need at runtime, not a "we answered them" mark.
+- **`Marketing` / `Personal` / `Administrative`** never contribute to purpose set.
+
+The mapping table is deliberately **incomplete** (8 rows returning non-null, many returning null) because erring toward under-asserting is safer — the runtime loop can always detect an unmet purpose from a future reply; it cannot un-serve a purpose that shouldn't have been marked served.
+
+### Disposition inference (deterministic)
+
+```csharp
+LeadJourneyDisposition InferDispositionAtSeeding(
+    PipelineLead lead,
+    DateTime now,
+    TimeSpan postReplyCooldown)
+{
+    if (lead.Stage == "lost")   return Halted;
+    if (lead.Stage == "closed") return Halted;      // historical client — never auto-message
+    // under-contract / closing are silent stages (handled at selector level)
+
+    var age = now - lead.LastActivity;
+    if (age < postReplyCooldown) return Paused;     // recent activity — respect agent's in-flight conversation
+    return Active;
+}
+```
+
+For halted leads, `HaltReason = "historical"` so it's distinguishable from runtime halts (`lead-disqualified` / `converted`).
+
+For `Paused`, `PausedUntil = lead.LastActivity + postReplyCooldown` (default 48h). If the agent's last outbound to this lead was within the cooldown window, the loop waits — respects the agent's personal conversation.
+
+### New activity: `SeedCommunicationsBaselineActivity`
+
+Runs at activation. Orchestrator position: **after** `PersistAgentProfileActivity` (which writes `pipeline.json`, `Coaching Report.md`, `Email Classification.json`, etc. to the agent's Drive + blob), **before** `SeedMessageLibraryActivity` (Phase 2 add; reads `CoachingReport`/`VoiceSkill` to seed templates), **before** `WelcomeNotificationActivity`.
+
+```mermaid
+flowchart TD
+    PA[PersistAgentProfileActivity<br/>writes pipeline.json, classifications,<br/>transaction extractions to Drive]
+    PA --> SCB[SeedCommunicationsBaselineActivity<br/>NEW — deterministic, no Claude]
+    SCB --> SML[SeedMessageLibraryActivity<br/>renders default templates from<br/>CoachingReport + VoiceSkill]
+    SML --> WN[WelcomeNotificationActivity]
+```
+
+Pseudocode:
+
+```csharp
+public async Task ExecuteAsync(
+    string accountId, string agentId,
+    ActivationOutputs outputs,   // already contains AgentPipeline, EmailCorpus,
+                                 //  EmailClassificationResult, ExtractedClients
+    CancellationToken ct)
+{
+    var pipeline = outputs.Pipeline;
+    if (pipeline is null || pipeline.Leads.Count == 0)
+    {
+        logger.LogInformation("[SCB-001] No pipeline leads to seed for agentId={AgentId}", agentId);
+        return;
+    }
+
+    var classifications = outputs.EmailClassification.Classifications
+        .ToDictionary(c => c.EmailId);
+    var emailsById = outputs.EmailCorpus.AllEmails().ToDictionary(e => e.Id);
+    var extractedClientsByName = outputs.ExtractedClients
+        .ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase);
+    var agentEmail = outputs.AccountConfig.Agent?.Email ?? "";
+    var now = DateTime.UtcNow;
+
+    var results = new List<Task>();
+    foreach (var pl in pipeline.Leads)
+    {
+        results.Add(SeedOneLeadAsync(accountId, agentId, pl,
+            emailsById, classifications, extractedClientsByName, agentEmail, now, ct));
+    }
+    await Task.WhenAll(results);
+
+    logger.LogInformation(
+        "[SCB-090] Seeded {Count} leads from baseline for agentId={AgentId}",
+        pipeline.Leads.Count, agentId);
+}
+
+private async Task SeedOneLeadAsync(
+    string accountId, string agentId, PipelineLead pl,
+    IReadOnlyDictionary<string, EmailMessage> emailsById,
+    IReadOnlyDictionary<string, ClassifiedEmail> classifications,
+    IReadOnlyDictionary<string, ExtractedClient> extractedClientsByName,
+    string agentEmail, DateTime now, CancellationToken ct)
+{
+    // 1. Resolve real name + contact info (de-anonymize the "Client A" label)
+    //    The PipelineAnalysisWorker uses "Client A/B/C" in its public output for PII;
+    //    we match by emailMessageIds linkage to the raw email headers.
+    var leadEmails = pl.EmailMessageIds
+        .Select(id => emailsById.TryGetValue(id, out var e) ? e : null)
+        .Where(e => e is not null)
+        .Select(e => e!)
+        .ToList();
+
+    if (leadEmails.Count == 0)
+    {
+        logger.LogWarning("[SCB-002] Lead {PipelineId} has no matched emails — skipping", pl.Id);
+        return;
+    }
+
+    var (realName, email, phone) = ResolveRealContact(leadEmails, extractedClientsByName, agentEmail);
+    if (string.IsNullOrEmpty(realName))
+    {
+        logger.LogWarning("[SCB-003] Could not resolve real name for {PipelineId} — skipping", pl.Id);
+        return;
+    }
+
+    var leadId = Guid.NewGuid();
+    var journeyStage = MapStageString(pl.Stage);  // "showing" -> LeadJourneyStage.Showing
+    var purposesServed = PurposeFromClassificationMapper.ForLead(pl, leadEmails, classifications, agentEmail);
+    var disposition = InferDispositionAtSeeding(pl, now, postReplyCooldown: TimeSpan.FromHours(48));
+    var haltReason = (journeyStage is LeadJourneyStage.Lost or LeadJourneyStage.Closed)
+        ? "historical" : null;
+    var threads = leadEmails.Select(e => e.ThreadId).Distinct().ToList();
+
+    // 2. Create Lead record
+    var lead = new Lead {
+        Id = leadId,
+        AgentId = agentId,
+        FirstName = SplitFirstName(realName),
+        LastName = SplitLastName(realName),
+        Email = email,
+        Phone = phone,
+        JourneyStage = journeyStage,
+        PurposesServed = purposesServed,
+        Disposition = disposition,
+        HaltReason = haltReason,
+        PausedUntil = disposition == LeadJourneyDisposition.Paused
+            ? pl.LastActivity + TimeSpan.FromHours(48) : null,
+        LastInboundMessageAt = leadEmails.Where(e => !IsOutbound(e, agentEmail)).Max(e => (DateTime?)e.Date),
+        LastOutboundMessageAt = leadEmails.Where(e => IsOutbound(e, agentEmail)).Max(e => (DateTime?)e.Date),
+        InboundMessageCount = leadEmails.Count(e => !IsOutbound(e, agentEmail)),
+        OutboundMessageCount = leadEmails.Count(e => IsOutbound(e, agentEmail)),
+        SourceId = pl.Source ?? "unknown",
+        SourceConfidence = null,  // deterministic-from-activation — no Claude confidence
+        GmailThreadId = threads.FirstOrDefault(),
+        GmailMessageId = leadEmails.OrderBy(e => e.Date).First().Id,
+        HistoricalPipelineId = pl.Id,  // preserve the L-001/L-002 link for audit
+    };
+
+    await leadStore.SaveAsync(lead, ct);
+
+    // 3. Link all threads via ILeadThreadIndex
+    foreach (var threadId in threads)
+    {
+        var firstMsgId = leadEmails.Where(e => e.ThreadId == threadId).OrderBy(e => e.Date).First().Id;
+        await threadIndex.LinkThreadAsync(agentId, leadId, threadId, firstMsgId, ct);
+    }
+    foreach (var em in leadEmails)
+    {
+        await threadIndex.MarkMessageProcessedAsync(agentId, em.Id, leadId, ct);
+    }
+
+    // 4. Register the source
+    if (!string.IsNullOrEmpty(pl.Source))
+    {
+        await sourceRegistry.RegisterOrUpdateAsync(agentId, pl.Source,
+            new LeadSourceObservation(leadId, pl.FirstSeen, SourceConfidence: 1.0m, OriginChannel: "gmail-baseline"),
+            ct);
+    }
+
+    // 5. Write per-lead Drive artifacts
+    var firstInbound = leadEmails.Where(e => !IsOutbound(e, agentEmail)).OrderBy(e => e.Date).FirstOrDefault();
+    if (firstInbound is not null)
+    {
+        await leadStore.WriteSourceContextAsync(agentId, leadId, new SourceContextSnapshot(...), ct);
+    }
+    foreach (var em in leadEmails.OrderBy(e => e.Date))
+    {
+        await leadStore.AppendEmailThreadLogAsync(agentId, leadId, new EmailThreadLogEntry(...), ct);
+    }
+
+    // 6. Seed DripState
+    var dripState = new LeadDripState {
+        SchemaVersion = 1,
+        LeadId = leadId,
+        AgentId = agentId,
+        JourneyStage = journeyStage,
+        Disposition = disposition,
+        PurposesServed = purposesServed.Select(p => new PurposeServed(p, leadEmails.Max(e => e.Date), "baseline-seed", MessageId: null)).ToList(),
+        PurposesNeeded = [],
+        NextEvaluationAt = disposition == LeadJourneyDisposition.Active
+            ? now + TimeSpan.FromMinutes(30)   // let them enter the loop soon but not instantly
+            : (pl.LastActivity + TimeSpan.FromHours(48)),
+        LastInboundMessageAt = lead.LastInboundMessageAt,
+        LastOutboundMessageAt = lead.LastOutboundMessageAt,
+        PausedUntil = lead.PausedUntil,
+        HaltReason = haltReason,
+        EscalationReason = null,
+        MessageHistory = leadEmails.OrderBy(e => e.Date).Select(e => ...).ToList(),
+        LastModifiedBy = "baseline-seed",
+        LastModifiedAt = now,
+    };
+    await dripStateStore.SaveNewAsync(dripState, ct);
+
+    // 7. Append Journey History baseline entry
+    await journeyHistoryAppender.AppendAsync(agentId, leadId,
+        $"{now:yyyy-MM-dd HH:mm} UTC — Seeded from activation baseline\n" +
+        $"Historical pipeline id: {pl.Id}\n" +
+        $"Initial stage: {journeyStage}\n" +
+        $"Initial disposition: {disposition}\n" +
+        $"Purposes served (derived from email classification): {string.Join(", ", purposesServed)}\n" +
+        $"Messages linked: {leadEmails.Count} ({threads.Count} threads)",
+        ct);
+}
+```
+
+### Idempotency + replay safety
+
+The activity is idempotent by design:
+- `ILeadStore.SaveAsync` — upsert semantics per existing contract; re-activation no-ops if lead already exists (match via `HistoricalPipelineId`).
+- `ILeadThreadIndex.LinkThreadAsync` + `MarkMessageProcessedAsync` — `(agentId, threadId)` / `(agentId, messageId)` are natural keys; duplicate writes no-op.
+- `ILeadSourceRegistry.RegisterOrUpdateAsync` — already defined as idempotent upsert in Part C domain interfaces.
+- `IDripStateStore.SaveNewAsync` — check existence first; if present, skip.
+- `Email Thread Log.md` + `Journey History.md` — baseline entries are marked with `"via: baseline-seed"` so re-activation can detect and skip re-append.
+
+Re-activation after partial failure: the activity can be re-run safely; only leads not yet seeded get seeded.
+
+### Runtime loop integration: mirror updates to `AgentPipeline`
+
+Per the existing doc comment on `AgentPipeline` (*"Updated continuously by Gmail monitoring after initial activation population"*), the Communications Loop **mirrors stage changes back into `pipeline.json`**:
+
+- `GmailMonitorOrchestrator` (inbound) — when stage-inference advances stage, it updates `LeadDripState` AND appends a new `PipelineLead` or updates an existing one in `AgentPipeline`.
+- `OutboundLeadOrchestrator` — after a successful send that advances stage, same mirror.
+
+Implementation: `IAgentPipelineWriter` interface (Domain) + `AgentPipelineWriter` service (DataServices) with ETag CAS on `pipeline.json`. Updates are scoped to:
+- `Stage` (from `LeadJourneyStage`, inverse of the seed-time mapping)
+- `LastActivity`
+- `Next` (from Part C's purposesNeeded highest priority, optional)
+
+Maintains the "live source of truth" contract — `PipelineQueryService` (WhatsApp fast-path) stays accurate without needing to learn about `LeadDripState`.
+
+### What happens if activation has no `AgentPipeline`
+
+Small inboxes (< `MinInboxEmailsRequired`) skip `PipelineAnalysisWorker`. In that case:
+- `SeedCommunicationsBaselineActivity` logs `[SCB-001] No pipeline to seed` and exits cleanly.
+- No Lead records seeded.
+- Runtime Communications Loop handles all leads as fresh (`NewLead` mode) on their first email.
+
+This is acceptable — agents without significant email history have no historical baseline to preserve. The loop works from cold.
+
+### Cost summary at activation
+
+| Action | Claude calls added | Dollar cost delta |
+|---|---|---|
+| `PipelineAnalysisWorker` output schema extension (`emailMessageIds`) | 0 (same call, slightly longer output) | ~$0.001 |
+| `SeedCommunicationsBaselineActivity` | 0 | $0 |
+| **Total activation delta** | **0 new calls** | **~$0.001 / activation** |
+
+### Part I success criteria
+
+- [ ] After activation, every `PipelineLead` has a corresponding `Lead` record in `ILeadStore` with `HistoricalPipelineId` set.
+- [ ] Every `EmailMessage.ThreadId` in the 200-email corpus is either (a) linked to a seeded lead via `ILeadThreadIndex` or (b) deliberately unlinked (not part of any identified lead).
+- [ ] Lost / closed historical leads have `Disposition = Halted`, `HaltReason = "historical"`. Inbound replies on their threads route to ThreadEnrichment + append to thread log, but never send outbound.
+- [ ] Under-contract / closing historical leads are seeded but not messaged (silent-stage rule applies).
+- [ ] Active historical leads seeded with `PurposesServed` derived deterministically from email classifications. Unit tests assert the mapping for every `(EmailCategory, direction)` combination.
+- [ ] Re-activation is idempotent: running the activity twice produces the same state; no duplicate leads, no duplicate thread logs.
+- [ ] `AgentPipeline.json` is updated by the runtime loop when stages change; `PipelineQueryService` sees accurate state continuously.
+- [ ] Zero new Claude calls at activation time. Existing `PipelineAnalysisWorker` call adds ~$0.001 via the `emailMessageIds` field.
+
+---
+
 ## Test Strategy
 
 ### Unit tests (inbound side — Phase 1)
@@ -1708,10 +2103,26 @@ Message-effectiveness dashboard (post 30-day data collection):
 - `OutboundLeadOrchestrator_Idempotency_PreventsRetrySend` — send succeeds, DripState save crashes, retry → pre-send check sees recent outbound entry for same templateId, skips send, completes DripState save.
 - `OutboundLeadOrchestrator_CASConflict_Retries` — concurrent inbound orchestrator writes DripState first → outbound's save fails with ETag mismatch → retry with fresh state.
 
+### Integration tests (activation baseline — Part I)
+
+- `SeedCommunicationsBaseline_SeedsAllStages` — fake `AgentPipeline` with one lead per stage → assert `Lead` + `LeadDripState` created for each with correct `JourneyStage` + `Disposition`.
+- `SeedCommunicationsBaseline_ClosedLead_IsHalted` — `PipelineLead.Stage = "closed"` → `Disposition = Halted`, `HaltReason = "historical"`, later inbound on that thread enriches but does not send.
+- `SeedCommunicationsBaseline_LostLead_IsHalted` — same as closed; `HaltReason = "historical"`.
+- `SeedCommunicationsBaseline_PurposeMapping_Deterministic` — table-driven: for each `(EmailCategory, direction)` combo, assert the mapped purpose. 30+ scenarios.
+- `SeedCommunicationsBaseline_InboundFeeQuestion_NotServed` — historical inbound `FeeRelated` email does NOT add any purpose (to honor the "fees are escalations" rule even in historical mapping).
+- `SeedCommunicationsBaseline_OutboundFeeDiscussion_MarksHistorical` — historical outbound `FeeRelated` email adds `fee-discussed-historically` marker so future fee escalations see prior agent engagement.
+- `SeedCommunicationsBaseline_Idempotent` — run twice → same state; no duplicate Lead, no duplicate thread links, no duplicate journey-history entries.
+- `SeedCommunicationsBaseline_NoAgentPipeline_Skips` — `AgentPipeline` null (small inbox) → activity logs `[SCB-001]` and exits cleanly.
+- `SeedCommunicationsBaseline_UnresolvedRealName_Skips` — `PipelineLead.Name = "Client A"` with no matching `ExtractedClient` → lead skipped with warning, no crash.
+- `PipelineAnalysisWorker_EmitsEmailMessageIds` — Claude output containing `emailMessageIds: [msg1, msg2]` for each lead; hallucination guard rejects IDs not present in input corpus.
+- `AgentPipelineWriter_RuntimeMirror` — `GmailMonitorOrchestrator` advances a lead's stage → `pipeline.json` updates via `IAgentPipelineWriter.WriteAsync` with ETag CAS.
+
 ### Integration tests (full loop)
 
 - `FullLoop_LeadFormToConversion` — form submit creates lead → outbound sends CMA → lead replies asking timeline → stage inference advances `new → contacted`, purpose `timeline-check-in` served → outbound selects next template accordingly.
 - `FullLoop_DisqualificationChain` — lead replies "stop emailing" → halted → next outbound cycle skips → lead remains halted through subsequent cycles.
+- `FullLoop_FeeQuestionEscalates` — lead replies "what's your commission?" → stage-inference marks `Disposition = Escalated` with "commission/fee" reason → WhatsApp notification fires → outbound cycle never sends any fee content.
+- `FullLoop_HistoricalClientReplies_DoesNotCreateNewLead` — seeded historical `closed` lead replies months later → ThreadEnrichment mode finds existing Lead, appends to thread log, no new Lead created, no outbound triggered.
 - `FullLoop_MessageEffectivenessRecorded` — send emits event, daily aggregator populates 14d-outcome columns.
 
 ### Architecture tests
@@ -1883,7 +2294,7 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 - `Leads/Models/GmailMonitorCheckpoint.cs`, `InboundGmailMessage.cs`, `GmailHistorySlice.cs`, `ParsedLeadEmail.cs` (with `ParseMode` enum), `LeadEmailClassification.cs`, `GmailMonitorMessage.cs`, `LeadSourceEntry.cs`, `LeadSourceObservation.cs`, `EmailThreadLogEntry.cs`, `SourceContextSnapshot.cs`, `LeadEnrichmentDelta.cs`, `LeadJourneyStage.cs` (enum), `LeadJourneyDisposition.cs` (enum), `LeadDripState.cs`, `DripMessageHistoryEntry.cs`, `PurposeServed.cs`, `PurposeNeeded.cs`, `StageInferenceResult.cs`, `InferredPurpose.cs`
 
 ### New files (Domain — Phase 2)
-- `Leads/Interfaces/IMessageTemplateRenderer.cs`, `IMessageTemplateLibrary.cs`, `INextMessageSelector.cs`, `IOutboundLeadQueue.cs`
+- `Leads/Interfaces/IMessageTemplateRenderer.cs`, `IMessageTemplateLibrary.cs`, `INextMessageSelector.cs`, `IOutboundLeadQueue.cs`, `IAgentPipelineWriter.cs` (Part I runtime mirror)
 - `Leads/Models/MessageTemplate.cs` (with `LeadTypeFilter` enum), `RenderedMessage.cs`, `LibraryManifest.cs`, `OutboundLeadInput.cs`, `SentMessageRef.cs`
 
 ### New files (Clients — Phase 1)
@@ -1895,6 +2306,7 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 - `GmailMonitor/ClaudeLeadEmailParser.cs` — single-path Claude parser
 - `GmailMonitor/ClaudeStageInferrer.cs` — Part E stage inference
 - `LeadCommunications/JourneyHistoryAppender.cs` — writes `Journey History.md`
+- `LeadCommunications/PurposeFromClassificationMapper.cs` — Part I; pure C# mapping (EmailCategory, direction) → purposes set
 - `Diagnostics/LeadCommunicationsDiagnostics.cs` — ActivitySource + Meter (one shared diagnostics class for Inbound/Outbound/Journey)
 
 ### New files (Workers.Leads — Phase 2)
@@ -1904,7 +2316,9 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 
 ### New files (DataServices — Phase 1)
 - `Leads/LeadThreadMerger.cs` — merges enrichment deltas into existing Lead
+- `Leads/AgentPipelineWriter.cs` — ETag-CAS writer for `pipeline.json`; called by runtime loop on stage changes (see Part I)
 - `Activation/SeedMessageLibraryActivity.cs` — seeds default 13-template library at activation (Phase 2 feature, but activity lives in DataServices)
+- `Activation/SeedCommunicationsBaselineActivity.cs` — Part I; zero new Claude calls, consumes AgentPipeline + EmailClassification + ExtractedClients
 
 ### New files (Functions — Phase 1 inbound)
 - `Leads/GmailMonitor/GmailMonitorTimerFunction.cs`, `StartGmailMonitorFunction.cs`, `GmailMonitorOrchestratorFunction.cs`
@@ -1920,7 +2334,11 @@ Per-agent, not per-message. Per-message would churn hundreds of DF histories/day
 - `Leads/LeadCommunications/MessageEffectivenessTimerFunction.cs` — daily aggregation of 14d outcomes into `MessageEffectivenessEvents` Azure Table
 
 ### Modified files (Phase 1)
-- `Domain/Leads/Models/Lead.cs` — add nullable `GmailThreadId`, `GmailMessageId`, `SourceId`, `SourceConfidence`, `JourneyStage`, `PurposesServed`, `Disposition`, `PausedUntil`, `HaltReason`, `LastInbound/OutboundMessageAt`, inbound/outbound counters.
+- `Domain/Leads/Models/Lead.cs` — add nullable `GmailThreadId`, `GmailMessageId`, `SourceId`, `SourceConfidence`, `JourneyStage`, `PurposesServed`, `Disposition`, `PausedUntil`, `HaltReason`, `LastInbound/OutboundMessageAt`, inbound/outbound counters, **`HistoricalPipelineId`** (preserves `L-001` / `L-002` linkage from `AgentPipeline` for audit).
+- `Domain/Activation/Models/AgentPipeline.cs` — Part I; add `IReadOnlyList<string> EmailMessageIds` to `PipelineLead` record. Non-breaking extension of existing JSON schema.
+- `Workers/Activation/RealEstateStar.Workers.Activation.PipelineAnalysis/PipelineAnalysisWorker.cs` — Part I; extend `SystemPrompt` JSON schema to include `emailMessageIds: [...]` per lead, add validation that returned IDs exist in input corpus. Cost delta: ~\$0.001/activation.
+- `Workers/Activation/RealEstateStar.Workers.Activation.Orchestrator/ActivationOrchestratorWorker.cs` — insert `SeedCommunicationsBaselineActivity` call after `PersistAgentProfileActivity`, before `SeedMessageLibraryActivity` / `WelcomeNotificationActivity`.
+- `Functions/Activation/ActivationOrchestratorFunction.cs` — wire `SeedCommunicationsBaseline` activity (stays within 5–6 activity cap; counts as the same "persist + seed" step in the orchestrator).
 - `Domain/Leads/LeadPaths.cs` — add `EmailThreadLogFile`, `SourceContextFile`, `DripStateFile`, `JourneyHistoryFile` helpers.
 - `Domain/Leads/Interfaces/ILeadStore.cs` — add `AppendEmailThreadLogAsync`, `WriteSourceContextAsync`, `MergeFromEnrichmentAsync`, `LoadDripStateAsync`, `SaveDripStateIfUnchangedAsync`, `AppendJourneyHistoryAsync`.
 - `DataServices/Leads/LeadFileStore.cs` — implement the new `ILeadStore` methods.
