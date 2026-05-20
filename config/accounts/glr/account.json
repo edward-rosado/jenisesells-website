@@ -1,10 +1,10 @@
 {
   "handle": "glr",
   "accountId": "glr",
-  "template": "luxury-estate",
+  "template": "emerald-classic",
   "branding": {
-    "primary_color": "#1E3A5F",
-    "secondary_color": "#2C5282",
+    "primary_color": "#1B5E20",
+    "secondary_color": "#2E7D32",
     "accent_color": "#C8A951",
     "font_family": "Open Sans",
     "logo_url": "/agents/glr/logo.png"
