@@ -1,18 +1,71 @@
 {
   "handle": "glr",
   "accountId": "glr",
-  "template": "luxury",
+  "template": "luxury-estate",
   "branding": {
     "primary_color": "#1E3A5F",
-    "secondary_color": null,
-    "accent_color": null,
-    "font_family": "Open Sans"
+    "secondary_color": "#2C5282",
+    "accent_color": "#C8A951",
+    "font_family": "Open Sans",
+    "logo_url": "/agents/glr/logo.png"
   },
   "brokerage": {
-    "name": ""
+    "name": "Green Light Realty",
+    "license_number": "NJ-GLR-2017",
+    "office_phone": "(732) 251-2500",
+    "office_address": "1109 Englishtown Rd, Old Bridge, NJ 08857"
+  },
+  "agent": {
+    "enabled": true,
+    "id": "jeffrey-prontnicki",
+    "name": "Jeffrey Prontnicki",
+    "title": "Broker/Owner",
+    "phone": "(732) 433-3663",
+    "email": "info@greenlightmoves.com",
+    "headshot_url": "/agents/glr/jeffrey-prontnicki.jpg",
+    "languages": [
+      "English"
+    ],
+    "tagline": "Forward. Moving. Forward. Learning."
   },
   "location": {
-    "state": "",
-    "service_areas": []
-  }
+    "state": "NJ",
+    "service_areas": [
+      "Middlesex County",
+      "Monmouth County",
+      "Ocean County",
+      "Central New Jersey"
+    ]
+  },
+  "integrations": {
+    "email_provider": "gmail"
+  },
+  "compliance": {
+    "state_form": "NJ-REALTORS-118",
+    "licensing_body": "NJ Real Estate Commission",
+    "disclosure_requirements": [
+      "Lead-based paint disclosure (pre-1978)",
+      "Seller property condition disclosure"
+    ]
+  },
+  "contact_info": [
+    {
+      "type": "phone",
+      "value": "(732) 251-2500",
+      "label": "Office",
+      "is_preferred": true
+    },
+    {
+      "type": "phone",
+      "value": "(732) 433-3663",
+      "label": "Broker Direct",
+      "is_preferred": false
+    },
+    {
+      "type": "email",
+      "value": "info@greenlightmoves.com",
+      "label": "Office Email",
+      "is_preferred": false
+    }
+  ]
 }
