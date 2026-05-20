@@ -21,7 +21,7 @@ Have these tabs/files open BEFORE the meeting:
 5. The **live template-preview** tabs (Beat 2) — base `https://real-estate-star-agents-pr-158.misteredr.workers.dev/?accountId={account}`. Confirmed live 2026-05-20.
 6. **A Spanish-configured browser/profile** (for Beat 1.6) — set browser language to Spanish so the GLR site renders in Spanish on demand. Language is browser-driven, not a URL toggle.
 
-**Highlights to make sure land** (every one is verified working today): **mobile-first / fully responsive** (vs. the prospect's desktop-only legacy site) · brokerage sites (one firm, a page per agent) · custom domains · **bilingual sites (EN/ES, auto-detected, per-agent)** · 10 templates · tailored to the agent's real brand · CMA automation · lead capture→email. Roadmap to paint: lead routing, drip nurture, email monitoring with draft automation, automated listing search, DocuSign. See talking-points doc for the framing of each.
+**Highlights to make sure land** (every one is verified working today): **mobile-first / fully responsive** (vs. the prospect's desktop-only legacy site) · brokerage sites (one firm, a page per agent) · custom domains · **multi-language sites (EN/ES/IT/RU/HI, auto-detected, per-agent)** · **learns from the agent** (bios, languages, reviews read from their real profile — not a blank form) · 10 templates · tailored to the agent's real brand · CMA automation · lead capture→email. Roadmap to paint: lead routing, drip nurture, email monitoring with draft automation, automated listing search, DocuSign. See talking-points doc for the framing of each.
 
 ---
 
@@ -69,20 +69,21 @@ Talk track:
 
 ### Beat 1.6 — "And it speaks your clients' language" (LIVE — confirmed working)
 
-**Setup:** before the meeting, have a browser (or browser profile) set to **Spanish** — Settings → Languages → put Spanish first. The site picks language from the browser, automatically.
+**Setup:** before the meeting, have a browser (or browser profile) set to **Spanish** — Settings → Languages → put Spanish first. The site picks language from the browser, automatically. (Use the in-page language switcher in the nav for the others — Italian / Russian / Hindi — without changing browser settings.)
 
 **Open (Spanish browser):** `https://real-estate-star-agents-pr-158.misteredr.workers.dev/?accountId=glr`
 
 Talk track:
-- "Central Jersey has a large Spanish-speaking community. Watch what happens when a Spanish-speaking buyer visits — the site detects their browser language and serves the whole thing in Spanish, automatically. No separate site, no toggle they have to find."
+- "Central Jersey is a multilingual market. Watch what happens when a buyer who's more comfortable in Spanish visits — the site detects their browser language and serves the whole thing in Spanish, automatically. No separate site, no toggle they have to find."
 - The GLR homepage renders fully in Spanish — "Encuentre el Camino a Su Hogar con Green Light Realty."
-- **Then show it's per-agent:** open Jenise's page (`…/agents/jenise-buckalew?accountId=glr`) in the Spanish browser — her page is in Spanish too, because Jenise speaks Spanish. Then open an English-only agent (`…/agents/noelle-dibenedetto?accountId=glr`) — it stays English.
-- "Each agent declares the languages *they* speak. A bilingual agent gets a bilingual site; an English-only agent stays English. The site never pretends an agent speaks a language they don't."
-- "A buyer who's more comfortable in Spanish gets a site that meets them there — and a 2007 template can't do that."
+- **Then show it's per-agent — and that it was *learned*:** open Antonella Coco's page and switch to Italian; open Lesly Bazile and switch to Russian; open Kajal or Nilesh Shah and switch to Hindi. Then open an English-only agent (`…/agents/noelle-dibenedetto?accountId=glr`) — it stays English.
+- "Here's the part that matters: we didn't ask these agents to fill out a 'languages' field. The platform **read each agent's real bio** and detected the languages they actually speak — Antonella says she's fluent in Italian, Lesly lists Russian and Spanish, the Shahs speak Hindi. The site learned it from them and localized only those languages. It never pretends an agent speaks a language they don't."
+- "A buyer who's more comfortable in their own language gets a site that meets them there — and a 2007 template can't do that."
 
 **⚠️ Beat 1.6 cautions:**
-- Language is driven by the **browser's language setting** (Accept-Language), NOT a URL parameter. Typing `?locale=es` does nothing. Set the browser language before the meeting, or keep a Spanish-configured browser profile ready.
-- Only agents with Spanish content show Spanish — that's by design (currently GLR brokerage + Jenise). Other agents fall back to English cleanly.
+- Spanish is easiest to show via the **browser's language setting** (Accept-Language). For Italian / Russian / Hindi, use the **language switcher in the site nav** — it lists every language the brokerage's agents collectively offer.
+- Italian / Russian / Hindi content is **machine-translated placeholder** pending native review (each file is flagged internally). Spanish is hand-written. Don't claim the it/ru/hi copy is professionally translated — claim the *capability*: the platform detects the language and localizes the site.
+- Only agents who state a language in their real bio get that localized page — by design. Other agents fall back to English cleanly.
 
 ### Beat 2 — "And it's not one cookie-cutter look" (LIVE — confirmed working)
 

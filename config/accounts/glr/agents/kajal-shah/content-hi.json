@@ -1,0 +1,124 @@
+{
+  "pages": {
+    "home": {
+      "sections": {
+        "hero": {
+          "enabled": true,
+          "data": {
+            "headline": "Kajal Shah — Broker Associate",
+            "tagline": "आगे। निरंतर गति में।",
+            "body": "Kajal Green Light Realty के साथ एक REALTOR® हैं, जो Middlesex, Monmouth और Ocean काउंटी में खरीदारों और विक्रेताओं की सेवा करते हैं। स्थानीय बाज़ार की विशेषज्ञता और पहली विज़िट से क्लोज़िंग तक मार्गदर्शन के लिए Kajal से संपर्क करें।",
+            "cta_text": "Kajal के साथ काम करें",
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/kitchen.jpg"
+          }
+        },
+        "stats": {
+          "enabled": false,
+          "data": {
+            "items": []
+          }
+        },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "Kajal कैसे मदद करते हैं",
+            "subtitle": "पहली विज़िट से क्लोज़िंग तक स्थानीय विशेषज्ञता।",
+            "items": [
+              {
+                "icon": "📍",
+                "category": "स्थानीय जानकारी",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
+                "title": "स्थानीय बाज़ार विशेषज्ञता",
+                "description": "Kajal हर दिन Middlesex, Monmouth और Ocean काउंटी में काम करते हैं — कीमतें, मोहल्ले, स्कूल और घरों का आज का वास्तविक मूल्य।"
+              },
+              {
+                "icon": "🧭",
+                "category": "खरीदार और विक्रेता",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
+                "title": "खरीदारों और विक्रेताओं के लिए मार्गदर्शन",
+                "description": "चाहे आप अपना पहला घर खरीद रहे हों या बड़े घर के लिए बेच रहे हों, Kajal आपको हर कदम पर साथ ले चलते हैं ताकि कुछ भी अप्रत्याशित न हो।"
+              },
+              {
+                "icon": "🏢",
+                "category": "ब्रोकरेज का सहयोग",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
+                "title": "Green Light Realty का सहयोग",
+                "description": "हर लेन-देन के पीछे एक पूर्ण Central Jersey ब्रोकरेज — मार्केटिंग, तकनीक और 70 एजेंटों का नेटवर्क।"
+              }
+            ]
+          }
+        },
+        "steps": {
+          "enabled": true,
+          "data": {
+            "title": "यह कैसे काम करता है",
+            "subtitle": "शुरू करने के लिए तीन आसान कदम।",
+            "steps": [
+              {
+                "number": 1,
+                "title": "अपनी जानकारी भेजें",
+                "description": "नीचे दिया गया छोटा फ़ॉर्म भरें — इसमें 2 मिनट से भी कम समय लगता है।"
+              },
+              {
+                "number": 2,
+                "title": "अपनी मुफ़्त घर मूल्य रिपोर्ट पाएँ",
+                "description": "Kajal कुछ ही मिनटों में आपको एक व्यक्तिगत घर मूल्य रिपोर्ट भेजेंगे।"
+              },
+              {
+                "number": 3,
+                "title": "एक विज़िट तय करें",
+                "description": "Kajal सबसे सटीक कीमत बताने के लिए आपके घर आएँगे।"
+              }
+            ]
+          }
+        },
+        "gallery": {
+          "enabled": false,
+          "data": {
+            "items": []
+          }
+        },
+        "testimonials": {
+          "enabled": false,
+          "data": {
+            "title": "Kajal के ग्राहक क्या कहते हैं",
+            "subtitle": "Green Light Realty के ग्राहकों की वास्तविक समीक्षाएँ।",
+            "items": []
+          }
+        },
+        "contact_form": {
+          "enabled": true,
+          "data": {
+            "title": "अगला कदम उठाने के लिए तैयार हैं?",
+            "subtitle": "बेच रहे हैं? अपनी मुफ़्त मूल्य रिपोर्ट पाएँ। खरीद रहे हैं? Kajal को बताएँ कि आप क्या ढूँढ रहे हैं।",
+            "description": "मुफ़्त तुलनात्मक बाज़ार विश्लेषण के लिए अपना पता दर्ज करें, या हमें बताएँ कि आप क्या खोज रहे हैं। **100% मुफ़्त, कोई बाध्यता नहीं।**"
+          }
+        },
+        "about": {
+          "enabled": true,
+          "data": {
+            "title": "Kajal के बारे में",
+            "bio": [
+              "Kajal Shah 2001 से NJ में रह रही हैं। Kajal का विवाह Dr. Nilesh Shah से हुआ है, जो TheTeamShah में उनके रियल एस्टेट टीम पार्टनर भी हैं, और उनके तीन बच्चे हैं — Naman (31), Navan (25) और Giya (16)।",
+              "Kajal 2014 से अपने ग्राहकों के साथ एक रियलटर के रूप में उनकी रियल एस्टेट ज़रूरतों में काम कर रही हैं। वे अंग्रेज़ी और हिन्दी में सहजता से बात करती हैं और प्रत्येक ग्राहक को व्यक्तिगत ध्यान देती हैं।",
+              "Middlesex, Monmouth और Ocean काउंटी में स्थानीय बाज़ार विशेषज्ञता और पहली बातचीत से क्लोज़िंग तक मार्गदर्शन के लिए Kajal से संपर्क करें।"
+            ],
+            "credentials": [
+              "REALTOR®"
+            ]
+          }
+        }
+      }
+    },
+    "thank_you": {
+      "heading": "धन्यवाद!",
+      "subheading": "आपकी मुफ़्त घर मूल्य रिपोर्ट तैयार की जा रही है",
+      "body": "Kajal शीघ्र ही आपका व्यक्तिगत तुलनात्मक बाज़ार विश्लेषण आपके ईमेल पर भेजेंगे।",
+      "disclaimer": "यह मूल्य रिपोर्ट एक तुलनात्मक बाज़ार विश्लेषण (CMA) है और यह कोई मूल्यांकन (appraisal) नहीं है।",
+      "cta_call": "Kajal को कॉल करें: {phone}",
+      "cta_back": "Kajal का पृष्ठ"
+    }
+  },
+  "_translation": "machine-generated, pending native review"
+}

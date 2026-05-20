@@ -1,0 +1,124 @@
+{
+  "pages": {
+    "home": {
+      "sections": {
+        "hero": {
+          "enabled": true,
+          "data": {
+            "headline": "Antonella Coco — REALTOR® Associate",
+            "tagline": "Avanti. In movimento.",
+            "body": "Antonella è un agente REALTOR® di Green Light Realty, al servizio di acquirenti e venditori nelle contee di Middlesex, Monmouth e Ocean. Contatta Antonella per competenza sul mercato locale e assistenza dalla prima visita al giorno del rogito.",
+            "cta_text": "Lavora con Antonella",
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/backyard3.jpg"
+          }
+        },
+        "stats": {
+          "enabled": false,
+          "data": {
+            "items": []
+          }
+        },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "Come ti aiuta Antonella",
+            "subtitle": "Competenza locale dalla prima visita alla chiusura.",
+            "items": [
+              {
+                "icon": "📍",
+                "category": "Conoscenza Locale",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
+                "title": "Esperienza del Mercato Locale",
+                "description": "Antonella lavora ogni giorno nelle contee di Middlesex, Monmouth e Ocean — prezzi, quartieri, scuole e quanto valgono davvero le case oggi."
+              },
+              {
+                "icon": "🧭",
+                "category": "Acquirenti e Venditori",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
+                "title": "Assistenza per Acquirenti e Venditori",
+                "description": "Che tu stia comprando la tua prima casa o vendendo per cambiare, Antonella ti accompagna in ogni fase così nulla ti coglie impreparato."
+              },
+              {
+                "icon": "🏢",
+                "category": "Sostegno dell’Agenzia",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
+                "title": "Sostenuto da Green Light Realty",
+                "description": "Un’agenzia completa del Central Jersey dietro ogni transazione — marketing, tecnologia e una rete di 70 agenti."
+              }
+            ]
+          }
+        },
+        "steps": {
+          "enabled": true,
+          "data": {
+            "title": "Come Funziona",
+            "subtitle": "Tre semplici passi per iniziare.",
+            "steps": [
+              {
+                "number": 1,
+                "title": "Invia le Tue Informazioni",
+                "description": "Compila il breve modulo qui sotto — richiede meno di 2 minuti."
+              },
+              {
+                "number": 2,
+                "title": "Ricevi la Tua Valutazione Gratuita",
+                "description": "Antonella ti invierà un Rapporto sul Valore della Casa personalizzato in pochi minuti."
+              },
+              {
+                "number": 3,
+                "title": "Fissa una Visita",
+                "description": "Antonella visiterà la tua casa per darti il prezzo più preciso."
+              }
+            ]
+          }
+        },
+        "gallery": {
+          "enabled": false,
+          "data": {
+            "items": []
+          }
+        },
+        "testimonials": {
+          "enabled": false,
+          "data": {
+            "title": "Cosa Dicono i Clienti di Antonella",
+            "subtitle": "Recensioni reali di clienti di Green Light Realty.",
+            "items": []
+          }
+        },
+        "contact_form": {
+          "enabled": true,
+          "data": {
+            "title": "Pronto a Fare il Prossimo Passo?",
+            "subtitle": "Vendi? Ricevi la tua valutazione gratuita. Compri? Dì a Antonella cosa cerchi.",
+            "description": "Inserisci il tuo indirizzo per un’Analisi Comparativa di Mercato gratuita, oppure dicci cosa stai cercando. **100% gratuito, senza impegno.**"
+          }
+        },
+        "about": {
+          "enabled": true,
+          "data": {
+            "title": "Chi è Antonella",
+            "bio": [
+              "Antonella è nata a Brooklyn e da dieci anni vive a Old Bridge con il marito e tre splendidi figli. Prima di ottenere la licenza immobiliare nel 2012, Antonella ha avuto una carriera di successo nella gestione del rischio operativo presso una grande società finanziaria di New York.",
+              "La gestione del rischio le viene naturale e applica senza dubbio questa capacità alla sua attività immobiliare. È intraprendente, attenta ai dettagli e personalmente impegnata a soddisfare le esigenze immobiliari dei suoi clienti. Antonella opera nelle contee di Middlesex e Monmouth ed è fluente in italiano. Che si tratti di un acquirente alla prima casa o di un venditore esperto, Antonella crede che ogni cliente sia unico e meriti la sua totale attenzione.",
+              "La sua personalità professionale ed entusiasta porta fiducia, integrità ed entusiasmo a ogni transazione. Nel tempo libero, Antonella ama trascorrere lunghe giornate estive sulla bellissima costa del Jersey con la famiglia. È l’agente che ti tratterà come la famiglia e gli amici seduti attorno alla sua tavola."
+            ],
+            "credentials": [
+              "REALTOR®"
+            ]
+          }
+        }
+      }
+    },
+    "thank_you": {
+      "heading": "Grazie!",
+      "subheading": "Il Tuo Rapporto Gratuito sul Valore della Casa è in Preparazione",
+      "body": "Antonella ti invierà a breve la tua Analisi Comparativa di Mercato personalizzata via email.",
+      "disclaimer": "Questo rapporto sul valore è un’Analisi Comparativa di Mercato (CMA) e non è una perizia.",
+      "cta_call": "Chiama Antonella: {phone}",
+      "cta_back": "Pagina di Antonella"
+    }
+  },
+  "_translation": "machine-generated, pending native review"
+}

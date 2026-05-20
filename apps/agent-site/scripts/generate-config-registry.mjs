@@ -81,8 +81,12 @@ function main() {
       }
     }
 
-    // Extract supported locales from account.agent.languages
-    const LANGUAGE_TO_LOCALE = { English: "en", Spanish: "es", Portuguese: "pt" };
+    // Extract supported locales from account.agent.languages.
+    // Keep in sync with SUPPORTED_LOCALES in features/i18n/locale-map.ts.
+    const LANGUAGE_TO_LOCALE = {
+      English: "en", Spanish: "es", Portuguese: "pt",
+      Italian: "it", Russian: "ru", Hindi: "hi",
+    };
     const languages = account.agent?.languages ?? ["English"];
     accountLanguagesMap[handle] = languages
       .map((lang) => LANGUAGE_TO_LOCALE[lang])
