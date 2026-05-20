@@ -19,12 +19,15 @@ Have these tabs/files open BEFORE the meeting:
 3. `https://platform.real-estate-star.com` — platform marketing pages
 4. `docs/demo/artifacts/sample-cma-report.pdf` (open in a PDF viewer)
 5. The **live template-preview** tabs (Beat 2) — base `https://real-estate-star-agents-pr-158.misteredr.workers.dev/?accountId={account}`. Confirmed live 2026-05-20.
+6. **A Spanish-configured browser/profile** (for Beat 1.6) — set browser language to Spanish so the GLR site renders in Spanish on demand. Language is browser-driven, not a URL toggle.
+
+**Highlights to make sure land** (every one is verified working today): brokerage sites (one firm, a page per agent) · custom domains · **bilingual sites (EN/ES, auto-detected, per-agent)** · 10 templates · tailored to the agent's real brand · CMA automation · lead capture→email. Roadmap to paint: lead routing, drip nurture, email monitoring with draft automation, automated listing search, DocuSign. See talking-points doc for the framing of each.
 
 ---
 
-## The story arc (5 beats, ~8–10 min)
+## The story arc (~10–12 min)
 
-The pitch is: **"An agent's entire online presence and lead response — automated."** Walk it in the order a real agent experiences it.
+The pitch is: **"An agent's entire online presence and lead response — automated."** Walk it in the order a real agent experiences it. Beats 1.5 / 1.6 / 6 are situational — use them when the prospect is a brokerage owner (1.5), serves a multilingual market (1.6), or is anchored to an aging website (6).
 
 ### Beat 1 — "Here's what your business looks like to a buyer" (live)
 
@@ -63,6 +66,23 @@ Talk track:
 - The per-agent URL is `…/agents/{agent-id}?accountId=glr` (path-based). Agent IDs are name slugs: `jenise-buckalew`, `jeffrey-prontnicki`, `noelle-dibenedetto`, etc.
 - Don't click the lead form (API offline) — narrate → Beat 3.
 - Morning-of check: `curl -s -o /dev/null -w "%{http_code}" "https://real-estate-star-agents-pr-158.misteredr.workers.dev/?accountId=glr"` → expect `200`.
+
+### Beat 1.6 — "And it speaks your clients' language" (LIVE — confirmed working)
+
+**Setup:** before the meeting, have a browser (or browser profile) set to **Spanish** — Settings → Languages → put Spanish first. The site picks language from the browser, automatically.
+
+**Open (Spanish browser):** `https://real-estate-star-agents-pr-158.misteredr.workers.dev/?accountId=glr`
+
+Talk track:
+- "Central Jersey has a large Spanish-speaking community. Watch what happens when a Spanish-speaking buyer visits — the site detects their browser language and serves the whole thing in Spanish, automatically. No separate site, no toggle they have to find."
+- The GLR homepage renders fully in Spanish — "Encuentre el Camino a Su Hogar con Green Light Realty."
+- **Then show it's per-agent:** open Jenise's page (`…/agents/jenise-buckalew?accountId=glr`) in the Spanish browser — her page is in Spanish too, because Jenise speaks Spanish. Then open an English-only agent (`…/agents/noelle-dibenedetto?accountId=glr`) — it stays English.
+- "Each agent declares the languages *they* speak. A bilingual agent gets a bilingual site; an English-only agent stays English. The site never pretends an agent speaks a language they don't."
+- "A buyer who's more comfortable in Spanish gets a site that meets them there — and a 2007 template can't do that."
+
+**⚠️ Beat 1.6 cautions:**
+- Language is driven by the **browser's language setting** (Accept-Language), NOT a URL parameter. Typing `?locale=es` does nothing. Set the browser language before the meeting, or keep a Spanish-configured browser profile ready.
+- Only agents with Spanish content show Spanish — that's by design (currently GLR brokerage + Jenise). Other agents fall back to English cleanly.
 
 ### Beat 2 — "And it's not one cookie-cutter look" (LIVE — confirmed working)
 
@@ -143,12 +163,14 @@ Closing line: *"Your buyers are already asking AI who to call. Real Estate Star 
 ## Roadmap framing (if they ask "what's next")
 
 Be honest and specific — it signals rigor:
-- **Gmail lead monitoring** — automatically catch leads that arrive by email (Zillow, Realtor.com, referrals), not just the website form. *Designed in detail* — there's a full spec. (If a technical buyer pushes, you can show `docs/superpowers/specs/2026-04-17-lead-communications-loop-design.md` as evidence the team plans seriously.)
-- **Automated follow-up** — stage-aware nurture so leads don't go cold.
-- **WhatsApp** — same lead alerts and follow-ups over WhatsApp.
+- **Email monitoring with draft automation** — the system watches the agent's inbox for new leads (Zillow, Realtor.com, referrals) and *drafts the reply* — the agent just reviews and sends. *Designed in detail* — there's a full spec. (Technical buyer pushing? Show `docs/superpowers/specs/2026-04-17-lead-communications-loop-design.md` as proof of rigor.)
+- **Lead nurturing + lead-specific drip campaigns** — every lead gets an automatic, personalized follow-up sequence tailored to their stage — leads never go cold.
+- **Automated listing searches** — for each buyer lead, the home search runs and keeps running automatically; new matches surface without re-running anything.
+- **DocuSign integration** — contracts and disclosures flow straight into e-signature.
 - **Brokerage lead routing** — configurable rules (workload / location / specialty) that auto-distribute brokerage leads to the right agent. The brokerage-buyer's favorite roadmap item.
+- **WhatsApp** — lead alerts and follow-ups over WhatsApp too.
 
-Frame as: "The website + CMA + lead capture is live today. The next wave is making sure *no lead anywhere* slips through."
+Frame as: "The website + CMA + lead capture is live today. The next wave automates the whole workflow — from the lead that emails at 9pm, through nurture and showings, to the contract. The website is the front door; the automation platform is the building."
 
 ---
 

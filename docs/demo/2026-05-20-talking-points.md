@@ -37,7 +37,9 @@ This is the strongest, most concrete argument you have, especially for Green Lig
 
 4. **It's not really theirs.** It's a rented template on someone else's platform. They can't restructure it, can't optimize it, can't move fast.
 
-**The Real Estate Star answer:** modern sites — HTTPS by default (Cloudflare edge), fast and mobile-first, with **structured data built in** so AI answer engines can read, trust, and cite them. Built automatically, branded to the agent, on the agent's own domain. *"Your buyers are asking AI who to call. Real Estate Star makes sure the answer is you."*
+5. **It's static — it goes stale.** A 2007 site is "set up once and forget." But search ranking and AI citations reward *fresh, current* content. New reviews, new listings, new sales — a legacy site only shows them if someone manually updates the page. Real Estate Star sites are designed to **stay current automatically**: as new reviews come in and listings/sales change, the site reflects them — and the structured data updates with it. A site that keeps refreshing keeps ranking; a frozen 2007 page slides down.
+
+**The Real Estate Star answer:** modern sites — HTTPS by default (Cloudflare edge), fast and mobile-first, with **structured data built in** so AI answer engines can read, trust, and cite them, and content that **stays current** so the site keeps its search and AEO ranking instead of going stale. Built automatically, branded to the agent, on the agent's own domain. *"Your buyers are asking AI who to call. Real Estate Star makes sure the answer is you — and keeps it that way."*
 
 > **Demo move:** if it lands, pull up `greenlightmoves.com` (their real 2007 site) next to the Green Light Realty site rebuilt on Real Estate Star. The contrast sells itself — and because GLR is a partner, this is a constructive "here's your upgrade," not a takedown.
 
@@ -55,6 +57,8 @@ Be confident about these — they're real, tested code:
 | **Lead capture → email pipeline** | Website form submission → lead recorded → CMA generated → emailed to the buyer → agent notified. End to end, no human step. | The pipeline architecture; the CMA PDF is its output |
 | **Multi-tenant platform** | Every agent — and every brokerage — is an isolated tenant: own site, own branding, own data. | The platform; the per-agent + per-brokerage config system |
 | **Custom domains** | Every site can run on the agent's or brokerage's own domain (e.g. `greenlightmoves.com`), not just a `*.real-estate-star.com` subdomain. | The platform supports custom-domain binding per tenant |
+| **Bilingual sites (English + Spanish)** | A site serves a visitor in their own language — Spanish-speaking buyers see the site in Spanish automatically. Opt-in per agent: each agent declares the languages *they* speak; the site matches. | Live: open the GLR brokerage site in a Spanish browser — it renders fully in Spanish. Jenise's agent page is bilingual; agents who only speak English stay English. |
+| **Tailored to the agent/brokerage** | The site is built from the agent's real identity — their brokerage, market areas, branding, voice, even their existing online profile. Not a fill-in-the-blank template; a site that reflects *this specific* agent or firm. | The GLR demo is Green Light Realty's real brand, real agents, real broker bio — generated, not hand-built |
 
 ## What is PARTIALLY built (be careful, don't demo)
 
@@ -76,6 +80,35 @@ Say these as the *vision*, clearly future:
   The brokerage owner configures the rules once; the system enforces them on every inbound lead. This turns a brokerage's website from a brochure into a lead-distribution engine.
 
 Framing line: *"The website, the CMA, and website lead capture are live today. The next wave is making sure no lead from anywhere — email, referral, any source — ever slips through, and for a brokerage, that every lead lands with the right agent automatically."*
+
+---
+
+## The Future Vision — where this goes (paint the picture)
+
+Use this when a prospect is excited and asks "what else can it do?" — it shows Real Estate Star isn't a website tool, it's an **automation platform for the whole agent workflow**. Frame clearly as vision/roadmap, not today.
+
+*"Today Real Estate Star handles your web presence and lead capture. But where I'm standing now, the automation potential is huge — the website is just the front door. Here's what's coming:"*
+
+- **Lead nurturing + lead-specific drip campaigns** — every lead gets an automatic, personalized follow-up sequence. Not a generic blast — drip content tailored to *that* lead's stage and situation, so leads never go cold while you're busy.
+- **Email monitoring with draft automation** — the system watches your inbox for new leads (Zillow, Realtor.com, referrals) and *drafts the reply for you* — you just review and send. You stop losing the lead that emailed at 9pm.
+- **Automated listing searches** — for every buyer lead, the system runs the home search automatically and keeps it running — new matches surface without you re-running anything.
+- **DocuSign integration** — contracts and disclosures flow straight into e-signature; the paperwork step stops being manual.
+- **The thread that ties it together:** one platform that takes a lead from first website visit → CMA → nurture → showings → contract → close, automating the busywork at every step so the agent does the high-value human work.
+
+*"The website you're looking at today is the foundation. Everything above is built on top of it — and the architecture is already designed for it."*
+
+---
+
+## Engineering rigor — the trust signal (if asked "is this real / who's behind it")
+
+Some buyers worry a small tool will vanish or break. Counter it with how it's built:
+
+- Real Estate Star is built with a **rigorous, spec-driven engineering process** — every significant feature starts as a detailed design spec before any code (e.g. the Lead Communications Loop spec is ~2,400 lines of design).
+- The codebase has **architecture conformance tests** that run on every change — the system's structure is enforced by automated tests, not hope.
+- 100% test coverage is required; CI runs the full suite on every commit.
+- *"This isn't a weekend project. It's engineered like production software — specs, architecture tests, full CI. That's why I can add the automation roadmap fast and safely."*
+
+Keep this proportionate — most buyers care about outcomes, not architecture. Use it only when trust/longevity is the actual question. If a technical buyer wants proof, the design specs in `docs/superpowers/specs/` are real and show the rigor.
 
 ---
 
