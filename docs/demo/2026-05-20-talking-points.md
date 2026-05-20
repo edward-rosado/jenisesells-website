@@ -27,17 +27,19 @@ This is the strongest, most concrete argument you have, especially for Green Lig
 
 1. **No HTTPS = browsers flag it "Not Secure."** Every modern browser shows a warning on an HTTP site. A buyer about to enter their address and phone number sees "Not Secure" and bounces. Google also ranks HTTP sites lower.
 
-2. **Built for Google search, not for how people actually search now.** A 2007 site is optimized (if at all) for old-style keyword SEO. But in 2026, buyers increasingly *don't* scroll a page of blue links — they ask **ChatGPT, Google's AI Overviews, Perplexity, and voice assistants**: *"who's a good realtor in Old Bridge NJ?"* That's **AEO — Answer Engine Optimization** — and it's a different game:
+2. **It's not built for the phone — and that's where buyers are.** A 2007 site predates the mobile-first web entirely (the iPhone *launched* in 2007). It's a fixed-width, table-based desktop layout that a phone has to pinch-and-zoom through. But the majority of buyers find and judge an agent **on their phone** — and Google has used mobile-first indexing for years, so a non-responsive site is penalized in search too. A Real Estate Star site is **fully responsive** — it's designed to look right on a phone first, then scale up. **This is the easiest thing to *show*:** pull up their current site on a phone next to a Real Estate Star site on the same phone. The contrast is immediate and undeniable.
+
+3. **Built for Google search, not for how people actually search now.** A 2007 site is optimized (if at all) for old-style keyword SEO. But in 2026, buyers increasingly *don't* scroll a page of blue links — they ask **ChatGPT, Google's AI Overviews, Perplexity, and voice assistants**: *"who's a good realtor in Old Bridge NJ?"* That's **AEO — Answer Engine Optimization** — and it's a different game:
    - AI answer engines extract from **structured data** (Schema.org / JSON-LD markup) — machine-readable facts about the agent, brokerage, service areas, reviews. A 2007 template has none of it.
    - They favor **fast, mobile-first, semantically clean pages**. A 2007 site is heavy, table-based, and slow.
    - They cite sources they can **parse confidently**. Modern, structured content gets cited; a legacy IDX-iframe site gets skipped.
    - **The agent who isn't AEO-ready is invisible to the fastest-growing way buyers find agents.**
 
-3. **The listings are trapped in an iframe.** Their properties load inside an `idxhome.com` iframe — search engines and AI engines see an empty frame, not the homes. Zero discoverability for their actual inventory.
+4. **The listings are trapped in an iframe.** Their properties load inside an `idxhome.com` iframe — search engines and AI engines see an empty frame, not the homes. Zero discoverability for their actual inventory.
 
-4. **It's not really theirs.** It's a rented template on someone else's platform. They can't restructure it, can't optimize it, can't move fast.
+5. **It's not really theirs.** It's a rented template on someone else's platform. They can't restructure it, can't optimize it, can't move fast.
 
-5. **It's static — it goes stale.** A 2007 site is "set up once and forget." But search ranking and AI citations reward *fresh, current* content. New reviews, new listings, new sales — a legacy site only shows them if someone manually updates the page. Real Estate Star sites are designed to **stay current automatically**: as new reviews come in and listings/sales change, the site reflects them — and the structured data updates with it. A site that keeps refreshing keeps ranking; a frozen 2007 page slides down.
+6. **It's static — it goes stale.** A 2007 site is "set up once and forget." But search ranking and AI citations reward *fresh, current* content. New reviews, new listings, new sales — a legacy site only shows them if someone manually updates the page. Real Estate Star sites are designed to **stay current automatically**: as new reviews come in and listings/sales change, the site reflects them — and the structured data updates with it. A site that keeps refreshing keeps ranking; a frozen 2007 page slides down.
 
 **The Real Estate Star answer:** modern sites — HTTPS by default (Cloudflare edge), fast and mobile-first, with **structured data built in** so AI answer engines can read, trust, and cite them, and content that **stays current** so the site keeps its search and AEO ranking instead of going stale. Built automatically, branded to the agent, on the agent's own domain. *"Your buyers are asking AI who to call. Real Estate Star makes sure the answer is you — and keeps it that way."*
 
@@ -51,7 +53,8 @@ Be confident about these — they're real, tested code:
 
 | Capability | What it does | Evidence you can show |
 |---|---|---|
-| **Agent website generation** | Builds a full, branded, responsive website per agent. 10 distinct templates. | Live: `jenise-buckalew.real-estate-star.com` |
+| **Agent website generation** | Builds a full, branded website per agent. 10 distinct templates. | Live: `jenise-buckalew.real-estate-star.com` |
+| **Mobile-first / fully responsive** | The site is designed for the phone first, then scales up — most buyers find an agent on mobile. A legacy desktop site (pinch-to-zoom) loses them. Also helps ranking: Google indexes mobile-first. | Open any RES site on a phone next to the prospect's current site — the contrast is instant |
 | **Brokerage websites** | A whole brokerage gets a site too — branded brokerage homepage plus a dedicated page for every agent on the team. | Live: the Green Light Realty demo — brokerage site + 70 individual agent pages (see demo script Beat 1.5) |
 | **CMA automation** | Buyer enters an address → system pulls comparable sales from live market data → generates a branded Comparative Market Analysis PDF. | The sample CMA PDF in `docs/demo/artifacts/` |
 | **Lead capture → email pipeline** | Website form submission → lead recorded → CMA generated → emailed to the buyer → agent notified. End to end, no human step. | The pipeline architecture; the CMA PDF is its output |

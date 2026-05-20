@@ -7,6 +7,16 @@
         "enabled": true
       },
       {
+        "label": "Propiedades",
+        "href": "#gallery",
+        "enabled": true
+      },
+      {
+        "label": "Nuestros Agentes",
+        "href": "#profiles",
+        "enabled": true
+      },
+      {
         "label": "Cómo Funciona",
         "href": "#steps",
         "enabled": true
@@ -39,7 +49,8 @@
             "tagline": "Forward. Moving. Forward. Learning.",
             "body": "Una dinámica agencia de bienes raíces del centro de Nueva Jersey con más de 70 agentes locales que conocen su mercado cuadra por cuadra. Desde compradores primerizos hasta inversionistas experimentados, lo guiamos a través de la decisión más importante de su vida.",
             "cta_text": "Obtenga Su Informe de Valor de Vivienda Gratis",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/backyard3.jpg"
           }
         },
         "stats": {
@@ -72,15 +83,24 @@
             "items": [
               {
                 "title": "Experiencia en el Mercado Local",
-                "description": "Nuestros agentes son residentes de toda la vida del centro de Nueva Jersey que conocen a fondo los vecindarios de los condados de Middlesex, Monmouth y Ocean."
+                "description": "Nuestros agentes son residentes de toda la vida del centro de Nueva Jersey que conocen a fondo los vecindarios de los condados de Middlesex, Monmouth y Ocean.",
+                "icon": "📍",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
+                "category": "Conocimiento Local"
               },
               {
                 "title": "Tecnología de Vanguardia",
-                "description": "Combinamos agentes experimentados con herramientas modernas para que usted obtenga respuestas más rápidas, precios más precisos y una transacción más fluida."
+                "description": "Combinamos agentes experimentados con herramientas modernas para que usted obtenga respuestas más rápidas, precios más precisos y una transacción más fluida.",
+                "icon": "⚡",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
+                "category": "Herramientas Modernas"
               },
               {
                 "title": "Las Relaciones Primero",
-                "description": "Los bienes raíces se tratan de personas. Nuestros agentes se ganan la confianza con paciencia, honestidad y atención al detalle — desde compradores primerizos hasta inversionistas."
+                "description": "Los bienes raíces se tratan de personas. Nuestros agentes se ganan la confianza con paciencia, honestidad y atención al detalle — desde compradores primerizos hasta inversionistas.",
+                "icon": "🤝",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
+                "category": "Servicio Personal"
               }
             ]
           }
@@ -109,12 +129,522 @@
             ]
           }
         },
-        "gallery": {
-          "enabled": false,
+        "profiles": {
+          "enabled": true,
           "data": {
-            "title": "Ventas Recientes",
-            "subtitle": "",
-            "items": []
+            "title": "Conozca a Nuestros Agentes",
+            "subtitle": "70 agentes locales atendiendo los condados de Middlesex, Monmouth y Ocean.",
+            "items": [
+              {
+                "id": "jeffrey-prontnicki",
+                "name": "Jeffrey Prontnicki",
+                "title": "Broker/Owner",
+                "headshot_url": "/agents/glr/jeffrey-prontnicki.jpg"
+              },
+              {
+                "id": "norine-augliera",
+                "name": "Norine Augliera",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/norine-augliera.jpg"
+              },
+              {
+                "id": "kelly-ayers",
+                "name": "Kelly Ayers",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/kelly-ayers.jpg"
+              },
+              {
+                "id": "paul-barsa",
+                "name": "Paul Barsa",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/paul-barsa.jpg"
+              },
+              {
+                "id": "meredith-battito",
+                "name": "Meredith Battito",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/meredith-battito.jpg"
+              },
+              {
+                "id": "lesly-bazile",
+                "name": "Lesly Bazile",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/lesly-bazile.jpg"
+              },
+              {
+                "id": "erica-bilezikjian",
+                "name": "Erica Bilezikjian",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/erica-bilezikjian.jpg"
+              },
+              {
+                "id": "cathy-born",
+                "name": "Cathy Born",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/cathy-born.jpg"
+              },
+              {
+                "id": "bobir-botir",
+                "name": "Bobir Botir",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/bobir-botir.jpg"
+              },
+              {
+                "id": "dominick-bruno",
+                "name": "Dominick Bruno",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/dominick-bruno.png"
+              },
+              {
+                "id": "jenise-buckalew",
+                "name": "Jenise Buckalew",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/jenise-buckalew.jpg"
+              },
+              {
+                "id": "antonella-coco",
+                "name": "Antonella Coco",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/antonella-coco.jpg"
+              },
+              {
+                "id": "christina-corsaro",
+                "name": "Christina Corsaro",
+                "title": "Social Media Manager",
+                "headshot_url": "/agents/glr/christina-corsaro.jpg"
+              },
+              {
+                "id": "erick-cruz",
+                "name": "Erick Cruz",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/erick-cruz.jpg"
+              },
+              {
+                "id": "arnold-davion",
+                "name": "Arnold Davion",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/arnold-davion.jpg"
+              },
+              {
+                "id": "francesca-delessio",
+                "name": "Francesca Delessio",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/francesca-delessio.jpg"
+              },
+              {
+                "id": "victoria-dellas",
+                "name": "Victoria Dellas",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/victoria-dellas.jpg"
+              },
+              {
+                "id": "noelle-dibenedetto",
+                "name": "Noelle DiBenedetto",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/noelle-dibenedetto.jpg"
+              },
+              {
+                "id": "joseph-goretskie",
+                "name": "Joseph Goretskie",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/joseph-goretskie.jpg"
+              },
+              {
+                "id": "emile-w-grace",
+                "name": "Emile W. Grace",
+                "title": "Broker Associate",
+                "headshot_url": "/agents/glr/emile-w-grace.jpg"
+              },
+              {
+                "id": "amr-hillal",
+                "name": "Amr Hillal",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/amr-hillal.png"
+              },
+              {
+                "id": "george-meyers-jr",
+                "name": "George Meyers Jr.",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/george-meyers-jr.jpg"
+              },
+              {
+                "id": "courtney-kennedy",
+                "name": "Courtney Kennedy",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/courtney-kennedy.png"
+              },
+              {
+                "id": "zayrelee-kenney",
+                "name": "Zayrelee Kenney",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/zayrelee-kenney.png"
+              },
+              {
+                "id": "suzanne-kracke",
+                "name": "Suzanne Kracke",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/suzanne-kracke.jpg"
+              },
+              {
+                "id": "valdet-krivca",
+                "name": "Valdet Krivca",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/valdet-krivca.jpg"
+              },
+              {
+                "id": "janet-kushner",
+                "name": "Janet Kushner",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/janet-kushner.jpg"
+              },
+              {
+                "id": "kenneth-laffey",
+                "name": "Kenneth Laffey",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/kenneth-laffey.jpg"
+              },
+              {
+                "id": "shanna-langley-edwards",
+                "name": "Shanna Langley-Edwards",
+                "title": "REALTOR®/Broker Associate",
+                "headshot_url": "/agents/glr/shanna-langley-edwards.jpg"
+              },
+              {
+                "id": "indre-lewis",
+                "name": "Indre Lewis",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/indre-lewis.jpg"
+              },
+              {
+                "id": "john-maffia",
+                "name": "John Maffia",
+                "title": "Broker Associate",
+                "headshot_url": "/agents/glr/john-maffia.jpg"
+              },
+              {
+                "id": "charles-sta-maria",
+                "name": "Charles Sta. Maria",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/charles-sta-maria.jpg"
+              },
+              {
+                "id": "camille-marotta",
+                "name": "Camille Marotta",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/camille-marotta.jpg"
+              },
+              {
+                "id": "james-mccabe",
+                "name": "James McCabe",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/james-mccabe.jpg"
+              },
+              {
+                "id": "david-mccall",
+                "name": "David McCall",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/david-mccall.png"
+              },
+              {
+                "id": "christina-mcdonnell",
+                "name": "Christina McDonnell",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/christina-mcdonnell.jpg"
+              },
+              {
+                "id": "barbara-meier",
+                "name": "Barbara Meier",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/barbara-meier.jpg"
+              },
+              {
+                "id": "denise-maffia-meyers",
+                "name": "Denise Maffia Meyers",
+                "title": "Broker Associate",
+                "headshot_url": "/agents/glr/denise-maffia-meyers.jpg"
+              },
+              {
+                "id": "mildred-miller-king",
+                "name": "Mildred Miller-King",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/mildred-miller-king.jpg"
+              },
+              {
+                "id": "olivia-mullane",
+                "name": "Olivia Mullane",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/olivia-mullane.jpg"
+              },
+              {
+                "id": "evan-novoa",
+                "name": "Evan Novoa",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/evan-novoa.jpg"
+              },
+              {
+                "id": "dedrah-parisen",
+                "name": "Dedrah Parisen",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/dedrah-parisen.jpg"
+              },
+              {
+                "id": "ushma-patel",
+                "name": "Ushma Patel",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/ushma-patel.png"
+              },
+              {
+                "id": "frank-pennacchi",
+                "name": "Frank Pennacchi",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/frank-pennacchi.jpg"
+              },
+              {
+                "id": "nilesh-shah",
+                "name": "Nilesh Shah Ph.D.",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/nilesh-shah.jpg"
+              },
+              {
+                "id": "dinamarie-pluchino",
+                "name": "Dinamarie Pluchino",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/dinamarie-pluchino.jpg"
+              },
+              {
+                "id": "yevgeniya-podolyakina",
+                "name": "Yevgeniya Podolyakina",
+                "title": "REALTOR® Associate / Administrator",
+                "headshot_url": "/agents/glr/yevgeniya-podolyakina.jpg"
+              },
+              {
+                "id": "monica-polick",
+                "name": "Monica Polick",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/monica-polick.png"
+              },
+              {
+                "id": "daniel-pratas",
+                "name": "Daniel Pratas",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/daniel-pratas.png"
+              },
+              {
+                "id": "patricia-reagan",
+                "name": "Patricia Reagan",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/patricia-reagan.jpg"
+              },
+              {
+                "id": "joellen-roder",
+                "name": "Joellen Roder",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/joellen-roder.jpg"
+              },
+              {
+                "id": "alexa-ronan",
+                "name": "Alexa Ronan",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/alexa-ronan.png"
+              },
+              {
+                "id": "sarah-root",
+                "name": "Sarah Root",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/sarah-root.jpg"
+              },
+              {
+                "id": "joan-ross",
+                "name": "Joan Ross",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/joan-ross.jpg"
+              },
+              {
+                "id": "kenneth-rotondella",
+                "name": "Kenneth Rotondella",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/kenneth-rotondella.jpg"
+              },
+              {
+                "id": "brittany-santos",
+                "name": "Brittany Santos",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/brittany-santos.jpg"
+              },
+              {
+                "id": "laura-sciove",
+                "name": "Laura Sciove",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/laura-sciove.jpg"
+              },
+              {
+                "id": "kajal-shah",
+                "name": "Kajal Shah",
+                "title": "Broker Associate",
+                "headshot_url": "/agents/glr/kajal-shah.jpg"
+              },
+              {
+                "id": "derek-shelcusky",
+                "name": "Derek Shelcusky",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/derek-shelcusky.jpg"
+              },
+              {
+                "id": "karanjeet-singh",
+                "name": "Karanjeet Singh",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/karanjeet-singh.jpg"
+              },
+              {
+                "id": "delancy-taylor",
+                "name": "Delancy Taylor",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/delancy-taylor.jpg"
+              },
+              {
+                "id": "ursula-vanwart",
+                "name": "Ursula VanWart",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/ursula-vanwart.jpg"
+              },
+              {
+                "id": "donato-vasaturo",
+                "name": "Donato Vasaturo",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/donato-vasaturo.jpg"
+              },
+              {
+                "id": "subhash-warrior",
+                "name": "Subhash Warrior",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/subhash-warrior.jpg"
+              },
+              {
+                "id": "angela-wierzbicky",
+                "name": "Angela Wierzbicky",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/angela-wierzbicky.jpg"
+              },
+              {
+                "id": "jaqueline-wilkos",
+                "name": "Jaqueline Wilkos",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/jaqueline-wilkos.jpg"
+              },
+              {
+                "id": "nayer-william",
+                "name": "Nayer William",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/nayer-william.jpg"
+              },
+              {
+                "id": "vycheslav-yakub",
+                "name": "Vycheslav (Sal) Yakub",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/vycheslav-yakub.jpg"
+              },
+              {
+                "id": "ian-zachariades",
+                "name": "Ian Zachariades",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/ian-zachariades.jpg"
+              },
+              {
+                "id": "cristina-zawacki",
+                "name": "Cristina Zawacki",
+                "title": "REALTOR® Associate",
+                "headshot_url": "/agents/glr/cristina-zawacki.jpg"
+              }
+            ]
+          }
+        },
+        "gallery": {
+          "enabled": true,
+          "data": {
+            "title": "Propiedades Destacadas",
+            "items": [
+              {
+                "address": "16 WILMOT ROAD",
+                "city": "SAYREVILLE",
+                "state": "NJ",
+                "price": "$689,000",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
+                "badge_label": "En Venta",
+                "property_type": "Casa"
+              },
+              {
+                "address": "241 FERNHEAD AVENUE",
+                "city": "MONROE",
+                "state": "NJ",
+                "price": "$642,900",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
+                "badge_label": "En Venta",
+                "property_type": "Casa"
+              },
+              {
+                "address": "235-B DAYTON ROAD",
+                "city": "JAMESBURG",
+                "state": "NJ",
+                "price": "$575,000",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
+                "badge_label": "En Venta",
+                "property_type": "Casa"
+              },
+              {
+                "address": "557 RENEWAL WAY",
+                "city": "PORT READING",
+                "state": "NJ",
+                "price": "$525,000",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
+                "badge_label": "En Venta",
+                "property_type": "Casa"
+              },
+              {
+                "address": "116 KENDALL DRIVE",
+                "city": "SAYREVILLE",
+                "state": "NJ",
+                "price": "$499,999",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
+                "badge_label": "En Venta",
+                "property_type": "Casa"
+              },
+              {
+                "address": "190 COLLEGE DRIVE",
+                "city": "EDISON",
+                "state": "NJ",
+                "price": "$250,000",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
+                "badge_label": "En Venta",
+                "property_type": "Condominio"
+              },
+              {
+                "address": "5 E BOCK LANE",
+                "city": "EAST BRUNSWICK",
+                "state": "NJ",
+                "price": "$1,450,000",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
+                "badge_label": "Under Contract",
+                "property_type": "Casa"
+              },
+              {
+                "address": "38 BASIE COURT",
+                "city": "MONROE",
+                "state": "NJ",
+                "price": "$669,999",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
+                "badge_label": "Under Contract",
+                "property_type": "Condominio"
+              },
+              {
+                "address": "64 AVENUE I AVENUE",
+                "city": "MONROE",
+                "state": "NJ",
+                "price": "$584,000",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
+                "badge_label": "Under Contract",
+                "property_type": "Casa"
+              }
+            ]
           }
         },
         "testimonials": {

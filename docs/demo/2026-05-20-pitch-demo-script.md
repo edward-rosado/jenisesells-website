@@ -21,7 +21,7 @@ Have these tabs/files open BEFORE the meeting:
 5. The **live template-preview** tabs (Beat 2) — base `https://real-estate-star-agents-pr-158.misteredr.workers.dev/?accountId={account}`. Confirmed live 2026-05-20.
 6. **A Spanish-configured browser/profile** (for Beat 1.6) — set browser language to Spanish so the GLR site renders in Spanish on demand. Language is browser-driven, not a URL toggle.
 
-**Highlights to make sure land** (every one is verified working today): brokerage sites (one firm, a page per agent) · custom domains · **bilingual sites (EN/ES, auto-detected, per-agent)** · 10 templates · tailored to the agent's real brand · CMA automation · lead capture→email. Roadmap to paint: lead routing, drip nurture, email monitoring with draft automation, automated listing search, DocuSign. See talking-points doc for the framing of each.
+**Highlights to make sure land** (every one is verified working today): **mobile-first / fully responsive** (vs. the prospect's desktop-only legacy site) · brokerage sites (one firm, a page per agent) · custom domains · **bilingual sites (EN/ES, auto-detected, per-agent)** · 10 templates · tailored to the agent's real brand · CMA automation · lead capture→email. Roadmap to paint: lead routing, drip nurture, email monitoring with draft automation, automated listing search, DocuSign. See talking-points doc for the framing of each.
 
 ---
 
@@ -37,7 +37,7 @@ Talk track:
 - "This is a live client site — Jenise Buckalew, a REALTOR® in New Jersey. Every agent on Real Estate Star gets one of these at `their-name.real-estate-star.com`."
 - Scroll the full page. Call out: the hero with her photo + tagline, the services section, the "how it works" steps, the about section, the contact area.
 - "This isn't a template she filled out. The system *built* this — pulled her brokerage, her market areas, her branding — and generated the copy in her voice."
-- Mention mobile: resize the browser or open on a phone. "Fully responsive — most buyers find agents on their phone."
+- **The mobile moment (do this on an actual phone — it's a strong, simple proof point):** open the Real Estate Star site on your phone, then open the prospect's current site on the same phone. "Most buyers find and judge an agent on their phone. Here's your site today —" (pinch-zoom, sideways scroll, tiny text) "— and here's a Real Estate Star site. Built mobile-first; it just works." If pitching GLR, use `greenlightmoves.com` vs. the GLR demo. The contrast sells itself in five seconds — and Google's mobile-first indexing means the responsive site also ranks better.
 
 🚫 **Do NOT click** the "What's your home worth?" form. Narrate it instead → Beat 3.
 
