@@ -124,44 +124,52 @@
             "subtitle": "Real reviews from Green Light Realty clients.",
             "items": [
               {
-                "quote": "What our clients are saying Noelle was wonderful to work with. She is extremely knowledgeable, patient, and thorough. She got to know me as a client, her customer service is more than exceptional. She is very responsive, always on top of things, and even ahead of the lawyers and inspectors, she is on your side. She even reminded me of all the things I needed to do before moving in, insurances, utilities etc. She is honest and dependable and made the whole process stress free and enjoyable. Thank you for finding me my dream retirement home!",
-                "author": "Kim Lowery",
-                "role": "Green Light Realty Client"
+                "text": "Noelle was wonderful to work with. She is extremely knowledgeable, patient, and thorough. She got to know me as a client, her customer service is more than exceptional. She is very responsive, always on top of things, and even ahead of the lawyers and inspectors, she is on your side. She even reminded me of all the things I needed to do before moving in, insurances, utilities etc. She is honest and dependable and made the whole process stress free and enjoyable. Thank you for finding me my dream retirement home!",
+                "reviewer": "Kim Lowery",
+                "rating": 5,
+                "source": "Verified Client"
               },
               {
-                "quote": "Noelle helped us with our dream home and was very knowledgeable and responsive through out the entire process. Navigating the current market was tough but she helped us get through it. Even after we closed she was always available to answer all our questions and help us out",
-                "author": "hillbe340",
-                "role": "Green Light Realty Client"
+                "text": "Noelle helped us with our dream home and was very knowledgeable and responsive through out the entire process. Navigating the current market was tough but she helped us get through it. Even after we closed she was always available to answer all our questions and help us out",
+                "reviewer": "hillbe340",
+                "rating": 5,
+                "source": "Verified Client"
               },
               {
-                "quote": "Couldn't be happier to have Noelle as my agent. Thank God she's patient and made it happen. I know I would've given up if I was her, glad she didn't. Noelle made it happen!!!",
-                "author": "eszymborski",
-                "role": "Green Light Realty Client"
+                "text": "Couldn't be happier to have Noelle as my agent. Thank God she's patient and made it happen. I know I would've given up if I was her, glad she didn't. Noelle made it happen!!!",
+                "reviewer": "eszymborski",
+                "rating": 5,
+                "source": "Verified Client"
               },
               {
-                "quote": "Noelle was wonderful to work with. She helped my fiancé and I buy our first house. She made the experience easy and enjoyable for first time home buyers like us. Noelle was incredibly helpful throughout the entire process and quick to respond to our many questions: from getting us all of the information on houses we were interested in touring, to recommending a great pizza place by our new home! She was also able to refer us to our lawyer, mortgage broker, and house inspector, all of whom were very professional and great to work with. We are so thankful for hard work and definitely recommend her!",
-                "author": "Alex Nizzardo",
-                "role": "Green Light Realty Client"
+                "text": "Noelle was wonderful to work with. She helped my fiancé and I buy our first house. She made the experience easy and enjoyable for first time home buyers like us. Noelle was incredibly helpful throughout the entire process and quick to respond to our many questions: from getting us all of the information on houses we were interested in touring, to recommending a great pizza place by our new home! She was also able to refer us to our lawyer, mortgage broker, and house inspector, all of whom were very professional and great to work with. We are so thankful for hard work and definitely recommend her!",
+                "reviewer": "Alex Nizzardo",
+                "rating": 5,
+                "source": "Verified Client"
               },
               {
-                "quote": "Noelle was a great agent. She walked us through the entire process and pointed out many important key elements to make this transaction a breeze. We will use her services again and again.",
-                "author": "JUAN FIGUEROA",
-                "role": "Green Light Realty Client"
+                "text": "Noelle was a great agent. She walked us through the entire process and pointed out many important key elements to make this transaction a breeze. We will use her services again and again.",
+                "reviewer": "JUAN FIGUEROA",
+                "rating": 5,
+                "source": "Verified Client"
               },
               {
-                "quote": "We can't speak highly enough of our experience with Noelle DiBenedetto. We were searching for our forever home in the midst of an aggressive, competitive housing market. Noelle is honest, hands-on, and always answered every call, text or email no matter what time of day or night it was. She utilizes her relationships and expert knowledge of the market to ensure her clients present as the strongest buyers. When we finally found the “one” and ended up in a bidding war, Noelle walked us through every step of the negotiations, even suggesting that we write a letter to the sellers to explain why we thought they should choose us. It was an unconventional approach but it worked and we thank Noelle for that every day! In short, she was always on our side working to make our house purchase (and sale) as simple and successful as possible. We would recommend Noelle to anyone.",
-                "author": "Daniel Aguarda",
-                "role": "Green Light Realty Client"
+                "text": "We can't speak highly enough of our experience with Noelle DiBenedetto. We were searching for our forever home in the midst of an aggressive, competitive housing market. Noelle is honest, hands-on, and always answered every call, text or email no matter what time of day or night it was. She utilizes her relationships and expert knowledge of the market to ensure her clients present as the strongest buyers. When we finally found the “one” and ended up in a bidding war, Noelle walked us through every step of the negotiations, even suggesting that we write a letter to the sellers to explain why we thought they should choose us. It was an unconventional approach but it worked and we thank Noelle for that every day! In short, she was always on our side working to make our house purchase (and sale) as simple and successful as possible. We would recommend Noelle to anyone.",
+                "reviewer": "Daniel Aguarda",
+                "rating": 5,
+                "source": "Verified Client"
               },
               {
-                "quote": "Noelle was an absolute blessing from the beginning of our home buying process. Being a first time home buyer I had so many questions and Noelle was so knowledgeable and helpful with everything. She took the time to get to know us personally and really get a feel for what we were looking for and wanted the best for us no matter how long it took or how many homes we looked at. Our home buying process lasted over a year and Noelle was constantly in contact with us with possible winners. I would highly recommend Noelle to anyone looking for a home, she made the whole process enjoyable and fun and we ultimately couldn't be happier with our new home",
-                "author": "Fiser",
-                "role": "Green Light Realty Client"
+                "text": "Noelle was an absolute blessing from the beginning of our home buying process. Being a first time home buyer I had so many questions and Noelle was so knowledgeable and helpful with everything. She took the time to get to know us personally and really get a feel for what we were looking for and wanted the best for us no matter how long it took or how many homes we looked at. Our home buying process lasted over a year and Noelle was constantly in contact with us with possible winners. I would highly recommend Noelle to anyone looking for a home, she made the whole process enjoyable and fun and we ultimately couldn't be happier with our new home",
+                "reviewer": "Fiser",
+                "rating": 5,
+                "source": "Verified Client"
               },
               {
-                "quote": "Stars For Local knowledge, Process expertise, Responsiveness, & Negotiation skills My husband and I had the pleasure of working with Noelle on both our purchase and our sale. I have never worked with a realtor so on top of every detail as Noelle is. She clearly knows this market and how to do her job well. She's a tough negotiator and didn't let one detail slip by. Like she was constantly on the mortgage companies to make sure the closings were on time, she reminded us to turn on the utilities, she arranged all the inspections and advised how to proceed, etc. etc... She made herself available whenever we needed her and even rearranged her schedule a few times for us. She really went above and beyond. I highly recommend Noelle if you want a competent and hard worker to get you easily through the stress of buying and/or selling a home.",
-                "author": "catechrostowski8",
-                "role": "Green Light Realty Client"
+                "text": "Stars For Local knowledge, Process expertise, Responsiveness, & Negotiation skills My husband and I had the pleasure of working with Noelle on both our purchase and our sale. I have never worked with a realtor so on top of every detail as Noelle is. She clearly knows this market and how to do her job well. She's a tough negotiator and didn't let one detail slip by. Like she was constantly on the mortgage companies to make sure the closings were on time, she reminded us to turn on the utilities, she arranged all the inspections and advised how to proceed, etc. etc... She made herself available whenever we needed her and even rearranged her schedule a few times for us. She really went above and beyond. I highly recommend Noelle if you want a competent and hard worker to get you easily through the stress of buying and/or selling a home.",
+                "reviewer": "catechrostowski8",
+                "rating": 5,
+                "source": "Verified Client"
               }
             ]
           }
