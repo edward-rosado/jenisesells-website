@@ -1,0 +1,212 @@
+{
+  "navigation": {
+    "items": [
+      {
+        "label": "Por Qué Green Light",
+        "href": "#features",
+        "enabled": true
+      },
+      {
+        "label": "Cómo Funciona",
+        "href": "#steps",
+        "enabled": true
+      },
+      {
+        "label": "Testimonios",
+        "href": "#testimonials",
+        "enabled": true
+      },
+      {
+        "label": "Acerca de",
+        "href": "#about",
+        "enabled": true
+      },
+      {
+        "label": "Comenzar",
+        "href": "#contact_form",
+        "enabled": true
+      }
+    ]
+  },
+  "pages": {
+    "home": {
+      "sections": {
+        "hero": {
+          "enabled": true,
+          "data": {
+            "headline": "Encuentre el Camino a Su Hogar con Green Light Realty",
+            "highlight_word": "Hogar",
+            "tagline": "Forward. Moving. Forward. Learning.",
+            "body": "Una dinámica agencia de bienes raíces del centro de Nueva Jersey con más de 70 agentes locales que conocen su mercado cuadra por cuadra. Desde compradores primerizos hasta inversionistas experimentados, lo guiamos a través de la decisión más importante de su vida.",
+            "cta_text": "Obtenga Su Informe de Valor de Vivienda Gratis",
+            "cta_link": "#contact_form"
+          }
+        },
+        "stats": {
+          "enabled": true,
+          "data": {
+            "items": [
+              {
+                "value": "70+",
+                "label": "Agentes Locales"
+              },
+              {
+                "value": "2017",
+                "label": "Establecida"
+              },
+              {
+                "value": "Central NJ",
+                "label": "Enfoque de Mercado"
+              },
+              {
+                "value": "3",
+                "label": "Condados Atendidos"
+              }
+            ]
+          }
+        },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "Por Qué Green Light Realty",
+            "items": [
+              {
+                "title": "Experiencia en el Mercado Local",
+                "description": "Nuestros agentes son residentes de toda la vida del centro de Nueva Jersey que conocen a fondo los vecindarios de los condados de Middlesex, Monmouth y Ocean."
+              },
+              {
+                "title": "Tecnología de Vanguardia",
+                "description": "Combinamos agentes experimentados con herramientas modernas para que usted obtenga respuestas más rápidas, precios más precisos y una transacción más fluida."
+              },
+              {
+                "title": "Las Relaciones Primero",
+                "description": "Los bienes raíces se tratan de personas. Nuestros agentes se ganan la confianza con paciencia, honestidad y atención al detalle — desde compradores primerizos hasta inversionistas."
+              }
+            ]
+          }
+        },
+        "steps": {
+          "enabled": true,
+          "data": {
+            "title": "Cómo Funciona",
+            "subtitle": "Tres simples pasos para comenzar.",
+            "steps": [
+              {
+                "number": 1,
+                "title": "Cuéntenos Su Objetivo",
+                "description": "¿Comprando, vendiendo o solo explorando? Complete el formulario rápido a continuación."
+              },
+              {
+                "number": 2,
+                "title": "Conéctese con un Agente",
+                "description": "Lo conectamos con el agente de Green Light Realty que mejor se adapta a su mercado y necesidades."
+              },
+              {
+                "number": 3,
+                "title": "Avance",
+                "description": "Su agente lo guía desde la primera visita hasta el día del cierre."
+              }
+            ]
+          }
+        },
+        "gallery": {
+          "enabled": false,
+          "data": {
+            "title": "Ventas Recientes",
+            "subtitle": "",
+            "items": []
+          }
+        },
+        "testimonials": {
+          "enabled": true,
+          "data": {
+            "title": "Lo Que Dicen Nuestros Clientes",
+            "subtitle": "Reseñas reales de clientes de Green Light Realty.",
+            "items": [
+              {
+                "text": "Fue maravilloso trabajar con Noelle. Es sumamente conocedora, paciente y minuciosa. Se tomó el tiempo de conocerme como cliente, y su servicio al cliente es más que excepcional. Es muy receptiva, siempre está atenta a todo, e incluso se adelanta a los abogados e inspectores; está de su lado. Hasta me recordó todas las cosas que necesitaba hacer antes de mudarme: seguros, servicios públicos, etc. Es honesta y confiable, e hizo que todo el proceso fuera libre de estrés y agradable. ¡Gracias por encontrarme la casa de mis sueños para mi jubilación!",
+                "reviewer": "Kim Lowery",
+                "rating": 5,
+                "source": "Cliente Verificado"
+              },
+              {
+                "text": "Noelle nos ayudó con la casa de nuestros sueños y fue muy conocedora y receptiva durante todo el proceso. Navegar el mercado actual fue difícil, pero ella nos ayudó a superarlo. Incluso después del cierre, siempre estuvo disponible para responder todas nuestras preguntas y ayudarnos.",
+                "reviewer": "hillbe340",
+                "rating": 5,
+                "source": "Cliente Verificado"
+              },
+              {
+                "text": "No podría estar más feliz de tener a Noelle como mi agente. Gracias a Dios que es paciente y lo logró. Sé que yo habría renunciado si fuera ella, me alegra que no lo hiciera. ¡¡¡Noelle lo hizo posible!!!",
+                "reviewer": "eszymborski",
+                "rating": 5,
+                "source": "Cliente Verificado"
+              },
+              {
+                "text": "Fue maravilloso trabajar con Noelle. Nos ayudó a mi prometido y a mí a comprar nuestra primera casa. Hizo que la experiencia fuera fácil y agradable para compradores primerizos como nosotros. Noelle fue increíblemente útil durante todo el proceso y respondió rápidamente a nuestras muchas preguntas: desde conseguirnos toda la información sobre las casas que nos interesaba visitar, ¡hasta recomendarnos una excelente pizzería cerca de nuestro nuevo hogar! También pudo referirnos a nuestro abogado, agente hipotecario e inspector de viviendas, todos muy profesionales y excelentes para trabajar. ¡Estamos muy agradecidos por su arduo trabajo y definitivamente la recomendamos!",
+                "reviewer": "Alex Nizzardo",
+                "rating": 5,
+                "source": "Cliente Verificado"
+              },
+              {
+                "text": "Noelle fue una gran agente. Nos guió durante todo el proceso y señaló muchos elementos clave importantes para hacer de esta transacción algo muy sencillo. Usaremos sus servicios una y otra vez.",
+                "reviewer": "JUAN FIGUEROA",
+                "rating": 5,
+                "source": "Cliente Verificado"
+              },
+              {
+                "text": "No podemos hablar lo suficientemente bien de nuestra experiencia con Noelle DiBenedetto. Estábamos buscando la casa de nuestros sueños en medio de un mercado inmobiliario agresivo y competitivo. Noelle es honesta, dedicada, y siempre respondía cada llamada, mensaje o correo electrónico sin importar la hora del día o de la noche. Aprovecha sus relaciones y su conocimiento experto del mercado para asegurar que sus clientes se presenten como los compradores más fuertes. Cuando finalmente encontramos la indicada y terminamos en una guerra de ofertas, Noelle nos guió en cada paso de las negociaciones, incluso sugiriéndonos escribir una carta a los vendedores para explicar por qué pensábamos que debían elegirnos. Fue un enfoque poco convencional, pero funcionó, ¡y le agradecemos a Noelle por ello todos los días! En resumen, siempre estuvo de nuestro lado trabajando para hacer que la compra (y venta) de nuestra casa fuera lo más simple y exitosa posible. Recomendaríamos a Noelle a cualquiera.",
+                "reviewer": "Daniel Aguarda",
+                "rating": 5,
+                "source": "Cliente Verificado"
+              },
+              {
+                "text": "Noelle fue una verdadera bendición desde el comienzo de nuestro proceso de compra de vivienda. Siendo compradora primeriza, tenía muchísimas preguntas y Noelle fue muy conocedora y útil con todo. Se tomó el tiempo de conocernos personalmente y entender realmente lo que buscábamos, y quería lo mejor para nosotros sin importar cuánto tiempo tomara ni cuántas casas viéramos. Nuestro proceso de compra duró más de un año y Noelle estuvo en contacto constante con nosotros con posibles candidatas. Recomiendo encarecidamente a Noelle a cualquiera que esté buscando una casa; hizo que todo el proceso fuera agradable y divertido, y al final no podríamos estar más felices con nuestro nuevo hogar.",
+                "reviewer": "Fiser",
+                "rating": 5,
+                "source": "Cliente Verificado"
+              },
+              {
+                "text": "Estrellas por conocimiento local, experiencia en el proceso, capacidad de respuesta y habilidades de negociación. Mi esposo y yo tuvimos el placer de trabajar con Noelle tanto en nuestra compra como en nuestra venta. Nunca he trabajado con una agente tan atenta a cada detalle como Noelle. Claramente conoce este mercado y cómo hacer bien su trabajo. Es una negociadora dura y no dejó pasar ni un solo detalle. Estaba constantemente sobre las compañías hipotecarias para asegurarse de que los cierres fueran a tiempo, nos recordó encender los servicios públicos, organizó todas las inspecciones y aconsejó cómo proceder, etc., etc. Se hizo disponible siempre que la necesitábamos e incluso reorganizó su horario varias veces por nosotros. Realmente hizo más de lo esperado. Recomiendo encarecidamente a Noelle si quiere una trabajadora competente y esforzada que lo guíe fácilmente a través del estrés de comprar o vender una casa.",
+                "reviewer": "catechrostowski8",
+                "rating": 5,
+                "source": "Cliente Verificado"
+              }
+            ]
+          }
+        },
+        "contact_form": {
+          "enabled": true,
+          "data": {
+            "title": "¿Listo para Dar el Paso?",
+            "subtitle": "¿Vendiendo? Obtenga su Informe de Valor de Vivienda gratis en minutos. ¿Comprando? Díganos lo que busca.",
+            "description": "Ingrese su dirección para recibir un Análisis Comparativo de Mercado gratuito, o díganos lo que está buscando. **100% gratis, sin compromiso.**"
+          }
+        },
+        "about": {
+          "enabled": true,
+          "data": {
+            "title": "Acerca de Green Light Realty",
+            "bio": [
+              "Green Light Realty es una dinámica agencia de bienes raíces en el centro de Nueva Jersey que se esfuerza por ser líder en este mercado en constante cambio. Brindamos servicios de bienes raíces residenciales y comerciales, y nos especializamos en propiedades de inversión, compradores primerizos, y compradores y vendedores que buscan mejorar de vivienda.",
+              "Nuestro diferenciador es un enfoque en la tecnología, los beneficios de la experiencia, las relaciones y la relevancia para los consumidores — respaldado por un equipo de más de 70 agentes que viven y trabajan en las comunidades que atienden.",
+              "Jeff comenzó su carrera en bienes raíces con la misión de ayudar a las personas con la compra más grande e importante de sus vidas. Veinte años después, sigue teniendo éxito — solo pregúntele a una de las muchas personas que encontraron la casa de sus sueños con su ayuda. Las trayectorias profesional, educativa y personal de Jeff crean una combinación única que rara vez se encuentra en la industria. Con experiencia en el campo de la publicidad y el marketing, una licenciatura en Finanzas y Economía, y siendo residente de toda la vida del condado de Middlesex, está bien posicionado para ofrecer un gran servicio y conocimiento en un mercado desafiante. Tras abrirse camino por su cuenta y ahora siendo Broker/Propietario de Green Light Realty, ha demostrado ser un agente de bienes raíces trabajador del centro de Nueva Jersey y se ha ganado la confianza y el negocio de muchos compradores y vendedores de vivienda. Brinda a los clientes la información necesaria para tomar decisiones inteligentes en este mercado en constante cambio, ofreciendo la guía paciente y la atención al detalle que valoran tanto los compradores y vendedores primerizos como los inversionistas profesionales experimentados."
+            ],
+            "credentials": [
+              "Establecida en 2017",
+              "Licenciada por la Comisión de Bienes Raíces de NJ",
+              "MLS del Centro de Nueva Jersey"
+            ]
+          }
+        }
+      }
+    },
+    "thank_you": {
+      "heading": "¡Gracias!",
+      "subheading": "Su Informe de Valor de Vivienda Gratis Se Está Preparando",
+      "body": "Un agente de Green Light Realty enviará su Análisis Comparativo de Mercado personalizado a su correo electrónico en breve.",
+      "disclaimer": "Este informe de valor de vivienda es un Análisis Comparativo de Mercado (CMA) y no es una tasación.",
+      "cta_call": "Llame a Green Light Realty: (732) 251-2500",
+      "cta_back": "Volver a Green Light Realty"
+    }
+  }
+}

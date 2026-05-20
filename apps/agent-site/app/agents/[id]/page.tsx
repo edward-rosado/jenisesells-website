@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { loadAccountConfig, loadAgentConfig, loadAgentContent } from "@/features/config/config";
+import { loadAccountConfig, loadAgentConfig, loadLocalizedAgentContent } from "@/features/config/config";
 import { buildCssVariableStyle } from "@/features/config/branding";
 import { getTemplate } from "@/features/templates";
 import { Analytics } from "@/features/shared/Analytics";
@@ -9,7 +9,7 @@ import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 
 interface PageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ accountId?: string }>;
+  searchParams: Promise<{ accountId?: string; locale?: string }>;
 }
 
 export const revalidate = 60; // ISR: revalidate every 60 seconds
@@ -49,8 +49,9 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 
 export default async function AgentSubPage({ params, searchParams }: PageProps) {
   const { id } = await params;
-  const { accountId } = await searchParams;
+  const { accountId, locale } = await searchParams;
   const handle = resolveHandle(accountId);
+  const resolvedLocale = locale ?? "en";
 
   let account: ReturnType<typeof loadAccountConfig>;
   try {
@@ -68,7 +69,7 @@ export default async function AgentSubPage({ params, searchParams }: PageProps) 
     notFound();
   }
 
-  const agentContent = loadAgentContent(handle, id);
+  const agentContent = loadLocalizedAgentContent(handle, id, resolvedLocale);
   if (!agentContent) {
     notFound();
   }
@@ -108,7 +109,7 @@ export default async function AgentSubPage({ params, searchParams }: PageProps) 
         dangerouslySetInnerHTML={{ __html: jsonLdString }}
       />
       <Analytics tracking={account.integrations?.tracking} />
-      {createElement(TemplateComponent, { account, content: agentContent, agent: agentConfig })}
+      {createElement(TemplateComponent, { account, content: agentContent, agent: agentConfig, locale: resolvedLocale })}
       <CookieConsentBanner accountId={handle} />
     </div>
   );
