@@ -8,17 +8,17 @@
 
 ## TL;DR for the presenter
 
-- **Live and safe to show:** the agent website (`jenise-buckalew.real-estate-star.com`), the platform marketing pages (`platform.real-estate-star.com`), and the **10-template live preview** (`real-estate-star-agents-pr-123.misteredr.workers.dev/?accountId=…` — confirmed working 2026-05-20).
+- **Live and safe to show:** the agent website (`jenise-buckalew.real-estate-star.com`), the platform marketing pages (`platform.real-estate-star.com`), and the **10-template live preview** (`real-estate-star-agents-pr-158.misteredr.workers.dev/?accountId=…` — confirmed working 2026-05-20).
 - **Show as exhibits (PDF/screenshots), not live:** the CMA report output, the lead-email output.
 - **Do NOT click:** any form, the onboarding chat, any dashboard. The backend API is offline today — clicking these will visibly fail. The script marks every one of these "🚫 narrate, don't click."
 - **The honest line if asked about the backend:** "We're mid-migration on our backend hosting — the public sites run on Cloudflare's edge and are unaffected." True, and not alarming.
 
 Have these tabs/files open BEFORE the meeting:
 1. `https://jenise-buckalew.real-estate-star.com` — flagship live agent site
-2. The **Green Light Realty brokerage demo** (Beat 1.5) — `https://real-estate-star-agents-pr-123.misteredr.workers.dev/?accountId=glr` plus an agent page e.g. `…/agents/jenise-buckalew?accountId=glr`
+2. The **Green Light Realty brokerage demo** (Beat 1.5) — `https://real-estate-star-agents-pr-158.misteredr.workers.dev/?accountId=glr` plus an agent page e.g. `…/agents/jenise-buckalew?accountId=glr`
 3. `https://platform.real-estate-star.com` — platform marketing pages
 4. `docs/demo/artifacts/sample-cma-report.pdf` (open in a PDF viewer)
-5. The **live template-preview** tabs (Beat 2) — base `https://real-estate-star-agents-pr-123.misteredr.workers.dev/?accountId={account}`. Confirmed live 2026-05-20.
+5. The **live template-preview** tabs (Beat 2) — base `https://real-estate-star-agents-pr-158.misteredr.workers.dev/?accountId={account}`. Confirmed live 2026-05-20.
 
 ---
 
@@ -38,11 +38,11 @@ Talk track:
 
 🚫 **Do NOT click** the "What's your home worth?" form. Narrate it instead → Beat 3.
 
-### Beat 1.5 — "And it scales to a whole brokerage" (Green Light Realty)
+### Beat 1.5 — "And it scales to a whole brokerage" (LIVE — Green Light Realty)
 
-> **⚠️ DEPLOY NOTE:** The new 70-agent Green Light Realty config was just built. The **old** PR-123 preview still serves the empty `glr` stub. Before the demo, a **fresh preview deploy** must run so `?accountId=glr` shows the real brokerage site. Until then, demo this beat from a **local run** (`cd apps/agent-site && DEFAULT_AGENT_ID=glr PREVIEW=true npm run dev`, then `localhost:3000/?accountId=glr`). The fresh-preview URL will be `real-estate-star-agents-pr-{N}.misteredr.workers.dev` once the GLR-config PR's CI runs.
+**Open:** `https://real-estate-star-agents-pr-158.misteredr.workers.dev/?accountId=glr`
 
-**Open:** the GLR brokerage site (fresh preview URL, or `localhost:3000/?accountId=glr` from a local run)
+✅ Confirmed live 2026-05-20 — the 70-agent Green Light Realty brokerage site on the PR-158 preview deploy. Brokerage homepage + all 70 agent pages render.
 
 This is **Green Light Realty** — a real Central Jersey brokerage (70 agents, Old Bridge NJ), rebuilt on Real Estate Star. Use this when the prospect is a brokerage owner, or to show range beyond solo agents.
 
@@ -62,13 +62,13 @@ Talk track:
 **⚠️ Beat 1.5 cautions:**
 - The per-agent URL is `…/agents/{agent-id}?accountId=glr` (path-based). Agent IDs are name slugs: `jenise-buckalew`, `jeffrey-prontnicki`, `noelle-dibenedetto`, etc.
 - Don't click the lead form (API offline) — narrate → Beat 3.
-- Morning-of check: `curl -s -o /dev/null -w "%{http_code}" "https://real-estate-star-agents-pr-123.misteredr.workers.dev/?accountId=glr"` → expect `200`.
+- Morning-of check: `curl -s -o /dev/null -w "%{http_code}" "https://real-estate-star-agents-pr-158.misteredr.workers.dev/?accountId=glr"` → expect `200`.
 
 ### Beat 2 — "And it's not one cookie-cutter look" (LIVE — confirmed working)
 
 The platform ships **10 distinct website templates**. There is a **live preview deployment** that serves every one — confirmed working 2026-05-20.
 
-**Live preview base URL:** `https://real-estate-star-agents-pr-123.misteredr.workers.dev/?accountId={account}`
+**Live preview base URL:** `https://real-estate-star-agents-pr-158.misteredr.workers.dev/?accountId={account}`
 
 (This is a Cloudflare Workers PR-preview build. It has `PREVIEW=true` set, so the `?accountId=` switch works — one URL, every template. It does NOT need the Azure backend for page rendering.)
 
@@ -90,9 +90,9 @@ Open these tabs before the meeting and flip through 3–4 visually distinct ones
 Talk track: "A luxury-estate agent and a first-time-buyer specialist shouldn't have the same website. They don't have to."
 
 **⚠️ Demo cautions for Beat 2:**
-- **Do NOT use `?accountId=glr`** — Green Light Realty's config is an incomplete stub (empty name, invalid template). It renders as a blank "| Real Estate" page.
-- `test-warm` and `test-emerald` have a `REALTOR®` character-encoding glitch in the title (`REALTORÂ®`). Minor — prefer the other templates, or use `test-warm` for the *body design* and just don't dwell on the page title. `jenise-buckalew` renders correctly.
-- Morning-of, re-confirm the preview is still up: `curl -s -o /dev/null -w "%{http_code}" "https://real-estate-star-agents-pr-123.misteredr.workers.dev/?accountId=jenise-buckalew"` → expect `200`. If it's gone, fall back to the local run (see prep section) or screenshots.
+- `?accountId=glr` is the **brokerage** demo (Beat 1.5) — it's a full Green Light Realty site, not a single template. Use it for the brokerage story, not the template-variety story.
+- All 10 templates render clean — the earlier `REALTOR®` encoding glitch on `test-warm`/`test-emerald` is fixed as of PR-158.
+- Morning-of, re-confirm the preview is still up: `curl -s -o /dev/null -w "%{http_code}" "https://real-estate-star-agents-pr-158.misteredr.workers.dev/?accountId=jenise-buckalew"` → expect `200`. If it's gone, fall back to the local run (see prep section) or screenshots.
 
 ### Beat 3 — "When a buyer fills out that form, here's what happens" (narrate + exhibit)
 
@@ -168,7 +168,7 @@ Frame as: "The website + CMA + lead capture is live today. The next wave is maki
 - [ ] Confirm sites are still up morning-of:
   - `curl -s -o /dev/null -w "%{http_code}" https://jenise-buckalew.real-estate-star.com` → expect `200`
   - `curl -s -o /dev/null -w "%{http_code}" https://platform.real-estate-star.com` → expect `200`
-  - `curl -s -o /dev/null -w "%{http_code}" "https://real-estate-star-agents-pr-123.misteredr.workers.dev/?accountId=jenise-buckalew"` → expect `200`
+  - `curl -s -o /dev/null -w "%{http_code}" "https://real-estate-star-agents-pr-158.misteredr.workers.dev/?accountId=jenise-buckalew"` → expect `200`
 - [ ] Open the core tabs before the call: agent site, platform, CMA PDF, and 3–4 template-preview tabs (Beat 2).
 - [ ] Have `docs/demo/artifacts/sample-cma-report.pdf` open in a real PDF viewer (not the browser, so it looks like a deliverable).
 - [ ] Phone ready for the mobile-responsive moment in Beat 1.
