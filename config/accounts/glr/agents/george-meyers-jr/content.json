@@ -18,6 +18,27 @@
             "items": []
           }
         },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "How George Helps",
+            "subtitle": "Local expertise from first showing to closing day.",
+            "items": [
+              {
+                "title": "Local Market Expertise",
+                "description": "George works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
+              },
+              {
+                "title": "Guidance for Buyers & Sellers",
+                "description": "Whether you are buying your first home or selling to move up, George walks you through every step so nothing catches you off guard."
+              },
+              {
+                "title": "Backed by Green Light Realty",
+                "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
+              }
+            ]
+          }
+        },
         "steps": {
           "enabled": true,
           "data": {
