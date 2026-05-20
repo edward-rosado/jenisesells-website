@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Indre is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Indre",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/bathroom.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Local Market Expertise",
                 "description": "Indre works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Indre walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Indre's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Indre",
             "bio": [
-              "Indre is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Indre grew up in Lithuania and came to the United States in 1998 to travel and work as a student and then decided to stay.  She has lived in Lakewood and Bayonne and is now living in Spotswood since 2004.  Real Estate is a powerful force in our lives, the place you choose to live becomes the center of your universe, a place where your memories are made and lives are lived.  She has traveled all the way from Lithuania to find her universe right here in the center of New Jersey, now let her help you find yours.",
+              "As a buyer agent her goal is to fill your needs as a home buyer and locate the perfect property for you to begin building your memories in.  If you're unhappy in your current home, as a listing agent, she will put every effort into finding you the best buyer for your home and assist you in finding your next dream home.  She considers all your needs and criteria and applies herself with dedication and reliability to serving you and helping you achieve your dreams.  She is fluent in Russian, Lithuanian and English.",
+              "She is dedicated, hardworking and reliable and has worked in several different school districts as a substitute teacher.  She is a person you can put your trust and rely on.  Call her anytime, she is always available to talk and answer any questions you may have."
             ],
             "credentials": [
               "REALTOR®"

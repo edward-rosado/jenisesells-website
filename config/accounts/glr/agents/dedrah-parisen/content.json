@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Dedrah is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Dedrah",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/kitchen.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Local Market Expertise",
                 "description": "Dedrah works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Dedrah walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Dedrah's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Dedrah",
             "bio": [
-              "Dedrah is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Having had extensive experience in a Fortune 500 CPG (Consumer Packaged Goods) company as a Research Chef, developing new products for retail and foodservice, Dedrah worked closely with the marketing and sales team to present the products to major buyers.  Leaving the corporate world to follow a lifelong dream, a career in real estate was the natural culmination of a passionate desire to help people on a personal level and to make homeownership a reality by fashioning it into a positive experience.  As a former business owner and coming from an entrepreneurial family based in the food franchise and vending business, customer service is ingrained in all her operations.  Possessing an upbeat and approachable personality, Dedrah enjoys working with people of all walks and generations, and is invested in ensuring their complete satisfaction.",
+              "Dynamic and resourceful, she utilizes her insights, strategies and capabilities to produce the desired outcome no matter the circumstances.  Her background in research has given her the tools to really find out what her clients are looking for, taking the time to educate them and address any issues along the way while working tirelessly to fulfill their property goals seamlessly.  Aside from work, Dedrah enjoys Genealogy research and archaeology.  Contact Dedrah today 732.",
+              "500. 8261!!"
             ],
             "credentials": [
               "REALTOR®"

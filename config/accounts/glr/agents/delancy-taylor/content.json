@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Delancy is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Delancy",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/kitchen.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Local Market Expertise",
                 "description": "Delancy works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Delancy walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Delancy's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Delancy",
             "bio": [
-              "Delancy is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Delancy Taylor - Real Estate Salesperson | Green Light Realty Delancy Taylor is a dedicated real estate professional with Green Light Realty, proudly serving clients throughout South Brunswick, Linden, Elizabeth, North Brunswick, and East Brunswick.  With a strong background at UPS.  Delancy has built a reputation for reliability, hard work, and exceptional customer service; traits he now brings into every real estate transaction.  Delancy is passionate about helping people and is committed to guiding buyers, sellers, and renters with patience, honesty, and clear communication.",
+              "Although, new to the industry, he approaches every client with the same focus and determination that has defined his career and personal life.  His deep knowledge of the local communities he serves allows him to provide clients with valuable insight and confident support from start to finish.  Outside of real estate, Delancy enjoys playing football and basketball, video gaming, and go-karting, and values time spent with his loving family.  These experiences help him stay grounded, energetic, and connected to the community he serves.",
+              "Whether you’re a first-time homebuyer, looking to sell, or exploring new opportunities, Delancy Taylor is ready to help you move forward with confidence.  Contact Delancy today to start your real estate journey."
             ],
             "credentials": [
               "REALTOR®"

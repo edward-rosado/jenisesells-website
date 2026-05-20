@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Antonella is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Antonella",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/backyard3.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Local Market Expertise",
                 "description": "Antonella works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Antonella walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Antonella's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Antonella",
             "bio": [
-              "Antonella is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Antonella is a Brooklyn native who has resided in Old Bridge for the past 10 years with her husband and three beautiful children.  Prior to obtaining her real estate license in 2012, Antonella had a successful career in operational risk working for a large NYC financial firm.  Managing risk comes naturally to Antonella and no doubt she applies this skill to her real estate business.  She is resourceful, detail oriented and personally committed to satisfying her client’s real estate needs.",
+              "Antonella serves Middlesex and Monmouth counties and is fluent in Italian.  Whether she is working with a first time home buyer or a seasoned buyer or seller, Antonella believes each client relationship is unique and deserves her undivided attention.  Her professional and enthusiastic personality brings a sense of trust, integrity and excitement to every transaction.  In her free time, Antonella enjoys the spending long summer days on the beautiful Jersey shore with her family.",
+              "She also loves to entertain her family and friends with her culinary creations and truly believes that no matter how big or small the house is, the best memories are made around the kitchen table.  Good food, good wine and good people is always the recipe for a great time!  Antonella is the agent who will treat you like the family and friends who sit around her kitchen table!"
             ],
             "credentials": [
               "REALTOR®"

@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Dominick is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Dominick",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/kitchen.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Local Market Expertise",
                 "description": "Dominick works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Dominick walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Dominick's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Dominick",
             "bio": [
-              "Dominick is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "As a life long resident of New Jersey, Dominick was born and raised in Hudson County and moved to Old Bridge with his wife and 3 kids in 2018.  Dominick has worked as an accountant in the audit field for the last 7 years so the transition to Real Estate came naturally.",
+              "Dominick focuses on working to fit the home of your dreams into any budget for ambitious buyers.  For sellers moving onto the next endeavors, Dominick makes sure to maximize your profit through creative marketing and networking throughout the entire state!",
+              "In his spare time, Dominick spends time with his young family at the Jersey Shore and is also an avid runner and golfer!"
             ],
             "credentials": [
               "REALTOR®"

@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Nilesh is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Nilesh",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/livingroom3.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Local Market Expertise",
                 "description": "Nilesh works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Nilesh walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Nilesh's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Nilesh",
             "bio": [
-              "Nilesh is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Dr.  Nilesh Shah was born and raised in Mumbai, India.  Nilesh has lived in NJ since 1985.  Nilesh is married to Kajal Shah, who is also his real estate team partner in TheTeamShah, and they have 3 children Naman (31), Navan (25) and Giya (16).  Nilesh is working as a real estate professional since 2021.",
+              "Nilesh brings over 3 decades’ experience as an IT Director and as a college dean, assisting, mentoring and supervising students and professionals.  Nilesh is an educator.  Nilesh is client-centric, engaging and result-oriented.  Delivering extraordinary customer service has always been Nilesh’s motto.  Nilesh has a knack for taking care of people’s needs and making sure they achieve the best outcome.",
+              "Nilesh is also a licensed mortgage professional.  When it comes to your real estate needs, Nilesh is there!  Nelish enjoys traveling, singing, drawing, collecting artwork, decorating, watching movies, and TV shows, in his free time.  He is fluent in English, Hindi, and Gujarati."
             ],
             "credentials": [
               "REALTOR®"

@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Christina is a Social Media Manager with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Christina",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/bathroom.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Local Market Expertise",
                 "description": "Christina works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Christina walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -70,9 +80,18 @@
           }
         },
         "testimonials": {
-          "enabled": false,
+          "enabled": true,
           "data": {
-            "items": []
+            "title": "What Christina's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
+            "items": [
+              {
+                "text": "Christina spent countless hours helping us find a home and sell ours. She is extremely hard working, easy to work with and understands her clients needs. Highly recommend her services.",
+                "reviewer": "Sue Nimmer",
+                "rating": 5,
+                "source": "Verified Client"
+              }
+            ]
           }
         },
         "contact_form": {
@@ -88,7 +107,9 @@
           "data": {
             "title": "About Christina",
             "bio": [
-              "Christina is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Working out of Green Light Realty's Central Jersey office, Christina supports clients in Middlesex, Monmouth, and Ocean County.",
+              "Behind every Green Light Realty transaction is a team keeping things moving, and Christina is part of how the brokerage stays organized, responsive, and easy to work with.",
+              "Reach out to Christina for local market expertise and guidance from first conversation to closing day."
             ],
             "credentials": [
               "REALTOR®"

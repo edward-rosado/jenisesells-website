@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Cristina is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Cristina",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/livingroom3.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Local Market Expertise",
                 "description": "Cristina works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Cristina walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Cristina's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Cristina",
             "bio": [
-              "Cristina is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Born and raised on Staten Island, NY I moved to New Jersey back in 2013 right before I got married to my husband, Jon.  We have three kiddos, Logan, Layla, and Lainey--all just a year apart from one another.  In our free time we love cooking with our team in the competition BBQ circuit!  After teaching for almost two decades I decided it was time for a change.",
+              "I earned my real estate license during covid and have been a licensed Realtor since 2021.  I absolutely love making those interpersonal connections, much like I did while I was a teacher, and helping people find their perfect home!  Two decades in the filed of education really allow me evaluate data, situations, and get a quick gauge of how a client is feeling.  Being able to pivot on a dime and adjust to any scenario is a quality I find invaluable as a real estate agent.",
+              "I absolutely love refurbishing furniture pieces.  My husband and I are an award winning BBQ team.  My original background is in broadcast journalism and writing."
             ],
             "credentials": [
               "REALTOR®"

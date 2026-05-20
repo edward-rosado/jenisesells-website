@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Joseph is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Joseph",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/livingroom3.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Local Market Expertise",
                 "description": "Joseph works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Joseph walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -70,9 +80,18 @@
           }
         },
         "testimonials": {
-          "enabled": false,
+          "enabled": true,
           "data": {
-            "items": []
+            "title": "What Joseph's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
+            "items": [
+              {
+                "text": "As first time homeowners, my fiancee and I were very nervous about taking such a major step in our lives. Joe Goretskie, my realtor, was truly a godsend. Any question I had, he was there with an answer and made me feel at ease. Joe, Aaron, Jeff and everyone else at Green Light were great. I'd recommend Joe and Green Light to anyone in the market for a new home. In fact, I've given Joe's business cards out to several of my friends. Thank you Green Light Realty for making our dream a reality. You guys are the best.",
+                "reviewer": "Rob Pajaczkowski & Megan Condon",
+                "rating": 5,
+                "source": "Verified Client"
+              }
+            ]
           }
         },
         "contact_form": {
@@ -88,7 +107,9 @@
           "data": {
             "title": "About Joseph",
             "bio": [
-              "Joseph is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Joseph Goretskie grew up in Old Bridge and now resides with his wife and two kids in Sayreville.  He works for Old Bridge Township and therefore is very familiar with Middlesex County.",
+              "He attended East Brunswick Votech School as a teen, and has since kept a finger on the pulse of the life of an honest tradesman.  His energy, charisma and experience with investment properties are the kind of keys any salesperson would like to have in their pocket.",
+              "His warm loveable character and quick wit are what sets him apart from the rest.  Call today at (732)-266-7246 to get in touch!"
             ],
             "credentials": [
               "REALTOR®"

@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Bobir is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Bobir",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/bathroom.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Local Market Expertise",
                 "description": "Bobir works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Bobir walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Bobir's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Bobir",
             "bio": [
-              "Bobir is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Bobir comes to us from Uzbekistan, and we are more than happy to have him.  He’s lived in the U. S.",
+              "since 2004 and is an accomplished engineer with a business acumen on par with some of the greats.  The skills he has acquired are vital in assisting handyman buyers or investors who need a second opinion on building layouts and infrastructures.  But don’t let that stop you, if you are interested in buying anything in general Bobir will be more than happy to help you find what is right for you.",
+              "He’s extremely familiar with the Marlboro, Matawan, Manalapan and Freehold areas, but will not restrict himself to those areas alone Bobir is a family man, he has a wife and two children, who he takes on camping trips in the summer.  He is an outdoorsman at heart, who loves biking and taking in the beauty of nature on hikes in his spare time.  It is this appreciation of the way things work, coupled with his technical knowledge and his profound ambition that will help you find the absolutely perfect home for you."
             ],
             "credentials": [
               "REALTOR®"

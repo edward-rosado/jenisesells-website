@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Patricia is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Patricia",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/kitchen.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Local Market Expertise",
                 "description": "Patricia works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Patricia walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Patricia's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Patricia",
             "bio": [
-              "Patricia is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "With a real estate career spanning more than three decades, Trish Reagan has been helping buyers and sellers navigate the New Jersey market since earning her license in 1991.  She has successfully listed and sold homes throughout the state and brings a deep understanding of residential real estate, contracts, and property conditions to every transaction.  Trish is also a Commissioner on the South Amboy Housing Authority since 2022, giving her a unique insight and perspective on real estate current events.",
+              "In addition to her brokerage experience, Trish previously held a title license and is the founder of a company that partners with multiple Housing Authorities to perform HUD inspections, giving her unique insight into compliance standards, and the behind the scenes details that matter.  This well-rounded background allows her to guide clients with confidence, accuracy, and transparency.  Outside of real estate, she values time spent with family and friends and has life long love of live music.",
+              "Well known for her straightforward style, strong work ethic, and commitment to her clients, Trish approaches every deal with professionalism and care from start to finish."
             ],
             "credentials": [
               "REALTOR®"

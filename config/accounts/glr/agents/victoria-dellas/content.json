@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Victoria is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Victoria",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/bathroom.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Local Market Expertise",
                 "description": "Victoria works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Victoria walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Victoria's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Victoria",
             "bio": [
-              "Victoria is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Victoria currently works at an Accounting Firm in East Brunswick and has her degree in Communications.  Prior to obtaining her real estate license, she had a successful career in both marketing and customer service.  Victoria has always had a passion for real estate.  Her family has owned a construction business and has been a part of the real estate industry for years, including investing and managing multi-family properties and renovations.",
+              "With her personal experience, warm-hearted personality, and her extensive background in marketing and customer service, it was an easy decision for Victoria to take her passion and make it a reality by joining the real estate industry herself.  Victoria values the importance of client relationships, exemplifying honesty and constant communication.  She is determined to implement your wants and needs, by turning them into a reality, understanding that in this industry, you will be making one of the biggest decisions of your life!  A lover of animals and anything-chocolate, Victoria enjoys volunteering at the animal shelter, and spending time with her 2 dogs and loving husband.",
+              "Her family is especially happy when she is in the kitchen making dessert and home-made dog treats!  After all, the ‘key’ to everyone’s heart is food!  What better than to have help finding the key to your new home?  Call Victoria today!"
             ],
             "credentials": [
               "REALTOR®"

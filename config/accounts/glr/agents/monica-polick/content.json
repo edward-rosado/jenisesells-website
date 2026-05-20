@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Monica is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Monica",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/livingroom3.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Local Market Expertise",
                 "description": "Monica works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Monica walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Monica's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Monica",
             "bio": [
-              "Monica is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Monica was raised in Jamesburg, New Jersey and has lived in Ocean, Mercer, and Middlesex Counties.  Currently she lives in Jamesburg and is active in the community with her husband and two children.  When she’s not working as a Real Estate Agent, Monica enjoys gardening, playing soccer, hiking with the kids, and walking her dogs.",
+              "She also enjoys doing improvements on her home.  Monica is excited to join Green Light Realty, a local agency dedicated to the future of our clients and communities.  She is ready to help individuals and families find or sell their home.",
+              "Monica is also a licensed Massage Therapist with clients she has helped for years to be able to live pain free.  She has learned the best way to help her clients is to keep an open dialogue and to listen and consider the needs and wants of her clients, whether it's a client for therapy or real estate.  Call her anytime, she is always available to talk and answer any questions you may have."
             ],
             "credentials": [
               "REALTOR®"

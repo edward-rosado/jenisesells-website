@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Ursula is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Ursula",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/livingroom3.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Local Market Expertise",
                 "description": "Ursula works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Ursula walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Ursula's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Ursula",
             "bio": [
-              "Ursula is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Thinking of buying or selling a home?  Let me help you get the biggest bang for your buck and guide you through a smooth transaction!  My Clients have expressed their appreciation for my attention to detail, negotiating skills and efforts to go above and beyond in order to get them the best deal possible.  As a former high school Social Studies teacher, I am a life-long learner who loves to share and explain my knowledge of current market conditions and trends by using up-to-date data and statistics.  When I work with you as a Client, whether you are a Buyer or Seller, it is important that you feel empowered by: · strategizing with you to negotiate the best terms, · keeping you well-informed during the entire process, · making you aware of your rights and responsibilities as a Buyer or Seller.  As an investor and property manager who owns rental properties and has renovated a number of houses, I understand favorable ways to maximize your return on investment if you are a landlord or other investor.",
+              "I am a “do-er” – I enjoy using my time and talents in service of others, whether as the Secretary of our local library’s volunteer organization, or in my school district’s local teacher’s association, where I was very active as treasurer, building representative, county delegate and negotiations team member.  Finally, I am part of an amazing team of colleagues at Green Light Realty that comes together to problem solve when necessary.  Not every deal proceeds smoothly, and occasionally issues arise that jeopardize the closing of a transaction which need unique, creative solutions.  As a Client of Green Light Realty, you have a wealth of experience behind you and a sincere interest in your success with your real estate experience.  Call, text or email me today to discuss your real estate needs!  Ursula VanWart, Realtor® Associate Green Light Realty M: 718.",
+              "869. 2443 O: 732. 251. 2500x7088 E: Vanwart11@gmail. com E: UrsulaV@GreenLightMoves."
             ],
             "credentials": [
               "REALTOR®"

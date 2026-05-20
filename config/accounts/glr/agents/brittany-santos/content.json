@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Brittany is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Brittany",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/backyard3.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Local Market Expertise",
                 "description": "Brittany works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Brittany walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Brittany's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Brittany",
             "bio": [
-              "Brittany is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "A born and raised Jersey Girl who loves to be of service to people and that shows in her current and past efforts.  Before obtaining her real estate license, Brittany worked in the education field and currently is an HR Manager.",
+              "Brittany has had the pleasure of growing up in Middlesex County, working in Monmouth County and currently residing in Ocean County, so she really has a feel for multiple areas of the state.  Aside from her work life, she is both a mom and a bonus mom to three beautiful girls and two dogs.",
+              "She is happily married to a veteran and enjoys spending her free time with her family.  Brittany has spent her career serving others and is thrilled to be part of such an energized, devoted, and innovative team."
             ],
             "credentials": [
               "REALTOR®"

@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Sarah is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Sarah",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/bathroom.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Local Market Expertise",
                 "description": "Sarah works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Sarah walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Sarah's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Sarah",
             "bio": [
-              "Sarah is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Sarah is a highly organized and motivated individual.  She has an ability to establish objectives, prioritize tasks, examine alternatives, and achieve her goals in an effective and timely manner.  She does her absolute best work in every aspect of her life and is devoted to providing quality service to her clients.  Sarah has lived throughout the central and northern parts of New Jersey for the past 15 years.  She resided in Bergen County for 6 years while she attended college and graduate school.  During that time, she began to develop her communication, organization, and leadership skills.",
+              "She worked in the restaurant business for 4 years and began teaching.  When she finished achieving her educational goals, she stopped working in Bergen County as a teacher and moved to Morris County.  There, she spent the next few years enjoying the beautiful area near the Delaware Water Gap.  She began working in Essex County as a special needs teacher for the next 7 years.  Eventually, she began to miss all the amazing components central New Jersey has to offer.  So, she moved back to her hometown of Old Bridge.",
+              "Sarah utilizes her strong background in a variety of New Jersey’s towns and cities to assist her clients in determining what area is best for them.  Sarah will provide you with more than you need during your transition in the real estate market.  She understands how important the decisions her clients are making can affect their lives.  She is with them every step of the way.  She is more than a real estate agent, she is a trustworthy and loyal friend."
             ],
             "credentials": [
               "REALTOR®"

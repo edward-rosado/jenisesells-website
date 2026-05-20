@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Christina is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Christina",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/backyard3.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Local Market Expertise",
                 "description": "Christina works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Christina walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Christina's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Christina",
             "bio": [
-              "Christina is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Christina epitomizes integrity, energy, hard work, and creativity in every detail of your real estate transaction.  Christina grew up in the Middlesex County area and started her warm sales habit at the age of 16, selling salon services in her local area.  Christina has continued to rise steadily in her sales career, transitioning over to the operation of a family-owned construction company, in which she was solely responsible for marketing the company’s services.  After that, Christina became part-owner with her best friend, operating a bakery in the quaint city of South Amboy.",
+              "She located, designed, marketed, and was a buyer/seller for the bakery.  Realizing that she had a knack for real estate and design, Christina made the decision to join the real estate industry where she can put her warmth, creativity, and understanding to wonderful use.  With her background in business, marketing and advertising, along with her loyal trustworthy personality, she brings more than the average person to the table.  When you are ready to make one of the biggest decisions in your life, not only will you get a professional, but you will feel as if you have a friend, too.",
+              "Christina is a family woman with a devotion to her three beautiful children and loving husband.  A lover of all things food and wine, Christina spends her free time perusing all of New Jersey and New York for amazing food, as well as hunting down the finest local wineries.  Professionally, she is committed and passionate, but especially, understanding.  Success is guaranteed with Christina!"
             ],
             "credentials": [
               "REALTOR®"

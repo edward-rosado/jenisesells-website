@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Yevgeniya is a REALTOR® Associate / Administrator with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Yevgeniya",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/kitchen.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Local Market Expertise",
                 "description": "Yevgeniya works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Yevgeniya walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Yevgeniya's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Yevgeniya",
             "bio": [
-              "Yevgeniya is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "With a strong foundation in customer service and sales spanning over two decades, I bring a people-first approach to real estate.  Based in Howell, NJ, and serving clients across Central and South Jersey, I combine market knowledge with genuine care to guide buyers and sellers through every step of their real estate journey.  Since entering the industry in 2023, I have built my business on trust, communication, and professionalism.",
+              "Backed by a team of seasoned experts, many of whom have earned the prestigious Circle of Excellence Award multiple times.  I provide each client with the insight, support, and confidence needed to make sound real estate decisions.  Whether you're buying your first home, selling a property, or exploring investment opportunities, I am dedicated to helping you achieve your goals with ease and peace of mind.",
+              "Let's connect to talk about your next move!  GeniyaHasTheKeys@gmail."
             ],
             "credentials": [
               "REALTOR®"

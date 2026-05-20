@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Janet is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Janet",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/kitchen.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Local Market Expertise",
                 "description": "Janet works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Janet walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Janet's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Janet",
             "bio": [
-              "Janet is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Hi, Janet Kushner here, an Old Bridge native!  Many of you know me from living and being a part of the Old Bridge community my entire life.  I have been in real estate in every type of market, buyer’s and seller’s markets!  I raised four successful community minded children in NJ and love this state, especially our area.  I have worked with hundreds of families and friends to help them find their dream, forever homes in all aspects of Real estate.  Whether it be buying, selling, investing, or just being curious about what’s going on in the market, I am here!  I love this business and helping people.  It’s not always about making a deal, it's about life decisions and where you want to be.",
+              "I put my clients first and sometimes that means not making that move, other times you may just need an extra helping hand.  I am not a salesperson, I am a friend, a confidant, and source of information of what the market can do for you!  I have personally bought, sold, rehabbed, built new homes, renovated, been a landlord and supported hundreds of people in our Central Jersey area.  And “YES”, we are Central Jersey!  One of the best places to live and raise a family.  I did and now have four successful adults to attest to that!  I am most proud of my children and how I raised them to be caring, compassionate and to give back to the community!  I am a member of the Real estate community, served on the emergency response team, worked for the Red Cross, currently involved with the PTA and election board in Old Bridge and Middlesex County, and I stay community minded.",
+              "I am always willing to give a hand in helping others.  That is my strength, so call on me to help be your guide in your next move!  Let’s talk!  It’s what I do best!  Friends have named their GPS “Janet” because of how well I know the area!  Let me be your GPS in the buying and/or selling of your next home!"
             ],
             "credentials": [
               "REALTOR®"

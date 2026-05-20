@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Kenneth is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Kenneth",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/livingroom3.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Local Market Expertise",
                 "description": "Kenneth works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Kenneth walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Kenneth's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Kenneth",
             "bio": [
-              "Kenneth is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Kenny was born and raised in Staten Island, NY.  He has lived in Sayreville, NJ with his wife and son since 2005.  His passion for real estate began early on.  By the age of 22, he purchased and sold his very first home, and he hasn’t looked back ever since.",
+              "Throughout the span of nearly two decades, Kenny has purchased and managed numerous rental properties.  Kenny has owned a Home Improvement Contracting and Granite Countertop business since 2001.  With his well-rounded experience in all areas of the industry, Kenny prides himself on bringing a more consultative approach for buyers and sellers.  Kenny has combined his dedication and his well-rounded approach to making a giant footprint in the New Jersey residential Real Estate market.",
+              "His strong business acumen allows Kenny to build and maintain lifelong relationships which explain why his business is achieving tremendous growth.  Understanding your home is most likely your largest investment, Kenny believes you should be represented by a partner – a professional Whether he is listing, selling, or everything in between, Kenny possesses the local marketplace familiarity, industry knowledge, and negotiation skill set necessary to provide a streamlined transaction for each client he represents.  Both driven and equally as dedicated, he strives to make his client’s Real Estate goals a reality by being there for them from closing and beyond.  When he isn’t immersed in the Real Estate world, Kenny enjoys nothing more than spending quality time with his family, watching his son play baseball, and boating."
             ],
             "credentials": [
               "REALTOR®"

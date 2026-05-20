@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Jeffrey is a Broker/Owner with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Jeffrey",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/bathroom.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Local Market Expertise",
                 "description": "Jeffrey works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Jeffrey walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -70,9 +80,54 @@
           }
         },
         "testimonials": {
-          "enabled": false,
+          "enabled": true,
           "data": {
-            "items": []
+            "title": "What Jeffrey's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
+            "items": [
+              {
+                "text": "Jeff and his crew are professional, honest and will sell your home for the maximum money in the shortest time. He makes sure that the process runs smoothly.",
+                "reviewer": "Todd Mayo",
+                "rating": 5,
+                "source": "Verified Client"
+              },
+              {
+                "text": "Jeff is the most awesome realtor that ever existed. He did not bang my head against other bidders and landed me the house of my dreams. He also sold my existing home super fast.",
+                "reviewer": "Robert Held",
+                "rating": 5,
+                "source": "Verified Client"
+              },
+              {
+                "text": "It was great working with Jeff. He worked hard throughout the selling of my home and finalizing the transaction. He's experienced, has a lot of connections and was able to get a great price for the house I sold.",
+                "reviewer": "Jeff Balsam",
+                "rating": 5,
+                "source": "Verified Client"
+              },
+              {
+                "text": "Last year my husband and I where having a lot problems with his landlord i was looking for a place near jamesburg I wasn't having much luck everything was out of my price range or not pet friendly I was frazzled and turn to Facebook to see if anybody new of any place for rent that was pet friendly and couple hours later Jeff popped up and said he was a realtor fast forward a year Jeff found use a beautiful condo that we rent below my price point and it's pet friendly and I have the best landlord ever. Thank you Jeff for everything you done us",
+                "reviewer": "Gail Hurd",
+                "rating": 5,
+                "source": "Verified Client"
+              },
+              {
+                "text": "Jeff is awesome . He has been a pleasure to work with and I would never work with another realtor now . He is patient , gives you his honest opinion , not pushy at all , works for you , and finds you exactly what you need and want !",
+                "reviewer": "Brittany Eve",
+                "rating": 5,
+                "source": "Verified Client"
+              },
+              {
+                "text": "Jeff helped me sell my condo and I was very pleased with his skill level, knowledge and overall attitude. I am very picky about communication skills and his were extraordinary. I highly recommend this office for all of your real estate needs.",
+                "reviewer": "Mary Reiner Colleran",
+                "rating": 5,
+                "source": "Verified Client"
+              },
+              {
+                "text": "I have a condo that gets rented to a new tenant every year. Jeff has been super helpful and professional in finding quality tenants quickly. In addition, when we sold our home, he got us full asking price.",
+                "reviewer": "Jessica Dawn",
+                "rating": 5,
+                "source": "Verified Client"
+              }
+            ]
           }
         },
         "contact_form": {
@@ -88,7 +143,9 @@
           "data": {
             "title": "About Jeffrey",
             "bio": [
-              "Jeffrey is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Jeff started his real estate career with a mission to help people with the biggest and most important purchase of their lives.  More than two decades later, he's still successful - Just ask one of the many people who found their dream home with his help.",
+              "Jeff's professional, educational and personal backgrounds create a unique blend rarely found in the industry.  With experience in the Advertising and Marketing field, a Bachelor's degree in Finance and Economics and being a life-long resident of Middlesex County, he is well-positioned to offer great service and insight in a challenging market.",
+              "Working his way up on his own, and now being Broker/Owner of Green Light Realty, he has proven to be a hard-working Central Jersey real estate agent and has earned the trust and business of many home buyers and sellers.  He provides clients with the information needed to make smart decisions in this ever-changing market, offering patience, guidance and attention to detail that is valued as much by first-time buyers and sellers as it is by seasoned professional investors."
             ],
             "credentials": [
               "REALTOR®"

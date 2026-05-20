@@ -1,40 +1,112 @@
 {
+  "navigation": {
+    "items": [
+      {
+        "label": "Por Qué Elegirme",
+        "href": "#features",
+        "enabled": true
+      },
+      {
+        "label": "Cómo Funciona",
+        "href": "#steps",
+        "enabled": true
+      },
+      {
+        "label": "Ventas Recientes",
+        "href": "#gallery",
+        "enabled": true
+      },
+      {
+        "label": "Testimonios",
+        "href": "#testimonials",
+        "enabled": true
+      },
+      {
+        "label": "¿Listo para Mudarse?",
+        "href": "#contact_form",
+        "enabled": true
+      },
+      {
+        "label": "Acerca de Mí",
+        "href": "#about",
+        "enabled": true
+      }
+    ]
+  },
   "pages": {
     "home": {
       "sections": {
         "hero": {
           "enabled": true,
           "data": {
-            "headline": "Jenise Buckalew — REALTOR®",
+            "headline": "Compre o Venda con Confianza",
+            "highlight_word": "Confianza",
             "tagline": "Adelante. Avanzando.",
-            "body": "Jenise es una REALTOR® con Green Light Realty, sirviendo a compradores y vendedores en los condados de Middlesex, Monmouth y Ocean. Comuníquese con ella para obtener experiencia en el mercado local y orientación desde la primera visita hasta el día del cierre.",
-            "cta_text": "Trabaje Con Jenise",
+            "body": "Soy Jenise Buckalew, agente de bienes raíces licenciada en NJ y agente independiente con Green Light Realty LLC. Con más de 100 casas vendidas en 20 años en el negocio, entrego resultados — ya sea que esté vendiendo su casa al mejor precio o buscando el lugar perfecto para llamar hogar. ¿Vendiendo? Comenzaré con un Análisis Comparativo de Mercado gratuito e instantáneo para que sepa exactamente cuánto vale su casa. ¿Comprando? Dígame lo que busca y lo encontraré.",
+            "cta_text": "Obtenga Su Informe de Valor Gratis en Minutos",
             "cta_link": "#contact_form"
           }
         },
         "stats": {
-          "enabled": false,
+          "enabled": true,
           "data": {
-            "items": []
+            "items": [
+              {
+                "value": "100+",
+                "label": "Casas Vendidas"
+              },
+              {
+                "value": "5.0 ★",
+                "label": "Calificación en Zillow (24 Reseñas)"
+              },
+              {
+                "value": "Gold",
+                "label": "NJ REALTORS® Círculo de Excelencia"
+              },
+              {
+                "value": "20+",
+                "label": "Años de Experiencia"
+              },
+              {
+                "value": "$500K–$1.5M",
+                "label": "Rango de Precios de Venta"
+              }
+            ]
           }
         },
         "features": {
           "enabled": true,
           "data": {
-            "title": "Cómo Ayuda Jenise",
-            "subtitle": "Experiencia local desde la primera visita hasta el día del cierre.",
+            "title": "Lo Que Ofrezco",
+            "subtitle": "Cada cliente recibe el paquete completo — sin atajos.",
             "items": [
               {
-                "title": "Experiencia en el Mercado Local",
-                "description": "Jenise trabaja en los condados de Middlesex, Monmouth y Ocean todos los días — precios, vecindarios, escuelas y cuánto valen realmente las casas en este momento."
+                "title": "Informe de Valor de Vivienda Gratis en Minutos",
+                "description": "Envíe su información y reciba un Informe de Valor personalizado en minutos — para que sepa exactamente cuánto vale su casa antes de que nos reunamos."
               },
               {
-                "title": "Orientación para Compradores y Vendedores",
-                "description": "Ya sea que esté comprando su primera casa o vendiendo para mudarse a algo mejor, Jenise lo guía en cada paso para que nada lo tome por sorpresa."
+                "title": "Fotografía Profesional",
+                "description": "Cada listado recibe fotos profesionales de alta calidad que hacen que los compradores dejen de desplazarse y empiecen a programar visitas."
               },
               {
-                "title": "Respaldada por Green Light Realty",
-                "description": "Una correduría completa del centro de Nueva Jersey detrás de cada transacción — mercadeo, tecnología y una red de referidos de 70 agentes."
+                "title": "Precios Estratégicos",
+                "description": "Precios basados en datos respaldados por ventas comparables reales en su vecindario — con precio para atraer ofertas serias rápidamente."
+              },
+              {
+                "title": "Guía de Preparación del Hogar",
+                "description": "Recorreré su casa y le diré exactamente qué pequeños cambios pueden aumentar su precio de venta — sin renovaciones costosas."
+              },
+              {
+                "title": "Máxima Exposición",
+                "description": "Su casa se publica en MLS, Zillow, Realtor.com, redes sociales y más — vista por miles de compradores activos."
+              },
+              {
+                "title": "Búsqueda Personalizada de Hogar",
+                "description": "¿Busca una casa? Dígame sus requisitos — área, rango de precios, habitaciones — y le enviaré listados que coincidan, antes de que salgan al mercado público."
+              },
+              {
+                "title": "Servicio Bilingüe",
+                "description": "Servicio bilingüe en inglés y español para que cada cliente se sienta escuchado, comprendido y seguro durante todo el proceso."
               }
             ]
           }
@@ -48,39 +120,97 @@
               {
                 "number": 1,
                 "title": "Envíe Su Información",
-                "description": "Complete el formulario rápido a continuación — toma menos de 2 minutos."
+                "description": "Complete el formulario rápido a continuación con los detalles de su propiedad. Toma menos de 2 minutos."
               },
               {
                 "number": 2,
-                "title": "Reciba Su Informe de Valor de Vivienda Gratis",
-                "description": "Jenise le enviará un Informe de Valor de Vivienda personalizado en minutos."
+                "title": "Reciba Su Informe de Valor Gratis",
+                "description": "¿Vendiendo su casa? Le enviaré un Informe de Valor personalizado en minutos mostrando cuánto vale su casa según ventas comparables recientes. ¿Comprando? Me comunicaré para saber más sobre lo que busca."
               },
               {
                 "number": 3,
                 "title": "Programe una Visita",
-                "description": "Jenise visitará su casa para darle el precio más preciso."
+                "description": "Visitaré su casa en persona para darle el precio más preciso basado en sus mejoras y características únicas."
               }
             ]
           }
         },
         "gallery": {
-          "enabled": false,
+          "enabled": true,
           "data": {
-            "items": []
+            "title": "Vendidas Recientemente por Jenise",
+            "subtitle": "Resultados reales del perfil de Zillow — ventas verificadas.",
+            "items": [
+              {
+                "address": "308 Myrtle St",
+                "city": "Cliffwood",
+                "state": "NJ",
+                "price": "$660,000",
+                "image_url": "/agents/jenise-buckalew/sold/308-myrtle-st.jpg"
+              },
+              {
+                "address": "16 Hershey Rd",
+                "city": "East Brunswick",
+                "state": "NJ",
+                "price": "$650,000",
+                "image_url": "/agents/jenise-buckalew/sold/16-hershey-rd.jpg"
+              },
+              {
+                "address": "18 Charlotte St",
+                "city": "Sayreville",
+                "state": "NJ",
+                "price": "$640,000",
+                "image_url": "/agents/jenise-buckalew/sold/18-charlotte-st.jpg"
+              },
+              {
+                "address": "195 College Dr",
+                "city": "Edison",
+                "state": "NJ",
+                "price": "$260,000",
+                "image_url": "/agents/jenise-buckalew/sold/195-college-dr.jpg"
+              }
+            ]
           }
         },
         "testimonials": {
-          "enabled": false,
+          "enabled": true,
           "data": {
-            "items": []
+            "title": "Lo Que Dicen Mis Clientes",
+            "subtitle": "Reseñas reales de clientes reales en Zillow.",
+            "items": [
+              {
+                "text": "Jenise fue absolutamente increíble durante todo el proceso. Siempre estuvo disponible, increíblemente conocedora, y hizo todo muy fácil. ¡No podría haber pedido una mejor experiencia!",
+                "reviewer": "sra56",
+                "rating": 5,
+                "source": "Zillow"
+              },
+              {
+                "text": "Jenise es una agente de bienes raíces fantástica. Nos guió en cada paso y siempre fue paciente con nuestras preguntas. Su experiencia hizo que la venta de nuestra casa fuera fluida y sin estrés.",
+                "reviewer": "rv skaarup",
+                "rating": 5,
+                "source": "Zillow"
+              },
+              {
+                "text": "Trabajar con Jenise fue la mejor decisión que tomamos. Es profesional, receptiva y realmente se preocupa por sus clientes. ¡Vendió nuestra casa rápido y a un excelente precio!",
+                "reviewer": "brittneyc12597",
+                "rating": 5,
+                "source": "Zillow"
+              },
+              {
+                "text": "Jenise fue más allá por nosotros. Estuvo ahí en cada paso del camino e hizo que todo el proceso fuera perfecto. ¡La recomiendo a cualquiera que esté comprando o vendiendo!",
+                "reviewer": "abbynormal56",
+                "rating": 5,
+                "source": "Zillow"
+              }
+            ]
           }
         },
         "contact_form": {
           "enabled": true,
           "data": {
             "title": "¿Listo para Dar el Paso?",
-            "subtitle": "¿Vendiendo? Obtenga su Informe de Valor de Vivienda gratis. ¿Comprando? Dígale a Jenise lo que busca.",
-            "description": "Ingrese su dirección para recibir un Análisis Comparativo de Mercado gratuito, o díganos lo que está buscando. **100% gratis, sin compromiso.**"
+            "subtitle": "¿Vendiendo? Obtenga su Informe de Valor gratis en minutos. ¿Comprando? Dígame lo que busca.",
+            "description": "¿Vendiendo su casa? Ingrese su dirección a continuación para recibir un Análisis de Mercado gratuito en minutos. ¿Buscando comprar? Dígame lo que busca y le ayudaré a encontrarlo. **100% gratis, sin compromiso.**"
           }
         },
         "about": {
@@ -88,22 +218,34 @@
           "data": {
             "title": "Acerca de Jenise",
             "bio": [
-              "Jenise es parte del equipo de Green Light Realty — una correduría dinámica del centro de Nueva Jersey enfocada en la tecnología, las relaciones y la experiencia en el mercado local."
+              "Soy Jenise Buckalew — agente de bienes raíces licenciada en NJ, orgullosa madre de cinco hijos y agente independiente con Green Light Realty LLC. Con más de 20 años de experiencia y cientos de transacciones exitosas, me especializo en ayudar a propietarios en los condados de Middlesex, Monmouth y Ocean a obtener el mejor valor por su mayor inversión.",
+              "Soy ganadora recurrente del premio Círculo de Excelencia de NJ REALTORS® con una calificación perfecta de 5.0 en Zillow. Creo que cada cliente merece un servicio personalizado y dedicado — desde un CMA profesional gratuito hasta consejos expertos de preparación del hogar y fotografía profesional. Ya sea que esté comprando su primera casa o vendiendo una propiedad que ha tenido por décadas, traigo la misma dedicación a cada transacción.",
+              "Green Light Realty LLC opera tres oficinas — una en el condado de Ocean y dos en el condado de Middlesex — dando a mis clientes un amplio alcance en todo el centro de Nueva Jersey."
             ],
             "credentials": [
-              "REALTOR®"
+              "Licenciada en NJ",
+              "Círculo de Excelencia",
+              "100+ Casas Vendidas",
+              "5.0 ★ Zillow",
+              "Hablamos Español"
             ]
+          }
+        },
+        "city_pages": {
+          "enabled": false,
+          "data": {
+            "cities": []
           }
         }
       }
     },
     "thank_you": {
       "heading": "¡Gracias!",
-      "subheading": "Su Informe de Valor de Vivienda Gratis Se Está Preparando",
-      "body": "Jenise le enviará su Análisis Comparativo de Mercado personalizado a su correo electrónico en breve.",
-      "disclaimer": "Este informe de valor de vivienda es un Análisis Comparativo de Mercado (CMA) y no es una tasación.",
-      "cta_call": "Llamar a Jenise: {phone}",
-      "cta_back": "Página de Jenise"
+      "subheading": "¡Su Informe de Valor de Vivienda Se Está Preparando!",
+      "body": "{firstName} le enviará su Análisis Comparativo de Mercado personalizado a su correo electrónico en breve. ¡Esté atento a su bandeja de entrada!",
+      "disclaimer": "Este informe de valor de vivienda es un Análisis Comparativo de Mercado (CMA) y no es una tasación. No debe considerarse equivalente a una tasación.",
+      "cta_call": "Llamar a {firstName}: {phone}",
+      "cta_back": "Volver al Sitio de {firstName}"
     }
   }
 }

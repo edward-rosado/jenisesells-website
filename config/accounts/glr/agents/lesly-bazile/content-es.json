@@ -1,0 +1,123 @@
+{
+  "pages": {
+    "home": {
+      "sections": {
+        "hero": {
+          "enabled": true,
+          "data": {
+            "headline": "Lesly Bazile — REALTOR® Associate",
+            "tagline": "Hacia adelante. En movimiento.",
+            "body": "Lesly es REALTOR® de Green Light Realty, atendiendo a compradores y vendedores en los condados de Middlesex, Monmouth y Ocean. Comuníquese para obtener experiencia en el mercado local y orientación desde la primera visita hasta el día del cierre.",
+            "cta_text": "Trabaje con Lesly",
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/kitchen.jpg"
+          }
+        },
+        "stats": {
+          "enabled": false,
+          "data": {
+            "items": []
+          }
+        },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "Cómo ayuda Lesly",
+            "subtitle": "Experiencia local desde la primera visita hasta el cierre.",
+            "items": [
+              {
+                "icon": "📍",
+                "category": "Conocimiento Local",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
+                "title": "Experiencia en el Mercado Local",
+                "description": "Lesly trabaja los condados de Middlesex, Monmouth y Ocean todos los días — precios, vecindarios, escuelas y cuánto valen realmente las casas hoy."
+              },
+              {
+                "icon": "🧭",
+                "category": "Compradores y Vendedores",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
+                "title": "Orientación para Compradores y Vendedores",
+                "description": "Ya sea que compre su primera casa o venda para mudarse a una mayor, Lesly lo guía en cada paso para que nada lo tome por sorpresa."
+              },
+              {
+                "icon": "🏢",
+                "category": "Respaldo de la Correduría",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
+                "title": "Respaldado por Green Light Realty",
+                "description": "Una correduría completa de Central Jersey detrás de cada transacción — marketing, tecnología y una red de referidos de 70 agentes."
+              }
+            ]
+          }
+        },
+        "steps": {
+          "enabled": true,
+          "data": {
+            "title": "Cómo Funciona",
+            "subtitle": "Tres simples pasos para comenzar.",
+            "steps": [
+              {
+                "number": 1,
+                "title": "Envíe Su Información",
+                "description": "Complete el breve formulario a continuación — toma menos de 2 minutos."
+              },
+              {
+                "number": 2,
+                "title": "Reciba Su Informe Gratuito de Valor",
+                "description": "Lesly le enviará un Informe de Valor de Vivienda personalizado en minutos."
+              },
+              {
+                "number": 3,
+                "title": "Programe una Visita",
+                "description": "Lesly visitará su casa para darle el precio más preciso."
+              }
+            ]
+          }
+        },
+        "gallery": {
+          "enabled": false,
+          "data": {
+            "items": []
+          }
+        },
+        "testimonials": {
+          "enabled": false,
+          "data": {
+            "title": "Lo Que Dicen los Clientes de Lesly",
+            "subtitle": "Reseñas reales de clientes de Green Light Realty.",
+            "items": []
+          }
+        },
+        "contact_form": {
+          "enabled": true,
+          "data": {
+            "title": "¿Listo para Dar el Siguiente Paso?",
+            "subtitle": "¿Vende? Reciba su Informe de Valor gratuito. ¿Compra? Dígale a Lesly qué busca.",
+            "description": "Ingrese su dirección para un Análisis Comparativo de Mercado gratuito, o díganos qué está buscando. **100% gratis, sin compromiso.**"
+          }
+        },
+        "about": {
+          "enabled": true,
+          "data": {
+            "title": "Acerca de Lesly",
+            "bio": [
+              "He vivido en Jersey por más de 20 años y tengo 3 hijos a quienes me enorgullece formar como hombres. Puedo comunicarme en francés, ruso, español e inglés.",
+              "Es una experiencia gratificante ayudar a otros a entrar y salir de sus hogares, dando el siguiente paso en sus vidas — algo que comencé hace 20 años. También me enorgullece ayudar a quienes inician el proceso brindando orientación sobre cómo mejorar su crédito, o recomendando personal de confianza para reparaciones. Creo firmemente en crear situaciones de beneficio mutuo.",
+              "Fuera de ser agente inmobiliaria, trabajo en tecnología/IT y disfruto buscar maneras de simplificar procesos. También soy hábil en carpintería, mecánicamente inclinada, y disfruto enseñar a la próxima generación a ser más versátil."
+            ],
+            "credentials": [
+              "REALTOR®"
+            ]
+          }
+        }
+      }
+    },
+    "thank_you": {
+      "heading": "¡Gracias!",
+      "subheading": "Su Informe Gratuito de Valor de Vivienda Está en Preparación",
+      "body": "Lesly le enviará su Análisis Comparativo de Mercado personalizado a su correo en breve.",
+      "disclaimer": "Este informe de valor es un Análisis Comparativo de Mercado (CMA) y no es una tasación.",
+      "cta_call": "Llame a Lesly: {phone}",
+      "cta_back": "Página de Lesly"
+    }
+  }
+}

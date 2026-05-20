@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Frank is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Frank",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/backyard3.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Local Market Expertise",
                 "description": "Frank works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Frank walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Frank's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Frank",
             "bio": [
-              "Frank is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Get to know Frank Pennacchi CRS, GRI Now in New Jersey.  I've been listing and selling homes for over 33 years as a full time Realtor and Broker Owner of RE/MAX Professionals.  I endured every imaginable market condition possible and was able to get my customers and clients through it.  I love what I do because every day I get to meet some fabulous people for the first time.",
+              "And I still have the eye of the tiger in me, I've listed and or sold over 400 homes and to me my next sale is just as exciting and challenging as my first.  Duly licensed in NY and NJ has been a big plus to my Brooklyn and Staten Island sellers looking to move to New Jersey.  Being able to coordinate the sale with the purchase in New Jersey makes for an easy transition by keeping it all under the same roof.  Some years ago, I was invited to speak at the NY Learning Annex.",
+              "Some of the invitees before me were the likes of Donald Trump, Russell Simmons, Ed Koch, Larry King, Suze Orman and many more.  The class was called \"Real Estate Deals In Brooklyn\"."
             ],
             "credentials": [
               "REALTOR®"

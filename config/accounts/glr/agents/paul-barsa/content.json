@@ -9,7 +9,8 @@
             "tagline": "Your trusted Central Jersey REALTOR®.",
             "body": "Paul is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
             "cta_text": "Work With Paul",
-            "cta_link": "#contact_form"
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/backyard3.jpg"
           }
         },
         "stats": {
@@ -25,14 +26,23 @@
             "subtitle": "Local expertise from first showing to closing day.",
             "items": [
               {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
                 "title": "Local Market Expertise",
                 "description": "Paul works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
               },
               {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/kitchen.jpg",
                 "title": "Guidance for Buyers & Sellers",
                 "description": "Whether you are buying your first home or selling to move up, Paul walks you through every step so nothing catches you off guard."
               },
               {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
                 "title": "Backed by Green Light Realty",
                 "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
               }
@@ -72,6 +82,8 @@
         "testimonials": {
           "enabled": false,
           "data": {
+            "title": "What Paul's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
             "items": []
           }
         },
@@ -88,7 +100,9 @@
           "data": {
             "title": "About Paul",
             "bio": [
-              "Paul is part of the Green Light Realty team — a dynamic Central Jersey brokerage focused on technology, relationships, and local market expertise."
+              "Paul Barsa is a lifelong resident of New Jersey with in-depth knowledge and appreciation for his state.  He graduated college with a degree in Marketing and was a sales associate at Skyline Realty in Weehawken from 2000 to 2005 where he specialized in apartment rentals and multi-family sales.  Paul left real estate in 2005 because his Marketing career had taken off but he remained tied to the industry as a property owner, landlord and “house flipper”.  Paul loved Real Estate and knew he would be back someday.",
+              "Fast forward to 2020 and his vision became a reality.  Paul always tries to turn a challenge into an opportunity and Covid-19 provided the greatest challenge of all.  His company relocated due to the pandemic, so he chose to stay in NJ and pursue his goal of working in Real Estate once again.  His Marketing background is an invaluable asset because he understands that customers are the most important part of any business.",
+              "Paul is extremely responsive and communicates in a way that makes you feel like you are working with a trusted business partner who always has your best interest in mind.  He has the highest level of integrity and works hard to ensure a hassle-free experience for his clients.  Paul is married to his lovely wife Jeanne who is a Monroe elementary school teacher.  They have two wonderful boys and enjoy family time more than anything."
             ],
             "credentials": [
               "REALTOR®"
