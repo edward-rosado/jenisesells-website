@@ -23,6 +23,35 @@ Have these tabs/files open BEFORE the meeting:
 
 **Highlights to make sure land** (every one is verified working today): **mobile-first / fully responsive** (vs. the prospect's desktop-only legacy site) · brokerage sites (one firm, a page per agent) · custom domains · **multi-language sites (EN/ES/IT/RU/HI, auto-detected, per-agent)** · **learns from the agent** (bios, languages, reviews read from their real profile — not a blank form) · 10 templates · tailored to the agent's real brand · CMA automation · lead capture→email. Roadmap to paint: lead routing, drip nurture, email monitoring with draft automation, automated listing search, DocuSign. See talking-points doc for the framing of each.
 
+### Safe demo URLs — quick reference
+
+Every URL below is on the GLR brokerage demo and verified to show the named feature. Base: `https://real-estate-star-agents-pr-158.misteredr.workers.dev`. Don't improvise other agents — these are the confirmed-good ones.
+
+**Multi-language — open the agent page, use the language switcher in the nav** (Spanish also works via browser language):
+| Language | Safe agent page | Why this one |
+|---|---|---|
+| Spanish | `/agents/jenise-buckalew?accountId=glr` | Jenise's real bio states Spanish fluency; hand-written ES |
+| Spanish | `/agents/lesly-bazile?accountId=glr` | Lesly is trilingual (ES + RU) |
+| Italian | `/agents/antonella-coco?accountId=glr` | Bio: "fluent in Italian" |
+| Russian | `/agents/lesly-bazile?accountId=glr` | Bio lists Russian; switcher shows ES + RU |
+| Russian | `/agents/indre-lewis?accountId=glr` | Bio: "fluent in Russian" |
+| Hindi | `/agents/kajal-shah?accountId=glr` | Bio: speaks English + Hindi |
+| Hindi | `/agents/nilesh-shah?accountId=glr` | Bio: English, Hindi, Gujarati |
+| English-only (contrast) | `/agents/noelle-dibenedetto?accountId=glr` | Stays English — proves it's per-agent |
+
+**Testimonials — agent pages with real client reviews** (a "Testimonials" section + nav item appears only on these):
+| Agent page | Reviews |
+|---|---|
+| `/agents/noelle-dibenedetto?accountId=glr` | 9 — the strongest testimonials page |
+| `/agents/jeffrey-prontnicki?accountId=glr` | 7 — the broker/owner |
+| `/agents/jenise-buckalew?accountId=glr` | her real reviews (from her live account) |
+| `/agents/joseph-goretskie?accountId=glr` | 1 |
+| `/agents/christina-corsaro?accountId=glr` | 1 |
+
+> Other agent pages have **no** testimonials section by design (no fabricated reviews). If asked, that's the honest answer — the platform only shows reviews an agent actually has.
+
+**Listings — the brokerage homepage** (`/?accountId=glr`): the **"Featured Listings"** section (carousel, ~mid-page) shows 9 real Green Light Realty listings with prices and addresses. Listings live on the **brokerage homepage**, not individual agent pages.
+
 ---
 
 ## The story arc (~10–12 min)
@@ -52,8 +81,9 @@ This is **Green Light Realty** — a real Central Jersey brokerage (70 agents, O
 Talk track:
 - "This isn't one agent — it's an entire brokerage. Green Light Realty, 70 agents. One branded brokerage site, built automatically."
 - Scroll the brokerage homepage: the hero with their real tagline *"Forward. Moving. Forward. Learning."*, the stats (70+ agents, est. 2017), the "Why Green Light Realty" section, real client testimonials, the about section with the broker's bio.
-- **Then show a per-agent page** — open `…workers.dev/agents/jenise-buckalew?accountId=glr`. "Every single agent gets their own dedicated page under the brokerage — their photo, their contact, their own lead form. Here's Jenise Buckalew's."
-- Try another: `…workers.dev/agents/jeffrey-prontnicki?accountId=glr` (the broker/owner) or `…workers.dev/agents/noelle-dibenedetto?accountId=glr`.
+- **Then show a per-agent page** — open `…workers.dev/agents/noelle-dibenedetto?accountId=glr`. "Every agent gets their own dedicated page — their photo, their real bio, their contact, their own lead form. And scroll down — Noelle's real client reviews, right on her page." (Noelle's page has 9 real testimonials — the strongest one to show.)
+- Try another: `…workers.dev/agents/jeffrey-prontnicki?accountId=glr` (the broker/owner, 7 reviews) or `…workers.dev/agents/jenise-buckalew?accountId=glr`.
+- "And the content on each page is the agent's *real* bio — the platform read it from their existing profile. Not a blank form they had to fill in."
 - "Seventy agents, seventy pages, one brand — and the brokerage didn't run seventy web projects to get it."
 
 **Two things to land here (both important to a brokerage buyer):**
