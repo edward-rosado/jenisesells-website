@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import type { AccountConfig, NavigationConfig, ContactMethod } from "@/features/config/types";
+import type { AccountConfig, AgentConfig, NavigationConfig, ContactMethod } from "@/features/config/types";
 import { useFocusTrap } from "./use-focus-trap";
 import { safeMailtoHref, safeTelHref } from "@/features/shared/safe-contact";
 import { getUiStrings, LanguageSwitcher, languagesToLocales } from "@/features/i18n";
@@ -16,6 +16,10 @@ interface NavProps {
   /** Set of enabled section IDs (e.g. "features", "testimonials") — nav items linking to disabled sections are hidden */
   enabledSections?: Set<string>;
   locale?: string;
+  /** When rendering an agent sub-page, the agent's own config. The language
+   *  switcher then offers only the languages THIS agent speaks, not the union
+   *  of every agent's languages from the brokerage account. */
+  agent?: AgentConfig;
 }
 
 function OfficeIcon({ size = 14 }: { size?: number }) {
@@ -65,7 +69,7 @@ function formatPhoneDisplay(value: string, ext?: string | null): string {
   return ext ? `${value} ext ${ext}` : value;
 }
 
-export function Nav({ account, navigation, enabledSections, locale }: NavProps) {
+export function Nav({ account, navigation, enabledSections, locale, agent }: NavProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { branding } = account;
   const hamburgerRef = useRef<HTMLButtonElement>(null);
@@ -118,9 +122,11 @@ export function Nav({ account, navigation, enabledSections, locale }: NavProps) 
     href: item.href,
   }));
 
-  // Resolve locale support for language switcher
-  const agentLanguages = account.agent?.languages ?? ["English"];
-  const supportedLocales = languagesToLocales(agentLanguages);
+  // Resolve locale support for the language switcher. On an agent sub-page,
+  // offer only the languages THAT agent speaks; on the brokerage homepage,
+  // offer the account's languages (the union of all agents').
+  const switcherLanguages = agent?.languages ?? account.agent?.languages ?? ["English"];
+  const supportedLocales = languagesToLocales(switcherLanguages);
   const currentLocale = (locale ?? "en") as SupportedLocale;
 
   // Resolve contact methods from account.contact_info or fallback

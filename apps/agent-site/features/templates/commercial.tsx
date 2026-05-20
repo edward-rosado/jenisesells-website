@@ -17,7 +17,7 @@ export function Commercial({ account, content, agent, locale }: TemplateProps) {
   const enabledSections = getEnabledSections(s);
   return (
     <>
-      <Nav account={account} navigation={content.navigation} enabledSections={enabledSections} locale={locale} />
+      <Nav account={account} navigation={content.navigation} enabledSections={enabledSections} locale={locale} agent={agent} />
       <div id="main-content" tabIndex={-1} style={{ paddingTop: "0" }}>
         {s.hero?.enabled && (
           <HeroCorporate
