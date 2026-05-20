@@ -2,8 +2,8 @@
   "navigation": {
     "items": [
       {
-        "label": "Our Agents",
-        "href": "/agents/jenise-buckalew",
+        "label": "Why Green Light",
+        "href": "#features",
         "enabled": true
       },
       {
