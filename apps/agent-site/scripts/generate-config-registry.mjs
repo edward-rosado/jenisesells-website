@@ -55,6 +55,7 @@ function main() {
   const accountLanguagesMap = {};
   const agentConfigsMap = {};
   const agentContentMap = {};
+  const agentLocalizedContentMap = {};
   const legalContentMap = {};
   const customDomains = {};
 
@@ -80,8 +81,12 @@ function main() {
       }
     }
 
-    // Extract supported locales from account.agent.languages
-    const LANGUAGE_TO_LOCALE = { English: "en", Spanish: "es", Portuguese: "pt" };
+    // Extract supported locales from account.agent.languages.
+    // Keep in sync with SUPPORTED_LOCALES in features/i18n/locale-map.ts.
+    const LANGUAGE_TO_LOCALE = {
+      English: "en", Spanish: "es", Portuguese: "pt",
+      Italian: "it", Russian: "ru", Hindi: "hi",
+    };
     const languages = account.agent?.languages ?? ["English"];
     accountLanguagesMap[handle] = languages
       .map((lang) => LANGUAGE_TO_LOCALE[lang])
@@ -118,6 +123,17 @@ function main() {
         if (fs.existsSync(agentContentPath)) {
           agentContentMap[handle][agentId] = loadJson(agentContentPath);
         }
+        // Discover per-agent localized content (content-es.json, content-pt.json, etc.)
+        for (const file of fs.readdirSync(agentDir)) {
+          const match = file.match(/^content-([a-z]{2})\.json$/);
+          if (match) {
+            const locale = match[1];
+            if (!agentLocalizedContentMap[handle]) agentLocalizedContentMap[handle] = {};
+            if (!agentLocalizedContentMap[handle][agentId]) agentLocalizedContentMap[handle][agentId] = {};
+            agentLocalizedContentMap[handle][agentId][locale] = loadJson(path.join(agentDir, file));
+            console.log(`  ${handle}/${agentId}: found locale content for "${locale}"`);
+          }
+        }
       }
       console.log(`  ${handle}: ${agentIds.length} agent(s): ${agentIds.join(", ")}`);
     }
@@ -135,6 +151,10 @@ export const agentConfigs: Record<string, Record<string, AgentConfig>> = ${JSON.
 export const agentContent: Record<string, Record<string, ContentConfig>> = ${JSON.stringify(agentContentMap)} as unknown as Record<string, Record<string, ContentConfig>>;
 
 export const localizedContent: Record<string, Record<string, ContentConfig>> = ${JSON.stringify(localizedContentMap)} as unknown as Record<string, Record<string, ContentConfig>>;
+
+// Per-agent localized content, keyed [handle][agentId][locale]. Only agents that
+// actually offer a non-English language have an entry. Missing locale -> English fallback.
+export const agentLocalizedContent: Record<string, Record<string, Record<string, ContentConfig>>> = ${JSON.stringify(agentLocalizedContentMap)} as unknown as Record<string, Record<string, Record<string, ContentConfig>>>;
 
 export const accountLanguages: Record<string, string[]> = ${JSON.stringify(accountLanguagesMap)};
 

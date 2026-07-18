@@ -1,17 +1,23 @@
 /** BCP 47 locale codes supported by the platform */
-export const SUPPORTED_LOCALES = ["en", "es", "pt"] as const;
+export const SUPPORTED_LOCALES = ["en", "es", "pt", "it", "ru", "hi"] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 const LANGUAGE_TO_LOCALE: Record<string, SupportedLocale> = {
   English: "en",
   Spanish: "es",
   Portuguese: "pt",
+  Italian: "it",
+  Russian: "ru",
+  Hindi: "hi",
 };
 
 const LOCALE_TO_LANGUAGE: Record<SupportedLocale, string> = {
   en: "English",
   es: "Español",
   pt: "Português",
+  it: "Italiano",
+  ru: "Русский",
+  hi: "हिन्दी",
 };
 
 /** Map a human-readable language name (from agent config) to a BCP 47 locale code */

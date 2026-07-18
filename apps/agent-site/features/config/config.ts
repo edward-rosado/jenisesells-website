@@ -1,6 +1,6 @@
 // apps/agent-site/features/config/config.ts
 import type { AccountConfig, AgentConfig, ContentConfig } from "./types";
-import { accounts, accountContent, localizedContent, accountLanguages, agentConfigs, agentContent, legalContent } from "./config-registry";
+import { accounts, accountContent, localizedContent, accountLanguages, agentConfigs, agentContent, agentLocalizedContent, legalContent } from "./config-registry";
 
 const VALID_HANDLE = /^[a-z0-9-]+$/;
 
@@ -54,6 +54,26 @@ export function loadAgentConfig(handle: string, agentId: string): AgentConfig {
 export function loadAgentContent(handle: string, agentId: string): ContentConfig | undefined {
   validateHandle(handle);
   validateHandle(agentId);
+  return agentContent[handle]?.[agentId];
+}
+
+/**
+ * Load a specific agent's content for a locale, falling back to English.
+ * Per-agent localized content is opt-in: an agent only has a non-English entry
+ * if a `content-{locale}.json` file exists in their config dir. Missing locale
+ * (or `en`) returns the default English `content.json`.
+ */
+export function loadLocalizedAgentContent(
+  handle: string,
+  agentId: string,
+  locale: string,
+): ContentConfig | undefined {
+  validateHandle(handle);
+  validateHandle(agentId);
+  if (locale && locale !== "en") {
+    const localized = agentLocalizedContent[handle]?.[agentId]?.[locale];
+    if (localized) return localized;
+  }
   return agentContent[handle]?.[agentId];
 }
 

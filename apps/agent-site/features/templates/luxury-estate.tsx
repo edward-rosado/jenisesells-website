@@ -6,7 +6,7 @@ import { ServicesPremium } from "@/features/sections/services";
 import { StepsElegant } from "@/features/sections/steps";
 import { SoldCarousel } from "@/features/sections/sold";
 import { TestimonialsSpotlight } from "@/features/sections/testimonials";
-import { ProfilesClean } from "@/features/sections/profiles";
+import { ProfilesGrid } from "@/features/sections/profiles";
 import { CmaSection, Footer, ScrollRevealSection } from "@/features/sections/shared";
 import { AboutParallax } from "@/features/sections/about";
 import { type TemplateProps, getEnabledSections } from "./types";
@@ -17,7 +17,7 @@ export function LuxuryEstate({ account, content, agent, locale }: TemplateProps)
   const enabledSections = getEnabledSections(s);
   return (
     <>
-      <Nav account={account} navigation={content.navigation} enabledSections={enabledSections} locale={locale} />
+      <Nav account={account} navigation={content.navigation} enabledSections={enabledSections} locale={locale} agent={agent} />
       <div id="main-content" tabIndex={-1} style={{ paddingTop: "0" }}>
         {s.hero?.enabled && (
           <HeroParallax
@@ -72,7 +72,7 @@ export function LuxuryEstate({ account, content, agent, locale }: TemplateProps)
         )}
         {s.profiles?.enabled && s.profiles.data.items.length > 0 && (
           <ScrollRevealSection>
-            <ProfilesClean
+            <ProfilesGrid
               items={s.profiles.data.items}
               title={s.profiles.data.title}
               subtitle={s.profiles.data.subtitle}

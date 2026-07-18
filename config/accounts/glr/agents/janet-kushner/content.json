@@ -1,0 +1,123 @@
+{
+  "pages": {
+    "home": {
+      "sections": {
+        "hero": {
+          "enabled": true,
+          "data": {
+            "headline": "Janet Kushner — REALTOR® Associate",
+            "tagline": "Your trusted Central Jersey REALTOR®.",
+            "body": "Janet is a REALTOR® Associate with Green Light Realty, serving buyers and sellers across Middlesex, Monmouth, and Ocean County. Reach out for local market expertise and guidance from first showing to closing day.",
+            "cta_text": "Work With Janet",
+            "cta_link": "#contact_form",
+            "background_image": "/agents/glr/scenes/kitchen.jpg"
+          }
+        },
+        "stats": {
+          "enabled": false,
+          "data": {
+            "items": []
+          }
+        },
+        "features": {
+          "enabled": true,
+          "data": {
+            "title": "How Janet Helps",
+            "subtitle": "Local expertise from first showing to closing day.",
+            "items": [
+              {
+                "icon": "📍",
+                "category": "Local Knowledge",
+                "image_url": "/agents/glr/scenes/livingroom3.jpg",
+                "title": "Local Market Expertise",
+                "description": "Janet works Middlesex, Monmouth, and Ocean County every day — pricing, neighborhoods, schools, and what homes are really worth right now."
+              },
+              {
+                "icon": "🧭",
+                "category": "Buyers & Sellers",
+                "image_url": "/agents/glr/scenes/backyard3.jpg",
+                "title": "Guidance for Buyers & Sellers",
+                "description": "Whether you are buying your first home or selling to move up, Janet walks you through every step so nothing catches you off guard."
+              },
+              {
+                "icon": "🏢",
+                "category": "Brokerage Backing",
+                "image_url": "/agents/glr/scenes/bathroom.jpg",
+                "title": "Backed by Green Light Realty",
+                "description": "A full Central Jersey brokerage behind every transaction — marketing, technology, and a 70-agent referral network."
+              }
+            ]
+          }
+        },
+        "steps": {
+          "enabled": true,
+          "data": {
+            "title": "How It Works",
+            "subtitle": "Three simple steps to get started.",
+            "steps": [
+              {
+                "number": 1,
+                "title": "Submit Your Info",
+                "description": "Fill out the quick form below — it takes less than 2 minutes."
+              },
+              {
+                "number": 2,
+                "title": "Get Your Free Home Value Report",
+                "description": "Janet will send a personalized Home Value Report within minutes."
+              },
+              {
+                "number": 3,
+                "title": "Schedule a Walkthrough",
+                "description": "Janet will visit your home for the most accurate price."
+              }
+            ]
+          }
+        },
+        "gallery": {
+          "enabled": false,
+          "data": {
+            "items": []
+          }
+        },
+        "testimonials": {
+          "enabled": false,
+          "data": {
+            "title": "What Janet's Clients Say",
+            "subtitle": "Real reviews from Green Light Realty clients.",
+            "items": []
+          }
+        },
+        "contact_form": {
+          "enabled": true,
+          "data": {
+            "title": "Ready to Make a Move?",
+            "subtitle": "Selling? Get your free Home Value Report. Buying? Tell Janet what you’re looking for.",
+            "description": "Enter your address for a free Comparative Market Analysis, or tell us what you’re searching for. **100% free, no obligation.**"
+          }
+        },
+        "about": {
+          "enabled": true,
+          "data": {
+            "title": "About Janet",
+            "bio": [
+              "Hi, Janet Kushner here, an Old Bridge native!  Many of you know me from living and being a part of the Old Bridge community my entire life.  I have been in real estate in every type of market, buyer’s and seller’s markets!  I raised four successful community minded children in NJ and love this state, especially our area.  I have worked with hundreds of families and friends to help them find their dream, forever homes in all aspects of Real estate.  Whether it be buying, selling, investing, or just being curious about what’s going on in the market, I am here!  I love this business and helping people.  It’s not always about making a deal, it's about life decisions and where you want to be.",
+              "I put my clients first and sometimes that means not making that move, other times you may just need an extra helping hand.  I am not a salesperson, I am a friend, a confidant, and source of information of what the market can do for you!  I have personally bought, sold, rehabbed, built new homes, renovated, been a landlord and supported hundreds of people in our Central Jersey area.  And “YES”, we are Central Jersey!  One of the best places to live and raise a family.  I did and now have four successful adults to attest to that!  I am most proud of my children and how I raised them to be caring, compassionate and to give back to the community!  I am a member of the Real estate community, served on the emergency response team, worked for the Red Cross, currently involved with the PTA and election board in Old Bridge and Middlesex County, and I stay community minded.",
+              "I am always willing to give a hand in helping others.  That is my strength, so call on me to help be your guide in your next move!  Let’s talk!  It’s what I do best!  Friends have named their GPS “Janet” because of how well I know the area!  Let me be your GPS in the buying and/or selling of your next home!"
+            ],
+            "credentials": [
+              "REALTOR®"
+            ]
+          }
+        }
+      }
+    },
+    "thank_you": {
+      "heading": "Thank You!",
+      "subheading": "Your Free Home Value Report Is Being Prepared",
+      "body": "Janet will send your personalized Comparative Market Analysis to your email shortly.",
+      "disclaimer": "This home value report is a Comparative Market Analysis (CMA) and is not an appraisal.",
+      "cta_call": "Call Janet: {phone}",
+      "cta_back": "Janet’s Page"
+    }
+  }
+}
