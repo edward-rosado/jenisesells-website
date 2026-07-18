@@ -108,6 +108,13 @@ Design spec: `docs/superpowers/specs/2026-03-21-api-project-restructure-design.m
 | [Activation Cost Model](activation-cost-model.md) | Per-agent and per-lead Claude API cost breakdown |
 | [Activation Analysis Dimensions](activation-analysis-dimensions.md) | User-facing explainer of the nine analysis dimensions |
 
+## Infrastructure & Operations
+
+| Document | Description |
+|----------|------------|
+| [Keep-Alive Design](keep-alive-design.md) | Cloudflare Worker cron ping to prevent cold starts on Y1 Consumption + Container Apps |
+| [Cost Benefit Analysis](cost-benefit-analysis.md) | Unit economics, breakeven, scale projections — AI costs, infra costs, per-agent margins |
+
 ## WhatsApp Integration
 
 | Document | Description |

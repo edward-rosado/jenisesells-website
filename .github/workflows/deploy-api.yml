@@ -8,7 +8,8 @@ on:
       - '.github/workflows/deploy-api.yml'
 
 env:
-  ACR_NAME: realestatestar
+  REGISTRY: ghcr.io
+  REGISTRY_OWNER: edward-rosado
   CONTAINER_APP_NAME: real-estate-star-api
   RESOURCE_GROUP: real-estate-star-rg
   IMAGE_NAME: real-estate-star-api
@@ -57,6 +58,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
@@ -66,8 +68,8 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Login to ACR
-        run: az acr login --name ${{ env.ACR_NAME }}
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Copy config into Docker context
         run: cp -r config/accounts apps/api/config-accounts
@@ -75,12 +77,12 @@ jobs:
       - name: Build Docker image
         run: |
           docker build \
-            -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/${{ env.REGISTRY_OWNER }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             -f apps/api/Dockerfile \
             apps/api
 
-      - name: Push image to ACR
-        run: docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+      - name: Push image to GHCR
+        run: docker push ${{ env.REGISTRY }}/${{ env.REGISTRY_OWNER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Update Container App secrets
         env:
@@ -148,10 +150,17 @@ jobs:
           if [ -n "$TURNSTILE_SECRET" ]; then
             EXTRA_ENV_VARS="$EXTRA_ENV_VARS Turnstile__SecretKey=secretref:turnstile-secret-key"
           fi
+          az containerapp registry set \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --server "${{ env.REGISTRY }}" \
+            --username "${{ github.actor }}" \
+            --password "${{ secrets.GHCR_PAT }}"
+
           az containerapp update \
             --name "$CONTAINER_APP_NAME" \
             --resource-group "$RESOURCE_GROUP" \
-            --image "$ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}" \
+            --image "${{ env.REGISTRY }}/${{ env.REGISTRY_OWNER }}/$IMAGE_NAME:${{ github.sha }}" \
             ${EXTRA_ENV_VARS:+--set-env-vars $EXTRA_ENV_VARS}
 
           # Set OTel headers separately — value contains spaces that get mangled in EXTRA_ENV_VARS
